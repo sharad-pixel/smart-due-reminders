@@ -10,7 +10,7 @@ const Index = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary">Recouply.ai</h1>
-          <Button onClick={() => navigate("/auth")}>Sign In</Button>
+          <Button onClick={() => navigate("/login")}>Sign In</Button>
         </div>
       </header>
 
@@ -25,11 +25,11 @@ const Index = () => {
               using AI-powered workflows. Never lose revenue to forgotten payments again.
             </p>
             <div className="flex gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate("/auth")}>
+              <Button size="lg" onClick={() => navigate("/signup")}>
                 Get Started Free
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-                View Demo
+              <Button size="lg" variant="outline" onClick={() => navigate("/login")}>
+                Sign In
               </Button>
             </div>
           </div>
@@ -127,7 +127,7 @@ const Index = () => {
             <Button
               size="lg"
               variant="secondary"
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/signup")}
               className="text-lg px-8"
             >
               Start Free Trial

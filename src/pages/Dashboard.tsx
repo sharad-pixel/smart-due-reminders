@@ -1,18 +1,15 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { DollarSign, Users, FileText, Send, LogOut } from "lucide-react";
 import DebtorsList from "@/components/DebtorsList";
 import InvoicesList from "@/components/InvoicesList";
 import MessageDrafter from "@/components/MessageDrafter";
+import Layout from "@/components/Layout";
+import { User } from "@supabase/supabase-js";
+import { DollarSign, Users, FileText, Send } from "lucide-react";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -23,25 +20,14 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) {
-        navigate("/auth");
-      }
-    });
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (!session?.user) {
-        navigate("/auth");
-      } else {
+      if (session?.user) {
         fetchStats();
       }
       setLoading(false);
     });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const fetchStats = async () => {
     try {
@@ -82,12 +68,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Signed out successfully");
-    navigate("/auth");
-  };
-
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -100,26 +80,16 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">Recouply.ai</h1>
-          <Button onClick={handleSignOut} variant="ghost" size="sm">
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-          <p className="text-muted-foreground">
-            Manage your invoice collections with AI-powered automation
+    <Layout>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-4xl font-bold text-primary">Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Welcome back! Here's your collection overview.
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Owed</CardTitle>
@@ -184,8 +154,8 @@ const Dashboard = () => {
             <MessageDrafter />
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
