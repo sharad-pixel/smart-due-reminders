@@ -36,7 +36,7 @@ const MessageDrafter = () => {
       const { data, error } = await supabase
         .from("invoices")
         .select("*, debtors(company_name, contact_name)")
-        .in("status", ["sent", "overdue"])
+        .in("status", ["Open", "InPaymentPlan"])
         .order("due_date");
 
       if (error) throw error;
@@ -92,13 +92,18 @@ const MessageDrafter = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("outreach_messages").insert([
+      const invoice = invoices.find((inv) => inv.id === selectedInvoice);
+      if (!invoice) throw new Error("Invoice not found");
+
+      const { error } = await supabase.from("outreach_logs").insert([
         {
           invoice_id: selectedInvoice,
-          message_type: messageType,
+          debtor_id: invoice.debtors ? (invoice as any).debtor_id : "",
+          channel: messageType,
           subject: messageType === "email" ? subject : null,
-          content,
-          status: "draft",
+          message_body: content,
+          sent_to: messageType === "email" ? invoice.debtors.company_name : "",
+          status: "queued",
           user_id: user.id,
         },
       ]);

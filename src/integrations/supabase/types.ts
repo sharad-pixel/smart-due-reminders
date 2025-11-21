@@ -14,16 +14,118 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_drafts: {
+        Row: {
+          channel: Database["public"]["Enums"]["channel_type"]
+          created_at: string | null
+          id: string
+          invoice_id: string
+          message_body: string
+          recommended_send_date: string | null
+          status: Database["public"]["Enums"]["draft_status"] | null
+          step_number: number
+          subject: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["channel_type"]
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          message_body: string
+          recommended_send_date?: string | null
+          status?: Database["public"]["Enums"]["draft_status"] | null
+          step_number: number
+          subject?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["channel_type"]
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          message_body?: string
+          recommended_send_date?: string | null
+          status?: Database["public"]["Enums"]["draft_status"] | null
+          step_number?: number
+          subject?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_drafts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_workflows: {
+        Row: {
+          cadence_days: Json
+          created_at: string | null
+          id: string
+          invoice_id: string
+          is_active: boolean | null
+          max_settlement_pct: number | null
+          min_settlement_pct: number | null
+          tone: Database["public"]["Enums"]["tone_type"] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cadence_days: Json
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          is_active?: boolean | null
+          max_settlement_pct?: number | null
+          min_settlement_pct?: number | null
+          tone?: Database["public"]["Enums"]["tone_type"] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cadence_days?: Json
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          is_active?: boolean | null
+          max_settlement_pct?: number | null
+          min_settlement_pct?: number | null
+          tone?: Database["public"]["Enums"]["tone_type"] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_workflows_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtors: {
         Row: {
           address: string | null
           company_name: string
           contact_name: string
           created_at: string | null
+          crm_account_id: string | null
+          current_balance: number | null
           email: string
           id: string
+          name: string
           notes: string | null
           phone: string | null
+          tags: Json | null
+          type: Database["public"]["Enums"]["debtor_type"] | null
           updated_at: string | null
           user_id: string
         }
@@ -32,10 +134,15 @@ export type Database = {
           company_name: string
           contact_name: string
           created_at?: string | null
+          crm_account_id?: string | null
+          current_balance?: number | null
           email: string
           id?: string
+          name: string
           notes?: string | null
           phone?: string | null
+          tags?: Json | null
+          type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id: string
         }
@@ -44,10 +151,15 @@ export type Database = {
           company_name?: string
           contact_name?: string
           created_at?: string | null
+          crm_account_id?: string | null
+          current_balance?: number | null
           email?: string
           id?: string
+          name?: string
           notes?: string | null
           phone?: string | null
+          tags?: Json | null
+          type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id?: string
         }
@@ -60,11 +172,17 @@ export type Database = {
           currency: string | null
           debtor_id: string
           due_date: string
+          external_link: string | null
           id: string
           invoice_number: string
           issue_date: string
+          last_contact_date: string | null
+          next_contact_date: string | null
           notes: string | null
-          payment_link: string | null
+          payment_date: string | null
+          payment_method: string | null
+          promise_to_pay_amount: number | null
+          promise_to_pay_date: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           updated_at: string | null
           user_id: string
@@ -75,11 +193,17 @@ export type Database = {
           currency?: string | null
           debtor_id: string
           due_date: string
+          external_link?: string | null
           id?: string
           invoice_number: string
           issue_date: string
+          last_contact_date?: string | null
+          next_contact_date?: string | null
           notes?: string | null
-          payment_link?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          promise_to_pay_amount?: number | null
+          promise_to_pay_date?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           updated_at?: string | null
           user_id: string
@@ -90,11 +214,17 @@ export type Database = {
           currency?: string | null
           debtor_id?: string
           due_date?: string
+          external_link?: string | null
           id?: string
           invoice_number?: string
           issue_date?: string
+          last_contact_date?: string | null
+          next_contact_date?: string | null
           notes?: string | null
-          payment_link?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          promise_to_pay_amount?: number | null
+          promise_to_pay_date?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           updated_at?: string | null
           user_id?: string
@@ -109,49 +239,62 @@ export type Database = {
           },
         ]
       }
-      outreach_messages: {
+      outreach_logs: {
         Row: {
-          content: string
+          channel: Database["public"]["Enums"]["channel_type"]
           created_at: string | null
+          debtor_id: string
+          delivery_metadata: Json | null
           id: string
           invoice_id: string
-          message_type: string
-          scheduled_at: string | null
+          message_body: string
           sent_at: string | null
-          status: Database["public"]["Enums"]["outreach_status"] | null
+          sent_from: string | null
+          sent_to: string
+          status: Database["public"]["Enums"]["outreach_log_status"] | null
           subject: string | null
-          updated_at: string | null
           user_id: string
         }
         Insert: {
-          content: string
+          channel: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
+          debtor_id: string
+          delivery_metadata?: Json | null
           id?: string
           invoice_id: string
-          message_type: string
-          scheduled_at?: string | null
+          message_body: string
           sent_at?: string | null
-          status?: Database["public"]["Enums"]["outreach_status"] | null
+          sent_from?: string | null
+          sent_to: string
+          status?: Database["public"]["Enums"]["outreach_log_status"] | null
           subject?: string | null
-          updated_at?: string | null
           user_id: string
         }
         Update: {
-          content?: string
+          channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
+          debtor_id?: string
+          delivery_metadata?: Json | null
           id?: string
           invoice_id?: string
-          message_type?: string
-          scheduled_at?: string | null
+          message_body?: string
           sent_at?: string | null
-          status?: Database["public"]["Enums"]["outreach_status"] | null
+          sent_from?: string | null
+          sent_to?: string
+          status?: Database["public"]["Enums"]["outreach_log_status"] | null
           subject?: string | null
-          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "outreach_messages_invoice_id_fkey"
+            foreignKeyName: "outreach_logs_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_logs_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
@@ -161,27 +304,66 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_address: string | null
+          business_name: string | null
+          business_phone: string | null
           company_name: string | null
           created_at: string | null
           email: string | null
           id: string
+          name: string | null
+          password_hash: string | null
           phone: string | null
+          plan_type: Database["public"]["Enums"]["plan_type"] | null
+          sendgrid_api_key: string | null
+          smtp_settings: Json | null
+          stripe_customer_id: string | null
+          stripe_payment_link_url: string | null
+          twilio_account_sid: string | null
+          twilio_auth_token: string | null
+          twilio_from_number: string | null
           updated_at: string | null
         }
         Insert: {
+          business_address?: string | null
+          business_name?: string | null
+          business_phone?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string | null
           id: string
+          name?: string | null
+          password_hash?: string | null
           phone?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          sendgrid_api_key?: string | null
+          smtp_settings?: Json | null
+          stripe_customer_id?: string | null
+          stripe_payment_link_url?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_from_number?: string | null
           updated_at?: string | null
         }
         Update: {
+          business_address?: string | null
+          business_name?: string | null
+          business_phone?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
+          name?: string | null
+          password_hash?: string | null
           phone?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          sendgrid_api_key?: string | null
+          smtp_settings?: Json | null
+          stripe_customer_id?: string | null
+          stripe_payment_link_url?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_from_number?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -194,8 +376,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      invoice_status: "draft" | "sent" | "overdue" | "paid" | "cancelled"
+      channel_type: "email" | "sms"
+      debtor_type: "B2B" | "B2C"
+      draft_status: "pending_approval" | "approved" | "discarded"
+      invoice_status:
+        | "Open"
+        | "Paid"
+        | "Disputed"
+        | "Settled"
+        | "InPaymentPlan"
+        | "Canceled"
+      outreach_log_status: "sent" | "failed" | "queued"
       outreach_status: "draft" | "scheduled" | "sent" | "failed"
+      plan_type: "free" | "starter" | "growth" | "pro"
+      tone_type: "friendly" | "firm" | "neutral"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -323,8 +517,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      invoice_status: ["draft", "sent", "overdue", "paid", "cancelled"],
+      channel_type: ["email", "sms"],
+      debtor_type: ["B2B", "B2C"],
+      draft_status: ["pending_approval", "approved", "discarded"],
+      invoice_status: [
+        "Open",
+        "Paid",
+        "Disputed",
+        "Settled",
+        "InPaymentPlan",
+        "Canceled",
+      ],
+      outreach_log_status: ["sent", "failed", "queued"],
       outreach_status: ["draft", "scheduled", "sent", "failed"],
+      plan_type: ["free", "starter", "growth", "pro"],
+      tone_type: ["friendly", "firm", "neutral"],
     },
   },
 } as const
