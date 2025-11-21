@@ -2,80 +2,186 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import DebtorsList from "@/components/DebtorsList";
 import InvoicesList from "@/components/InvoicesList";
 import MessageDrafter from "@/components/MessageDrafter";
 import Layout from "@/components/Layout";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, Users, FileText, Send } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useNavigate } from "react-router-dom";
+
+interface Invoice {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  due_date: string;
+  status: string;
+  payment_date: string | null;
+  debtors?: { name: string };
+}
+
+interface AIDraft {
+  id: string;
+  invoice_id: string;
+  step_number: number;
+  channel: string;
+  subject: string | null;
+  status: string;
+  invoices?: {
+    invoice_number: string;
+    debtors?: { name: string };
+  };
+}
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [pendingDrafts, setPendingDrafts] = useState<AIDraft[]>([]);
   const [stats, setStats] = useState({
-    totalOwed: 0,
-    activeDebtors: 0,
-    overdueInvoices: 0,
-    messagesSent: 0,
+    totalOutstanding: 0,
+    totalRecovered: 0,
+    openInvoicesCount: 0,
+    avgDaysPastDue: 0,
   });
+  const [agingData, setAgingData] = useState([
+    { bucket: "0-30", count: 0, amount: 0 },
+    { bucket: "31-60", count: 0, amount: 0 },
+    { bucket: "61-90", count: 0, amount: 0 },
+    { bucket: "90+", count: 0, amount: 0 },
+  ]);
+  const [priorityOverdues, setPriorityOverdues] = useState<Invoice[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchStats();
+        fetchDashboardData();
       }
       setLoading(false);
     });
   }, []);
 
-  const fetchStats = async () => {
+  const getDaysPastDue = (dueDate: string): number => {
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = today.getTime() - due.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const fetchDashboardData = async () => {
     try {
-      const { data: invoices } = await supabase
-        .from("invoices")
-        .select("amount, status, due_date");
-      
-      const { data: debtors } = await supabase
-        .from("debtors")
-        .select("id");
-      
-      const { data: messages } = await supabase
-        .from("outreach_logs")
-        .select("id")
-        .eq("status", "sent");
+      const [invoicesRes, draftsRes] = await Promise.all([
+        supabase.from("invoices").select("*, debtors(name)"),
+        supabase
+          .from("ai_drafts")
+          .select("*, invoices(invoice_number, debtors(name))")
+          .eq("status", "pending_approval")
+          .limit(10),
+      ]);
 
-      const totalOwed = invoices?.reduce((sum, inv) => {
-        if (inv.status === "Open" || inv.status === "InPaymentPlan") {
-          return sum + Number(inv.amount);
-        }
-        return sum;
-      }, 0) || 0;
+      if (invoicesRes.error) throw invoicesRes.error;
+      const allInvoices = invoicesRes.data || [];
+      setInvoices(allInvoices);
 
-      const overdueCount = invoices?.filter(inv => {
-        if (inv.status !== "Open") return false;
-        const dueDate = new Date(inv.due_date);
-        return dueDate < new Date();
-      }).length || 0;
+      if (!draftsRes.error) {
+        setPendingDrafts(draftsRes.data || []);
+      }
+
+      // Calculate Total Outstanding
+      const outstanding = allInvoices
+        .filter((inv) => inv.status === "Open" || inv.status === "InPaymentPlan")
+        .reduce((sum, inv) => sum + Number(inv.amount), 0);
+
+      // Calculate Total Recovered (last 90 days)
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const recovered = allInvoices
+        .filter((inv) => {
+          if (inv.status !== "Paid" || !inv.payment_date) return false;
+          const paymentDate = new Date(inv.payment_date);
+          return paymentDate >= ninetyDaysAgo;
+        })
+        .reduce((sum, inv) => sum + Number(inv.amount), 0);
+
+      // Calculate Open Invoices Count
+      const openInvoices = allInvoices.filter((inv) => inv.status === "Open");
+      const openCount = openInvoices.length;
+
+      // Calculate Average Days Past Due for Open invoices
+      const totalDaysPastDue = openInvoices.reduce((sum, inv) => {
+        return sum + getDaysPastDue(inv.due_date);
+      }, 0);
+      const avgDays = openCount > 0 ? Math.round(totalDaysPastDue / openCount) : 0;
 
       setStats({
-        totalOwed,
-        activeDebtors: debtors?.length || 0,
-        overdueInvoices: overdueCount,
-        messagesSent: messages?.length || 0,
+        totalOutstanding: outstanding,
+        totalRecovered: recovered,
+        openInvoicesCount: openCount,
+        avgDaysPastDue: avgDays,
       });
+
+      // Calculate Aging Buckets
+      const buckets = {
+        "0-30": { count: 0, amount: 0 },
+        "31-60": { count: 0, amount: 0 },
+        "61-90": { count: 0, amount: 0 },
+        "90+": { count: 0, amount: 0 },
+      };
+
+      openInvoices.forEach((inv) => {
+        const days = getDaysPastDue(inv.due_date);
+        const amount = Number(inv.amount);
+
+        if (days <= 30) {
+          buckets["0-30"].count++;
+          buckets["0-30"].amount += amount;
+        } else if (days <= 60) {
+          buckets["31-60"].count++;
+          buckets["31-60"].amount += amount;
+        } else if (days <= 90) {
+          buckets["61-90"].count++;
+          buckets["61-90"].amount += amount;
+        } else {
+          buckets["90+"].count++;
+          buckets["90+"].amount += amount;
+        }
+      });
+
+      setAgingData([
+        { bucket: "0-30", count: buckets["0-30"].count, amount: buckets["0-30"].amount },
+        { bucket: "31-60", count: buckets["31-60"].count, amount: buckets["31-60"].amount },
+        { bucket: "61-90", count: buckets["61-90"].count, amount: buckets["61-90"].amount },
+        { bucket: "90+", count: buckets["90+"].count, amount: buckets["90+"].amount },
+      ]);
+
+      // Get Priority Overdues (top 10 by days past due)
+      const overdues = openInvoices
+        .map((inv) => ({
+          ...inv,
+          daysPastDue: getDaysPastDue(inv.due_date),
+        }))
+        .sort((a, b) => b.daysPastDue - a.daysPastDue)
+        .slice(0, 10);
+
+      setPriorityOverdues(overdues);
     } catch (error: any) {
-      console.error("Error fetching stats:", error);
+      console.error("Error fetching dashboard data:", error);
     }
   };
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+      <Layout>
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -92,45 +198,169 @@ const Dashboard = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Owed</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalOwed.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Outstanding invoices</p>
+              <div className="text-2xl font-bold">${stats.totalOutstanding.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Open + In Payment Plan</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Debtors</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Recovered (90 Days)</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeDebtors}</div>
-              <p className="text-xs text-muted-foreground">Customers with invoices</p>
+              <div className="text-2xl font-bold">${stats.totalRecovered.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Payments received</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+              <CardTitle className="text-sm font-medium">Open Invoices</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.overdueInvoices}</div>
-              <p className="text-xs text-muted-foreground">Invoices past due</p>
+              <div className="text-2xl font-bold">{stats.openInvoicesCount}</div>
+              <p className="text-xs text-muted-foreground">Awaiting payment</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Messages Sent</CardTitle>
-              <Send className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Avg Days Past Due</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.messagesSent}</div>
-              <p className="text-xs text-muted-foreground">This month</p>
+              <div className="text-2xl font-bold">{stats.avgDaysPastDue}</div>
+              <p className="text-xs text-muted-foreground">For open invoices</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoice Aging Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={agingData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="bucket" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value: number) => `$${value.toLocaleString()}`}
+                  labelFormatter={(label) => `${label} days`}
+                />
+                <Bar dataKey="amount" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-4 gap-4 text-center">
+              {agingData.map((bucket) => (
+                <div key={bucket.bucket}>
+                  <p className="text-sm font-medium">{bucket.bucket} days</p>
+                  <p className="text-xs text-muted-foreground">{bucket.count} invoices</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
+                  Priority Overdues
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => navigate("/invoices")}>
+                  View All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {priorityOverdues.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No overdue invoices</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Debtor</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Days</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {priorityOverdues.map((invoice: any) => (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                        <TableCell>{invoice.debtors?.name}</TableCell>
+                        <TableCell className="text-right">
+                          ${invoice.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-red-600 font-semibold">
+                            {invoice.daysPastDue}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/invoices/${invoice.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Drafts Awaiting Approval</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendingDrafts.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No drafts pending approval</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingDrafts.map((draft) => (
+                    <div
+                      key={draft.id}
+                      className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
+                      onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          {draft.invoices?.invoice_number} - {draft.invoices?.debtors?.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Step {draft.step_number} • {draft.channel.toUpperCase()}
+                          {draft.subject && ` • ${draft.subject}`}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -143,11 +373,11 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="debtors">
-            <DebtorsList onUpdate={fetchStats} />
+            <DebtorsList onUpdate={fetchDashboardData} />
           </TabsContent>
 
           <TabsContent value="invoices">
-            <InvoicesList onUpdate={fetchStats} />
+            <InvoicesList onUpdate={fetchDashboardData} />
           </TabsContent>
 
           <TabsContent value="messages">
