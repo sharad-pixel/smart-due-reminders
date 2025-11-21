@@ -47,25 +47,29 @@ const Dashboard = () => {
     try {
       const { data: invoices } = await supabase
         .from("invoices")
-        .select("amount, status");
+        .select("amount, status, due_date");
       
       const { data: debtors } = await supabase
         .from("debtors")
         .select("id");
       
       const { data: messages } = await supabase
-        .from("outreach_messages")
+        .from("outreach_logs")
         .select("id")
         .eq("status", "sent");
 
       const totalOwed = invoices?.reduce((sum, inv) => {
-        if (inv.status === "sent" || inv.status === "overdue") {
+        if (inv.status === "Open" || inv.status === "InPaymentPlan") {
           return sum + Number(inv.amount);
         }
         return sum;
       }, 0) || 0;
 
-      const overdueCount = invoices?.filter(inv => inv.status === "overdue").length || 0;
+      const overdueCount = invoices?.filter(inv => {
+        if (inv.status !== "Open") return false;
+        const dueDate = new Date(inv.due_date);
+        return dueDate < new Date();
+      }).length || 0;
 
       setStats({
         totalOwed,

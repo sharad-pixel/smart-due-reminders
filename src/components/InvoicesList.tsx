@@ -44,7 +44,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     amount: "",
     issue_date: "",
     due_date: "",
-    status: "sent" as "draft" | "sent" | "overdue" | "paid" | "cancelled",
+    status: "Open" as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled",
   });
 
   useEffect(() => {
@@ -105,7 +105,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         amount: "",
         issue_date: "",
         due_date: "",
-        status: "sent",
+        status: "Open",
       });
       fetchInvoices();
       onUpdate();
@@ -130,12 +130,16 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "paid":
+      case "Paid":
+      case "Settled":
         return "bg-success text-white";
-      case "overdue":
+      case "Disputed":
+      case "Canceled":
         return "bg-destructive text-white";
-      case "sent":
+      case "Open":
         return "bg-info text-white";
+      case "InPaymentPlan":
+        return "bg-warning text-white";
       default:
         return "bg-muted";
     }
@@ -231,16 +235,18 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                   <Label htmlFor="status">Status *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as "draft" | "sent" | "overdue" | "paid" | "cancelled" })}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="sent">Sent</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="Open">Open</SelectItem>
+                      <SelectItem value="Paid">Paid</SelectItem>
+                      <SelectItem value="Disputed">Disputed</SelectItem>
+                      <SelectItem value="Settled">Settled</SelectItem>
+                      <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
+                      <SelectItem value="Canceled">Canceled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

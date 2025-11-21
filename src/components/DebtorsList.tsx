@@ -63,6 +63,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
 
       const { error } = await supabase.from("debtors").insert([{
         ...formData,
+        name: formData.contact_name, // Use contact_name as the name
         user_id: user.id,
       }]);
       
