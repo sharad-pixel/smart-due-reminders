@@ -321,7 +321,7 @@ const Invoices = () => {
 
       const { data: debtors } = await supabase
         .from('debtors')
-        .select('id, name, email, company_name')
+        .select('id, reference_id, name, email, company_name')
         .eq('user_id', user.id);
 
       const debtorsList = debtors || [];
@@ -385,14 +385,17 @@ const Invoices = () => {
         if (matches.length === 0) {
           parsed.match_status = 'None';
           parsed.matched_debtor_name = '-';
+          parsed.matched_debtor_ref_id = '-';
           noMatches++;
         } else if (matches.length === 1) {
           parsed.match_status = 'Unique';
           parsed.matched_debtor_name = matches[0].name;
+          parsed.matched_debtor_ref_id = matches[0].reference_id;
           validMatches++;
         } else {
           parsed.match_status = 'Multiple';
           parsed.matched_debtor_name = `${matches.length} matches found`;
+          parsed.matched_debtor_ref_id = '-';
           multipleMatches++;
         }
 
@@ -438,7 +441,7 @@ const Invoices = () => {
       const [debtorsRes, crmAccountsRes] = await Promise.all([
         supabase
           .from('debtors')
-          .select('id, name, email, company_name, crm_account_id')
+          .select('id, reference_id, name, email, company_name, crm_account_id')
           .eq('user_id', user.id),
         supabase
           .from('crm_accounts')
@@ -1065,6 +1068,7 @@ const Invoices = () => {
                           <TableHead>Status</TableHead>
                           <TableHead>Match Status</TableHead>
                           <TableHead>Matched Debtor</TableHead>
+                          <TableHead>Debtor Ref ID</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1088,6 +1092,7 @@ const Invoices = () => {
                               </span>
                             </TableCell>
                             <TableCell>{row.matched_debtor_name}</TableCell>
+                            <TableCell className="font-mono text-xs">{row.matched_debtor_ref_id || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -1110,9 +1115,9 @@ const Invoices = () => {
                       </Button>
                       <Button
                         onClick={importInvoicesFromFile}
-                        disabled={isImporting}
+                        disabled={isImporting || (importSummary.validMatches === 0)}
                       >
-                        {isImporting ? 'Importing...' : `Import All ${importSummary.total} Valid Rows`}
+                        {isImporting ? 'Importing...' : `Import ${importSummary.validMatches} Valid Row${importSummary.validMatches !== 1 ? 's' : ''}`}
                       </Button>
                     </div>
                   )}
