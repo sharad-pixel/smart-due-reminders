@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
           .from('account_users')
           .select(`
             *,
-            profiles:user_id (
+            profiles!account_users_user_id_fkey (
               name,
               email
             )
