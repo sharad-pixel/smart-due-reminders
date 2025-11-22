@@ -8,12 +8,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3 } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowTemplates, { Template } from "@/components/WorkflowTemplates";
 import WorkflowGraph from "@/components/WorkflowGraph";
+import MessagePreview from "@/components/MessagePreview";
 
 interface WorkflowStep {
   id: string;
@@ -60,6 +61,8 @@ const AIWorkflows = () => {
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [generatingContent, setGeneratingContent] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
+  const [previewStep, setPreviewStep] = useState<WorkflowStep | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -162,6 +165,11 @@ const AIWorkflows = () => {
       toast.error("Failed to update step");
       console.error(error);
     }
+  };
+
+  const handlePreviewMessage = (step: WorkflowStep) => {
+    setPreviewStep(step);
+    setShowPreview(true);
   };
 
   const handleGenerateContent = async (stepId: string) => {
@@ -615,6 +623,13 @@ const AIWorkflows = () => {
                                     <Button
                                       variant="ghost"
                                       size="sm"
+                                      onClick={() => handlePreviewMessage(step)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => handleGenerateContent(step.id)}
                                       disabled={generatingContent}
                                     >
@@ -649,6 +664,7 @@ const AIWorkflows = () => {
                     <WorkflowGraph 
                       steps={selectedWorkflow.steps || []}
                       onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
+                      onPreviewMessage={handlePreviewMessage}
                       isGenerating={generatingContent}
                     />
                   </TabsContent>
@@ -690,6 +706,15 @@ const AIWorkflows = () => {
         onSelectTemplate={handleApplyTemplate}
         selectedBucket={selectedBucket}
         bucketLabel={agingBuckets.find(b => b.value === selectedBucket)?.label}
+      />
+
+      <MessagePreview
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        stepId={previewStep?.id || null}
+        channel={previewStep?.channel || "email"}
+        subject={previewStep?.subject_template}
+        body={previewStep?.channel === "email" ? previewStep?.body_template : previewStep?.sms_template || ""}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

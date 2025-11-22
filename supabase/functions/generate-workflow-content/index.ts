@@ -91,10 +91,18 @@ Deno.serve(async (req) => {
     let subject = null;
     let body = generatedContent;
 
-    // Try to parse JSON if it's an email
+    // Try to parse JSON if it's an email (clean up markdown code blocks first)
     if (channel === 'email') {
       try {
-        const parsed = JSON.parse(generatedContent);
+        // Remove markdown code blocks if present
+        let cleanContent = generatedContent.trim();
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.replace(/^```\s*/, '').replace(/```\s*$/, '');
+        }
+        
+        const parsed = JSON.parse(cleanContent);
         subject = parsed.subject;
         body = parsed.body;
       } catch {
