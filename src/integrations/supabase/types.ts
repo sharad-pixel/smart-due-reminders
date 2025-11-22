@@ -131,6 +131,7 @@ export type Database = {
           subject: string | null
           updated_at: string | null
           user_id: string
+          workflow_step_id: string | null
         }
         Insert: {
           channel: Database["public"]["Enums"]["channel_type"]
@@ -144,6 +145,7 @@ export type Database = {
           subject?: string | null
           updated_at?: string | null
           user_id: string
+          workflow_step_id?: string | null
         }
         Update: {
           channel?: Database["public"]["Enums"]["channel_type"]
@@ -157,6 +159,7 @@ export type Database = {
           subject?: string | null
           updated_at?: string | null
           user_id?: string
+          workflow_step_id?: string | null
         }
         Relationships: [
           {
@@ -164,6 +167,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_drafts_workflow_step_id_fkey"
+            columns: ["workflow_step_id"]
+            isOneToOne: false
+            referencedRelation: "collection_workflow_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -214,6 +224,152 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      branding_settings: {
+        Row: {
+          business_name: string
+          created_at: string | null
+          email_footer: string | null
+          email_signature: string | null
+          from_email: string | null
+          from_name: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          reply_to_email: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          business_name: string
+          created_at?: string | null
+          email_footer?: string | null
+          email_signature?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          reply_to_email?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          business_name?: string
+          created_at?: string | null
+          email_footer?: string | null
+          email_signature?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          reply_to_email?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      collection_workflow_steps: {
+        Row: {
+          ai_template_type: string
+          body_template: string
+          channel: Database["public"]["Enums"]["channel_type"]
+          created_at: string | null
+          day_offset: number
+          id: string
+          is_active: boolean | null
+          label: string
+          requires_review: boolean | null
+          sms_template: string | null
+          step_order: number
+          subject_template: string | null
+          trigger_type: string
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          ai_template_type: string
+          body_template: string
+          channel: Database["public"]["Enums"]["channel_type"]
+          created_at?: string | null
+          day_offset: number
+          id?: string
+          is_active?: boolean | null
+          label: string
+          requires_review?: boolean | null
+          sms_template?: string | null
+          step_order: number
+          subject_template?: string | null
+          trigger_type: string
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          ai_template_type?: string
+          body_template?: string
+          channel?: Database["public"]["Enums"]["channel_type"]
+          created_at?: string | null
+          day_offset?: number
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          requires_review?: boolean | null
+          sms_template?: string | null
+          step_order?: number
+          subject_template?: string | null
+          trigger_type?: string
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_workflow_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "collection_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_workflows: {
+        Row: {
+          aging_bucket: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          is_locked: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          aging_bucket: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_locked?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          aging_bucket?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_locked?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       contact_requests: {
         Row: {
