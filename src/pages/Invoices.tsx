@@ -47,7 +47,14 @@ const Invoices = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [hasHeaderRow, setHasHeaderRow] = useState(true);
   const [previewData, setPreviewData] = useState<any[] | null>(null);
-  const [importSummary, setImportSummary] = useState<{ total: number; errors: string[]; warnings: string[] } | null>(null);
+  const [importSummary, setImportSummary] = useState<{ 
+    total: number; 
+    errors: string[]; 
+    warnings: string[];
+    validMatches?: number;
+    noMatches?: number;
+    multipleMatches?: number;
+  } | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [formData, setFormData] = useState({
@@ -295,13 +302,28 @@ const Invoices = () => {
       }
 
       if (errors.length > 0) {
-        setImportSummary({ total: dataRows.length, errors, warnings });
+        setImportSummary({ total: dataRows.length, errors, warnings, validMatches: 0, noMatches: 0, multipleMatches: 0 });
         setPreviewData(null);
         setIsPreviewLoading(false);
         return;
       }
 
-      // Parse and validate rows
+      // Fetch all debtors for matching
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: debtors } = await supabase
+        .from('debtors')
+        .select('id, name, email, company_name')
+        .eq('user_id', user.id);
+
+      const debtorsList = debtors || [];
+
+      // Parse and validate rows with debtor matching
+      let validMatches = 0;
+      let noMatches = 0;
+      let multipleMatches = 0;
+
       const parsedRows = dataRows.slice(0, 20).map((row: any[], rowIndex: number) => {
         const parsed: any = {
           _rowIndex: rowIndex + (hasHeaderRow ? 2 : 1),
@@ -337,12 +359,49 @@ const Invoices = () => {
           warnings.push(`Row ${parsed._rowIndex}: Invalid status "${parsed.status}"`);
         }
 
+        // Find matching debtors
+        let matches = [];
+        const emailLower = parsed.debtor_email.toLowerCase();
+        const companyLower = parsed.debtor_company_name.toLowerCase();
+
+        // First try email match
+        if (emailLower) {
+          matches = debtorsList.filter(d => d.email?.toLowerCase() === emailLower);
+        }
+
+        // If no email match, try company name
+        if (matches.length === 0 && companyLower) {
+          matches = debtorsList.filter(d => d.company_name?.toLowerCase() === companyLower);
+        }
+
+        // Set match status
+        if (matches.length === 0) {
+          parsed.match_status = 'None';
+          parsed.matched_debtor_name = '-';
+          noMatches++;
+        } else if (matches.length === 1) {
+          parsed.match_status = 'Unique';
+          parsed.matched_debtor_name = matches[0].name;
+          validMatches++;
+        } else {
+          parsed.match_status = 'Multiple';
+          parsed.matched_debtor_name = `${matches.length} matches found`;
+          multipleMatches++;
+        }
+
         return parsed;
       });
 
       setPreviewData(parsedRows);
-      setImportSummary({ total: dataRows.length, errors, warnings });
-      toast.success(`Preview loaded: ${dataRows.length} rows found`);
+      setImportSummary({ 
+        total: dataRows.length, 
+        errors, 
+        warnings,
+        validMatches,
+        noMatches,
+        multipleMatches
+      });
+      toast.success(`Preview loaded: ${validMatches} valid matches, ${noMatches} no matches, ${multipleMatches} multiple matches`);
     } catch (error: any) {
       toast.error(`Failed to parse file: ${error.message}`);
     } finally {
@@ -368,20 +427,30 @@ const Invoices = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get all debtors for this user
-      const { data: debtors } = await supabase
-        .from('debtors')
-        .select('id, email, company_name')
-        .eq('user_id', user.id);
+      // Get all debtors and CRM accounts for this user
+      const [debtorsRes, crmAccountsRes] = await Promise.all([
+        supabase
+          .from('debtors')
+          .select('id, name, email, company_name, crm_account_id')
+          .eq('user_id', user.id),
+        supabase
+          .from('crm_accounts')
+          .select('id, crm_account_id, name')
+          .eq('user_id', user.id)
+      ]);
 
-      if (!debtors || debtors.length === 0) {
+      if (!debtorsRes.data || debtorsRes.data.length === 0) {
         toast.error('No debtors found. Please create debtors first before importing invoices.');
         setIsImporting(false);
         return;
       }
 
+      const debtors = debtorsRes.data;
+      const crmAccounts = crmAccountsRes.data || [];
+
       let inserted = 0;
-      let skipped = 0;
+      let skippedNoMatch = 0;
+      let skippedValidation = 0;
 
       for (const row of dataRows) {
         try {
@@ -398,13 +467,13 @@ const Invoices = () => {
 
           // Validate required fields
           if (!invoiceData.invoice_number || isNaN(invoiceData.amount) || !invoiceData.issue_date || !invoiceData.due_date) {
-            skipped++;
+            skippedValidation++;
             continue;
           }
 
           // Validate dates
           if (isNaN(Date.parse(invoiceData.issue_date)) || isNaN(Date.parse(invoiceData.due_date))) {
-            skipped++;
+            skippedValidation++;
             continue;
           }
 
@@ -412,21 +481,25 @@ const Invoices = () => {
           const debtorEmail = row[headerMap['debtor_email']]?.toString().trim().toLowerCase();
           const debtorCompany = row[headerMap['debtor_company_name']]?.toString().trim().toLowerCase();
 
-          let matchedDebtor = null;
+          let matches = [];
           
+          // First try email match
           if (debtorEmail) {
-            matchedDebtor = debtors.find(d => d.email.toLowerCase() === debtorEmail);
+            matches = debtors.filter(d => d.email?.toLowerCase() === debtorEmail);
           }
           
-          if (!matchedDebtor && debtorCompany) {
-            matchedDebtor = debtors.find(d => d.company_name.toLowerCase() === debtorCompany);
+          // If no email match, try company name
+          if (matches.length === 0 && debtorCompany) {
+            matches = debtors.filter(d => d.company_name?.toLowerCase() === debtorCompany);
           }
 
-          if (!matchedDebtor) {
-            skipped++;
+          // Only proceed if we have exactly one match
+          if (matches.length !== 1) {
+            skippedNoMatch++;
             continue;
           }
 
+          const matchedDebtor = matches[0];
           invoiceData.debtor_id = matchedDebtor.id;
 
           // Validate status
@@ -442,13 +515,29 @@ const Invoices = () => {
 
           if (error) throw error;
           inserted++;
+
+          // Handle CRM account linking if crm_account_external_id is present
+          const crmExternalId = row[headerMap['crm_account_external_id']]?.toString().trim();
+          if (crmExternalId && !matchedDebtor.crm_account_id) {
+            const matchedCrmAccount = crmAccounts.find(
+              acc => acc.crm_account_id === crmExternalId
+            );
+            
+            if (matchedCrmAccount) {
+              // Update debtor with CRM account link
+              await supabase
+                .from('debtors')
+                .update({ crm_account_id: matchedCrmAccount.id })
+                .eq('id', matchedDebtor.id);
+            }
+          }
         } catch (error) {
           console.error('Error processing invoice row:', error);
-          skipped++;
+          skippedValidation++;
         }
       }
 
-      toast.success(`Import complete: ${inserted} created, ${skipped} skipped`);
+      toast.success(`Import complete: ${inserted} created, ${skippedNoMatch} skipped (no unique match), ${skippedValidation} skipped (validation errors)`);
       setIsImportOpen(false);
       setImportFile(null);
       setPreviewData(null);
@@ -870,6 +959,23 @@ const Invoices = () => {
                 </div>
               )}
 
+              {/* Summary Stats */}
+              {importSummary && importSummary.validMatches !== undefined && (
+                <Alert>
+                  <AlertDescription>
+                    <div className="font-semibold mb-1">Match Summary:</div>
+                    <div className="text-sm">
+                      <div>✓ {importSummary.validMatches} rows with unique debtor matches (will be imported)</div>
+                      <div>⚠ {importSummary.noMatches} rows with no debtor match (will be skipped)</div>
+                      <div>⚠ {importSummary.multipleMatches} rows with multiple matches (will be skipped)</div>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Note: Only rows with a unique debtor match and valid data will be imported. Others will be skipped.
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Preview Table */}
               {previewData && (
                 <div className="space-y-4">
@@ -888,11 +994,13 @@ const Invoices = () => {
                           <TableHead>Issue Date</TableHead>
                           <TableHead>Due Date</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Match Status</TableHead>
+                          <TableHead>Matched Debtor</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {previewData.map((row, idx) => (
-                          <TableRow key={idx}>
+                          <TableRow key={idx} className={row.match_status !== 'Unique' ? 'bg-muted/50' : ''}>
                             <TableCell>{row._rowIndex}</TableCell>
                             <TableCell>{row.invoice_number}</TableCell>
                             <TableCell>{row.debtor_email || '-'}</TableCell>
@@ -901,6 +1009,16 @@ const Invoices = () => {
                             <TableCell>{row.issue_date}</TableCell>
                             <TableCell>{row.due_date}</TableCell>
                             <TableCell>{row.status}</TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                                row.match_status === 'Unique' ? 'bg-green-100 text-green-800' :
+                                row.match_status === 'Multiple' ? 'bg-orange-100 text-orange-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {row.match_status}
+                              </span>
+                            </TableCell>
+                            <TableCell>{row.matched_debtor_name}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
