@@ -72,7 +72,9 @@ const CollectionDrafts = () => {
   const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
+  const [regeneratePrompt, setRegeneratePrompt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -180,6 +182,7 @@ const CollectionDrafts = () => {
     setEditingDraft(draft);
     setEditedSubject(draft.subject || "");
     setEditedBody(draft.message_body);
+    setRegeneratePrompt("");
   };
 
   const handleSaveEdit = async () => {
@@ -212,6 +215,100 @@ const CollectionDrafts = () => {
     setEditingDraft(null);
     setEditedSubject("");
     setEditedBody("");
+    setRegeneratePrompt("");
+  };
+
+  const handleRegenerateWithAI = async () => {
+    if (!editingDraft || !regeneratePrompt.trim()) {
+      toast.error("Please provide additional context for AI regeneration");
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      // Get branding settings
+      const { data: branding } = await supabase
+        .from('branding_settings')
+        .select('*')
+        .maybeSingle();
+
+      const daysPastDue = calculateDaysPastDue(editingDraft.invoices.due_date);
+      const agingBucket = getAgingBucket(daysPastDue);
+      const businessName = branding?.business_name || 'Your Company';
+      const fromName = branding?.from_name || businessName;
+      const debtorName = editingDraft.invoices.debtors.name || editingDraft.invoices.debtors.company_name;
+      
+      const getToneForBucket = (bucket: AgingBucket): string => {
+        switch (bucket) {
+          case 'current': return 'friendly reminder';
+          case 'dpd_1_30': return 'firm but friendly';
+          case 'dpd_31_60': return 'firm and direct';
+          case 'dpd_61_90': return 'urgent and direct but respectful';
+          case 'dpd_91_120': return 'very firm, urgent, and compliant';
+          default: return 'professional';
+        }
+      };
+
+      const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
+
+CRITICAL RULES:
+- Be firm, clear, and professional
+- Be respectful and non-threatening
+- NEVER claim to be or act as a "collection agency" or legal authority
+- NEVER use harassment or intimidation
+- Write as if you are ${businessName}, NOT a third party
+- Encourage the customer to pay or reply if there is a dispute or issue
+- Use a ${getToneForBucket(agingBucket)} tone appropriate for ${daysPastDue} days past due`;
+
+      const userPrompt = `Generate a professional collection message with the following context:
+
+Business: ${businessName}
+From: ${fromName}
+Debtor: ${debtorName}
+Invoice Number: ${editingDraft.invoices.invoice_number}
+Amount: $${editingDraft.invoices.amount} ${editingDraft.invoices.currency}
+Original Due Date: ${editingDraft.invoices.due_date}
+Days Past Due: ${daysPastDue}
+Aging Bucket: ${agingBucket}
+Channel: ${editingDraft.channel}
+
+ADDITIONAL CONTEXT FROM USER:
+${regeneratePrompt}
+
+${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}
+
+Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a concise SMS message (160 characters max)'}.`;
+
+      // Call edge function to regenerate
+      const { data, error } = await supabase.functions.invoke('regenerate-draft', {
+        body: {
+          system_prompt: systemPrompt,
+          user_prompt: userPrompt,
+          channel: editingDraft.channel
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) throw error;
+
+      setEditedBody(data.message_body);
+      if (data.subject && editingDraft.channel === 'email') {
+        setEditedSubject(data.subject);
+      }
+      
+      toast.success("Message regenerated successfully");
+      setRegeneratePrompt("");
+    } catch (error: any) {
+      console.error('Error regenerating draft:', error);
+      toast.error('Failed to regenerate message');
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   const filteredDrafts = drafts.filter(draft => {
@@ -542,14 +639,50 @@ const CollectionDrafts = () => {
                     {editedBody.length} characters
                   </p>
                 </div>
+
+                {/* AI Regeneration Section */}
+                <div className="border-t pt-4 space-y-3">
+                  <Label htmlFor="ai-prompt" className="text-base font-semibold">
+                    AI Regeneration (Optional)
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Provide additional context to regenerate the message with AI
+                  </p>
+                  <Textarea
+                    id="ai-prompt"
+                    value={regeneratePrompt}
+                    onChange={(e) => setRegeneratePrompt(e.target.value)}
+                    placeholder="E.g., 'Make it more urgent', 'Mention payment plan options', 'Add reference to previous conversation'..."
+                    rows={3}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleRegenerateWithAI}
+                    disabled={isRegenerating || !regeneratePrompt.trim()}
+                    className="w-full"
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Regenerating with AI...
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Regenerate Message with AI
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleCloseEditModal} disabled={isSaving}>
+              <Button variant="outline" onClick={handleCloseEditModal} disabled={isSaving || isRegenerating}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit} disabled={isSaving || !editedBody.trim()}>
+              <Button onClick={handleSaveEdit} disabled={isSaving || isRegenerating || !editedBody.trim()}>
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
