@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit, LayoutGrid, List, Table2 } from "lucide-react";
+import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit, LayoutGrid, List, Table2, Maximize2, Minimize2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120';
@@ -71,6 +71,7 @@ const CollectionDrafts = () => {
   const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
   const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms'>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [compactMode, setCompactMode] = useState(false);
   const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
@@ -457,33 +458,47 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
               </div>
               
               {/* View Mode Selector */}
-              <div className="flex gap-1 border rounded-lg p-1">
+              <div className="flex gap-2">
+                <div className="flex gap-1 border rounded-lg p-1">
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                    onClick={() => setViewMode('list')}
+                    className="h-8 px-3"
+                  >
+                    <List className="h-4 w-4 mr-1" />
+                    List
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                    onClick={() => setViewMode('grid')}
+                    className="h-8 px-3"
+                  >
+                    <LayoutGrid className="h-4 w-4 mr-1" />
+                    Grid
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                    onClick={() => setViewMode('table')}
+                    className="h-8 px-3"
+                  >
+                    <Table2 className="h-4 w-4 mr-1" />
+                    Table
+                  </Button>
+                </div>
+                
+                {/* Compact Mode Toggle */}
                 <Button
                   size="sm"
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  onClick={() => setViewMode('list')}
+                  variant={compactMode ? 'secondary' : 'outline'}
+                  onClick={() => setCompactMode(!compactMode)}
                   className="h-8 px-3"
+                  title={compactMode ? 'Disable compact mode' : 'Enable compact mode'}
                 >
-                  <List className="h-4 w-4 mr-1" />
-                  List
-                </Button>
-                <Button
-                  size="sm"
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                  onClick={() => setViewMode('grid')}
-                  className="h-8 px-3"
-                >
-                  <LayoutGrid className="h-4 w-4 mr-1" />
-                  Grid
-                </Button>
-                <Button
-                  size="sm"
-                  variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                  onClick={() => setViewMode('table')}
-                  className="h-8 px-3"
-                >
-                  <Table2 className="h-4 w-4 mr-1" />
-                  Table
+                  {compactMode ? <Minimize2 className="h-4 w-4 mr-1" /> : <Maximize2 className="h-4 w-4 mr-1" />}
+                  {compactMode ? 'Compact' : 'Normal'}
                 </Button>
               </div>
             </div>
@@ -537,76 +552,90 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                 <>
                   {/* List View */}
                   {viewMode === 'list' && (
-                    <div className="space-y-4">
+                    <div className={compactMode ? "space-y-2" : "space-y-4"}>
                       {filteredDrafts.map((draft) => {
                         const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
                         return (
                           <Card key={draft.id} className="border-l-4 border-l-primary/20 hover:border-l-primary transition-colors">
-                            <CardContent className="p-6">
-                              <div className="flex items-start justify-between mb-4">
+                            <CardContent className={compactMode ? "p-3" : "p-6"}>
+                              <div className={compactMode ? "flex items-center justify-between" : "flex items-start justify-between mb-4"}>
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-lg font-semibold">
+                                  <div className={compactMode ? "flex items-center gap-2" : "flex items-center gap-3 mb-2"}>
+                                    <h3 className={compactMode ? "text-sm font-semibold" : "text-lg font-semibold"}>
                                       {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
                                     </h3>
-                                    <Badge variant="outline" className="uppercase">
-                                      {draft.channel === 'email' ? <Mail className="h-3 w-3 mr-1" /> : <MessageSquare className="h-3 w-3 mr-1" />}
+                                    <Badge variant="outline" className={compactMode ? "text-xs" : "uppercase"}>
+                                      {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-1" : "h-3 w-3 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-1" : "h-3 w-3 mr-1"} />}
                                       {draft.channel}
                                     </Badge>
-                                    <Badge className={getStatusColor(draft.status)}>
-                                      <span className="mr-1">{getStatusIcon(draft.status)}</span>
+                                    <Badge className={getStatusColor(draft.status) + (compactMode ? " text-xs" : "")}>
+                                      {!compactMode && <span className="mr-1">{getStatusIcon(draft.status)}</span>}
                                       {draft.status.replace('_', ' ')}
                                     </Badge>
-                                    <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'}>
+                                    <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'} className={compactMode ? "text-xs" : ""}>
                                       {daysPastDue} DPD
                                     </Badge>
                                   </div>
-                                  <div className="text-sm text-muted-foreground space-y-1">
-                                    <div>Invoice: {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}</div>
-                                    <div>Created {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}</div>
-                                    {draft.subject && <div className="font-medium text-foreground mt-2">Subject: {draft.subject}</div>}
-                                  </div>
+                                  {!compactMode && (
+                                    <div className="text-sm text-muted-foreground space-y-1">
+                                      <div>Invoice: {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}</div>
+                                      <div>Created {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}</div>
+                                      {draft.subject && <div className="font-medium text-foreground mt-2">Subject: {draft.subject}</div>}
+                                    </div>
+                                  )}
+                                  {compactMode && (
+                                    <div className="text-xs text-muted-foreground ml-2">
+                                      {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()}
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className={compactMode ? "flex gap-1 ml-2" : "flex gap-2"}>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleEditClick(draft)}
+                                    className={compactMode ? "h-7 px-2" : ""}
                                   >
-                                    <Edit className="h-4 w-4 mr-1" />
-                                    Edit
+                                    <Edit className={compactMode ? "h-3 w-3" : "h-4 w-4 mr-1"} />
+                                    {!compactMode && "Edit"}
                                   </Button>
                                   {draft.status === 'pending_approval' && (
                                     <>
                                       <Button
                                         size="sm"
                                         onClick={() => handleUpdateStatus(draft.id, 'approved')}
+                                        className={compactMode ? "h-7 px-2" : ""}
                                       >
-                                        <CheckCircle className="h-4 w-4 mr-1" />
-                                        Approve
+                                        <CheckCircle className={compactMode ? "h-3 w-3" : "h-4 w-4 mr-1"} />
+                                        {!compactMode && "Approve"}
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleUpdateStatus(draft.id, 'discarded')}
-                                      >
-                                        <XCircle className="h-4 w-4 mr-1" />
-                                        Discard
-                                      </Button>
+                                      {!compactMode && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleUpdateStatus(draft.id, 'discarded')}
+                                        >
+                                          <XCircle className="h-4 w-4 mr-1" />
+                                          Discard
+                                        </Button>
+                                      )}
                                     </>
                                   )}
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handleDeleteDraft(draft.id)}
+                                    className={compactMode ? "h-7 w-7 p-0" : ""}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className={compactMode ? "h-3 w-3" : "h-4 w-4"} />
                                   </Button>
                                 </div>
                               </div>
-                              <div className="bg-muted/30 p-4 rounded-lg">
-                                <p className="text-sm whitespace-pre-wrap">{draft.message_body}</p>
-                              </div>
+                              {!compactMode && (
+                                <div className="bg-muted/30 p-4 rounded-lg">
+                                  <p className="text-sm whitespace-pre-wrap">{draft.message_body}</p>
+                                </div>
+                              )}
                             </CardContent>
                           </Card>
                         );
@@ -616,18 +645,18 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
 
                   {/* Grid View */}
                   {viewMode === 'grid' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className={compactMode ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}>
                       {filteredDrafts.map((draft) => {
                         const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
                         return (
                           <Card key={draft.id} className="hover:shadow-lg transition-shadow">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between mb-2">
+                            <CardHeader className={compactMode ? "pb-2 px-3 pt-3" : "pb-3"}>
+                              <div className={compactMode ? "flex items-start justify-between mb-1" : "flex items-start justify-between mb-2"}>
                                 <div className="flex-1">
-                                  <h3 className="font-semibold text-base line-clamp-1">
+                                  <h3 className={compactMode ? "font-semibold text-xs line-clamp-1" : "font-semibold text-base line-clamp-1"}>
                                     {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
                                   </h3>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className={compactMode ? "text-[10px] text-muted-foreground" : "text-xs text-muted-foreground"}>
                                     {draft.invoices.invoice_number}
                                   </p>
                                 </div>
@@ -635,49 +664,51 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDeleteDraft(draft.id)}
-                                  className="h-8 w-8 p-0"
+                                  className={compactMode ? "h-6 w-6 p-0" : "h-8 w-8 p-0"}
                                 >
-                                  <Trash2 className="h-3 w-3" />
+                                  <Trash2 className={compactMode ? "h-2 w-2" : "h-3 w-3"} />
                                 </Button>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {draft.channel === 'email' ? <Mail className="h-2 w-2 mr-1" /> : <MessageSquare className="h-2 w-2 mr-1" />}
+                              <div className={compactMode ? "flex flex-wrap gap-1" : "flex flex-wrap gap-2"}>
+                                <Badge variant="outline" className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
+                                  {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
                                   {draft.channel}
                                 </Badge>
-                                <Badge className={getStatusColor(draft.status) + " text-xs"}>
+                                <Badge className={getStatusColor(draft.status) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
                                   {getStatusIcon(draft.status)}
                                 </Badge>
-                                <Badge variant={daysPastDue > 60 ? 'destructive' : 'secondary'} className="text-xs">
+                                <Badge variant={daysPastDue > 60 ? 'destructive' : 'secondary'} className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
                                   {daysPastDue} DPD
                                 </Badge>
                               </div>
                             </CardHeader>
-                            <CardContent className="space-y-3">
-                              <div className="bg-muted/30 p-3 rounded text-xs line-clamp-4">
-                                {draft.message_body}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
+                            <CardContent className={compactMode ? "space-y-2 px-3 pb-3" : "space-y-3"}>
+                              {!compactMode && (
+                                <div className="bg-muted/30 p-3 rounded text-xs line-clamp-4">
+                                  {draft.message_body}
+                                </div>
+                              )}
+                              <div className={compactMode ? "text-[10px] text-muted-foreground" : "text-xs text-muted-foreground"}>
                                 ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}
                               </div>
-                              <div className="flex gap-2">
+                              <div className={compactMode ? "flex gap-1" : "flex gap-2"}>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleEditClick(draft)}
-                                  className="flex-1 text-xs h-8"
+                                  className={compactMode ? "flex-1 text-[10px] h-6 px-1" : "flex-1 text-xs h-8"}
                                 >
-                                  <Edit className="h-3 w-3 mr-1" />
+                                  <Edit className={compactMode ? "h-2 w-2 mr-0.5" : "h-3 w-3 mr-1"} />
                                   Edit
                                 </Button>
                                 {draft.status === 'pending_approval' && (
                                   <Button
                                     size="sm"
                                     onClick={() => handleUpdateStatus(draft.id, 'approved')}
-                                    className="flex-1 text-xs h-8"
+                                    className={compactMode ? "flex-1 text-[10px] h-6 px-1" : "flex-1 text-xs h-8"}
                                   >
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Approve
+                                    <CheckCircle className={compactMode ? "h-2 w-2 mr-0.5" : "h-3 w-3 mr-1"} />
+                                    {compactMode ? "✓" : "Approve"}
                                   </Button>
                                 )}
                               </div>
@@ -694,14 +725,14 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                       <table className="w-full">
                         <thead className="bg-muted">
                           <tr>
-                            <th className="p-3 text-left text-sm font-medium">Debtor</th>
-                            <th className="p-3 text-left text-sm font-medium">Invoice</th>
-                            <th className="p-3 text-left text-sm font-medium">Amount</th>
-                            <th className="p-3 text-left text-sm font-medium">Channel</th>
-                            <th className="p-3 text-left text-sm font-medium">DPD</th>
-                            <th className="p-3 text-left text-sm font-medium">Status</th>
-                            <th className="p-3 text-left text-sm font-medium">Created</th>
-                            <th className="p-3 text-right text-sm font-medium">Actions</th>
+                            <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Debtor</th>
+                            <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Invoice</th>
+                            <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Amount</th>
+                            <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Channel</th>
+                            <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>DPD</th>
+                            <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Status</th>
+                            {!compactMode && <th className="p-3 text-left text-sm font-medium">Created</th>}
+                            <th className={compactMode ? "p-2 text-right text-xs font-medium" : "p-3 text-right text-sm font-medium"}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -709,66 +740,70 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                             const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
                             return (
                               <tr key={draft.id} className="border-t hover:bg-accent/50">
-                                <td className="p-3">
-                                  <div className="font-medium text-sm">
+                                <td className={compactMode ? "p-2" : "p-3"}>
+                                  <div className={compactMode ? "font-medium text-xs" : "font-medium text-sm"}>
                                     {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {draft.invoices.debtors.email}
-                                  </div>
+                                  {!compactMode && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {draft.invoices.debtors.email}
+                                    </div>
+                                  )}
                                 </td>
-                                <td className="p-3 font-mono text-xs">
+                                <td className={compactMode ? "p-2 font-mono text-[10px]" : "p-3 font-mono text-xs"}>
                                   {draft.invoices.invoice_number}
                                 </td>
-                                <td className="p-3 text-sm font-medium">
+                                <td className={compactMode ? "p-2 text-xs font-medium" : "p-3 text-sm font-medium"}>
                                   ${draft.invoices.amount.toLocaleString()}
                                 </td>
-                                <td className="p-3">
-                                  <Badge variant="outline" className="text-xs">
-                                    {draft.channel === 'email' ? <Mail className="h-2 w-2 mr-1" /> : <MessageSquare className="h-2 w-2 mr-1" />}
+                                <td className={compactMode ? "p-2" : "p-3"}>
+                                  <Badge variant="outline" className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
+                                    {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
                                     {draft.channel}
                                   </Badge>
                                 </td>
-                                <td className="p-3">
-                                  <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'} className="text-xs">
+                                <td className={compactMode ? "p-2" : "p-3"}>
+                                  <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'} className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
                                     {daysPastDue}
                                   </Badge>
                                 </td>
-                                <td className="p-3">
-                                  <Badge className={getStatusColor(draft.status) + " text-xs"}>
-                                    {draft.status.replace('_', ' ')}
+                                <td className={compactMode ? "p-2" : "p-3"}>
+                                  <Badge className={getStatusColor(draft.status) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
+                                    {compactMode ? draft.status.charAt(0).toUpperCase() : draft.status.replace('_', ' ')}
                                   </Badge>
                                 </td>
-                                <td className="p-3 text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
-                                </td>
-                                <td className="p-3">
+                                {!compactMode && (
+                                  <td className="p-3 text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
+                                  </td>
+                                )}
+                                <td className={compactMode ? "p-2" : "p-3"}>
                                   <div className="flex gap-1 justify-end">
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => handleEditClick(draft)}
-                                      className="h-8 w-8 p-0"
+                                      className={compactMode ? "h-6 w-6 p-0" : "h-8 w-8 p-0"}
                                     >
-                                      <Edit className="h-3 w-3" />
+                                      <Edit className={compactMode ? "h-2 w-2" : "h-3 w-3"} />
                                     </Button>
                                     {draft.status === 'pending_approval' && (
                                       <Button
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => handleUpdateStatus(draft.id, 'approved')}
-                                        className="h-8 w-8 p-0"
+                                        className={compactMode ? "h-6 w-6 p-0" : "h-8 w-8 p-0"}
                                       >
-                                        <CheckCircle className="h-3 w-3" />
+                                        <CheckCircle className={compactMode ? "h-2 w-2" : "h-3 w-3"} />
                                       </Button>
                                     )}
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => handleDeleteDraft(draft.id)}
-                                      className="h-8 w-8 p-0"
+                                      className={compactMode ? "h-6 w-6 p-0" : "h-8 w-8 p-0"}
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Trash2 className={compactMode ? "h-2 w-2" : "h-3 w-3"} />
                                     </Button>
                                   </div>
                                 </td>
