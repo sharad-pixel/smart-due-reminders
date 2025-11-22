@@ -8,6 +8,7 @@ import DebtorsList from "@/components/DebtorsList";
 import InvoicesList from "@/components/InvoicesList";
 import MessageDrafter from "@/components/MessageDrafter";
 import Layout from "@/components/Layout";
+import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
 import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -194,6 +195,9 @@ const Dashboard = () => {
             Welcome back! Here's your collection overview.
           </p>
         </div>
+
+        {/* Usage Indicator */}
+        <UsageIndicator />
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>

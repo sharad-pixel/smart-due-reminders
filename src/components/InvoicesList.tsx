@@ -19,6 +19,7 @@ interface Invoice {
   issue_date: string;
   due_date: string;
   status: string;
+  is_overage?: boolean;
   debtors: {
     company_name: string;
   };
@@ -89,13 +90,23 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("invoices").insert([{
+      const { data: invoice, error } = await supabase.from("invoices").insert([{
         ...formData,
         amount: parseFloat(formData.amount),
         user_id: user.id,
-      } as any]);
+      } as any]).select().single();
       
       if (error) throw error;
+
+      // Track invoice usage
+      try {
+        await supabase.functions.invoke('track-invoice-usage', {
+          body: { invoice_id: invoice.id }
+        });
+      } catch (usageError) {
+        console.error('Failed to track usage:', usageError);
+        // Non-blocking - invoice was created successfully
+      }
       
       toast.success("Invoice added successfully");
       setOpen(false);
@@ -276,7 +287,16 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
             <TableBody>
               {invoices.map((invoice) => (
                 <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {invoice.invoice_number}
+                      {invoice.is_overage && (
+                        <Badge variant="outline" className="text-xs">
+                          Overage
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{invoice.debtors.company_name}</TableCell>
                   <TableCell>${invoice.amount.toLocaleString()}</TableCell>
                   <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>

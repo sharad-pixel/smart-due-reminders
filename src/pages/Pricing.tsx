@@ -25,13 +25,12 @@ const Pricing = () => {
       period: "/month",
       description: "Perfect for small businesses getting started with collections automation",
       features: [
-        "Up to 50 invoices per month",
+        "50 invoices per month included",
+        "$1.00 per additional invoice",
         "AI email reminders",
         "Manual SMS sending",
-        "Stripe payment link embedding",
         "Dashboard analytics",
-        "Unlimited debtors",
-        "Human approval workflow"
+        "Unlimited contacts / debtors"
       ],
       cta: "Start Free Trial",
       planType: "starter"
@@ -42,13 +41,13 @@ const Pricing = () => {
       period: "/month",
       description: "For growing teams that need full automation and CRM features",
       features: [
-        "Up to 200 invoices per month",
-        "Full AI cadence automation",
-        "Automated SMS sending",
-        "Promise-to-pay tracking",
-        "Customer-aware AI outreach",
-        "Multi-user support",
-        "All Starter features"
+        "200 invoices per month included",
+        "$1.00 per additional invoice",
+        "AI cadence automation",
+        "Auto-SMS",
+        "Promise-to-Pay tracking",
+        "Basic CRM integration",
+        "Multi-user support"
       ],
       cta: "Start Free Trial",
       planType: "growth",
@@ -60,29 +59,26 @@ const Pricing = () => {
       period: "/month",
       description: "Enterprise-grade collections for high-volume teams",
       features: [
-        "Up to 500 invoices per month",
+        "500 invoices per month included",
+        "$1.00 per additional invoice",
+        "CRM-context-aware AI",
+        "Advanced automations",
         "Team permissions",
-        "Priority AI throughput",
-        "Advanced CRM context integration",
-        "Dedicated support",
-        "Automations/Schedulers",
-        "All Growth features"
+        "Priority AI queue"
       ],
       cta: "Start Free Trial",
       planType: "professional"
     },
     {
       name: "Bespoke",
-      price: "Custom",
-      period: "",
-      description: "Tailored for SaaS companies with 50-500 employees and high-volume invoicing",
+      price: "Starting at $1,500",
+      period: "/month",
+      description: "High-volume SaaS companies with custom needs",
       features: [
         "High-volume invoicing",
-        "Dedicated onboarding",
         "API access",
-        "Custom cadence logic",
+        "Dedicated support",
         "Custom CRM integrations",
-        "SLA-based support",
         "White-label options"
       ],
       cta: "Contact Us",

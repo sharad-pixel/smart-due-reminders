@@ -18,6 +18,12 @@ verify_jwt = true
 [functions.customer-portal]
 verify_jwt = true
 
+[functions.get-monthly-usage]
+verify_jwt = true
+
+[functions.track-invoice-usage]
+verify_jwt = true
+
 [functions.daily-cadence-scheduler]
 verify_jwt = false
 

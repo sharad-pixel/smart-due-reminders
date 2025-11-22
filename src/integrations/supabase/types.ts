@@ -311,6 +311,39 @@ export type Database = {
           },
         ]
       }
+      invoice_usage: {
+        Row: {
+          created_at: string | null
+          id: string
+          included_invoices_used: number
+          last_updated_at: string | null
+          month: string
+          overage_charges_total: number
+          overage_invoices: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          included_invoices_used?: number
+          last_updated_at?: string | null
+          month: string
+          overage_charges_total?: number
+          overage_invoices?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          included_invoices_used?: number
+          last_updated_at?: string | null
+          month?: string
+          overage_charges_total?: number
+          overage_invoices?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount: number
@@ -321,6 +354,7 @@ export type Database = {
           external_link: string | null
           id: string
           invoice_number: string
+          is_overage: boolean | null
           issue_date: string
           last_contact_date: string | null
           next_contact_date: string | null
@@ -343,6 +377,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           invoice_number: string
+          is_overage?: boolean | null
           issue_date: string
           last_contact_date?: string | null
           next_contact_date?: string | null
@@ -365,6 +400,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           invoice_number?: string
+          is_overage?: boolean | null
           issue_date?: string
           last_contact_date?: string | null
           next_contact_date?: string | null
@@ -489,6 +525,7 @@ export type Database = {
           invoice_limit: number | null
           monthly_price: number | null
           name: string
+          overage_amount: number | null
           updated_at: string
         }
         Insert: {
@@ -498,6 +535,7 @@ export type Database = {
           invoice_limit?: number | null
           monthly_price?: number | null
           name: string
+          overage_amount?: number | null
           updated_at?: string
         }
         Update: {
@@ -507,6 +545,7 @@ export type Database = {
           invoice_limit?: number | null
           monthly_price?: number | null
           name?: string
+          overage_amount?: number | null
           updated_at?: string
         }
         Relationships: []
