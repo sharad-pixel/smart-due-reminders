@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles } from "lucide-react";
+import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +46,7 @@ const Debtors = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState(false);
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
+  const [autoCompleting, setAutoCompleting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -569,6 +570,61 @@ const Debtors = () => {
     }
   };
 
+  const handleAutoCompleteDebtor = async () => {
+    const searchQuery = formData.company_name || formData.name;
+    if (!searchQuery) {
+      toast.error("Please enter a name or company name first");
+      return;
+    }
+
+    setAutoCompleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("autocomplete-business-info", {
+        body: { 
+          query: searchQuery,
+          type: 'debtor_info'
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.data) {
+        const info = data.data;
+        const fullAddress = [
+          info.address_line1,
+          info.address_line2,
+          info.city,
+          info.state,
+          info.postal_code,
+          info.country
+        ].filter(Boolean).join(', ');
+
+        setFormData({
+          ...formData,
+          name: info.name || formData.name,
+          company_name: info.company_name || formData.company_name,
+          email: info.email || formData.email,
+          phone: info.phone || formData.phone,
+          type: info.type || formData.type,
+          address: fullAddress || formData.address,
+        });
+
+        toast.success("Customer information auto-completed from web data");
+      }
+    } catch (error: any) {
+      console.error("Error auto-completing:", error);
+      toast.error(error.message || "Failed to auto-complete customer information");
+    } finally {
+      setAutoCompleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -632,7 +688,23 @@ const Debtors = () => {
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Debtor</DialogTitle>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Create New Debtor</DialogTitle>
+                  <Button
+                    onClick={handleAutoCompleteDebtor}
+                    disabled={autoCompleting || (!formData.name && !formData.company_name)}
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                  >
+                    {autoCompleting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    {autoCompleting ? "Loading..." : "Auto Complete"}
+                  </Button>
+                </div>
               </DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -644,6 +716,9 @@ const Debtors = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Enter name/company and click Auto Complete
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company_name">Company Name *</Label>
