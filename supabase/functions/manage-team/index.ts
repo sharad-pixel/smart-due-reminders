@@ -64,30 +64,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is owner (has account_users with their ID as account_id) or admin
-    const { data: ownerCheck } = await supabaseClient
+    // Check if user is a member of someone else's account
+    // If they are NOT a member anywhere, they are managing their own account as owner
+    const { data: membershipCheck, error: membershipError } = await supabaseClient
       .from('account_users')
-      .select('account_id')
-      .eq('account_id', user.id)
-      .limit(1)
+      .select('role, account_id, status')
+      .eq('user_id', user.id)
       .maybeSingle();
 
-    const isOwner = !!ownerCheck;
-
-    // If not owner, check if they're an admin
-    let isAdmin = false;
-    if (!isOwner) {
-      const { data: adminCheck } = await supabaseClient
-        .from('account_users')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .eq('role', 'admin')
-        .limit(1)
-        .maybeSingle();
-      
-      isAdmin = !!adminCheck;
+    if (membershipError && membershipError.code !== 'PGRST116') {
+      // PGRST116 is "not found" which is fine - means they're the account owner
+      console.error('Error checking membership:', membershipError);
+      throw membershipError;
     }
+
+    // If they're not a member of any account, they're the owner of their own account
+    const isOwner = !membershipCheck;
+    
+    // If they ARE a member, check if they're an admin with active status
+    const isAdmin = membershipCheck?.role === 'admin' && membershipCheck?.status === 'active';
 
     if (!isOwner && !isAdmin) {
       return new Response(
@@ -99,6 +94,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Determine which account we're managing
+    // If user is owner, use their own ID; if admin, use the account they're part of
+    const managingAccountId = isOwner ? user.id : membershipCheck!.account_id;
+
     let result;
 
     switch (action) {
@@ -107,8 +106,8 @@ Deno.serve(async (req) => {
         const { count: currentTeamCount } = await supabaseClient
           .from('account_users')
           .select('*', { count: 'exact', head: true })
-          .eq('account_id', user.id)
-          .neq('user_id', user.id)
+          .eq('account_id', managingAccountId)
+          .neq('user_id', managingAccountId)
           .neq('status', 'disabled');
 
         const maxInvitedUsers = effectiveFeatures?.features?.max_invited_users || 0;
@@ -140,7 +139,7 @@ Deno.serve(async (req) => {
           const { data, error } = await supabaseClient
             .from('account_users')
             .insert({
-              account_id: user.id,
+              account_id: managingAccountId,
               user_id: existingUser.id,
               role: role || 'member',
               status: 'active',
@@ -188,7 +187,7 @@ Deno.serve(async (req) => {
         const { data, error } = await supabaseClient
           .from('account_users')
           .update({ role, updated_at: new Date().toISOString() })
-          .eq('account_id', user.id)
+          .eq('account_id', managingAccountId)
           .eq('user_id', userId)
           .select()
           .single();
@@ -205,7 +204,7 @@ Deno.serve(async (req) => {
         const { data, error } = await supabaseClient
           .from('account_users')
           .update({ status: 'disabled', updated_at: new Date().toISOString() })
-          .eq('account_id', user.id)
+          .eq('account_id', managingAccountId)
           .eq('user_id', userId)
           .select()
           .single();
@@ -222,7 +221,7 @@ Deno.serve(async (req) => {
         const { data, error } = await supabaseClient
           .from('account_users')
           .update({ status: 'active', updated_at: new Date().toISOString() })
-          .eq('account_id', user.id)
+          .eq('account_id', managingAccountId)
           .eq('user_id', userId)
           .select()
           .single();
@@ -245,7 +244,7 @@ Deno.serve(async (req) => {
               email
             )
           `)
-          .eq('account_id', user.id)
+          .eq('account_id', managingAccountId)
           .order('created_at', { ascending: false });
 
         if (error) {
