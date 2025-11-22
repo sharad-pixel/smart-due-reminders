@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2 } from "lucide-react";
 
 interface ProfileData {
   business_name: string;
@@ -349,6 +349,39 @@ const Settings = () => {
                 </a>
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              <CardTitle>CRM Integrations</CardTitle>
+            </div>
+            <CardDescription>
+              Connect your CRM to sync customer data and enrich debtor profiles
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Building className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Salesforce CRM</p>
+                  <p className="text-sm text-muted-foreground">
+                    Sync account data, MRR, and customer health scores
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" disabled>
+                Connect (Coming Soon)
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              OAuth integration will be available in a future update. This will allow automatic syncing of CRM accounts.
+            </p>
           </CardContent>
         </Card>
 
