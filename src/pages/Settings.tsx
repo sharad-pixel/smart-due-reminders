@@ -13,6 +13,11 @@ interface ProfileData {
   business_name: string;
   business_address: string;
   business_phone: string;
+  from_name: string;
+  from_email: string;
+  reply_to_email: string;
+  email_signature: string;
+  email_footer: string;
   sendgrid_api_key: string;
   twilio_account_sid: string;
   twilio_auth_token: string;
@@ -30,6 +35,11 @@ const Settings = () => {
     business_name: "",
     business_address: "",
     business_phone: "",
+    from_name: "",
+    from_email: "",
+    reply_to_email: "",
+    email_signature: "",
+    email_footer: "",
     sendgrid_api_key: "",
     twilio_account_sid: "",
     twilio_auth_token: "",
@@ -55,10 +65,22 @@ const Settings = () => {
 
       if (error) throw error;
 
+      // Also fetch branding settings
+      const { data: brandingData } = await supabase
+        .from("branding_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
       setProfile({
         business_name: data.business_name || "",
         business_address: data.business_address || "",
         business_phone: data.business_phone || "",
+        from_name: brandingData?.from_name || "",
+        from_email: brandingData?.from_email || "",
+        reply_to_email: brandingData?.reply_to_email || "",
+        email_signature: brandingData?.email_signature || "",
+        email_footer: brandingData?.email_footer || "",
         sendgrid_api_key: data.sendgrid_api_key || "",
         twilio_account_sid: data.twilio_account_sid || "",
         twilio_auth_token: data.twilio_auth_token || "",
@@ -79,7 +101,8 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase
+      // Update profiles
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           business_name: profile.business_name,
@@ -93,7 +116,22 @@ const Settings = () => {
         })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Upsert branding settings
+      const { error: brandingError } = await supabase
+        .from("branding_settings")
+        .upsert({
+          user_id: user.id,
+          business_name: profile.business_name,
+          from_name: profile.from_name,
+          from_email: profile.from_email,
+          reply_to_email: profile.reply_to_email,
+          email_signature: profile.email_signature,
+          email_footer: profile.email_footer,
+        });
+
+      if (brandingError) throw brandingError;
       toast.success("Settings saved successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to save settings");
@@ -215,10 +253,77 @@ const Settings = () => {
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Email Setup</CardTitle>
+              <CardTitle>Branding & White-Label Settings</CardTitle>
             </div>
             <CardDescription>
-              Configure email sending for invoice reminders and notifications
+              Configure how your business appears in all outreach messages
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="from_name">From Name</Label>
+              <Input
+                id="from_name"
+                value={profile.from_name}
+                onChange={(e) => setProfile({ ...profile, from_name: e.target.value })}
+                placeholder="Acme AR Team"
+              />
+              <p className="text-sm text-muted-foreground">
+                This name appears as the sender in emails
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="from_email">From Email</Label>
+              <Input
+                id="from_email"
+                type="email"
+                value={profile.from_email}
+                onChange={(e) => setProfile({ ...profile, from_email: e.target.value })}
+                placeholder="collections@acme.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reply_to_email">Reply-To Email</Label>
+              <Input
+                id="reply_to_email"
+                type="email"
+                value={profile.reply_to_email}
+                onChange={(e) => setProfile({ ...profile, reply_to_email: e.target.value })}
+                placeholder="support@acme.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email_signature">Email Signature</Label>
+              <Input
+                id="email_signature"
+                value={profile.email_signature}
+                onChange={(e) => setProfile({ ...profile, email_signature: e.target.value })}
+                placeholder="Best regards,\nThe Acme Team"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email_footer">Email Footer</Label>
+              <Input
+                id="email_footer"
+                value={profile.email_footer}
+                onChange={(e) => setProfile({ ...profile, email_footer: e.target.value })}
+                placeholder="Acme Inc. | 123 Main St | contact@acme.com"
+              />
+              <p className="text-sm text-muted-foreground">
+                Legal text or company information at the bottom of emails
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <CardTitle>Email Service (SendGrid)</CardTitle>
+            </div>
+            <CardDescription>
+              Configure email delivery for automated messages
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

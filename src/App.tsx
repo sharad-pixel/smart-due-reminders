@@ -25,6 +25,8 @@ import ContactUs from "./pages/ContactUs";
 import Upgrade from "./pages/Upgrade";
 import Team from "./pages/Team";
 import Profile from "./pages/Profile";
+import AIWorkflows from "./pages/AIWorkflows";
+import CollectionDrafts from "./pages/CollectionDrafts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +58,8 @@ const App = () => (
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
+        <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/team" element={<Team />} />
         <Route path="/profile" element={<Profile />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
