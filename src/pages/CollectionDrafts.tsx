@@ -5,9 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2 } from "lucide-react";
+import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120';
@@ -66,6 +69,10 @@ const CollectionDrafts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
   const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms'>('all');
+  const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
+  const [editedSubject, setEditedSubject] = useState("");
+  const [editedBody, setEditedBody] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -167,6 +174,44 @@ const CollectionDrafts = () => {
       console.error('Error deleting draft:', error);
       toast.error('Failed to delete draft');
     }
+  };
+
+  const handleEditClick = (draft: Draft) => {
+    setEditingDraft(draft);
+    setEditedSubject(draft.subject || "");
+    setEditedBody(draft.message_body);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDraft) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({
+          subject: editedSubject,
+          message_body: editedBody
+        })
+        .eq('id', editingDraft.id);
+
+      if (error) throw error;
+
+      toast.success('Draft updated successfully');
+      setEditingDraft(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Error updating draft:', error);
+      toast.error('Failed to update draft');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingDraft(null);
+    setEditedSubject("");
+    setEditedBody("");
   };
 
   const filteredDrafts = drafts.filter(draft => {
@@ -382,6 +427,14 @@ const CollectionDrafts = () => {
                               </div>
                             </div>
                             <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditClick(draft)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
+                              </Button>
                               {draft.status === 'pending_approval' && (
                                 <>
                                   <Button
@@ -422,6 +475,96 @@ const CollectionDrafts = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Edit Draft Modal */}
+        <Dialog open={!!editingDraft} onOpenChange={handleCloseEditModal}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Draft</DialogTitle>
+              <DialogDescription>
+                Make changes to the draft message before approving or sending
+              </DialogDescription>
+            </DialogHeader>
+
+            {editingDraft && (
+              <div className="space-y-4">
+                {/* Draft Info */}
+                <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold">Debtor:</span>
+                    <span>{editingDraft.invoices.debtors.company_name || editingDraft.invoices.debtors.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold">Invoice:</span>
+                    <span>{editingDraft.invoices.invoice_number}</span>
+                    <Badge variant="outline" className="ml-2">
+                      ${editingDraft.invoices.amount.toLocaleString()} {editingDraft.invoices.currency}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold">Channel:</span>
+                    <Badge variant="outline" className="uppercase">
+                      {editingDraft.channel === 'email' ? <Mail className="h-3 w-3 mr-1" /> : <MessageSquare className="h-3 w-3 mr-1" />}
+                      {editingDraft.channel}
+                    </Badge>
+                    <span className="font-semibold ml-4">Days Past Due:</span>
+                    <Badge variant={calculateDaysPastDue(editingDraft.invoices.due_date) > 60 ? 'destructive' : 'secondary'}>
+                      {calculateDaysPastDue(editingDraft.invoices.due_date)} days
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Edit Subject (Email only) */}
+                {editingDraft.channel === 'email' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Subject Line</Label>
+                    <Input
+                      id="subject"
+                      value={editedSubject}
+                      onChange={(e) => setEditedSubject(e.target.value)}
+                      placeholder="Enter subject line..."
+                    />
+                  </div>
+                )}
+
+                {/* Edit Message Body */}
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message Body</Label>
+                  <Textarea
+                    id="message"
+                    value={editedBody}
+                    onChange={(e) => setEditedBody(e.target.value)}
+                    placeholder="Enter message body..."
+                    rows={12}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {editedBody.length} characters
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseEditModal} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={isSaving || !editedBody.trim()}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
