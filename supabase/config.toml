@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.generate-bulk-ai-drafts]
 verify_jwt = true
+
+[functions.generate-workflow-content]
+verify_jwt = true
