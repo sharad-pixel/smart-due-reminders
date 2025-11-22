@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -65,6 +65,9 @@ const Invoices = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState(false);
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
+  const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
   const [formData, setFormData] = useState({
     debtor_id: "",
     invoice_number: "",
@@ -133,6 +136,54 @@ const Invoices = () => {
       fetchData();
     } catch (error: any) {
       toast.error("Failed to remove from workflow");
+    }
+  };
+
+  const handleBulkAssign = async () => {
+    if (!selectedAgingBucket) {
+      toast.error("Please select an aging bucket");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('bulk-assign-workflows', {
+        body: {
+          invoice_ids: selectedInvoices,
+          action: 'assign',
+          aging_bucket: selectedAgingBucket,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Invoices assigned to workflow");
+      setSelectedInvoices([]);
+      setShowBulkAssignDialog(false);
+      setSelectedAgingBucket("");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Failed to assign invoices to workflow");
+      console.error(error);
+    }
+  };
+
+  const handleBulkUnassign = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('bulk-assign-workflows', {
+        body: {
+          invoice_ids: selectedInvoices,
+          action: 'unassign',
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Invoices removed from workflows");
+      setSelectedInvoices([]);
+      fetchData();
+    } catch (error: any) {
+      toast.error("Failed to remove invoices from workflows");
+      console.error(error);
     }
   };
 
@@ -949,6 +1000,31 @@ const Invoices = () => {
                 </SelectContent>
               </Select>
             </div>
+            {selectedInvoices.length > 0 && (
+              <div className="flex gap-2 mt-4">
+                <span className="text-sm text-muted-foreground py-2">
+                  {selectedInvoices.length} selected
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBulkAssignDialog(true)}
+                >
+                  Assign to Workflow
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleBulkUnassign}
+                >
+                  Remove from Workflow
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setSelectedInvoices([])}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {filteredInvoices.length === 0 ? (
@@ -963,6 +1039,18 @@ const Invoices = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedInvoices(filteredInvoices.map(inv => inv.id));
+                          } else {
+                            setSelectedInvoices([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead>Reference ID</TableHead>
                     <TableHead>Invoice #</TableHead>
                     <TableHead>Debtor</TableHead>
@@ -983,6 +1071,18 @@ const Invoices = () => {
                     
                     return (
                       <TableRow key={invoice.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedInvoices.includes(invoice.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedInvoices([...selectedInvoices, invoice.id]);
+                              } else {
+                                setSelectedInvoices(selectedInvoices.filter(id => id !== invoice.id));
+                              }
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{invoice.reference_id}</TableCell>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{invoice.debtors?.name}</TableCell>
@@ -1302,6 +1402,41 @@ const Invoices = () => {
           onOpenChange={setIsAIPromptOpen}
           onSuccess={fetchData}
         />
+
+        <Dialog open={showBulkAssignDialog} onOpenChange={setShowBulkAssignDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign to Workflow</DialogTitle>
+              <DialogDescription>
+                Select which aging bucket workflow to assign the {selectedInvoices.length} selected invoice(s) to.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="aging-bucket">Aging Bucket</Label>
+              <Select value={selectedAgingBucket} onValueChange={setSelectedAgingBucket}>
+                <SelectTrigger id="aging-bucket">
+                  <SelectValue placeholder="Select aging bucket" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current">Current (Not Past Due)</SelectItem>
+                  <SelectItem value="dpd_1_30">1-30 Days Past Due</SelectItem>
+                  <SelectItem value="dpd_31_60">31-60 Days Past Due</SelectItem>
+                  <SelectItem value="dpd_61_90">61-90 Days Past Due</SelectItem>
+                  <SelectItem value="dpd_91_120">91-120 Days Past Due</SelectItem>
+                  <SelectItem value="dpd_121_plus">121+ Days Past Due</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBulkAssignDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBulkAssign}>
+                Assign
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
