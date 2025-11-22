@@ -111,6 +111,105 @@ export type Database = {
           },
         ]
       }
+      crm_accounts: {
+        Row: {
+          account_number: string | null
+          created_at: string
+          crm_account_id: string
+          crm_type: string
+          customer_since: string | null
+          health_score: string | null
+          id: string
+          industry: string | null
+          lifetime_value: number | null
+          mrr: number | null
+          name: string
+          owner_name: string | null
+          raw_json: Json | null
+          segment: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          created_at?: string
+          crm_account_id: string
+          crm_type: string
+          customer_since?: string | null
+          health_score?: string | null
+          id?: string
+          industry?: string | null
+          lifetime_value?: number | null
+          mrr?: number | null
+          name: string
+          owner_name?: string | null
+          raw_json?: Json | null
+          segment?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          created_at?: string
+          crm_account_id?: string
+          crm_type?: string
+          customer_since?: string | null
+          health_score?: string | null
+          id?: string
+          industry?: string | null
+          lifetime_value?: number | null
+          mrr?: number | null
+          name?: string
+          owner_name?: string | null
+          raw_json?: Json | null
+          segment?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          created_at: string
+          crm_type: string
+          id: string
+          instance_url: string | null
+          last_sync_at: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          created_at?: string
+          crm_type: string
+          id?: string
+          instance_url?: string | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          created_at?: string
+          crm_type?: string
+          id?: string
+          instance_url?: string | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       debtors: {
         Row: {
           address: string | null
@@ -163,7 +262,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "debtors_crm_account_id_fkey"
+            columns: ["crm_account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
