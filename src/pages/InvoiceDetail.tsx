@@ -122,6 +122,7 @@ const InvoiceDetail = () => {
           .from("ai_drafts")
           .select("*")
           .eq("invoice_id", id)
+          .neq("status", "discarded")
           .order("step_number", { ascending: true }),
       ]);
 
