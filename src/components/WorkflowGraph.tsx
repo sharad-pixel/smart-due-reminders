@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MessageSquare, Clock, Sparkles } from "lucide-react";
+import { Mail, MessageSquare, Clock, Sparkles, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkflowStep {
@@ -11,15 +11,19 @@ interface WorkflowStep {
   label: string;
   is_active: boolean;
   ai_template_type: string;
+  subject_template?: string;
+  body_template: string;
+  sms_template?: string;
 }
 
 interface WorkflowGraphProps {
   steps: WorkflowStep[];
   onGenerateContent?: (stepId: string) => void;
+  onPreviewMessage?: (step: WorkflowStep) => void;
   isGenerating?: boolean;
 }
 
-const WorkflowGraph = ({ steps, onGenerateContent, isGenerating }: WorkflowGraphProps) => {
+const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGenerating }: WorkflowGraphProps) => {
   const sortedSteps = [...steps].sort((a, b) => a.step_order - b.step_order);
   const maxDayOffset = Math.max(...sortedSteps.map(s => s.day_offset), 0);
 
@@ -96,16 +100,29 @@ const WorkflowGraph = ({ steps, onGenerateContent, isGenerating }: WorkflowGraph
                       </div>
 
                       {onGenerateContent && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onGenerateContent(step.id)}
-                          disabled={isGenerating}
-                          className="flex items-center gap-2"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Generate
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {onPreviewMessage && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onPreviewMessage(step)}
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-3 w-3" />
+                              Preview
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onGenerateContent(step.id)}
+                            disabled={isGenerating}
+                            className="flex items-center gap-2"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Generate
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
