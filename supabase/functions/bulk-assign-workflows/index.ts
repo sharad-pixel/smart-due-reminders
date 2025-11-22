@@ -67,10 +67,23 @@ Deno.serve(async (req) => {
         .or(`user_id.eq.${user.id},user_id.is.null`)
         .order('user_id', { ascending: false, nullsFirst: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (workflowError || !workflow) {
-        throw new Error(`No active workflow found for bucket: ${aging_bucket}`);
+      if (workflowError) {
+        throw new Error(`Error fetching workflow: ${workflowError.message}`);
+      }
+
+      if (!workflow) {
+        return new Response(
+          JSON.stringify({ 
+            error: `No active workflow exists for the "${aging_bucket}" aging bucket. Please set up a workflow for this bucket in the AI Workflows settings first.`,
+            user_friendly: true 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
 
       // First, deactivate existing workflows for these invoices

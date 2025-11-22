@@ -156,14 +156,28 @@ const Invoices = () => {
 
       if (error) throw error;
 
+      // Check if it's a user-friendly error from the edge function
+      if (data?.error && data?.user_friendly) {
+        toast.error(data.error, {
+          duration: 6000,
+          action: {
+            label: "Set up workflows",
+            onClick: () => navigate("/settings/ai-workflows"),
+          },
+        });
+        return;
+      }
+
+      if (data?.error) throw new Error(data.error);
+
       toast.success(data.message || "Invoices assigned to workflow");
       setSelectedInvoices([]);
       setShowBulkAssignDialog(false);
       setSelectedAgingBucket("");
       fetchData();
     } catch (error: any) {
-      toast.error("Failed to assign invoices to workflow");
-      console.error(error);
+      console.error('Bulk assign error:', error);
+      toast.error(error.message || "Failed to assign invoices to workflow");
     }
   };
 
