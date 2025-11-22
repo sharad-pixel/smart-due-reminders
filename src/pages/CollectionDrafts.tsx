@@ -14,7 +14,7 @@ import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 
-type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120';
+type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120' | 'dpd_120_plus';
 type DraftStatus = 'pending_approval' | 'approved' | 'discarded';
 type ViewMode = 'list' | 'grid' | 'table';
 
@@ -29,6 +29,7 @@ interface AgingBuckets {
   dpd_31_60: AgingBucketData;
   dpd_61_90: AgingBucketData;
   dpd_91_120: AgingBucketData;
+  dpd_120_plus: AgingBucketData;
 }
 
 interface Draft {
@@ -61,6 +62,7 @@ const agingBucketLabels = {
   dpd_31_60: { label: "31-60 Days", description: "Mid stage", color: "bg-orange-100 text-orange-800 border-orange-300" },
   dpd_61_90: { label: "61-90 Days", description: "Late stage", color: "bg-red-100 text-red-800 border-red-300" },
   dpd_91_120: { label: "91-120 Days", description: "Critical", color: "bg-purple-100 text-purple-800 border-purple-300" },
+  dpd_120_plus: { label: "120+ Days", description: "Severe", color: "bg-rose-100 text-rose-800 border-rose-300" },
 };
 
 const CollectionDrafts = () => {
@@ -157,6 +159,7 @@ const CollectionDrafts = () => {
   };
 
   const getAgingBucket = (daysPastDue: number): AgingBucket => {
+    if (daysPastDue >= 121) return 'dpd_120_plus';
     if (daysPastDue >= 91) return 'dpd_91_120';
     if (daysPastDue >= 61) return 'dpd_61_90';
     if (daysPastDue >= 31) return 'dpd_31_60';
@@ -330,6 +333,7 @@ const CollectionDrafts = () => {
           case 'dpd_31_60': return 'firm and direct';
           case 'dpd_61_90': return 'urgent and direct but respectful';
           case 'dpd_91_120': return 'very firm, urgent, and compliant';
+          case 'dpd_120_plus': return 'extremely firm, urgent, final notice tone';
           default: return 'professional';
         }
       };
@@ -434,12 +438,12 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
 
   const getTotalCount = () => {
     if (!agingData) return 0;
-    return agingData.current.count + agingData.dpd_1_30.count + agingData.dpd_31_60.count + agingData.dpd_61_90.count + agingData.dpd_91_120.count;
+    return agingData.current.count + agingData.dpd_1_30.count + agingData.dpd_31_60.count + agingData.dpd_61_90.count + agingData.dpd_91_120.count + agingData.dpd_120_plus.count;
   };
 
   const getTotalAmount = () => {
     if (!agingData) return 0;
-    return agingData.current.total_amount + agingData.dpd_1_30.total_amount + agingData.dpd_31_60.total_amount + agingData.dpd_61_90.total_amount + agingData.dpd_91_120.total_amount;
+    return agingData.current.total_amount + agingData.dpd_1_30.total_amount + agingData.dpd_31_60.total_amount + agingData.dpd_61_90.total_amount + agingData.dpd_91_120.total_amount + agingData.dpd_120_plus.total_amount;
   };
 
   if (loading) {
