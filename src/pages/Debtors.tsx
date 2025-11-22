@@ -104,47 +104,117 @@ const Debtors = () => {
 
   const downloadDebtorsTemplate = (format: 'csv' | 'excel') => {
     const headers = [
-      'reference_id',
-      'debtor_name',
-      'debtor_email',
-      'debtor_phone',
-      'debtor_company_name',
+      'debtor_name*',
+      'company_name',
       'debtor_type',
+      'primary_contact_name',
+      'primary_email*',
+      'primary_phone',
+      'billing_address_line1',
+      'billing_address_line2',
+      'billing_city',
+      'billing_state',
+      'billing_postal_code',
+      'billing_country',
+      'ar_contact_name',
+      'ar_contact_email',
+      'ar_contact_phone',
+      'external_system',
+      'external_customer_id',
+      'crm_system',
+      'crm_account_id_external',
+      'credit_limit',
+      'payment_terms_default',
       'notes',
-      'crm_account_name',
-      'crm_account_external_id',
-      'tags'
+      'tags',
+      'is_active'
+    ];
+    
+    const instructionRow = [
+      'Required. Name or Company Name',
+      'Optional. Company name for B2B',
+      'B2B or B2C',
+      'Optional. Primary contact person',
+      'Required. Primary email address',
+      'Optional. Primary phone',
+      'Optional. Billing address line 1',
+      'Optional. Billing address line 2',
+      'Optional. City',
+      'Optional. State/Province',
+      'Optional. Postal/ZIP code',
+      'Optional. Country',
+      'Optional. AR/AP contact name',
+      'Optional. AR/AP contact email',
+      'Optional. AR/AP contact phone',
+      'Optional. e.g., QuickBooks, Stripe',
+      'Optional. ID in external system',
+      'Optional. e.g., Salesforce, HubSpot',
+      'Optional. CRM account ID',
+      'Optional. Credit limit amount',
+      'Optional. e.g., NET30, NET15',
+      'Optional. Additional notes',
+      'Optional. Comma-separated',
+      'Optional. true or false'
     ];
     
     const exampleRows = [
       [
-        '',
+        'Acme Corporation',
+        'Acme Corporation',
+        'B2B',
         'John Smith',
         'john.smith@acmecorp.com',
         '+1-555-0123',
-        'Acme Corporation',
-        'B2B',
-        'High-value client, preferred payment terms',
-        'Acme Corp',
-        'SF_ACC_001234',
-        'VIP,Overdue'
+        '123 Main St',
+        'Suite 100',
+        'New York',
+        'NY',
+        '10001',
+        'USA',
+        'Jane Accountant',
+        'jane.accountant@acmecorp.com',
+        '+1-555-0124',
+        'QuickBooks',
+        'QB_123456',
+        'Salesforce',
+        'SF_001234',
+        '50000',
+        'NET30',
+        'High-value client, preferred terms',
+        'VIP,B2B,HighValue',
+        'true'
       ],
       [
-        '',
         'Jane Doe',
-        'jane.doe@techstart.io',
+        '',
+        'B2C',
+        'Jane Doe',
+        'jane.doe@email.com',
         '+1-555-0456',
-        'TechStart Inc',
-        'B2B',
-        'Net 30 payment terms',
-        'TechStart',
-        'SF_ACC_005678',
-        'New,Priority'
+        '456 Oak Ave',
+        'Apt 5',
+        'Los Angeles',
+        'CA',
+        '90001',
+        'USA',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'Due on Receipt',
+        'Individual customer',
+        'Retail',
+        'true'
       ]
     ];
     
     if (format === 'csv') {
       let csvContent = headers.join(',') + '\n';
+      csvContent += instructionRow.map(cell => `"${cell}"`).join(',') + '\n';
       exampleRows.forEach(row => {
         csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
       });
@@ -156,15 +226,15 @@ const Debtors = () => {
       a.download = 'debtors_template.csv';
       a.click();
       window.URL.revokeObjectURL(url);
-      toast.success('CSV template downloaded');
+      toast.success('CSV template downloaded with instructions');
     } else {
       // Generate Excel file
-      const wsData = [headers, ...exampleRows];
+      const wsData = [headers, instructionRow, ...exampleRows];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Debtors Template');
       XLSX.writeFile(wb, 'debtors_template.xlsx');
-      toast.success('Excel template downloaded');
+      toast.success('Excel template downloaded with instructions');
     }
   };
 
@@ -244,10 +314,10 @@ const Debtors = () => {
       const headers = hasHeaderRow ? rows[0] : [];
       const dataRows = hasHeaderRow ? rows.slice(1) : rows;
 
-      // Normalize header names
+      // Normalize header names (strip asterisks and parentheses)
       const headerMap: any = {};
       headers.forEach((header: string, index: number) => {
-        const normalized = header.toLowerCase().trim();
+        const normalized = header.toLowerCase().trim().replace(/[*()\s]+/g, '_').replace(/_+$/g, '');
         headerMap[normalized] = index;
       });
 
@@ -255,15 +325,18 @@ const Debtors = () => {
       const errors: string[] = [];
       const warnings: string[] = [];
 
-      if (!headerMap['debtor_name'] && !headerMap['name']) {
-        errors.push('Missing required column: debtor_name');
+      const hasName = headerMap['debtor_name'] || headerMap['name'];
+      const hasCompany = headerMap['company_name'];
+      
+      if (!hasName && !hasCompany) {
+        errors.push('Missing required field: debtor_name* OR company_name (at least one required)');
       }
       
-      const hasEmail = headerMap['debtor_email'] || headerMap['email'];
-      const hasPhone = headerMap['debtor_phone'] || headerMap['phone'];
+      const hasEmail = headerMap['primary_email'] || headerMap['debtor_email'] || headerMap['email'];
+      const hasPhone = headerMap['primary_phone'] || headerMap['debtor_phone'] || headerMap['phone'];
       
       if (!hasEmail && !hasPhone) {
-        errors.push('Missing required contact method: must have debtor_email OR debtor_phone');
+        errors.push('Missing required contact: primary_email* OR primary_phone (at least one required)');
       }
 
       if (errors.length > 0) {
@@ -278,15 +351,28 @@ const Debtors = () => {
         const parsed: any = {
           _rowIndex: rowIndex + (hasHeaderRow ? 2 : 1),
           debtor_name: row[headerMap['debtor_name'] || headerMap['name']]?.toString().trim() || '',
-          debtor_email: row[headerMap['debtor_email'] || headerMap['email']]?.toString().trim() || '',
-          debtor_phone: row[headerMap['debtor_phone'] || headerMap['phone']]?.toString().trim() || '',
-          debtor_company_name: row[headerMap['debtor_company_name'] || headerMap['company_name']]?.toString().trim() || '',
+          company_name: row[headerMap['company_name']]?.toString().trim() || '',
           debtor_type: row[headerMap['debtor_type'] || headerMap['type']]?.toString().trim() || '',
+          primary_contact_name: row[headerMap['primary_contact_name']]?.toString().trim() || '',
+          primary_email: row[headerMap['primary_email'] || headerMap['debtor_email'] || headerMap['email']]?.toString().trim() || '',
+          primary_phone: row[headerMap['primary_phone'] || headerMap['debtor_phone'] || headerMap['phone']]?.toString().trim() || '',
+          billing_address_line1: row[headerMap['billing_address_line1']]?.toString().trim() || '',
+          ar_contact_name: row[headerMap['ar_contact_name']]?.toString().trim() || '',
+          external_system: row[headerMap['external_system']]?.toString().trim() || '',
+          external_customer_id: row[headerMap['external_customer_id']]?.toString().trim() || '',
+          payment_terms_default: row[headerMap['payment_terms_default']]?.toString().trim() || '',
           notes: row[headerMap['notes']]?.toString().trim() || '',
-          crm_account_name: row[headerMap['crm_account_name']]?.toString().trim() || '',
-          crm_account_external_id: row[headerMap['crm_account_external_id']]?.toString().trim() || '',
           tags: row[headerMap['tags']]?.toString().trim() || '',
+          is_active: row[headerMap['is_active']]?.toString().trim() || 'true'
         };
+
+        // Validate required fields
+        if (!parsed.debtor_name && !parsed.company_name) {
+          warnings.push(`Row ${parsed._rowIndex}: Missing both debtor_name and company_name (at least one required)`);
+        }
+        if (!parsed.primary_email && !parsed.primary_phone) {
+          warnings.push(`Row ${parsed._rowIndex}: Missing both primary_email and primary_phone (at least one required)`);
+        }
 
         // Validate debtor_type
         if (parsed.debtor_type && !['B2B', 'B2C'].includes(parsed.debtor_type.toUpperCase())) {
@@ -317,22 +403,25 @@ const Debtors = () => {
 
       const headerMap: any = {};
       headers.forEach((header: string, index: number) => {
-        const normalized = header.toLowerCase().trim();
+        const normalized = header.toLowerCase().trim().replace(/[*()\s]+/g, '_').replace(/_+$/g, '');
         headerMap[normalized] = index;
       });
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get existing debtors for this user
+      // Get existing debtors for duplicate detection
       const { data: existingDebtors } = await supabase
         .from('debtors')
-        .select('id, email')
+        .select('id, primary_email, email, external_customer_id, company_name')
         .eq('user_id', user.id);
 
-      const existingDebtorsMap = new Map(
-        existingDebtors?.map(d => [d.email.toLowerCase(), d.id]) || []
-      );
+      const existingDebtorsMap = new Map<string, string>();
+      existingDebtors?.forEach(d => {
+        const email = (d.primary_email || d.email || '').toLowerCase();
+        if (email) existingDebtorsMap.set(email, d.id);
+        if (d.external_customer_id) existingDebtorsMap.set(`ext_${d.external_customer_id}`, d.id);
+      });
 
       // Get CRM accounts for linking
       const { data: crmAccounts } = await supabase
@@ -346,49 +435,64 @@ const Debtors = () => {
 
       for (const row of dataRows) {
         try {
-          const debtorData: any = {
-            name: row[headerMap['debtor_name'] || headerMap['name']]?.toString().trim() || '',
-            email: row[headerMap['debtor_email'] || headerMap['email']]?.toString().trim() || '',
-            phone: row[headerMap['debtor_phone'] || headerMap['phone']]?.toString().trim() || null,
-            company_name: row[headerMap['debtor_company_name'] || headerMap['company_name']]?.toString().trim() || '',
-            contact_name: row[headerMap['debtor_name'] || headerMap['name']]?.toString().trim() || '',
-            type: (row[headerMap['debtor_type'] || headerMap['type']]?.toString().trim().toUpperCase() || 'B2C') as 'B2B' | 'B2C',
-            notes: row[headerMap['notes']]?.toString().trim() || null,
-            address: null,
-            tags: row[headerMap['tags']]?.toString().trim() ? row[headerMap['tags']].split(',').map((t: string) => t.trim()) : null,
-          };
-
+          const debtorName = row[headerMap['debtor_name'] || headerMap['name']]?.toString().trim() || '';
+          const companyName = row[headerMap['company_name']]?.toString().trim() || '';
+          const primaryEmail = row[headerMap['primary_email'] || headerMap['debtor_email'] || headerMap['email']]?.toString().trim() || '';
+          const primaryPhone = row[headerMap['primary_phone'] || headerMap['debtor_phone'] || headerMap['phone']]?.toString().trim() || '';
+          
           // Validate required fields
-          if (!debtorData.name || (!debtorData.email && !debtorData.phone)) {
+          if (!debtorName && !companyName) {
+            skipped++;
+            continue;
+          }
+          if (!primaryEmail && !primaryPhone) {
             skipped++;
             continue;
           }
 
+          const debtorData: any = {
+            name: debtorName || companyName,
+            company_name: companyName,
+            contact_name: debtorName,
+            primary_contact_name: row[headerMap['primary_contact_name']]?.toString().trim() || debtorName,
+            primary_email: primaryEmail || null,
+            primary_phone: primaryPhone || null,
+            email: primaryEmail, // Keep legacy field
+            phone: primaryPhone, // Keep legacy field
+            type: (row[headerMap['debtor_type'] || headerMap['type']]?.toString().trim().toUpperCase() || (companyName ? 'B2B' : 'B2C')) as 'B2B' | 'B2C',
+            billing_address_line1: row[headerMap['billing_address_line1']]?.toString().trim() || null,
+            billing_address_line2: row[headerMap['billing_address_line2']]?.toString().trim() || null,
+            billing_city: row[headerMap['billing_city']]?.toString().trim() || null,
+            billing_state: row[headerMap['billing_state']]?.toString().trim() || null,
+            billing_postal_code: row[headerMap['billing_postal_code']]?.toString().trim() || null,
+            billing_country: row[headerMap['billing_country']]?.toString().trim() || null,
+            ar_contact_name: row[headerMap['ar_contact_name']]?.toString().trim() || null,
+            ar_contact_email: row[headerMap['ar_contact_email']]?.toString().trim() || null,
+            ar_contact_phone: row[headerMap['ar_contact_phone']]?.toString().trim() || null,
+            external_system: row[headerMap['external_system']]?.toString().trim() || null,
+            external_customer_id: row[headerMap['external_customer_id']]?.toString().trim() || null,
+            crm_system: row[headerMap['crm_system']]?.toString().trim() || null,
+            crm_account_id_external: row[headerMap['crm_account_id_external']]?.toString().trim() || null,
+            credit_limit: row[headerMap['credit_limit']]?.toString().trim() ? parseFloat(row[headerMap['credit_limit']]) : null,
+            payment_terms_default: row[headerMap['payment_terms_default']]?.toString().trim() || null,
+            notes: row[headerMap['notes']]?.toString().trim() || null,
+            tags: row[headerMap['tags']]?.toString().trim() ? row[headerMap['tags']].split(',').map((t: string) => t.trim()) : null,
+            is_active: row[headerMap['is_active']]?.toString().trim().toLowerCase() !== 'false',
+          };
+
           // Validate type
           if (!['B2B', 'B2C'].includes(debtorData.type)) {
-            debtorData.type = 'B2C';
+            debtorData.type = companyName ? 'B2B' : 'B2C';
           }
 
-          // Try to link CRM account
-          const crmExternalId = row[headerMap['crm_account_external_id']]?.toString().trim();
-          const crmName = row[headerMap['crm_account_name']]?.toString().trim();
-
-          if (crmExternalId && crmAccounts) {
-            const matchingAccount = crmAccounts.find(acc => acc.crm_account_id === crmExternalId);
-            if (matchingAccount) {
-              debtorData.crm_account_id = matchingAccount.id;
-            }
-          } else if (crmName && crmAccounts) {
-            const matchingAccounts = crmAccounts.filter(acc => 
-              acc.name.toLowerCase() === crmName.toLowerCase()
-            );
-            if (matchingAccounts.length === 1) {
-              debtorData.crm_account_id = matchingAccounts[0].id;
-            }
+          // Check for existing debtor
+          let existingId = null;
+          if (debtorData.external_customer_id) {
+            existingId = existingDebtorsMap.get(`ext_${debtorData.external_customer_id}`);
           }
-
-          // Check if debtor exists
-          const existingId = debtorData.email ? existingDebtorsMap.get(debtorData.email.toLowerCase()) : null;
+          if (!existingId && primaryEmail) {
+            existingId = existingDebtorsMap.get(primaryEmail.toLowerCase());
+          }
 
           if (existingId) {
             // Update existing debtor (only non-null values)
@@ -768,10 +872,11 @@ const Debtors = () => {
                         <TableRow>
                           <TableHead>Row</TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Phone</TableHead>
                           <TableHead>Company</TableHead>
                           <TableHead>Type</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Ext. System</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -779,10 +884,11 @@ const Debtors = () => {
                           <TableRow key={idx}>
                             <TableCell>{row._rowIndex}</TableCell>
                             <TableCell>{row.debtor_name}</TableCell>
-                            <TableCell>{row.debtor_email || '-'}</TableCell>
-                            <TableCell>{row.debtor_phone || '-'}</TableCell>
-                            <TableCell>{row.debtor_company_name}</TableCell>
+                            <TableCell>{row.company_name || '-'}</TableCell>
                             <TableCell>{row.debtor_type || 'B2C'}</TableCell>
+                            <TableCell>{row.primary_email || '-'}</TableCell>
+                            <TableCell>{row.primary_phone || '-'}</TableCell>
+                            <TableCell>{row.external_system || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

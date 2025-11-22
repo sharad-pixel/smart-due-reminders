@@ -378,7 +378,7 @@ const Invoices = () => {
 
       const { data: debtors } = await supabase
         .from('debtors')
-        .select('id, reference_id, name, email, company_name')
+        .select('id, reference_id, name, email, company_name, primary_email, external_customer_id')
         .eq('user_id', user.id);
 
       const debtorsList = debtors || [];
@@ -424,7 +424,7 @@ const Invoices = () => {
           warnings.push(`Row ${parsed._rowIndex}: Invalid status "${parsed.status}"`);
         }
 
-        // Find matching debtors - prioritize reference_id
+        // Find matching debtors - prioritize reference_id > external_customer_id > primary_email > email > company_name
         let matches = [];
         
         // First try reference_id match (most reliable)
@@ -432,7 +432,18 @@ const Invoices = () => {
           matches = debtorsList.filter(d => d.reference_id === parsed.debtor_reference_id);
         }
 
-        // If no reference_id match, try email
+        // If no reference_id match, try external_customer_id
+        if (matches.length === 0 && parsed.debtor_external_customer_id) {
+          matches = debtorsList.filter(d => d.external_customer_id === parsed.debtor_external_customer_id);
+        }
+
+        // If no match yet, try email (primary_email or email)
+        if (matches.length === 0 && parsed.debtor_email) {
+          matches = debtorsList.filter(d => 
+            d.primary_email?.toLowerCase() === parsed.debtor_email.toLowerCase() ||
+            d.email?.toLowerCase() === parsed.debtor_email.toLowerCase()
+          );
+        }
         if (matches.length === 0 && parsed.debtor_email) {
           const emailLower = parsed.debtor_email.toLowerCase();
           matches = debtorsList.filter(d => d.email?.toLowerCase() === emailLower);
@@ -510,7 +521,7 @@ const Invoices = () => {
       const [debtorsRes, crmAccountsRes] = await Promise.all([
         supabase
           .from('debtors')
-          .select('id, reference_id, name, email, company_name, crm_account_id')
+          .select('id, reference_id, name, email, primary_email, external_customer_id, company_name, crm_account_id')
           .eq('user_id', user.id),
         supabase
           .from('crm_accounts')
@@ -556,8 +567,9 @@ const Invoices = () => {
             continue;
           }
 
-          // Find matching debtor - prioritize reference_id
+          // Find matching debtor - prioritize reference_id > external_customer_id > primary_email > email > company_name
           const debtorRefId = row[headerMap['debtor_reference_id']]?.toString().trim();
+          const debtorExternalId = row[headerMap['debtor_external_customer_id']]?.toString().trim();
           const debtorEmail = row[headerMap['debtor_email']]?.toString().trim().toLowerCase();
           const debtorCompany = row[headerMap['debtor_company_name']]?.toString().trim().toLowerCase();
 
@@ -568,9 +580,17 @@ const Invoices = () => {
             matches = debtors.filter(d => d.reference_id === debtorRefId);
           }
           
-          // If no reference_id match, try email
+          // If no reference_id match, try external_customer_id
+          if (matches.length === 0 && debtorExternalId) {
+            matches = debtors.filter(d => d.external_customer_id === debtorExternalId);
+          }
+          
+          // If no match yet, try email (primary_email or email)
           if (matches.length === 0 && debtorEmail) {
-            matches = debtors.filter(d => d.email?.toLowerCase() === debtorEmail);
+            matches = debtors.filter(d => 
+              d.primary_email?.toLowerCase() === debtorEmail ||
+              d.email?.toLowerCase() === debtorEmail
+            );
           }
           
           // If no email match, try company name
@@ -748,27 +768,43 @@ const Invoices = () => {
                   <DialogTitle>Create New Invoice</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreate} className="space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Note:</strong> Every invoice must be linked to a debtor. If the debtor doesn't exist yet, create them first in the <a href="/debtors" className="text-primary hover:underline font-medium">Debtors page</a>.
+                    </AlertDescription>
+                  </Alert>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="debtor_id">Debtor *</Label>
-                      <Select
-                        value={formData.debtor_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, debtor_id: value })
-                        }
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select debtor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {debtors.map((debtor) => (
-                            <SelectItem key={debtor.id} value={debtor.id}>
-                              {debtor.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="debtor_id">Debtor * <span className="text-xs text-muted-foreground">(Required - invoices cannot exist without a debtor)</span></Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={formData.debtor_id}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, debtor_id: value })
+                          }
+                          required
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select debtor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {debtors.map((debtor) => (
+                              <SelectItem key={debtor.id} value={debtor.id}>
+                                {debtor.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => window.open('/debtors', '_blank')}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          New Debtor
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="invoice_number">Invoice Number *</Label>

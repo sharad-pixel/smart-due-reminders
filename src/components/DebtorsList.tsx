@@ -16,6 +16,9 @@ interface Debtor {
   email: string;
   phone: string | null;
   address: string | null;
+  primary_contact_name: string | null;
+  primary_email: string | null;
+  primary_phone: string | null;
 }
 
 interface DebtorsListProps {
@@ -63,7 +66,10 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
 
       const { error } = await supabase.from("debtors").insert([{
         ...formData,
-        name: formData.contact_name, // Use contact_name as the name
+        name: formData.contact_name || formData.company_name,
+        primary_contact_name: formData.contact_name,
+        primary_email: formData.email,
+        primary_phone: formData.phone,
         user_id: user.id,
       } as any]);
       
@@ -196,9 +202,9 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
               {debtors.map((debtor) => (
                 <TableRow key={debtor.id}>
                   <TableCell className="font-medium">{debtor.company_name}</TableCell>
-                  <TableCell>{debtor.contact_name}</TableCell>
-                  <TableCell>{debtor.email}</TableCell>
-                  <TableCell>{debtor.phone || "—"}</TableCell>
+                  <TableCell>{debtor.primary_contact_name || debtor.contact_name}</TableCell>
+                  <TableCell>{debtor.primary_email || debtor.email}</TableCell>
+                  <TableCell>{debtor.primary_phone || debtor.phone || "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
