@@ -111,6 +111,42 @@ export type Database = {
           },
         ]
       }
+      contact_requests: {
+        Row: {
+          billing_system: string | null
+          company: string
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          monthly_invoices: string | null
+          name: string
+          team_size: string | null
+        }
+        Insert: {
+          billing_system?: string | null
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          monthly_invoices?: string | null
+          name: string
+          team_size?: string | null
+        }
+        Update: {
+          billing_system?: string | null
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          monthly_invoices?: string | null
+          name?: string
+          team_size?: string | null
+        }
+        Relationships: []
+      }
       crm_accounts: {
         Row: {
           account_number: string | null
@@ -445,6 +481,36 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          created_at: string
+          feature_flags: Json
+          id: string
+          invoice_limit: number | null
+          monthly_price: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_flags?: Json
+          id?: string
+          invoice_limit?: number | null
+          monthly_price?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_flags?: Json
+          id?: string
+          invoice_limit?: number | null
+          monthly_price?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_address: string | null
@@ -457,11 +523,14 @@ export type Database = {
           name: string | null
           password_hash: string | null
           phone: string | null
+          plan_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"] | null
           sendgrid_api_key: string | null
           smtp_settings: Json | null
           stripe_customer_id: string | null
           stripe_payment_link_url: string | null
+          stripe_subscription_id: string | null
+          trial_ends_at: string | null
           twilio_account_sid: string | null
           twilio_auth_token: string | null
           twilio_from_number: string | null
@@ -478,11 +547,14 @@ export type Database = {
           name?: string | null
           password_hash?: string | null
           phone?: string | null
+          plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
           sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
           stripe_payment_link_url?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_from_number?: string | null
@@ -499,17 +571,28 @@ export type Database = {
           name?: string | null
           password_hash?: string | null
           phone?: string | null
+          plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
           sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
           stripe_payment_link_url?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_from_number?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
