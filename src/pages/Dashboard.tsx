@@ -199,6 +199,23 @@ const Dashboard = () => {
         {/* Usage Indicator */}
         <UsageIndicator />
 
+        {/* Quick Actions */}
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">AI Collection Workflows</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Set up automated collection sequences for your invoices
+                </p>
+              </div>
+              <Button onClick={() => navigate("/settings/ai-workflows")}>
+                Configure Workflows
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
