@@ -21,7 +21,7 @@ const Pricing = () => {
   const plans = [
     {
       name: "Starter",
-      price: "$39",
+      price: "$99",
       period: "/month",
       description: "Perfect for small businesses getting started with collections automation",
       features: [
@@ -38,7 +38,7 @@ const Pricing = () => {
     },
     {
       name: "Growth",
-      price: "$99",
+      price: "$199",
       period: "/month",
       description: "For growing teams that need full automation and CRM features",
       features: [
@@ -56,11 +56,11 @@ const Pricing = () => {
     },
     {
       name: "Professional",
-      price: "$199",
+      price: "$399",
       period: "/month",
       description: "Enterprise-grade collections for high-volume teams",
       features: [
-        "Unlimited invoices",
+        "Up to 500 invoices per month",
         "Team permissions",
         "Priority AI throughput",
         "Advanced CRM context integration",
