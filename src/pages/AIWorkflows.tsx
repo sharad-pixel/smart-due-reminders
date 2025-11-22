@@ -50,10 +50,41 @@ const AIWorkflows = () => {
   const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null);
   const [editingSettings, setEditingSettings] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchWorkflows();
+    fetchInvoiceCounts();
   }, []);
+
+  const fetchInvoiceCounts = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-aging-bucket-invoices`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch invoice counts");
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        const counts: Record<string, number> = {};
+        Object.keys(result.data).forEach((bucket) => {
+          counts[bucket] = result.data[bucket].count || 0;
+        });
+        setBucketCounts(counts);
+      }
+    } catch (error) {
+      console.error("Error fetching invoice counts:", error);
+    }
+  };
 
   const fetchWorkflows = async () => {
     try {
@@ -131,6 +162,7 @@ const AIWorkflows = () => {
       const { error } = await supabase
         .from("collection_workflows")
         .update({
+          name: settings.name,
           description: settings.description,
         })
         .eq("id", selectedWorkflow.id);
@@ -138,6 +170,7 @@ const AIWorkflows = () => {
       if (error) throw error;
 
       await fetchWorkflows();
+      toast.success("Workflow settings updated");
     } catch (error: any) {
       toast.error("Failed to update settings");
       console.error(error);
@@ -270,6 +303,7 @@ const AIWorkflows = () => {
               {agingBuckets.map((bucket) => {
                 const workflow = workflows.find(w => w.aging_bucket === bucket.value);
                 const isActive = workflow?.is_active ?? false;
+                const invoiceCount = bucketCounts[bucket.value] || 0;
                 
                 return (
                   <button
@@ -282,7 +316,12 @@ const AIWorkflows = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{bucket.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{bucket.label}</span>
+                        <Badge variant={selectedBucket === bucket.value ? "secondary" : "outline"} className="text-xs">
+                          {invoiceCount} {invoiceCount === 1 ? "invoice" : "invoices"}
+                        </Badge>
+                      </div>
                       {isActive && (
                         <Badge variant="secondary" className="text-xs">Active</Badge>
                       )}

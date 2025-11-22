@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface WorkflowSettings {
@@ -25,7 +25,7 @@ const WorkflowSettingsEditor = ({ workflow, open, onOpenChange, onSave }: Workfl
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!formData.description) {
+    if (!formData.name?.trim() || !formData.description?.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -51,6 +51,19 @@ const WorkflowSettingsEditor = ({ workflow, open, onOpenChange, onSave }: Workfl
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Workflow Name *</Label>
+            <Input
+              id="name"
+              value={formData.name || ""}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Professional B2B Collection"
+            />
+            <p className="text-xs text-muted-foreground">
+              Give your workflow a clear, descriptive name
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Workflow Description *</Label>
             <Textarea
