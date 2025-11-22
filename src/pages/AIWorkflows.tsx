@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2 } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowTemplates, { Template } from "@/components/WorkflowTemplates";
+import WorkflowGraph from "@/components/WorkflowGraph";
 
 interface WorkflowStep {
   id: string;
@@ -56,6 +58,8 @@ const AIWorkflows = () => {
   const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+  const [generatingContent, setGeneratingContent] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "graph">("list");
 
   useEffect(() => {
     fetchWorkflows();
@@ -157,6 +161,54 @@ const AIWorkflows = () => {
     } catch (error: any) {
       toast.error("Failed to update step");
       console.error(error);
+    }
+  };
+
+  const handleGenerateContent = async (stepId: string) => {
+    if (!selectedWorkflow) return;
+
+    const step = selectedWorkflow.steps.find(s => s.id === stepId);
+    if (!step) return;
+
+    setGeneratingContent(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-workflow-content`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            stepId: step.id,
+            agingBucket: selectedBucket,
+            tone: step.ai_template_type,
+            channel: step.channel,
+            dayOffset: step.day_offset,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate content');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        await fetchWorkflows();
+        toast.success("AI content generated successfully");
+      }
+    } catch (error: any) {
+      console.error('Error generating content:', error);
+      toast.error(error.message || "Failed to generate content");
+    } finally {
+      setGeneratingContent(false);
     }
   };
 
@@ -503,74 +555,104 @@ const AIWorkflows = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Workflow Steps</CardTitle>
-                    <CardDescription>
-                      AI will generate drafts at these intervals for human review
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => (
-                        <div
-                          key={step.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="flex items-center space-x-4 flex-1">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                              {step.step_order}
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{step.label}</p>
-                              <div className="flex items-center space-x-3 mt-1">
-                                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                                  <Clock className="h-3 w-3" />
-                                  <span>Day {step.day_offset}</span>
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "graph")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="list">List View</TabsTrigger>
+                    <TabsTrigger value="graph">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Graph View
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="list" className="mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Workflow Steps</CardTitle>
+                        <CardDescription>
+                          AI will generate drafts at these intervals for human review
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => (
+                            <div
+                              key={step.id}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="flex items-center space-x-4 flex-1">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                                  {step.step_order}
                                 </div>
-                                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                                  {step.channel === "email" ? (
-                                    <>
-                                      <Mail className="h-3 w-3" />
-                                      <span>Email</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <MessageSquare className="h-3 w-3" />
-                                      <span>SMS</span>
-                                    </>
-                                  )}
+                                <div className="flex-1">
+                                  <p className="font-medium">{step.label}</p>
+                                  <div className="flex items-center space-x-3 mt-1">
+                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                                      <Clock className="h-3 w-3" />
+                                      <span>Day {step.day_offset}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                                      {step.channel === "email" ? (
+                                        <>
+                                          <Mail className="h-3 w-3" />
+                                          <span>Email</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MessageSquare className="h-3 w-3" />
+                                          <span>SMS</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant={step.is_active ? "default" : "secondary"}>
+                                  {step.is_active ? "Active" : "Inactive"}
+                                </Badge>
+                                {!selectedWorkflow.is_locked && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleGenerateContent(step.id)}
+                                      disabled={generatingContent}
+                                    >
+                                      <Sparkles className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setEditingStep(step)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={step.is_active ? "default" : "secondary"}>
-                              {step.is_active ? "Active" : "Inactive"}
-                            </Badge>
-                            {!selectedWorkflow.is_locked && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditingStep(step)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    
-                    <div className="mt-6 p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>How it works:</strong> When an invoice reaches the specified days past due,
-                        the AI will generate a draft message using your branding settings. All drafts require
-                        human review before sending.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                        
+                        <div className="mt-6 p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground">
+                            <strong>How it works:</strong> When an invoice reaches the specified days past due,
+                            the AI will generate a draft message using your branding settings. All drafts require
+                            human review before sending.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="graph" className="mt-6">
+                    <WorkflowGraph 
+                      steps={selectedWorkflow.steps || []}
+                      onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
+                      isGenerating={generatingContent}
+                    />
+                  </TabsContent>
+                </Tabs>
               </>
             ) : (
               <Card>
