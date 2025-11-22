@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import * as XLSX from 'xlsx';
 
 interface Debtor {
   id: string;
@@ -100,8 +101,37 @@ const Debtors = () => {
       'tags'
     ];
     
+    const exampleRows = [
+      [
+        'John Smith',
+        'john.smith@acmecorp.com',
+        '+1-555-0123',
+        'Acme Corporation',
+        'B2B',
+        'High-value client, preferred payment terms',
+        'Acme Corp',
+        'SF_ACC_001234',
+        'VIP,Overdue'
+      ],
+      [
+        'Jane Doe',
+        'jane.doe@techstart.io',
+        '+1-555-0456',
+        'TechStart Inc',
+        'B2B',
+        'Net 30 payment terms',
+        'TechStart',
+        'SF_ACC_005678',
+        'New,Priority'
+      ]
+    ];
+    
     if (format === 'csv') {
-      const csvContent = headers.join(',') + '\n';
+      let csvContent = headers.join(',') + '\n';
+      exampleRows.forEach(row => {
+        csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+      
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -111,8 +141,13 @@ const Debtors = () => {
       window.URL.revokeObjectURL(url);
       toast.success('CSV template downloaded');
     } else {
-      // Stub for Excel template
-      toast.info('Excel template download coming soon');
+      // Generate Excel file
+      const wsData = [headers, ...exampleRows];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Debtors Template');
+      XLSX.writeFile(wb, 'debtors_template.xlsx');
+      toast.success('Excel template downloaded');
     }
   };
 
