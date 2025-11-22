@@ -225,13 +225,23 @@ const InvoiceDetail = () => {
 
   const handleDraftAction = async (draftId: string, action: "approved" | "discarded") => {
     try {
-      const { error } = await supabase
-        .from("ai_drafts")
-        .update({ status: action })
-        .eq("id", draftId);
+      if (action === "discarded") {
+        const { error } = await supabase
+          .from("ai_drafts")
+          .delete()
+          .eq("id", draftId);
 
-      if (error) throw error;
-      toast.success(`Draft ${action === "approved" ? "approved" : "discarded"}`);
+        if (error) throw error;
+        toast.success("Draft deleted");
+      } else {
+        const { error } = await supabase
+          .from("ai_drafts")
+          .update({ status: action })
+          .eq("id", draftId);
+
+        if (error) throw error;
+        toast.success("Draft approved");
+      }
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to update draft");
