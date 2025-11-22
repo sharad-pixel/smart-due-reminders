@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { AlertCircle, Sparkles, Check, X } from "lucide-react";
+import { AlertCircle, Sparkles, Check, X, Lock } from "lucide-react";
+import { PAYMENT_TERMS, getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
+import { canUseFeature } from "@/lib/planGating";
+import { LineItemsTable, type LineItem } from "@/components/LineItemsTable";
 
 interface AIPromptCreationModalProps {
   open: boolean;
@@ -40,13 +44,18 @@ interface ParsedInvoice {
     currency: string;
     issue_date: string;
     due_date: string;
+    payment_terms: string;
+    payment_terms_days: number;
     external_link: string;
     notes: string;
+    tax_amount: number;
+    line_items: LineItem[];
   };
   duplicate_invoice: boolean;
   existing_invoice_id: string | null;
   missing_required_fields: string[];
   has_errors: boolean;
+  has_line_items: boolean;
 }
 
 export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromptCreationModalProps) => {
@@ -61,6 +70,26 @@ export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromp
   const [selectedExistingId, setSelectedExistingId] = useState("");
   const [editedDebtor, setEditedDebtor] = useState<any>(null);
   const [editedInvoices, setEditedInvoices] = useState<any[]>([]);
+
+  // Fetch user's plan to check feature access
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("plan_type")
+        .eq("id", user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const canUseLineItems = canUseFeature(profile?.plan_type || "free", "can_use_invoice_line_items");
 
   const examplePrompts = [
     "Create a new customer: John Smith at Smith Plumbing, email john@smithplumbing.com, phone 555-2020. Add an invoice for $350 for water heater repair, due Friday.",
@@ -368,19 +397,55 @@ export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromp
                         </div>
                         <div className="space-y-2">
                           <Label className={originalInvoice.missing_required_fields.includes("amount") ? "text-destructive" : ""}>
-                            Amount *
+                            Amount {originalInvoice.missing_required_fields.includes("amount") && !invoice.line_items?.length && "*"}
                           </Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={invoice.amount || ""}
-                            onChange={(e) => {
+                          {!canUseLineItems || !invoice.line_items?.length ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={invoice.amount || ""}
+                              onChange={(e) => {
+                                const updated = [...editedInvoices];
+                                updated[idx].amount = parseFloat(e.target.value);
+                                setEditedInvoices(updated);
+                              }}
+                              className={originalInvoice.missing_required_fields.includes("amount") && !invoice.line_items?.length ? "border-destructive" : ""}
+                            />
+                          ) : (
+                            <div className="text-sm text-muted-foreground pt-2">
+                              Calculated from line items
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Payment Terms</Label>
+                          <Select
+                            value={invoice.payment_terms || "NET30"}
+                            onValueChange={(value) => {
                               const updated = [...editedInvoices];
-                              updated[idx].amount = parseFloat(e.target.value);
+                              updated[idx].payment_terms = value;
+                              const terms = PAYMENT_TERMS[value as keyof typeof PAYMENT_TERMS];
+                              if (terms.days !== null) {
+                                updated[idx].payment_terms_days = terms.days;
+                                // Auto-calculate due date
+                                if (invoice.issue_date) {
+                                  updated[idx].due_date = calculateDueDate(invoice.issue_date, terms.days);
+                                }
+                              }
                               setEditedInvoices(updated);
                             }}
-                            className={originalInvoice.missing_required_fields.includes("amount") ? "border-destructive" : ""}
-                          />
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getPaymentTermsOptions().map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label>Issue Date</Label>
@@ -390,6 +455,10 @@ export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromp
                             onChange={(e) => {
                               const updated = [...editedInvoices];
                               updated[idx].issue_date = e.target.value;
+                              // Recalculate due date if payment terms are set
+                              if (invoice.payment_terms_days) {
+                                updated[idx].due_date = calculateDueDate(e.target.value, invoice.payment_terms_days);
+                              }
                               setEditedInvoices(updated);
                             }}
                           />
@@ -410,6 +479,35 @@ export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromp
                           />
                         </div>
                       </div>
+
+                      {/* Line Items Section */}
+                      {canUseLineItems ? (
+                        <div className="mt-4">
+                          <LineItemsTable
+                            items={invoice.line_items || []}
+                            onChange={(items) => {
+                              const updated = [...editedInvoices];
+                              updated[idx].line_items = items;
+                              // Recalculate amounts
+                              const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
+                              updated[idx].amount = subtotal + (invoice.tax_amount || 0);
+                              setEditedInvoices(updated);
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        originalInvoice.has_line_items && (
+                          <Alert className="mt-4">
+                            <Lock className="h-4 w-4" />
+                            <AlertDescription>
+                              <strong>Line items detected</strong> but are only available on the Professional plan.
+                              <Button variant="link" className="p-0 h-auto ml-1" onClick={() => window.open("/pricing", "_blank")}>
+                                Upgrade to Professional
+                              </Button>
+                            </AlertDescription>
+                          </Alert>
+                        )
+                      )}
                     </div>
                   );
                 })}

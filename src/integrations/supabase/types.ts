@@ -349,6 +349,53 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number
+          quantity: number
+          sort_order: number
+          unit_price: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          invoice_id: string
+          line_total: number
+          quantity?: number
+          sort_order?: number
+          unit_price: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_usage: {
         Row: {
           created_at: string | null
@@ -399,10 +446,15 @@ export type Database = {
           notes: string | null
           payment_date: string | null
           payment_method: string | null
+          payment_terms: string | null
+          payment_terms_days: number | null
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
           reference_id: string
           status: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal: number | null
+          tax_amount: number | null
+          total_amount: number | null
           updated_at: string | null
           user_id: string
         }
@@ -422,10 +474,15 @@ export type Database = {
           notes?: string | null
           payment_date?: string | null
           payment_method?: string | null
+          payment_terms?: string | null
+          payment_terms_days?: number | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
           reference_id: string
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -445,10 +502,15 @@ export type Database = {
           notes?: string | null
           payment_date?: string | null
           payment_method?: string | null
+          payment_terms?: string | null
+          payment_terms_days?: number | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
           reference_id?: string
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number | null
           updated_at?: string | null
           user_id?: string
         }

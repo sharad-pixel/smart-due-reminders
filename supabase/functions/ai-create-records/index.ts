@@ -89,17 +89,52 @@ serve(async (req) => {
       logStep("New debtor created", { debtorId });
     }
 
+    // Get user's plan to check for line item permission
+    const { data: profileData } = await supabaseClient
+      .from("profiles")
+      .select("plan_type")
+      .eq("id", user.id)
+      .single();
+
+    const userPlan = profileData?.plan_type || "free";
+    const canUseLineItems = userPlan === "pro";
+
     // Create invoices
     const createdInvoiceIds: string[] = [];
     const today = new Date().toISOString().split('T')[0];
 
     for (const invoice of invoice_list) {
+      const hasLineItems = invoice.line_items && invoice.line_items.length > 0;
+
       // Validate required fields
-      if (!invoice.amount || invoice.amount <= 0) {
-        throw new Error("Invoice amount is required and must be greater than 0");
+      if (!hasLineItems && (!invoice.amount || invoice.amount <= 0)) {
+        throw new Error("Invoice amount or line items are required");
       }
-      if (!invoice.due_date) {
-        throw new Error("Invoice due date is required");
+      if (!invoice.due_date && !invoice.payment_terms_days) {
+        throw new Error("Invoice due date or payment terms are required");
+      }
+
+      // Check line item permission
+      if (hasLineItems && !canUseLineItems) {
+        throw new Error("Invoice line items are available on the Professional plan only");
+      }
+
+      // Calculate amounts from line items if present
+      let subtotal = 0;
+      let totalAmount = invoice.amount || 0;
+      if (hasLineItems && canUseLineItems) {
+        subtotal = invoice.line_items.reduce((sum: number, item: any) => {
+          return sum + (item.quantity * item.unit_price);
+        }, 0);
+        totalAmount = subtotal + (invoice.tax_amount || 0);
+      }
+
+      // Calculate due date from payment terms if not provided
+      let dueDate = invoice.due_date;
+      if (!dueDate && invoice.payment_terms_days) {
+        const issueDate = new Date(invoice.issue_date || today);
+        issueDate.setDate(issueDate.getDate() + invoice.payment_terms_days);
+        dueDate = issueDate.toISOString().split('T')[0];
       }
 
       // Generate invoice number if missing
@@ -115,10 +150,15 @@ serve(async (req) => {
           user_id: user.id,
           debtor_id: debtorId,
           invoice_number: invoiceNumber,
-          amount: invoice.amount,
+          amount: hasLineItems ? totalAmount : invoice.amount,
           currency: invoice.currency || "USD",
           issue_date: invoice.issue_date || today,
-          due_date: invoice.due_date,
+          due_date: dueDate,
+          payment_terms: invoice.payment_terms || null,
+          payment_terms_days: invoice.payment_terms_days || null,
+          subtotal: hasLineItems ? subtotal : null,
+          tax_amount: invoice.tax_amount || 0,
+          total_amount: hasLineItems ? totalAmount : invoice.amount,
           external_link: invoice.external_link || null,
           notes: invoice.notes || null,
           status: "Open"
@@ -132,6 +172,28 @@ serve(async (req) => {
       }
 
       createdInvoiceIds.push(newInvoice.id);
+
+      // Create line items if present and allowed
+      if (hasLineItems && canUseLineItems) {
+        const lineItemsToInsert = invoice.line_items.map((item: any, index: number) => ({
+          invoice_id: newInvoice.id,
+          user_id: user.id,
+          description: item.description,
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price,
+          line_total: (item.quantity || 1) * item.unit_price,
+          sort_order: index
+        }));
+
+        const { error: lineItemsError } = await supabaseClient
+          .from("invoice_line_items")
+          .insert(lineItemsToInsert);
+
+        if (lineItemsError) {
+          logStep("Line items creation error", lineItemsError);
+          // Non-blocking, invoice already created
+        }
+      }
 
       // Track invoice usage
       try {
