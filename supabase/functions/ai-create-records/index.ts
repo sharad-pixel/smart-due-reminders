@@ -45,7 +45,7 @@ serve(async (req) => {
       structured_json
     } = await req.json();
 
-    if (!debtor_choice || !invoice_list || invoice_list.length === 0) {
+    if (!debtor_choice || !invoice_list) {
       throw new Error("Invalid request data");
     }
 
