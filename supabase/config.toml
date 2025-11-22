@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.setup-default-workflows]
 verify_jwt = true
+
+[functions.autocomplete-business-info]
+verify_jwt = true
