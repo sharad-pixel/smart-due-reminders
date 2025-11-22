@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { 
@@ -24,6 +25,7 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -60,7 +62,7 @@ const Layout = ({ children }: LayoutProps) => {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, email")
+          .select("name, email, avatar_url")
           .eq("id", user.id)
           .single();
 
@@ -70,6 +72,10 @@ const Layout = ({ children }: LayoutProps) => {
           setUserName(profile.email.split('@')[0]);
         } else if (user.email) {
           setUserName(user.email.split('@')[0]);
+        }
+
+        if (profile?.avatar_url) {
+          setAvatarUrl(profile.avatar_url);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -134,6 +140,8 @@ const Layout = ({ children }: LayoutProps) => {
               <div className="hidden md:flex space-x-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
+                  const isProfileLink = item.path === "/profile";
+                  
                   return (
                     <Link
                       key={item.path}
@@ -144,7 +152,16 @@ const Layout = ({ children }: LayoutProps) => {
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      {isProfileLink && avatarUrl ? (
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={avatarUrl} alt={userName} />
+                          <AvatarFallback className="text-xs">
+                            {userName.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <Icon className="h-4 w-4" />
+                      )}
                       <span>{item.label}</span>
                     </Link>
                   );
