@@ -44,22 +44,43 @@ serve(async (req) => {
     // Get user's profile and plan
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('plan_id')
+      .select('plan_id, plan_type')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile?.plan_id) {
-      throw new Error("User plan not found");
+    if (profileError) {
+      throw new Error("User profile not found");
     }
 
-    // Get plan details
-    const { data: plan, error: planError } = await supabaseClient
-      .from('plans')
-      .select('*')
-      .eq('id', profile.plan_id)
-      .single();
+    let plan;
+    
+    // Try to get plan by plan_id first, fall back to plan_type
+    if (profile?.plan_id) {
+      const { data: planData, error: planError } = await supabaseClient
+        .from('plans')
+        .select('*')
+        .eq('id', profile.plan_id)
+        .single();
+      
+      if (!planError && planData) {
+        plan = planData;
+      }
+    }
+    
+    // Fallback: look up by plan_type if plan_id didn't work
+    if (!plan && profile?.plan_type) {
+      const { data: planData, error: planError } = await supabaseClient
+        .from('plans')
+        .select('*')
+        .eq('name', profile.plan_type)
+        .single();
+      
+      if (!planError && planData) {
+        plan = planData;
+      }
+    }
 
-    if (planError || !plan) {
+    if (!plan) {
       throw new Error("Plan details not found");
     }
 

@@ -14,23 +14,28 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      { auth: { persistSession: false } }
     );
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser();
-
-    if (!user) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !userData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const user = userData.user;
 
     // Get user's profile to determine plan
     const { data: profile } = await supabaseClient
