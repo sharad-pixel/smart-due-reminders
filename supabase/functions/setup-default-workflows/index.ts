@@ -150,7 +150,6 @@ Deno.serve(async (req) => {
     const stepsWithWorkflowId = steps.map(step => ({
       ...step,
       workflow_id: newWorkflow.id,
-      user_id: user.id,
     }));
 
     const { error: stepsError } = await supabase
