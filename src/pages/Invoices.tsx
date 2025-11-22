@@ -151,8 +151,9 @@ const Invoices = () => {
     // Headers with asterisks indicating required fields
     const headers = [
       'invoice_number*',
-      'debtor_email* (or company_name)',
-      'debtor_company_name* (or email)',
+      'debtor_reference_id (RECOMMENDED)',
+      'debtor_email',
+      'debtor_company_name',
       'amount*',
       'issue_date* (YYYY-MM-DD)',
       'due_date* (YYYY-MM-DD)',
@@ -164,9 +165,10 @@ const Invoices = () => {
     ];
     
     const instructionRow = [
-      'REQUIRED',
-      'REQUIRED - Email OR Company must match existing debtor',
-      'REQUIRED - Email OR Company must match existing debtor',
+      'REQUIRED - Unique invoice number',
+      'RECOMMENDED - Best match: Use debtor ref ID (e.g., DEB-001)',
+      'Alternative: Email to match debtor',
+      'Alternative: Company name to match debtor',
       'REQUIRED - Numeric value',
       'REQUIRED - Format: YYYY-MM-DD',
       'REQUIRED - Format: YYYY-MM-DD',
@@ -184,6 +186,7 @@ const Invoices = () => {
     const exampleRows = [
       [
         'INV-2025-001',
+        'DEB-001',
         'john.smith@acmecorp.com',
         'Acme Corporation',
         '15000.00',
@@ -197,6 +200,7 @@ const Invoices = () => {
       ],
       [
         'INV-2025-002',
+        'DEB-002',
         'jane.doe@example.com',
         '',
         '8500.50',
@@ -212,8 +216,8 @@ const Invoices = () => {
     
     if (format === 'csv') {
       let csvContent = '# INVOICE IMPORT TEMPLATE - Fields marked with * are REQUIRED\n';
-      csvContent += '# Debtor matching: Either debtor_email OR debtor_company_name must match an existing debtor\n';
-      csvContent += '# Reference ID will be auto-generated, do not include it\n';
+      csvContent += '# Debtor matching: Use debtor_reference_id (RECOMMENDED), OR debtor_email, OR debtor_company_name\n';
+      csvContent += '# Invoice reference_id will be auto-generated\n';
       csvContent += headers.join(',') + '\n';
       csvContent += instructionRow.map(cell => `"${cell}"`).join(',') + '\n';
       exampleRows.forEach(row => {
@@ -232,8 +236,8 @@ const Invoices = () => {
       // Generate Excel file with instructions
       const wsData = [
         ['INVOICE IMPORT TEMPLATE - Fields marked with * are REQUIRED'],
-        ['Debtor matching: Either debtor_email OR debtor_company_name must match an existing debtor'],
-        ['Reference ID will be auto-generated, do not include it'],
+        ['Debtor matching: Use debtor_reference_id (RECOMMENDED), OR debtor_email, OR debtor_company_name'],
+        ['Invoice reference_id will be auto-generated'],
         [],
         headers,
         instructionRow,
@@ -348,8 +352,8 @@ const Invoices = () => {
       if (!headerMap['invoice_number']) {
         errors.push('Missing required column: invoice_number* - The unique invoice identifier');
       }
-      if (!headerMap['debtor_email'] && !headerMap['debtor_company_name']) {
-        errors.push('Missing required columns: You must include either debtor_email* OR debtor_company_name* to match existing debtors');
+      if (!headerMap['debtor_reference_id'] && !headerMap['debtor_email'] && !headerMap['debtor_company_name']) {
+        errors.push('Missing required columns: You must include debtor_reference_id (RECOMMENDED) OR debtor_email OR debtor_company_name to match existing debtors');
       }
       if (!headerMap['amount']) {
         errors.push('Missing required column: amount* - The invoice total amount (numeric)');
@@ -388,6 +392,7 @@ const Invoices = () => {
         const parsed: any = {
           _rowIndex: rowIndex + (hasHeaderRow ? 2 : 1),
           invoice_number: row[headerMap['invoice_number']]?.toString().trim() || '',
+          debtor_reference_id: row[headerMap['debtor_reference_id']]?.toString().trim() || '',
           debtor_email: row[headerMap['debtor_email']]?.toString().trim() || '',
           debtor_company_name: row[headerMap['debtor_company_name']]?.toString().trim() || '',
           amount: row[headerMap['amount']]?.toString().trim() || '',
@@ -419,18 +424,23 @@ const Invoices = () => {
           warnings.push(`Row ${parsed._rowIndex}: Invalid status "${parsed.status}"`);
         }
 
-        // Find matching debtors
+        // Find matching debtors - prioritize reference_id
         let matches = [];
-        const emailLower = parsed.debtor_email.toLowerCase();
-        const companyLower = parsed.debtor_company_name.toLowerCase();
+        
+        // First try reference_id match (most reliable)
+        if (parsed.debtor_reference_id) {
+          matches = debtorsList.filter(d => d.reference_id === parsed.debtor_reference_id);
+        }
 
-        // First try email match
-        if (emailLower) {
+        // If no reference_id match, try email
+        if (matches.length === 0 && parsed.debtor_email) {
+          const emailLower = parsed.debtor_email.toLowerCase();
           matches = debtorsList.filter(d => d.email?.toLowerCase() === emailLower);
         }
 
         // If no email match, try company name
-        if (matches.length === 0 && companyLower) {
+        if (matches.length === 0 && parsed.debtor_company_name) {
+          const companyLower = parsed.debtor_company_name.toLowerCase();
           matches = debtorsList.filter(d => d.company_name?.toLowerCase() === companyLower);
         }
 
@@ -546,14 +556,20 @@ const Invoices = () => {
             continue;
           }
 
-          // Find matching debtor
+          // Find matching debtor - prioritize reference_id
+          const debtorRefId = row[headerMap['debtor_reference_id']]?.toString().trim();
           const debtorEmail = row[headerMap['debtor_email']]?.toString().trim().toLowerCase();
           const debtorCompany = row[headerMap['debtor_company_name']]?.toString().trim().toLowerCase();
 
           let matches = [];
           
-          // First try email match
-          if (debtorEmail) {
+          // First try reference_id match (most reliable)
+          if (debtorRefId) {
+            matches = debtors.filter(d => d.reference_id === debtorRefId);
+          }
+          
+          // If no reference_id match, try email
+          if (matches.length === 0 && debtorEmail) {
             matches = debtors.filter(d => d.email?.toLowerCase() === debtorEmail);
           }
           
