@@ -148,19 +148,33 @@ const Invoices = () => {
   };
 
   const downloadInvoicesTemplate = (format: 'csv' | 'excel') => {
+    // Headers with asterisks indicating required fields
     const headers = [
-      'reference_id',
-      'invoice_number',
-      'debtor_email',
-      'debtor_company_name',
-      'amount',
+      'invoice_number*',
+      'debtor_email* (or company_name)',
+      'debtor_company_name* (or email)',
+      'amount*',
+      'issue_date* (YYYY-MM-DD)',
+      'due_date* (YYYY-MM-DD)',
       'currency',
-      'issue_date',
-      'due_date',
       'status',
       'external_link',
       'notes',
       'crm_account_external_id'
+    ];
+    
+    const instructionRow = [
+      'REQUIRED',
+      'REQUIRED - Email OR Company must match existing debtor',
+      'REQUIRED - Email OR Company must match existing debtor',
+      'REQUIRED - Numeric value',
+      'REQUIRED - Format: YYYY-MM-DD',
+      'REQUIRED - Format: YYYY-MM-DD',
+      'Optional - Default: USD',
+      'Optional - Open/Paid/Disputed/Settled/InPaymentPlan/Canceled',
+      'Optional - URL to invoice document',
+      'Optional - Additional notes',
+      'Optional - External CRM account ID for linking'
     ];
     
     const today = new Date();
@@ -169,23 +183,39 @@ const Invoices = () => {
     
     const exampleRows = [
       [
-        '',
         'INV-2025-001',
         'john.smith@acmecorp.com',
         'Acme Corporation',
         '15000.00',
-        'USD',
         today.toISOString().split('T')[0],
         dueDate.toISOString().split('T')[0],
+        'USD',
         'Open',
         'https://example.com/invoices/INV-2025-001.pdf',
         'Q1 2025 services',
         'SF_ACC_001234'
+      ],
+      [
+        'INV-2025-002',
+        'jane.doe@example.com',
+        '',
+        '8500.50',
+        today.toISOString().split('T')[0],
+        dueDate.toISOString().split('T')[0],
+        'USD',
+        'Open',
+        '',
+        'Q1 consulting',
+        ''
       ]
     ];
     
     if (format === 'csv') {
-      let csvContent = headers.join(',') + '\n';
+      let csvContent = '# INVOICE IMPORT TEMPLATE - Fields marked with * are REQUIRED\n';
+      csvContent += '# Debtor matching: Either debtor_email OR debtor_company_name must match an existing debtor\n';
+      csvContent += '# Reference ID will be auto-generated, do not include it\n';
+      csvContent += headers.join(',') + '\n';
+      csvContent += instructionRow.map(cell => `"${cell}"`).join(',') + '\n';
       exampleRows.forEach(row => {
         csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
       });
@@ -199,9 +229,26 @@ const Invoices = () => {
       window.URL.revokeObjectURL(url);
       toast.success('CSV template downloaded');
     } else {
-      // Generate Excel file
-      const wsData = [headers, ...exampleRows];
+      // Generate Excel file with instructions
+      const wsData = [
+        ['INVOICE IMPORT TEMPLATE - Fields marked with * are REQUIRED'],
+        ['Debtor matching: Either debtor_email OR debtor_company_name must match an existing debtor'],
+        ['Reference ID will be auto-generated, do not include it'],
+        [],
+        headers,
+        instructionRow,
+        ...exampleRows
+      ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Style the header rows
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 12 }, 
+        { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 20 },
+        { wch: 30 }, { wch: 20 }, { wch: 25 }
+      ];
+      
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Invoices Template');
       XLSX.writeFile(wb, 'invoices_template.xlsx');
@@ -284,7 +331,13 @@ const Invoices = () => {
 
       const headerMap: any = {};
       headers.forEach((header: string, index: number) => {
-        const normalized = header.toLowerCase().trim();
+        // Normalize by removing asterisks, parentheses content, and trimming
+        const normalized = header
+          .toLowerCase()
+          .replace(/\*/g, '')
+          .replace(/\s*\([^)]*\)/g, '')
+          .trim()
+          .replace(/\s+/g, '_');
         headerMap[normalized] = index;
       });
 
@@ -293,19 +346,19 @@ const Invoices = () => {
 
       // Validate required columns
       if (!headerMap['invoice_number']) {
-        errors.push('Missing required column: invoice_number');
+        errors.push('Missing required column: invoice_number* - The unique invoice identifier');
       }
       if (!headerMap['debtor_email'] && !headerMap['debtor_company_name']) {
-        errors.push('Missing required column: must have debtor_email OR debtor_company_name');
+        errors.push('Missing required columns: You must include either debtor_email* OR debtor_company_name* to match existing debtors');
       }
       if (!headerMap['amount']) {
-        errors.push('Missing required column: amount');
+        errors.push('Missing required column: amount* - The invoice total amount (numeric)');
       }
       if (!headerMap['issue_date']) {
-        errors.push('Missing required column: issue_date');
+        errors.push('Missing required column: issue_date* - Date format: YYYY-MM-DD');
       }
       if (!headerMap['due_date']) {
-        errors.push('Missing required column: due_date');
+        errors.push('Missing required column: due_date* - Date format: YYYY-MM-DD');
       }
 
       if (errors.length > 0) {
@@ -430,7 +483,13 @@ const Invoices = () => {
 
       const headerMap: any = {};
       headers.forEach((header: string, index: number) => {
-        const normalized = header.toLowerCase().trim();
+        // Normalize by removing asterisks, parentheses content, and trimming
+        const normalized = header
+          .toLowerCase()
+          .replace(/\*/g, '')
+          .replace(/\s*\([^)]*\)/g, '')
+          .trim()
+          .replace(/\s+/g, '_');
         headerMap[normalized] = index;
       });
 
@@ -910,9 +969,25 @@ const Invoices = () => {
               <p className="text-muted-foreground">
                 Follow these steps to use Google Sheets with the Invoices import template:
               </p>
+              
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Required Fields (marked with *):</strong>
+                  <ul className="list-disc list-inside mt-2 text-sm">
+                    <li><strong>invoice_number*</strong> - Unique invoice identifier</li>
+                    <li><strong>debtor_email*</strong> OR <strong>debtor_company_name*</strong> - Must match an existing debtor in your system</li>
+                    <li><strong>amount*</strong> - Invoice total (numeric, e.g., 15000.00)</li>
+                    <li><strong>issue_date*</strong> - Format: YYYY-MM-DD (e.g., 2025-01-15)</li>
+                    <li><strong>due_date*</strong> - Format: YYYY-MM-DD (e.g., 2025-02-15)</li>
+                  </ul>
+                  <p className="mt-2 text-xs">Note: Reference ID is auto-generated and should not be included in import.</p>
+                </AlertDescription>
+              </Alert>
+              
               <ol className="list-decimal list-inside space-y-3 text-sm">
                 <li>
-                  <strong>Download the template:</strong> Click the button below to download the Invoices template as a CSV file.
+                  <strong>Download the template:</strong> Click the button below to download the Invoices template as a CSV file with instructions.
                 </li>
                 <li>
                   <strong>Upload to Google Sheets:</strong> Go to{" "}
@@ -927,13 +1002,13 @@ const Invoices = () => {
                   , click "File" → "Import" → "Upload", and select your downloaded CSV file.
                 </li>
                 <li>
-                  <strong>Fill in your data:</strong> Add your invoice information following the column structure in the template. Make sure to include debtor matching fields (email or company name).
+                  <strong>Fill in your data:</strong> Delete the instruction rows and add your invoice information. Ensure all required fields (marked with *) are filled. Debtor email or company name must match existing debtors.
                 </li>
                 <li>
                   <strong>Export as CSV:</strong> When you're done, go to "File" → "Download" → "Comma-separated values (.csv)" to export your sheet.
                 </li>
                 <li>
-                  <strong>Import to the app:</strong> Use the "Import Invoices" → "Import from File" option and select your exported CSV file.
+                  <strong>Import to the app:</strong> Use the "Import Invoices" → "Import from File" option and select your exported CSV file. Preview will show which rows match existing debtors.
                 </li>
               </ol>
               <div className="flex gap-2 pt-4">
