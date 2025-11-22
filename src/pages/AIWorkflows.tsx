@@ -46,7 +46,7 @@ const agingBuckets = [
   { value: "dpd_31_60", label: "31-60 Days Past Due", description: "Mid-stage collection" },
   { value: "dpd_61_90", label: "61-90 Days Past Due", description: "Late stage collection" },
   { value: "dpd_91_120", label: "91-120 Days Past Due", description: "Final collection efforts" },
-  { value: "dpd_121_plus", label: "120+ Days Past Due", description: "Critical collection stage" },
+  { value: "dpd_120_plus", label: "120+ Days Past Due", description: "Critical collection stage" },
 ];
 
 const AIWorkflows = () => {
@@ -761,7 +761,7 @@ const AIWorkflows = () => {
                   <p className="text-muted-foreground mb-2">
                     No workflow configured for this aging bucket yet.
                   </p>
-                  {selectedBucket === 'dpd_121_plus' ? (
+                  {selectedBucket === 'dpd_120_plus' ? (
                     <div className="space-y-3">
                       <p className="text-sm text-muted-foreground">
                         Create a specialized workflow for critical 120+ day overdue invoices

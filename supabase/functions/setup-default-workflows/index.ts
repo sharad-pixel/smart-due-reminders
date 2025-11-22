@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     let workflowDescription = '';
     let steps: any[] = [];
 
-    if (aging_bucket === 'dpd_121_plus') {
+    if (aging_bucket === 'dpd_120_plus') {
       workflowName = 'Critical Collections (120+ Days)';
       workflowDescription = 'Intensive recovery workflow for severely overdue accounts';
       steps = [

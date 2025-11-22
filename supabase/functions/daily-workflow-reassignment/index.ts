@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         } else if (daysPastDue <= 120) {
           agingBucket = 'dpd_91_120';
         } else {
-          agingBucket = 'dpd_121_plus';
+          agingBucket = 'dpd_120_plus';
         }
 
         // Find the workflow for this aging bucket
