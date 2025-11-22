@@ -13,6 +13,7 @@ import Terms from "./pages/legal/Terms";
 import Privacy from "./pages/legal/Privacy";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Debtors from "./pages/Debtors";
@@ -48,6 +49,7 @@ const App = () => (
         <Route path="/legal/privacy" element={<Privacy />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/contact-us" element={<ContactUs />} />
