@@ -138,6 +138,8 @@ Deno.serve(async (req) => {
             feature_key: updates.feature_key,
             value: updates.value,
             updated_by_admin_id: adminUser.id,
+          }, {
+            onConflict: 'user_id,feature_key'
           })
           .select()
           .single();
