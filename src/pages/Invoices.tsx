@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles } from "lucide-react";
+import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,6 +27,10 @@ interface Invoice {
   last_contact_date: string | null;
   debtor_id: string;
   debtors?: { name: string };
+  ai_workflows?: Array<{
+    id: string;
+    is_active: boolean;
+  }>;
 }
 
 interface Debtor {
@@ -83,7 +87,7 @@ const Invoices = () => {
       const [invoicesRes, debtorsRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(name)")
+          .select("*, debtors(name), ai_workflows(id, is_active)")
           .order("due_date", { ascending: false }),
         supabase.from("debtors").select("id, name").order("name"),
       ]);
@@ -114,6 +118,22 @@ const Invoices = () => {
     if (daysPastDue <= 60) return "31-60";
     if (daysPastDue <= 90) return "61-90";
     return "90+";
+  };
+
+  const handleRemoveFromWorkflow = async (invoiceId: string, workflowId: string) => {
+    try {
+      const { error } = await supabase
+        .from("ai_workflows")
+        .update({ is_active: false })
+        .eq("id", workflowId);
+
+      if (error) throw error;
+
+      toast.success("Invoice removed from workflow");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Failed to remove from workflow");
+    }
   };
 
   const filterInvoices = () => {
@@ -950,6 +970,7 @@ const Invoices = () => {
                     <TableHead>Due Date</TableHead>
                     <TableHead>Days Past Due</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>AI Workflow</TableHead>
                     <TableHead>Last Contact</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -957,6 +978,9 @@ const Invoices = () => {
                 <TableBody>
                   {filteredInvoices.map((invoice) => {
                     const daysPastDue = getDaysPastDue(invoice.due_date);
+                    const ageBucket = getAgeBucket(daysPastDue);
+                    const activeWorkflow = invoice.ai_workflows?.find(w => w.is_active);
+                    
                     return (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-mono text-xs">{invoice.reference_id}</TableCell>
@@ -987,6 +1011,25 @@ const Invoices = () => {
                           >
                             {invoice.status}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          {activeWorkflow ? (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                {ageBucket} days
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveFromWorkflow(invoice.id, activeWorkflow.id)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {invoice.last_contact_date
