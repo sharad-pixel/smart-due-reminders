@@ -69,6 +69,7 @@ const AIWorkflows = () => {
     agingBucket?: string;
     dayOffset?: number;
   } | null>(null);
+  const [reassigning, setReassigning] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -340,6 +341,32 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleManualReassignment = async () => {
+    setReassigning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('daily-workflow-reassignment');
+
+      if (error) throw error;
+
+      if (data?.summary) {
+        toast.success(
+          `Reassignment complete: ${data.summary.reassigned} invoices reassigned, ${data.summary.skipped} skipped, ${data.summary.errors} errors`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success("Workflow reassignment completed successfully");
+      }
+
+      // Refresh invoice counts
+      await fetchInvoiceCounts();
+    } catch (error: any) {
+      console.error('Manual reassignment error:', error);
+      toast.error(error.message || "Failed to reassign workflows");
+    } finally {
+      setReassigning(false);
+    }
+  };
+
   const handleApplyTemplate = async (template: Template) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -449,11 +476,38 @@ const AIWorkflows = () => {
               Configure automated AI-powered collection outreach by aging bucket
             </p>
           </div>
-          <Button onClick={() => setShowTemplates(true)} className="flex items-center space-x-2">
-            <Sparkles className="h-4 w-4" />
-            <span>Browse Templates</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleManualReassignment}
+              disabled={reassigning}
+              className="flex items-center space-x-2"
+            >
+              <Workflow className="h-4 w-4" />
+              <span>{reassigning ? "Reassigning..." : "Reassign All"}</span>
+            </Button>
+            <Button onClick={() => setShowTemplates(true)} className="flex items-center space-x-2">
+              <Sparkles className="h-4 w-4" />
+              <span>Browse Templates</span>
+            </Button>
+          </div>
         </div>
+
+        <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4">
+            <div className="flex gap-3">
+              <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Workflow Assignment</h3>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Invoices are automatically assigned to workflows based on their aging bucket when created. 
+                  Every day at 2 AM UTC, all invoices are checked and reassigned to the appropriate workflow as they age. 
+                  You can also manually trigger reassignment using the "Reassign All" button above.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Aging Buckets Sidebar */}
