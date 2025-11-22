@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit } from "lucide-react";
+import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit, LayoutGrid, List, Table2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120';
 type DraftStatus = 'pending_approval' | 'approved' | 'discarded';
+type ViewMode = 'list' | 'grid' | 'table';
 
 interface AgingBucketData {
   count: number;
@@ -69,6 +70,7 @@ const CollectionDrafts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
   const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms'>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
@@ -446,10 +448,45 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
         {/* Drafts List */}
         <Card>
           <CardHeader>
-            <CardTitle>All AI Drafts</CardTitle>
-            <CardDescription>
-              {filteredDrafts.length} draft{filteredDrafts.length !== 1 ? 's' : ''} found
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>All AI Drafts</CardTitle>
+                <CardDescription>
+                  {filteredDrafts.length} draft{filteredDrafts.length !== 1 ? 's' : ''} found
+                </CardDescription>
+              </div>
+              
+              {/* View Mode Selector */}
+              <div className="flex gap-1 border rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  onClick={() => setViewMode('list')}
+                  className="h-8 px-3"
+                >
+                  <List className="h-4 w-4 mr-1" />
+                  List
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  onClick={() => setViewMode('grid')}
+                  className="h-8 px-3"
+                >
+                  <LayoutGrid className="h-4 w-4 mr-1" />
+                  Grid
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                  onClick={() => setViewMode('table')}
+                  className="h-8 px-3"
+                >
+                  <Table2 className="h-4 w-4 mr-1" />
+                  Table
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -487,7 +524,7 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                 </Select>
               </div>
 
-              {/* Draft Cards */}
+              {/* Empty State */}
               {filteredDrafts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -497,81 +534,252 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredDrafts.map((draft) => {
-                    const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
-                    return (
-                      <Card key={draft.id} className="border-l-4 border-l-primary/20 hover:border-l-primary transition-colors">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="text-lg font-semibold">
-                                  {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
-                                </h3>
-                                <Badge variant="outline" className="uppercase">
-                                  {draft.channel === 'email' ? <Mail className="h-3 w-3 mr-1" /> : <MessageSquare className="h-3 w-3 mr-1" />}
-                                  {draft.channel}
-                                </Badge>
-                                <Badge className={getStatusColor(draft.status)}>
-                                  <span className="mr-1">{getStatusIcon(draft.status)}</span>
-                                  {draft.status.replace('_', ' ')}
-                                </Badge>
-                                <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'}>
-                                  {daysPastDue} DPD
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Invoice: {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}</div>
-                                <div>Created {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}</div>
-                                {draft.subject && <div className="font-medium text-foreground mt-2">Subject: {draft.subject}</div>}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditClick(draft)}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                              {draft.status === 'pending_approval' && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleUpdateStatus(draft.id, 'approved')}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Approve
-                                  </Button>
+                <>
+                  {/* List View */}
+                  {viewMode === 'list' && (
+                    <div className="space-y-4">
+                      {filteredDrafts.map((draft) => {
+                        const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                        return (
+                          <Card key={draft.id} className="border-l-4 border-l-primary/20 hover:border-l-primary transition-colors">
+                            <CardContent className="p-6">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="text-lg font-semibold">
+                                      {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                    </h3>
+                                    <Badge variant="outline" className="uppercase">
+                                      {draft.channel === 'email' ? <Mail className="h-3 w-3 mr-1" /> : <MessageSquare className="h-3 w-3 mr-1" />}
+                                      {draft.channel}
+                                    </Badge>
+                                    <Badge className={getStatusColor(draft.status)}>
+                                      <span className="mr-1">{getStatusIcon(draft.status)}</span>
+                                      {draft.status.replace('_', ' ')}
+                                    </Badge>
+                                    <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'}>
+                                      {daysPastDue} DPD
+                                    </Badge>
+                                  </div>
+                                  <div className="text-sm text-muted-foreground space-y-1">
+                                    <div>Invoice: {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}</div>
+                                    <div>Created {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}</div>
+                                    {draft.subject && <div className="font-medium text-foreground mt-2">Subject: {draft.subject}</div>}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleUpdateStatus(draft.id, 'discarded')}
+                                    onClick={() => handleEditClick(draft)}
                                   >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Discard
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
                                   </Button>
-                                </>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteDraft(draft.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="bg-muted/30 p-4 rounded-lg">
-                            <p className="text-sm whitespace-pre-wrap">{draft.message_body}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                                  {draft.status === 'pending_approval' && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleUpdateStatus(draft.id, 'approved')}
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleUpdateStatus(draft.id, 'discarded')}
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" />
+                                        Discard
+                                      </Button>
+                                    </>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeleteDraft(draft.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="bg-muted/30 p-4 rounded-lg">
+                                <p className="text-sm whitespace-pre-wrap">{draft.message_body}</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Grid View */}
+                  {viewMode === 'grid' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredDrafts.map((draft) => {
+                        const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                        return (
+                          <Card key={draft.id} className="hover:shadow-lg transition-shadow">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-base line-clamp-1">
+                                    {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground">
+                                    {draft.invoices.invoice_number}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteDraft(draft.id)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {draft.channel === 'email' ? <Mail className="h-2 w-2 mr-1" /> : <MessageSquare className="h-2 w-2 mr-1" />}
+                                  {draft.channel}
+                                </Badge>
+                                <Badge className={getStatusColor(draft.status) + " text-xs"}>
+                                  {getStatusIcon(draft.status)}
+                                </Badge>
+                                <Badge variant={daysPastDue > 60 ? 'destructive' : 'secondary'} className="text-xs">
+                                  {daysPastDue} DPD
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="bg-muted/30 p-3 rounded text-xs line-clamp-4">
+                                {draft.message_body}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditClick(draft)}
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                {draft.status === 'pending_approval' && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUpdateStatus(draft.id, 'approved')}
+                                    className="flex-1 text-xs h-8"
+                                  >
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Approve
+                                  </Button>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Table View */}
+                  {viewMode === 'table' && (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="p-3 text-left text-sm font-medium">Debtor</th>
+                            <th className="p-3 text-left text-sm font-medium">Invoice</th>
+                            <th className="p-3 text-left text-sm font-medium">Amount</th>
+                            <th className="p-3 text-left text-sm font-medium">Channel</th>
+                            <th className="p-3 text-left text-sm font-medium">DPD</th>
+                            <th className="p-3 text-left text-sm font-medium">Status</th>
+                            <th className="p-3 text-left text-sm font-medium">Created</th>
+                            <th className="p-3 text-right text-sm font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDrafts.map((draft) => {
+                            const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                            return (
+                              <tr key={draft.id} className="border-t hover:bg-accent/50">
+                                <td className="p-3">
+                                  <div className="font-medium text-sm">
+                                    {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {draft.invoices.debtors.email}
+                                  </div>
+                                </td>
+                                <td className="p-3 font-mono text-xs">
+                                  {draft.invoices.invoice_number}
+                                </td>
+                                <td className="p-3 text-sm font-medium">
+                                  ${draft.invoices.amount.toLocaleString()}
+                                </td>
+                                <td className="p-3">
+                                  <Badge variant="outline" className="text-xs">
+                                    {draft.channel === 'email' ? <Mail className="h-2 w-2 mr-1" /> : <MessageSquare className="h-2 w-2 mr-1" />}
+                                    {draft.channel}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'} className="text-xs">
+                                    {daysPastDue}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <Badge className={getStatusColor(draft.status) + " text-xs"}>
+                                    {draft.status.replace('_', ' ')}
+                                  </Badge>
+                                </td>
+                                <td className="p-3 text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex gap-1 justify-end">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditClick(draft)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Edit className="h-3 w-3" />
+                                    </Button>
+                                    {draft.status === 'pending_approval' && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleUpdateStatus(draft.id, 'approved')}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <CheckCircle className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteDraft(draft.id)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>
