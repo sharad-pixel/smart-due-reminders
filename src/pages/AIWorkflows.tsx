@@ -43,6 +43,7 @@ const agingBuckets = [
   { value: "dpd_31_60", label: "31-60 Days Past Due", description: "Mid-stage collection" },
   { value: "dpd_61_90", label: "61-90 Days Past Due", description: "Late stage collection" },
   { value: "dpd_91_120", label: "91-120 Days Past Due", description: "Final collection efforts" },
+  { value: "dpd_121_plus", label: "120+ Days Past Due", description: "Critical collection stage" },
 ];
 
 const AIWorkflows = () => {
