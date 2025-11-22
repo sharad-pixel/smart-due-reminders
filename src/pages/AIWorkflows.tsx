@@ -207,7 +207,7 @@ const AIWorkflows = () => {
         day_offset: step.day_offset,
         channel: step.channel,
         label: step.label,
-        trigger_type: "days_past_due",
+        trigger_type: "relative_to_due",
         ai_template_type: step.tone,
         body_template: `Generated ${step.tone} collection message`,
         subject_template: step.channel === "email" ? `Payment reminder for invoice {{invoice_number}}` : null,
