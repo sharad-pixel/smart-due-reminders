@@ -10,7 +10,9 @@ import {
   FileText, 
   Settings, 
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Workflow,
+  Mail
 } from "lucide-react";
 
 interface LayoutProps {
@@ -83,6 +85,8 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
+    { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
+    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
     { path: "/profile", label: "Profile", icon: UserIcon },
     { path: "/settings", label: "Settings", icon: Settings },
