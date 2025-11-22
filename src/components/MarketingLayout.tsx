@@ -26,6 +26,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Features
             </button>
             <button 
+              onClick={() => navigate("/solutions")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Solutions
+            </button>
+            <button 
               onClick={() => navigate("/pricing")}
               className="text-foreground hover:text-primary transition-colors"
             >
@@ -70,10 +76,26 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 </li>
                 <li>
                   <button 
+                    onClick={() => navigate("/solutions")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Solutions
+                  </button>
+                </li>
+                <li>
+                  <button 
                     onClick={() => navigate("/pricing")}
                     className="text-muted-foreground hover:text-primary"
                   >
                     Pricing
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/resources")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Resources
                   </button>
                 </li>
               </ul>
