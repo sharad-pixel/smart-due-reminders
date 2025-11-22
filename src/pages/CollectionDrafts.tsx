@@ -219,8 +219,12 @@ const CollectionDrafts = () => {
   };
 
   const handleRegenerateWithAI = async () => {
-    if (!editingDraft || !regeneratePrompt.trim()) {
-      toast.error("Please provide additional context for AI regeneration");
+    if (!editingDraft) return;
+    
+    // Allow empty prompt if called from suggestion chips (they set the prompt)
+    const promptToUse = regeneratePrompt.trim();
+    if (!promptToUse) {
+      toast.error("Please provide context for AI regeneration");
       return;
     }
 
@@ -646,34 +650,152 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                     AI Regeneration (Optional)
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Provide additional context to regenerate the message with AI
+                    Quick suggestions or provide custom context to regenerate the message
                   </p>
-                  <Textarea
-                    id="ai-prompt"
-                    value={regeneratePrompt}
-                    onChange={(e) => setRegeneratePrompt(e.target.value)}
-                    placeholder="E.g., 'Make it more urgent', 'Mention payment plan options', 'Add reference to previous conversation'..."
-                    rows={3}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleRegenerateWithAI}
-                    disabled={isRegenerating || !regeneratePrompt.trim()}
-                    className="w-full"
-                  >
-                    {isRegenerating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Regenerating with AI...
-                      </>
-                    ) : (
-                      <>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Regenerate Message with AI
-                      </>
-                    )}
-                  </Button>
+                  
+                  {/* Quick Suggestion Chips */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Quick Suggestions:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Make the message more urgent and emphasize the importance of immediate payment");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <Clock className="h-3 w-3 mr-1" />
+                        Make More Urgent
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Add information about payment plan options and how to set one up");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        Add Payment Plan Option
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Soften the tone to be more friendly and understanding while still being clear about the payment need");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        Soften Tone
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Add a reference to previous communication or reminders that were sent");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <Mail className="h-3 w-3 mr-1" />
+                        Reference Previous Contact
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Mention potential late fees or interest charges that may apply");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        Mention Late Fees
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Offer a settlement discount for immediate payment in full");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Offer Settlement Discount
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setRegeneratePrompt("Make the message shorter and more concise while keeping key information");
+                          setTimeout(() => handleRegenerateWithAI(), 100);
+                        }}
+                        disabled={isRegenerating}
+                        className="text-xs"
+                      >
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Make Shorter
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Custom Prompt Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="ai-prompt" className="text-xs font-medium">
+                      Or provide custom instructions:
+                    </Label>
+                    <Textarea
+                      id="ai-prompt"
+                      value={regeneratePrompt}
+                      onChange={(e) => setRegeneratePrompt(e.target.value)}
+                      placeholder="E.g., 'Add a personal note about our long-term business relationship'..."
+                      rows={3}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleRegenerateWithAI}
+                      disabled={isRegenerating || !regeneratePrompt.trim()}
+                      className="w-full"
+                    >
+                      {isRegenerating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Regenerating with AI...
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Regenerate with Custom Prompt
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
