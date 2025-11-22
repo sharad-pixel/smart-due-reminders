@@ -9,8 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info } from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -49,6 +52,7 @@ interface AIDraft {
   message_body: string;
   status: string;
   recommended_send_date: string | null;
+  created_at?: string;
 }
 
 const InvoiceDetail = () => {
@@ -66,6 +70,14 @@ const InvoiceDetail = () => {
   const [drafts, setDrafts] = useState<AIDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [generateTone, setGenerateTone] = useState<"friendly" | "neutral" | "firm">("friendly");
+  const [generateStep, setGenerateStep] = useState(1);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<AIDraft | null>(null);
+  const [editSubject, setEditSubject] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [sendingDraft, setSendingDraft] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -195,30 +207,71 @@ const InvoiceDetail = () => {
   };
 
   const handleGenerateDraft = async () => {
-    if (!workflow.tone) {
-      toast.error("Please configure workflow settings first");
-      return;
-    }
-
     setGeneratingDraft(true);
     try {
-      const nextStep = drafts.length > 0 ? Math.max(...drafts.map(d => d.step_number)) + 1 : 1;
-
       const { data, error } = await supabase.functions.invoke("generate-outreach-draft", {
         body: {
           invoice_id: id,
-          tone: workflow.tone,
-          step_number: nextStep,
+          tone: generateTone,
+          step_number: generateStep,
         },
       });
 
       if (error) throw error;
-      toast.success("AI draft generated successfully!");
+      toast.success("AI drafts generated successfully!");
+      setGenerateDialogOpen(false);
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to generate draft");
     } finally {
       setGeneratingDraft(false);
+    }
+  };
+
+  const handleEditDraft = (draft: AIDraft) => {
+    setEditingDraft(draft);
+    setEditSubject(draft.subject || "");
+    setEditBody(draft.message_body);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDraft) return;
+
+    try {
+      const { error } = await supabase
+        .from("ai_drafts")
+        .update({
+          subject: editSubject,
+          message_body: editBody,
+        })
+        .eq("id", editingDraft.id);
+
+      if (error) throw error;
+      toast.success("Draft updated successfully");
+      setEditDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update draft");
+    }
+  };
+
+  const handleSendDraft = async (draftId: string) => {
+    setSendingDraft(draftId);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-ai-draft", {
+        body: { draft_id: draftId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      toast.success(data?.message || "Draft sent successfully!");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send draft");
+    } finally {
+      setSendingDraft(null);
     }
   };
 
@@ -385,11 +438,18 @@ const InvoiceDetail = () => {
           </Card>
         </div>
 
+        <Alert className="border-muted">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Messages are sent from your business. Recouply.ai does not act as a collection agency and does not collect on your behalf.
+          </AlertDescription>
+        </Alert>
+
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>AI Workflow Settings</CardTitle>
-              <Button onClick={handleGenerateDraft} disabled={generatingDraft || !workflow.tone}>
+              <Button onClick={() => setGenerateDialogOpen(true)} disabled={generatingDraft}>
                 {generatingDraft ? "Generating..." : "Generate AI Draft"}
               </Button>
             </div>
@@ -536,9 +596,12 @@ const InvoiceDetail = () => {
                   <Card key={draft.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="space-y-1">
                           <CardTitle>Step {draft.step_number} - {draft.channel.toUpperCase()}</CardTitle>
-                          {draft.subject && <p className="text-sm text-muted-foreground mt-1">{draft.subject}</p>}
+                          {draft.subject && <p className="text-sm text-muted-foreground">{draft.subject}</p>}
+                          <p className="text-xs text-muted-foreground">
+                            Created: {new Date(draft.created_at || "").toLocaleString()}
+                          </p>
                         </div>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -555,7 +618,11 @@ const InvoiceDetail = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="p-4 bg-muted rounded-md">
-                        <p className="whitespace-pre-wrap">{draft.message_body}</p>
+                        <p className="whitespace-pre-wrap text-sm">
+                          {draft.message_body.length > 200
+                            ? `${draft.message_body.substring(0, 200)}...`
+                            : draft.message_body}
+                        </p>
                       </div>
                       {draft.recommended_send_date && (
                         <p className="text-sm text-muted-foreground">
@@ -564,11 +631,16 @@ const InvoiceDetail = () => {
                       )}
                       {draft.status === "pending_approval" && (
                         <div className="flex space-x-2">
-                          <Button onClick={() => handleDraftAction(draft.id, "approved")}>
+                          <Button 
+                            onClick={() => handleSendDraft(draft.id)}
+                            disabled={sendingDraft === draft.id}
+                          >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Approve & Send
+                            {sendingDraft === draft.id ? "Sending..." : "Approve & Send"}
                           </Button>
-                          <Button variant="outline">Edit</Button>
+                          <Button variant="outline" onClick={() => handleEditDraft(draft)}>
+                            Edit
+                          </Button>
                           <Button
                             variant="destructive"
                             onClick={() => handleDraftAction(draft.id, "discarded")}
@@ -584,6 +656,93 @@ const InvoiceDetail = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Generate AI Draft</DialogTitle>
+              <DialogDescription>
+                Choose the tone and step number for the outreach draft.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Tone</Label>
+                <Select
+                  value={generateTone}
+                  onValueChange={(value: "friendly" | "neutral" | "firm") => setGenerateTone(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="friendly">Friendly</SelectItem>
+                    <SelectItem value="neutral">Neutral</SelectItem>
+                    <SelectItem value="firm">Firm</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Step Number</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={generateStep}
+                  onChange={(e) => setGenerateStep(parseInt(e.target.value) || 1)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setGenerateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleGenerateDraft} disabled={generatingDraft}>
+                {generatingDraft ? "Generating..." : "Generate"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Draft</DialogTitle>
+              <DialogDescription>
+                Modify the subject and message body before sending.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {editingDraft?.channel === "email" && (
+                <div className="space-y-2">
+                  <Label>Subject</Label>
+                  <Input
+                    value={editSubject}
+                    onChange={(e) => setEditSubject(e.target.value)}
+                    placeholder="Email subject"
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Message Body</Label>
+                <Textarea
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  placeholder="Message content"
+                  rows={10}
+                  className="font-mono text-sm"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
