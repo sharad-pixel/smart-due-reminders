@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_users: {
+        Row: {
+          accepted_at: string | null
+          account_id: string
+          created_at: string
+          id: string
+          invited_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          account_id: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          account_id?: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      admin_user_actions: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       ai_creations: {
         Row: {
           created_at: string | null
@@ -733,6 +796,36 @@ export type Database = {
           },
         ]
       }
+      user_feature_overrides: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          updated_at: string
+          updated_by_admin_id: string | null
+          user_id: string
+          value: boolean
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          updated_at?: string
+          updated_by_admin_id?: string | null
+          user_id: string
+          value: boolean
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          updated_at?: string
+          updated_by_admin_id?: string | null
+          user_id?: string
+          value?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -742,8 +835,20 @@ export type Database = {
         Args: { prefix: string; target_table: string }
         Returns: string
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_account_manager: {
+        Args: { _account_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "owner" | "admin" | "member" | "viewer"
       channel_type: "email" | "sms"
       debtor_type: "B2B" | "B2C"
       draft_status: "pending_approval" | "approved" | "discarded"
@@ -885,6 +990,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["owner", "admin", "member", "viewer"],
       channel_type: ["email", "sms"],
       debtor_type: ["B2B", "B2C"],
       draft_status: ["pending_approval", "approved", "discarded"],

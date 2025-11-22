@@ -1,0 +1,229 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
+    );
+
+    const {
+      data: { user },
+    } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { action, email, userId, role } = await req.json();
+
+    // Check if user has team features enabled
+    const { data: effectiveFeatures } = await supabaseClient.functions.invoke(
+      'get-effective-features'
+    );
+
+    if (!effectiveFeatures?.features?.can_have_team_users) {
+      return new Response(
+        JSON.stringify({
+          error: true,
+          code: 'FEATURE_NOT_AVAILABLE',
+          message: 'Team and role management is available on Growth and Custom plans.',
+          required_plan: 'Growth or Custom',
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check if user is owner or admin
+    const { data: userRole } = await supabaseClient
+      .from('account_users')
+      .select('role')
+      .eq('account_id', user.id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (!userRole || !['owner', 'admin'].includes(userRole.role)) {
+      return new Response(
+        JSON.stringify({ error: 'Only account owners and admins can manage team members' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    let result;
+
+    switch (action) {
+      case 'invite': {
+        // Check if user exists
+        const { data: existingUser } = await supabaseClient
+          .from('profiles')
+          .select('id, email')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (existingUser) {
+          // Add existing user to team
+          const { data, error } = await supabaseClient
+            .from('account_users')
+            .insert({
+              account_id: user.id,
+              user_id: existingUser.id,
+              role: role || 'member',
+              status: 'active',
+              accepted_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (error) {
+            throw error;
+          }
+
+          result = { success: true, data };
+        } else {
+          // For now, return error - in future, implement invitation flow
+          return new Response(
+            JSON.stringify({
+              error: 'User not found. Email invitation flow coming soon.',
+            }),
+            {
+              status: 404,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+        break;
+      }
+
+      case 'changeRole': {
+        if (!effectiveFeatures?.features?.can_manage_roles) {
+          return new Response(
+            JSON.stringify({
+              error: true,
+              code: 'FEATURE_NOT_AVAILABLE',
+              message: 'Role management is available on Growth and Custom plans.',
+              required_plan: 'Growth or Custom',
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        const { data, error } = await supabaseClient
+          .from('account_users')
+          .update({ role, updated_at: new Date().toISOString() })
+          .eq('account_id', user.id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        result = { success: true, data };
+        break;
+      }
+
+      case 'disable': {
+        const { data, error } = await supabaseClient
+          .from('account_users')
+          .update({ status: 'disabled', updated_at: new Date().toISOString() })
+          .eq('account_id', user.id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        result = { success: true, data };
+        break;
+      }
+
+      case 'enable': {
+        const { data, error } = await supabaseClient
+          .from('account_users')
+          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .eq('account_id', user.id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        result = { success: true, data };
+        break;
+      }
+
+      case 'list': {
+        const { data, error } = await supabaseClient
+          .from('account_users')
+          .select(`
+            *,
+            profiles:user_id (
+              name,
+              email
+            )
+          `)
+          .eq('account_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        result = { success: true, data };
+        break;
+      }
+
+      default:
+        return new Response(JSON.stringify({ error: 'Invalid action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error managing team:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
