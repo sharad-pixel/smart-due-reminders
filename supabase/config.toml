@@ -1,5 +1,8 @@
 project_id = "kguurazunazhhrhasahd"
 
+[functions.auto-generate-collection-drafts]
+verify_jwt = false
+
 [functions.test-email]
 verify_jwt = true
 
