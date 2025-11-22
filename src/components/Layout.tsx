@@ -55,13 +55,24 @@ const Layout = ({ children }: LayoutProps) => {
       if (!user) return;
       
       try {
-        // Check for team features
-        const { data } = await supabase.functions.invoke("get-effective-features");
-        if (data?.features?.can_have_team_users) {
+        // Check if user is owner or admin - they should always see team management
+        const { data: membershipData } = await supabase
+          .from("account_users")
+          .select("role, status")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .single();
+
+        // Show team for:
+        // 1. Users with no membership (they're managing their own account as owner)
+        // 2. Users with owner or admin role
+        if (!membershipData || membershipData.role === "owner" || membershipData.role === "admin") {
           setShowTeam(true);
         }
       } catch (error) {
         console.error("Error checking team access:", error);
+        // Default to showing team for standalone users
+        setShowTeam(true);
       }
     };
 
