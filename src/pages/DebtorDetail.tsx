@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Debtor {
@@ -50,9 +50,19 @@ interface OutreachLog {
   id: string;
   channel: string;
   subject: string | null;
+  message_body: string;
   sent_at: string | null;
+  sent_to: string;
+  sent_from: string | null;
   status: string;
   invoice_id: string;
+  delivery_metadata: any;
+  created_at: string;
+  invoices: {
+    invoice_number: string;
+    amount: number;
+    due_date: string;
+  };
 }
 
 const DebtorDetail = () => {
@@ -134,9 +144,16 @@ const DebtorDetail = () => {
     try {
       const { data, error } = await supabase
         .from("outreach_logs")
-        .select("*")
+        .select(`
+          *,
+          invoices!inner(
+            invoice_number,
+            amount,
+            due_date
+          )
+        `)
         .eq("debtor_id", id)
-        .order("sent_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setOutreach(data || []);
@@ -435,50 +452,106 @@ const DebtorDetail = () => {
 
           <TabsContent value="outreach">
             <Card>
+              <CardHeader>
+                <CardTitle>Communication Audit Trail</CardTitle>
+                <p className="text-sm text-muted-foreground">Complete history of all communications with this debtor</p>
+              </CardHeader>
               <CardContent className="pt-6">
                 {outreach.length === 0 ? (
                   <div className="text-center py-12">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <p className="text-muted-foreground">No outreach history for this debtor yet.</p>
+                    <p className="text-sm text-muted-foreground mt-2">Communications will appear here once sent.</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Channel</TableHead>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Sent Date</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {outreach.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell>
-                            <span className="capitalize">{log.channel}</span>
-                          </TableCell>
-                          <TableCell>{log.subject || "N/A"}</TableCell>
-                          <TableCell>
-                            {log.sent_at
-                              ? new Date(log.sent_at).toLocaleString()
-                              : "Not sent yet"}
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                log.status === "sent"
-                                  ? "bg-green-100 text-green-800"
-                                  : log.status === "failed"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {log.status}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="space-y-4">
+                    {outreach.map((log) => (
+                      <Card key={log.id} className="border-l-4 border-l-primary/30">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-full ${
+                                log.channel === 'email' 
+                                  ? 'bg-blue-100 text-blue-600' 
+                                  : 'bg-green-100 text-green-600'
+                              }`}>
+                                {log.channel === 'email' ? (
+                                  <Mail className="h-4 w-4" />
+                                ) : (
+                                  <MessageSquare className="h-4 w-4" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold capitalize">{log.channel}</span>
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                      log.status === "sent"
+                                        ? "bg-green-100 text-green-800"
+                                        : log.status === "failed"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}
+                                  >
+                                    {log.status}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <Clock className="h-3 w-3" />
+                                  {log.sent_at
+                                    ? new Date(log.sent_at).toLocaleString()
+                                    : new Date(log.created_at).toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right text-sm">
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <FileText className="h-3 w-3" />
+                                <span className="font-mono">{log.invoices.invoice_number}</span>
+                              </div>
+                              <div className="font-medium">${log.invoices.amount.toLocaleString()}</div>
+                            </div>
+                          </div>
+
+                          {log.subject && (
+                            <div className="mb-2">
+                              <span className="text-sm font-medium text-muted-foreground">Subject: </span>
+                              <span className="text-sm">{log.subject}</span>
+                            </div>
+                          )}
+
+                          <div className="mb-3">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                              <span className="font-medium">To:</span>
+                              <span>{log.sent_to}</span>
+                              {log.sent_from && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  <span className="font-medium">From:</span>
+                                  <span>{log.sent_from}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="bg-muted/30 p-3 rounded-lg">
+                            <p className="text-sm whitespace-pre-wrap">{log.message_body}</p>
+                          </div>
+
+                          {log.delivery_metadata && Object.keys(log.delivery_metadata).length > 0 && (
+                            <details className="mt-3">
+                              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                Delivery Details
+                              </summary>
+                              <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto">
+                                {JSON.stringify(log.delivery_metadata, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
