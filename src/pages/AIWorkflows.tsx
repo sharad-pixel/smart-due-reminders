@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings } from "lucide-react";
+import WorkflowStepEditor from "@/components/WorkflowStepEditor";
+import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 
 interface WorkflowStep {
   id: string;
@@ -16,6 +18,10 @@ interface WorkflowStep {
   channel: "email" | "sms";
   label: string;
   is_active: boolean;
+  subject_template?: string;
+  body_template: string;
+  sms_template?: string;
+  ai_template_type: string;
 }
 
 interface Workflow {
@@ -40,6 +46,8 @@ const AIWorkflows = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null);
+  const [editingSettings, setEditingSettings] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -86,6 +94,50 @@ const AIWorkflows = () => {
       toast.success(isActive ? "Workflow enabled" : "Workflow disabled");
     } catch (error: any) {
       toast.error("Failed to update workflow");
+      console.error(error);
+    }
+  };
+
+  const handleSaveStep = async (step: WorkflowStep) => {
+    try {
+      const { error } = await supabase
+        .from("collection_workflow_steps")
+        .update({
+          label: step.label,
+          day_offset: step.day_offset,
+          ai_template_type: step.ai_template_type,
+          subject_template: step.subject_template,
+          body_template: step.body_template,
+          sms_template: step.sms_template,
+        })
+        .eq("id", step.id);
+
+      if (error) throw error;
+
+      await fetchWorkflows();
+      toast.success("Step updated successfully");
+    } catch (error: any) {
+      toast.error("Failed to update step");
+      console.error(error);
+    }
+  };
+
+  const handleSaveSettings = async (settings: Partial<Workflow>) => {
+    if (!selectedWorkflow) return;
+
+    try {
+      const { error } = await supabase
+        .from("collection_workflows")
+        .update({
+          description: settings.description,
+        })
+        .eq("id", selectedWorkflow.id);
+
+      if (error) throw error;
+
+      await fetchWorkflows();
+    } catch (error: any) {
+      toast.error("Failed to update settings");
       console.error(error);
     }
   };
@@ -154,7 +206,7 @@ const AIWorkflows = () => {
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <CardTitle className="flex items-center space-x-2">
                           <Workflow className="h-5 w-5 text-primary" />
                           <span>{selectedWorkflow.name}</span>
@@ -163,25 +215,37 @@ const AIWorkflows = () => {
                           {selectedWorkflow.description}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="workflow-active" className="text-sm">
-                          {selectedWorkflow.is_active ? "Enabled" : "Disabled"}
-                        </Label>
-                        <Switch
-                          id="workflow-active"
-                          checked={selectedWorkflow.is_active}
-                          onCheckedChange={(checked) => toggleWorkflow(selectedWorkflow.id, checked)}
-                        />
+                      <div className="flex items-center space-x-4">
+                        {!selectedWorkflow.is_locked && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingSettings(true)}
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Settings
+                          </Button>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <Label htmlFor="workflow-active" className="text-sm">
+                            {selectedWorkflow.is_active ? "Enabled" : "Disabled"}
+                          </Label>
+                          <Switch
+                            id="workflow-active"
+                            checked={selectedWorkflow.is_active}
+                            onCheckedChange={(checked) => toggleWorkflow(selectedWorkflow.id, checked)}
+                          />
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    {!selectedWorkflow.is_locked && (
-                      <p className="text-sm text-muted-foreground mb-4">
-                        This is a default workflow template. Customize it to fit your collection strategy.
+                  {!selectedWorkflow.is_locked && (
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Customize this workflow to fit your collection strategy.
                       </p>
-                    )}
-                  </CardContent>
+                    </CardContent>
+                  )}
                 </Card>
 
                 <Card>
@@ -196,13 +260,13 @@ const AIWorkflows = () => {
                       {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => (
                         <div
                           key={step.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                         >
-                          <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-4 flex-1">
                             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
                               {step.step_order}
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <p className="font-medium">{step.label}</p>
                               <div className="flex items-center space-x-3 mt-1">
                                 <div className="flex items-center space-x-1 text-sm text-muted-foreground">
@@ -225,9 +289,20 @@ const AIWorkflows = () => {
                               </div>
                             </div>
                           </div>
-                          <Badge variant={step.is_active ? "default" : "secondary"}>
-                            {step.is_active ? "Active" : "Inactive"}
-                          </Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={step.is_active ? "default" : "secondary"}>
+                              {step.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                            {!selectedWorkflow.is_locked && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingStep(step)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -257,6 +332,20 @@ const AIWorkflows = () => {
           </div>
         </div>
       </div>
+
+      <WorkflowStepEditor
+        step={editingStep}
+        open={!!editingStep}
+        onOpenChange={(open) => !open && setEditingStep(null)}
+        onSave={handleSaveStep}
+      />
+
+      <WorkflowSettingsEditor
+        workflow={selectedWorkflow}
+        open={editingSettings}
+        onOpenChange={setEditingSettings}
+        onSave={handleSaveSettings}
+      />
     </Layout>
   );
 };
