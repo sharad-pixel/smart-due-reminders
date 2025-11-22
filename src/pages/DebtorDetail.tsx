@@ -26,6 +26,14 @@ interface Debtor {
   address: string | null;
   notes: string | null;
   current_balance: number | null;
+  crm_account_id: string | null;
+}
+
+interface CRMAccount {
+  id: string;
+  name: string;
+  account_number: string | null;
+  segment: string | null;
 }
 
 interface Invoice {
@@ -52,9 +60,11 @@ const DebtorDetail = () => {
   const [debtor, setDebtor] = useState<Debtor | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
+  const [crmAccounts, setCrmAccounts] = useState<CRMAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [linkingCrm, setLinkingCrm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -71,6 +81,7 @@ const DebtorDetail = () => {
       fetchDebtor();
       fetchInvoices();
       fetchOutreach();
+      fetchCrmAccounts();
     }
   }, [id]);
 
@@ -132,6 +143,24 @@ const DebtorDetail = () => {
     }
   };
 
+  const fetchCrmAccounts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("crm_accounts")
+        .select("id, name, account_number, segment")
+        .eq("user_id", user.id)
+        .order("name");
+
+      if (error) throw error;
+      setCrmAccounts(data || []);
+    } catch (error: any) {
+      console.error("Error fetching CRM accounts:", error);
+    }
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -162,6 +191,24 @@ const DebtorDetail = () => {
       navigate("/debtors");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete debtor");
+    }
+  };
+
+  const handleLinkCrmAccount = async (crmAccountId: string | null) => {
+    setLinkingCrm(true);
+    try {
+      const { error } = await supabase
+        .from("debtors")
+        .update({ crm_account_id: crmAccountId === "none" ? null : crmAccountId })
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success(crmAccountId === "none" ? "CRM account unlinked" : "CRM account linked successfully");
+      fetchDebtor();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to link CRM account");
+    } finally {
+      setLinkingCrm(false);
     }
   };
 
@@ -275,6 +322,31 @@ const DebtorDetail = () => {
                 <p className="text-2xl font-bold">
                   ${(debtor.current_balance || 0).toLocaleString()}
                 </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="crm-account">Linked CRM Account</Label>
+                <Select
+                  value={debtor.crm_account_id || "none"}
+                  onValueChange={handleLinkCrmAccount}
+                  disabled={linkingCrm}
+                >
+                  <SelectTrigger id="crm-account">
+                    <SelectValue placeholder="Select CRM account" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="none">No CRM account linked</SelectItem>
+                    {crmAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} {account.account_number ? `(${account.account_number})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {crmAccounts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No CRM accounts available. Sync your CRM data in Settings.
+                  </p>
+                )}
               </div>
               {debtor.notes && (
                 <div>

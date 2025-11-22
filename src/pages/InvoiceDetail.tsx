@@ -24,7 +24,23 @@ interface Invoice {
   status: string;
   notes: string | null;
   debtor_id: string;
-  debtors?: { name: string; email: string };
+  debtors?: { 
+    name: string; 
+    email: string;
+    crm_account_id: string | null;
+  };
+}
+
+interface CRMAccount {
+  id: string;
+  name: string;
+  segment: string | null;
+  mrr: number | null;
+  lifetime_value: number | null;
+  customer_since: string | null;
+  health_score: string | null;
+  status: string | null;
+  owner_name: string | null;
 }
 
 interface AIWorkflow {
@@ -78,6 +94,7 @@ const InvoiceDetail = () => {
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
   const [sendingDraft, setSendingDraft] = useState<string | null>(null);
+  const [crmAccount, setCrmAccount] = useState<CRMAccount | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -90,7 +107,7 @@ const InvoiceDetail = () => {
       const [invoiceRes, workflowRes, outreachRes, draftsRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(name, email)")
+          .select("*, debtors(name, email, crm_account_id)")
           .eq("id", id)
           .single(),
         supabase.from("ai_workflows").select("*").eq("invoice_id", id).maybeSingle(),
@@ -126,6 +143,19 @@ const InvoiceDetail = () => {
 
       setOutreach(outreachRes.data || []);
       setDrafts(draftsRes.data || []);
+
+      // Fetch CRM account if linked
+      if (invoiceRes.data?.debtors?.crm_account_id) {
+        const { data: crmData } = await supabase
+          .from("crm_accounts")
+          .select("*")
+          .eq("id", invoiceRes.data.debtors.crm_account_id)
+          .single();
+        
+        if (crmData) {
+          setCrmAccount(crmData);
+        }
+      }
     } catch (error: any) {
       toast.error("Failed to load invoice details");
       navigate("/invoices");
@@ -314,7 +344,7 @@ const InvoiceDetail = () => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-4 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Invoice Details</CardTitle>
@@ -434,6 +464,88 @@ const InvoiceDetail = () => {
               >
                 View Debtor Details
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Snapshot</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {crmAccount ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Account Name</p>
+                    <p className="font-medium">{crmAccount.name}</p>
+                  </div>
+                  {crmAccount.segment && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Segment</p>
+                      <p className="font-medium">{crmAccount.segment}</p>
+                    </div>
+                  )}
+                  {crmAccount.mrr !== null && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">MRR</p>
+                      <p className="font-medium">${crmAccount.mrr.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {crmAccount.lifetime_value !== null && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Lifetime Value</p>
+                      <p className="font-medium">${crmAccount.lifetime_value.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {crmAccount.customer_since && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Customer Since</p>
+                      <p className="font-medium">{new Date(crmAccount.customer_since).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {crmAccount.health_score && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Health Score</p>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          crmAccount.health_score.toLowerCase() === "healthy" || crmAccount.health_score.toLowerCase() === "green"
+                            ? "bg-green-100 text-green-800"
+                            : crmAccount.health_score.toLowerCase() === "at risk" || crmAccount.health_score.toLowerCase() === "yellow"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {crmAccount.health_score}
+                      </span>
+                    </div>
+                  )}
+                  {crmAccount.status && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          crmAccount.status === "Active"
+                            ? "bg-green-100 text-green-800"
+                            : crmAccount.status === "ChurnRisk"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {crmAccount.status}
+                      </span>
+                    </div>
+                  )}
+                  {crmAccount.owner_name && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Owner</p>
+                      <p className="font-medium">{crmAccount.owner_name}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No CRM account linked. Link this debtor to a CRM account in their profile.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
