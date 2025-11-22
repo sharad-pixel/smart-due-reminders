@@ -23,6 +23,7 @@ interface WorkflowStep {
   body_template: string;
   sms_template?: string;
   ai_template_type: string;
+  trigger_type: string;
 }
 
 interface Workflow {
@@ -151,6 +152,62 @@ const AIWorkflows = () => {
       toast.success("Step updated successfully");
     } catch (error: any) {
       toast.error("Failed to update step");
+      console.error(error);
+    }
+  };
+
+  const handleCreateCustomWorkflow = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const bucketInfo = agingBuckets.find(b => b.value === selectedBucket);
+      if (!bucketInfo) return;
+
+      // Create user-specific workflow
+      const { data: newWorkflow, error: createError } = await supabase
+        .from("collection_workflows")
+        .insert({
+          user_id: user.id,
+          aging_bucket: selectedBucket,
+          name: `${bucketInfo.label} - Custom`,
+          description: "Custom workflow for this aging bucket",
+          is_active: false,
+          is_locked: false,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // If there's an existing locked workflow, copy its steps
+      if (selectedWorkflow?.is_locked && selectedWorkflow.steps?.length) {
+        const newSteps = selectedWorkflow.steps.map((step, index) => ({
+          workflow_id: newWorkflow.id,
+          step_order: index + 1,
+          day_offset: step.day_offset,
+          channel: step.channel,
+          label: step.label,
+          trigger_type: step.trigger_type,
+          ai_template_type: step.ai_template_type,
+          body_template: step.body_template,
+          subject_template: step.subject_template,
+          sms_template: step.sms_template,
+          is_active: step.is_active,
+          requires_review: true,
+        }));
+
+        const { error: stepsError } = await supabase
+          .from("collection_workflow_steps")
+          .insert(newSteps);
+
+        if (stepsError) throw stepsError;
+      }
+
+      await fetchWorkflows();
+      toast.success("Custom workflow created");
+    } catch (error: any) {
+      toast.error("Failed to create custom workflow");
       console.error(error);
     }
   };
@@ -350,7 +407,16 @@ const AIWorkflows = () => {
                         </CardDescription>
                       </div>
                       <div className="flex items-center space-x-4">
-                        {!selectedWorkflow.is_locked && (
+                        {selectedWorkflow.is_locked ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCreateCustomWorkflow}
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Create Custom Workflow
+                          </Button>
+                        ) : (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -368,18 +434,25 @@ const AIWorkflows = () => {
                             id="workflow-active"
                             checked={selectedWorkflow.is_active}
                             onCheckedChange={(checked) => toggleWorkflow(selectedWorkflow.id, checked)}
+                            disabled={selectedWorkflow.is_locked}
                           />
                         </div>
                       </div>
                     </div>
                   </CardHeader>
-                  {!selectedWorkflow.is_locked && (
-                    <CardContent>
+                  <CardContent>
+                    {selectedWorkflow.is_locked ? (
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          This is a default workflow template. Click "Create Custom Workflow" to make your own editable version with these same steps.
+                        </p>
+                      </div>
+                    ) : (
                       <p className="text-sm text-muted-foreground">
                         Customize this workflow to fit your collection strategy.
                       </p>
-                    </CardContent>
-                  )}
+                    )}
+                  </CardContent>
                 </Card>
 
                 <Card>
