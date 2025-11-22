@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.daily-cadence-scheduler]
 verify_jwt = false
+
+[functions.generate-icp-marketing-copy]
+verify_jwt = false

@@ -172,6 +172,62 @@ const Home = () => {
         </div>
       </section>
 
+      <section className="py-16 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+            Who Uses Recouply.ai?
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Businesses across industries trust Recouply.ai to recover revenue without damaging customer relationships.
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div 
+              className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
+              onClick={() => navigate("/solutions/home-services")}
+            >
+              <div className="text-4xl mb-3">🔧</div>
+              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Home Services</h4>
+              <p className="text-sm text-muted-foreground">
+                Plumbing, HVAC, electrical, roofing, contractors
+              </p>
+            </div>
+
+            <div 
+              className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
+              onClick={() => navigate("/solutions/auto")}
+            >
+              <div className="text-4xl mb-3">🚗</div>
+              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Auto Industry</h4>
+              <p className="text-sm text-muted-foreground">
+                Dealerships, service departments, auto repair
+              </p>
+            </div>
+
+            <div 
+              className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
+              onClick={() => navigate("/solutions/home-services")}
+            >
+              <div className="text-4xl mb-3">🏪</div>
+              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Local Retail</h4>
+              <p className="text-sm text-muted-foreground">
+                Retail shops, service providers, local businesses
+              </p>
+            </div>
+
+            <div 
+              className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
+              onClick={() => navigate("/solutions/professional-services")}
+            >
+              <div className="text-4xl mb-3">💼</div>
+              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Professional Services</h4>
+              <p className="text-sm text-muted-foreground">
+                Agencies, consultants, accounting, legal
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-4xl font-bold mb-4">Ready to Recover Your Revenue?</h2>
