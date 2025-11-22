@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Home, Car, Briefcase, Store } from "lucide-react";
+import { Home, Briefcase, Store } from "lucide-react";
 
 const Solutions = () => {
   const navigate = useNavigate();
@@ -19,18 +19,6 @@ const Solutions = () => {
         "No third-party collection agency needed"
       ],
       link: "/solutions/home-services"
-    },
-    {
-      icon: Car,
-      title: "Auto Industry",
-      description: "For dealerships, service departments, and auto repair shops",
-      benefits: [
-        "Recover unpaid service invoices professionally",
-        "Financing past-due reminder automation",
-        "Warranty co-pay collection workflows",
-        "Maintain your dealership branding"
-      ],
-      link: "/solutions/auto"
     },
     {
       icon: Briefcase,
