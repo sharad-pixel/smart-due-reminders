@@ -9,7 +9,8 @@ import {
   Users, 
   FileText, 
   Settings, 
-  LogOut
+  LogOut,
+  User as UserIcon
 } from "lucide-react";
 
 interface LayoutProps {
@@ -72,6 +73,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
+    { path: "/profile", label: "Profile", icon: UserIcon },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
