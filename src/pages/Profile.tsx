@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -22,7 +22,9 @@ import {
   Settings as SettingsIcon,
   FileText,
   Zap,
-  Info
+  Info,
+  Upload,
+  Camera
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
 
@@ -36,6 +38,7 @@ interface UserProfile {
   plan_type: PlanType | null;
   plan_id: string | null;
   stripe_customer_id: string | null;
+  avatar_url: string | null;
 }
 
 interface Membership {
@@ -78,6 +81,7 @@ const Profile = () => {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [teamMemberCount, setTeamMemberCount] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadProfileData();
@@ -285,6 +289,63 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+    if (!profile) return;
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${profile.id}.${fileExt}`;
+    const filePath = `${profile.id}/${fileName}`;
+
+    setUploading(true);
+    try {
+      // Delete old avatar if exists
+      if (profile.avatar_url) {
+        const oldPath = profile.avatar_url.split('/').slice(-2).join('/');
+        await supabase.storage.from('avatars').remove([oldPath]);
+      }
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, avatar_url: publicUrl });
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully",
+      });
+
+      // Reload to update navigation
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload profile picture",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -332,15 +393,36 @@ const Profile = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-start gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="text-lg">
-                  {getInitials(profile.name, profile.email)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-16 w-16">
+                  {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} />}
+                  <AvatarFallback className="text-lg">
+                    {getInitials(profile.name, profile.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <label 
+                  htmlFor="avatar-upload"
+                  className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
+                  title="Change profile picture"
+                >
+                  <Camera className="h-3 w-3" />
+                </label>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleAvatarUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </div>
               <div className="flex-1 space-y-3">
                 <div>
                   <p className="text-lg font-semibold">{profile.name || "User"}</p>
                   <p className="text-sm text-muted-foreground">{profile.email}</p>
+                  {uploading && (
+                    <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">Workspace:</span>
