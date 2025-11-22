@@ -78,13 +78,15 @@ Deno.serve(async (req) => {
       throw membershipError;
     }
 
-    // If they're not a member of any account, they're the owner of their own account
-    const isOwner = !membershipCheck;
+    // Check if user has owner or admin role with active status
+    const isOwnerOrAdmin = membershipCheck && 
+      (membershipCheck.role === 'owner' || membershipCheck.role === 'admin') && 
+      membershipCheck.status === 'active';
     
-    // If they ARE a member, check if they're an admin with active status
-    const isAdmin = membershipCheck?.role === 'admin' && membershipCheck?.status === 'active';
+    // If no membership record exists, user is managing their own account as standalone owner
+    const isStandaloneOwner = !membershipCheck;
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwnerOrAdmin && !isStandaloneOwner) {
       return new Response(
         JSON.stringify({ error: 'Only account owners and admins can manage team members' }),
         {
@@ -95,8 +97,8 @@ Deno.serve(async (req) => {
     }
 
     // Determine which account we're managing
-    // If user is owner, use their own ID; if admin, use the account they're part of
-    const managingAccountId = isOwner ? user.id : membershipCheck!.account_id;
+    // If standalone owner, use their own ID; otherwise use the account_id from membership
+    const managingAccountId = isStandaloneOwner ? user.id : membershipCheck!.account_id;
 
     let result;
 
