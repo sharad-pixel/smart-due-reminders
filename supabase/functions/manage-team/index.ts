@@ -64,16 +64,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is owner or admin
-    const { data: userRole } = await supabaseClient
+    // Check if user is owner (has account_users with their ID as account_id) or admin
+    const { data: ownerCheck } = await supabaseClient
       .from('account_users')
-      .select('role')
+      .select('account_id')
       .eq('account_id', user.id)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
+      .limit(1)
+      .maybeSingle();
 
-    if (!userRole || !['owner', 'admin'].includes(userRole.role)) {
+    const isOwner = !!ownerCheck;
+
+    // If not owner, check if they're an admin
+    let isAdmin = false;
+    if (!isOwner) {
+      const { data: adminCheck } = await supabaseClient
+        .from('account_users')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .eq('role', 'admin')
+        .limit(1)
+        .maybeSingle();
+      
+      isAdmin = !!adminCheck;
+    }
+
+    if (!isOwner && !isAdmin) {
       return new Response(
         JSON.stringify({ error: 'Only account owners and admins can manage team members' }),
         {
