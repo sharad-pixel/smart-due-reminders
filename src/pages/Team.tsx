@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
@@ -275,11 +277,35 @@ const Team = () => {
                       <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {inviteRole === "admin" && "Can manage team members and settings"}
-                    {inviteRole === "member" && "Can manage invoices, debtors, and AI drafts"}
-                    {inviteRole === "viewer" && "Read-only access to all data"}
-                  </p>
+                  <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                    <p className="text-xs font-medium mb-2">This role can:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {inviteRole === "admin" && (
+                        <>
+                          <li>• Manage team members and roles</li>
+                          <li>• Configure settings and integrations</li>
+                          <li>• Full access to billing and subscription</li>
+                          <li>• Create and edit all data</li>
+                        </>
+                      )}
+                      {inviteRole === "member" && (
+                        <>
+                          <li>• Create and edit invoices</li>
+                          <li>• Manage debtors and contacts</li>
+                          <li>• Create and manage AI workflows</li>
+                          <li>• View reports and analytics</li>
+                        </>
+                      )}
+                      {inviteRole === "viewer" && (
+                        <>
+                          <li>• View all invoices and debtors</li>
+                          <li>• Access reports and analytics</li>
+                          <li>• View AI workflows and drafts</li>
+                          <li>• No ability to create or modify data</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -297,18 +323,22 @@ const Team = () => {
         {/* Team Seats Usage */}
         <Card className="bg-muted/50">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Team Seats</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  You are using {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} available seats
-                </p>
-              </div>
-              <div className="text-right">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Team Seats</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} seats used
+                  </p>
+                </div>
                 <Badge variant="outline" className="text-sm">
                   {features?.plan_type.charAt(0).toUpperCase()}{features?.plan_type.slice(1)} Plan
                 </Badge>
               </div>
+              <Progress 
+                value={(teamMembers.filter(m => m.role !== 'owner').length / ((features?.features as any)?.max_invited_users || 1)) * 100} 
+                className="h-2"
+              />
             </div>
           </CardContent>
         </Card>
@@ -382,48 +412,99 @@ const Team = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Role Permissions</CardTitle>
-            <CardDescription>Understanding what each role can do</CardDescription>
+            <CardTitle>Role Permissions Matrix</CardTitle>
+            <CardDescription>Detailed breakdown of what each role can do</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium">Owner</p>
-                  <p className="text-sm text-muted-foreground">
-                    Full access to everything including billing and team management
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Lock className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium">Admin</p>
-                  <p className="text-sm text-muted-foreground">
-                    Manage team members, settings, workflows, and all data
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <User className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium">Member</p>
-                  <p className="text-sm text-muted-foreground">
-                    Can manage invoices, debtors, and AI drafts
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Eye className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium">Viewer</p>
-                  <p className="text-sm text-muted-foreground">
-                    Read-only access to all data (no writes)
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[250px]">Permission</TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Owner
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Admin
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <User className="h-4 w-4" />
+                      Member
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Viewer
+                    </div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Manage Billing & Subscription</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Manage Team Members</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Configure Settings & Integrations</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Create & Edit Invoices</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Manage Debtors</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Create & Manage AI Workflows</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Approve & Send AI Drafts</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">View Reports & Analytics</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
