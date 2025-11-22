@@ -9,8 +9,7 @@ import {
   Users, 
   FileText, 
   Settings, 
-  LogOut,
-  Shield
+  LogOut
 } from "lucide-react";
 
 interface LayoutProps {
@@ -49,24 +48,12 @@ const Layout = ({ children }: LayoutProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   const [showTeam, setShowTeam] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const checkTeamAccess = async () => {
       if (!user) return;
       
       try {
-        // Check for admin status
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile?.is_admin) {
-          setIsAdmin(true);
-        }
-
         // Check for team features
         const { data } = await supabase.functions.invoke("get-effective-features");
         if (data?.features?.can_have_team_users) {
@@ -85,7 +72,6 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
-    ...(isAdmin ? [{ path: "/admin", label: "Admin", icon: Shield }] : []),
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
