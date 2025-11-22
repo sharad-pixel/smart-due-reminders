@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles } from "lucide-react";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
+import WorkflowTemplates, { Template } from "@/components/WorkflowTemplates";
 
 interface WorkflowStep {
   id: string;
@@ -48,6 +49,7 @@ const AIWorkflows = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null);
   const [editingSettings, setEditingSettings] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -142,6 +144,70 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleApplyTemplate = async (template: Template) => {
+    if (!selectedWorkflow) {
+      toast.error("Please select an aging bucket first");
+      return;
+    }
+
+    if (selectedWorkflow.is_locked) {
+      toast.error("Cannot modify locked workflows");
+      return;
+    }
+
+    try {
+      // Update workflow description
+      const { error: workflowError } = await supabase
+        .from("collection_workflows")
+        .update({
+          description: template.description,
+        })
+        .eq("id", selectedWorkflow.id);
+
+      if (workflowError) throw workflowError;
+
+      // Delete existing steps
+      const { error: deleteError } = await supabase
+        .from("collection_workflow_steps")
+        .delete()
+        .eq("workflow_id", selectedWorkflow.id);
+
+      if (deleteError) throw deleteError;
+
+      // Create new steps from template
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const newSteps = template.steps.map((step, index) => ({
+        workflow_id: selectedWorkflow.id,
+        step_order: index + 1,
+        day_offset: step.day_offset,
+        channel: step.channel,
+        label: step.label,
+        trigger_type: "days_past_due",
+        ai_template_type: step.tone,
+        body_template: `Generated ${step.tone} collection message`,
+        subject_template: step.channel === "email" ? `Payment reminder for invoice {{invoice_number}}` : null,
+        sms_template: step.channel === "sms" ? `Hi {{debtor_name}}, this is a reminder about invoice {{invoice_number}}` : null,
+        is_active: true,
+        requires_review: true,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("collection_workflow_steps")
+        .insert(newSteps);
+
+      if (insertError) throw insertError;
+
+      await fetchWorkflows();
+      setShowTemplates(false);
+      toast.success(`${template.name} template applied successfully`);
+    } catch (error: any) {
+      toast.error("Failed to apply template");
+      console.error(error);
+    }
+  };
+
   const selectedWorkflow = workflows.find(w => w.aging_bucket === selectedBucket);
 
   if (loading) {
@@ -157,11 +223,17 @@ const AIWorkflows = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold text-primary">AI Workflows</h1>
-          <p className="text-muted-foreground mt-2">
-            Configure automated AI-powered collection outreach by aging bucket
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-primary">AI Workflows</h1>
+            <p className="text-muted-foreground mt-2">
+              Configure automated AI-powered collection outreach by aging bucket
+            </p>
+          </div>
+          <Button onClick={() => setShowTemplates(true)} className="flex items-center space-x-2">
+            <Sparkles className="h-4 w-4" />
+            <span>Browse Templates</span>
+          </Button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -345,6 +417,12 @@ const AIWorkflows = () => {
         open={editingSettings}
         onOpenChange={setEditingSettings}
         onSave={handleSaveSettings}
+      />
+
+      <WorkflowTemplates
+        open={showTemplates}
+        onOpenChange={setShowTemplates}
+        onSelectTemplate={handleApplyTemplate}
       />
     </Layout>
   );
