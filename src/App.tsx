@@ -24,6 +24,7 @@ import Checkout from "./pages/Checkout";
 import ContactUs from "./pages/ContactUs";
 import Upgrade from "./pages/Upgrade";
 import Team from "./pages/Team";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/team" element={<Team />} />
+        <Route path="/profile" element={<Profile />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
