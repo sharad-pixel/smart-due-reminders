@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import * as XLSX from 'xlsx';
 
 interface Invoice {
   id: string;
@@ -140,8 +141,32 @@ const Invoices = () => {
       'crm_account_external_id'
     ];
     
+    const today = new Date();
+    const dueDate = new Date(today);
+    dueDate.setDate(dueDate.getDate() + 30);
+    
+    const exampleRows = [
+      [
+        'INV-2025-001',
+        'john.smith@acmecorp.com',
+        'Acme Corporation',
+        '15000.00',
+        'USD',
+        today.toISOString().split('T')[0],
+        dueDate.toISOString().split('T')[0],
+        'Open',
+        'https://example.com/invoices/INV-2025-001.pdf',
+        'Q1 2025 services',
+        'SF_ACC_001234'
+      ]
+    ];
+    
     if (format === 'csv') {
-      const csvContent = headers.join(',') + '\n';
+      let csvContent = headers.join(',') + '\n';
+      exampleRows.forEach(row => {
+        csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+      
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -151,8 +176,13 @@ const Invoices = () => {
       window.URL.revokeObjectURL(url);
       toast.success('CSV template downloaded');
     } else {
-      // Stub for Excel template
-      toast.info('Excel template download coming soon');
+      // Generate Excel file
+      const wsData = [headers, ...exampleRows];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Invoices Template');
+      XLSX.writeFile(wb, 'invoices_template.xlsx');
+      toast.success('Excel template downloaded');
     }
   };
 
