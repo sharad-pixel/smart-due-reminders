@@ -50,3 +50,9 @@ verify_jwt = true
 
 [functions.admin-get-user-details]
 verify_jwt = true
+
+[functions.get-aging-bucket-invoices]
+verify_jwt = true
+
+[functions.generate-bulk-ai-drafts]
+verify_jwt = true
