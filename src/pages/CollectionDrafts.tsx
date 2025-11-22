@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText } from "lucide-react";
+import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120';
+type DraftStatus = 'pending_approval' | 'approved' | 'discarded';
 
 interface AgingBucketData {
-  invoices: any[];
   count: number;
   total_amount: number;
 }
@@ -24,7 +26,31 @@ interface AgingBuckets {
   dpd_91_120: AgingBucketData;
 }
 
+interface Draft {
+  id: string;
+  invoice_id: string;
+  channel: 'email' | 'sms';
+  subject: string | null;
+  message_body: string;
+  status: DraftStatus;
+  step_number: number;
+  created_at: string;
+  recommended_send_date: string | null;
+  invoices: {
+    invoice_number: string;
+    amount: number;
+    currency: string;
+    due_date: string;
+    debtors: {
+      name: string;
+      company_name: string;
+      email: string;
+    };
+  };
+}
+
 const agingBucketLabels = {
+  all: { label: "All Drafts", description: "All aging buckets", color: "bg-blue-100 text-blue-800 border-blue-300" },
   current: { label: "Current", description: "Not yet overdue", color: "bg-green-100 text-green-800 border-green-300" },
   dpd_1_30: { label: "1-30 Days", description: "Early stage", color: "bg-yellow-100 text-yellow-800 border-yellow-300" },
   dpd_31_60: { label: "31-60 Days", description: "Mid stage", color: "bg-orange-100 text-orange-800 border-orange-300" },
@@ -34,18 +60,19 @@ const agingBucketLabels = {
 
 const CollectionDrafts = () => {
   const [loading, setLoading] = useState(true);
-  const [selectedBucket, setSelectedBucket] = useState<keyof AgingBuckets>("dpd_1_30");
+  const [selectedBucket, setSelectedBucket] = useState<AgingBucket>('all');
   const [agingData, setAgingData] = useState<AgingBuckets | null>(null);
-  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [generating, setGenerating] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
+  const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms'>('all');
 
   useEffect(() => {
-    fetchAgingBucketData();
+    fetchData();
   }, []);
 
-  const fetchAgingBucketData = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -53,88 +80,143 @@ const CollectionDrafts = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('get-aging-bucket-invoices', {
+      // Fetch aging bucket data
+      const { data: agingResponse, error: agingError } = await supabase.functions.invoke('get-aging-bucket-invoices', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
       });
 
-      if (error) throw error;
-      
-      setAgingData(data.data);
+      if (agingError) throw agingError;
+      setAgingData(agingResponse.data);
+
+      // Fetch all drafts
+      const { data: draftsData, error: draftsError } = await supabase
+        .from('ai_drafts')
+        .select(`
+          *,
+          invoices!inner(
+            invoice_number,
+            amount,
+            currency,
+            due_date,
+            debtors!inner(
+              name,
+              company_name,
+              email
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (draftsError) throw draftsError;
+      setDrafts(draftsData || []);
     } catch (error: any) {
-      console.error('Error fetching aging data:', error);
-      toast.error("Failed to load invoice data");
+      console.error('Error fetching data:', error);
+      toast.error("Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectInvoice = (invoiceId: string, checked: boolean) => {
-    const newSelection = new Set(selectedInvoices);
-    if (checked) {
-      newSelection.add(invoiceId);
-    } else {
-      newSelection.delete(invoiceId);
-    }
-    setSelectedInvoices(newSelection);
+  const calculateDaysPastDue = (dueDate: string): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate);
+    due.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked && agingData) {
-      const allIds = new Set(agingData[selectedBucket].invoices.map(inv => inv.id));
-      setSelectedInvoices(allIds);
-    } else {
-      setSelectedInvoices(new Set());
-    }
+  const getAgingBucket = (daysPastDue: number): AgingBucket => {
+    if (daysPastDue >= 91) return 'dpd_91_120';
+    if (daysPastDue >= 61) return 'dpd_61_90';
+    if (daysPastDue >= 31) return 'dpd_31_60';
+    if (daysPastDue >= 1) return 'dpd_1_30';
+    return 'current';
   };
 
-  const handleGenerateDrafts = async () => {
-    if (selectedInvoices.size === 0) {
-      toast.error("Please select at least one invoice");
-      return;
-    }
-
-    setGenerating(true);
+  const handleUpdateStatus = async (draftId: string, newStatus: DraftStatus) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase.functions.invoke('generate-bulk-ai-drafts', {
-        body: {
-          invoice_ids: Array.from(selectedInvoices)
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ status: newStatus })
+        .eq('id', draftId);
 
       if (error) throw error;
 
-      toast.success(`Generated ${data.created} AI draft${data.created !== 1 ? 's' : ''}`);
-      if (data.errors > 0) {
-        toast.warning(`${data.errors} invoice${data.errors !== 1 ? 's' : ''} failed to generate`);
-      }
-      
-      setSelectedInvoices(new Set());
-      await fetchAgingBucketData();
+      toast.success('Draft status updated');
+      fetchData();
     } catch (error: any) {
-      console.error('Error generating drafts:', error);
-      toast.error("Failed to generate AI drafts");
-    } finally {
-      setGenerating(false);
+      console.error('Error updating draft:', error);
+      toast.error('Failed to update draft status');
     }
   };
 
-  const filteredInvoices = agingData?.[selectedBucket]?.invoices.filter(invoice => {
-    const matchesSearch = searchTerm === "" || 
-      invoice.debtors.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleDeleteDraft = async (draftId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .delete()
+        .eq('id', draftId);
+
+      if (error) throw error;
+
+      toast.success('Draft deleted');
+      fetchData();
+    } catch (error: any) {
+      console.error('Error deleting draft:', error);
+      toast.error('Failed to delete draft');
+    }
+  };
+
+  const filteredDrafts = drafts.filter(draft => {
+    const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+    const draftBucket = getAgingBucket(daysPastDue);
     
-    const matchesStatus = filterStatus === "all" || invoice.status === filterStatus;
+    const matchesBucket = selectedBucket === 'all' || draftBucket === selectedBucket;
     
-    return matchesSearch && matchesStatus;
-  }) || [];
+    const matchesSearch = 
+      draft.invoices.debtors.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      draft.invoices.debtors.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      draft.invoices.invoice_number.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || draft.status === statusFilter;
+    const matchesChannel = channelFilter === 'all' || draft.channel === channelFilter;
+    
+    return matchesBucket && matchesSearch && matchesStatus && matchesChannel;
+  });
+
+  const getStatusIcon = (status: DraftStatus) => {
+    switch (status) {
+      case 'pending_approval':
+        return <Clock className="h-4 w-4" />;
+      case 'approved':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'discarded':
+        return <XCircle className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusColor = (status: DraftStatus) => {
+    switch (status) {
+      case 'pending_approval':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'discarded':
+        return 'bg-gray-100 text-gray-600 border-gray-300';
+    }
+  };
+
+  const getTotalCount = () => {
+    if (!agingData) return 0;
+    return agingData.current.count + agingData.dpd_1_30.count + agingData.dpd_31_60.count + agingData.dpd_61_90.count + agingData.dpd_91_120.count;
+  };
+
+  const getTotalAmount = () => {
+    if (!agingData) return 0;
+    return agingData.current.total_amount + agingData.dpd_1_30.total_amount + agingData.dpd_31_60.total_amount + agingData.dpd_61_90.total_amount + agingData.dpd_91_120.total_amount;
+  };
 
   if (loading) {
     return (
@@ -149,163 +231,195 @@ const CollectionDrafts = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold text-primary">AI Collection Drafts</h1>
-          <p className="text-muted-foreground mt-2">
-            Select invoices and generate AI-powered collection messages
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-primary">AI Collection Drafts</h1>
+            <p className="text-muted-foreground mt-2">
+              Review and manage all AI-generated collection drafts organized by aging buckets
+            </p>
+          </div>
+          <Button onClick={fetchData} variant="outline">
+            <Loader2 className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
 
-        {/* Aging Bucket Summary Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {Object.entries(agingBucketLabels).map(([key, config]) => {
-            const bucketData = agingData?.[key as keyof AgingBuckets];
-            const isSelected = selectedBucket === key;
-            
-            return (
-              <button
-                key={key}
-                onClick={() => {
-                  setSelectedBucket(key as keyof AgingBuckets);
-                  setSelectedInvoices(new Set());
-                }}
-                className={`text-left p-4 rounded-lg border-2 transition-all ${
-                  isSelected ? config.color : "bg-card hover:bg-accent"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm">{config.label}</span>
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">{bucketData?.count || 0}</p>
-                  <p className="text-xs text-muted-foreground">{config.description}</p>
-                  <div className="flex items-center text-xs font-medium mt-2">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    ${bucketData?.total_amount.toLocaleString() || 0}
+        {/* Aging Bucket Filter Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <button
+            onClick={() => setSelectedBucket('all')}
+            className={`text-left p-4 rounded-lg border-2 transition-all ${
+              selectedBucket === 'all' ? agingBucketLabels.all.color : "bg-card hover:bg-accent"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">{agingBucketLabels.all.label}</span>
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{getTotalCount()}</p>
+              <p className="text-xs text-muted-foreground">{agingBucketLabels.all.description}</p>
+              <div className="flex items-center text-xs font-medium mt-2">
+                <DollarSign className="h-3 w-3 mr-1" />
+                ${getTotalAmount().toLocaleString()}
+              </div>
+            </div>
+          </button>
+
+          {(Object.entries(agingBucketLabels) as Array<[AgingBucket, typeof agingBucketLabels[keyof typeof agingBucketLabels]]>)
+            .filter(([key]) => key !== 'all')
+            .map(([key, config]) => {
+              const bucketData = agingData?.[key as keyof AgingBuckets];
+              const isSelected = selectedBucket === key;
+              
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedBucket(key)}
+                  className={`text-left p-4 rounded-lg border-2 transition-all ${
+                    isSelected ? config.color : "bg-card hover:bg-accent"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm">{config.label}</span>
+                    <FileText className="h-4 w-4" />
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold">{bucketData?.count || 0}</p>
+                    <p className="text-xs text-muted-foreground">{config.description}</p>
+                    <div className="flex items-center text-xs font-medium mt-2">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      ${bucketData?.total_amount.toLocaleString() || 0}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
         </div>
 
-        {/* Filters and Actions */}
+        {/* Drafts List */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>
-                  {agingBucketLabels[selectedBucket].label} Invoices
-                </CardTitle>
-                <CardDescription>
-                  {selectedInvoices.size > 0 ? 
-                    `${selectedInvoices.size} invoice${selectedInvoices.size !== 1 ? 's' : ''} selected` :
-                    `${filteredInvoices.length} invoice${filteredInvoices.length !== 1 ? 's' : ''}`
-                  }
-                </CardDescription>
-              </div>
-              
-              {selectedInvoices.size > 0 && (
-                <Button onClick={handleGenerateDrafts} disabled={generating}>
-                  {generating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Generate AI Drafts ({selectedInvoices.size})
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
+            <CardTitle>All AI Drafts</CardTitle>
+            <CardDescription>
+              {filteredDrafts.length} draft{filteredDrafts.length !== 1 ? 's' : ''} found
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Search and Filters */}
-            <div className="flex gap-4 mb-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by debtor or invoice number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="space-y-4">
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by debtor or invoice..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DraftStatus | 'all')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="discarded">Discarded</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={channelFilter} onValueChange={(value) => setChannelFilter(value as 'all' | 'email' | 'sms')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Channels</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Open">Open</SelectItem>
-                  <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* Invoice List Table */}
-            {filteredInvoices.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No invoices in this aging bucket</p>
-              </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="p-3 text-left">
-                        <Checkbox
-                          checked={selectedInvoices.size === filteredInvoices.length && filteredInvoices.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">Debtor</th>
-                      <th className="p-3 text-left text-sm font-medium">Invoice #</th>
-                      <th className="p-3 text-left text-sm font-medium">Amount</th>
-                      <th className="p-3 text-left text-sm font-medium">Due Date</th>
-                      <th className="p-3 text-left text-sm font-medium">Days Past Due</th>
-                      <th className="p-3 text-left text-sm font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInvoices.map((invoice) => (
-                      <tr key={invoice.id} className="border-t hover:bg-accent/50">
-                        <td className="p-3">
-                          <Checkbox
-                            checked={selectedInvoices.has(invoice.id)}
-                            onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked as boolean)}
-                          />
-                        </td>
-                        <td className="p-3">
-                          <div>
-                            <p className="font-medium">{invoice.debtors.company_name || invoice.debtors.name}</p>
-                            <p className="text-xs text-muted-foreground">{invoice.debtors.email}</p>
+              {/* Draft Cards */}
+              {filteredDrafts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No drafts found</p>
+                  {(searchTerm || statusFilter !== 'all' || channelFilter !== 'all') && (
+                    <p className="text-sm mt-2">Try adjusting your filters</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredDrafts.map((draft) => {
+                    const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                    return (
+                      <Card key={draft.id} className="border-l-4 border-l-primary/20 hover:border-l-primary transition-colors">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold">
+                                  {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                </h3>
+                                <Badge variant="outline" className="uppercase">
+                                  {draft.channel === 'email' ? <Mail className="h-3 w-3 mr-1" /> : <MessageSquare className="h-3 w-3 mr-1" />}
+                                  {draft.channel}
+                                </Badge>
+                                <Badge className={getStatusColor(draft.status)}>
+                                  <span className="mr-1">{getStatusIcon(draft.status)}</span>
+                                  {draft.status.replace('_', ' ')}
+                                </Badge>
+                                <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'}>
+                                  {daysPastDue} DPD
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>Invoice: {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}</div>
+                                <div>Created {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}</div>
+                                {draft.subject && <div className="font-medium text-foreground mt-2">Subject: {draft.subject}</div>}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {draft.status === 'pending_approval' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUpdateStatus(draft.id, 'approved')}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUpdateStatus(draft.id, 'discarded')}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Discard
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteDraft(draft.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </td>
-                        <td className="p-3 font-mono text-sm">{invoice.invoice_number}</td>
-                        <td className="p-3 font-medium">
-                          ${invoice.amount.toLocaleString()} {invoice.currency || 'USD'}
-                        </td>
-                        <td className="p-3 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
-                        <td className="p-3">
-                          <Badge variant={invoice.days_past_due > 60 ? "destructive" : "secondary"}>
-                            {invoice.days_past_due} days
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant="outline">{invoice.status}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                          <div className="bg-muted/30 p-4 rounded-lg">
+                            <p className="text-sm whitespace-pre-wrap">{draft.message_body}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
