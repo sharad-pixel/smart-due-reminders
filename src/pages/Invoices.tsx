@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown } from "lucide-react";
+import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from 'xlsx';
 
 interface Invoice {
@@ -41,6 +43,13 @@ const Invoices = () => {
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>("all");
   const [debtorFilter, setDebtorFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [hasHeaderRow, setHasHeaderRow] = useState(true);
+  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [importSummary, setImportSummary] = useState<{ total: number; errors: string[]; warnings: string[] } | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [formData, setFormData] = useState({
     debtor_id: "",
     invoice_number: "",
@@ -190,6 +199,268 @@ const Invoices = () => {
     toast.info('Google Sheets instructions: Copy the CSV template structure to a new Google Sheet');
   };
 
+  const parseImportFile = async (file: File, hasHeader: boolean): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          let rows: any[] = [];
+
+          if (file.name.endsWith('.csv')) {
+            const text = data as string;
+            const lines = text.split('\n').filter(line => line.trim());
+            rows = lines.map(line => {
+              const values: string[] = [];
+              let current = '';
+              let inQuotes = false;
+              
+              for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  values.push(current.trim());
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim());
+              return values;
+            });
+          } else {
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+          }
+
+          resolve(rows);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      if (file.name.endsWith('.csv')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsBinaryString(file);
+      }
+    });
+  };
+
+  const previewInvoicesImport = async () => {
+    if (!importFile) {
+      toast.error('Please select a file to import');
+      return;
+    }
+
+    setIsPreviewLoading(true);
+    try {
+      const rows = await parseImportFile(importFile, hasHeaderRow);
+      
+      if (rows.length === 0) {
+        toast.error('File is empty');
+        setIsPreviewLoading(false);
+        return;
+      }
+
+      const headers = hasHeaderRow ? rows[0] : [];
+      const dataRows = hasHeaderRow ? rows.slice(1) : rows;
+
+      const headerMap: any = {};
+      headers.forEach((header: string, index: number) => {
+        const normalized = header.toLowerCase().trim();
+        headerMap[normalized] = index;
+      });
+
+      const errors: string[] = [];
+      const warnings: string[] = [];
+
+      // Validate required columns
+      if (!headerMap['invoice_number']) {
+        errors.push('Missing required column: invoice_number');
+      }
+      if (!headerMap['debtor_email'] && !headerMap['debtor_company_name']) {
+        errors.push('Missing required column: must have debtor_email OR debtor_company_name');
+      }
+      if (!headerMap['amount']) {
+        errors.push('Missing required column: amount');
+      }
+      if (!headerMap['issue_date']) {
+        errors.push('Missing required column: issue_date');
+      }
+      if (!headerMap['due_date']) {
+        errors.push('Missing required column: due_date');
+      }
+
+      if (errors.length > 0) {
+        setImportSummary({ total: dataRows.length, errors, warnings });
+        setPreviewData(null);
+        setIsPreviewLoading(false);
+        return;
+      }
+
+      // Parse and validate rows
+      const parsedRows = dataRows.slice(0, 20).map((row: any[], rowIndex: number) => {
+        const parsed: any = {
+          _rowIndex: rowIndex + (hasHeaderRow ? 2 : 1),
+          invoice_number: row[headerMap['invoice_number']]?.toString().trim() || '',
+          debtor_email: row[headerMap['debtor_email']]?.toString().trim() || '',
+          debtor_company_name: row[headerMap['debtor_company_name']]?.toString().trim() || '',
+          amount: row[headerMap['amount']]?.toString().trim() || '',
+          currency: row[headerMap['currency']]?.toString().trim() || 'USD',
+          issue_date: row[headerMap['issue_date']]?.toString().trim() || '',
+          due_date: row[headerMap['due_date']]?.toString().trim() || '',
+          status: row[headerMap['status']]?.toString().trim() || 'Open',
+          external_link: row[headerMap['external_link']]?.toString().trim() || '',
+          notes: row[headerMap['notes']]?.toString().trim() || '',
+          crm_account_external_id: row[headerMap['crm_account_external_id']]?.toString().trim() || '',
+        };
+
+        // Validate amount
+        if (isNaN(parseFloat(parsed.amount))) {
+          warnings.push(`Row ${parsed._rowIndex}: Invalid amount "${parsed.amount}"`);
+        }
+
+        // Validate dates
+        if (parsed.issue_date && isNaN(Date.parse(parsed.issue_date))) {
+          warnings.push(`Row ${parsed._rowIndex}: Invalid issue_date "${parsed.issue_date}"`);
+        }
+        if (parsed.due_date && isNaN(Date.parse(parsed.due_date))) {
+          warnings.push(`Row ${parsed._rowIndex}: Invalid due_date "${parsed.due_date}"`);
+        }
+
+        // Validate status
+        const validStatuses = ['Open', 'Paid', 'Disputed', 'Settled', 'InPaymentPlan', 'Canceled'];
+        if (parsed.status && !validStatuses.includes(parsed.status)) {
+          warnings.push(`Row ${parsed._rowIndex}: Invalid status "${parsed.status}"`);
+        }
+
+        return parsed;
+      });
+
+      setPreviewData(parsedRows);
+      setImportSummary({ total: dataRows.length, errors, warnings });
+      toast.success(`Preview loaded: ${dataRows.length} rows found`);
+    } catch (error: any) {
+      toast.error(`Failed to parse file: ${error.message}`);
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const importInvoicesFromFile = async () => {
+    if (!importFile) return;
+
+    setIsImporting(true);
+    try {
+      const rows = await parseImportFile(importFile, hasHeaderRow);
+      const headers = hasHeaderRow ? rows[0] : [];
+      const dataRows = hasHeaderRow ? rows.slice(1) : rows;
+
+      const headerMap: any = {};
+      headers.forEach((header: string, index: number) => {
+        const normalized = header.toLowerCase().trim();
+        headerMap[normalized] = index;
+      });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Get all debtors for this user
+      const { data: debtors } = await supabase
+        .from('debtors')
+        .select('id, email, company_name')
+        .eq('user_id', user.id);
+
+      if (!debtors || debtors.length === 0) {
+        toast.error('No debtors found. Please create debtors first before importing invoices.');
+        setIsImporting(false);
+        return;
+      }
+
+      let inserted = 0;
+      let skipped = 0;
+
+      for (const row of dataRows) {
+        try {
+          const invoiceData: any = {
+            invoice_number: row[headerMap['invoice_number']]?.toString().trim() || '',
+            amount: parseFloat(row[headerMap['amount']]?.toString().trim() || '0'),
+            currency: row[headerMap['currency']]?.toString().trim() || 'USD',
+            issue_date: row[headerMap['issue_date']]?.toString().trim() || '',
+            due_date: row[headerMap['due_date']]?.toString().trim() || '',
+            status: row[headerMap['status']]?.toString().trim() || 'Open',
+            external_link: row[headerMap['external_link']]?.toString().trim() || null,
+            notes: row[headerMap['notes']]?.toString().trim() || null,
+          };
+
+          // Validate required fields
+          if (!invoiceData.invoice_number || isNaN(invoiceData.amount) || !invoiceData.issue_date || !invoiceData.due_date) {
+            skipped++;
+            continue;
+          }
+
+          // Validate dates
+          if (isNaN(Date.parse(invoiceData.issue_date)) || isNaN(Date.parse(invoiceData.due_date))) {
+            skipped++;
+            continue;
+          }
+
+          // Find matching debtor
+          const debtorEmail = row[headerMap['debtor_email']]?.toString().trim().toLowerCase();
+          const debtorCompany = row[headerMap['debtor_company_name']]?.toString().trim().toLowerCase();
+
+          let matchedDebtor = null;
+          
+          if (debtorEmail) {
+            matchedDebtor = debtors.find(d => d.email.toLowerCase() === debtorEmail);
+          }
+          
+          if (!matchedDebtor && debtorCompany) {
+            matchedDebtor = debtors.find(d => d.company_name.toLowerCase() === debtorCompany);
+          }
+
+          if (!matchedDebtor) {
+            skipped++;
+            continue;
+          }
+
+          invoiceData.debtor_id = matchedDebtor.id;
+
+          // Validate status
+          const validStatuses = ['Open', 'Paid', 'Disputed', 'Settled', 'InPaymentPlan', 'Canceled'];
+          if (!validStatuses.includes(invoiceData.status)) {
+            invoiceData.status = 'Open';
+          }
+
+          // Insert invoice
+          const { error } = await supabase
+            .from('invoices')
+            .insert({ ...invoiceData, user_id: user.id });
+
+          if (error) throw error;
+          inserted++;
+        } catch (error) {
+          console.error('Error processing invoice row:', error);
+          skipped++;
+        }
+      }
+
+      toast.success(`Import complete: ${inserted} created, ${skipped} skipped`);
+      setIsImportOpen(false);
+      setImportFile(null);
+      setPreviewData(null);
+      setImportSummary(null);
+      fetchData();
+    } catch (error: any) {
+      toast.error(`Import failed: ${error.message}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -265,6 +536,10 @@ const Invoices = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import from File
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadInvoicesTemplate('csv')}>
                   <FileText className="h-4 w-4 mr-2" />
                   Download Invoices Template (CSV)
@@ -515,6 +790,150 @@ const Invoices = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Import Invoices Modal */}
+        <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Import Invoices</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* File Upload Section */}
+              <div className="space-y-2">
+                <Label htmlFor="import-file">Select File</Label>
+                <Input
+                  id="import-file"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setImportFile(file || null);
+                    setPreviewData(null);
+                    setImportSummary(null);
+                  }}
+                />
+              </div>
+
+              {/* Header Row Checkbox */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="has-header"
+                  checked={hasHeaderRow}
+                  onCheckedChange={(checked) => setHasHeaderRow(checked as boolean)}
+                />
+                <Label htmlFor="has-header" className="cursor-pointer">
+                  File has header row
+                </Label>
+              </div>
+
+              {/* Preview Button */}
+              <Button
+                onClick={previewInvoicesImport}
+                disabled={!importFile || isPreviewLoading}
+              >
+                {isPreviewLoading ? 'Loading Preview...' : 'Preview Import'}
+              </Button>
+
+              {/* Errors and Warnings */}
+              {importSummary && (
+                <div className="space-y-2">
+                  {importSummary.errors.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="font-semibold mb-1">Errors:</div>
+                        <ul className="list-disc list-inside">
+                          {importSummary.errors.map((error, i) => (
+                            <li key={i}>{error}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {importSummary.warnings.length > 0 && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="font-semibold mb-1">Warnings:</div>
+                        <ul className="list-disc list-inside">
+                          {importSummary.warnings.slice(0, 5).map((warning, i) => (
+                            <li key={i}>{warning}</li>
+                          ))}
+                          {importSummary.warnings.length > 5 && (
+                            <li>... and {importSummary.warnings.length - 5} more</li>
+                          )}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+
+              {/* Preview Table */}
+              {previewData && (
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing first 20 of {importSummary?.total || 0} rows
+                  </div>
+                  <div className="border rounded-lg overflow-auto max-h-96">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Row</TableHead>
+                          <TableHead>Invoice #</TableHead>
+                          <TableHead>Debtor Email</TableHead>
+                          <TableHead>Company</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Issue Date</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.map((row, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{row._rowIndex}</TableCell>
+                            <TableCell>{row.invoice_number}</TableCell>
+                            <TableCell>{row.debtor_email || '-'}</TableCell>
+                            <TableCell>{row.debtor_company_name || '-'}</TableCell>
+                            <TableCell>{row.currency} {row.amount}</TableCell>
+                            <TableCell>{row.issue_date}</TableCell>
+                            <TableCell>{row.due_date}</TableCell>
+                            <TableCell>{row.status}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Import Button */}
+                  {importSummary && importSummary.errors.length === 0 && (
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsImportOpen(false);
+                          setImportFile(null);
+                          setPreviewData(null);
+                          setImportSummary(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={importInvoicesFromFile}
+                        disabled={isImporting}
+                      >
+                        {isImporting ? 'Importing...' : `Import All ${importSummary.total} Valid Rows`}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
