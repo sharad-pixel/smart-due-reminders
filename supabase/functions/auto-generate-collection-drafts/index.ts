@@ -133,7 +133,8 @@ Deno.serve(async (req) => {
           // Build AI prompt
           const businessName = branding?.business_name || 'Your Company';
           const fromName = branding?.from_name || businessName;
-          const debtorName = invoice.debtors.contact_name || invoice.debtors.name || invoice.debtors.company_name;
+          const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
+          const debtorName = debtor?.contact_name || debtor?.name || debtor?.company_name;
           
           const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
