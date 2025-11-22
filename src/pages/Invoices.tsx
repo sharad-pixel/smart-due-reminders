@@ -1437,7 +1437,7 @@ const Invoices = () => {
                   <SelectItem value="dpd_31_60">31-60 Days Past Due</SelectItem>
                   <SelectItem value="dpd_61_90">61-90 Days Past Due</SelectItem>
                   <SelectItem value="dpd_91_120">91-120 Days Past Due</SelectItem>
-                  <SelectItem value="dpd_121_plus">121+ Days Past Due</SelectItem>
+                  <SelectItem value="dpd_120_plus">121+ Days Past Due</SelectItem>
                 </SelectContent>
               </Select>
             </div>
