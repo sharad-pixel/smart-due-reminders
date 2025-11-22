@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload } from "lucide-react";
+import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Invoice {
   id: string;
@@ -124,6 +125,41 @@ const Invoices = () => {
     setFilteredInvoices(filtered);
   };
 
+  const downloadInvoicesTemplate = (format: 'csv' | 'excel') => {
+    const headers = [
+      'invoice_number',
+      'debtor_email',
+      'debtor_company_name',
+      'amount',
+      'currency',
+      'issue_date',
+      'due_date',
+      'status',
+      'external_link',
+      'notes',
+      'crm_account_external_id'
+    ];
+    
+    if (format === 'csv') {
+      const csvContent = headers.join(',') + '\n';
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'invoices_template.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV template downloaded');
+    } else {
+      // Stub for Excel template
+      toast.info('Excel template download coming soon');
+    }
+  };
+
+  const showGoogleSheetsInstructions = () => {
+    toast.info('Google Sheets instructions: Copy the CSV template structure to a new Google Sheet');
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -189,11 +225,30 @@ const Invoices = () => {
             <h1 className="text-4xl font-bold text-primary">Invoices</h1>
             <p className="text-muted-foreground mt-2">Track and manage outstanding invoices</p>
           </div>
-          <div className="flex space-x-2">
-            <Button variant="outline">
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Invoices
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => downloadInvoicesTemplate('csv')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download Invoices Template (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadInvoicesTemplate('excel')}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Download Invoices Template (Excel)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={showGoogleSheetsInstructions}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  View Google Sheets Template Instructions
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
                 <Button>
