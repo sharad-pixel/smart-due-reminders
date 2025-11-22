@@ -22,6 +22,9 @@ import DebtorDetail from "./pages/DebtorDetail";
 import Invoices from "./pages/Invoices";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import Settings from "./pages/Settings";
+import Checkout from "./pages/Checkout";
+import ContactUs from "./pages/ContactUs";
+import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +49,9 @@ const App = () => (
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/upgrade" element={<Upgrade />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/debtors" element={<Debtors />} />
           <Route path="/debtors/:id" element={<DebtorDetail />} />
