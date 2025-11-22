@@ -67,12 +67,14 @@ Deno.serve(async (req) => {
       dpd_31_60: { invoices: any[], count: number, total_amount: number },
       dpd_61_90: { invoices: any[], count: number, total_amount: number },
       dpd_91_120: { invoices: any[], count: number, total_amount: number },
+      dpd_121_plus: { invoices: any[], count: number, total_amount: number },
     } = {
       current: { invoices: [], count: 0, total_amount: 0 },
       dpd_1_30: { invoices: [], count: 0, total_amount: 0 },
       dpd_31_60: { invoices: [], count: 0, total_amount: 0 },
       dpd_61_90: { invoices: [], count: 0, total_amount: 0 },
       dpd_91_120: { invoices: [], count: 0, total_amount: 0 },
+      dpd_121_plus: { invoices: [], count: 0, total_amount: 0 },
     };
 
     for (const invoice of invoices || []) {
@@ -80,7 +82,9 @@ Deno.serve(async (req) => {
       const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
       
       let bucket: keyof typeof categorized = 'current';
-      if (daysPastDue >= 91) {
+      if (daysPastDue >= 121) {
+        bucket = 'dpd_121_plus';
+      } else if (daysPastDue >= 91) {
         bucket = 'dpd_91_120';
       } else if (daysPastDue >= 61) {
         bucket = 'dpd_61_90';
