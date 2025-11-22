@@ -115,20 +115,14 @@ Deno.serve(async (req) => {
             reassignedCount++;
           }
         } else {
-          // Has active workflow - check if it needs to be reassigned
-          // Get the workflow details to check the bucket
-          const { data: currentWorkflowDetails } = await supabase
-            .from('collection_workflows')
-            .select('aging_bucket')
-            .eq('id', workflow.id)
-            .single();
-
-          // If the current workflow's bucket matches, no action needed
-          if (currentWorkflowDetails?.aging_bucket === agingBucket) {
-            skippedCount++;
-            continue;
-          }
-
+          // Has active workflow - we need to verify if it's still in the right bucket
+          // Since ai_workflows doesn't store the bucket directly, we skip comparison
+          // The workflow assignment is already correct if it exists
+          // We only need to check if the target workflow (for the current bucket) matches
+          
+          // For simplicity: deactivate current and create new one to ensure correct assignment
+          // This ensures the invoice is always in the workflow matching its current aging bucket
+          
           // Deactivate old workflow
           await supabase
             .from('ai_workflows')
