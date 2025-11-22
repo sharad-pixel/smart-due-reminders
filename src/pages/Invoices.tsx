@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 
 interface Invoice {
   id: string;
+  reference_id: string;
   invoice_number: string;
   amount: number;
   due_date: string;
@@ -120,6 +121,7 @@ const Invoices = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (inv) =>
+          inv.reference_id.toLowerCase().includes(term) ||
           inv.invoice_number.toLowerCase().includes(term) ||
           inv.debtors?.name.toLowerCase().includes(term)
       );
@@ -145,6 +147,7 @@ const Invoices = () => {
 
   const downloadInvoicesTemplate = (format: 'csv' | 'excel') => {
     const headers = [
+      'reference_id',
       'invoice_number',
       'debtor_email',
       'debtor_company_name',
@@ -164,6 +167,7 @@ const Invoices = () => {
     
     const exampleRows = [
       [
+        '',
         'INV-2025-001',
         'john.smith@acmecorp.com',
         'Acme Corporation',
@@ -512,7 +516,7 @@ const Invoices = () => {
           // Insert invoice
           const { error } = await supabase
             .from('invoices')
-            .insert({ ...invoiceData, user_id: user.id });
+            .insert({ ...invoiceData, user_id: user.id } as any);
 
           if (error) throw error;
           inserted++;
@@ -567,7 +571,7 @@ const Invoices = () => {
         due_date: formData.due_date,
         notes: formData.notes || null,
         status: "Open",
-      });
+      } as any);
 
       if (error) throw error;
       toast.success("Invoice created successfully");
@@ -754,7 +758,7 @@ const Invoices = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by invoice # or debtor..."
+                  placeholder="Search by reference ID, invoice #, or debtor..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -815,6 +819,7 @@ const Invoices = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Reference ID</TableHead>
                     <TableHead>Invoice #</TableHead>
                     <TableHead>Debtor</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
@@ -830,6 +835,7 @@ const Invoices = () => {
                     const daysPastDue = getDaysPastDue(invoice.due_date);
                     return (
                       <TableRow key={invoice.id}>
+                        <TableCell className="font-mono text-xs">{invoice.reference_id}</TableCell>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{invoice.debtors?.name}</TableCell>
                         <TableCell className="text-right">${invoice.amount.toLocaleString()}</TableCell>

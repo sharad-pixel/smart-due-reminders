@@ -12,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Debtor {
   id: string;
+  reference_id: string;
   name: string;
   company_name: string;
   contact_name: string;
@@ -65,6 +66,7 @@ const DebtorDetail = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [linkingCrm, setLinkingCrm] = useState(false);
+  const [copiedRefId, setCopiedRefId] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -224,6 +226,15 @@ const DebtorDetail = () => {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
+  const handleCopyReferenceId = () => {
+    if (debtor?.reference_id) {
+      navigator.clipboard.writeText(debtor.reference_id);
+      setCopiedRefId(true);
+      toast.success("Reference ID copied to clipboard");
+      setTimeout(() => setCopiedRefId(false), 2000);
+    }
+  };
+
   if (loading || !debtor) {
     return (
       <Layout>
@@ -245,6 +256,21 @@ const DebtorDetail = () => {
             <div>
               <h1 className="text-4xl font-bold text-primary">{debtor.name}</h1>
               <p className="text-muted-foreground mt-1">{debtor.company_name}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-sm font-mono text-muted-foreground">{debtor.reference_id}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={handleCopyReferenceId}
+                >
+                  {copiedRefId ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
           <div className="flex space-x-2">

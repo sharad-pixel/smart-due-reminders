@@ -13,10 +13,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check } from "lucide-react";
 
 interface Invoice {
   id: string;
+  reference_id: string;
   invoice_number: string;
   amount: number;
   due_date: string;
@@ -95,6 +96,7 @@ const InvoiceDetail = () => {
   const [editBody, setEditBody] = useState("");
   const [sendingDraft, setSendingDraft] = useState<string | null>(null);
   const [crmAccount, setCrmAccount] = useState<CRMAccount | null>(null);
+  const [copiedRefId, setCopiedRefId] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -317,6 +319,15 @@ const InvoiceDetail = () => {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
+  const handleCopyReferenceId = () => {
+    if (invoice?.reference_id) {
+      navigator.clipboard.writeText(invoice.reference_id);
+      setCopiedRefId(true);
+      toast.success("Reference ID copied to clipboard");
+      setTimeout(() => setCopiedRefId(false), 2000);
+    }
+  };
+
   if (loading || !invoice) {
     return (
       <Layout>
@@ -340,6 +351,21 @@ const InvoiceDetail = () => {
             <div>
               <h1 className="text-4xl font-bold text-primary">Invoice #{invoice.invoice_number}</h1>
               <p className="text-muted-foreground mt-1">{invoice.debtors?.name}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-sm font-mono text-muted-foreground">{invoice.reference_id}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={handleCopyReferenceId}
+                >
+                  {copiedRefId ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

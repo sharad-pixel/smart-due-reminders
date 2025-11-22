@@ -65,7 +65,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
         ...formData,
         name: formData.contact_name, // Use contact_name as the name
         user_id: user.id,
-      }]);
+      } as any]);
       
       if (error) throw error;
       

@@ -93,7 +93,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         ...formData,
         amount: parseFloat(formData.amount),
         user_id: user.id,
-      }]);
+      } as any]);
       
       if (error) throw error;
       
