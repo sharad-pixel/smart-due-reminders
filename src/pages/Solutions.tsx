@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Home, Briefcase, Store } from "lucide-react";
+import { Home, Briefcase, Store, Building2 } from "lucide-react";
 
 const Solutions = () => {
   const navigate = useNavigate();
@@ -19,6 +19,18 @@ const Solutions = () => {
         "No third-party collection agency needed"
       ],
       link: "/solutions/home-services"
+    },
+    {
+      icon: Building2,
+      title: "SaaS Companies",
+      description: "For SaaS companies without dedicated collections teams",
+      benefits: [
+        "Reduce ARR leakage",
+        "Automate follow-ups",
+        "Lighten load on CSM/Finance",
+        "Customer-safe collections"
+      ],
+      link: "/solutions/saas"
     },
     {
       icon: Briefcase,

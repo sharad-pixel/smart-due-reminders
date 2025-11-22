@@ -46,10 +46,11 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    const systemPrompt = `You are a B2B SaaS marketing strategist writing for small businesses.
+    // Generate industry-specific prompts
+    let systemPrompt = `You are a B2B SaaS marketing strategist writing for small businesses.
 You must write clear, benefit-driven, conversion-optimized copy that explains how Recouply.ai helps ${industry} businesses collect overdue invoices without using a collection agency.`;
 
-    const userPrompt = `Write a 3-part copy block for the ${industry} industry:
+    let userPrompt = `Write a 3-part copy block for the ${industry} industry:
 
 1. Problem section (the pain): Describe the specific invoice collection challenges faced by ${industry} businesses. Be concrete and relatable. 2-3 paragraphs.
 
@@ -58,6 +59,21 @@ You must write clear, benefit-driven, conversion-optimized copy that explains ho
 3. Results section (faster payments, fewer awkward conversations, better cash flow): Describe the tangible outcomes businesses can expect. Use specific, believable metrics and benefits. 2-3 paragraphs.
 
 Write in a professional but conversational tone. Focus on benefits, not features. Make it industry-specific with real examples.`;
+
+    // Special handling for SaaS industry
+    if (industry.toLowerCase() === 'saas') {
+      systemPrompt = `You are a B2B SaaS marketing strategist writing for mid-market SaaS companies. Your goal is to explain how Recouply.ai helps SaaS companies automate collections, reduce ARR leakage, and reduce the burden on small finance and CSM teams.`;
+      
+      userPrompt = `Write a 3-part marketing copy block for SaaS companies:
+
+1. Problem: SaaS companies lack collections resources; CSMs and AEs chase payments manually; usage billing creates overdue invoices; ARR leaks due to delays. Describe disorganized shared inboxes, no consistent follow-up, cash flow unpredictability, and lack of scalable collections processes. 2-3 paragraphs.
+
+2. Solution: Show how AI-driven workflows, CRM context, and safe outreach automate collections without harming relationships. Highlight AI-generated sequences, self-service payment workflows, CRM-connected context-aware outreach, automated promise-to-pay and renewal reminders, customer-safe language, and reporting (DSO, aging, recovery rates). Use examples relevant to SaaS (annual contracts, expansions, renewals, usage-based true-ups, NetSuite/Stripe/Chargebee billing). 2-3 paragraphs.
+
+3. Results: Faster payments (20-40% faster collections), reduced DSO, saved hours for CSMs and Finance teams, recovered ARR, lower churn risk from polite tone, real-time receivables visibility, no need to hire collections team. 2-3 paragraphs.
+
+Write in a professional but conversational tone. Focus on tangible business outcomes and be specific about SaaS use cases.`;
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

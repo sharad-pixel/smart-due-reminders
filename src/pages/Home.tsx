@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { DollarSign, Zap, Shield, Users, BarChart3, CheckCircle } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
+import SaaSBenefits from "@/components/SaaSBenefits";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -172,6 +173,18 @@ const Home = () => {
         </div>
       </section>
 
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+            Built for SaaS Companies
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Reduce ARR leakage without hiring a collections team
+          </p>
+          <SaaSBenefits />
+        </div>
+      </section>
+
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
@@ -194,12 +207,12 @@ const Home = () => {
 
             <div 
               className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
-              onClick={() => navigate("/solutions/auto")}
+              onClick={() => navigate("/solutions/saas")}
             >
-              <div className="text-4xl mb-3">🚗</div>
-              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Auto Industry</h4>
+              <div className="text-4xl mb-3">💻</div>
+              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">SaaS Companies</h4>
               <p className="text-sm text-muted-foreground">
-                Dealerships, service departments, auto repair
+                Software companies, subscription businesses
               </p>
             </div>
 

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
+import SaaSBenefits from "@/components/SaaSBenefits";
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -112,6 +113,18 @@ const Pricing = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-3xl font-bold text-center mb-4">
+            Perfect for SaaS Companies
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            All plans include SaaS-optimized features to reduce ARR leakage
+          </p>
+          <SaaSBenefits />
         </div>
       </section>
 

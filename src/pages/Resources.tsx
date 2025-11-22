@@ -15,10 +15,22 @@ const Resources = () => {
       pages: "12 pages"
     },
     {
-      title: "The Auto Service Invoice Recovery Playbook",
-      description: "Best practices for auto dealerships and repair shops to recover unpaid service invoices while maintaining customer relationships.",
-      category: "Auto Industry",
-      pages: "15 pages"
+      title: "The SaaS ARR Leakage Playbook",
+      description: "Causes of leakage (renewals, usage billing, overdue invoices) and how Recouply.ai automates collections with a framework for reducing DSO.",
+      category: "SaaS",
+      pages: "18 pages"
+    },
+    {
+      title: "How to Run Collections Without a Collections Team",
+      description: "For SaaS CFOs, Controllers, and RevOps—a step-by-step AR automation blueprint to scale without hiring collection staff.",
+      category: "SaaS",
+      pages: "14 pages"
+    },
+    {
+      title: "AI-Driven Collections vs Hiring a Collector: ROI Breakdown",
+      description: "A detailed cost-benefit analysis comparing AI automation to traditional collection staffing for SaaS companies.",
+      category: "SaaS",
+      pages: "10 pages"
     },
     {
       title: "The SMB Guide to AI-Assisted Collections",
