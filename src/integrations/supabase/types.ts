@@ -223,6 +223,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          reference_id: string
           tags: Json | null
           type: Database["public"]["Enums"]["debtor_type"] | null
           updated_at: string | null
@@ -240,6 +241,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          reference_id: string
           tags?: Json | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
@@ -257,6 +259,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          reference_id?: string
           tags?: Json | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
@@ -290,6 +293,7 @@ export type Database = {
           payment_method: string | null
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
+          reference_id: string
           status: Database["public"]["Enums"]["invoice_status"] | null
           updated_at: string | null
           user_id: string
@@ -311,6 +315,7 @@ export type Database = {
           payment_method?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
+          reference_id: string
           status?: Database["public"]["Enums"]["invoice_status"] | null
           updated_at?: string | null
           user_id: string
@@ -332,6 +337,7 @@ export type Database = {
           payment_method?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
+          reference_id?: string
           status?: Database["public"]["Enums"]["invoice_status"] | null
           updated_at?: string | null
           user_id?: string
@@ -480,7 +486,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_reference_id: {
+        Args: { prefix: string; target_table: string }
+        Returns: string
+      }
     }
     Enums: {
       channel_type: "email" | "sms"

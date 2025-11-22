@@ -19,6 +19,7 @@ import * as XLSX from 'xlsx';
 
 interface Debtor {
   id: string;
+  reference_id: string;
   name: string;
   company_name: string;
   email: string;
@@ -85,6 +86,7 @@ const Debtors = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (d) =>
+          d.reference_id.toLowerCase().includes(term) ||
           d.name.toLowerCase().includes(term) ||
           d.company_name.toLowerCase().includes(term) ||
           d.email.toLowerCase().includes(term)
@@ -100,6 +102,7 @@ const Debtors = () => {
 
   const downloadDebtorsTemplate = (format: 'csv' | 'excel') => {
     const headers = [
+      'reference_id',
       'debtor_name',
       'debtor_email',
       'debtor_phone',
@@ -113,6 +116,7 @@ const Debtors = () => {
     
     const exampleRows = [
       [
+        '',
         'John Smith',
         'john.smith@acmecorp.com',
         '+1-555-0123',
@@ -124,6 +128,7 @@ const Debtors = () => {
         'VIP,Overdue'
       ],
       [
+        '',
         'Jane Doe',
         'jane.doe@techstart.io',
         '+1-555-0456',
@@ -403,7 +408,7 @@ const Debtors = () => {
             // Insert new debtor
             const { error } = await supabase
               .from('debtors')
-              .insert({ ...debtorData, user_id: user.id });
+              .insert({ ...debtorData, user_id: user.id } as any);
 
             if (error) throw error;
             inserted++;
@@ -437,7 +442,7 @@ const Debtors = () => {
       const { error } = await supabase.from("debtors").insert({
         ...formData,
         user_id: user.id,
-      });
+      } as any);
 
       if (error) throw error;
       toast.success("Debtor created successfully");
@@ -808,7 +813,7 @@ const Debtors = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, company, or email..."
+                  placeholder="Search by reference ID, name, company, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -839,6 +844,7 @@ const Debtors = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Reference ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead>Email</TableHead>
@@ -851,6 +857,7 @@ const Debtors = () => {
                 <TableBody>
                   {filteredDebtors.map((debtor) => (
                     <TableRow key={debtor.id}>
+                      <TableCell className="font-mono text-xs">{debtor.reference_id}</TableCell>
                       <TableCell className="font-medium">{debtor.name}</TableCell>
                       <TableCell>{debtor.company_name}</TableCell>
                       <TableCell>{debtor.email}</TableCell>
