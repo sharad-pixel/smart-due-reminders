@@ -11,6 +11,7 @@ interface WorkflowStep {
   label: string;
   is_active: boolean;
   ai_template_type: string;
+  trigger_type: string;
   subject_template?: string;
   body_template: string;
   sms_template?: string;

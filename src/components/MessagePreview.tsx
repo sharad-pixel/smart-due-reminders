@@ -1,9 +1,13 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Mail, MessageSquare, Sparkles, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MessagePreviewProps {
   open: boolean;
@@ -12,6 +16,9 @@ interface MessagePreviewProps {
   channel: "email" | "sms";
   subject?: string;
   body: string;
+  agingBucket?: string;
+  dayOffset?: number;
+  onContentUpdated?: () => void;
 }
 
 interface SampleInvoiceData {
@@ -22,15 +29,23 @@ interface SampleInvoiceData {
   company_name: string;
 }
 
-const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body }: MessagePreviewProps) => {
+const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body, agingBucket, dayOffset, onContentUpdated }: MessagePreviewProps) => {
   const [sampleData, setSampleData] = useState<SampleInvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editedSubject, setEditedSubject] = useState(subject || "");
+  const [editedBody, setEditedBody] = useState(body);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (open) {
       fetchSampleInvoiceData();
+      setEditedSubject(subject || "");
+      setEditedBody(body);
+      setIsEditing(false);
     }
-  }, [open]);
+  }, [open, subject, body]);
 
   const fetchSampleInvoiceData = async () => {
     try {
@@ -94,6 +109,74 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body }: 
     }
   };
 
+  const handleEnhanceWithAI = async () => {
+    if (!stepId || !agingBucket || dayOffset === undefined) {
+      toast.error("Missing required information for AI generation");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-workflow-content', {
+        body: { 
+          stepId, 
+          agingBucket, 
+          tone: 'neutral',
+          channel,
+          dayOffset 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.content) {
+        if (channel === 'email' && data.content.subject) {
+          setEditedSubject(data.content.subject);
+        }
+        setEditedBody(data.content.body);
+        toast.success("Content enhanced with AI");
+      }
+    } catch (error) {
+      console.error('Error enhancing with AI:', error);
+      toast.error("Failed to enhance content with AI");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!stepId) return;
+
+    setIsSaving(true);
+    try {
+      const updateData: any = {
+        body_template: editedBody,
+      };
+
+      if (channel === 'email') {
+        updateData.subject_template = editedSubject;
+      } else if (channel === 'sms') {
+        updateData.sms_template = editedBody;
+      }
+
+      const { error } = await supabase
+        .from('collection_workflow_steps')
+        .update(updateData)
+        .eq('id', stepId);
+
+      if (error) throw error;
+
+      toast.success("Changes saved successfully");
+      setIsEditing(false);
+      onContentUpdated?.();
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      toast.error("Failed to save changes");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const renderMessage = (text: string) => {
     if (!sampleData) return text;
 
@@ -109,9 +192,29 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {channel === "email" ? <Mail className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
-            Message Preview
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {channel === "email" ? <Mail className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
+              Message Preview
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                {isEditing ? "Cancel Edit" : "Edit"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnhanceWithAI}
+                disabled={isGenerating}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {isGenerating ? "Enhancing..." : "Enhance with AI"}
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -144,17 +247,35 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body }: 
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="p-3 bg-accent rounded border">
-                      <p className="font-medium">{subject ? renderMessage(subject) : "No subject"}</p>
-                    </div>
+                    {isEditing ? (
+                      <Input
+                        value={editedSubject}
+                        onChange={(e) => setEditedSubject(e.target.value)}
+                        placeholder="Email subject"
+                        className="font-medium"
+                      />
+                    ) : (
+                      <div className="p-3 bg-accent rounded border">
+                        <p className="font-medium">{editedSubject ? renderMessage(editedSubject) : "No subject"}</p>
+                      </div>
+                    )}
                     
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-2">Body</p>
-                      <div className="p-4 bg-background rounded border">
-                        <div className="whitespace-pre-wrap text-sm">
-                          {renderMessage(body)}
+                      {isEditing ? (
+                        <Textarea
+                          value={editedBody}
+                          onChange={(e) => setEditedBody(e.target.value)}
+                          placeholder="Email body"
+                          className="min-h-[200px]"
+                        />
+                      ) : (
+                        <div className="p-4 bg-background rounded border">
+                          <div className="whitespace-pre-wrap text-sm">
+                            {renderMessage(editedBody)}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -169,19 +290,40 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body }: 
                 </CardHeader>
                 <CardContent>
                   <div className="max-w-sm mx-auto">
-                    <div className="bg-primary text-primary-foreground p-4 rounded-2xl rounded-bl-none">
-                      <p className="text-sm whitespace-pre-wrap">
-                        {renderMessage(body)}
-                      </p>
-                      <div className="text-xs opacity-70 mt-2 text-right">
-                        {renderMessage(body).length} characters
+                    {isEditing ? (
+                      <Textarea
+                        value={editedBody}
+                        onChange={(e) => setEditedBody(e.target.value)}
+                        placeholder="SMS message"
+                        className="min-h-[120px]"
+                      />
+                    ) : (
+                      <div className="bg-primary text-primary-foreground p-4 rounded-2xl rounded-bl-none">
+                        <p className="text-sm whitespace-pre-wrap">
+                          {renderMessage(editedBody)}
+                        </p>
+                        <div className="text-xs opacity-70 mt-2 text-right">
+                          {renderMessage(editedBody).length} characters
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             )}
           </div>
+        )}
+
+        {isEditing && (
+          <DialogFooter>
+            <Button
+              onClick={handleSaveChanges}
+              disabled={isSaving}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
         )}
       </DialogContent>
     </Dialog>

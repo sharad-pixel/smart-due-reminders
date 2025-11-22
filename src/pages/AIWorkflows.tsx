@@ -61,8 +61,14 @@ const AIWorkflows = () => {
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [generatingContent, setGeneratingContent] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
-  const [previewStep, setPreviewStep] = useState<WorkflowStep | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [previewStep, setPreviewStep] = useState<{
+    stepId: string;
+    channel: "email" | "sms";
+    subject?: string;
+    body: string;
+    agingBucket?: string;
+    dayOffset?: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchWorkflows();
@@ -167,9 +173,15 @@ const AIWorkflows = () => {
     }
   };
 
-  const handlePreviewMessage = (step: WorkflowStep) => {
-    setPreviewStep(step);
-    setShowPreview(true);
+  const handlePreviewMessage = (step: WorkflowStep, workflow?: Workflow) => {
+    setPreviewStep({
+      stepId: step.id,
+      channel: step.channel,
+      subject: step.subject_template,
+      body: step.body_template,
+      agingBucket: workflow?.aging_bucket || selectedBucket,
+      dayOffset: step.day_offset,
+    });
   };
 
   const handleGenerateContent = async (stepId: string) => {
@@ -623,7 +635,7 @@ const AIWorkflows = () => {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handlePreviewMessage(step)}
+                                      onClick={() => handlePreviewMessage(step, selectedWorkflow)}
                                     >
                                       <Eye className="h-4 w-4" />
                                     </Button>
@@ -664,7 +676,7 @@ const AIWorkflows = () => {
                     <WorkflowGraph 
                       steps={selectedWorkflow.steps || []}
                       onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
-                      onPreviewMessage={handlePreviewMessage}
+                      onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
                       isGenerating={generatingContent}
                     />
                   </TabsContent>
@@ -709,12 +721,15 @@ const AIWorkflows = () => {
       />
 
       <MessagePreview
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        stepId={previewStep?.id || null}
+        open={!!previewStep}
+        onOpenChange={(open) => !open && setPreviewStep(null)}
+        stepId={previewStep?.stepId || null}
         channel={previewStep?.channel || "email"}
-        subject={previewStep?.subject_template}
-        body={previewStep?.channel === "email" ? previewStep?.body_template : previewStep?.sms_template || ""}
+        subject={previewStep?.subject}
+        body={previewStep?.body || ""}
+        agingBucket={previewStep?.agingBucket}
+        dayOffset={previewStep?.dayOffset}
+        onContentUpdated={fetchWorkflows}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
