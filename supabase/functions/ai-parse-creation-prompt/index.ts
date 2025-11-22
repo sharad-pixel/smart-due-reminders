@@ -64,17 +64,26 @@ Respond ONLY in valid JSON format following the exact schema provided.`;
     "phone": "",
     "notes": ""
   },
-  "invoices": [
-    {
-      "invoice_number": "",
-      "amount": null,
-      "currency": "USD",
-      "issue_date": "",
-      "due_date": "",
-      "external_link": "",
-      "notes": ""
-    }
-  ]
+          "invoices": [
+            {
+              "invoice_number": "",
+              "amount": null,
+              "currency": "USD",
+              "issue_date": "",
+              "due_date": "",
+              "payment_terms": "NET30",
+              "payment_terms_days": 30,
+              "external_link": "",
+              "notes": "",
+              "line_items": [
+                {
+                  "description": "",
+                  "quantity": 1,
+                  "unit_price": 0
+                }
+              ]
+            }
+          ]
 }
 
 Only include fields you are reasonably confident about. Leave fields null/empty if not clearly specified.
@@ -181,11 +190,17 @@ ${prompt_text}`;
     for (const invoice of parsedData.invoices) {
       const invoiceMissingFields = [];
       
-      if (!invoice.amount || invoice.amount <= 0) {
-        invoiceMissingFields.push("amount");
+      // Check if line items exist
+      const hasLineItems = invoice.line_items && invoice.line_items.length > 0 && 
+                          invoice.line_items.some((item: any) => item.description || item.unit_price > 0);
+
+      // Amount is required only if no line items
+      if (!hasLineItems && (!invoice.amount || invoice.amount <= 0)) {
+        invoiceMissingFields.push("amount or line_items");
       }
-      if (!invoice.due_date || invoice.due_date.trim() === "") {
-        invoiceMissingFields.push("due_date");
+      
+      if (!invoice.due_date && !invoice.payment_terms_days) {
+        invoiceMissingFields.push("due_date or payment_terms");
       }
 
       // Check for duplicate invoices
@@ -211,7 +226,8 @@ ${prompt_text}`;
         duplicate_invoice: duplicateInvoice,
         existing_invoice_id: existingInvoiceId,
         missing_required_fields: invoiceMissingFields,
-        has_errors: invoiceMissingFields.length > 0
+        has_errors: invoiceMissingFields.length > 0,
+        has_line_items: hasLineItems
       });
     }
 
