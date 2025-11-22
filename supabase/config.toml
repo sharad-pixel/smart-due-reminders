@@ -41,3 +41,12 @@ verify_jwt = true
 
 [functions.manage-team]
 verify_jwt = true
+
+[functions.admin-list-users]
+verify_jwt = true
+
+[functions.admin-update-user]
+verify_jwt = true
+
+[functions.admin-get-user-details]
+verify_jwt = true

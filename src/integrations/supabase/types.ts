@@ -53,6 +53,7 @@ export type Database = {
       admin_user_actions: {
         Row: {
           action: string
+          action_type: string | null
           admin_id: string
           created_at: string
           details: Json | null
@@ -61,6 +62,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          action_type?: string | null
           admin_id: string
           created_at?: string
           details?: Json | null
@@ -69,6 +71,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          action_type?: string | null
           admin_id?: string
           created_at?: string
           details?: Json | null
@@ -722,6 +725,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          is_admin: boolean | null
           name: string | null
           password_hash: string | null
           phone: string | null
@@ -746,6 +750,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id: string
+          is_admin?: boolean | null
           name?: string | null
           password_hash?: string | null
           phone?: string | null
@@ -770,6 +775,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_admin?: boolean | null
           name?: string | null
           password_hash?: string | null
           phone?: string | null
@@ -846,6 +852,7 @@ export type Database = {
         Args: { _account_id: string; _user_id: string }
         Returns: boolean
       }
+      is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"
