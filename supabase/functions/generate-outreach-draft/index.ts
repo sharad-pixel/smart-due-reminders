@@ -52,7 +52,8 @@ serve(async (req) => {
         debtors (
           name,
           email,
-          company_name
+          company_name,
+          crm_account_id
         )
       `)
       .eq("id", invoice_id)
@@ -73,6 +74,21 @@ serve(async (req) => {
     if (profileError || !profile) {
       console.error("Profile fetch error:", profileError);
       throw new Error("User profile not found");
+    }
+
+    // Fetch CRM account if linked
+    let crmAccount = null;
+    if (invoice.debtors.crm_account_id) {
+      const { data: crmData, error: crmError } = await supabaseClient
+        .from("crm_accounts")
+        .select("*")
+        .eq("id", invoice.debtors.crm_account_id)
+        .single();
+      
+      if (!crmError && crmData) {
+        crmAccount = crmData;
+        console.log("CRM account found:", crmAccount.name);
+      }
     }
 
     // Calculate days past due
@@ -121,6 +137,11 @@ Messages are sent from the business itself.
 No legal threats. No harassment. No false statements. No mention of Recouply.ai or any third-party.
 Always include the payment link once in the email.
 
+${crmAccount ? `Use the CRM account context to adjust tone and recommendations:
+- For high-value or at-risk accounts, be more empathetic and relationship-preserving.
+- Prefer offering payment plans or gentle reminders over aggressive language.
+- Never mention Salesforce, CRM, or any underlying systems.` : ""}
+
 You must respond in JSON format with the following structure:
 {
   "email_subject": "string",
@@ -142,14 +163,22 @@ Days past due: ${promptData.days_past_due}
 Payment link: ${promptData.payment_link}
 Tone: ${promptData.tone}
 Step number in cadence: ${promptData.step_number}
-
+${crmAccount ? `
+CRM Account Context:
+- Segment: ${crmAccount.segment || "N/A"}
+- Monthly Recurring Revenue (MRR): $${crmAccount.mrr?.toLocaleString() || "N/A"}
+- Lifetime Value: $${crmAccount.lifetime_value?.toLocaleString() || "N/A"}
+- Customer Since: ${crmAccount.customer_since ? new Date(crmAccount.customer_since).toLocaleDateString() : "N/A"}
+- Health Score: ${crmAccount.health_score || "N/A"}
+- Status: ${crmAccount.status || "N/A"}
+` : ""}
 Please generate:
 1. An email subject line
 2. An email body that:
    - Clearly states the balance and due date
    - Includes the payment link once
    - Invites the customer to contact us if there are any issues or disputes
-   - Uses a ${promptData.tone} tone
+   - Uses a ${promptData.tone} tone${crmAccount ? "\n   - Takes into account the customer's value and relationship status" : ""}
 3. A short SMS version (max 320 characters) suitable for a reminder
 
 Return the response as JSON with fields: email_subject, email_body, sms_body`,
