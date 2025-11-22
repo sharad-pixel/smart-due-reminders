@@ -1,6 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
@@ -31,38 +30,36 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/solutions" element={<Solutions />} />
-          <Route path="/solutions/home-services" element={<HomeServices />} />
-          <Route path="/solutions/saas" element={<SaaS />} />
-          <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
-          <Route path="/legal/terms" element={<Terms />} />
-          <Route path="/legal/privacy" element={<Privacy />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/contact-us" element={<ContactUs />} />
-          <Route path="/upgrade" element={<Upgrade />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/debtors" element={<Debtors />} />
-          <Route path="/debtors/:id" element={<DebtorDetail />} />
-          <Route path="/invoices" element={<Invoices />} />
-          <Route path="/invoices/:id" element={<InvoiceDetail />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/team" element={<Team />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/solutions" element={<Solutions />} />
+        <Route path="/solutions/home-services" element={<HomeServices />} />
+        <Route path="/solutions/saas" element={<SaaS />} />
+        <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
+        <Route path="/legal/terms" element={<Terms />} />
+        <Route path="/legal/privacy" element={<Privacy />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/upgrade" element={<Upgrade />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/debtors" element={<Debtors />} />
+        <Route path="/debtors/:id" element={<DebtorDetail />} />
+        <Route path="/invoices" element={<Invoices />} />
+        <Route path="/invoices/:id" element={<InvoiceDetail />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/team" element={<Team />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
