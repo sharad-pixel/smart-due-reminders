@@ -1,175 +1,146 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Send, Edit2, Trash2, Eye } from "lucide-react";
+import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText } from "lucide-react";
 
-interface Draft {
-  id: string;
-  invoice_id: string;
-  subject: string | null;
-  message_body: string;
-  channel: "email" | "sms";
-  status: "pending_approval" | "approved" | "discarded";
-  created_at: string;
-  step_number: number;
-  invoices: {
-    invoice_number: string;
-    amount: number;
-    due_date: string;
-    debtors: {
-      name: string;
-      email: string;
-      phone: string | null;
-    };
-  };
+interface AgingBucketData {
+  invoices: any[];
+  count: number;
+  total_amount: number;
 }
+
+interface AgingBuckets {
+  current: AgingBucketData;
+  dpd_1_30: AgingBucketData;
+  dpd_31_60: AgingBucketData;
+  dpd_61_90: AgingBucketData;
+  dpd_91_120: AgingBucketData;
+}
+
+const agingBucketLabels = {
+  current: { label: "Current", description: "Not yet overdue", color: "bg-green-100 text-green-800 border-green-300" },
+  dpd_1_30: { label: "1-30 Days", description: "Early stage", color: "bg-yellow-100 text-yellow-800 border-yellow-300" },
+  dpd_31_60: { label: "31-60 Days", description: "Mid stage", color: "bg-orange-100 text-orange-800 border-orange-300" },
+  dpd_61_90: { label: "61-90 Days", description: "Late stage", color: "bg-red-100 text-red-800 border-red-300" },
+  dpd_91_120: { label: "91-120 Days", description: "Critical", color: "bg-purple-100 text-purple-800 border-purple-300" },
+};
 
 const CollectionDrafts = () => {
   const [loading, setLoading] = useState(true);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [editedSubject, setEditedSubject] = useState("");
-  const [editedBody, setEditedBody] = useState("");
-  const [sending, setSending] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending_approval" | "approved" | "discarded">("pending_approval");
+  const [selectedBucket, setSelectedBucket] = useState<keyof AgingBuckets>("dpd_1_30");
+  const [agingData, setAgingData] = useState<AgingBuckets | null>(null);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    fetchDrafts();
-  }, [filterStatus]);
+    fetchAgingBucketData();
+  }, []);
 
-  const fetchDrafts = async () => {
+  const fetchAgingBucketData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      let query = supabase
-        .from("ai_drafts")
-        .select(`
-          *,
-          invoices (
-            invoice_number,
-            amount,
-            due_date,
-            debtors (
-              name,
-              email,
-              phone
-            )
-          )
-        `)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (filterStatus !== "all") {
-        query = query.eq("status", filterStatus);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please log in to view collection drafts");
+        return;
       }
 
-      const { data, error } = await query;
+      const { data, error } = await supabase.functions.invoke('get-aging-bucket-invoices', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
 
       if (error) throw error;
-      setDrafts(data || []);
+      
+      setAgingData(data.data);
     } catch (error: any) {
-      toast.error("Failed to load drafts");
-      console.error(error);
+      console.error('Error fetching aging data:', error);
+      toast.error("Failed to load invoice data");
     } finally {
       setLoading(false);
     }
   };
 
-  const openDraft = (draft: Draft) => {
-    setSelectedDraft(draft);
-    setEditedSubject(draft.subject || "");
-    setEditedBody(draft.message_body);
-    setEditMode(false);
+  const handleSelectInvoice = (invoiceId: string, checked: boolean) => {
+    const newSelection = new Set(selectedInvoices);
+    if (checked) {
+      newSelection.add(invoiceId);
+    } else {
+      newSelection.delete(invoiceId);
+    }
+    setSelectedInvoices(newSelection);
   };
 
-  const sendDraft = async () => {
-    if (!selectedDraft) return;
-
-    setSending(true);
-    try {
-      // Update draft if edited
-      if (editMode) {
-        const { error: updateError } = await supabase
-          .from("ai_drafts")
-          .update({
-            subject: editedSubject,
-            message_body: editedBody,
-          })
-          .eq("id", selectedDraft.id);
-
-        if (updateError) throw updateError;
-      }
-
-      // Send the draft
-      const { error: sendError } = await supabase.functions.invoke("send-ai-draft", {
-        body: { draft_id: selectedDraft.id },
-      });
-
-      if (sendError) throw sendError;
-
-      toast.success("Message sent successfully!");
-      setSelectedDraft(null);
-      fetchDrafts();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send message");
-    } finally {
-      setSending(false);
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && agingData) {
+      const allIds = new Set(agingData[selectedBucket].invoices.map(inv => inv.id));
+      setSelectedInvoices(allIds);
+    } else {
+      setSelectedInvoices(new Set());
     }
   };
 
-  const discardDraft = async (draftId: string) => {
+  const handleGenerateDrafts = async () => {
+    if (selectedInvoices.size === 0) {
+      toast.error("Please select at least one invoice");
+      return;
+    }
+
+    setGenerating(true);
     try {
-      const { error } = await supabase
-        .from("ai_drafts")
-        .update({ status: "discarded" })
-        .eq("id", draftId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke('generate-bulk-ai-drafts', {
+        body: {
+          invoice_ids: Array.from(selectedInvoices)
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
 
       if (error) throw error;
 
-      toast.success("Draft discarded");
-      setSelectedDraft(null);
-      fetchDrafts();
+      toast.success(`Generated ${data.created} AI draft${data.created !== 1 ? 's' : ''}`);
+      if (data.errors > 0) {
+        toast.warning(`${data.errors} invoice${data.errors !== 1 ? 's' : ''} failed to generate`);
+      }
+      
+      setSelectedInvoices(new Set());
+      await fetchAgingBucketData();
     } catch (error: any) {
-      toast.error("Failed to discard draft");
+      console.error('Error generating drafts:', error);
+      toast.error("Failed to generate AI drafts");
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const getDaysPastDue = (dueDate: string) => {
-    const due = new Date(dueDate);
-    const today = new Date();
-    const diff = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, diff);
-  };
+  const filteredInvoices = agingData?.[selectedBucket]?.invoices.filter(invoice => {
+    const matchesSearch = searchTerm === "" || 
+      invoice.debtors.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === "all" || invoice.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
+  }) || [];
 
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
@@ -178,198 +149,166 @@ const CollectionDrafts = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-primary">Collection Drafts</h1>
-            <p className="text-muted-foreground mt-2">
-              Review and send AI-generated collection messages
-            </p>
-          </div>
-          <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as typeof filterStatus)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Drafts</SelectItem>
-              <SelectItem value="pending_approval">Pending Review</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="discarded">Discarded</SelectItem>
-            </SelectContent>
-          </Select>
+        <div>
+          <h1 className="text-4xl font-bold text-primary">AI Collection Drafts</h1>
+          <p className="text-muted-foreground mt-2">
+            Select invoices and generate AI-powered collection messages
+          </p>
         </div>
 
-        {drafts.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">
-                No drafts found. Configure AI workflows to start generating collection messages.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {drafts.map((draft) => {
-              const daysPastDue = getDaysPastDue(draft.invoices.due_date);
+        {/* Aging Bucket Summary Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {Object.entries(agingBucketLabels).map(([key, config]) => {
+            const bucketData = agingData?.[key as keyof AgingBuckets];
+            const isSelected = selectedBucket === key;
+            
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  setSelectedBucket(key as keyof AgingBuckets);
+                  setSelectedInvoices(new Set());
+                }}
+                className={`text-left p-4 rounded-lg border-2 transition-all ${
+                  isSelected ? config.color : "bg-card hover:bg-accent"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-sm">{config.label}</span>
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold">{bucketData?.count || 0}</p>
+                  <p className="text-xs text-muted-foreground">{config.description}</p>
+                  <div className="flex items-center text-xs font-medium mt-2">
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    ${bucketData?.total_amount.toLocaleString() || 0}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filters and Actions */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>
+                  {agingBucketLabels[selectedBucket].label} Invoices
+                </CardTitle>
+                <CardDescription>
+                  {selectedInvoices.size > 0 ? 
+                    `${selectedInvoices.size} invoice${selectedInvoices.size !== 1 ? 's' : ''} selected` :
+                    `${filteredInvoices.length} invoice${filteredInvoices.length !== 1 ? 's' : ''}`
+                  }
+                </CardDescription>
+              </div>
               
-              return (
-                <Card key={draft.id} className="hover:border-primary transition-colors cursor-pointer">
-                  <CardContent className="p-6" onClick={() => openDraft(draft)}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-lg">
-                            {draft.invoices.debtors.name}
-                          </h3>
-                          <Badge variant="outline">
-                            Invoice #{draft.invoices.invoice_number}
-                          </Badge>
-                          <Badge variant={daysPastDue > 60 ? "destructive" : "secondary"}>
-                            {daysPastDue} days past due
-                          </Badge>
-                          {draft.channel === "email" ? (
-                            <Badge variant="secondary">
-                              <Mail className="h-3 w-3 mr-1" />
-                              Email
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              SMS
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Amount: ${draft.invoices.amount.toFixed(2)} • Step {draft.step_number}
-                        </p>
-                        {draft.subject && (
-                          <p className="text-sm mt-2 font-medium">
-                            Subject: {draft.subject}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {draft.message_body}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge
-                          variant={
-                            draft.status === "pending_approval"
-                              ? "default"
-                              : draft.status === "approved"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {draft.status === "pending_approval"
-                            ? "Pending Review"
-                            : draft.status === "approved"
-                            ? "Approved"
-                            : "Discarded"}
-                        </Badge>
-                        <Button size="sm" variant="ghost">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Draft Review Dialog */}
-      <Dialog open={!!selectedDraft} onOpenChange={() => setSelectedDraft(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedDraft?.invoices.debtors.name} - Invoice #
-              {selectedDraft?.invoices.invoice_number}
-            </DialogTitle>
-            <DialogDescription>
-              Review and edit the AI-generated message before sending
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedDraft && (
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">Recipient</Label>
-                  <p className="font-medium">{selectedDraft.invoices.debtors.name}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Contact</Label>
-                  <p className="font-medium">
-                    {selectedDraft.channel === "email"
-                      ? selectedDraft.invoices.debtors.email
-                      : selectedDraft.invoices.debtors.phone || "No phone number"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Amount Due</Label>
-                  <p className="font-medium">${selectedDraft.invoices.amount.toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Days Past Due</Label>
-                  <p className="font-medium">{getDaysPastDue(selectedDraft.invoices.due_date)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label>Message Preview</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditMode(!editMode)}
-                >
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  {editMode ? "Cancel Edit" : "Edit Message"}
+              {selectedInvoices.size > 0 && (
+                <Button onClick={handleGenerateDrafts} disabled={generating}>
+                  {generating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Generate AI Drafts ({selectedInvoices.size})
+                    </>
+                  )}
                 </Button>
-              </div>
-
-              {selectedDraft.channel === "email" && (
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject</Label>
-                  <Input
-                    id="subject"
-                    value={editedSubject}
-                    onChange={(e) => setEditedSubject(e.target.value)}
-                    disabled={!editMode}
-                  />
-                </div>
               )}
-
-              <div className="space-y-2">
-                <Label htmlFor="body">Message</Label>
-                <Textarea
-                  id="body"
-                  value={editedBody}
-                  onChange={(e) => setEditedBody(e.target.value)}
-                  disabled={!editMode}
-                  rows={12}
-                  className="font-mono text-sm"
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Search and Filters */}
+            <div className="flex gap-4 mb-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by debtor or invoice number..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
               </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Open">Open</SelectItem>
+                  <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
 
-          <DialogFooter className="space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => selectedDraft && discardDraft(selectedDraft.id)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Discard
-            </Button>
-            <Button onClick={sendDraft} disabled={sending}>
-              <Send className="h-4 w-4 mr-2" />
-              {sending ? "Sending..." : "Send Now"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            {/* Invoice List Table */}
+            {filteredInvoices.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No invoices in this aging bucket</p>
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">
+                        <Checkbox
+                          checked={selectedInvoices.size === filteredInvoices.length && filteredInvoices.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">Debtor</th>
+                      <th className="p-3 text-left text-sm font-medium">Invoice #</th>
+                      <th className="p-3 text-left text-sm font-medium">Amount</th>
+                      <th className="p-3 text-left text-sm font-medium">Due Date</th>
+                      <th className="p-3 text-left text-sm font-medium">Days Past Due</th>
+                      <th className="p-3 text-left text-sm font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInvoices.map((invoice) => (
+                      <tr key={invoice.id} className="border-t hover:bg-accent/50">
+                        <td className="p-3">
+                          <Checkbox
+                            checked={selectedInvoices.has(invoice.id)}
+                            onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked as boolean)}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <div>
+                            <p className="font-medium">{invoice.debtors.company_name || invoice.debtors.name}</p>
+                            <p className="text-xs text-muted-foreground">{invoice.debtors.email}</p>
+                          </div>
+                        </td>
+                        <td className="p-3 font-mono text-sm">{invoice.invoice_number}</td>
+                        <td className="p-3 font-medium">
+                          ${invoice.amount.toLocaleString()} {invoice.currency || 'USD'}
+                        </td>
+                        <td className="p-3 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
+                        <td className="p-3">
+                          <Badge variant={invoice.days_past_due > 60 ? "destructive" : "secondary"}>
+                            {invoice.days_past_due} days
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <Badge variant="outline">{invoice.status}</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </Layout>
   );
 };

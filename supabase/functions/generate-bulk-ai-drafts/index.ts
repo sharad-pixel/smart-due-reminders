@@ -1,0 +1,279 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !userData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = userData.user.id;
+    const { invoice_ids } = await req.json();
+
+    if (!invoice_ids || !Array.isArray(invoice_ids) || invoice_ids.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'invoice_ids array is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log(`Generating AI drafts for ${invoice_ids.length} invoices`);
+
+    // Get branding settings
+    const { data: branding } = await supabaseClient
+      .from('branding_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const results = [];
+    const errors = [];
+
+    for (const invoiceId of invoice_ids) {
+      try {
+        // Get invoice with debtor info
+        const { data: invoice, error: invoiceError } = await supabaseClient
+          .from('invoices')
+          .select(`
+            *,
+            debtors!inner(
+              id,
+              name,
+              company_name,
+              email,
+              contact_name
+            )
+          `)
+          .eq('id', invoiceId)
+          .eq('user_id', userId)
+          .single();
+
+        if (invoiceError || !invoice) {
+          errors.push({ invoice_id: invoiceId, error: 'Invoice not found' });
+          continue;
+        }
+
+        // Calculate days past due and aging bucket
+        const today = new Date();
+        const dueDate = new Date(invoice.due_date);
+        const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        
+        let agingBucket = 'current';
+        if (daysPastDue >= 91) {
+          agingBucket = 'dpd_91_120';
+        } else if (daysPastDue >= 61) {
+          agingBucket = 'dpd_61_90';
+        } else if (daysPastDue >= 31) {
+          agingBucket = 'dpd_31_60';
+        } else if (daysPastDue >= 1) {
+          agingBucket = 'dpd_1_30';
+        }
+
+        // Get workflow for this aging bucket
+        const { data: workflow } = await supabaseClient
+          .from('collection_workflows')
+          .select(`
+            *,
+            steps:collection_workflow_steps(*)
+          `)
+          .eq('aging_bucket', agingBucket)
+          .or(`user_id.eq.${userId},user_id.is.null`)
+          .eq('is_active', true)
+          .order('user_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Find the appropriate step based on days past due
+        let workflowStep = null;
+        if (workflow?.steps) {
+          const sortedSteps = workflow.steps
+            .filter((s: any) => s.is_active)
+            .sort((a: any, b: any) => a.day_offset - b.day_offset);
+          
+          // Find the step whose day_offset is <= days_past_due
+          for (let i = sortedSteps.length - 1; i >= 0; i--) {
+            if (sortedSteps[i].day_offset <= daysPastDue) {
+              workflowStep = sortedSteps[i];
+              break;
+            }
+          }
+          
+          // If no step matches, use the first step
+          if (!workflowStep && sortedSteps.length > 0) {
+            workflowStep = sortedSteps[0];
+          }
+        }
+
+        // Build AI prompt
+        const businessName = branding?.business_name || 'Your Company';
+        const fromName = branding?.from_name || businessName;
+        const debtorName = invoice.debtors.contact_name || invoice.debtors.name || invoice.debtors.company_name;
+        
+        const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
+
+CRITICAL RULES:
+- Be firm, clear, and professional
+- Be respectful and non-threatening
+- NEVER claim to be or act as a "collection agency" or legal authority
+- NEVER use harassment or intimidation
+- Write as if you are ${businessName}, NOT a third party
+- Encourage the customer to pay or reply if there is a dispute or issue
+- Use a ${getToneForBucket(agingBucket)} tone appropriate for ${daysPastDue} days past due`;
+
+        const userPrompt = workflowStep?.body_template || getDefaultTemplate(agingBucket);
+        
+        const contextualPrompt = `${userPrompt}
+
+Context:
+- Business: ${businessName}
+- From: ${fromName}
+- Debtor: ${debtorName}
+- Invoice Number: ${invoice.invoice_number}
+- Amount: $${invoice.amount} ${invoice.currency || 'USD'}
+- Original Due Date: ${invoice.due_date}
+- Days Past Due: ${daysPastDue}
+- Aging Bucket: ${agingBucket}
+
+${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}`;
+
+        // Generate draft using Lovable AI
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: contextualPrompt }
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error('AI API error:', aiResponse.status, errorText);
+          errors.push({ invoice_id: invoiceId, error: 'AI generation failed' });
+          continue;
+        }
+
+        const aiData = await aiResponse.json();
+        const generatedContent = aiData.choices?.[0]?.message?.content || '';
+
+        // Generate subject line
+        const subjectPrompt = workflowStep?.subject_template || 
+          `Invoice ${invoice.invoice_number} - ${daysPastDue} Days Past Due`;
+
+        // Create draft in database
+        const { data: draft, error: draftError } = await supabaseClient
+          .from('ai_drafts')
+          .insert({
+            user_id: userId,
+            invoice_id: invoice.id,
+            workflow_step_id: workflowStep?.id || null,
+            channel: workflowStep?.channel || 'email',
+            step_number: workflowStep?.step_order || 1,
+            subject: subjectPrompt,
+            message_body: generatedContent,
+            status: 'pending_approval',
+            recommended_send_date: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (draftError) {
+          console.error('Error creating draft:', draftError);
+          errors.push({ invoice_id: invoiceId, error: draftError.message });
+        } else {
+          results.push(draft);
+        }
+
+      } catch (error) {
+        console.error(`Error processing invoice ${invoiceId}:`, error);
+        errors.push({ 
+          invoice_id: invoiceId, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        created: results.length,
+        errors: errors.length,
+        data: results,
+        failed: errors,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    console.error('Error in generate-bulk-ai-drafts:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
+
+function getToneForBucket(bucket: string): string {
+  switch (bucket) {
+    case 'current': return 'friendly reminder';
+    case 'dpd_1_30': return 'firm but friendly';
+    case 'dpd_31_60': return 'firm and direct';
+    case 'dpd_61_90': return 'urgent and direct but respectful';
+    case 'dpd_91_120': return 'very firm, urgent, and compliant';
+    default: return 'professional';
+  }
+}
+
+function getDefaultTemplate(bucket: string): string {
+  const templates: Record<string, string> = {
+    current: 'Generate a friendly reminder that payment is coming due soon. Keep tone positive and helpful.',
+    dpd_1_30: 'Generate a firm but friendly follow-up about the overdue invoice. Mention the invoice details and request prompt payment.',
+    dpd_31_60: 'Generate a firm and direct message about the seriously overdue invoice. Express concern and request immediate payment or communication about any issues.',
+    dpd_61_90: 'Generate an urgent message about the significantly overdue invoice. Be direct about the seriousness while remaining professional. Request immediate action.',
+    dpd_91_120: 'Generate a very firm, urgent message about the long-overdue invoice. Be clear about the serious nature while remaining compliant and professional. Request immediate payment or contact.',
+  };
+  return templates[bucket] || templates.current;
+}
