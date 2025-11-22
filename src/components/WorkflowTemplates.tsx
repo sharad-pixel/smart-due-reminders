@@ -124,9 +124,11 @@ interface WorkflowTemplatesProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectTemplate: (template: Template) => void;
+  selectedBucket?: string;
+  bucketLabel?: string;
 }
 
-const WorkflowTemplates = ({ open, onOpenChange, onSelectTemplate }: WorkflowTemplatesProps) => {
+const WorkflowTemplates = ({ open, onOpenChange, onSelectTemplate, selectedBucket, bucketLabel }: WorkflowTemplatesProps) => {
   const categoryGroups = {
     scenario: templates.filter(t => t.category === "scenario"),
     value: templates.filter(t => t.category === "value"),
@@ -141,6 +143,13 @@ const WorkflowTemplates = ({ open, onOpenChange, onSelectTemplate }: WorkflowTem
           <DialogDescription>
             Choose a pre-built template optimized for your collection scenario
           </DialogDescription>
+          {selectedBucket && bucketLabel && (
+            <div className="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-sm font-medium text-foreground">
+                Applying template to: <span className="text-primary">{bucketLabel}</span>
+              </p>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-8 mt-4">

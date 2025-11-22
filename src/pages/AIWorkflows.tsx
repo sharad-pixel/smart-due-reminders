@@ -145,41 +145,64 @@ const AIWorkflows = () => {
   };
 
   const handleApplyTemplate = async (template: Template) => {
-    if (!selectedWorkflow) {
-      toast.error("Please select an aging bucket first");
-      return;
-    }
-
-    if (selectedWorkflow.is_locked) {
-      toast.error("Cannot modify locked workflows");
-      return;
-    }
-
     try {
-      // Update workflow description
-      const { error: workflowError } = await supabase
-        .from("collection_workflows")
-        .update({
-          description: template.description,
-        })
-        .eq("id", selectedWorkflow.id);
-
-      if (workflowError) throw workflowError;
-
-      // Delete existing steps
-      const { error: deleteError } = await supabase
-        .from("collection_workflow_steps")
-        .delete()
-        .eq("workflow_id", selectedWorkflow.id);
-
-      if (deleteError) throw deleteError;
-
-      // Create new steps from template
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let workflowId = selectedWorkflow?.id;
+
+      // If no workflow exists for this bucket, create one
+      if (!selectedWorkflow) {
+        const bucketInfo = agingBuckets.find(b => b.value === selectedBucket);
+        if (!bucketInfo) {
+          toast.error("Invalid aging bucket selected");
+          return;
+        }
+
+        const { data: newWorkflow, error: createError } = await supabase
+          .from("collection_workflows")
+          .insert({
+            user_id: user.id,
+            aging_bucket: selectedBucket,
+            name: `${bucketInfo.label} - ${template.name}`,
+            description: template.description,
+            is_active: false,
+            is_locked: false,
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        workflowId = newWorkflow.id;
+      } else {
+        // Check if workflow is locked
+        if (selectedWorkflow.is_locked) {
+          toast.error("Cannot modify locked workflows");
+          return;
+        }
+
+        // Update existing workflow description
+        const { error: workflowError } = await supabase
+          .from("collection_workflows")
+          .update({
+            description: template.description,
+          })
+          .eq("id", selectedWorkflow.id);
+
+        if (workflowError) throw workflowError;
+
+        // Delete existing steps
+        const { error: deleteError } = await supabase
+          .from("collection_workflow_steps")
+          .delete()
+          .eq("workflow_id", selectedWorkflow.id);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Create new steps from template
       const newSteps = template.steps.map((step, index) => ({
-        workflow_id: selectedWorkflow.id,
+        workflow_id: workflowId,
         step_order: index + 1,
         day_offset: step.day_offset,
         channel: step.channel,
@@ -423,6 +446,8 @@ const AIWorkflows = () => {
         open={showTemplates}
         onOpenChange={setShowTemplates}
         onSelectTemplate={handleApplyTemplate}
+        selectedBucket={selectedBucket}
+        bucketLabel={agingBuckets.find(b => b.value === selectedBucket)?.label}
       />
     </Layout>
   );
