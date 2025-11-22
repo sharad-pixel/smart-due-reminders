@@ -40,13 +40,11 @@ const Pricing = () => {
       name: "Growth",
       price: "$199",
       period: "/month",
-      description: "For growing teams that need full automation and team collaboration",
+      description: "For growing businesses that need full automation",
       features: [
         "200 invoices per month included",
         "$1.00 per additional invoice",
-        "✅ Admin + 2 additional users",
-        "Invite up to 2 teammates with limited access",
-        "Ideal for owner + bookkeeper + ops/CS person",
+        "Single user only 🚫",
         "AI cadence automation",
         "Auto-SMS",
         "Promise-to-Pay tracking",
@@ -60,11 +58,13 @@ const Pricing = () => {
       name: "Professional",
       price: "$399",
       period: "/month",
-      description: "Enterprise-grade collections for high-volume teams",
+      description: "Enterprise-grade collections with team collaboration",
       features: [
         "500 invoices per month included",
         "$1.00 per additional invoice",
-        "Single user by default (team features on request)",
+        "✅ Admin + up to 5 team members",
+        "Full role-based access control",
+        "Manage permissions for each team member",
         "CRM-context-aware AI",
         "Invoice line items",
         "Advanced automations",
@@ -246,15 +246,15 @@ const Pricing = () => {
                     <tr className="border-b">
                       <td className="py-4 px-4 font-medium">Multi-user (Team)</td>
                       <td className="text-center py-4 px-4">❌</td>
-                      <td className="text-center py-4 px-4">✅</td>
-                      <td className="text-center py-4 px-4">❌*</td>
-                      <td className="text-center py-4 px-4">✅</td>
+                      <td className="text-center py-4 px-4">❌</td>
+                      <td className="text-center py-4 px-4">✅ (Up to 5)</td>
+                      <td className="text-center py-4 px-4">✅ (Unlimited)</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-4 px-4 font-medium">Role-based access</td>
                       <td className="text-center py-4 px-4">❌</td>
+                      <td className="text-center py-4 px-4">❌</td>
                       <td className="text-center py-4 px-4">✅</td>
-                      <td className="text-center py-4 px-4">❌*</td>
                       <td className="text-center py-4 px-4">✅</td>
                     </tr>
                     <tr className="border-b">
@@ -274,9 +274,6 @@ const Pricing = () => {
                   </tbody>
                 </table>
               </div>
-              <p className="text-sm text-muted-foreground mt-4">
-                * Team & role features may be enabled by Recouply.ai for specific Professional customers on request.
-              </p>
             </CardContent>
           </Card>
         </div>

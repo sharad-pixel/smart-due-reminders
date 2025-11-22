@@ -212,7 +212,7 @@ const Team = () => {
             <div className="rounded-lg border border-border bg-muted/50 p-6 text-center space-y-3">
               <h3 className="text-lg font-semibold">Upgrade to Access Team Features</h3>
               <p className="text-sm text-muted-foreground">
-                Team and role management is available on Growth and Custom plans.
+                Team and role management is available on Professional and Custom plans.
                 Contact Recouply.ai or upgrade to enable this feature.
               </p>
               <div className="flex gap-2 justify-center">

@@ -54,8 +54,8 @@ Deno.serve(async (req) => {
         JSON.stringify({
           error: true,
           code: 'FEATURE_NOT_AVAILABLE',
-          message: 'Team and role management is available on Growth and Custom plans.',
-          required_plan: 'Growth or Custom',
+          message: 'Team and role management is available on Professional and Custom plans.',
+          required_plan: 'Professional or Custom',
         }),
         {
           status: 403,
@@ -159,8 +159,8 @@ Deno.serve(async (req) => {
             JSON.stringify({
               error: true,
               code: 'FEATURE_NOT_AVAILABLE',
-              message: 'Role management is available on Growth and Custom plans.',
-              required_plan: 'Growth or Custom',
+              message: 'Role management is available on Professional and Custom plans.',
+              required_plan: 'Professional or Custom',
             }),
             {
               status: 403,
