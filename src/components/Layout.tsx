@@ -47,10 +47,30 @@ const Layout = ({ children }: LayoutProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const [showTeam, setShowTeam] = useState(false);
+
+  useEffect(() => {
+    const checkTeamAccess = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase.functions.invoke("get-effective-features");
+        if (data?.features?.can_have_team_users) {
+          setShowTeam(true);
+        }
+      } catch (error) {
+        console.error("Error checking team access:", error);
+      }
+    };
+
+    checkTeamAccess();
+  }, [user]);
+
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
+    ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 

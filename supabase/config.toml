@@ -35,3 +35,9 @@ verify_jwt = true
 
 [functions.ai-create-records]
 verify_jwt = true
+
+[functions.get-effective-features]
+verify_jwt = true
+
+[functions.manage-team]
+verify_jwt = true

@@ -4,18 +4,26 @@ export const PLAN_FEATURES = {
   free: {
     can_use_invoice_line_items: false,
     invoice_limit: 5,
+    can_have_team_users: false,
+    can_manage_roles: false,
   },
   starter: {
     can_use_invoice_line_items: false,
     invoice_limit: 50,
+    can_have_team_users: false,
+    can_manage_roles: false,
   },
   growth: {
     can_use_invoice_line_items: false,
     invoice_limit: 200,
+    can_have_team_users: true,
+    can_manage_roles: true,
   },
   pro: {
     can_use_invoice_line_items: true,
     invoice_limit: null, // unlimited
+    can_have_team_users: false,
+    can_manage_roles: false,
   },
 } as const;
 
