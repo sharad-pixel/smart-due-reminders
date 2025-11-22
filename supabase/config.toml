@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.test-sms]
 verify_jwt = true
+
+[functions.generate-outreach-draft]
+verify_jwt = true

@@ -1,0 +1,259 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface GenerateDraftRequest {
+  invoice_id: string;
+  tone: "friendly" | "firm" | "neutral";
+  step_number: number;
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: req.headers.get("Authorization")! },
+        },
+      }
+    );
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser();
+
+    if (userError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    const { invoice_id, tone, step_number }: GenerateDraftRequest = await req.json();
+
+    if (!invoice_id || !tone || step_number === undefined) {
+      throw new Error("Missing required parameters: invoice_id, tone, step_number");
+    }
+
+    // Fetch invoice with debtor information
+    const { data: invoice, error: invoiceError } = await supabaseClient
+      .from("invoices")
+      .select(`
+        *,
+        debtors (
+          name,
+          email,
+          company_name
+        )
+      `)
+      .eq("id", invoice_id)
+      .single();
+
+    if (invoiceError || !invoice) {
+      console.error("Invoice fetch error:", invoiceError);
+      throw new Error("Invoice not found");
+    }
+
+    // Fetch user profile
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("business_name, stripe_payment_link_url")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Profile fetch error:", profileError);
+      throw new Error("User profile not found");
+    }
+
+    // Calculate days past due
+    const today = new Date();
+    const dueDate = new Date(invoice.due_date);
+    const diffTime = today.getTime() - dueDate.getTime();
+    const daysPastDue = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+    // Prepare prompt data
+    const promptData = {
+      business_name: profile.business_name || "Our Business",
+      debtor_name: invoice.debtors.name,
+      debtor_company: invoice.debtors.company_name,
+      invoice_number: invoice.invoice_number,
+      amount: invoice.amount,
+      currency: invoice.currency || "USD",
+      due_date: new Date(invoice.due_date).toLocaleDateString(),
+      days_past_due: daysPastDue,
+      payment_link: profile.stripe_payment_link_url || "Please contact us for payment options",
+      tone: tone,
+      step_number: step_number,
+    };
+
+    console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number);
+
+    // Call OpenAI API
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAIApiKey) {
+      throw new Error("OpenAI API key not configured");
+    }
+
+    const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are an assistant helping a business collect its own overdue invoices while preserving the customer relationship.
+You are NOT a collection agency and you must never imply that you are.
+Messages are sent from the business itself.
+No legal threats. No harassment. No false statements. No mention of Recouply.ai or any third-party.
+Always include the payment link once in the email.
+
+You must respond in JSON format with the following structure:
+{
+  "email_subject": "string",
+  "email_body": "string",
+  "sms_body": "string (max 320 characters)"
+}`,
+          },
+          {
+            role: "user",
+            content: `Generate a collection message with the following details:
+
+Business name: ${promptData.business_name}
+Debtor name: ${promptData.debtor_name}
+Debtor company: ${promptData.debtor_company}
+Invoice number: ${promptData.invoice_number}
+Amount due: $${promptData.amount} ${promptData.currency}
+Due date: ${promptData.due_date}
+Days past due: ${promptData.days_past_due}
+Payment link: ${promptData.payment_link}
+Tone: ${promptData.tone}
+Step number in cadence: ${promptData.step_number}
+
+Please generate:
+1. An email subject line
+2. An email body that:
+   - Clearly states the balance and due date
+   - Includes the payment link once
+   - Invites the customer to contact us if there are any issues or disputes
+   - Uses a ${promptData.tone} tone
+3. A short SMS version (max 320 characters) suitable for a reminder
+
+Return the response as JSON with fields: email_subject, email_body, sms_body`,
+          },
+        ],
+        temperature: 0.7,
+        max_completion_tokens: 1000,
+      }),
+    });
+
+    if (!openAIResponse.ok) {
+      const errorText = await openAIResponse.text();
+      console.error("OpenAI API error:", errorText);
+      throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+    }
+
+    const openAIData = await openAIResponse.json();
+    console.log("OpenAI response:", JSON.stringify(openAIData, null, 2));
+
+    const content = openAIData.choices[0].message.content;
+    
+    // Parse the JSON response from OpenAI
+    let parsedContent;
+    try {
+      // Try to extract JSON from markdown code blocks if present
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/);
+      const jsonString = jsonMatch ? jsonMatch[1] : content;
+      parsedContent = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", content);
+      throw new Error("Failed to parse AI response. Please try again.");
+    }
+
+    const { email_subject, email_body, sms_body } = parsedContent;
+
+    if (!email_subject || !email_body || !sms_body) {
+      throw new Error("Invalid AI response format");
+    }
+
+    const today_date = new Date().toISOString().split("T")[0];
+
+    // Create email draft
+    const { data: emailDraft, error: emailError } = await supabaseClient
+      .from("ai_drafts")
+      .insert({
+        user_id: user.id,
+        invoice_id: invoice_id,
+        step_number: step_number,
+        channel: "email",
+        subject: email_subject,
+        message_body: email_body,
+        recommended_send_date: today_date,
+        status: "pending_approval",
+      })
+      .select()
+      .single();
+
+    if (emailError) {
+      console.error("Error creating email draft:", emailError);
+      throw new Error("Failed to create email draft");
+    }
+
+    // Create SMS draft
+    const { data: smsDraft, error: smsError } = await supabaseClient
+      .from("ai_drafts")
+      .insert({
+        user_id: user.id,
+        invoice_id: invoice_id,
+        step_number: step_number,
+        channel: "sms",
+        subject: null,
+        message_body: sms_body,
+        recommended_send_date: today_date,
+        status: "pending_approval",
+      })
+      .select()
+      .single();
+
+    if (smsError) {
+      console.error("Error creating SMS draft:", smsError);
+      throw new Error("Failed to create SMS draft");
+    }
+
+    console.log("Drafts created successfully:", emailDraft.id, smsDraft.id);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        email_draft: emailDraft,
+        sms_draft: smsDraft,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in generate-outreach-draft function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to generate draft" }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
+  }
+});

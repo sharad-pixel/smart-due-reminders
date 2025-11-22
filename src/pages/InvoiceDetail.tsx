@@ -65,6 +65,7 @@ const InvoiceDetail = () => {
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
   const [drafts, setDrafts] = useState<AIDraft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -190,6 +191,34 @@ const InvoiceDetail = () => {
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to update draft");
+    }
+  };
+
+  const handleGenerateDraft = async () => {
+    if (!workflow.tone) {
+      toast.error("Please configure workflow settings first");
+      return;
+    }
+
+    setGeneratingDraft(true);
+    try {
+      const nextStep = drafts.length > 0 ? Math.max(...drafts.map(d => d.step_number)) + 1 : 1;
+
+      const { data, error } = await supabase.functions.invoke("generate-outreach-draft", {
+        body: {
+          invoice_id: id,
+          tone: workflow.tone,
+          step_number: nextStep,
+        },
+      });
+
+      if (error) throw error;
+      toast.success("AI draft generated successfully!");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate draft");
+    } finally {
+      setGeneratingDraft(false);
     }
   };
 
@@ -358,7 +387,12 @@ const InvoiceDetail = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>AI Workflow Settings</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>AI Workflow Settings</CardTitle>
+              <Button onClick={handleGenerateDraft} disabled={generatingDraft || !workflow.tone}>
+                {generatingDraft ? "Generating..." : "Generate AI Draft"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
