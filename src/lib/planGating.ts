@@ -18,16 +18,16 @@ export const PLAN_FEATURES = {
   growth: {
     can_use_invoice_line_items: false,
     invoice_limit: 200,
-    can_have_team_users: true,
-    can_manage_roles: true,
-    max_invited_users: 2,
+    can_have_team_users: false,
+    can_manage_roles: false,
+    max_invited_users: 0,
   },
   pro: {
     can_use_invoice_line_items: true,
     invoice_limit: null, // unlimited
-    can_have_team_users: false,
-    can_manage_roles: false,
-    max_invited_users: 0,
+    can_have_team_users: true,
+    can_manage_roles: true,
+    max_invited_users: 5,
   },
 } as const;
 
