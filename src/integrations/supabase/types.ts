@@ -353,54 +353,126 @@ export type Database = {
       debtors: {
         Row: {
           address: string | null
+          ar_contact_email: string | null
+          ar_contact_name: string | null
+          ar_contact_phone: string | null
+          avg_risk_score: number | null
+          billing_address_line1: string | null
+          billing_address_line2: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_state: string | null
           company_name: string
           contact_name: string
           created_at: string | null
+          credit_limit: number | null
           crm_account_id: string | null
+          crm_account_id_external: string | null
+          crm_system: string | null
           current_balance: number | null
           email: string
+          external_customer_id: string | null
+          external_system: string | null
+          high_risk_invoice_count: number | null
           id: string
+          is_active: boolean | null
+          max_risk_score: number | null
           name: string
           notes: string | null
+          payment_terms_default: string | null
           phone: string | null
+          primary_contact_name: string | null
+          primary_email: string | null
+          primary_phone: string | null
           reference_id: string
+          risk_tier: string | null
           tags: Json | null
+          total_open_balance: number | null
           type: Database["public"]["Enums"]["debtor_type"] | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           address?: string | null
+          ar_contact_email?: string | null
+          ar_contact_name?: string | null
+          ar_contact_phone?: string | null
+          avg_risk_score?: number | null
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
           company_name: string
           contact_name: string
           created_at?: string | null
+          credit_limit?: number | null
           crm_account_id?: string | null
+          crm_account_id_external?: string | null
+          crm_system?: string | null
           current_balance?: number | null
           email: string
+          external_customer_id?: string | null
+          external_system?: string | null
+          high_risk_invoice_count?: number | null
           id?: string
+          is_active?: boolean | null
+          max_risk_score?: number | null
           name: string
           notes?: string | null
+          payment_terms_default?: string | null
           phone?: string | null
+          primary_contact_name?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
           reference_id: string
+          risk_tier?: string | null
           tags?: Json | null
+          total_open_balance?: number | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           address?: string | null
+          ar_contact_email?: string | null
+          ar_contact_name?: string | null
+          ar_contact_phone?: string | null
+          avg_risk_score?: number | null
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
           company_name?: string
           contact_name?: string
           created_at?: string | null
+          credit_limit?: number | null
           crm_account_id?: string | null
+          crm_account_id_external?: string | null
+          crm_system?: string | null
           current_balance?: number | null
           email?: string
+          external_customer_id?: string | null
+          external_system?: string | null
+          high_risk_invoice_count?: number | null
           id?: string
+          is_active?: boolean | null
+          max_risk_score?: number | null
           name?: string
           notes?: string | null
+          payment_terms_default?: string | null
           phone?: string | null
+          primary_contact_name?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
           reference_id?: string
+          risk_tier?: string | null
           tags?: Json | null
+          total_open_balance?: number | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id?: string
