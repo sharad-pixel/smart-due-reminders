@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowTemplates, { Template } from "@/components/WorkflowTemplates";
@@ -52,6 +53,8 @@ const AIWorkflows = () => {
   const [editingSettings, setEditingSettings] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
 
   useEffect(() => {
     fetchWorkflows();
@@ -152,6 +155,36 @@ const AIWorkflows = () => {
       toast.success("Step updated successfully");
     } catch (error: any) {
       toast.error("Failed to update step");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteWorkflow = async () => {
+    if (!workflowToDelete) return;
+
+    try {
+      // First delete all workflow steps
+      const { error: stepsError } = await supabase
+        .from("collection_workflow_steps")
+        .delete()
+        .eq("workflow_id", workflowToDelete.id);
+
+      if (stepsError) throw stepsError;
+
+      // Then delete the workflow
+      const { error: workflowError } = await supabase
+        .from("collection_workflows")
+        .delete()
+        .eq("id", workflowToDelete.id);
+
+      if (workflowError) throw workflowError;
+
+      await fetchWorkflows();
+      setDeleteDialogOpen(false);
+      setWorkflowToDelete(null);
+      toast.success("Workflow deleted successfully");
+    } catch (error: any) {
+      toast.error("Failed to delete workflow");
       console.error(error);
     }
   };
@@ -417,14 +450,28 @@ const AIWorkflows = () => {
                             Create Custom Workflow
                           </Button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingSettings(true)}
-                          >
-                            <Settings className="h-4 w-4 mr-2" />
-                            Settings
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingSettings(true)}
+                            >
+                              <Settings className="h-4 w-4 mr-2" />
+                              Settings
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setWorkflowToDelete(selectedWorkflow);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </Button>
+                          </>
                         )}
                         <div className="flex items-center space-x-2">
                           <Label htmlFor="workflow-active" className="text-sm">
@@ -561,6 +608,23 @@ const AIWorkflows = () => {
         selectedBucket={selectedBucket}
         bucketLabel={agingBuckets.find(b => b.value === selectedBucket)?.label}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Workflow</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{workflowToDelete?.name}"? This will permanently delete the workflow and all its steps. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setWorkflowToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteWorkflow} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Workflow
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };
