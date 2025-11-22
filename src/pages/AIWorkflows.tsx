@@ -367,6 +367,25 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleSetupDefaultWorkflow = async (aging_bucket: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-default-workflows', {
+        body: { aging_bucket },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Default workflow created successfully");
+      await fetchWorkflows();
+    } catch (error: any) {
+      console.error('Setup default workflow error:', error);
+      toast.error(error.message || "Failed to create default workflow");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApplyTemplate = async (template: Template) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -739,12 +758,38 @@ const AIWorkflows = () => {
             ) : (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-2">
                     No workflow configured for this aging bucket yet.
                   </p>
-                  <Button variant="outline" className="mt-4" disabled>
-                    Create Workflow (Coming Soon)
-                  </Button>
+                  {selectedBucket === 'dpd_121_plus' ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Create a specialized workflow for critical 120+ day overdue invoices
+                      </p>
+                      <div className="flex gap-2 justify-center">
+                        <Button 
+                          onClick={() => handleSetupDefaultWorkflow(selectedBucket)}
+                          disabled={loading}
+                        >
+                          {loading ? "Creating..." : "Create Critical Collections Workflow"}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowTemplates(true)}
+                        >
+                          Browse Templates
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      className="mt-4" 
+                      onClick={() => setShowTemplates(true)}
+                    >
+                      Browse Workflow Templates
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}

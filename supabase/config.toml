@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.daily-workflow-reassignment]
 verify_jwt = false
+
+[functions.setup-default-workflows]
+verify_jwt = true

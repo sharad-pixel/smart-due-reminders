@@ -118,6 +118,22 @@ const templates: Template[] = [
       { day_offset: 21, channel: "email", label: "Final Notice", tone: "firm" },
     ],
   },
+  {
+    id: "critical_collections",
+    name: "Critical Collections (120+ Days)",
+    category: "scenario",
+    icon: TrendingUp,
+    description: "Intensive recovery workflow for severely overdue accounts (120+ days past due)",
+    bestFor: ["120+ days overdue", "Final collection stage", "Pre-legal action"],
+    steps: [
+      { day_offset: 0, channel: "email", label: "Critical Status Notice", tone: "firm" },
+      { day_offset: 3, channel: "sms", label: "Urgent Action Required", tone: "firm" },
+      { day_offset: 7, channel: "email", label: "Settlement Offer", tone: "firm" },
+      { day_offset: 14, channel: "email", label: "Pre-Legal Warning", tone: "firm" },
+      { day_offset: 21, channel: "sms", label: "Final Response Request", tone: "firm" },
+      { day_offset: 30, channel: "email", label: "Collections Notice", tone: "firm" },
+    ],
+  },
 ];
 
 interface WorkflowTemplatesProps {
