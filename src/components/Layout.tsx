@@ -23,6 +23,7 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -53,6 +54,32 @@ const Layout = ({ children }: LayoutProps) => {
   const [showTeam, setShowTeam] = useState(false);
 
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, email")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.name) {
+          setUserName(profile.name);
+        } else if (profile?.email) {
+          setUserName(profile.email.split('@')[0]);
+        } else if (user.email) {
+          setUserName(user.email.split('@')[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        // Fallback to email username
+        if (user.email) {
+          setUserName(user.email.split('@')[0]);
+        }
+      }
+    };
+
     const checkTeamAccess = async () => {
       if (!user) return;
       
@@ -78,6 +105,7 @@ const Layout = ({ children }: LayoutProps) => {
       }
     };
 
+    fetchUserProfile();
     checkTeamAccess();
   }, [user]);
 
@@ -88,7 +116,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
-    { path: "/profile", label: "Profile", icon: UserIcon },
+    { path: "/profile", label: userName || "Profile", icon: UserIcon },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
