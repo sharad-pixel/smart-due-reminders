@@ -44,9 +44,9 @@ const Pricing = () => {
       features: [
         "200 invoices per month included",
         "$1.00 per additional invoice",
-        "✅ Multi-user access & roles",
-        "Invite team members (admin/member/viewer)",
-        "Manage access per role",
+        "✅ Admin + 2 additional users",
+        "Invite up to 2 teammates with limited access",
+        "Ideal for owner + bookkeeper + ops/CS person",
         "AI cadence automation",
         "Auto-SMS",
         "Promise-to-Pay tracking",

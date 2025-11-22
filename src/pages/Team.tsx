@@ -294,6 +294,25 @@ const Team = () => {
           </Dialog>
         </div>
 
+        {/* Team Seats Usage */}
+        <Card className="bg-muted/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Team Seats</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You are using {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} available seats
+                </p>
+              </div>
+              <div className="text-right">
+                <Badge variant="outline" className="text-sm">
+                  {features?.plan_type.charAt(0).toUpperCase()}{features?.plan_type.slice(1)} Plan
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Team Members</CardTitle>

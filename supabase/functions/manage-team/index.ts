@@ -82,6 +82,31 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'invite': {
+        // Check current team size (excluding owner/account holder)
+        const { count: currentTeamCount } = await supabaseClient
+          .from('account_users')
+          .select('*', { count: 'exact', head: true })
+          .eq('account_id', user.id)
+          .neq('user_id', user.id)
+          .neq('status', 'disabled');
+
+        const maxInvitedUsers = effectiveFeatures?.features?.max_invited_users || 0;
+
+        if (currentTeamCount !== null && currentTeamCount >= maxInvitedUsers) {
+          return new Response(
+            JSON.stringify({
+              error: true,
+              code: 'TEAM_LIMIT_REACHED',
+              message: `You have already invited the maximum of ${maxInvitedUsers} users on your current plan.`,
+              required_plan: 'Upgrade or contact support',
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
         // Check if user exists
         const { data: existingUser } = await supabaseClient
           .from('profiles')
