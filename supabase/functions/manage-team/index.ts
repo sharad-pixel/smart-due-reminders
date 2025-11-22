@@ -41,7 +41,12 @@ Deno.serve(async (req) => {
 
     // Check if user has team features enabled
     const { data: effectiveFeatures } = await supabaseClient.functions.invoke(
-      'get-effective-features'
+      'get-effective-features',
+      {
+        headers: {
+          Authorization: authHeader
+        }
+      }
     );
 
     if (!effectiveFeatures?.features?.can_have_team_users) {
