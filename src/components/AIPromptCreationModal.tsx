@@ -111,6 +111,18 @@ export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromp
       !inv.amount || inv.amount <= 0 || !inv.due_date
     );
 
+    // Ensure invoices require a valid debtor
+    if (editedInvoices.length > 0) {
+      if (debtorChoice === "use_existing" && !selectedExistingId) {
+        toast.error("Please select an existing customer for the invoices");
+        return;
+      }
+      if (debtorChoice === "create_new" && (!editedDebtor.name && !editedDebtor.company_name)) {
+        toast.error("Customer name is required when creating invoices");
+        return;
+      }
+    }
+
     if (hasDebtorErrors || hasInvoiceErrors) {
       toast.error("Please fix all required fields before creating");
       return;
