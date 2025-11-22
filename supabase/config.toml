@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.generate-icp-marketing-copy]
 verify_jwt = false
+
+[functions.ai-parse-creation-prompt]
+verify_jwt = true
+
+[functions.ai-create-records]
+verify_jwt = true

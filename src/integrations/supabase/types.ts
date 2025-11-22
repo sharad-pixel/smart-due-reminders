@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_creations: {
+        Row: {
+          created_at: string | null
+          created_debtor_id: string | null
+          created_invoice_ids: Json | null
+          id: string
+          raw_prompt: string
+          structured_json: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_debtor_id?: string | null
+          created_invoice_ids?: Json | null
+          id?: string
+          raw_prompt: string
+          structured_json: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_debtor_id?: string | null
+          created_invoice_ids?: Json | null
+          id?: string
+          raw_prompt?: string
+          structured_json?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_creations_created_debtor_id_fkey"
+            columns: ["created_debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_drafts: {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]

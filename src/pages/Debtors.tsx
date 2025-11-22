@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle } from "lucide-react";
+import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import * as XLSX from 'xlsx';
 
 interface Debtor {
@@ -44,6 +45,7 @@ const Debtors = () => {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState(false);
+  const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -482,6 +484,14 @@ const Debtors = () => {
             <p className="text-muted-foreground mt-2">Manage your customer accounts</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsAIPromptOpen(true)}
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Create with AI
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -892,6 +902,12 @@ const Debtors = () => {
             )}
           </CardContent>
         </Card>
+
+        <AIPromptCreationModal
+          open={isAIPromptOpen}
+          onOpenChange={setIsAIPromptOpen}
+          onSuccess={fetchDebtors}
+        />
       </div>
     </Layout>
   );
