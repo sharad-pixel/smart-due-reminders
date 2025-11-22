@@ -70,8 +70,14 @@ const CollectionDrafts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
   const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms'>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [compactMode, setCompactMode] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('drafts-view-mode');
+    return (saved as ViewMode) || 'list';
+  });
+  const [compactMode, setCompactMode] = useState(() => {
+    const saved = localStorage.getItem('drafts-compact-mode');
+    return saved === 'true';
+  });
   const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
@@ -82,6 +88,15 @@ const CollectionDrafts = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Save view preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('drafts-view-mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem('drafts-compact-mode', String(compactMode));
+  }, [compactMode]);
 
   const fetchData = async () => {
     setLoading(true);
