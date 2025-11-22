@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Debtor {
   id: string;
@@ -86,6 +87,39 @@ const Debtors = () => {
     setFilteredDebtors(filtered);
   };
 
+  const downloadDebtorsTemplate = (format: 'csv' | 'excel') => {
+    const headers = [
+      'debtor_name',
+      'debtor_email',
+      'debtor_phone',
+      'debtor_company_name',
+      'debtor_type',
+      'notes',
+      'crm_account_name',
+      'crm_account_external_id',
+      'tags'
+    ];
+    
+    if (format === 'csv') {
+      const csvContent = headers.join(',') + '\n';
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'debtors_template.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV template downloaded');
+    } else {
+      // Stub for Excel template
+      toast.info('Excel template download coming soon');
+    }
+  };
+
+  const showGoogleSheetsInstructions = () => {
+    toast.info('Google Sheets instructions: Copy the CSV template structure to a new Google Sheet');
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -135,13 +169,37 @@ const Debtors = () => {
             <h1 className="text-4xl font-bold text-primary">Debtors</h1>
             <p className="text-muted-foreground mt-2">Manage your customer accounts</p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Debtor
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Debtors
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => downloadDebtorsTemplate('csv')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download Debtors Template (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadDebtorsTemplate('excel')}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Download Debtors Template (Excel)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={showGoogleSheetsInstructions}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  View Google Sheets Template Instructions
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Debtor
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Debtor</DialogTitle>
@@ -238,6 +296,7 @@ const Debtors = () => {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <Card>
