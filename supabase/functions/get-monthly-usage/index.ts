@@ -80,11 +80,26 @@ serve(async (req) => {
       }
     }
 
+    // Fallback to hardcoded plan limits if no database plan found
     if (!plan) {
-      throw new Error("Plan details not found");
+      const planTypeLimits: Record<string, number | null> = {
+        'free': 5,
+        'starter': 50,
+        'growth': 200,
+        'pro': null // unlimited
+      };
+      
+      const planType = profile?.plan_type || 'free';
+      plan = {
+        name: planType,
+        invoice_limit: planTypeLimits[planType] ?? 5,
+        overage_amount: 0
+      };
+      
+      logStep("Using fallback plan limits", { planName: plan.name, limit: plan.invoice_limit });
+    } else {
+      logStep("Plan loaded from database", { planName: plan.name, limit: plan.invoice_limit });
     }
-
-    logStep("Plan loaded", { planName: plan.name, limit: plan.invoice_limit });
 
     // Get or create usage record for current month
     let { data: usage, error: usageError } = await supabaseClient
