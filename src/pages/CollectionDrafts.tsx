@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit, LayoutGrid, List, Table2, Maximize2, Minimize2 } from "lucide-react";
+import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit, LayoutGrid, List, Table2, Maximize2, Minimize2, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 
 type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120';
@@ -78,6 +79,7 @@ const CollectionDrafts = () => {
     const saved = localStorage.getItem('drafts-compact-mode');
     return saved === 'true';
   });
+  const [selectedDrafts, setSelectedDrafts] = useState<Set<string>>(new Set());
   const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
@@ -189,10 +191,68 @@ const CollectionDrafts = () => {
       if (error) throw error;
 
       toast.success('Draft deleted');
+      setSelectedDrafts(prev => {
+        const next = new Set(prev);
+        next.delete(draftId);
+        return next;
+      });
       fetchData();
     } catch (error: any) {
       console.error('Error deleting draft:', error);
       toast.error('Failed to delete draft');
+    }
+  };
+
+  const toggleSelectDraft = (draftId: string) => {
+    setSelectedDrafts(prev => {
+      const next = new Set(prev);
+      if (next.has(draftId)) {
+        next.delete(draftId);
+      } else {
+        next.add(draftId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDrafts.size === filteredDrafts.length) {
+      setSelectedDrafts(new Set());
+    } else {
+      setSelectedDrafts(new Set(filteredDrafts.map(d => d.id)));
+    }
+  };
+
+  const handleBulkAction = async (action: 'approve' | 'discard' | 'delete') => {
+    if (selectedDrafts.size === 0) return;
+
+    try {
+      const draftIds = Array.from(selectedDrafts);
+
+      if (action === 'delete') {
+        const { error } = await supabase
+          .from('ai_drafts')
+          .delete()
+          .in('id', draftIds);
+
+        if (error) throw error;
+        toast.success(`${draftIds.length} draft${draftIds.length > 1 ? 's' : ''} deleted`);
+      } else {
+        const newStatus = action === 'approve' ? 'approved' : 'discarded';
+        const { error } = await supabase
+          .from('ai_drafts')
+          .update({ status: newStatus })
+          .in('id', draftIds);
+
+        if (error) throw error;
+        toast.success(`${draftIds.length} draft${draftIds.length > 1 ? 's' : ''} ${action}d`);
+      }
+
+      setSelectedDrafts(new Set());
+      fetchData();
+    } catch (error: any) {
+      console.error(`Error performing bulk ${action}:`, error);
+      toast.error(`Failed to ${action} drafts`);
     }
   };
 
@@ -554,6 +614,51 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                 </Select>
               </div>
 
+              {/* Bulk Actions Bar */}
+              {selectedDrafts.size > 0 && (
+                <div className="flex items-center justify-between p-4 bg-primary/10 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-5 w-5 text-primary" />
+                    <span className="font-medium">
+                      {selectedDrafts.size} draft{selectedDrafts.size > 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedDrafts(new Set())}
+                    >
+                      Clear Selection
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleBulkAction('approve')}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Approve All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleBulkAction('discard')}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Discard All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleBulkAction('delete')}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete All
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Empty State */}
               {filteredDrafts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -570,12 +675,19 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                     <div className={compactMode ? "space-y-2" : "space-y-4"}>
                       {filteredDrafts.map((draft) => {
                         const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                        const isSelected = selectedDrafts.has(draft.id);
                         return (
-                          <Card key={draft.id} className="border-l-4 border-l-primary/20 hover:border-l-primary transition-colors">
+                          <Card key={draft.id} className={`border-l-4 transition-colors ${isSelected ? 'border-l-primary bg-primary/5' : 'border-l-primary/20 hover:border-l-primary'}`}>
                             <CardContent className={compactMode ? "p-3" : "p-6"}>
                               <div className={compactMode ? "flex items-center justify-between" : "flex items-start justify-between mb-4"}>
-                                <div className="flex-1">
-                                  <div className={compactMode ? "flex items-center gap-2" : "flex items-center gap-3 mb-2"}>
+                                <div className="flex items-center gap-3 flex-1">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleSelectDraft(draft.id)}
+                                    className="mt-1"
+                                  />
+                                  <div className="flex-1">
+                                    <div className={compactMode ? "flex items-center gap-2" : "flex items-center gap-3 mb-2"}>
                                     <h3 className={compactMode ? "text-sm font-semibold" : "text-lg font-semibold"}>
                                       {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
                                     </h3>
@@ -603,6 +715,7 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                       {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()}
                                     </div>
                                   )}
+                                  </div>
                                 </div>
                                 <div className={compactMode ? "flex gap-1 ml-2" : "flex gap-2"}>
                                   <Button
@@ -663,38 +776,48 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                     <div className={compactMode ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}>
                       {filteredDrafts.map((draft) => {
                         const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                        const isSelected = selectedDrafts.has(draft.id);
                         return (
-                          <Card key={draft.id} className="hover:shadow-lg transition-shadow">
+                          <Card key={draft.id} className={`transition-shadow ${isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:shadow-lg'}`}>
                             <CardHeader className={compactMode ? "pb-2 px-3 pt-3" : "pb-3"}>
-                              <div className={compactMode ? "flex items-start justify-between mb-1" : "flex items-start justify-between mb-2"}>
+                              <div className="flex items-start gap-2 mb-2">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleSelectDraft(draft.id)}
+                                  className="mt-1"
+                                />
                                 <div className="flex-1">
-                                  <h3 className={compactMode ? "font-semibold text-xs line-clamp-1" : "font-semibold text-base line-clamp-1"}>
-                                    {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
-                                  </h3>
-                                  <p className={compactMode ? "text-[10px] text-muted-foreground" : "text-xs text-muted-foreground"}>
-                                    {draft.invoices.invoice_number}
-                                  </p>
+                                  <div className={compactMode ? "flex items-start justify-between mb-1" : "flex items-start justify-between mb-2"}>
+                                    <div className="flex-1">
+                                      <h3 className={compactMode ? "font-semibold text-xs line-clamp-1" : "font-semibold text-base line-clamp-1"}>
+                                        {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                      </h3>
+                                      <p className={compactMode ? "text-[10px] text-muted-foreground" : "text-xs text-muted-foreground"}>
+                                        {draft.invoices.invoice_number}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteDraft(draft.id)}
+                                      className={compactMode ? "h-6 w-6 p-0" : "h-8 w-8 p-0"}
+                                    >
+                                      <Trash2 className={compactMode ? "h-2 w-2" : "h-3 w-3"} />
+                                    </Button>
+                                  </div>
+                                  <div className={compactMode ? "flex flex-wrap gap-1" : "flex flex-wrap gap-2"}>
+                                    <Badge variant="outline" className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
+                                      {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
+                                      {draft.channel}
+                                    </Badge>
+                                    <Badge className={getStatusColor(draft.status) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
+                                      {getStatusIcon(draft.status)}
+                                    </Badge>
+                                    <Badge variant={daysPastDue > 60 ? 'destructive' : 'secondary'} className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
+                                      {daysPastDue} DPD
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteDraft(draft.id)}
-                                  className={compactMode ? "h-6 w-6 p-0" : "h-8 w-8 p-0"}
-                                >
-                                  <Trash2 className={compactMode ? "h-2 w-2" : "h-3 w-3"} />
-                                </Button>
-                              </div>
-                              <div className={compactMode ? "flex flex-wrap gap-1" : "flex flex-wrap gap-2"}>
-                                <Badge variant="outline" className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
-                                  {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
-                                  {draft.channel}
-                                </Badge>
-                                <Badge className={getStatusColor(draft.status) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
-                                  {getStatusIcon(draft.status)}
-                                </Badge>
-                                <Badge variant={daysPastDue > 60 ? 'destructive' : 'secondary'} className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
-                                  {daysPastDue} DPD
-                                </Badge>
                               </div>
                             </CardHeader>
                             <CardContent className={compactMode ? "space-y-2 px-3 pb-3" : "space-y-3"}>
@@ -740,6 +863,12 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                       <table className="w-full">
                         <thead className="bg-muted">
                           <tr>
+                            <th className={compactMode ? "p-2 w-10" : "p-3 w-12"}>
+                              <Checkbox
+                                checked={selectedDrafts.size === filteredDrafts.length && filteredDrafts.length > 0}
+                                onCheckedChange={toggleSelectAll}
+                              />
+                            </th>
                             <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Debtor</th>
                             <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Invoice</th>
                             <th className={compactMode ? "p-2 text-left text-xs font-medium" : "p-3 text-left text-sm font-medium"}>Amount</th>
@@ -753,8 +882,15 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                         <tbody>
                           {filteredDrafts.map((draft) => {
                             const daysPastDue = calculateDaysPastDue(draft.invoices.due_date);
+                            const isSelected = selectedDrafts.has(draft.id);
                             return (
-                              <tr key={draft.id} className="border-t hover:bg-accent/50">
+                              <tr key={draft.id} className={`border-t transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-accent/50'}`}>
+                                <td className={compactMode ? "p-2" : "p-3"}>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleSelectDraft(draft.id)}
+                                  />
+                                </td>
                                 <td className={compactMode ? "p-2" : "p-3"}>
                                   <div className={compactMode ? "font-medium text-xs" : "font-medium text-sm"}>
                                     {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
