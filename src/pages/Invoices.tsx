@@ -57,6 +57,7 @@ const Invoices = () => {
   } | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState(false);
   const [formData, setFormData] = useState({
     debtor_id: "",
     invoice_number: "",
@@ -203,7 +204,7 @@ const Invoices = () => {
   };
 
   const showGoogleSheetsInstructions = () => {
-    toast.info('Google Sheets instructions: Copy the CSV template structure to a new Google Sheet');
+    setIsGoogleSheetsOpen(true);
   };
 
   const parseImportFile = async (file: File, hasHeader: boolean): Promise<any[]> => {
@@ -879,6 +880,58 @@ const Invoices = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Google Sheets Instructions Modal */}
+        <Dialog open={isGoogleSheetsOpen} onOpenChange={setIsGoogleSheetsOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Google Sheets Template Instructions</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Follow these steps to use Google Sheets with the Invoices import template:
+              </p>
+              <ol className="list-decimal list-inside space-y-3 text-sm">
+                <li>
+                  <strong>Download the template:</strong> Click the button below to download the Invoices template as a CSV file.
+                </li>
+                <li>
+                  <strong>Upload to Google Sheets:</strong> Go to{" "}
+                  <a 
+                    href="https://sheets.google.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Google Sheets
+                  </a>
+                  , click "File" → "Import" → "Upload", and select your downloaded CSV file.
+                </li>
+                <li>
+                  <strong>Fill in your data:</strong> Add your invoice information following the column structure in the template. Make sure to include debtor matching fields (email or company name).
+                </li>
+                <li>
+                  <strong>Export as CSV:</strong> When you're done, go to "File" → "Download" → "Comma-separated values (.csv)" to export your sheet.
+                </li>
+                <li>
+                  <strong>Import to the app:</strong> Use the "Import Invoices" → "Import from File" option and select your exported CSV file.
+                </li>
+              </ol>
+              <div className="flex gap-2 pt-4">
+                <Button onClick={() => {
+                  downloadInvoicesTemplate('csv');
+                  toast.success('Template downloaded! Follow the instructions to use it with Google Sheets.');
+                }}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download CSV Template
+                </Button>
+                <Button variant="outline" onClick={() => setIsGoogleSheetsOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Import Invoices Modal */}
         <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
