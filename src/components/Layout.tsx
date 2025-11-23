@@ -15,6 +15,15 @@ import {
   Workflow,
   Mail
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UsageIndicator } from "@/components/UsageIndicator";
 
 interface LayoutProps {
   children: ReactNode;
@@ -128,6 +137,15 @@ const Layout = ({ children }: LayoutProps) => {
 
   if (!user) return null;
 
+  const mainNavItems = [
+    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/debtors", label: "Debtors", icon: Users },
+    { path: "/invoices", label: "Invoices", icon: FileText },
+    { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
+    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
+    ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b bg-card">
@@ -138,9 +156,8 @@ const Layout = ({ children }: LayoutProps) => {
                 Recouply.ai
               </Link>
               <div className="hidden md:flex space-x-1">
-                {navItems.map((item) => {
+                {mainNavItems.map((item) => {
                   const Icon = item.icon;
-                  const isProfileLink = item.path === "/profile";
                   
                   return (
                     <Link
@@ -152,31 +169,55 @@ const Layout = ({ children }: LayoutProps) => {
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
                     >
-                      {isProfileLink && avatarUrl ? (
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={avatarUrl} alt={userName} />
-                          <AvatarFallback className="text-xs">
-                            {userName.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      ) : (
-                        <Icon className="h-4 w-4" />
-                      )}
+                      <Icon className="h-4 w-4" />
                       <span>{item.label}</span>
                     </Link>
                   );
                 })}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="flex items-center space-x-2"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
-            </Button>
+            
+            <div className="flex items-center space-x-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={avatarUrl || undefined} alt={userName} />
+                      <AvatarFallback>
+                        {userName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:inline-block">{userName}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 bg-card z-50">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <div className="px-2 py-3">
+                    <UsageIndicator />
+                  </div>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/settings")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </nav>

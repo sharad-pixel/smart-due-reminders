@@ -54,31 +54,28 @@ export const UsageIndicator = () => {
   const isNearLimit = percentUsed >= 80 && !usage.is_over_limit;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Main Usage Display */}
-      <div className="bg-card border rounded-lg p-4">
+      <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold">Invoice Usage This Month</h3>
-          <Badge variant={usage.is_over_limit ? "destructive" : "secondary"}>
+          <span className="text-sm font-medium">Invoice Usage</span>
+          <Badge variant={usage.is_over_limit ? "destructive" : "secondary"} className="text-xs">
             {usage.plan_name}
           </Badge>
         </div>
         
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {usage.is_over_limit ? (
-                <>You've used <strong>{usage.total_invoices_used}</strong> of <strong>{usage.included_allowance}</strong> included invoices</>
-              ) : (
-                <>You've used <strong>{usage.total_invoices_used}</strong> of <strong>{usage.included_allowance}</strong> invoices</>
-              )}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              <strong className="text-foreground">{usage.total_invoices_used}</strong> / {usage.included_allowance} used
             </span>
+            <span>{usage.remaining_quota} left</span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-secondary rounded-full h-2">
+          <div className="w-full bg-secondary rounded-full h-1.5">
             <div 
-              className={`h-2 rounded-full transition-all ${
+              className={`h-1.5 rounded-full transition-all ${
                 usage.is_over_limit ? 'bg-destructive' : 
                 isNearLimit ? 'bg-orange-500' : 
                 'bg-primary'
@@ -89,50 +86,26 @@ export const UsageIndicator = () => {
 
           {usage.is_over_limit && (
             <div className="pt-2 border-t">
-              <p className="text-sm font-medium text-destructive">
-                Overages this month: {usage.overage_invoices} (${usage.overage_charges_total.toFixed(2)})
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Additional invoices are billed at ${usage.overage_rate.toFixed(2)} each
+              <p className="text-xs font-medium text-destructive">
+                Overages: {usage.overage_invoices} (${usage.overage_charges_total.toFixed(2)})
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Warning Alert - Near Limit */}
-      {isNearLimit && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>You're approaching your invoice limit for this month.</span>
+      {/* Warning Alert - Near Limit or Over Limit */}
+      {(isNearLimit || usage.is_over_limit) && (
+        <Alert variant={usage.is_over_limit ? "destructive" : "default"} className="py-2">
+          <AlertCircle className="h-3 w-3" />
+          <AlertDescription className="flex items-center justify-between text-xs">
+            <span className="flex-1 pr-2">
+              {usage.is_over_limit ? "You've exceeded your plan limit" : "Approaching limit"}
+            </span>
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/upgrade')}
-            >
-              Upgrade Plan
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Overage Alert */}
-      {usage.is_over_limit && (
-        <Alert variant="destructive">
-          <TrendingUp className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">You've exceeded your plan limit</p>
-              <p className="text-sm mt-1">
-                {usage.plan_name === 'Starter' && 'Upgrade to Growth (200 invoices) or Professional (500 invoices)'}
-                {usage.plan_name === 'Growth' && 'Upgrade to Professional for 500 included invoices per month'}
-                {usage.plan_name === 'Professional' && 'Consider our Bespoke plan for unlimited invoices'}
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
+              className="h-7 text-xs"
               onClick={() => navigate('/upgrade')}
             >
               Upgrade
