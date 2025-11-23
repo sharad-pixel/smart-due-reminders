@@ -143,10 +143,45 @@ serve(async (req) => {
     
     const businessName = profile?.business_name || "Your Business";
     
+    // Fetch any open tasks for this invoice/debtor
+    const { data: openTasks } = await supabaseAdmin
+      .from('collection_tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('invoice_id', invoice.id)
+      .in('status', ['open', 'in_progress'])
+      .order('priority', { ascending: false });
+    
+    // Build task context for AI
+    let taskContext = '';
+    if (openTasks && openTasks.length > 0) {
+      const taskLabels: Record<string, string> = {
+        w9_request: 'W9 tax form request',
+        payment_plan_needed: 'payment arrangement request',
+        incorrect_po: 'dispute about wrong PO number',
+        dispute_charges: 'dispute about incorrect charges',
+        invoice_copy_request: 'request to resend invoice',
+        billing_address_update: 'billing address correction needed',
+        payment_method_update: 'payment details update needed',
+        service_not_delivered: 'claim that service/product not received',
+        overpayment_inquiry: 'question about double charge or overpayment',
+        paid_verification: 'claim that invoice already paid',
+        extension_request: 'request for payment deadline extension',
+        callback_required: 'request for phone call or meeting'
+      };
+
+      const taskDescriptions = openTasks.map(task => {
+        const label = taskLabels[task.task_type] || task.task_type;
+        return `- ${label}: ${task.summary}${task.recommended_action ? ` (Recommended: ${task.recommended_action})` : ''}`;
+      }).join('\n');
+
+      taskContext = `\n\nIMPORTANT CONTEXT - Customer has made the following requests/raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these open items in your message. Reference them naturally and provide appropriate responses or next steps.`;
+    }
+    
     // Build AI prompt
     const systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
 Your tone is: ${persona.tone}\n
-Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message compliant, professional, and appropriate for ${daysPastDue} days past due\n- Include a call to action for payment\n- Offer a polite way for the customer to reply or resolve disputes\n- Be concise but personable`;
+Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message compliant, professional, and appropriate for ${daysPastDue} days past due\n- Include a call to action for payment\n- Offer a polite way for the customer to reply or resolve disputes\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}`;
 
     const userPrompt = `Generate a ${parsed.channel} message for:\n
 Invoice: #${invoice.invoice_number}\n
