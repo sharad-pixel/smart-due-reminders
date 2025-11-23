@@ -596,14 +596,6 @@ const Debtors = () => {
 
       if (data.success && data.data) {
         const info = data.data;
-        const fullAddress = [
-          info.address_line1,
-          info.address_line2,
-          info.city,
-          info.state,
-          info.postal_code,
-          info.country
-        ].filter(Boolean).join(', ');
 
         setFormData({
           ...formData,
@@ -612,7 +604,6 @@ const Debtors = () => {
           email: info.email || formData.email,
           phone: info.phone || formData.phone,
           type: info.type || formData.type,
-          address: fullAddress || formData.address,
         });
 
         toast.success("Customer information auto-completed from web data");

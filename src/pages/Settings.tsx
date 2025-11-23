@@ -213,19 +213,10 @@ const Settings = () => {
 
       if (data.success && data.data) {
         const info = data.data;
-        const fullAddress = [
-          info.address_line1,
-          info.address_line2,
-          info.city,
-          info.state,
-          info.postal_code,
-          info.country
-        ].filter(Boolean).join(', ');
 
         setProfile({
           ...profile,
           business_name: info.business_name || profile.business_name,
-          business_address: fullAddress || profile.business_address,
           business_phone: info.phone || profile.business_phone,
         });
 
