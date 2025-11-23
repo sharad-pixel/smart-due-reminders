@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import * as XLSX from 'xlsx';
 
 interface Invoice {
@@ -38,11 +39,18 @@ interface Debtor {
   name: string;
 }
 
+interface AgentPersona {
+  name: string;
+  bucket_min: number;
+  bucket_max: number | null;
+}
+
 const Invoices = () => {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
+  const [agentPersonas, setAgentPersonas] = useState<AgentPersona[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -87,16 +95,18 @@ const Invoices = () => {
 
   const fetchData = async () => {
     try {
-      const [invoicesRes, debtorsRes] = await Promise.all([
+      const [invoicesRes, debtorsRes, agentPersonasRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*, debtors(name), ai_workflows(id, is_active)")
           .order("due_date", { ascending: false }),
         supabase.from("debtors").select("id, name").order("name"),
+        supabase.from("ai_agent_personas").select("name, bucket_min, bucket_max").order("bucket_min"),
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
       if (debtorsRes.error) throw debtorsRes.error;
+      if (agentPersonasRes.error) throw agentPersonasRes.error;
 
       setInvoices(invoicesRes.data || []);
       setDebtors(debtorsRes.data || []);
@@ -122,6 +132,28 @@ const Invoices = () => {
     if (daysPastDue <= 90) return "61-90";
     if (daysPastDue <= 120) return "91-120";
     return "121+";
+  };
+
+  const getAssignedAgent = (daysPastDue: number): AgentPersona | null => {
+    if (daysPastDue === 0) return null;
+    
+    return agentPersonas.find(agent => {
+      if (agent.bucket_max === null) {
+        return daysPastDue >= agent.bucket_min;
+      }
+      return daysPastDue >= agent.bucket_min && daysPastDue <= agent.bucket_max;
+    }) || null;
+  };
+
+  const getAgentColor = (agentName: string): string => {
+    const colors: Record<string, string> = {
+      'Sam': 'bg-green-500',
+      'James': 'bg-yellow-500',
+      'Katy': 'bg-orange-500',
+      'Troy': 'bg-red-500',
+      'Gotti': 'bg-purple-500',
+    };
+    return colors[agentName] || 'bg-gray-500';
   };
 
   const handleRemoveFromWorkflow = async (invoiceId: string, workflowId: string) => {
@@ -1135,9 +1167,23 @@ const Invoices = () => {
                         <TableCell>
                           {activeWorkflow ? (
                             <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                {ageBucket}
-                              </span>
+                              {(() => {
+                                const agent = getAssignedAgent(daysPastDue);
+                                return agent ? (
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarFallback className={`${getAgentColor(agent.name)} text-white text-xs`}>
+                                        {agent.name[0]}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs font-medium">{agent.name}</span>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                    {ageBucket}
+                                  </span>
+                                );
+                              })()}
                               <Button
                                 variant="ghost"
                                 size="sm"
