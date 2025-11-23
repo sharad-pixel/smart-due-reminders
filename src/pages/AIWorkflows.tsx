@@ -15,6 +15,9 @@ import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowTemplates, { Template } from "@/components/WorkflowTemplates";
 import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { personaConfig } from "@/lib/personaConfig";
 
 interface WorkflowStep {
   id: string;
@@ -511,6 +514,55 @@ const AIWorkflows = () => {
             </Button>
           </div>
         </div>
+
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              AI Collections Agents
+            </CardTitle>
+            <CardDescription>
+              Your team of AI agents automatically adapts messaging based on invoice age
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TooltipProvider>
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                {Object.entries(personaConfig).map(([key, persona]) => (
+                  <Tooltip key={key}>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center gap-2 cursor-pointer transition-transform hover:scale-110">
+                        <PersonaAvatar persona={persona} size="lg" />
+                        <span className="text-xs font-medium">{persona.name}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: persona.color }}
+                          />
+                          <p className="font-semibold">{persona.name}</p>
+                        </div>
+                        <p className="text-sm">{persona.description}</p>
+                        <div className="pt-2 border-t border-border">
+                          <p className="text-xs font-medium mb-1">Coverage:</p>
+                          <Badge variant="outline" className="text-xs">
+                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <span className="font-medium">Tone:</span> {persona.tone}
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
 
         <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <CardContent className="p-4">
