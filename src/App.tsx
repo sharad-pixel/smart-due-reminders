@@ -43,14 +43,11 @@ const App = () => (
     <Sonner />
     <BrowserRouter>
       <Routes>
-        {/* HOMEPAGE: Switch between full marketing site and coming soon page */}
-        {/* Current: Full marketing site */}
-        <Route path="/" element={<Home />} />
-        {/* To use coming soon page instead, replace the line above with: */}
-        {/* <Route path="/" element={<ComingSoon />} /> */}
+        {/* HOMEPAGE: Coming Soon page for public visitors */}
+        <Route path="/" element={<ComingSoon />} />
         
-        {/* Preview coming soon page at /coming-soon */}
-        <Route path="/coming-soon" element={<ComingSoon />} />
+        {/* Full marketing site accessible at /home */}
+        <Route path="/home" element={<Home />} />
         <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/personas" element={<Personas />} />
