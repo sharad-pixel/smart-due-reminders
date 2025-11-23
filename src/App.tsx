@@ -31,6 +31,7 @@ import CollectionDrafts from "./pages/CollectionDrafts";
 import CollectionTasks from "./pages/CollectionTasks";
 import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
 import Personas from "./pages/Personas";
+import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
         <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/personas" element={<Personas />} />
+        <Route path="/ai-command-center" element={<AICommandCenter />} />
         <Route path="/solutions" element={<Solutions />} />
         <Route path="/solutions/home-services" element={<HomeServices />} />
         <Route path="/solutions/saas" element={<SaaS />} />
