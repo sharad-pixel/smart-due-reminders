@@ -29,6 +29,7 @@ import Profile from "./pages/Profile";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionDrafts from "./pages/CollectionDrafts";
 import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
+import Personas from "./pages/Personas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
         <Route path="/" element={<Home />} />
         <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/personas" element={<Personas />} />
         <Route path="/solutions" element={<Solutions />} />
         <Route path="/solutions/home-services" element={<HomeServices />} />
         <Route path="/solutions/saas" element={<SaaS />} />

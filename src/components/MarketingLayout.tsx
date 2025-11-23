@@ -32,6 +32,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Solutions
             </button>
             <button 
+              onClick={() => navigate("/personas")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              AI Personas
+            </button>
+            <button 
               onClick={() => navigate("/pricing")}
               className="text-foreground hover:text-primary transition-colors"
             >
