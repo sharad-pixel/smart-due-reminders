@@ -116,6 +116,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_command_logs: {
+        Row: {
+          command_text: string
+          context_type: string | null
+          created_at: string
+          draft_id: string | null
+          id: string
+          invoice_id: string | null
+          persona_name: string | null
+          user_id: string
+        }
+        Insert: {
+          command_text: string
+          context_type?: string | null
+          created_at?: string
+          draft_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          persona_name?: string | null
+          user_id: string
+        }
+        Update: {
+          command_text?: string
+          context_type?: string | null
+          created_at?: string
+          draft_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          persona_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_creations: {
         Row: {
           created_at: string | null
