@@ -517,23 +517,28 @@ const AIWorkflows = () => {
 
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Sparkles className="h-6 w-6" />
               AI Collections Agents
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               Your team of AI agents automatically adapts messaging based on invoice age
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-8 pb-8">
             <TooltipProvider>
-              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8">
                 {Object.entries(personaConfig).map(([key, persona]) => (
                   <Tooltip key={key}>
                     <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center gap-2 cursor-pointer transition-transform hover:scale-110">
-                        <PersonaAvatar persona={persona} size="lg" />
-                        <span className="text-xs font-medium">{persona.name}</span>
+                      <div className="flex flex-col items-center gap-3 cursor-pointer transition-all hover:scale-105">
+                        <PersonaAvatar persona={persona} size="xl" />
+                        <div className="text-center">
+                          <p className="text-sm font-semibold">{persona.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {persona.bucketMin}-{persona.bucketMax || "+"} Days
+                          </p>
+                        </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
