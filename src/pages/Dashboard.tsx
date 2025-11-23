@@ -13,6 +13,7 @@ import { User } from "@supabase/supabase-js";
 import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface Invoice {
   id: string;
@@ -57,6 +58,7 @@ const Dashboard = () => {
     { bucket: "121+", count: 0, amount: 0 },
   ]);
   const [priorityOverdues, setPriorityOverdues] = useState<Invoice[]>([]);
+  const [statusFilters, setStatusFilters] = useState<string[]>(["Open", "InPaymentPlan"]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -128,7 +130,7 @@ const Dashboard = () => {
         avgDaysPastDue: avgDays,
       });
 
-      // Calculate Aging Buckets
+      // Calculate Aging Buckets with status filters
       const buckets = {
         "0-30": { count: 0, amount: 0 },
         "31-60": { count: 0, amount: 0 },
@@ -137,7 +139,9 @@ const Dashboard = () => {
         "121+": { count: 0, amount: 0 },
       };
 
-      openInvoices.forEach((inv) => {
+      const filteredInvoices = allInvoices.filter(inv => statusFilters.includes(inv.status));
+      
+      filteredInvoices.forEach((inv) => {
         const days = getDaysPastDue(inv.due_date);
         const amount = Number(inv.amount);
 
@@ -181,6 +185,20 @@ const Dashboard = () => {
       console.error("Error fetching dashboard data:", error);
     }
   };
+
+  const toggleStatusFilter = (status: string) => {
+    setStatusFilters(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [statusFilters]);
 
   if (loading || !user) {
     return (
@@ -270,7 +288,21 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Invoice Aging Analysis</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Invoice Aging Analysis</CardTitle>
+              <div className="flex gap-2 flex-wrap">
+                {["Open", "InPaymentPlan", "Paid", "Disputed", "Settled", "Canceled"].map((status) => (
+                  <Badge
+                    key={status}
+                    variant={statusFilters.includes(status) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleStatusFilter(status)}
+                  >
+                    {status}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
