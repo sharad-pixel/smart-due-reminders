@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import * as XLSX from 'xlsx';
-import { AddressAutocompleteInput, ParsedAddress } from '@/components/AddressAutocompleteInput';
+
 
 interface Debtor {
   id: string;
@@ -780,23 +780,12 @@ const Debtors = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <AddressAutocompleteInput
+                  <Label htmlFor="address_line1">Address Line 1</Label>
+                  <Input
+                    id="address_line1"
                     value={formData.address_line1}
-                    onChange={(value) => setFormData({ ...formData, address_line1: value })}
-                    onAddressSelected={(parsed: ParsedAddress) => {
-                      setFormData({
-                        ...formData,
-                        address_line1: parsed.address_line1,
-                        address_line2: parsed.address_line2 || "",
-                        city: parsed.city,
-                        state: parsed.state,
-                        postal_code: parsed.postal_code,
-                        country: parsed.country,
-                        address: `${parsed.address_line1}${parsed.address_line2 ? ', ' + parsed.address_line2 : ''}, ${parsed.city}, ${parsed.state} ${parsed.postal_code}`,
-                      });
-                    }}
-                    placeholder="Start typing an address..."
+                    onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
+                    placeholder="Street address"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">

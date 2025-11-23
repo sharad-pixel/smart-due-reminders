@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Save, Mail, Phone, CreditCard, Building, Link2, Sparkles, MapPin } from "lucide-react";
-import { AddressAutocompleteInput, ParsedAddress } from '@/components/AddressAutocompleteInput';
+
 import { useNavigate } from 'react-router-dom';
 
 interface ProfileData {
@@ -314,34 +314,12 @@ const Settings = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="business_address">Business Address</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/settings/integrations/address-autocomplete')}
-                  className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
-                >
-                  <MapPin className="h-3 w-3 mr-1" />
-                  Configure Address Autocomplete
-                </Button>
-              </div>
-              <AddressAutocompleteInput
+              <Label htmlFor="business_address_line1">Address Line 1</Label>
+              <Input
+                id="business_address_line1"
                 value={profile.business_address_line1}
-                onChange={(value) => setProfile({ ...profile, business_address_line1: value })}
-                onAddressSelected={(parsed: ParsedAddress) => {
-                  setProfile({
-                    ...profile,
-                    business_address_line1: parsed.address_line1,
-                    business_address_line2: parsed.address_line2 || "",
-                    business_city: parsed.city,
-                    business_state: parsed.state,
-                    business_postal_code: parsed.postal_code,
-                    business_country: parsed.country,
-                    business_address: `${parsed.address_line1}${parsed.address_line2 ? ', ' + parsed.address_line2 : ''}, ${parsed.city}, ${parsed.state} ${parsed.postal_code}`,
-                  });
-                }}
-                placeholder="Start typing an address..."
+                onChange={(e) => setProfile({ ...profile, business_address_line1: e.target.value })}
+                placeholder="Street address"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
