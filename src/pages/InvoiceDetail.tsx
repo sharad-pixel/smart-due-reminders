@@ -111,7 +111,7 @@ const InvoiceDetail = () => {
     if (daysPastDue <= 60) return 'dpd_31_60';
     if (daysPastDue <= 90) return 'dpd_61_90';
     if (daysPastDue <= 120) return 'dpd_91_120';
-    return 'dpd_121_plus';
+    return 'dpd_120_plus';
   };
 
   const fetchData = async () => {
@@ -322,7 +322,7 @@ const InvoiceDetail = () => {
       'dpd_31_60': '31-60 Days Past Due',
       'dpd_61_90': '61-90 Days Past Due',
       'dpd_91_120': '91-120 Days Past Due',
-      'dpd_121_plus': '121+ Days Past Due',
+      'dpd_120_plus': '121+ Days Past Due',
     };
     return labels[bucket] || bucket;
   };

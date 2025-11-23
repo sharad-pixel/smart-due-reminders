@@ -68,7 +68,7 @@ const agingBucketLabels = {
   dpd_31_60: { label: "31-60 Days", description: "Mid stage", color: "bg-orange-100 text-orange-800 border-orange-300" },
   dpd_61_90: { label: "61-90 Days", description: "Late stage", color: "bg-red-100 text-red-800 border-red-300" },
   dpd_91_120: { label: "91-120 Days", description: "Critical", color: "bg-purple-100 text-purple-800 border-purple-300" },
-  dpd_120_plus: { label: "120+ Days", description: "Severe", color: "bg-rose-100 text-rose-800 border-rose-300" },
+  dpd_120_plus: { label: "121+ Days", description: "Severe", color: "bg-rose-100 text-rose-800 border-rose-300" },
 };
 
 const CollectionDrafts = () => {
