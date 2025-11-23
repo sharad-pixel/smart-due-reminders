@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Sparkles, MapPin } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2 } from "lucide-react";
 
-import { useNavigate } from 'react-router-dom';
+
 
 interface ProfileData {
   business_name: string;
@@ -35,12 +35,10 @@ interface ProfileData {
 }
 
 const Settings = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
-  const [autoCompleting, setAutoCompleting] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     business_name: "",
     business_address: "",
@@ -215,47 +213,6 @@ const Settings = () => {
     }
   };
 
-  const handleAutoCompleteBusinessProfile = async () => {
-    if (!profile.business_name) {
-      toast.error("Please enter a business name first");
-      return;
-    }
-
-    setAutoCompleting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase.functions.invoke("autocomplete-business-info", {
-        body: { 
-          query: profile.business_name,
-          type: 'business_profile'
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.data) {
-        const info = data.data;
-
-        setProfile({
-          ...profile,
-          business_name: info.business_name || profile.business_name,
-          business_phone: info.phone || profile.business_phone,
-        });
-
-        toast.success("Business information auto-completed from web data");
-      }
-    } catch (error: any) {
-      console.error("Error auto-completing:", error);
-      toast.error(error.message || "Failed to auto-complete business information");
-    } finally {
-      setAutoCompleting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -279,26 +236,13 @@ const Settings = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Building className="h-5 w-5 text-primary" />
-                  <CardTitle>Business Profile</CardTitle>
-                </div>
-                <CardDescription>
-                  Update your business information displayed on invoices and messages
-                </CardDescription>
-              </div>
-              <Button
-                onClick={handleAutoCompleteBusinessProfile}
-                disabled={autoCompleting || !profile.business_name}
-                variant="outline"
-                size="sm"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {autoCompleting ? "Loading..." : "Auto Complete"}
-              </Button>
+            <div className="flex items-center space-x-2">
+              <Building className="h-5 w-5 text-primary" />
+              <CardTitle>Business Profile</CardTitle>
             </div>
+            <CardDescription>
+              Update your business information displayed on invoices and messages
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -309,9 +253,6 @@ const Settings = () => {
                 onChange={(e) => setProfile({ ...profile, business_name: e.target.value })}
                 placeholder="Acme Inc."
               />
-              <p className="text-xs text-muted-foreground">
-                Enter your business name and click Auto Complete to fetch address and phone
-              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="business_address_line1">Address Line 1</Label>
