@@ -97,6 +97,23 @@ serve(async (req) => {
     const diffTime = today.getTime() - dueDate.getTime();
     const daysPastDue = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
+    // Fetch the appropriate AI agent persona based on days past due
+    const { data: agentPersona, error: agentError } = await supabaseClient
+      .from("ai_agent_personas")
+      .select("*")
+      .lte("bucket_min", daysPastDue)
+      .or(`bucket_max.is.null,bucket_max.gte.${daysPastDue}`)
+      .order("bucket_min", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (agentError || !agentPersona) {
+      console.error("Agent persona fetch error:", agentError);
+      throw new Error("Could not determine appropriate collection agent");
+    }
+
+    console.log(`Using agent ${agentPersona.name} for ${daysPastDue} days past due`);
+
     // Prepare prompt data
     const promptData = {
       business_name: profile.business_name || "Our Business",
@@ -232,6 +249,8 @@ Return the response as JSON with fields: email_subject, email_body, sms_body`,
         message_body: email_body,
         recommended_send_date: today_date,
         status: "pending_approval",
+        agent_persona_id: agentPersona.id,
+        days_past_due: daysPastDue,
       })
       .select()
       .single();
@@ -253,6 +272,8 @@ Return the response as JSON with fields: email_subject, email_body, sms_body`,
         message_body: sms_body,
         recommended_send_date: today_date,
         status: "pending_approval",
+        agent_persona_id: agentPersona.id,
+        days_past_due: daysPastDue,
       })
       .select()
       .single();
