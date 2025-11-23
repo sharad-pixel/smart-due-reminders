@@ -120,7 +120,8 @@ const Invoices = () => {
     if (daysPastDue <= 30) return "0-30";
     if (daysPastDue <= 60) return "31-60";
     if (daysPastDue <= 90) return "61-90";
-    return "90+";
+    if (daysPastDue <= 120) return "91-120";
+    return "121+";
   };
 
   const handleRemoveFromWorkflow = async (invoiceId: string, workflowId: string) => {
@@ -997,7 +998,8 @@ const Invoices = () => {
                   <SelectItem value="0-30">0-30 Days</SelectItem>
                   <SelectItem value="31-60">31-60 Days</SelectItem>
                   <SelectItem value="61-90">61-90 Days</SelectItem>
-                  <SelectItem value="90+">90+ Days</SelectItem>
+                  <SelectItem value="91-120">91-120 Days</SelectItem>
+                  <SelectItem value="121+">121+ Days</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={debtorFilter} onValueChange={setDebtorFilter}>
@@ -1111,7 +1113,11 @@ const Invoices = () => {
                                 ? "bg-yellow-100 text-yellow-800"
                                 : daysPastDue <= 60
                                 ? "bg-orange-100 text-orange-800"
-                                : "bg-red-100 text-red-800"
+                                : daysPastDue <= 90
+                                ? "bg-red-100 text-red-800"
+                                : daysPastDue <= 120
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-rose-100 text-rose-800"
                             }`}
                           >
                             {daysPastDue === 0 ? "Current" : `${daysPastDue} days`}
@@ -1130,7 +1136,7 @@ const Invoices = () => {
                           {activeWorkflow ? (
                             <div className="flex items-center gap-2">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                {ageBucket} days
+                                {ageBucket}
                               </span>
                               <Button
                                 variant="ghost"
