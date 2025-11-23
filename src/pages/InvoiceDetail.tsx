@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 
 interface Invoice {
   id: string;
@@ -611,9 +612,31 @@ const InvoiceDetail = () => {
           <CardContent>
             {associatedWorkflow ? (
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Workflow Name</p>
-                  <p className="font-medium text-lg">{associatedWorkflow.name}</p>
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    {(() => {
+                      const persona = getPersonaByDaysPastDue(daysPastDue);
+                      return persona ? (
+                        <PersonaAvatar persona={persona} size="lg" />
+                      ) : null;
+                    })()}
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Workflow Name</p>
+                      <p className="font-medium text-lg">{associatedWorkflow.name}</p>
+                    </div>
+                    {(() => {
+                      const persona = getPersonaByDaysPastDue(daysPastDue);
+                      return persona ? (
+                        <div>
+                          <p className="text-sm text-muted-foreground">AI Agent</p>
+                          <p className="font-medium">{persona.name}</p>
+                          <p className="text-xs text-muted-foreground italic mt-1">"{persona.tone}"</p>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
                 {associatedWorkflow.description && (
                   <div>
@@ -641,13 +664,13 @@ const InvoiceDetail = () => {
                     {associatedWorkflow.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => navigate("/ai-workflows")}
-                >
-                  View All Workflows
-                </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate("/ai-workflows")}
+                  >
+                    View All Workflows
+                  </Button>
               </div>
             ) : (
               <div className="text-center py-6">
