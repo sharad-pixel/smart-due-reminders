@@ -33,15 +33,41 @@ serve(async (req) => {
       apiVersion: '2025-08-27.basil',
     });
 
-    // Find customer by email
+    // Find or create customer by email
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
+    let customerId: string;
+    
     if (customers.data.length === 0) {
-      throw new Error('No Stripe customer found for this user');
+      console.log('No customer found, creating new Stripe customer for:', user.email);
+      
+      // Create new Stripe customer
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      });
+      
+      customerId = newCustomer.id;
+      console.log('New customer created:', customerId);
+      
+      // Update profile with Stripe customer ID
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      
+      await supabaseAdmin
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', user.id);
+        
+      console.log('Profile updated with Stripe customer ID');
+    } else {
+      customerId = customers.data[0].id;
+      console.log('Existing customer found:', customerId);
     }
-
-    const customerId = customers.data[0].id;
-    console.log('Customer found:', customerId);
 
     // Create portal session
     const origin = req.headers.get('origin') || 'http://localhost:3000';
