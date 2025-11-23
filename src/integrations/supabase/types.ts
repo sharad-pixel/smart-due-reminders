@@ -80,6 +80,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_personas: {
+        Row: {
+          bucket_max: number | null
+          bucket_min: number
+          created_at: string | null
+          id: string
+          language_examples: string
+          name: string
+          persona_summary: string
+          tone_guidelines: string
+          updated_at: string | null
+        }
+        Insert: {
+          bucket_max?: number | null
+          bucket_min: number
+          created_at?: string | null
+          id?: string
+          language_examples: string
+          name: string
+          persona_summary: string
+          tone_guidelines: string
+          updated_at?: string | null
+        }
+        Update: {
+          bucket_max?: number | null
+          bucket_min?: number
+          created_at?: string | null
+          id?: string
+          language_examples?: string
+          name?: string
+          persona_summary?: string
+          tone_guidelines?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_creations: {
         Row: {
           created_at: string | null
@@ -120,8 +156,10 @@ export type Database = {
       }
       ai_drafts: {
         Row: {
+          agent_persona_id: string | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at: string | null
+          days_past_due: number | null
           id: string
           invoice_id: string
           message_body: string
@@ -134,8 +172,10 @@ export type Database = {
           workflow_step_id: string | null
         }
         Insert: {
+          agent_persona_id?: string | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
+          days_past_due?: number | null
           id?: string
           invoice_id: string
           message_body: string
@@ -148,8 +188,10 @@ export type Database = {
           workflow_step_id?: string | null
         }
         Update: {
+          agent_persona_id?: string | null
           channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
+          days_past_due?: number | null
           id?: string
           invoice_id?: string
           message_body?: string
@@ -162,6 +204,13 @@ export type Database = {
           workflow_step_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_drafts_agent_persona_id_fkey"
+            columns: ["agent_persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_personas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_drafts_invoice_id_fkey"
             columns: ["invoice_id"]

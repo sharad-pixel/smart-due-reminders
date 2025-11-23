@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -69,6 +70,12 @@ interface AIDraft {
   status: string;
   recommended_send_date: string | null;
   created_at?: string;
+  days_past_due?: number | null;
+  agent_persona_id?: string | null;
+  ai_agent_personas?: {
+    name: string;
+    persona_summary: string;
+  } | null;
 }
 
 const InvoiceDetail = () => {
@@ -122,7 +129,7 @@ const InvoiceDetail = () => {
           .order("sent_at", { ascending: false }),
         supabase
           .from("ai_drafts")
-          .select("*")
+          .select("*, ai_agent_personas(name, persona_summary)")
           .eq("invoice_id", id)
           .neq("status", "discarded")
           .order("step_number", { ascending: true }),
@@ -318,6 +325,17 @@ const InvoiceDetail = () => {
       'dpd_121_plus': '121+ Days Past Due',
     };
     return labels[bucket] || bucket;
+  };
+
+  const getAgentColor = (agentName: string): string => {
+    const colors: Record<string, string> = {
+      'Sam': 'bg-green-100 text-green-800 border-green-300',
+      'James': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      'Katy': 'bg-orange-100 text-orange-800 border-orange-300',
+      'Troy': 'bg-red-100 text-red-800 border-red-300',
+      'Gotti': 'bg-purple-100 text-purple-800 border-purple-300',
+    };
+    return colors[agentName] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const getStatusColor = (status: string) => {
@@ -735,10 +753,18 @@ const InvoiceDetail = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                          <CardTitle>Step {draft.step_number} - {draft.channel.toUpperCase()}</CardTitle>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <CardTitle>Step {draft.step_number} - {draft.channel.toUpperCase()}</CardTitle>
+                            {draft.ai_agent_personas && (
+                              <Badge className={getAgentColor(draft.ai_agent_personas.name) + " text-xs"}>
+                                🤖 {draft.ai_agent_personas.name}
+                              </Badge>
+                            )}
+                          </div>
                           {draft.subject && <p className="text-sm text-muted-foreground">{draft.subject}</p>}
                           <p className="text-xs text-muted-foreground">
                             Created: {new Date(draft.created_at || "").toLocaleString()}
+                            {draft.days_past_due !== null && draft.days_past_due !== undefined && ` • ${draft.days_past_due} days past due`}
                           </p>
                         </div>
                         <span

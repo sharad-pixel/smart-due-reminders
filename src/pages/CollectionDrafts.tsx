@@ -42,6 +42,12 @@ interface Draft {
   step_number: number;
   created_at: string;
   recommended_send_date: string | null;
+  days_past_due: number | null;
+  agent_persona_id: string | null;
+  ai_agent_personas?: {
+    name: string;
+    persona_summary: string;
+  } | null;
   invoices: {
     invoice_number: string;
     amount: number;
@@ -126,6 +132,7 @@ const CollectionDrafts = () => {
         .from('ai_drafts')
         .select(`
           *,
+          ai_agent_personas(name, persona_summary),
           invoices!inner(
             invoice_number,
             amount,
@@ -165,6 +172,17 @@ const CollectionDrafts = () => {
     if (daysPastDue >= 31) return 'dpd_31_60';
     if (daysPastDue >= 1) return 'dpd_1_30';
     return 'current';
+  };
+
+  const getAgentColor = (agentName: string): string => {
+    const colors: Record<string, string> = {
+      'Sam': 'bg-green-100 text-green-800 border-green-300',
+      'James': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      'Katy': 'bg-orange-100 text-orange-800 border-orange-300',
+      'Troy': 'bg-red-100 text-red-800 border-red-300',
+      'Gotti': 'bg-purple-100 text-purple-800 border-purple-300',
+    };
+    return colors[agentName] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const handleUpdateStatus = async (draftId: string, newStatus: DraftStatus) => {
@@ -699,6 +717,11 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                       {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-1" : "h-3 w-3 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-1" : "h-3 w-3 mr-1"} />}
                                       {draft.channel}
                                     </Badge>
+                                    {draft.ai_agent_personas && (
+                                      <Badge className={getAgentColor(draft.ai_agent_personas.name) + (compactMode ? " text-xs" : "")}>
+                                        🤖 {draft.ai_agent_personas.name}
+                                      </Badge>
+                                    )}
                                     <Badge className={getStatusColor(draft.status) + (compactMode ? " text-xs" : "")}>
                                       {!compactMode && <span className="mr-1">{getStatusIcon(draft.status)}</span>}
                                       {draft.status.replace('_', ' ')}
@@ -814,6 +837,11 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                       {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
                                       {draft.channel}
                                     </Badge>
+                                    {draft.ai_agent_personas && (
+                                      <Badge className={getAgentColor(draft.ai_agent_personas.name) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
+                                        🤖 {draft.ai_agent_personas.name}
+                                      </Badge>
+                                    )}
                                     <Badge className={getStatusColor(draft.status) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
                                       {getStatusIcon(draft.status)}
                                     </Badge>
@@ -912,10 +940,17 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                   ${draft.invoices.amount.toLocaleString()}
                                 </td>
                                 <td className={compactMode ? "p-2" : "p-3"}>
-                                  <Badge variant="outline" className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
-                                    {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
-                                    {draft.channel}
-                                  </Badge>
+                                  <div className="flex gap-1">
+                                    <Badge variant="outline" className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
+                                      {draft.channel === 'email' ? <Mail className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} /> : <MessageSquare className={compactMode ? "h-2 w-2 mr-0.5" : "h-2 w-2 mr-1"} />}
+                                      {draft.channel}
+                                    </Badge>
+                                    {draft.ai_agent_personas && (
+                                      <Badge className={getAgentColor(draft.ai_agent_personas.name) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
+                                        🤖 {draft.ai_agent_personas.name}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className={compactMode ? "p-2" : "p-3"}>
                                   <Badge variant={daysPastDue > 60 ? 'destructive' : daysPastDue > 30 ? 'default' : 'secondary'} className={compactMode ? "text-[10px] px-1 py-0" : "text-xs"}>
@@ -1006,6 +1041,14 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                       {editingDraft.channel === 'email' ? <Mail className="h-3 w-3 mr-1" /> : <MessageSquare className="h-3 w-3 mr-1" />}
                       {editingDraft.channel}
                     </Badge>
+                    {editingDraft.ai_agent_personas && (
+                      <>
+                        <span className="font-semibold ml-4">Agent:</span>
+                        <Badge className={getAgentColor(editingDraft.ai_agent_personas.name)}>
+                          🤖 {editingDraft.ai_agent_personas.name}
+                        </Badge>
+                      </>
+                    )}
                     <span className="font-semibold ml-4">Days Past Due:</span>
                     <Badge variant={calculateDaysPastDue(editingDraft.invoices.due_date) > 60 ? 'destructive' : 'secondary'}>
                       {calculateDaysPastDue(editingDraft.invoices.due_date)} days
