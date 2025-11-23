@@ -352,6 +352,265 @@ export type Database = {
         }
         Relationships: []
       }
+      collection_activities: {
+        Row: {
+          activity_type: string
+          channel: string
+          created_at: string | null
+          debtor_id: string
+          delivered_at: string | null
+          direction: string
+          id: string
+          invoice_id: string | null
+          linked_draft_id: string | null
+          linked_outreach_log_id: string | null
+          message_body: string
+          metadata: Json | null
+          opened_at: string | null
+          responded_at: string | null
+          response_message: string | null
+          sent_at: string | null
+          subject: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          channel: string
+          created_at?: string | null
+          debtor_id: string
+          delivered_at?: string | null
+          direction: string
+          id?: string
+          invoice_id?: string | null
+          linked_draft_id?: string | null
+          linked_outreach_log_id?: string | null
+          message_body: string
+          metadata?: Json | null
+          opened_at?: string | null
+          responded_at?: string | null
+          response_message?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          channel?: string
+          created_at?: string | null
+          debtor_id?: string
+          delivered_at?: string | null
+          direction?: string
+          id?: string
+          invoice_id?: string | null
+          linked_draft_id?: string | null
+          linked_outreach_log_id?: string | null
+          message_body?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          responded_at?: string | null
+          response_message?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_activities_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_activities_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_activities_linked_draft_id_fkey"
+            columns: ["linked_draft_id"]
+            isOneToOne: false
+            referencedRelation: "ai_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_activities_linked_outreach_log_id_fkey"
+            columns: ["linked_outreach_log_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_outcomes: {
+        Row: {
+          activity_id: string | null
+          amount: number | null
+          created_at: string | null
+          debtor_id: string
+          dispute_reason: string | null
+          dispute_status: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          outcome_details: Json | null
+          outcome_type: string
+          payment_date: string | null
+          promise_to_pay_amount: number | null
+          promise_to_pay_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          amount?: number | null
+          created_at?: string | null
+          debtor_id: string
+          dispute_reason?: string | null
+          dispute_status?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          outcome_details?: Json | null
+          outcome_type: string
+          payment_date?: string | null
+          promise_to_pay_amount?: number | null
+          promise_to_pay_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          amount?: number | null
+          created_at?: string | null
+          debtor_id?: string
+          dispute_reason?: string | null
+          dispute_status?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          outcome_details?: Json | null
+          outcome_type?: string
+          payment_date?: string | null
+          promise_to_pay_amount?: number | null
+          promise_to_pay_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_outcomes_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "collection_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_outcomes_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_outcomes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_tasks: {
+        Row: {
+          activity_id: string | null
+          ai_reasoning: string | null
+          assigned_persona: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string | null
+          debtor_id: string
+          details: string | null
+          due_date: string | null
+          id: string
+          invoice_id: string | null
+          priority: string
+          recommended_action: string | null
+          status: string
+          summary: string
+          task_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          ai_reasoning?: string | null
+          assigned_persona?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          debtor_id: string
+          details?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          priority?: string
+          recommended_action?: string | null
+          status?: string
+          summary: string
+          task_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          ai_reasoning?: string | null
+          assigned_persona?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          debtor_id?: string
+          details?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          priority?: string
+          recommended_action?: string | null
+          status?: string
+          summary?: string
+          task_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_tasks_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "collection_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_tasks_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_tasks_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_workflow_steps: {
         Row: {
           ai_template_type: string

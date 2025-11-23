@@ -28,6 +28,7 @@ import Team from "./pages/Team";
 import Profile from "./pages/Profile";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionDrafts from "./pages/CollectionDrafts";
+import CollectionTasks from "./pages/CollectionTasks";
 import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
 import Personas from "./pages/Personas";
 import NotFound from "./pages/NotFound";
@@ -66,6 +67,7 @@ const App = () => (
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
         <Route path="/collections/drafts" element={<CollectionDrafts />} />
+        <Route path="/collections/tasks" element={<CollectionTasks />} />
         <Route path="/team" element={<Team />} />
         <Route path="/profile" element={<Profile />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

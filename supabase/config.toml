@@ -80,3 +80,9 @@ verify_jwt = true
 
 [functions.process-persona-command]
 verify_jwt = true
+
+[functions.extract-collection-tasks]
+verify_jwt = true
+
+[functions.log-collection-activity]
+verify_jwt = true
