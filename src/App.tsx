@@ -28,6 +28,7 @@ import Team from "./pages/Team";
 import Profile from "./pages/Profile";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionDrafts from "./pages/CollectionDrafts";
+import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
+        <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
         <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/team" element={<Team />} />
         <Route path="/profile" element={<Profile />} />

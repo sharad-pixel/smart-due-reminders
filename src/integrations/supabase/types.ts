@@ -509,6 +509,8 @@ export type Database = {
       debtors: {
         Row: {
           address: string | null
+          address_line1: string | null
+          address_line2: string | null
           ar_contact_email: string | null
           ar_contact_name: string | null
           ar_contact_phone: string | null
@@ -519,8 +521,10 @@ export type Database = {
           billing_country: string | null
           billing_postal_code: string | null
           billing_state: string | null
+          city: string | null
           company_name: string
           contact_name: string
+          country: string | null
           created_at: string | null
           credit_limit: number | null
           crm_account_id: string | null
@@ -533,16 +537,20 @@ export type Database = {
           high_risk_invoice_count: number | null
           id: string
           is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
           max_risk_score: number | null
           name: string
           notes: string | null
           payment_terms_default: string | null
           phone: string | null
+          postal_code: string | null
           primary_contact_name: string | null
           primary_email: string | null
           primary_phone: string | null
           reference_id: string
           risk_tier: string | null
+          state: string | null
           tags: Json | null
           total_open_balance: number | null
           type: Database["public"]["Enums"]["debtor_type"] | null
@@ -551,6 +559,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
@@ -561,8 +571,10 @@ export type Database = {
           billing_country?: string | null
           billing_postal_code?: string | null
           billing_state?: string | null
+          city?: string | null
           company_name: string
           contact_name: string
+          country?: string | null
           created_at?: string | null
           credit_limit?: number | null
           crm_account_id?: string | null
@@ -575,16 +587,20 @@ export type Database = {
           high_risk_invoice_count?: number | null
           id?: string
           is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           max_risk_score?: number | null
           name: string
           notes?: string | null
           payment_terms_default?: string | null
           phone?: string | null
+          postal_code?: string | null
           primary_contact_name?: string | null
           primary_email?: string | null
           primary_phone?: string | null
           reference_id: string
           risk_tier?: string | null
+          state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
@@ -593,6 +609,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
@@ -603,8 +621,10 @@ export type Database = {
           billing_country?: string | null
           billing_postal_code?: string | null
           billing_state?: string | null
+          city?: string | null
           company_name?: string
           contact_name?: string
+          country?: string | null
           created_at?: string | null
           credit_limit?: number | null
           crm_account_id?: string | null
@@ -617,16 +637,20 @@ export type Database = {
           high_risk_invoice_count?: number | null
           id?: string
           is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           max_risk_score?: number | null
           name?: string
           notes?: string | null
           payment_terms_default?: string | null
           phone?: string | null
+          postal_code?: string | null
           primary_contact_name?: string | null
           primary_email?: string | null
           primary_phone?: string | null
           reference_id?: string
           risk_tier?: string | null
+          state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
@@ -970,10 +994,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_autocomplete_api_key: string | null
+          address_autocomplete_enabled: boolean | null
+          address_autocomplete_provider: string | null
           avatar_url: string | null
           business_address: string | null
+          business_address_line1: string | null
+          business_address_line2: string | null
+          business_city: string | null
+          business_country: string | null
           business_name: string | null
           business_phone: string | null
+          business_postal_code: string | null
+          business_state: string | null
           company_name: string | null
           created_at: string | null
           email: string | null
@@ -996,10 +1029,19 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          address_autocomplete_api_key?: string | null
+          address_autocomplete_enabled?: boolean | null
+          address_autocomplete_provider?: string | null
           avatar_url?: string | null
           business_address?: string | null
+          business_address_line1?: string | null
+          business_address_line2?: string | null
+          business_city?: string | null
+          business_country?: string | null
           business_name?: string | null
           business_phone?: string | null
+          business_postal_code?: string | null
+          business_state?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string | null
@@ -1022,10 +1064,19 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          address_autocomplete_api_key?: string | null
+          address_autocomplete_enabled?: boolean | null
+          address_autocomplete_provider?: string | null
           avatar_url?: string | null
           business_address?: string | null
+          business_address_line1?: string | null
+          business_address_line2?: string | null
+          business_city?: string | null
+          business_country?: string | null
           business_name?: string | null
           business_phone?: string | null
+          business_postal_code?: string | null
+          business_state?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string | null

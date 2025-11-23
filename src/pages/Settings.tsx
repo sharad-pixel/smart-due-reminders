@@ -7,11 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Sparkles } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Sparkles, MapPin } from "lucide-react";
+import { AddressAutocompleteInput, ParsedAddress } from '@/components/AddressAutocompleteInput';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfileData {
   business_name: string;
   business_address: string;
+  business_address_line1: string;
+  business_address_line2: string;
+  business_city: string;
+  business_state: string;
+  business_postal_code: string;
+  business_country: string;
   business_phone: string;
   from_name: string;
   from_email: string;
@@ -27,6 +35,7 @@ interface ProfileData {
 }
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
@@ -35,6 +44,12 @@ const Settings = () => {
   const [profile, setProfile] = useState<ProfileData>({
     business_name: "",
     business_address: "",
+    business_address_line1: "",
+    business_address_line2: "",
+    business_city: "",
+    business_state: "",
+    business_postal_code: "",
+    business_country: "",
     business_phone: "",
     from_name: "",
     from_email: "",
@@ -76,6 +91,12 @@ const Settings = () => {
       setProfile({
         business_name: data.business_name || "",
         business_address: data.business_address || "",
+        business_address_line1: data.business_address_line1 || "",
+        business_address_line2: data.business_address_line2 || "",
+        business_city: data.business_city || "",
+        business_state: data.business_state || "",
+        business_postal_code: data.business_postal_code || "",
+        business_country: data.business_country || "",
         business_phone: data.business_phone || "",
         from_name: brandingData?.from_name || "",
         from_email: brandingData?.from_email || "",
@@ -108,6 +129,12 @@ const Settings = () => {
         .update({
           business_name: profile.business_name,
           business_address: profile.business_address,
+          business_address_line1: profile.business_address_line1,
+          business_address_line2: profile.business_address_line2,
+          business_city: profile.business_city,
+          business_state: profile.business_state,
+          business_postal_code: profile.business_postal_code,
+          business_country: profile.business_country,
           business_phone: profile.business_phone,
           sendgrid_api_key: profile.sendgrid_api_key,
           twilio_account_sid: profile.twilio_account_sid,
@@ -287,13 +314,78 @@ const Settings = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="business_address">Business Address</Label>
-              <Input
-                id="business_address"
-                value={profile.business_address}
-                onChange={(e) => setProfile({ ...profile, business_address: e.target.value })}
-                placeholder="123 Main St, City, State 12345"
+              <div className="flex items-center justify-between">
+                <Label htmlFor="business_address">Business Address</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/settings/integrations/address-autocomplete')}
+                  className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
+                >
+                  <MapPin className="h-3 w-3 mr-1" />
+                  Configure Address Autocomplete
+                </Button>
+              </div>
+              <AddressAutocompleteInput
+                value={profile.business_address_line1}
+                onChange={(value) => setProfile({ ...profile, business_address_line1: value })}
+                onAddressSelected={(parsed: ParsedAddress) => {
+                  setProfile({
+                    ...profile,
+                    business_address_line1: parsed.address_line1,
+                    business_address_line2: parsed.address_line2 || "",
+                    business_city: parsed.city,
+                    business_state: parsed.state,
+                    business_postal_code: parsed.postal_code,
+                    business_country: parsed.country,
+                    business_address: `${parsed.address_line1}${parsed.address_line2 ? ', ' + parsed.address_line2 : ''}, ${parsed.city}, ${parsed.state} ${parsed.postal_code}`,
+                  });
+                }}
+                placeholder="Start typing an address..."
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="business_address_line2">Address Line 2</Label>
+                <Input
+                  id="business_address_line2"
+                  value={profile.business_address_line2}
+                  onChange={(e) => setProfile({ ...profile, business_address_line2: e.target.value })}
+                  placeholder="Apt, Suite, etc."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_city">City</Label>
+                <Input
+                  id="business_city"
+                  value={profile.business_city}
+                  onChange={(e) => setProfile({ ...profile, business_city: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_state">State</Label>
+                <Input
+                  id="business_state"
+                  value={profile.business_state}
+                  onChange={(e) => setProfile({ ...profile, business_state: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_postal_code">Postal Code</Label>
+                <Input
+                  id="business_postal_code"
+                  value={profile.business_postal_code}
+                  onChange={(e) => setProfile({ ...profile, business_postal_code: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_country">Country</Label>
+                <Input
+                  id="business_country"
+                  value={profile.business_country}
+                  onChange={(e) => setProfile({ ...profile, business_country: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="business_phone">Business Phone</Label>
