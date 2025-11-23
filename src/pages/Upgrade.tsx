@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { Check, ExternalLink, Loader2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Upgrade = () => {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ const Upgrade = () => {
   const [processingPortal, setProcessingPortal] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
+  const { role, loading: roleLoading, canManageBilling } = useUserRole();
 
   useEffect(() => {
     loadPlansAndCurrentSubscription();
@@ -75,7 +78,7 @@ const Upgrade = () => {
     }
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <Layout>
         <div className="container mx-auto max-w-6xl py-12">
@@ -85,6 +88,54 @@ const Upgrade = () => {
               <Skeleton key={i} className="h-96" />
             ))}
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Access control: Only owners and admins can manage billing
+  if (!canManageBilling) {
+    return (
+      <Layout>
+        <div className="container mx-auto max-w-4xl py-12">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Billing & Subscription Management
+              </CardTitle>
+              <CardDescription>
+                Upgrade plans and manage your subscription
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Access Restricted</AlertTitle>
+                <AlertDescription>
+                  Only account owners and administrators can manage billing and subscriptions.
+                  {role === 'member' && " Please contact your account owner or admin to upgrade the plan."}
+                  {role === 'viewer' && " You have view-only access. Please contact your account owner or admin for subscription changes."}
+                </AlertDescription>
+              </Alert>
+
+              <div className="rounded-lg border border-border bg-muted/50 p-6">
+                <h3 className="text-lg font-semibold mb-2">Your Current Role: {role}</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {role === 'member' && "Members can create and manage invoices, debtors, and workflows, but cannot manage billing."}
+                  {role === 'viewer' && "Viewers have read-only access to view data but cannot make changes or manage billing."}
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={() => navigate("/dashboard")}>
+                    Go to Dashboard
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate("/team")}>
+                    View Team Settings
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
