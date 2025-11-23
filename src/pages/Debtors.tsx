@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import * as XLSX from 'xlsx';
+import { AddressAutocompleteInput, ParsedAddress } from '@/components/AddressAutocompleteInput';
 
 interface Debtor {
   id: string;
@@ -55,6 +56,12 @@ const Debtors = () => {
     phone: "",
     type: "B2C" as "B2B" | "B2C",
     address: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "",
     notes: "",
   });
 
@@ -562,6 +569,12 @@ const Debtors = () => {
         phone: "",
         type: "B2C",
         address: "",
+        address_line1: "",
+        address_line2: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        country: "",
         notes: "",
       });
       fetchDebtors();
@@ -768,11 +781,66 @@ const Debtors = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  <AddressAutocompleteInput
+                    value={formData.address_line1}
+                    onChange={(value) => setFormData({ ...formData, address_line1: value })}
+                    onAddressSelected={(parsed: ParsedAddress) => {
+                      setFormData({
+                        ...formData,
+                        address_line1: parsed.address_line1,
+                        address_line2: parsed.address_line2 || "",
+                        city: parsed.city,
+                        state: parsed.state,
+                        postal_code: parsed.postal_code,
+                        country: parsed.country,
+                        address: `${parsed.address_line1}${parsed.address_line2 ? ', ' + parsed.address_line2 : ''}, ${parsed.city}, ${parsed.state} ${parsed.postal_code}`,
+                      });
+                    }}
+                    placeholder="Start typing an address..."
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="address_line2">Address Line 2</Label>
+                    <Input
+                      id="address_line2"
+                      value={formData.address_line2}
+                      onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
+                      placeholder="Apt, Suite, etc."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="postal_code">Postal Code</Label>
+                    <Input
+                      id="postal_code"
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes</Label>
