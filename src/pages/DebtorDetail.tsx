@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { PaymentScoreCard } from "@/components/PaymentScoreCard";
 
 interface Debtor {
   id: string;
@@ -30,6 +31,20 @@ interface Debtor {
   notes: string | null;
   current_balance: number | null;
   crm_account_id: string | null;
+  payment_score: number | null;
+  payment_risk_tier: string | null;
+  avg_days_to_pay: number | null;
+  max_days_past_due: number | null;
+  aging_mix_current_pct: number | null;
+  aging_mix_1_30_pct: number | null;
+  aging_mix_31_60_pct: number | null;
+  aging_mix_61_90_pct: number | null;
+  aging_mix_91_120_pct: number | null;
+  aging_mix_121_plus_pct: number | null;
+  disputed_invoices_count: number | null;
+  in_payment_plan_invoices_count: number | null;
+  written_off_invoices_count: number | null;
+  payment_score_last_calculated: string | null;
 }
 
 interface CRMAccount {
@@ -410,6 +425,25 @@ const DebtorDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Payment Score Card */}
+        <PaymentScoreCard
+          debtorId={debtor.id}
+          paymentScore={debtor.payment_score}
+          paymentRiskTier={debtor.payment_risk_tier}
+          avgDaysToPay={debtor.avg_days_to_pay}
+          maxDaysPastDue={debtor.max_days_past_due}
+          agingMixCurrentPct={debtor.aging_mix_current_pct}
+          agingMix1_30Pct={debtor.aging_mix_1_30_pct}
+          agingMix31_60Pct={debtor.aging_mix_31_60_pct}
+          agingMix61_90Pct={debtor.aging_mix_61_90_pct}
+          agingMix91_120Pct={debtor.aging_mix_91_120_pct}
+          agingMix121PlusPct={debtor.aging_mix_121_plus_pct}
+          disputedInvoicesCount={debtor.disputed_invoices_count}
+          inPaymentPlanInvoicesCount={debtor.in_payment_plan_invoices_count}
+          writtenOffInvoicesCount={debtor.written_off_invoices_count}
+          paymentScoreLastCalculated={debtor.payment_score_last_calculated}
+        />
 
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList>
