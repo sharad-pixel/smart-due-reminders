@@ -42,7 +42,7 @@ const Privacy = () => {
             <ul className="list-disc pl-6 space-y-2">
               <li>Provide and maintain our software platform</li>
               <li>Generate AI-powered collection messages based on your instructions</li>
-              <li>Process payments for your subscription</li>
+              <li>Process payments for your plan</li>
               <li>Send administrative and service-related communications</li>
               <li>Improve and optimize our platform features</li>
               <li>Provide customer support</li>
@@ -58,7 +58,7 @@ const Privacy = () => {
             <p className="mb-2">We work with third-party service providers who assist in operating our platform:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Cloud hosting providers (for data storage and processing)</li>
-              <li>Payment processors (for subscription billing)</li>
+              <li>Payment processors (for plan billing)</li>
               <li>AI/ML providers (for message generation)</li>
               <li>Email and SMS delivery services</li>
             </ul>

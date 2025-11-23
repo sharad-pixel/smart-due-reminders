@@ -379,7 +379,7 @@ const Profile = () => {
         <div>
           <h1 className="text-4xl font-bold text-primary">Profile & Account</h1>
           <p className="text-muted-foreground mt-2">
-            View your account details, permissions, and subscription plan
+            View your account details, permissions, and plan
           </p>
         </div>
 
@@ -457,13 +457,13 @@ const Profile = () => {
               {permissions.manage_billing && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Can manage billing & subscriptions</span>
+                  <span className="text-sm">Can manage billing</span>
                 </div>
               )}
               {!permissions.manage_billing && (
                 <div className="flex items-center gap-2">
                   <XCircle className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Cannot access billing & subscriptions</span>
+                  <span className="text-sm text-muted-foreground">Cannot access billing</span>
                 </div>
               )}
 
@@ -659,7 +659,7 @@ const Profile = () => {
                   disabled={processing}
                   className="w-full"
                 >
-                  {processing ? "Loading..." : "Manage Subscription"}
+                  {processing ? "Loading..." : "Manage Plan"}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
                   Change your plan, update payment method, or view billing history

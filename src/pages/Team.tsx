@@ -284,7 +284,7 @@ const Team = () => {
                         <>
                           <li>• Manage team members and roles</li>
                           <li>• Configure settings and integrations</li>
-                          <li>• Full access to billing and subscription</li>
+                          <li>• Full access to billing and plans</li>
                           <li>• Create and edit all data</li>
                         </>
                       )}
@@ -448,7 +448,7 @@ const Team = () => {
               </TableHeader>
               <TableBody>
                 <TableRow>
-                  <TableCell className="font-medium">Manage Billing & Subscription</TableCell>
+                  <TableCell className="font-medium">Manage Billing & Plans</TableCell>
                   <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
                   <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
                   <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
