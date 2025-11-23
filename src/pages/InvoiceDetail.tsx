@@ -19,6 +19,8 @@ import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
 import { DraftPreviewModal } from "@/components/DraftPreviewModal";
+import { TasksSummaryCard } from "@/components/TasksSummaryCard";
+import type { CollectionTask } from "@/hooks/useCollectionTasks";
 
 interface Invoice {
   id: string;
@@ -104,6 +106,7 @@ const InvoiceDetail = () => {
   const [copiedRefId, setCopiedRefId] = useState(false);
   const [previewDraft, setPreviewDraft] = useState<any>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [tasks, setTasks] = useState<CollectionTask[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -122,7 +125,7 @@ const InvoiceDetail = () => {
 
   const fetchData = async () => {
     try {
-      const [invoiceRes, outreachRes, draftsRes] = await Promise.all([
+      const [invoiceRes, outreachRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*, debtors(name, email, crm_account_id)")
@@ -139,6 +142,11 @@ const InvoiceDetail = () => {
           .eq("invoice_id", id)
           .neq("status", "discarded")
           .order("step_number", { ascending: true }),
+        supabase
+          .from("collection_tasks")
+          .select("*")
+          .eq("invoice_id", id)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (invoiceRes.error) throw invoiceRes.error;
@@ -146,6 +154,7 @@ const InvoiceDetail = () => {
 
       setOutreach(outreachRes.data || []);
       setDrafts(draftsRes.data || []);
+      setTasks((tasksRes.data || []) as CollectionTask[]);
 
       // Fetch associated workflow based on aging bucket
       if (invoiceRes.data) {
@@ -748,6 +757,11 @@ const InvoiceDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        <TasksSummaryCard 
+          tasks={tasks} 
+          title="Collection Tasks"
+        />
 
         <Card>
           <CardHeader>
