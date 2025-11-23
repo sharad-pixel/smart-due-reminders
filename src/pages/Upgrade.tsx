@@ -102,10 +102,10 @@ const Upgrade = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="h-5 w-5" />
-                Billing & Subscription Management
+                Billing & Plan Management
               </CardTitle>
               <CardDescription>
-                Upgrade plans and manage your subscription
+                Upgrade plans and manage your billing
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -113,9 +113,9 @@ const Upgrade = () => {
                 <Lock className="h-4 w-4" />
                 <AlertTitle>Access Restricted</AlertTitle>
                 <AlertDescription>
-                  Only account owners and administrators can manage billing and subscriptions.
+                  Only account owners and administrators can manage billing and plans.
                   {role === 'member' && " Please contact your account owner or admin to upgrade the plan."}
-                  {role === 'viewer' && " You have view-only access. Please contact your account owner or admin for subscription changes."}
+                  {role === 'viewer' && " You have view-only access. Please contact your account owner or admin for plan changes."}
                 </AlertDescription>
               </Alert>
 
@@ -147,7 +147,7 @@ const Upgrade = () => {
     <Layout>
       <div className="container mx-auto max-w-6xl py-12">
         <div className="mb-12">
-          <h1 className="text-4xl font-bold mb-4">Manage Your Subscription</h1>
+          <h1 className="text-4xl font-bold mb-4">Manage Your Plan</h1>
           <p className="text-xl text-muted-foreground">
             {currentPlan 
               ? `You're currently on the ${currentPlan.name} plan`
@@ -160,7 +160,7 @@ const Upgrade = () => {
             <CardHeader>
               <CardTitle>Current Plan: {currentPlan.name}</CardTitle>
               <CardDescription>
-                Manage your subscription, update payment method, or change plans
+                Manage your plan, update payment method, or upgrade
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -177,7 +177,7 @@ const Upgrade = () => {
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Manage Subscription
+                    Manage Plan
                   </>
                 )}
               </Button>

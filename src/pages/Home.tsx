@@ -276,7 +276,7 @@ const Home = () => {
               <div className="text-4xl mb-3">💻</div>
               <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">SaaS Companies</h4>
               <p className="text-sm text-muted-foreground">
-                Software companies, subscription businesses
+                Software companies, B2B service providers
               </p>
             </div>
 

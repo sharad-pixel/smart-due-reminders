@@ -123,7 +123,7 @@ const Checkout = () => {
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2">Recouply.ai</h1>
-          <p className="text-muted-foreground">Complete your subscription</p>
+          <p className="text-muted-foreground">Complete your plan setup</p>
         </div>
 
         <Card>

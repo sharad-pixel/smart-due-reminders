@@ -64,7 +64,7 @@ const Terms = () => {
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">5. Payment Processing</h2>
             <p>
-              All payments from debtors are processed directly through your own payment processors (e.g., Stripe). Recouply.ai never holds, processes, or takes a percentage of collected funds. We charge only a flat subscription fee for use of the software.
+              All payments from debtors are processed directly through your own payment processors (e.g., Stripe). Recouply.ai never holds, processes, or takes a percentage of collected funds. We charge only a flat monthly fee for use of the software.
             </p>
           </section>
 
