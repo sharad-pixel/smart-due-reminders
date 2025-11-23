@@ -53,7 +53,8 @@ const Dashboard = () => {
     { bucket: "0-30", count: 0, amount: 0 },
     { bucket: "31-60", count: 0, amount: 0 },
     { bucket: "61-90", count: 0, amount: 0 },
-    { bucket: "90+", count: 0, amount: 0 },
+    { bucket: "91-120", count: 0, amount: 0 },
+    { bucket: "121+", count: 0, amount: 0 },
   ]);
   const [priorityOverdues, setPriorityOverdues] = useState<Invoice[]>([]);
 
@@ -132,7 +133,8 @@ const Dashboard = () => {
         "0-30": { count: 0, amount: 0 },
         "31-60": { count: 0, amount: 0 },
         "61-90": { count: 0, amount: 0 },
-        "90+": { count: 0, amount: 0 },
+        "91-120": { count: 0, amount: 0 },
+        "121+": { count: 0, amount: 0 },
       };
 
       openInvoices.forEach((inv) => {
@@ -148,9 +150,12 @@ const Dashboard = () => {
         } else if (days <= 90) {
           buckets["61-90"].count++;
           buckets["61-90"].amount += amount;
+        } else if (days <= 120) {
+          buckets["91-120"].count++;
+          buckets["91-120"].amount += amount;
         } else {
-          buckets["90+"].count++;
-          buckets["90+"].amount += amount;
+          buckets["121+"].count++;
+          buckets["121+"].amount += amount;
         }
       });
 
@@ -158,7 +163,8 @@ const Dashboard = () => {
         { bucket: "0-30", count: buckets["0-30"].count, amount: buckets["0-30"].amount },
         { bucket: "31-60", count: buckets["31-60"].count, amount: buckets["31-60"].amount },
         { bucket: "61-90", count: buckets["61-90"].count, amount: buckets["61-90"].amount },
-        { bucket: "90+", count: buckets["90+"].count, amount: buckets["90+"].amount },
+        { bucket: "91-120", count: buckets["91-120"].count, amount: buckets["91-120"].amount },
+        { bucket: "121+", count: buckets["121+"].count, amount: buckets["121+"].amount },
       ]);
 
       // Get Priority Overdues (top 10 by days past due)
@@ -279,7 +285,7 @@ const Dashboard = () => {
                 <Bar dataKey="amount" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-4 grid grid-cols-4 gap-4 text-center">
+            <div className="mt-4 grid grid-cols-5 gap-4 text-center">
               {agingData.map((bucket) => (
                 <div key={bucket.bucket}>
                   <p className="text-sm font-medium">{bucket.bucket} days</p>
