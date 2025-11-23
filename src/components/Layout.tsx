@@ -13,7 +13,8 @@ import {
   LogOut,
   User as UserIcon,
   Workflow,
-  Mail
+  Mail,
+  CheckSquare
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -142,6 +143,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
+    { path: "/collections/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
   ];

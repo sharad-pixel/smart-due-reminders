@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { TasksSummaryCard } from "@/components/TasksSummaryCard";
+import { useCollectionTasks } from "@/hooks/useCollectionTasks";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,10 +70,12 @@ interface OutreachLog {
 const DebtorDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { fetchTasks } = useCollectionTasks();
   const [debtor, setDebtor] = useState<Debtor | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
   const [crmAccounts, setCrmAccounts] = useState<CRMAccount[]>([]);
+  const [debtorTasks, setDebtorTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -94,8 +98,14 @@ const DebtorDetail = () => {
       fetchInvoices();
       fetchOutreach();
       fetchCrmAccounts();
+      fetchDebtorTasks();
     }
   }, [id]);
+
+  const fetchDebtorTasks = async () => {
+    const tasks = await fetchTasks({ debtor_id: id });
+    setDebtorTasks(tasks.filter(t => t.status !== 'done'));
+  };
 
   const fetchDebtor = async () => {
     try {
