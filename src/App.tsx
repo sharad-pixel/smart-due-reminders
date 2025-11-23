@@ -34,6 +34,7 @@ import Personas from "./pages/Personas";
 import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
+import DebtorDashboard from "./pages/DebtorDashboard";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
         <Route path="/contact-us" element={<ContactUs />} />
         <Route path="/upgrade" element={<Upgrade />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/debtors" element={<DebtorDashboard />} />
         <Route path="/debtors" element={<Debtors />} />
         <Route path="/debtors/:id" element={<DebtorDetail />} />
         <Route path="/invoices" element={<Invoices />} />
