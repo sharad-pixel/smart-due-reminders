@@ -5,6 +5,9 @@ import MarketingLayout from "@/components/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect } from "react";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { personaConfig } from "@/lib/personaConfig";
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -276,6 +279,68 @@ const Pricing = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* AI Personas Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-muted/10 to-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-4">
+            <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+              AI-Powered Collections
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-center mb-4">
+            Meet Your AI Collections Team
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Every plan includes access to our five specialized AI agents that automatically adjust their approach based on invoice age
+          </p>
+          <TooltipProvider delayDuration={100}>
+            <div className="flex justify-center items-center gap-8 flex-wrap mb-8">
+              {Object.values(personaConfig).map((persona, index) => (
+                <Tooltip key={persona.name}>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className="hover-scale cursor-pointer animate-fade-in transition-all duration-300"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="p-4 rounded-2xl bg-card border-2 border-transparent hover:border-primary/20 hover:shadow-xl transition-all duration-300">
+                        <PersonaAvatar persona={persona} size="xl" />
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="bottom" 
+                    className="max-w-xs p-4 animate-scale-in bg-card border-2"
+                    sideOffset={10}
+                  >
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-lg">{persona.name}</h4>
+                      <p className="text-sm font-medium" style={{ color: persona.color }}>
+                        {persona.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground italic">
+                        "{persona.tone}"
+                      </p>
+                      <div className="pt-2 border-t mt-2">
+                        <p className="text-xs font-semibold mb-1">Coverage:</p>
+                        <p className="text-xs text-muted-foreground">
+                          {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                Hover over each agent to learn their specialty
+              </p>
+            </div>
+          </TooltipProvider>
         </div>
       </section>
 
