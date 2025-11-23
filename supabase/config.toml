@@ -77,3 +77,6 @@ verify_jwt = true
 
 [functions.autocomplete-business-info]
 verify_jwt = true
+
+[functions.process-persona-command]
+verify_jwt = true
