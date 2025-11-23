@@ -33,6 +33,7 @@ import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
 import Personas from "./pages/Personas";
 import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
+import ComingSoon from "./pages/ComingSoon";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +43,14 @@ const App = () => (
     <Sonner />
     <BrowserRouter>
       <Routes>
+        {/* HOMEPAGE: Switch between full marketing site and coming soon page */}
+        {/* Current: Full marketing site */}
         <Route path="/" element={<Home />} />
+        {/* To use coming soon page instead, replace the line above with: */}
+        {/* <Route path="/" element={<ComingSoon />} /> */}
+        
+        {/* Preview coming soon page at /coming-soon */}
+        <Route path="/coming-soon" element={<ComingSoon />} />
         <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/personas" element={<Personas />} />
