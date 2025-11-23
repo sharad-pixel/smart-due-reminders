@@ -9,8 +9,12 @@ import { useCollectionTasks, CollectionTask } from "@/hooks/useCollectionTasks";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CheckSquare, Filter, Loader2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 export default function CollectionTasks() {
+  const [searchParams] = useSearchParams();
+  const debtorIdFromUrl = searchParams.get('debtor');
+  
   const { fetchTasks, updateTaskStatus, deleteTask, isLoading } = useCollectionTasks();
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
@@ -24,7 +28,7 @@ export default function CollectionTasks() {
 
   useEffect(() => {
     loadTasks();
-  }, [statusFilter, priorityFilter, taskTypeFilter]);
+  }, [statusFilter, priorityFilter, taskTypeFilter, debtorIdFromUrl]);
 
   const loadTasks = async () => {
     const filters: any = {};
@@ -37,6 +41,9 @@ export default function CollectionTasks() {
     }
     if (taskTypeFilter !== 'all') {
       filters.task_type = taskTypeFilter;
+    }
+    if (debtorIdFromUrl) {
+      filters.debtor_id = debtorIdFromUrl;
     }
 
     const data = await fetchTasks(filters);

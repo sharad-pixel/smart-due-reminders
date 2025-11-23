@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 
 export default function DebtorDashboard() {
@@ -178,6 +178,7 @@ export default function DebtorDashboard() {
                   <TableHead>Avg Days to Pay</TableHead>
                   <TableHead>Max Days Past Due</TableHead>
                   <TableHead>Flags</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -197,7 +198,15 @@ export default function DebtorDashboard() {
                     <TableCell>
                       ${(debtor.total_open_balance || 0).toLocaleString()}
                     </TableCell>
-                    <TableCell>{debtor.open_invoices_count || 0}</TableCell>
+                    <TableCell>
+                      <Link 
+                        to={`/invoices?debtor=${debtor.id}`}
+                        className="text-primary hover:underline font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {debtor.open_invoices_count || 0}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       {debtor.avg_days_to_pay 
                         ? `${debtor.avg_days_to_pay.toFixed(1)} days`
@@ -220,12 +229,25 @@ export default function DebtorDashboard() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Link
+                          to={`/collection-tasks?debtor=${debtor.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button variant="ghost" size="sm" className="h-8">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Tasks
+                          </Button>
+                        </Link>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 
                 {filteredDebtors?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground">
                       No debtors found matching your filters
                     </TableCell>
                   </TableRow>
