@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Mail, MessageSquare, Search, Loader2, DollarSign, FileText, CheckCircle, Clock, XCircle, Trash2, Edit, LayoutGrid, List, Table2, Maximize2, Minimize2, CheckSquare } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
 
 type AgingBucket = 'all' | 'current' | 'dpd_1_30' | 'dpd_31_60' | 'dpd_61_90' | 'dpd_91_120' | 'dpd_120_plus';
 type DraftStatus = 'pending_approval' | 'approved' | 'discarded';
@@ -172,17 +173,6 @@ const CollectionDrafts = () => {
     if (daysPastDue >= 31) return 'dpd_31_60';
     if (daysPastDue >= 1) return 'dpd_1_30';
     return 'current';
-  };
-
-  const getAgentColor = (agentName: string): string => {
-    const colors: Record<string, string> = {
-      'Sam': 'bg-green-100 text-green-800 border-green-300',
-      'James': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      'Katy': 'bg-orange-100 text-orange-800 border-orange-300',
-      'Troy': 'bg-red-100 text-red-800 border-red-300',
-      'Gotti': 'bg-purple-100 text-purple-800 border-purple-300',
-    };
-    return colors[agentName] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const handleUpdateStatus = async (draftId: string, newStatus: DraftStatus) => {
@@ -718,9 +708,7 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                       {draft.channel}
                                     </Badge>
                                     {draft.ai_agent_personas && (
-                                      <Badge className={getAgentColor(draft.ai_agent_personas.name) + (compactMode ? " text-xs" : "")}>
-                                        🤖 {draft.ai_agent_personas.name}
-                                      </Badge>
+                                      <PersonaAvatar persona={draft.ai_agent_personas.name} size={compactMode ? "xs" : "sm"} showName />
                                     )}
                                     <Badge className={getStatusColor(draft.status) + (compactMode ? " text-xs" : "")}>
                                       {!compactMode && <span className="mr-1">{getStatusIcon(draft.status)}</span>}
@@ -838,9 +826,7 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                       {draft.channel}
                                     </Badge>
                                     {draft.ai_agent_personas && (
-                                      <Badge className={getAgentColor(draft.ai_agent_personas.name) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
-                                        🤖 {draft.ai_agent_personas.name}
-                                      </Badge>
+                                      <PersonaAvatar persona={draft.ai_agent_personas.name} size="xs" showName />
                                     )}
                                     <Badge className={getStatusColor(draft.status) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
                                       {getStatusIcon(draft.status)}
@@ -946,9 +932,7 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                                       {draft.channel}
                                     </Badge>
                                     {draft.ai_agent_personas && (
-                                      <Badge className={getAgentColor(draft.ai_agent_personas.name) + (compactMode ? " text-[10px] px-1 py-0" : " text-xs")}>
-                                        🤖 {draft.ai_agent_personas.name}
-                                      </Badge>
+                                      <PersonaAvatar persona={draft.ai_agent_personas.name} size="xs" showName />
                                     )}
                                   </div>
                                 </td>
@@ -1044,9 +1028,7 @@ Generate ${editingDraft.channel === 'email' ? 'a complete email message' : 'a co
                     {editingDraft.ai_agent_personas && (
                       <>
                         <span className="font-semibold ml-4">Agent:</span>
-                        <Badge className={getAgentColor(editingDraft.ai_agent_personas.name)}>
-                          🤖 {editingDraft.ai_agent_personas.name}
-                        </Badge>
+                        <PersonaAvatar persona={editingDraft.ai_agent_personas.name} size="sm" showName />
                       </>
                     )}
                     <span className="font-semibold ml-4">Days Past Due:</span>

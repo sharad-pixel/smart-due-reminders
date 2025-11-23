@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check } from "lucide-react";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
 
 interface Invoice {
   id: string;
@@ -325,17 +326,6 @@ const InvoiceDetail = () => {
       'dpd_120_plus': '121+ Days Past Due',
     };
     return labels[bucket] || bucket;
-  };
-
-  const getAgentColor = (agentName: string): string => {
-    const colors: Record<string, string> = {
-      'Sam': 'bg-green-100 text-green-800 border-green-300',
-      'James': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      'Katy': 'bg-orange-100 text-orange-800 border-orange-300',
-      'Troy': 'bg-red-100 text-red-800 border-red-300',
-      'Gotti': 'bg-purple-100 text-purple-800 border-purple-300',
-    };
-    return colors[agentName] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const getStatusColor = (status: string) => {
@@ -756,9 +746,7 @@ const InvoiceDetail = () => {
                           <div className="flex items-center gap-2 flex-wrap">
                             <CardTitle>Step {draft.step_number} - {draft.channel.toUpperCase()}</CardTitle>
                             {draft.ai_agent_personas && (
-                              <Badge className={getAgentColor(draft.ai_agent_personas.name) + " text-xs"}>
-                                🤖 {draft.ai_agent_personas.name}
-                              </Badge>
+                              <PersonaAvatar persona={draft.ai_agent_personas.name} size="sm" showName />
                             )}
                           </div>
                           {draft.subject && <p className="text-sm text-muted-foreground">{draft.subject}</p>}

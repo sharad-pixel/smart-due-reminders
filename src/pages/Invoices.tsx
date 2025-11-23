@@ -15,7 +15,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import * as XLSX from 'xlsx';
 
 interface Invoice {
@@ -39,18 +40,11 @@ interface Debtor {
   name: string;
 }
 
-interface AgentPersona {
-  name: string;
-  bucket_min: number;
-  bucket_max: number | null;
-}
-
 const Invoices = () => {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
-  const [agentPersonas, setAgentPersonas] = useState<AgentPersona[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -132,28 +126,6 @@ const Invoices = () => {
     if (daysPastDue <= 90) return "61-90";
     if (daysPastDue <= 120) return "91-120";
     return "121+";
-  };
-
-  const getAssignedAgent = (daysPastDue: number): AgentPersona | null => {
-    if (daysPastDue === 0) return null;
-    
-    return agentPersonas.find(agent => {
-      if (agent.bucket_max === null) {
-        return daysPastDue >= agent.bucket_min;
-      }
-      return daysPastDue >= agent.bucket_min && daysPastDue <= agent.bucket_max;
-    }) || null;
-  };
-
-  const getAgentColor = (agentName: string): string => {
-    const colors: Record<string, string> = {
-      'Sam': 'bg-green-500',
-      'James': 'bg-yellow-500',
-      'Katy': 'bg-orange-500',
-      'Troy': 'bg-red-500',
-      'Gotti': 'bg-purple-500',
-    };
-    return colors[agentName] || 'bg-gray-500';
   };
 
   const handleRemoveFromWorkflow = async (invoiceId: string, workflowId: string) => {
@@ -1168,16 +1140,9 @@ const Invoices = () => {
                           {activeWorkflow ? (
                             <div className="flex items-center gap-2">
                               {(() => {
-                                const agent = getAssignedAgent(daysPastDue);
-                                return agent ? (
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarFallback className={`${getAgentColor(agent.name)} text-white text-xs`}>
-                                        {agent.name[0]}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-xs font-medium">{agent.name}</span>
-                                  </div>
+                                const persona = getPersonaByDaysPastDue(daysPastDue);
+                                return persona ? (
+                                  <PersonaAvatar persona={persona} size="sm" showName />
                                 ) : (
                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                     {ageBucket}
