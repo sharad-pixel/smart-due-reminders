@@ -71,23 +71,33 @@ export const AddressAutocompleteInput = ({
       });
 
       if (error) {
-        if (error.message.includes('not enabled') || error.message.includes('not configured')) {
+        // Check if autocomplete is not enabled or configured
+        const errorMsg = error.message || JSON.stringify(error);
+        if (errorMsg.includes('not enabled') || errorMsg.includes('not configured')) {
           setManualMode(true);
+          setSuggestions([]);
           return;
         }
         throw error;
       }
 
-      setSuggestions(data.suggestions || []);
-      setShowSuggestions(true);
+      // Check if response has an error property (when function returns 400)
+      if (data?.error) {
+        if (data.error.includes('not enabled') || data.error.includes('not configured')) {
+          setManualMode(true);
+          setSuggestions([]);
+          return;
+        }
+      }
+
+      setSuggestions(data?.suggestions || []);
+      if (data?.suggestions && data.suggestions.length > 0) {
+        setShowSuggestions(true);
+      }
     } catch (error: any) {
       console.error('Failed to fetch address suggestions:', error);
-      toast({
-        title: "Address suggestions unavailable",
-        description: "You can still enter the address manually.",
-        variant: "destructive",
-      });
       setManualMode(true);
+      setSuggestions([]);
     } finally {
       setIsLoading(false);
     }
@@ -120,9 +130,20 @@ export const AddressAutocompleteInput = ({
         body: payload,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to get address details:', error);
+        setManualMode(true);
+        return;
+      }
 
-      if (data.parsedAddress) {
+      // Check for error in response data
+      if (data?.error) {
+        console.error('Address details error:', data.error);
+        setManualMode(true);
+        return;
+      }
+
+      if (data?.parsedAddress) {
         onChange(data.parsedAddress.address_line1);
         onAddressSelected(data.parsedAddress);
         toast({
@@ -132,11 +153,7 @@ export const AddressAutocompleteInput = ({
       }
     } catch (error: any) {
       console.error('Failed to get address details:', error);
-      toast({
-        title: "Failed to load address details",
-        description: "Please enter the address manually.",
-        variant: "destructive",
-      });
+      setManualMode(true);
     } finally {
       setIsLoading(false);
     }
@@ -173,26 +190,26 @@ export const AddressAutocompleteInput = ({
 
       {!manualMode && (
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Start typing to see address suggestions</span>
+          <span>Start typing to see address suggestions or</span>
           <button
             type="button"
             onClick={() => setManualMode(true)}
             className="text-primary hover:underline"
           >
-            Enter manually
+            enter manually
           </button>
         </div>
       )}
 
       {manualMode && (
-        <div className="mt-1 text-xs text-muted-foreground">
-          Manual entry mode
+        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Manual entry mode.</span>
           <button
             type="button"
             onClick={() => setManualMode(false)}
-            className="ml-2 text-primary hover:underline"
+            className="text-primary hover:underline"
           >
-            Enable autocomplete
+            Try autocomplete
           </button>
         </div>
       )}
