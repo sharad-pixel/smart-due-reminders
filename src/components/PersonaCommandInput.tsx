@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PersonaCommandInputProps {
   placeholder?: string;
@@ -10,6 +11,7 @@ interface PersonaCommandInputProps {
   contextType?: "invoice" | "debtor" | "global";
   contextId?: string;
   suggestions?: string[];
+  activeTaskCount?: number; // New prop to show task awareness
 }
 
 export const PersonaCommandInput = ({
@@ -23,7 +25,8 @@ export const PersonaCommandInput = ({
     "Generate a firm message",
     "Ask Katy to send a follow-up",
     "Have Sam write a polite reminder"
-  ]
+  ],
+  activeTaskCount = 0
 }: PersonaCommandInputProps) => {
   const [command, setCommand] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,8 +69,25 @@ export const PersonaCommandInput = ({
             onFocus={() => setShowSuggestions(true)}
             placeholder={placeholder}
             disabled={isProcessing}
-            className="pl-10"
+            className="pl-10 pr-20"
           />
+          {activeTaskCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <CheckSquare className="h-3 w-3" />
+                      {activeTaskCount}
+                    </Badge>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{activeTaskCount} active task{activeTaskCount !== 1 ? 's' : ''} will be referenced</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <Button type="submit" disabled={!command.trim() || isProcessing}>
           {isProcessing ? (

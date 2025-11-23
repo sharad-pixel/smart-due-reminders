@@ -114,6 +114,40 @@ serve(async (req) => {
 
     console.log(`Using agent ${agentPersona.name} for ${daysPastDue} days past due`);
 
+    // Fetch any open tasks for this invoice
+    const { data: openTasks } = await supabaseClient
+      .from('collection_tasks')
+      .select('*')
+      .eq('invoice_id', invoice_id)
+      .in('status', ['open', 'in_progress'])
+      .order('priority', { ascending: false });
+    
+    // Build task context
+    let taskContext = '';
+    if (openTasks && openTasks.length > 0) {
+      const taskLabels: Record<string, string> = {
+        w9_request: 'W9 tax form request',
+        payment_plan_needed: 'payment arrangement request',
+        incorrect_po: 'dispute about wrong PO number',
+        dispute_charges: 'dispute about incorrect charges',
+        invoice_copy_request: 'request to resend invoice',
+        billing_address_update: 'billing address correction needed',
+        payment_method_update: 'payment details update needed',
+        service_not_delivered: 'claim that service/product not received',
+        overpayment_inquiry: 'question about double charge or overpayment',
+        paid_verification: 'claim that invoice already paid',
+        extension_request: 'request for payment deadline extension',
+        callback_required: 'request for phone call or meeting'
+      };
+
+      const taskDescriptions = openTasks.map(task => {
+        const label = taskLabels[task.task_type] || task.task_type;
+        return `- ${label}: ${task.summary}${task.recommended_action ? ` (Action needed: ${task.recommended_action})` : ''}`;
+      }).join('\n');
+
+      taskContext = `\n\nCRITICAL: The customer has made the following requests or raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these items in your message. Handle them professionally based on ${agentPersona.name}'s ${agentPersona.tone_guidelines} tone.`;
+    }
+
     // Prepare prompt data
     const promptData = {
       business_name: profile.business_name || "Our Business",
@@ -127,6 +161,7 @@ serve(async (req) => {
       payment_link: profile.stripe_payment_link_url || "Please contact us for payment options",
       tone: tone,
       step_number: step_number,
+      task_context: taskContext,
     };
 
     console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number);
@@ -153,6 +188,7 @@ You are NOT a collection agency and you must never imply that you are.
 Messages are sent from the business itself.
 No legal threats. No harassment. No false statements. No mention of Recouply.ai or any third-party.
 Always include the payment link once in the email.
+${promptData.task_context}
 
 ${crmAccount ? `Use the CRM account context to adjust tone and recommendations:
 - For high-value or at-risk accounts, be more empathetic and relationship-preserving.
