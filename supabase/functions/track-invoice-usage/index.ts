@@ -40,6 +40,34 @@ serve(async (req) => {
     const { invoice_id } = await req.json();
     if (!invoice_id) throw new Error("invoice_id is required");
 
+    // Fetch invoice to check status
+    const { data: invoice, error: invoiceError } = await supabaseClient
+      .from('invoices')
+      .select('status')
+      .eq('id', invoice_id)
+      .single();
+
+    if (invoiceError || !invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    logStep("Invoice status check", { status: invoice.status });
+
+    // Only count Open or InPaymentPlan invoices
+    const countableStatuses = ['Open', 'InPaymentPlan'];
+    if (!countableStatuses.includes(invoice.status || '')) {
+      logStep("Invoice status not countable - skipping tracking", { status: invoice.status });
+      return new Response(JSON.stringify({
+        success: true,
+        is_overage: false,
+        message: `Invoice status '${invoice.status}' does not count towards usage`,
+        counted: false
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Get current month
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

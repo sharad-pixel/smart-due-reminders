@@ -134,25 +134,44 @@ serve(async (req) => {
       logStep("Created new usage record");
     }
 
-    const totalInvoicesUsed = usage.included_invoices_used + usage.overage_invoices;
-    const includedAllowance = plan.invoice_limit || 0;
-    const remaining = Math.max(0, includedAllowance - usage.included_invoices_used);
-    const isOverLimit = totalInvoicesUsed > includedAllowance;
+    // Count actual Open and InPaymentPlan invoices created this month
+    const monthStart = `${currentMonth}-01`;
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthEnd = nextMonth.toISOString().split('T')[0];
 
-    logStep("Usage calculated", {
-      totalUsed: totalInvoicesUsed,
-      includedUsed: usage.included_invoices_used,
-      overageCount: usage.overage_invoices,
-      remaining
+    const { data: countableInvoices, error: countError } = await supabaseClient
+      .from('invoices')
+      .select('id, is_overage')
+      .eq('user_id', user.id)
+      .in('status', ['Open', 'InPaymentPlan'])
+      .gte('created_at', monthStart)
+      .lt('created_at', monthEnd);
+
+    if (countError) {
+      throw new Error(`Error counting invoices: ${countError.message}`);
+    }
+
+    const actualInvoicesUsed = countableInvoices?.length || 0;
+    const overageInvoices = countableInvoices?.filter(inv => inv.is_overage).length || 0;
+    const includedInvoicesUsed = actualInvoicesUsed - overageInvoices;
+
+    const includedAllowance = plan.invoice_limit || 0;
+    const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
+    const isOverLimit = actualInvoicesUsed > includedAllowance;
+
+    logStep("Actual invoice count", {
+      total: actualInvoicesUsed,
+      included: includedInvoicesUsed,
+      overage: overageInvoices
     });
 
     return new Response(JSON.stringify({
       month: currentMonth,
       included_allowance: includedAllowance,
-      included_invoices_used: usage.included_invoices_used,
-      overage_invoices: usage.overage_invoices,
+      included_invoices_used: includedInvoicesUsed,
+      overage_invoices: overageInvoices,
       overage_charges_total: usage.overage_charges_total,
-      total_invoices_used: totalInvoicesUsed,
+      total_invoices_used: actualInvoicesUsed,
       remaining_quota: remaining,
       is_over_limit: isOverLimit,
       plan_name: plan.name,
