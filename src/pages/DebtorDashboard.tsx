@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 
 export default function DebtorDashboard() {
   const navigate = useNavigate();
@@ -116,6 +117,9 @@ export default function DebtorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Aging Bucket Breakdown */}
+        <AgingBucketBreakdown />
 
         {/* Filters */}
         <Card>
