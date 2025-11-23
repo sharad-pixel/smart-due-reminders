@@ -31,6 +31,11 @@ const sampleMessages: Record<string, string[]> = {
     "LEGAL NOTICE: Invoice #[NUMBER] for $[AMOUNT] is [X] days overdue. This matter will be referred to our legal team and collections attorneys within 48 hours unless full payment is received. Additional fees and legal costs will apply. Contact immediately: [PHONE]",
     "DEMAND FOR PAYMENT: Invoice #[NUMBER] ($[AMOUNT]) – Final notice before legal action. We are prepared to file suit and pursue all available remedies including liens, wage garnishment, and asset seizure. Pay in full within 24 hours or provide certified funds arrangement.",
     "[Customer Name] – FINAL LEGAL NOTICE: Invoice #[NUMBER] unpaid for [X] days. Legal proceedings commence [DATE]. All collection costs, attorney fees, court costs, and interest will be added to your obligation. This is your last opportunity to resolve without litigation."
+  ],
+  rocco: [
+    "Subject: Immediate Attention Required – Outstanding Balance\n\nHello [Customer Name],\n\nYour account with [Business Name] has an overdue balance of $[AMOUNT] associated with Invoice #[NUMBER], which remains unpaid despite multiple prior requests.\n\nAs your service access is no longer active, we need to resolve this matter immediately. Please submit payment today or reply with an update if there is an issue that requires clarification.\n\nThank you,\n[Business Name]",
+    "[Business Name]: Your outstanding balance for Invoice #[NUMBER] remains unresolved. Please complete payment today or reply with an update. [PAYMENT_LINK]",
+    "Hello [Customer Name],\n\nThis is a follow-up on your overdue balance of $[AMOUNT] for Invoice #[NUMBER], which has now entered our Final Internal Collections stage.\n\nWe need to hear from you today regarding payment or a path to resolution. Please respond or pay using the link below:\n\n[PAYMENT_LINK]\n\nThank you,\n[Business Name]"
   ]
 };
 
@@ -89,6 +94,17 @@ const strategies: Record<string, { approach: string; tactics: string[]; goal: st
       "Full compliance requirements stated"
     ],
     goal: "Final opportunity before litigation with maximum legal pressure"
+  },
+  rocco: {
+    approach: "Final internal collections - firm and compliance-focused",
+    tactics: [
+      "White-labeled as the business, never threatens",
+      "Clearly states service access is revoked",
+      "Demands immediate resolution without legal language",
+      "Never implies 3rd-party collections involvement",
+      "Maintains professional, compliant communication"
+    ],
+    goal: "Last-resort internal recovery before potential external referral"
   }
 };
 
@@ -103,7 +119,7 @@ const Personas = () => {
               Meet Your AI Collections Team
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Five specialized AI agents that adapt their communication style based on how overdue an invoice is. 
+              Six specialized AI agents that adapt their communication style based on how overdue an invoice is. 
               Each persona uses proven collections psychology while maintaining compliance and professionalism.
             </p>
           </div>

@@ -9,6 +9,7 @@ import Solutions from "./pages/Solutions";
 import HomeServices from "./pages/solutions/HomeServices";
 import SaaS from "./pages/solutions/SaaS";
 import ProfessionalServices from "./pages/solutions/ProfessionalServices";
+import FinalInternalCollections from "./pages/solutions/FinalInternalCollections";
 import Terms from "./pages/legal/Terms";
 import Privacy from "./pages/legal/Privacy";
 import Signup from "./pages/Signup";
@@ -57,6 +58,7 @@ const App = () => (
         <Route path="/solutions/home-services" element={<HomeServices />} />
         <Route path="/solutions/saas" element={<SaaS />} />
         <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
+        <Route path="/solutions/final-internal-collections" element={<FinalInternalCollections />} />
         <Route path="/legal/terms" element={<Terms />} />
         <Route path="/legal/privacy" element={<Privacy />} />
         <Route path="/signup" element={<Signup />} />
