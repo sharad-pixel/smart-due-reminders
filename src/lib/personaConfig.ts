@@ -3,6 +3,7 @@ import jamesAvatar from "@/assets/personas/james.png";
 import katyAvatar from "@/assets/personas/katy.png";
 import troyAvatar from "@/assets/personas/troy.png";
 import gottiAvatar from "@/assets/personas/gotti.png";
+import roccoAvatar from "@/assets/personas/rocco.png";
 
 export interface PersonaConfig {
   name: string;
@@ -62,9 +63,19 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bgColor: "bg-purple-500",
     avatar: gottiAvatar,
     bucketMin: 121,
-    bucketMax: null,
-    description: "Very Firm 121+ Day Agent",
+    bucketMax: 150,
+    description: "Very Firm 121-150 Day Agent",
     tone: "Very firm, serious urgency",
+  },
+  rocco: {
+    name: "Rocco",
+    color: "#3C2F2F",
+    bgColor: "bg-[#3C2F2F]",
+    avatar: roccoAvatar,
+    bucketMin: 151,
+    bucketMax: null,
+    description: "Final Internal Collections Agent",
+    tone: "Firm and authoritative, high urgency, compliance-focused",
   },
 };
 

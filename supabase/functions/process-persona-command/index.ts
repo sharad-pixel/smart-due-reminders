@@ -13,7 +13,8 @@ const PERSONAS = {
   james: { name: "James", bucketMin: 31, bucketMax: 60, tone: "direct but professional" },
   katy: { name: "Katy", bucketMin: 61, bucketMax: 90, tone: "assertive and serious" },
   troy: { name: "Troy", bucketMin: 91, bucketMax: 120, tone: "very firm but professional" },
-  gotti: { name: "Gotti", bucketMin: 121, bucketMax: null, tone: "very firm with serious urgency" }
+  gotti: { name: "Gotti", bucketMin: 121, bucketMax: 150, tone: "very firm with serious urgency" },
+  rocco: { name: "Rocco", bucketMin: 151, bucketMax: null, tone: "firm and authoritative, compliance-focused" }
 };
 
 interface ParsedCommand {
