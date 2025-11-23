@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const AgingBucketBreakdown = () => {
   const { data, isLoading } = useAgingBuckets();
+  const [chartView, setChartView] = useState<"bar" | "pie">("bar");
 
   if (isLoading) {
     return (
@@ -36,8 +37,6 @@ export const AgingBucketBreakdown = () => {
   ];
 
   const totalBalance = buckets.reduce((sum, bucket) => sum + bucket.total, 0);
-
-  const [chartView, setChartView] = useState<"bar" | "pie">("bar");
 
   const chartData = buckets.map((bucket) => ({
     name: bucket.label.replace(" Days Past Due", "d").replace("(Not Due)", ""),
