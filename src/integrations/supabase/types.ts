@@ -852,9 +852,16 @@ export type Database = {
           address: string | null
           address_line1: string | null
           address_line2: string | null
+          aging_mix_1_30_pct: number | null
+          aging_mix_121_plus_pct: number | null
+          aging_mix_31_60_pct: number | null
+          aging_mix_61_90_pct: number | null
+          aging_mix_91_120_pct: number | null
+          aging_mix_current_pct: number | null
           ar_contact_email: string | null
           ar_contact_name: string | null
           ar_contact_phone: string | null
+          avg_days_to_pay: number | null
           avg_risk_score: number | null
           billing_address_line1: string | null
           billing_address_line2: string | null
@@ -872,17 +879,24 @@ export type Database = {
           crm_account_id_external: string | null
           crm_system: string | null
           current_balance: number | null
+          disputed_invoices_count: number | null
           email: string
           external_customer_id: string | null
           external_system: string | null
           high_risk_invoice_count: number | null
           id: string
+          in_payment_plan_invoices_count: number | null
           is_active: boolean | null
           latitude: number | null
           longitude: number | null
+          max_days_past_due: number | null
           max_risk_score: number | null
           name: string
           notes: string | null
+          open_invoices_count: number | null
+          payment_risk_tier: string | null
+          payment_score: number | null
+          payment_score_last_calculated: string | null
           payment_terms_default: string | null
           phone: string | null
           postal_code: string | null
@@ -897,14 +911,22 @@ export type Database = {
           type: Database["public"]["Enums"]["debtor_type"] | null
           updated_at: string | null
           user_id: string
+          written_off_invoices_count: number | null
         }
         Insert: {
           address?: string | null
           address_line1?: string | null
           address_line2?: string | null
+          aging_mix_1_30_pct?: number | null
+          aging_mix_121_plus_pct?: number | null
+          aging_mix_31_60_pct?: number | null
+          aging_mix_61_90_pct?: number | null
+          aging_mix_91_120_pct?: number | null
+          aging_mix_current_pct?: number | null
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
+          avg_days_to_pay?: number | null
           avg_risk_score?: number | null
           billing_address_line1?: string | null
           billing_address_line2?: string | null
@@ -922,17 +944,24 @@ export type Database = {
           crm_account_id_external?: string | null
           crm_system?: string | null
           current_balance?: number | null
+          disputed_invoices_count?: number | null
           email: string
           external_customer_id?: string | null
           external_system?: string | null
           high_risk_invoice_count?: number | null
           id?: string
+          in_payment_plan_invoices_count?: number | null
           is_active?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          max_days_past_due?: number | null
           max_risk_score?: number | null
           name: string
           notes?: string | null
+          open_invoices_count?: number | null
+          payment_risk_tier?: string | null
+          payment_score?: number | null
+          payment_score_last_calculated?: string | null
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -947,14 +976,22 @@ export type Database = {
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id: string
+          written_off_invoices_count?: number | null
         }
         Update: {
           address?: string | null
           address_line1?: string | null
           address_line2?: string | null
+          aging_mix_1_30_pct?: number | null
+          aging_mix_121_plus_pct?: number | null
+          aging_mix_31_60_pct?: number | null
+          aging_mix_61_90_pct?: number | null
+          aging_mix_91_120_pct?: number | null
+          aging_mix_current_pct?: number | null
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
+          avg_days_to_pay?: number | null
           avg_risk_score?: number | null
           billing_address_line1?: string | null
           billing_address_line2?: string | null
@@ -972,17 +1009,24 @@ export type Database = {
           crm_account_id_external?: string | null
           crm_system?: string | null
           current_balance?: number | null
+          disputed_invoices_count?: number | null
           email?: string
           external_customer_id?: string | null
           external_system?: string | null
           high_risk_invoice_count?: number | null
           id?: string
+          in_payment_plan_invoices_count?: number | null
           is_active?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          max_days_past_due?: number | null
           max_risk_score?: number | null
           name?: string
           notes?: string | null
+          open_invoices_count?: number | null
+          payment_risk_tier?: string | null
+          payment_score?: number | null
+          payment_score_last_calculated?: string | null
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -997,6 +1041,7 @@ export type Database = {
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id?: string
+          written_off_invoices_count?: number | null
         }
         Relationships: [
           {
@@ -1103,6 +1148,7 @@ export type Database = {
           last_contact_date: string | null
           next_contact_date: string | null
           notes: string | null
+          paid_date: string | null
           payment_date: string | null
           payment_method: string | null
           payment_terms: string | null
@@ -1131,6 +1177,7 @@ export type Database = {
           last_contact_date?: string | null
           next_contact_date?: string | null
           notes?: string | null
+          paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
           payment_terms?: string | null
@@ -1159,6 +1206,7 @@ export type Database = {
           last_contact_date?: string | null
           next_contact_date?: string | null
           notes?: string | null
+          paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
           payment_terms?: string | null
@@ -1484,6 +1532,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_aging_bucket: {
+        Args: { due_date: string; payment_date?: string }
+        Returns: string
+      }
       generate_reference_id: {
         Args: { prefix: string; target_table: string }
         Returns: string
