@@ -44,12 +44,11 @@ interface CRMAccount {
   owner_name: string | null;
 }
 
-interface AIWorkflow {
-  id?: string;
-  tone: "friendly" | "neutral" | "firm";
-  cadence_days: number[];
-  min_settlement_pct: number;
-  max_settlement_pct: number;
+interface CollectionWorkflow {
+  id: string;
+  name: string;
+  description: string | null;
+  aging_bucket: string;
   is_active: boolean;
 }
 
@@ -76,13 +75,8 @@ const InvoiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [workflow, setWorkflow] = useState<AIWorkflow>({
-    tone: "friendly",
-    cadence_days: [0, 3, 7, 14],
-    min_settlement_pct: 50,
-    max_settlement_pct: 100,
-    is_active: false,
-  });
+  const [associatedWorkflow, setAssociatedWorkflow] = useState<CollectionWorkflow | null>(null);
+  const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
   const [drafts, setDrafts] = useState<AIDraft[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,15 +98,23 @@ const InvoiceDetail = () => {
     }
   }, [id]);
 
+  const getAgingBucket = (daysPastDue: number): string => {
+    if (daysPastDue < 0) return 'current';
+    if (daysPastDue <= 30) return 'dpd_1_30';
+    if (daysPastDue <= 60) return 'dpd_31_60';
+    if (daysPastDue <= 90) return 'dpd_61_90';
+    if (daysPastDue <= 120) return 'dpd_91_120';
+    return 'dpd_121_plus';
+  };
+
   const fetchData = async () => {
     try {
-      const [invoiceRes, workflowRes, outreachRes, draftsRes] = await Promise.all([
+      const [invoiceRes, outreachRes, draftsRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*, debtors(name, email, crm_account_id)")
           .eq("id", id)
           .single(),
-        supabase.from("ai_workflows").select("*").eq("invoice_id", id).maybeSingle(),
         supabase
           .from("outreach_logs")
           .select("*")
@@ -129,23 +131,44 @@ const InvoiceDetail = () => {
       if (invoiceRes.error) throw invoiceRes.error;
       setInvoice(invoiceRes.data);
 
-      if (workflowRes.data) {
-        const cadenceDays = Array.isArray(workflowRes.data.cadence_days) 
-          ? workflowRes.data.cadence_days as number[]
-          : [0, 3, 7, 14];
-        
-        setWorkflow({
-          id: workflowRes.data.id,
-          tone: (workflowRes.data.tone as "friendly" | "neutral" | "firm") || "friendly",
-          cadence_days: cadenceDays,
-          min_settlement_pct: workflowRes.data.min_settlement_pct || 50,
-          max_settlement_pct: workflowRes.data.max_settlement_pct || 100,
-          is_active: workflowRes.data.is_active || false,
-        });
-      }
-
       setOutreach(outreachRes.data || []);
       setDrafts(draftsRes.data || []);
+
+      // Fetch associated workflow based on aging bucket
+      if (invoiceRes.data) {
+        const today = new Date();
+        const due = new Date(invoiceRes.data.due_date);
+        const diffTime = today.getTime() - due.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const daysPastDue = diffDays > 0 ? diffDays : 0;
+        const agingBucket = getAgingBucket(daysPastDue);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: workflowData } = await supabase
+            .from("collection_workflows")
+            .select("*")
+            .eq("aging_bucket", agingBucket)
+            .eq("is_active", true)
+            .or(`user_id.eq.${user.id},user_id.is.null`)
+            .order("user_id", { ascending: false, nullsFirst: false })
+            .limit(1)
+            .single();
+
+          if (workflowData) {
+            setAssociatedWorkflow(workflowData);
+
+            // Get workflow steps count
+            const { count } = await supabase
+              .from("collection_workflow_steps")
+              .select("*", { count: "exact", head: true })
+              .eq("workflow_id", workflowData.id)
+              .eq("is_active", true);
+
+            setWorkflowStepsCount(count || 0);
+          }
+        }
+      }
 
       // Fetch CRM account if linked
       if (invoiceRes.data?.debtors?.crm_account_id) {
@@ -188,39 +211,6 @@ const InvoiceDetail = () => {
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to update status");
-    }
-  };
-
-  const handleWorkflowSave = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const workflowData = {
-        user_id: user.id,
-        invoice_id: id!,
-        tone: workflow.tone,
-        cadence_days: workflow.cadence_days as any,
-        min_settlement_pct: workflow.min_settlement_pct,
-        max_settlement_pct: workflow.max_settlement_pct,
-        is_active: workflow.is_active,
-      };
-
-      if (workflow.id) {
-        const { error } = await supabase
-          .from("ai_workflows")
-          .update(workflowData)
-          .eq("id", workflow.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("ai_workflows").insert(workflowData);
-        if (error) throw error;
-      }
-
-      toast.success("Workflow settings saved");
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save workflow");
     }
   };
 
@@ -316,6 +306,18 @@ const InvoiceDetail = () => {
     } finally {
       setSendingDraft(null);
     }
+  };
+
+  const getAgingBucketLabel = (bucket: string): string => {
+    const labels: Record<string, string> = {
+      'current': 'Current (Not Due)',
+      'dpd_1_30': '1-30 Days Past Due',
+      'dpd_31_60': '31-60 Days Past Due',
+      'dpd_61_90': '61-90 Days Past Due',
+      'dpd_91_120': '91-120 Days Past Due',
+      'dpd_121_plus': '121+ Days Past Due',
+    };
+    return labels[bucket] || bucket;
   };
 
   const getStatusColor = (status: string) => {
@@ -596,84 +598,71 @@ const InvoiceDetail = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>AI Workflow Settings</CardTitle>
-              <Button onClick={() => setGenerateDialogOpen(true)} disabled={generatingDraft}>
-                {generatingDraft ? "Generating..." : "Generate AI Draft"}
-              </Button>
-            </div>
+            <CardTitle>Associated AI Workflow</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tone</Label>
-                <Select
-                  value={workflow.tone}
-                  onValueChange={(value: "friendly" | "neutral" | "firm") => 
-                    setWorkflow({ ...workflow, tone: value })
-                  }
+          <CardContent>
+            {associatedWorkflow ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Workflow Name</p>
+                  <p className="font-medium text-lg">{associatedWorkflow.name}</p>
+                </div>
+                {associatedWorkflow.description && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Description</p>
+                    <p className="text-sm">{associatedWorkflow.description}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Aging Bucket</p>
+                  <p className="font-medium">{getAgingBucketLabel(associatedWorkflow.aging_bucket)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Steps</p>
+                  <p className="font-medium">{workflowStepsCount} steps</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      associatedWorkflow.is_active
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {associatedWorkflow.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/ai-workflows")}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="friendly">Friendly</SelectItem>
-                    <SelectItem value="neutral">Neutral</SelectItem>
-                    <SelectItem value="firm">Firm</SelectItem>
-                  </SelectContent>
-                </Select>
+                  View All Workflows
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Cadence Days (comma-separated)</Label>
-                <Input
-                  value={workflow.cadence_days.join(", ")}
-                  onChange={(e) =>
-                    setWorkflow({
-                      ...workflow,
-                      cadence_days: e.target.value.split(",").map((n) => parseInt(n.trim())),
-                    })
-                  }
-                  placeholder="0, 3, 7, 14"
-                />
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground">
+                  No workflow assigned for this aging bucket.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => navigate("/ai-workflows")}
+                >
+                  Configure Workflows
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Min Settlement %</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={workflow.min_settlement_pct}
-                  onChange={(e) =>
-                    setWorkflow({ ...workflow, min_settlement_pct: parseInt(e.target.value) })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Max Settlement %</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={workflow.max_settlement_pct}
-                  onChange={(e) =>
-                    setWorkflow({ ...workflow, max_settlement_pct: parseInt(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_active"
-                checked={workflow.is_active}
-                onChange={(e) => setWorkflow({ ...workflow, is_active: e.target.checked })}
-                className="rounded"
-              />
-              <Label htmlFor="is_active">Workflow Active</Label>
-            </div>
-            <Button onClick={handleWorkflowSave}>Save Workflow Settings</Button>
+            )}
           </CardContent>
         </Card>
+
+        <div className="flex justify-end">
+          <Button onClick={() => setGenerateDialogOpen(true)} disabled={generatingDraft}>
+            {generatingDraft ? "Generating..." : "Generate AI Draft"}
+          </Button>
+        </div>
 
         <Tabs defaultValue="outreach" className="space-y-4">
           <TabsList>
