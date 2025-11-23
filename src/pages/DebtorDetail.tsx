@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PaymentScoreCard } from "@/components/PaymentScoreCard";
+import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 
 interface Debtor {
   id: string;
@@ -444,6 +445,9 @@ const DebtorDetail = () => {
           writtenOffInvoicesCount={debtor.written_off_invoices_count}
           paymentScoreLastCalculated={debtor.payment_score_last_calculated}
         />
+
+        {/* Aging Bucket Breakdown */}
+        <AgingBucketBreakdown />
 
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList>

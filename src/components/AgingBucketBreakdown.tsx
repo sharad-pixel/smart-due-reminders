@@ -4,6 +4,9 @@ import { PersonaAvatar } from "./PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { useState } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const AgingBucketBreakdown = () => {
   const { data, isLoading } = useAgingBuckets();
@@ -34,6 +37,17 @@ export const AgingBucketBreakdown = () => {
 
   const totalBalance = buckets.reduce((sum, bucket) => sum + bucket.total, 0);
 
+  const [chartView, setChartView] = useState<"bar" | "pie">("bar");
+
+  const chartData = buckets.map((bucket) => ({
+    name: bucket.label.replace(" Days Past Due", "d").replace("(Not Due)", ""),
+    amount: bucket.total,
+    percentage: totalBalance > 0 ? (bucket.total / totalBalance) * 100 : 0,
+    color: bucket.persona?.color || "hsl(var(--muted))",
+  }));
+
+  const COLORS = buckets.map(b => b.persona?.color || "hsl(var(--muted))");
+
   return (
     <Card>
       <CardHeader>
@@ -46,6 +60,79 @@ export const AgingBucketBreakdown = () => {
             <p className="text-sm text-muted-foreground">Total Outstanding</p>
             <p className="text-3xl font-bold">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
+
+          {/* Chart Visualization */}
+          <Tabs value={chartView} onValueChange={(v) => setChartView(v as "bar" | "pie")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="bar">Bar Chart</TabsTrigger>
+              <TabsTrigger value="pie">Pie Chart</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="bar" className="h-[300px] mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: 'hsl(var(--foreground))' }}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    tick={{ fill: 'hsl(var(--foreground))' }}
+                    fontSize={12}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip 
+                    formatter={(value: any) => [`$${value.toLocaleString()}`, "Amount"]}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </TabsContent>
+
+            <TabsContent value="pie" className="h-[300px] mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.percentage.toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="amount"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: any) => `$${value.toLocaleString()}`}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    formatter={(value, entry: any) => entry.payload.name}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          </Tabs>
 
           <div className="space-y-4">
             {buckets.map((bucket) => {
