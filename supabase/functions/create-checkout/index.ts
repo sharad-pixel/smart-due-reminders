@@ -17,6 +17,9 @@ const PLAN_PRICE_IDS: Record<string, string> = {
   'pro': 'price_1SX2duFaeMMSBqclrYq4rikr'           // $399/month - DB value
 };
 
+// Metered price for invoice overages - $1 per invoice over plan limit
+const OVERAGE_PRICE_ID = 'price_1SX35zFaeMMSBqclPXpUHQmv';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -60,7 +63,7 @@ serve(async (req) => {
       console.log('Existing customer found:', customerId);
     }
 
-    // Create checkout session with 14-day trial
+    // Create checkout session with 14-day trial and metered billing for overages
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -68,6 +71,9 @@ serve(async (req) => {
         {
           price: PLAN_PRICE_IDS[planName],
           quantity: 1,
+        },
+        {
+          price: OVERAGE_PRICE_ID,
         },
       ],
       mode: 'subscription',
