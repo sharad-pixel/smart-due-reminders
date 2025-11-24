@@ -38,6 +38,7 @@ interface UserProfile {
   plan_type: PlanType | null;
   plan_id: string | null;
   stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
   avatar_url: string | null;
 }
 
@@ -579,6 +580,21 @@ const Profile = () => {
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View All Plans
                 </Button>
+              </div>
+
+              {/* Subscription Status */}
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Subscription Status</p>
+                  {profile.stripe_subscription_id ? (
+                    <p className="text-sm text-green-600 font-semibold">Active Subscription</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No active subscription</p>
+                  )}
+                </div>
+                {profile.stripe_subscription_id && (
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                )}
               </div>
 
               <Separator />
