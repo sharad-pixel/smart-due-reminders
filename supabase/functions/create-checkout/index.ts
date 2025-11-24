@@ -11,10 +11,10 @@ const corsHeaders = {
 // Price IDs for each plan - synced with Stripe
 // Note: 'professional' from pricing page maps to 'pro' in the database
 const PLAN_PRICE_IDS: Record<string, string> = {
-  'starter': 'price_1SW999FaeMMSBqcl7CWZmbgR',      // $99/month - 50 invoices
-  'growth': 'price_1SW99kFaeMMSBqclOu7cKUjo',       // $199/month - 200 invoices
-  'professional': 'price_1SW9ALFaeMMSBqclBIJouOjo', // $399/month - 500 invoices, team features
-  'pro': 'price_1SW9ALFaeMMSBqclBIJouOjo'           // $399/month - DB value
+  'starter': 'price_1SX2cyFaeMMSBqclAGkxSliI',      // $99/month - 50 invoices
+  'growth': 'price_1SX2dkFaeMMSBqclPIjUA6N2',       // $199/month - 200 invoices
+  'professional': 'price_1SX2duFaeMMSBqclrYq4rikr', // $399/month - 500 invoices, team features
+  'pro': 'price_1SX2duFaeMMSBqclrYq4rikr'           // $399/month - DB value
 };
 
 serve(async (req) => {
