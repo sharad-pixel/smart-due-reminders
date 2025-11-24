@@ -178,14 +178,14 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <SecurityAlert />
-      <nav className="border-b bg-card">
+      <nav className="border-b bg-card shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-8">
-              <Link to="/dashboard" className="text-2xl font-bold text-primary shrink-0">
+            <div className="flex items-center gap-6">
+              <Link to="/dashboard" className="text-2xl font-bold text-primary shrink-0 hover:opacity-80 transition-opacity">
                 Recouply.ai
               </Link>
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden md:flex items-center gap-2">
                 {mainNavItems.map((item) => {
                   const Icon = item.icon;
                   
@@ -193,14 +193,14 @@ const Layout = ({ children }: LayoutProps) => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                         isActive(item.path)
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="whitespace-nowrap">{item.label}</span>
                     </Link>
                   );
                 })}
