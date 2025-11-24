@@ -39,6 +39,7 @@ import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
 import DebtorDashboard from "./pages/DebtorDashboard";
+import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/personas" element={<Personas />} />
         <Route path="/ai-command-center" element={<AICommandCenter />} />
+        <Route path="/why-collections-matter" element={<WhyCollectionsMatter />} />
         <Route path="/solutions" element={<Solutions />} />
         <Route path="/solutions/home-services" element={<HomeServices />} />
         <Route path="/solutions/saas" element={<SaaS />} />

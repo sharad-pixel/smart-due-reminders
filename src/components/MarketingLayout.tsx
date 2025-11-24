@@ -26,6 +26,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Features
             </button>
             <button 
+              onClick={() => navigate("/why-collections-matter")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Why Collections Matter
+            </button>
+            <button 
               onClick={() => navigate("/solutions")}
               className="text-foreground hover:text-primary transition-colors"
             >
