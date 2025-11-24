@@ -1,0 +1,257 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+export interface Document {
+  id: string;
+  organization_id?: string;
+  debtor_id?: string;
+  uploaded_by_user_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  file_size?: number;
+  category: string;
+  status: string;
+  version: number;
+  metadata?: any;
+  notes?: string;
+  verified_by_user_id?: string;
+  verified_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useDocuments(organizationId?: string, debtorId?: string) {
+  return useQuery({
+    queryKey: ["documents", organizationId, debtorId],
+    queryFn: async () => {
+      let query = supabase
+        .from("documents")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (organizationId) {
+        query = query.eq("organization_id", organizationId);
+      }
+      if (debtorId) {
+        query = query.eq("debtor_id", debtorId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data as Document[];
+    },
+    enabled: !!(organizationId || debtorId),
+  });
+}
+
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      file,
+      category,
+      organizationId,
+      debtorId,
+      notes,
+    }: {
+      file: File;
+      category: string;
+      organizationId?: string;
+      debtorId?: string;
+      notes?: string;
+    }) => {
+      // Upload file to storage
+      const filePath = `${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Create document record
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
+
+      const insertData: any = {
+        uploaded_by_user_id: user.user.id,
+        file_url: uploadData.path,
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        category,
+        notes,
+      };
+
+      if (organizationId) {
+        insertData.organization_id = organizationId;
+      }
+      if (debtorId) {
+        insertData.debtor_id = debtorId;
+      }
+
+      const { data: document, error: docError } = await supabase
+        .from("documents")
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (docError) throw docError;
+
+      // Log the upload action
+      await supabase.rpc("log_document_access", {
+        p_document_id: document.id,
+        p_action: "upload",
+      });
+
+      // Trigger AI analysis
+      try {
+        await supabase.functions.invoke("analyze-document", {
+          body: {
+            documentId: document.id,
+            category,
+            fileName: file.name,
+          },
+        });
+      } catch (aiError) {
+        console.error("AI analysis failed:", aiError);
+        // Don't fail the upload if AI analysis fails
+      }
+
+      return document;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      toast.success("Document uploaded successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to upload document: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateDocumentStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      documentId,
+      status,
+      notes,
+    }: {
+      documentId: string;
+      status: string;
+      notes?: string;
+    }) => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
+
+      const updates: any = { status, notes };
+
+      if (status === "verified") {
+        updates.verified_by_user_id = user.user.id;
+        updates.verified_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from("documents")
+        .update(updates)
+        .eq("id", documentId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log the status change
+      await supabase.rpc("log_document_access", {
+        p_document_id: documentId,
+        p_action: status === "verified" ? "verify" : "status_change",
+        p_metadata: { new_status: status },
+      });
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      toast.success("Document status updated");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update document: ${error.message}`);
+    },
+  });
+}
+
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      // Get document to get file path
+      const { data: document } = await supabase
+        .from("documents")
+        .select("file_url")
+        .eq("id", documentId)
+        .single();
+
+      if (document) {
+        // Delete from storage
+        await supabase.storage.from("documents").remove([document.file_url]);
+      }
+
+      // Delete document record
+      const { error } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", documentId);
+
+      if (error) throw error;
+
+      // Log the deletion
+      await supabase.rpc("log_document_access", {
+        p_document_id: documentId,
+        p_action: "delete",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      toast.success("Document deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete document: ${error.message}`);
+    },
+  });
+}
+
+export function useDocumentUrl(filePath: string | null | undefined) {
+  return useQuery({
+    queryKey: ["document-url", filePath],
+    queryFn: async () => {
+      if (!filePath) return null;
+
+      const { data } = supabase.storage
+        .from("documents")
+        .getPublicUrl(filePath);
+
+      // Log the view action
+      const { data: document } = await supabase
+        .from("documents")
+        .select("id")
+        .eq("file_url", filePath)
+        .single();
+
+      if (document) {
+        await supabase.rpc("log_document_access", {
+          p_document_id: document.id,
+          p_action: "view",
+        });
+      }
+
+      return data.publicUrl;
+    },
+    enabled: !!filePath,
+  });
+}

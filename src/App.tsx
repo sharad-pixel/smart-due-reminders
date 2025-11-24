@@ -40,6 +40,7 @@ import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
 import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
+import Documents from "./pages/Documents";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,7 @@ const App = () => (
         <Route path="/security" element={<SecurityDashboard />} />
         <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/documents" element={<Documents />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
