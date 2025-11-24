@@ -8,11 +8,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Price IDs for each plan
+// Price IDs for each plan - synced with Stripe
 const PLAN_PRICE_IDS: Record<string, string> = {
-  'starter': 'price_1SW999FaeMMSBqcl7CWZmbgR',
-  'growth': 'price_1SW99kFaeMMSBqclOu7cKUjo',
-  'professional': 'price_1SW9ALFaeMMSBqclBIJouOjo'
+  'starter': 'price_1SW999FaeMMSBqcl7CWZmbgR',      // $29/month
+  'growth': 'price_1SW99kFaeMMSBqclOu7cKUjo',       // $99/month
+  'professional': 'price_1SW9ALFaeMMSBqclBIJouOjo'  // $249/month
 };
 
 serve(async (req) => {
