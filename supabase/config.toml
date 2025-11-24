@@ -1,5 +1,8 @@
 project_id = "kguurazunazhhrhasahd"
 
+[functions.stripe-webhook]
+verify_jwt = false
+
 [functions.auto-generate-collection-drafts]
 verify_jwt = false
 
