@@ -1,5 +1,8 @@
 project_id = "kguurazunazhhrhasahd"
 
+[functions.analyze-document]
+verify_jwt = true
+
 [functions.stripe-webhook]
 verify_jwt = false
 
