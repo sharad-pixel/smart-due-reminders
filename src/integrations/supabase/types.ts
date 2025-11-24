@@ -1273,6 +1273,33 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          attempt_time: string | null
+          email: string
+          id: string
+          ip_address: string
+          locked_until: string | null
+          success: boolean | null
+        }
+        Insert: {
+          attempt_time?: string | null
+          email: string
+          id?: string
+          ip_address: string
+          locked_until?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          attempt_time?: string | null
+          email?: string
+          id?: string
+          ip_address?: string
+          locked_until?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       marketing_snippets: {
         Row: {
           created_at: string
@@ -1300,6 +1327,42 @@ export type Database = {
           results_copy?: string
           solution_copy?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      mfa_settings: {
+        Row: {
+          backup_codes: string[] | null
+          created_at: string | null
+          id: string
+          mfa_enabled: boolean | null
+          mfa_method: string | null
+          phone_number: string | null
+          totp_secret: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          id?: string
+          mfa_enabled?: boolean | null
+          mfa_method?: string | null
+          phone_number?: string | null
+          totp_secret?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          id?: string
+          mfa_enabled?: boolean | null
+          mfa_method?: string | null
+          phone_number?: string | null
+          totp_secret?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1608,6 +1671,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string | null
+          device_name: string | null
+          device_type: string | null
+          expires_at: string | null
+          id: string
+          ip_address: string | null
+          is_current: boolean | null
+          last_active_at: string | null
+          os: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active_at?: string | null
+          os?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active_at?: string | null
+          os?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1617,6 +1725,15 @@ export type Database = {
         Args: { due_date: string; payment_date?: string }
         Returns: string
       }
+      check_rate_limit: {
+        Args: { p_email: string; p_ip_address: string }
+        Returns: {
+          attempts_count: number
+          is_locked: boolean
+          locked_until: string
+        }[]
+      }
+      clean_old_login_attempts: { Args: never; Returns: undefined }
       generate_reference_id: {
         Args: { prefix: string; target_table: string }
         Returns: string

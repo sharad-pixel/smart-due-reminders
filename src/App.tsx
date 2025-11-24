@@ -28,6 +28,7 @@ import Upgrade from "./pages/Upgrade";
 import Team from "./pages/Team";
 import Profile from "./pages/Profile";
 import SecurityDashboard from "./pages/SecurityDashboard";
+import SecuritySettings from "./pages/SecuritySettings";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionDrafts from "./pages/CollectionDrafts";
 import CollectionTasks from "./pages/CollectionTasks";
@@ -82,6 +83,7 @@ const App = () => (
         <Route path="/collections/tasks" element={<CollectionTasks />} />
         <Route path="/team" element={<Team />} />
         <Route path="/security" element={<SecurityDashboard />} />
+        <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

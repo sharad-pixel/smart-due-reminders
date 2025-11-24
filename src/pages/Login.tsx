@@ -31,12 +31,34 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // Get IP address (best effort)
+      const ipAddress = await fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => data.ip)
+        .catch(() => 'unknown');
+
+      // Check rate limit before attempting login
+      const rateLimitCheck = await supabase.functions.invoke('track-login-attempt', {
+        body: { email, success: false, ipAddress }
+      });
+
+      if (rateLimitCheck.data?.locked) {
+        toast.error(rateLimitCheck.data.message);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
+        // Record failed attempt
+        await supabase.functions.invoke('track-login-attempt', {
+          body: { email, success: false, ipAddress }
+        });
+
         // Log failed login attempt
         await logSecurityEvent({
           eventType: "login",
@@ -47,6 +69,18 @@ const Login = () => {
         throw error;
       }
       
+      // Record successful login attempt
+      await supabase.functions.invoke('track-login-attempt', {
+        body: { email, success: true, ipAddress }
+      });
+
+      // Track session
+      await supabase.functions.invoke('track-session', {
+        headers: {
+          Authorization: `Bearer ${data.session?.access_token}`
+        }
+      });
+
       // Log successful login
       if (data.user) {
         await logSecurityEvent({
