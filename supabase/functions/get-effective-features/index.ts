@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     const planType = profile?.plan_type || 'free';
 
-    // Default plan features
+    // Default plan features - synced with pricing page
     const planFeatures: Record<string, any> = {
       free: {
         can_use_invoice_line_items: false,
@@ -69,9 +69,9 @@ Deno.serve(async (req) => {
         can_manage_roles: false,
         max_invited_users: 0,
       },
-      pro: {
+      professional: {
         can_use_invoice_line_items: true,
-        invoice_limit: null,
+        invoice_limit: 500,
         can_have_team_users: true,
         can_manage_roles: true,
         max_invited_users: 5,
