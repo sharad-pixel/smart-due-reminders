@@ -134,10 +134,7 @@ const Security = () => {
               strict access controls, and audit-ready infrastructure — ensuring your financial 
               and customer data is safe at all times.
             </p>
-            <div className="flex flex-wrap gap-4 justify-center pt-6">
-              <Button size="lg" asChild>
-                <a href="#security-docs">View Security Documentation</a>
-              </Button>
+            <div className="flex justify-center pt-6">
               <Button size="lg" variant="outline" asChild>
                 <a href="#contact">Contact Security Team</a>
               </Button>
