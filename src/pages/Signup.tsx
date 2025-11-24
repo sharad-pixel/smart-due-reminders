@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
+import { logSecurityEvent } from "@/lib/auditLog";
 
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -93,8 +94,26 @@ const Signup = () => {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Log failed signup attempt
+        await logSecurityEvent({
+          eventType: "signup",
+          email: validatedData.email,
+          success: false,
+          failureReason: authError.message,
+        });
+        throw authError;
+      }
       if (!authData.user) throw new Error("Failed to create account");
+
+      // Log successful signup
+      await logSecurityEvent({
+        eventType: "signup",
+        userId: authData.user.id,
+        email: validatedData.email,
+        success: true,
+        metadata: { plan: selectedPlan, icp: selectedIcp }
+      });
 
       // Update profile with plan and business details
       const { error: profileError } = await supabase

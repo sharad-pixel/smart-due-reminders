@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { logSecurityEvent } from "@/lib/auditLog";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -30,11 +31,32 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
+      
+      if (error) {
+        // Log failed login attempt
+        await logSecurityEvent({
+          eventType: "login",
+          email,
+          success: false,
+          failureReason: error.message,
+        });
+        throw error;
+      }
+      
+      // Log successful login
+      if (data.user) {
+        await logSecurityEvent({
+          eventType: "login",
+          userId: data.user.id,
+          email,
+          success: true,
+        });
+      }
+      
       toast.success("Welcome back!");
       navigate("/dashboard");
     } catch (error: any) {
