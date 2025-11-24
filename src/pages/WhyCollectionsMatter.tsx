@@ -377,47 +377,6 @@ export default function WhyCollectionsMatter() {
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section className="py-20 px-4 bg-muted/30">
-          <div className="container mx-auto max-w-6xl">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              What Our Customers Say
-            </h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Sarah Johnson",
-                  title: "CFO, TechCorp Solutions",
-                  quote: "Recouply.ai transformed our collections process. We reduced DSO by 35% in just 90 days."
-                },
-                {
-                  name: "Michael Chen",
-                  title: "Controller, GrowthScale Inc",
-                  quote: "The AI personas made collections feel natural. Our recovery rate increased by 40%."
-                },
-                {
-                  name: "Emily Rodriguez",
-                  title: "VP Finance, ServicePro",
-                  quote: "Clean AR data and better cash flow. Recouply.ai pays for itself in the first month."
-                }
-              ].map((testimonial, index) => (
-                <Card key={index}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary"></div>
-                      <div>
-                        <p className="font-semibold">{testimonial.name}</p>
-                        <p className="text-sm text-muted-foreground">{testimonial.title}</p>
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground italic">"{testimonial.quote}"</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Comparison Section */}
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
