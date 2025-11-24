@@ -525,17 +525,17 @@ const AIWorkflows = () => {
               Your team of AI agents automatically adapts messaging based on invoice age
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-8 pb-8">
+          <CardContent className="pt-6 pb-6">
             <TooltipProvider>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8">
+              <div className="flex gap-4 justify-center items-center">
                 {Object.entries(personaConfig).map(([key, persona]) => (
                   <Tooltip key={key}>
                     <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center gap-3 cursor-pointer transition-all hover:scale-105">
-                        <PersonaAvatar persona={persona} size="xl" />
+                      <div className="flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105">
+                        <PersonaAvatar persona={persona} size="lg" />
                         <div className="text-center">
-                          <p className="text-sm font-semibold">{persona.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs font-semibold">{persona.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
                             {persona.bucketMin}-{persona.bucketMax || "+"} Days
                           </p>
                         </div>
