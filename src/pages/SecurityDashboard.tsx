@@ -58,6 +58,42 @@ export default function SecurityDashboard() {
   useEffect(() => {
     if (role === "owner" || role === "admin") {
       loadSecurityData();
+      
+      // Set up real-time subscriptions
+      const auditChannel = supabase
+        .channel('audit_logs_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'audit_logs'
+          },
+          () => {
+            loadSecurityData();
+          }
+        )
+        .subscribe();
+
+      const securityChannel = supabase
+        .channel('security_events_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'security_events'
+          },
+          () => {
+            loadSecurityData();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(auditChannel);
+        supabase.removeChannel(securityChannel);
+      };
     }
   }, [role]);
 

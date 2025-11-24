@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { logSecurityEvent } from "@/lib/auditLog";
+import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -88,6 +88,13 @@ const Login = () => {
           userId: data.user.id,
           email,
           success: true,
+        });
+        
+        await logAuditEvent({
+          action: "login",
+          resourceType: "profile",
+          resourceId: data.user.id,
+          metadata: { email }
         });
       }
       

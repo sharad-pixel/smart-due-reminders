@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
+import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -51,14 +52,47 @@ const Auth = () => {
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          await logSecurityEvent({
+            eventType: "signup",
+            email,
+            success: false,
+            failureReason: error.message
+          });
+          throw error;
+        }
+        if (data.user) {
+          await logSecurityEvent({
+            eventType: "signup",
+            userId: data.user.id,
+            email,
+            success: true,
+            metadata: { company_name: companyName }
+          });
+        }
         toast.success("Account created! Please check your email to verify.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          await logSecurityEvent({
+            eventType: "login",
+            email,
+            success: false,
+            failureReason: error.message
+          });
+          throw error;
+        }
+        if (data.user) {
+          await logAuditEvent({
+            action: "login",
+            resourceType: "profile",
+            resourceId: data.user.id,
+            metadata: { email }
+          });
+        }
         toast.success("Welcome back!");
       }
     } catch (error: any) {
