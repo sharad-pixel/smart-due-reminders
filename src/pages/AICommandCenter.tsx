@@ -178,11 +178,11 @@ const AICommandCenter = () => {
           </div>
           
           <TooltipProvider>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+            <div className="flex gap-8 overflow-x-auto pb-4 justify-center">
               {Object.entries(personaConfig).map(([key, persona]) => (
                 <Tooltip key={key}>
                   <TooltipTrigger asChild>
-                    <Card className="hover:scale-105 transition-all cursor-pointer border-2 hover:border-primary/40">
+                    <Card className="hover:scale-105 transition-all cursor-pointer border-2 hover:border-primary/40 flex-shrink-0">
                       <CardContent className="pt-6 flex flex-col items-center text-center gap-3">
                         <PersonaAvatar persona={persona} size="xl" />
                         <div>
