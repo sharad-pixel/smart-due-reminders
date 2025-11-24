@@ -253,7 +253,6 @@ const Signup = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="home-services">Home Services</SelectItem>
-                    <SelectItem value="auto">Auto/Dealership</SelectItem>
                     <SelectItem value="agencies">Agencies / Professional Services</SelectItem>
                     <SelectItem value="local-smb">Local SMB</SelectItem>
                     <SelectItem value="saas">SaaS</SelectItem>
