@@ -100,15 +100,6 @@ const ComingSoon = () => {
             </p>
           </form>
 
-          {/* Login Link */}
-          <div className="pt-8 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              Already have access?{" "}
-              <a href="/login" className="text-primary hover:underline font-medium">
-                Sign in here
-              </a>
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
