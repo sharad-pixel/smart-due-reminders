@@ -1,4 +1,4 @@
-type PlanType = "free" | "starter" | "growth" | "professional";
+type PlanType = "free" | "starter" | "growth" | "pro";
 
 export const PLAN_FEATURES = {
   free: {
@@ -22,7 +22,7 @@ export const PLAN_FEATURES = {
     can_manage_roles: false,
     max_invited_users: 0,
   },
-  professional: {
+  pro: {
     can_use_invoice_line_items: true,
     invoice_limit: 500,
     can_have_team_users: true,
@@ -40,5 +40,5 @@ export function getRequiredPlanForFeature(feature: keyof typeof PLAN_FEATURES.fr
   const plans = Object.entries(PLAN_FEATURES).find(
     ([_, features]) => features[feature] === true
   );
-  return plans ? plans[0] : "professional";
+  return plans ? plans[0] : "pro";
 }

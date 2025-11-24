@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         can_manage_roles: false,
         max_invited_users: 0,
       },
-      professional: {
+      pro: {
         can_use_invoice_line_items: true,
         invoice_limit: 500,
         can_have_team_users: true,
