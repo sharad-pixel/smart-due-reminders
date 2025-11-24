@@ -160,16 +160,17 @@ serve(async (req) => {
             apiVersion: "2025-08-27.basil",
           });
 
-          // Get subscription to find the metered item
+          // Get subscription to find the metered item for invoice overages
           const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
           
-          // Find the metered usage item (you'll need to configure this in Stripe)
-          // This assumes you have a metered price attached to the subscription
+          // Find the specific overage metered price item ($1 per invoice overage)
+          const OVERAGE_PRICE_ID = 'price_1SX35zFaeMMSBqclPXpUHQmv';
           const meteredItem = subscription.items.data.find((item: any) => 
-            item.price.recurring?.usage_type === 'metered'
+            item.price.id === OVERAGE_PRICE_ID
           );
 
           if (meteredItem) {
+            // Report 1 unit of usage for this overage invoice at $1
             await stripe.subscriptionItems.createUsageRecord(
               meteredItem.id,
               {
@@ -178,9 +179,9 @@ serve(async (req) => {
                 timestamp: Math.floor(Date.now() / 1000)
               }
             );
-            logStep("Reported usage to Stripe", { itemId: meteredItem.id });
+            logStep("Reported overage usage to Stripe - 1 invoice at $1", { itemId: meteredItem.id });
           } else {
-            logStep("No metered item found in subscription");
+            logStep("Overage metered item not found in subscription - user may need to resubscribe");
           }
         } catch (stripeError: any) {
           logStep("Stripe error (non-blocking)", { error: stripeError?.message || String(stripeError) });
