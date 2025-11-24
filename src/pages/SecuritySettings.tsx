@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import { MFASettings } from "@/components/MFASettings";
 import { SessionManager } from "@/components/SessionManager";
+import { DataEncryptionSettings } from "@/components/DataEncryptionSettings";
 import { Separator } from "@/components/ui/separator";
 
 const SecuritySettings = () => {
@@ -19,6 +20,7 @@ const SecuritySettings = () => {
         <div className="space-y-6">
           <MFASettings />
           <SessionManager />
+          <DataEncryptionSettings />
         </div>
       </div>
     </Layout>
