@@ -69,8 +69,8 @@ export const personaConfig: Record<string, PersonaConfig> = {
   },
   rocco: {
     name: "Rocco",
-    color: "#3C2F2F",
-    bgColor: "bg-[#3C2F2F]",
+    color: "#DC2626",
+    bgColor: "bg-red-600",
     avatar: roccoAvatar,
     bucketMin: 151,
     bucketMax: null,
