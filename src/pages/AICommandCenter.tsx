@@ -23,7 +23,6 @@ import {
   Sparkles
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const AICommandCenter = () => {
   const navigate = useNavigate();
@@ -169,39 +168,47 @@ const AICommandCenter = () => {
 
       {/* AI Personas Showcase */}
       <section className="py-20 px-4 bg-gradient-to-r from-primary/5 to-primary/10">
-        <div className="container mx-auto max-w-6xl">
+        <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">Meet Your AI Collections Team</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Five specialized AI agents that automatically adapt messaging tone and urgency based on how overdue each invoice is.
+              Six specialized AI agents that automatically adapt messaging tone and urgency based on how overdue each invoice is.
             </p>
           </div>
           
-          <TooltipProvider>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-              {Object.entries(personaConfig).map(([key, persona]) => (
-                <Tooltip key={key}>
-                  <TooltipTrigger asChild>
-                    <Card className="hover:scale-105 transition-all cursor-pointer border-2 hover:border-primary/40">
-                      <CardContent className="pt-6 flex flex-col items-center text-center gap-3">
-                        <PersonaAvatar persona={persona} size="xl" />
-                        <div>
-                          <p className="font-bold text-lg">{persona.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold">{persona.description}</p>
-                    <p className="text-sm mt-1">{persona.tone}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          </TooltipProvider>
+          <div className="space-y-12">
+            {Object.entries(personaConfig).map(([key, persona], index) => (
+              <Card 
+                key={key} 
+                className="overflow-hidden hover:shadow-lg transition-shadow animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardHeader className="bg-gradient-to-r from-card to-muted/20">
+                  <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                    <PersonaAvatar persona={persona} size="xl" />
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <CardTitle className="text-3xl">{persona.name}</CardTitle>
+                        <Badge 
+                          variant="outline" 
+                          className="text-sm"
+                          style={{ borderColor: persona.color, color: persona.color }}
+                        >
+                          {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-lg">
+                        {persona.description}
+                      </CardDescription>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        <span className="font-semibold">Tone:</span> {persona.tone}
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
 
           <div className="mt-12 text-center">
             <Button size="lg" onClick={() => navigate("/personas")} variant="outline">
