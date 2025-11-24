@@ -14,7 +14,8 @@ import {
   User as UserIcon,
   Workflow,
   Mail,
-  CheckSquare
+  CheckSquare,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -145,7 +146,10 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
     { path: "/collections/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
-    ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
+    ...(showTeam ? [
+      { path: "/team", label: "Team & Roles", icon: Users },
+      { path: "/security", label: "Security", icon: Shield }
+    ] : []),
   ];
 
   return (
