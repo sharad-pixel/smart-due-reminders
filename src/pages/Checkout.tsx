@@ -7,6 +7,55 @@ import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Stripe plan configuration
+const STRIPE_PLANS = [
+  {
+    id: 'starter',
+    name: 'Starter Plan',
+    priceId: 'price_1SX2cyFaeMMSBqclAGkxSliI',
+    productId: 'prod_TU0eI8uJBt4uFu',
+    price: 99,
+    description: '50 invoices per month with AI-powered collections',
+    features: [
+      "Up to 50 invoices per month",
+      "AI email reminders",
+      "Manual SMS sending",
+      "Stripe payment link embedding",
+      "Dashboard analytics"
+    ]
+  },
+  {
+    id: 'growth',
+    name: 'Growth Plan',
+    priceId: 'price_1SX2dkFaeMMSBqclPIjUA6N2',
+    productId: 'prod_TU0f7AKZA4QVKe',
+    price: 199,
+    description: '200 invoices per month with AI-powered collections',
+    features: [
+      "Up to 200 invoices per month",
+      "Full AI cadence automation",
+      "Automated SMS sending",
+      "Promise-to-pay tracking",
+      "Multi-user support"
+    ]
+  },
+  {
+    id: 'professional',
+    name: 'Professional Plan',
+    priceId: 'price_1SX2duFaeMMSBqclrYq4rikr',
+    productId: 'prod_TU0fTQf4l1UgT9',
+    price: 399,
+    description: '500 invoices per month with AI-powered collections and team features',
+    features: [
+      "Unlimited invoices",
+      "Team permissions",
+      "Priority AI throughput",
+      "Advanced CRM integration",
+      "Dedicated support"
+    ]
+  }
+];
+
 const Checkout = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -32,17 +81,24 @@ const Checkout = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan_id, plans(*)')
+        .select('plan_type')
         .eq('id', currentUser.id)
         .single();
 
-      if (!profile?.plan_id) {
+      if (!profile?.plan_type) {
         toast.error("No plan selected");
         navigate("/pricing");
         return;
       }
 
-      setPlan(profile.plans);
+      const selectedPlan = STRIPE_PLANS.find(p => p.id === profile.plan_type);
+      if (!selectedPlan) {
+        toast.error("Invalid plan");
+        navigate("/pricing");
+        return;
+      }
+
+      setPlan(selectedPlan);
     } catch (error: any) {
       console.error('Error loading plan:', error);
       toast.error("Failed to load plan details");
@@ -56,7 +112,7 @@ const Checkout = () => {
     setProcessingCheckout(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planName: plan.name }
+        body: { planId: plan.id }
       });
 
       if (error) throw error;
@@ -92,32 +148,6 @@ const Checkout = () => {
     );
   }
 
-  const planFeatures = {
-    starter: [
-      "Up to 50 invoices per month",
-      "AI email reminders",
-      "Manual SMS sending",
-      "Stripe payment link embedding",
-      "Dashboard analytics"
-    ],
-    growth: [
-      "Up to 200 invoices per month",
-      "Full AI cadence automation",
-      "Automated SMS sending",
-      "Promise-to-pay tracking",
-      "Multi-user support"
-    ],
-    professional: [
-      "Unlimited invoices",
-      "Team permissions",
-      "Priority AI throughput",
-      "Advanced CRM integration",
-      "Dedicated support"
-    ]
-  };
-
-  const features = planFeatures[plan.name as keyof typeof planFeatures] || [];
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-2xl">
@@ -137,17 +167,17 @@ const Checkout = () => {
             <div className="bg-muted/50 p-6 rounded-lg">
               <div className="flex items-baseline justify-between mb-4">
                 <div>
-                  <h3 className="text-2xl font-bold capitalize">{plan.name} Plan</h3>
+                  <h3 className="text-2xl font-bold">{plan.name}</h3>
                   <p className="text-sm text-muted-foreground">14-day free trial, then:</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold">${plan.monthly_price}</div>
+                  <div className="text-3xl font-bold">${plan.price}</div>
                   <div className="text-sm text-muted-foreground">/month</div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {features.map((feature, idx) => (
+                {plan.features.map((feature: string, idx: number) => (
                   <div key={idx} className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-sm">{feature}</span>
@@ -159,7 +189,7 @@ const Checkout = () => {
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>✓ Your card will not be charged during the 14-day trial</p>
               <p>✓ Cancel anytime from your account settings</p>
-              <p>✓ After trial, ${plan.monthly_price}/month unless canceled</p>
+              <p>✓ After trial, ${plan.price}/month unless canceled</p>
             </div>
 
             <Button
