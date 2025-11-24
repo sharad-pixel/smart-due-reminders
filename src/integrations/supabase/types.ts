@@ -1095,6 +1095,166 @@ export type Database = {
           },
         ]
       }
+      document_access_log: {
+        Row: {
+          action: string
+          created_at: string
+          document_id: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          document_id: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_access_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          created_at: string
+          document_id: string
+          file_name: string
+          file_url: string
+          id: string
+          notes: string | null
+          uploaded_by_user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          file_name: string
+          file_url: string
+          id?: string
+          notes?: string | null
+          uploaded_by_user_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          notes?: string | null
+          uploaded_by_user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          created_at: string
+          debtor_id: string | null
+          expires_at: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          organization_id: string | null
+          status: Database["public"]["Enums"]["document_status"]
+          updated_at: string
+          uploaded_by_user_id: string
+          verified_at: string | null
+          verified_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          debtor_id?: string | null
+          expires_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          organization_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          updated_at?: string
+          uploaded_by_user_id: string
+          verified_at?: string | null
+          verified_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          debtor_id?: string | null
+          expires_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          organization_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          updated_at?: string
+          uploaded_by_user_id?: string
+          verified_at?: string | null
+          verified_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_line_items: {
         Row: {
           created_at: string | null
@@ -1762,11 +1922,31 @@ export type Database = {
         }
         Returns: string
       }
+      log_document_access: {
+        Args: { p_action: string; p_document_id: string; p_metadata?: Json }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"
       channel_type: "email" | "sms"
       debtor_type: "B2B" | "B2C"
+      document_category:
+        | "ACH"
+        | "WIRE"
+        | "W9"
+        | "EIN"
+        | "PROOF_OF_BUSINESS"
+        | "CONTRACT"
+        | "BANKING_INFO"
+        | "TAX_DOCUMENT"
+        | "OTHER"
+      document_status:
+        | "uploaded"
+        | "pending_review"
+        | "verified"
+        | "expired"
+        | "rejected"
       draft_status: "pending_approval" | "approved" | "discarded"
       invoice_status:
         | "Open"
@@ -1910,6 +2090,24 @@ export const Constants = {
       app_role: ["owner", "admin", "member", "viewer"],
       channel_type: ["email", "sms"],
       debtor_type: ["B2B", "B2C"],
+      document_category: [
+        "ACH",
+        "WIRE",
+        "W9",
+        "EIN",
+        "PROOF_OF_BUSINESS",
+        "CONTRACT",
+        "BANKING_INFO",
+        "TAX_DOCUMENT",
+        "OTHER",
+      ],
+      document_status: [
+        "uploaded",
+        "pending_review",
+        "verified",
+        "expired",
+        "rejected",
+      ],
       draft_status: ["pending_approval", "approved", "discarded"],
       invoice_status: [
         "Open",
