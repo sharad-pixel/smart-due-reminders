@@ -9,10 +9,12 @@ const corsHeaders = {
 };
 
 // Price IDs for each plan - synced with Stripe
+// Note: 'professional' from pricing page maps to 'pro' in the database
 const PLAN_PRICE_IDS: Record<string, string> = {
   'starter': 'price_1SW999FaeMMSBqcl7CWZmbgR',      // $29/month
   'growth': 'price_1SW99kFaeMMSBqclOu7cKUjo',       // $99/month
-  'professional': 'price_1SW9ALFaeMMSBqclBIJouOjo'  // $249/month
+  'professional': 'price_1SW9ALFaeMMSBqclBIJouOjo', // $249/month - maps to 'pro' in DB
+  'pro': 'price_1SW9ALFaeMMSBqclBIJouOjo'           // $249/month - DB value
 };
 
 serve(async (req) => {
