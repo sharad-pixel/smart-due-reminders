@@ -12,6 +12,7 @@ import ProfessionalServices from "./pages/solutions/ProfessionalServices";
 import FinalInternalCollections from "./pages/solutions/FinalInternalCollections";
 import Terms from "./pages/legal/Terms";
 import Privacy from "./pages/legal/Privacy";
+import Security from "./pages/Security";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
@@ -63,6 +64,7 @@ const App = () => (
         <Route path="/solutions/final-internal-collections" element={<FinalInternalCollections />} />
         <Route path="/legal/terms" element={<Terms />} />
         <Route path="/legal/privacy" element={<Privacy />} />
+        <Route path="/security-public" element={<Security />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />

@@ -49,6 +49,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               Pricing
             </button>
+            <button 
+              onClick={() => navigate("/security-public")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Security
+            </button>
             <Button onClick={() => navigate("/login")} variant="ghost">
               Sign In
             </Button>
@@ -121,6 +127,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     className="text-muted-foreground hover:text-primary"
                   >
                     Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/security-public")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Security
                   </button>
                 </li>
               </ul>
