@@ -89,3 +89,18 @@ verify_jwt = true
 
 [functions.calculate-payment-score]
 verify_jwt = true
+
+[functions.track-session]
+verify_jwt = true
+
+[functions.track-login-attempt]
+verify_jwt = false
+
+[functions.encrypt-field]
+verify_jwt = true
+
+[functions.decrypt-field]
+verify_jwt = true
+
+[functions.check-access]
+verify_jwt = true

@@ -26,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UsageIndicator } from "@/components/UsageIndicator";
+import { SecurityAlert } from "@/components/SecurityAlert";
+import { logAuditEvent } from "@/lib/auditLog";
 
 interface LayoutProps {
   children: ReactNode;
@@ -57,6 +59,14 @@ const Layout = ({ children }: LayoutProps) => {
   }, [navigate]);
 
   const handleSignOut = async () => {
+    if (user) {
+      await logAuditEvent({
+        action: "logout",
+        resourceType: "profile",
+        resourceId: user.id,
+        metadata: { timestamp: new Date().toISOString() }
+      });
+    }
     await supabase.auth.signOut();
     toast.success("Signed out successfully");
     navigate("/login");
@@ -154,6 +164,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SecurityAlert />
       <nav className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
