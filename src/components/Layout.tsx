@@ -15,7 +15,8 @@ import {
   Workflow,
   Mail,
   CheckSquare,
-  Shield
+  Shield,
+  FolderOpen
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -180,11 +181,11 @@ const Layout = ({ children }: LayoutProps) => {
       <nav className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link to="/dashboard" className="text-2xl font-bold text-primary">
+            <div className="flex items-center gap-8">
+              <Link to="/dashboard" className="text-2xl font-bold text-primary shrink-0">
                 Recouply.ai
               </Link>
-              <div className="hidden md:flex space-x-1">
+              <div className="hidden md:flex items-center gap-1">
                 {mainNavItems.map((item) => {
                   const Icon = item.icon;
                   
@@ -192,7 +193,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -246,6 +247,10 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <UserIcon className="mr-2 h-4 w-4" />
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/documents")}>
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Documents
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     <Settings className="mr-2 h-4 w-4" />
