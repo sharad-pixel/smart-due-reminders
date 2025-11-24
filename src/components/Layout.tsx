@@ -148,7 +148,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [
       { path: "/team", label: "Team & Roles", icon: Users },
-      { path: "/security", label: "Security", icon: Shield }
+      { path: "/security", label: "Security Dashboard", icon: Shield }
     ] : []),
   ];
 
@@ -213,6 +213,10 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/security-settings")}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Security Settings
                   </DropdownMenuItem>
                   
                   <DropdownMenuSeparator />
