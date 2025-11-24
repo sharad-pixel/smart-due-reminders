@@ -527,7 +527,7 @@ const AIWorkflows = () => {
           </CardHeader>
           <CardContent className="pt-6 pb-6">
             <TooltipProvider>
-              <div className="flex gap-4 justify-center items-center">
+              <div className="flex justify-evenly items-center">
                 {Object.entries(personaConfig).map(([key, persona]) => (
                   <Tooltip key={key}>
                     <TooltipTrigger asChild>
