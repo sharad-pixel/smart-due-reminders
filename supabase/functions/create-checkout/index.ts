@@ -26,11 +26,11 @@ serve(async (req) => {
   }
 
   try {
-    const { planName } = await req.json();
+    const { planId } = await req.json();
     
-    if (!planName || !PLAN_PRICE_IDS[planName]) {
+    if (!planId || !PLAN_PRICE_IDS[planId]) {
       return new Response(
-        JSON.stringify({ error: 'Invalid plan name' }),
+        JSON.stringify({ error: 'Invalid plan ID' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -48,7 +48,7 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    console.log('Creating checkout for user:', user.email, 'plan:', planName);
+    console.log('Creating checkout for user:', user.email, 'plan:', planId);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
@@ -69,7 +69,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: PLAN_PRICE_IDS[planName],
+          price: PLAN_PRICE_IDS[planId],
           quantity: 1,
         },
         {

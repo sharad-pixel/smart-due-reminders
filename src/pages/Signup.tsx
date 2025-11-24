@@ -18,6 +18,34 @@ const signupSchema = z.object({
   icp: z.string().min(1, "Please select your industry")
 });
 
+// Stripe plan configuration
+const STRIPE_PLANS = [
+  {
+    id: 'starter',
+    name: 'Starter Plan',
+    priceId: 'price_1SX2cyFaeMMSBqclAGkxSliI',
+    productId: 'prod_TU0eI8uJBt4uFu',
+    price: 99,
+    description: '50 invoices per month with AI-powered collections'
+  },
+  {
+    id: 'growth',
+    name: 'Growth Plan',
+    priceId: 'price_1SX2dkFaeMMSBqclPIjUA6N2',
+    productId: 'prod_TU0f7AKZA4QVKe',
+    price: 199,
+    description: '200 invoices per month with AI-powered collections'
+  },
+  {
+    id: 'professional',
+    name: 'Professional Plan',
+    priceId: 'price_1SX2duFaeMMSBqclrYq4rikr',
+    productId: 'prod_TU0fTQf4l1UgT9',
+    price: 399,
+    description: '500 invoices per month with AI-powered collections and team features'
+  }
+];
+
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -28,35 +56,18 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState(planParam || "");
+  const [selectedPlan, setSelectedPlan] = useState(planParam || "starter");
   const [selectedIcp, setSelectedIcp] = useState(icpParam || "");
-  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     checkSession();
-    loadPlans();
   }, []);
 
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       navigate("/dashboard");
-    }
-  };
-
-  const loadPlans = async () => {
-    const { data } = await supabase
-      .from('plans')
-      .select('*')
-      .order('monthly_price', { ascending: true });
-    
-    if (data) {
-      const selfServePlans = data.filter(p => p.name !== 'bespoke');
-      setPlans(selfServePlans);
-      if (!selectedPlan && selfServePlans.length > 0) {
-        setSelectedPlan(selfServePlans[0].name);
-      }
     }
   };
 
@@ -75,7 +86,7 @@ const Signup = () => {
       });
 
       // Get selected plan details
-      const plan = plans.find(p => p.name === selectedPlan);
+      const plan = STRIPE_PLANS.find(p => p.id === selectedPlan);
       if (!plan) throw new Error("Please select a valid plan");
 
       // Calculate trial end date (14 days from now)
@@ -120,7 +131,7 @@ const Signup = () => {
         .from('profiles')
         .update({
           business_name: validatedData.businessName,
-          plan_id: plan.id,
+          plan_type: selectedPlan as 'starter' | 'growth' | 'pro',
           trial_ends_at: trialEndsAt.toISOString()
         })
         .eq('id', authData.user.id);
@@ -169,9 +180,9 @@ const Signup = () => {
                     <SelectValue placeholder="Select a plan" />
                   </SelectTrigger>
                   <SelectContent>
-                    {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.name}>
-                        {plan.name.charAt(0).toUpperCase() + plan.name.slice(1)} - ${plan.monthly_price}/mo
+                    {STRIPE_PLANS.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - ${plan.price}/mo
                       </SelectItem>
                     ))}
                   </SelectContent>
