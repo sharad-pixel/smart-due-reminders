@@ -39,6 +39,8 @@ const Layout = ({ children }: LayoutProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [planType, setPlanType] = useState<string>("free");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -83,7 +85,7 @@ const Layout = ({ children }: LayoutProps) => {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, email, avatar_url")
+          .select("name, email, avatar_url, stripe_subscription_id, plan_type")
           .eq("id", user.id)
           .single();
 
@@ -97,6 +99,16 @@ const Layout = ({ children }: LayoutProps) => {
 
         if (profile?.avatar_url) {
           setAvatarUrl(profile.avatar_url);
+        }
+
+        if (profile?.stripe_subscription_id) {
+          setSubscriptionStatus("Active");
+        } else {
+          setSubscriptionStatus(null);
+        }
+
+        if (profile?.plan_type) {
+          setPlanType(profile.plan_type);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -211,7 +223,21 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
-                  <div className="px-2 py-3">
+                  <div className="px-2 py-3 space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Plan:</span>
+                        <span className="font-medium capitalize">{planType}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Status:</span>
+                        {subscriptionStatus ? (
+                          <span className="text-green-600 font-medium">{subscriptionStatus}</span>
+                        ) : (
+                          <span className="text-muted-foreground">No Subscription</span>
+                        )}
+                      </div>
+                    </div>
                     <UsageIndicator />
                   </div>
                   
