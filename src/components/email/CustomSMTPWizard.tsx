@@ -37,6 +37,30 @@ export const CustomSMTPWizard = ({ onComplete }: CustomSMTPWizardProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Encrypt SMTP password
+      const { data: encryptedSmtpData, error: encryptSmtpError } = await supabase.functions.invoke(
+        "encrypt-field",
+        { body: { value: smtpPassword } }
+      );
+
+      if (encryptSmtpError || !encryptedSmtpData?.encrypted) {
+        throw new Error("Failed to encrypt SMTP password");
+      }
+
+      // Encrypt IMAP password if provided
+      let encryptedImapPassword = null;
+      if (imapPassword) {
+        const { data: encryptedImapData, error: encryptImapError } = await supabase.functions.invoke(
+          "encrypt-field",
+          { body: { value: imapPassword } }
+        );
+
+        if (encryptImapError || !encryptedImapData?.encrypted) {
+          throw new Error("Failed to encrypt IMAP password");
+        }
+        encryptedImapPassword = encryptedImapData.encrypted;
+      }
+
       const { error } = await supabase.from("email_accounts").insert({
         user_id: user.id,
         email_address: email,
@@ -46,12 +70,12 @@ export const CustomSMTPWizard = ({ onComplete }: CustomSMTPWizardProps) => {
         smtp_host: smtpHost,
         smtp_port: parseInt(smtpPort),
         smtp_username: smtpUsername,
-        smtp_password_encrypted: smtpPassword, // Should be encrypted
+        smtp_password_encrypted: encryptedSmtpData.encrypted,
         smtp_use_tls: true,
         imap_host: imapHost || null,
         imap_port: imapPort ? parseInt(imapPort) : null,
         imap_username: imapUsername || null,
-        imap_password_encrypted: imapPassword || null,
+        imap_password_encrypted: encryptedImapPassword,
         connection_status: "pending",
       });
 
