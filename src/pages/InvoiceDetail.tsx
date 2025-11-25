@@ -21,6 +21,7 @@ import { PersonaCommandInput } from "@/components/PersonaCommandInput";
 import { DraftPreviewModal } from "@/components/DraftPreviewModal";
 import { TasksSummaryCard } from "@/components/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
+import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 
 interface Invoice {
   id: string;
@@ -32,6 +33,7 @@ interface Invoice {
   status: string;
   notes: string | null;
   debtor_id: string;
+  payment_terms: string | null;
   debtors?: { 
     name: string; 
     email: string;
@@ -111,7 +113,7 @@ const InvoiceDetail = () => {
   const [editInvoiceNumber, setEditInvoiceNumber] = useState("");
   const [editAmount, setEditAmount] = useState("");
   const [editIssueDate, setEditIssueDate] = useState("");
-  const [editDueDate, setEditDueDate] = useState("");
+  const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
 
   useEffect(() => {
@@ -430,7 +432,7 @@ const InvoiceDetail = () => {
     setEditInvoiceNumber(invoice.invoice_number);
     setEditAmount(invoice.amount.toString());
     setEditIssueDate(invoice.issue_date);
-    setEditDueDate(invoice.due_date);
+    setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
     setEditInvoiceDialogOpen(true);
   };
@@ -439,13 +441,22 @@ const InvoiceDetail = () => {
     if (!invoice) return;
 
     try {
+      // Get payment terms days from the selected option
+      const paymentTermsOptions = getPaymentTermsOptions();
+      const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
+      const paymentTermsDays = selectedTerms?.days ?? 30;
+      
+      // Calculate due date from issue date + payment terms
+      const dueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+
       const { error } = await supabase
         .from("invoices")
         .update({
           invoice_number: editInvoiceNumber,
           amount: parseFloat(editAmount),
           issue_date: editIssueDate,
-          due_date: editDueDate,
+          due_date: dueDate,
+          payment_terms: editPaymentTerms,
           notes: editNotes,
         })
         .eq("id", invoice.id);
@@ -1105,13 +1116,19 @@ const InvoiceDetail = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="due-date">Due Date</Label>
-                <Input
-                  id="due-date"
-                  type="date"
-                  value={editDueDate}
-                  onChange={(e) => setEditDueDate(e.target.value)}
-                />
+                <Label htmlFor="payment-terms">Payment Terms</Label>
+                <Select value={editPaymentTerms} onValueChange={setEditPaymentTerms}>
+                  <SelectTrigger id="payment-terms">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getPaymentTermsOptions().map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="notes">Notes</Label>
