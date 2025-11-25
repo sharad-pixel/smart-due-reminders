@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Plus, Search, Eye, AlertCircle, Sparkles, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
@@ -54,7 +55,10 @@ const Invoices = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>("all");
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
-  const [hideCancelled, setHideCancelled] = useState<boolean>(false);
+  const [hideCancelled, setHideCancelled] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hideCancelledInvoices");
+    return saved === "true";
+  });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
@@ -77,6 +81,10 @@ const Invoices = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("hideCancelledInvoices", hideCancelled.toString());
+  }, [hideCancelled]);
 
   useEffect(() => {
     filterInvoices();
@@ -582,11 +590,11 @@ const Invoices = () => {
                 </SelectContent>
               </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
+              <div className="flex items-center gap-3">
+                <Switch
                   id="hide-cancelled"
                   checked={hideCancelled}
-                  onCheckedChange={(checked) => setHideCancelled(checked as boolean)}
+                  onCheckedChange={setHideCancelled}
                 />
                 <Label htmlFor="hide-cancelled" className="text-sm font-normal cursor-pointer">
                   Hide cancelled invoices
