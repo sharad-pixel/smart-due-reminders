@@ -1298,6 +1298,151 @@ export type Database = {
           },
         ]
       }
+      email_accounts: {
+        Row: {
+          access_token_encrypted: string | null
+          auth_method: string
+          connection_status: string | null
+          created_at: string
+          display_name: string | null
+          dkim_status: string | null
+          email_address: string
+          error_message: string | null
+          id: string
+          imap_host: string | null
+          imap_password_encrypted: string | null
+          imap_port: number | null
+          imap_use_tls: boolean | null
+          imap_username: string | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          last_successful_send: string | null
+          last_sync_at: string | null
+          last_verified_at: string | null
+          provider: string
+          refresh_token_encrypted: string | null
+          smtp_host: string | null
+          smtp_password_encrypted: string | null
+          smtp_port: number | null
+          smtp_use_tls: boolean | null
+          smtp_username: string | null
+          spf_status: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          auth_method: string
+          connection_status?: string | null
+          created_at?: string
+          display_name?: string | null
+          dkim_status?: string | null
+          email_address: string
+          error_message?: string | null
+          id?: string
+          imap_host?: string | null
+          imap_password_encrypted?: string | null
+          imap_port?: number | null
+          imap_use_tls?: boolean | null
+          imap_username?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          last_successful_send?: string | null
+          last_sync_at?: string | null
+          last_verified_at?: string | null
+          provider: string
+          refresh_token_encrypted?: string | null
+          smtp_host?: string | null
+          smtp_password_encrypted?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          smtp_username?: string | null
+          spf_status?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          auth_method?: string
+          connection_status?: string | null
+          created_at?: string
+          display_name?: string | null
+          dkim_status?: string | null
+          email_address?: string
+          error_message?: string | null
+          id?: string
+          imap_host?: string | null
+          imap_password_encrypted?: string | null
+          imap_port?: number | null
+          imap_use_tls?: boolean | null
+          imap_username?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          last_successful_send?: string | null
+          last_sync_at?: string | null
+          last_verified_at?: string | null
+          provider?: string
+          refresh_token_encrypted?: string | null
+          smtp_host?: string | null
+          smtp_password_encrypted?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          smtp_username?: string | null
+          spf_status?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_connection_logs: {
+        Row: {
+          created_at: string
+          email_account_id: string
+          error_message: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email_account_id: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          email_account_id?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_connection_logs_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_sending_profiles: {
         Row: {
           api_credentials_encrypted: string | null
