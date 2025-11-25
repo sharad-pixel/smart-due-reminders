@@ -1052,7 +1052,7 @@ const Debtors = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by reference ID, name, company, or email..."
+                  placeholder="Search by Recouply ID, name, company, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -1083,7 +1083,7 @@ const Debtors = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Reference ID</TableHead>
+                    <TableHead>Recouply ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead>Email</TableHead>
