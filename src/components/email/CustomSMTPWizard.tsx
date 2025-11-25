@@ -11,18 +11,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface CustomSMTPWizardProps {
   onComplete: () => void;
+  initialEmail?: string;
+  detectedConfig?: any;
 }
 
-export const CustomSMTPWizard = ({ onComplete }: CustomSMTPWizardProps) => {
-  const [email, setEmail] = useState("");
+export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig }: CustomSMTPWizardProps) => {
+  const [email, setEmail] = useState(initialEmail);
   const [displayName, setDisplayName] = useState("");
-  const [smtpHost, setSmtpHost] = useState("");
-  const [smtpPort, setSmtpPort] = useState("587");
-  const [smtpUsername, setSmtpUsername] = useState("");
+  const [smtpHost, setSmtpHost] = useState(detectedConfig?.smtp?.host || "");
+  const [smtpPort, setSmtpPort] = useState(detectedConfig?.smtp?.port?.toString() || "587");
+  const [smtpUsername, setSmtpUsername] = useState(initialEmail);
   const [smtpPassword, setSmtpPassword] = useState("");
-  const [imapHost, setImapHost] = useState("");
-  const [imapPort, setImapPort] = useState("993");
-  const [imapUsername, setImapUsername] = useState("");
+  const [imapHost, setImapHost] = useState(detectedConfig?.imap?.host || "");
+  const [imapPort, setImapPort] = useState(detectedConfig?.imap?.port?.toString() || "993");
+  const [imapUsername, setImapUsername] = useState(initialEmail);
   const [imapPassword, setImapPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -98,7 +100,11 @@ export const CustomSMTPWizard = ({ onComplete }: CustomSMTPWizardProps) => {
       <CardHeader>
         <CardTitle>Connect Custom Email Provider (SMTP/IMAP)</CardTitle>
         <CardDescription>
-          Configure any email provider using SMTP and IMAP settings
+          {detectedConfig ? (
+            <>Auto-detected settings for {detectedConfig.name}. Verify and adjust as needed.</>
+          ) : (
+            <>Configure any email provider using SMTP and IMAP settings</>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
