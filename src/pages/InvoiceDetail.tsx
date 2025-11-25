@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -107,6 +107,12 @@ const InvoiceDetail = () => {
   const [previewDraft, setPreviewDraft] = useState<any>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
+  const [editInvoiceDialogOpen, setEditInvoiceDialogOpen] = useState(false);
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editIssueDate, setEditIssueDate] = useState("");
+  const [editDueDate, setEditDueDate] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -419,6 +425,40 @@ const InvoiceDetail = () => {
     await handleDraftAction(draftId, "discarded");
   };
 
+  const handleEditInvoice = () => {
+    if (!invoice) return;
+    setEditInvoiceNumber(invoice.invoice_number);
+    setEditAmount(invoice.amount.toString());
+    setEditIssueDate(invoice.issue_date);
+    setEditDueDate(invoice.due_date);
+    setEditNotes(invoice.notes || "");
+    setEditInvoiceDialogOpen(true);
+  };
+
+  const handleSaveInvoiceEdit = async () => {
+    if (!invoice) return;
+
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({
+          invoice_number: editInvoiceNumber,
+          amount: parseFloat(editAmount),
+          issue_date: editIssueDate,
+          due_date: editDueDate,
+          notes: editNotes,
+        })
+        .eq("id", invoice.id);
+
+      if (error) throw error;
+      toast.success("Invoice updated successfully");
+      setEditInvoiceDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update invoice");
+    }
+  };
+
   if (loading || !invoice) {
     return (
       <Layout>
@@ -459,6 +499,10 @@ const InvoiceDetail = () => {
               </div>
             </div>
           </div>
+          <Button onClick={handleEditInvoice}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Invoice
+          </Button>
         </div>
 
         <div className="grid md:grid-cols-4 gap-6">
@@ -1025,6 +1069,71 @@ const InvoiceDetail = () => {
           onEdit={handleEditDraftFromPreview}
           onDiscard={handleDiscardDraft}
         />
+
+        <Dialog open={editInvoiceDialogOpen} onOpenChange={setEditInvoiceDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Invoice</DialogTitle>
+              <DialogDescription>Update invoice details</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="invoice-number">Invoice Number</Label>
+                <Input
+                  id="invoice-number"
+                  value={editInvoiceNumber}
+                  onChange={(e) => setEditInvoiceNumber(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="issue-date">Issue Date</Label>
+                <Input
+                  id="issue-date"
+                  type="date"
+                  value={editIssueDate}
+                  onChange={(e) => setEditIssueDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="due-date">Due Date</Label>
+                <Input
+                  id="due-date"
+                  type="date"
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Add notes about this invoice"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditInvoiceDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveInvoiceEdit}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
