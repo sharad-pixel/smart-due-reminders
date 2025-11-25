@@ -610,7 +610,6 @@ const Invoices = () => {
                     <TableHead className="w-28 font-semibold">Status</TableHead>
                     <TableHead className="w-32 font-semibold">AI Workflow</TableHead>
                     <TableHead className="w-28 font-semibold">Last Contact</TableHead>
-                    <TableHead className="w-24 text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -620,8 +619,12 @@ const Invoices = () => {
                     const activeWorkflow = invoice.ai_workflows?.find(w => w.is_active);
                     
                     return (
-                      <TableRow key={invoice.id}>
-                        <TableCell>
+                      <TableRow 
+                        key={invoice.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => navigate(`/invoices/${invoice.id}`)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedInvoices.includes(invoice.id)}
                             onCheckedChange={(checked) => {
@@ -671,7 +674,7 @@ const Invoices = () => {
                             {invoice.status}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           {activeWorkflow ? (
                             <div className="flex items-center gap-2">
                               {(() => {
@@ -701,15 +704,6 @@ const Invoices = () => {
                           {invoice.last_contact_date
                             ? new Date(invoice.last_contact_date).toLocaleDateString()
                             : <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/invoices/${invoice.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
                         </TableCell>
                       </TableRow>
                     );
