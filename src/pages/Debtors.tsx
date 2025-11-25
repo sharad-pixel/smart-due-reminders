@@ -28,6 +28,8 @@ interface Debtor {
   phone: string | null;
   type: "B2B" | "B2C" | null;
   current_balance: number | null;
+  external_customer_id: string | null;
+  crm_account_id_external: string | null;
 }
 
 const Debtors = () => {
@@ -63,6 +65,8 @@ const Debtors = () => {
     postal_code: "",
     country: "",
     notes: "",
+    external_customer_id: "",
+    crm_account_id_external: "",
   });
 
   useEffect(() => {
@@ -576,6 +580,8 @@ const Debtors = () => {
         postal_code: "",
         country: "",
         notes: "",
+        external_customer_id: "",
+        crm_account_id_external: "",
       });
       fetchDebtors();
     } catch (error: any) {
@@ -828,6 +834,26 @@ const Debtors = () => {
                       id="country"
                       value={formData.country}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="external_customer_id">Account ID (Billing System)</Label>
+                    <Input
+                      id="external_customer_id"
+                      value={formData.external_customer_id}
+                      onChange={(e) => setFormData({ ...formData, external_customer_id: e.target.value })}
+                      placeholder="e.g., QB_123456"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="crm_account_id_external">CRM ID</Label>
+                    <Input
+                      id="crm_account_id_external"
+                      value={formData.crm_account_id_external}
+                      onChange={(e) => setFormData({ ...formData, crm_account_id_external: e.target.value })}
+                      placeholder="e.g., SF_001234"
                     />
                   </div>
                 </div>
@@ -1088,6 +1114,8 @@ const Debtors = () => {
                     <TableHead>Company</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Account ID</TableHead>
+                    <TableHead>CRM ID</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -1101,6 +1129,8 @@ const Debtors = () => {
                       <TableCell>{debtor.company_name}</TableCell>
                       <TableCell>{debtor.email}</TableCell>
                       <TableCell>{debtor.phone || "-"}</TableCell>
+                      <TableCell className="font-mono text-xs">{debtor.external_customer_id || "-"}</TableCell>
+                      <TableCell className="font-mono text-xs">{debtor.crm_account_id_external || "-"}</TableCell>
                       <TableCell>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
