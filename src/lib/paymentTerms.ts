@@ -15,6 +15,28 @@ export function calculateDueDate(issueDate: string, paymentTermsDays: number): s
   return date.toISOString().split('T')[0];
 }
 
+/**
+ * Calculate due date from issue date and payment terms string
+ */
+export function calculateDueDateFromTerms(issueDate: string, paymentTerms: string): string {
+  const days = extractDaysFromPaymentTerms(paymentTerms);
+  return calculateDueDate(issueDate, days);
+}
+
+/**
+ * Extract days from payment terms string
+ */
+export function extractDaysFromPaymentTerms(paymentTerms: string): number {
+  if (!paymentTerms) return 0;
+  
+  if (paymentTerms.toLowerCase().includes("receipt")) {
+    return 0;
+  }
+  
+  const match = paymentTerms.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
 export function getPaymentTermsOptions() {
   return Object.entries(PAYMENT_TERMS).map(([key, value]) => ({
     value: key,
