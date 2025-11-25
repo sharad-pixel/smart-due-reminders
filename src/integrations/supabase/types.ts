@@ -1103,6 +1103,41 @@ export type Database = {
           },
         ]
       }
+      dns_verification_logs: {
+        Row: {
+          checked_at: string | null
+          email_profile_id: string
+          error_message: string | null
+          id: string
+          record_type: string
+          verification_result: boolean | null
+        }
+        Insert: {
+          checked_at?: string | null
+          email_profile_id: string
+          error_message?: string | null
+          id?: string
+          record_type: string
+          verification_result?: boolean | null
+        }
+        Update: {
+          checked_at?: string | null
+          email_profile_id?: string
+          error_message?: string | null
+          id?: string
+          record_type?: string
+          verification_result?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dns_verification_logs_email_profile_id_fkey"
+            columns: ["email_profile_id"]
+            isOneToOne: false
+            referencedRelation: "email_sending_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_access_log: {
         Row: {
           action: string
@@ -1259,6 +1294,89 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sending_profiles: {
+        Row: {
+          api_credentials_encrypted: string | null
+          bounce_rate: number | null
+          created_at: string | null
+          dkim_record: string | null
+          dkim_validated: boolean | null
+          dmarc_record: string | null
+          dmarc_validated: boolean | null
+          domain: string
+          domain_reputation: string | null
+          id: string
+          is_active: boolean | null
+          last_verified_at: string | null
+          return_path_record: string | null
+          sender_email: string
+          sender_name: string
+          spam_complaint_rate: number | null
+          spf_record: string | null
+          spf_validated: boolean | null
+          updated_at: string | null
+          use_recouply_domain: boolean | null
+          user_id: string
+          verification_status: string | null
+        }
+        Insert: {
+          api_credentials_encrypted?: string | null
+          bounce_rate?: number | null
+          created_at?: string | null
+          dkim_record?: string | null
+          dkim_validated?: boolean | null
+          dmarc_record?: string | null
+          dmarc_validated?: boolean | null
+          domain: string
+          domain_reputation?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_verified_at?: string | null
+          return_path_record?: string | null
+          sender_email: string
+          sender_name: string
+          spam_complaint_rate?: number | null
+          spf_record?: string | null
+          spf_validated?: boolean | null
+          updated_at?: string | null
+          use_recouply_domain?: boolean | null
+          user_id: string
+          verification_status?: string | null
+        }
+        Update: {
+          api_credentials_encrypted?: string | null
+          bounce_rate?: number | null
+          created_at?: string | null
+          dkim_record?: string | null
+          dkim_validated?: boolean | null
+          dmarc_record?: string | null
+          dmarc_validated?: boolean | null
+          domain?: string
+          domain_reputation?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_verified_at?: string | null
+          return_path_record?: string | null
+          sender_email?: string
+          sender_name?: string
+          spam_complaint_rate?: number | null
+          spf_record?: string | null
+          spf_validated?: boolean | null
+          updated_at?: string | null
+          use_recouply_domain?: boolean | null
+          user_id?: string
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sending_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
