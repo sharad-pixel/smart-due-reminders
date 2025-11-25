@@ -14,6 +14,8 @@ import { ICloudWizard } from "@/components/email/ICloudWizard";
 import { CustomSMTPWizard } from "@/components/email/CustomSMTPWizard";
 import { EmailHealthDashboard } from "@/components/email/EmailHealthDashboard";
 import { ProviderTile } from "@/components/email/ProviderTile";
+import { AIEmailSetupAssistant } from "@/components/email/AIEmailSetupAssistant";
+import { EmailTroubleshooter } from "@/components/email/EmailTroubleshooter";
 
 interface EmailAccount {
   id: string;
@@ -32,6 +34,8 @@ const BringYourOwnEmail = () => {
   const [loading, setLoading] = useState(true);
   const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [detectedConfig, setDetectedConfig] = useState<any>(null);
+  const [detectedEmail, setDetectedEmail] = useState("");
 
   useEffect(() => {
     fetchEmailAccounts();
@@ -58,6 +62,12 @@ const BringYourOwnEmail = () => {
   };
 
   const handleProviderSelect = (provider: string) => {
+    setSelectedProvider(provider);
+  };
+
+  const handleEmailDetected = (email: string, provider: string, config: any) => {
+    setDetectedEmail(email);
+    setDetectedConfig(config);
     setSelectedProvider(provider);
   };
 
@@ -189,12 +199,14 @@ const BringYourOwnEmail = () => {
           </TabsList>
 
           <TabsContent value="setup" className="space-y-6">
+            <AIEmailSetupAssistant onEmailDetected={handleEmailDetected} />
+            
             {!selectedProvider ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Choose Your Email Provider</CardTitle>
                   <CardDescription>
-                    Select your email provider to begin the setup process
+                    Or select your email provider manually to begin the setup process
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -245,12 +257,28 @@ const BringYourOwnEmail = () => {
                 {selectedProvider === "icloud" && (
                   <ICloudWizard onComplete={handleWizardComplete} onCancel={() => setSelectedProvider(null)} />
                 )}
+                {(selectedProvider === "custom" || selectedProvider === "zoho" || selectedProvider === "protonmail") && (
+                  <>
+                    <CustomSMTPWizard 
+                      onComplete={handleWizardComplete}
+                      initialEmail={detectedEmail}
+                      detectedConfig={detectedConfig}
+                    />
+                    {detectedEmail && <EmailTroubleshooter email={detectedEmail} />}
+                  </>
+                )}
               </>
             )}
           </TabsContent>
 
           <TabsContent value="advanced" className="space-y-6">
-            <CustomSMTPWizard onComplete={handleWizardComplete} />
+            <AIEmailSetupAssistant onEmailDetected={handleEmailDetected} />
+            <CustomSMTPWizard 
+              onComplete={handleWizardComplete}
+              initialEmail={detectedEmail}
+              detectedConfig={detectedConfig}
+            />
+            {detectedEmail && <EmailTroubleshooter email={detectedEmail} />}
           </TabsContent>
         </Tabs>
       </div>
