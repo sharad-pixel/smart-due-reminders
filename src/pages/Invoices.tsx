@@ -54,6 +54,7 @@ const Invoices = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>("all");
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
+  const [hideCancelled, setHideCancelled] = useState<boolean>(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
@@ -79,7 +80,7 @@ const Invoices = () => {
 
   useEffect(() => {
     filterInvoices();
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, hideCancelled]);
 
   const fetchData = async () => {
     try {
@@ -251,6 +252,10 @@ const Invoices = () => {
 
     if (debtorFilter !== "all") {
       filtered = filtered.filter((inv) => inv.debtor_id === debtorFilter);
+    }
+
+    if (hideCancelled) {
+      filtered = filtered.filter((inv) => inv.status !== "Canceled");
     }
 
     setFilteredInvoices(filtered);
@@ -524,16 +529,17 @@ const Invoices = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by reference ID, invoice #, or debtor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by reference ID, invoice #, or debtor..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -575,6 +581,17 @@ const Invoices = () => {
                   ))}
                 </SelectContent>
               </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="hide-cancelled"
+                  checked={hideCancelled}
+                  onCheckedChange={(checked) => setHideCancelled(checked as boolean)}
+                />
+                <Label htmlFor="hide-cancelled" className="text-sm font-normal cursor-pointer">
+                  Hide cancelled invoices
+                </Label>
+              </div>
             </div>
             {selectedInvoices.length > 0 && (
               <div className="flex gap-2 mt-4">
