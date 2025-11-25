@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -230,16 +231,42 @@ async function sendViaSMTP(
   subject: string,
   bodyHtml: string
 ): Promise<any> {
-  console.log(`[SIMULATED] Sending email via SMTP from ${account.email_address} to ${to}`);
+  console.log(`Sending email via SMTP from ${account.email_address} to ${to}`);
   console.log(`SMTP Settings: ${account.smtp_host}:${account.smtp_port}`);
-  console.log(`Subject: ${subject}`);
   
-  // In production, this would:
-  // 1. Decrypt SMTP password
-  // 2. Connect to SMTP server
-  // 3. Send email using proper SMTP library
-  // 4. Handle TLS/SSL
-  
-  // For now, simulate success
-  return { success: true, provider: "smtp" };
+  if (!account.smtp_host || !account.smtp_port || !account.smtp_username || !account.smtp_password_encrypted) {
+    throw new Error("SMTP configuration incomplete");
+  }
+
+  try {
+    // Create SMTP client
+    const client = new SMTPClient({
+      connection: {
+        hostname: account.smtp_host,
+        port: account.smtp_port,
+        tls: account.smtp_use_tls !== false,
+        auth: {
+          username: account.smtp_username,
+          password: account.smtp_password_encrypted, // TODO: Implement decryption
+        },
+      },
+    });
+
+    // Send email
+    await client.send({
+      from: account.email_address,
+      to: to,
+      subject: subject,
+      content: bodyHtml,
+      html: bodyHtml,
+    });
+
+    await client.close();
+
+    console.log(`Email sent successfully via SMTP to ${to}`);
+    return { success: true, provider: "smtp" };
+  } catch (error: any) {
+    console.error("SMTP send error:", error);
+    throw new Error(`SMTP error: ${error.message}`);
+  }
 }
