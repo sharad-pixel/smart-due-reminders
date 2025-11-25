@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Eye, AlertCircle, Sparkles, X } from "lucide-react";
+import { Plus, Search, Eye, AlertCircle, Sparkles, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -58,7 +58,9 @@ const Invoices = () => {
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
+  const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
+  const [selectedBulkStatus, setSelectedBulkStatus] = useState<"Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "FinalInternalCollections" | "">("");
   const [formData, setFormData] = useState({
     debtor_id: "",
     invoice_number: "",
@@ -194,6 +196,31 @@ const Invoices = () => {
       fetchData();
     } catch (error: any) {
       toast.error("Failed to remove invoices from workflows");
+      console.error(error);
+    }
+  };
+
+  const handleBulkStatusChange = async () => {
+    if (!selectedBulkStatus) {
+      toast.error("Please select a status");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({ status: selectedBulkStatus })
+        .in("id", selectedInvoices);
+
+      if (error) throw error;
+
+      toast.success(`Status updated to ${selectedBulkStatus} for ${selectedInvoices.length} invoice(s)`);
+      setSelectedInvoices([]);
+      setShowBulkStatusDialog(false);
+      setSelectedBulkStatus("");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Failed to update invoice statuses");
       console.error(error);
     }
   };
@@ -556,6 +583,13 @@ const Invoices = () => {
                 </span>
                 <Button
                   variant="outline"
+                  onClick={() => setShowBulkStatusDialog(true)}
+                >
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  Change Status
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => setShowBulkAssignDialog(true)}
                 >
                   Assign to Workflow
@@ -750,6 +784,42 @@ const Invoices = () => {
               </Button>
               <Button onClick={handleBulkAssign}>
                 Assign
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Invoice Status</DialogTitle>
+              <DialogDescription>
+                Select the new status for the {selectedInvoices.length} selected invoice(s).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="bulk-status">New Status</Label>
+              <Select value={selectedBulkStatus} onValueChange={(value) => setSelectedBulkStatus(value as any)}>
+                <SelectTrigger id="bulk-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Open">Open</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  <SelectItem value="Disputed">Disputed</SelectItem>
+                  <SelectItem value="Settled">Settled</SelectItem>
+                  <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
+                  <SelectItem value="Canceled">Canceled</SelectItem>
+                  <SelectItem value="FinalInternalCollections">Final Internal Collections</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBulkStatusDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBulkStatusChange}>
+                Update Status
               </Button>
             </DialogFooter>
           </DialogContent>
