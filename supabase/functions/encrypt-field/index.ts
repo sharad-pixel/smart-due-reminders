@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +13,8 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       console.error('No Authorization header found');
       throw new Error('Unauthorized: No authorization header');
@@ -28,7 +30,11 @@ serve(async (req) => {
       }
     );
 
+    // Verify user authentication
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    console.log('Auth check - User:', user?.id, 'Error:', authError?.message);
+    
     if (authError) {
       console.error('Auth error:', authError);
       throw new Error('Unauthorized: ' + authError.message);
@@ -44,15 +50,22 @@ serve(async (req) => {
       throw new Error('Value is required');
     }
 
+    console.log('Encrypting field for user:', user.id);
+
     // Use Web Crypto API for encryption
     const encoder = new TextEncoder();
     const data = encoder.encode(value);
     
-    // Get or generate encryption key (in production, use proper key management)
-    const keyMaterial = encoder.encode(Deno.env.get('ENCRYPTION_KEY') || 'default-key-replace-in-production');
+    // Get encryption key
+    const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
+    if (!encryptionKey) {
+      throw new Error('Encryption key not configured');
+    }
+
+    const keyMaterial = encoder.encode(encryptionKey);
     const key = await crypto.subtle.importKey(
       'raw',
-      keyMaterial,
+      keyMaterial.slice(0, 32), // Ensure 256-bit key
       { name: 'AES-GCM', length: 256 },
       false,
       ['encrypt']

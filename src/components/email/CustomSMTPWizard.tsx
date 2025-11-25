@@ -36,52 +36,21 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
 
     setLoading(true);
     try {
-      // Ensure we have a valid session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        throw new Error("Not authenticated. Please log in again.");
-      }
-
-      // Encrypt SMTP password
-      const { data: encryptedSmtpData, error: encryptSmtpError } = await supabase.functions.invoke(
-        "encrypt-field",
-        { body: { value: smtpPassword } }
-      );
-
-      if (encryptSmtpError || !encryptedSmtpData?.encrypted) {
-        throw new Error("Failed to encrypt SMTP password");
-      }
-
-      // Encrypt IMAP password if provided
-      let encryptedImapPassword = null;
-      if (imapPassword) {
-        const { data: encryptedImapData, error: encryptImapError } = await supabase.functions.invoke(
-          "encrypt-field",
-          { body: { value: imapPassword } }
-        );
-
-        if (encryptImapError || !encryptedImapData?.encrypted) {
-          throw new Error("Failed to encrypt IMAP password");
+      // Send credentials to backend for encryption and storage
+      const { data, error } = await supabase.functions.invoke('save-email-account', {
+        body: {
+          email_address: email,
+          provider: detectedConfig?.name?.toLowerCase() || "smtp",
+          display_name: displayName,
+          smtp_host: smtpHost,
+          smtp_port: parseInt(smtpPort),
+          smtp_username: smtpUsername,
+          smtp_password: smtpPassword,
+          imap_host: imapHost || null,
+          imap_port: imapPort ? parseInt(imapPort) : null,
+          imap_username: imapUsername || null,
+          imap_password: imapPassword || null,
         }
-        encryptedImapPassword = encryptedImapData.encrypted;
-      }
-
-      const { error } = await supabase.from("email_accounts").insert({
-        user_id: session.user.id,
-        email_address: email,
-        provider: "smtp",
-        display_name: displayName,
-        auth_method: "smtp",
-        smtp_host: smtpHost,
-        smtp_port: parseInt(smtpPort),
-        smtp_username: smtpUsername,
-        smtp_password_encrypted: encryptedSmtpData.encrypted,
-        smtp_use_tls: true,
-        imap_host: imapHost || null,
-        imap_port: imapPort ? parseInt(imapPort) : null,
-        imap_username: imapUsername || null,
-        imap_password_encrypted: encryptedImapPassword,
-        connection_status: "pending",
       });
 
       if (error) throw error;
@@ -89,6 +58,7 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
       toast.success("Custom email account connected successfully!");
       onComplete();
     } catch (error: any) {
+      console.error("Save error:", error);
       toast.error(error.message || "Failed to save email credentials");
     } finally {
       setLoading(false);
