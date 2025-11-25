@@ -14,7 +14,6 @@ import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye } from "lucid
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { calculateDaysPastDue } from "@/lib/paymentTerms";
 
 interface Invoice {
   id: string;
@@ -72,7 +71,11 @@ const Dashboard = () => {
   }, []);
 
   const getDaysPastDue = (dueDate: string): number => {
-    return calculateDaysPastDue(dueDate);
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = today.getTime() - due.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
   };
 
   const fetchDashboardData = async () => {
