@@ -1315,6 +1315,7 @@ export type Database = {
           imap_use_tls: boolean | null
           imap_username: string | null
           is_active: boolean | null
+          is_primary: boolean | null
           is_verified: boolean | null
           last_successful_send: string | null
           last_sync_at: string | null
@@ -1347,6 +1348,7 @@ export type Database = {
           imap_use_tls?: boolean | null
           imap_username?: string | null
           is_active?: boolean | null
+          is_primary?: boolean | null
           is_verified?: boolean | null
           last_successful_send?: string | null
           last_sync_at?: string | null
@@ -1379,6 +1381,7 @@ export type Database = {
           imap_use_tls?: boolean | null
           imap_username?: string | null
           is_active?: boolean | null
+          is_primary?: boolean | null
           is_verified?: boolean | null
           last_successful_send?: string | null
           last_sync_at?: string | null
