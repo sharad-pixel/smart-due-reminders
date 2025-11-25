@@ -37,19 +37,11 @@ serve(async (req) => {
 
     if (draftError || !draft) throw new Error("Draft not found");
 
-    // Fetch user profile
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError || !profile) throw new Error("Profile not found");
-
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
     let sendResult = { success: false, message: "" };
+    let sentFrom = "";
 
     // Send based on channel
     if (draft.channel === "email") {
@@ -66,11 +58,10 @@ serve(async (req) => {
         throw new Error("No email account connected. Please connect your email in Settings > Email Sending.");
       }
 
+      sentFrom = emailAccount.email_address;
+
       try {
-        let emailSendResult;
-        
         // Use test-email edge function to handle the actual sending
-        // This function will handle OAuth, App Password, and SMTP authentication
         const testEmailResponse = await supabaseClient.functions.invoke("test-email", {
           body: {
             email_account_id: emailAccount.id,
@@ -99,16 +90,16 @@ serve(async (req) => {
         throw new Error(`Failed to send email: ${emailError.message}`);
       }
     } else if (draft.channel === "sms") {
-      // Fetch profile for Twilio credentials
-      const { data: profile, error: profileError } = await supabaseClient
+      // Fetch Twilio credentials from profile
+      const { data: twilioProfile, error: twilioProfileError } = await supabaseClient
         .from("profiles")
         .select("twilio_account_sid, twilio_auth_token, twilio_from_number")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profile) throw new Error("Profile not found");
+      if (twilioProfileError || !twilioProfile) throw new Error("Profile not found");
 
-      if (!profile.twilio_account_sid || !profile.twilio_auth_token || !profile.twilio_from_number) {
+      if (!twilioProfile.twilio_account_sid || !twilioProfile.twilio_auth_token || !twilioProfile.twilio_from_number) {
         throw new Error("Twilio credentials not configured. Please configure in Settings.");
       }
 
@@ -116,11 +107,12 @@ serve(async (req) => {
         throw new Error("Debtor phone number not available");
       }
 
-      const twilioAuth = btoa(`${profile.twilio_account_sid}:${profile.twilio_auth_token}`);
+      sentFrom = twilioProfile.twilio_from_number;
+      const twilioAuth = btoa(`${twilioProfile.twilio_account_sid}:${twilioProfile.twilio_auth_token}`);
       
       try {
         const twilioResponse = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${profile.twilio_account_sid}/Messages.json`,
+          `https://api.twilio.com/2010-04-01/Accounts/${twilioProfile.twilio_account_sid}/Messages.json`,
           {
             method: "POST",
             headers: {
@@ -129,7 +121,7 @@ serve(async (req) => {
             },
             body: new URLSearchParams({
               To: debtor.phone,
-              From: profile.twilio_from_number,
+              From: twilioProfile.twilio_from_number,
               Body: draft.message_body,
             }),
           }
@@ -156,7 +148,7 @@ serve(async (req) => {
       subject: draft.subject,
       message_body: draft.message_body,
       sent_to: draft.channel === "email" ? debtor.email : debtor.phone,
-      sent_from: draft.channel === "email" ? profile.email : profile.twilio_from_number,
+      sent_from: sentFrom,
       status: "sent",
       sent_at: new Date().toISOString(),
     });
