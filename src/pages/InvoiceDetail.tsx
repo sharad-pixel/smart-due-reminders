@@ -14,13 +14,15 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, HelpCircle } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
 import { DraftPreviewModal } from "@/components/DraftPreviewModal";
 import { TasksSummaryCard } from "@/components/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
+import { calculateDaysPastDue, calculateAgingBucket, getAgingBucketLabel } from "@/lib/paymentTerms";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Invoice {
   id: string;
@@ -29,6 +31,7 @@ interface Invoice {
   amount: number;
   due_date: string;
   issue_date: string;
+  payment_terms: string | null;
   status: string;
   notes: string | null;
   debtor_id: string;
@@ -214,11 +217,7 @@ const InvoiceDetail = () => {
 
   const getDaysPastDue = (): number => {
     if (!invoice) return 0;
-    const today = new Date();
-    const due = new Date(invoice.due_date);
-    const diffTime = today.getTime() - due.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
+    return calculateDaysPastDue(invoice.due_date);
   };
 
   const handleStatusChange = async (newStatus: "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled") => {
@@ -485,12 +484,42 @@ const InvoiceDetail = () => {
                 <p className="text-sm text-muted-foreground">Issue Date</p>
                 <p className="font-medium">{new Date(invoice.issue_date).toLocaleDateString()}</p>
               </div>
+              {invoice.payment_terms && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Payment Terms</p>
+                  <p className="font-medium">{invoice.payment_terms}</p>
+                </div>
+              )}
               <div>
-                <p className="text-sm text-muted-foreground">Due Date</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 cursor-help">
+                        Due Date
+                        <HelpCircle className="h-3 w-3" />
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Calculated from Invoice Date + Payment Terms</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <p className="font-medium">{new Date(invoice.due_date).toLocaleDateString()}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Days Past Due</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 cursor-help">
+                        Days Past Due
+                        <HelpCircle className="h-3 w-3" />
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Automatically calculated from Due Date</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <p
                   className={`font-bold text-lg ${
                     daysPastDue === 0
