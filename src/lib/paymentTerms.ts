@@ -11,17 +11,8 @@ export type PaymentTermsKey = keyof typeof PAYMENT_TERMS;
 
 export function calculateDueDate(issueDate: string, paymentTermsDays: number): string {
   const date = new Date(issueDate);
-  
-  // Log initial date
-  console.log('Issue Date:', issueDate, '-> Date object:', date);
-  
-  // Add the days
   date.setDate(date.getDate() + paymentTermsDays);
-  
-  const dueDate = date.toISOString().split('T')[0];
-  console.log('Due Date calculated:', dueDate, '(+', paymentTermsDays, 'days)');
-  
-  return dueDate;
+  return date.toISOString().split('T')[0];
 }
 
 /**
@@ -47,11 +38,7 @@ export function extractDaysFromPaymentTerms(paymentTerms: string): number {
   
   // Extract numeric value (handles "Net 30", "NET30", "30 days", etc.)
   const match = paymentTerms.match(/\d+/);
-  const days = match ? parseInt(match[0], 10) : 0;
-  
-  console.log('Payment Terms:', paymentTerms, '-> Days:', days);
-  
-  return days;
+  return match ? parseInt(match[0], 10) : 0;
 }
 
 export function getPaymentTermsOptions() {

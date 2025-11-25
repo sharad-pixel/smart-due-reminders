@@ -70,15 +70,21 @@ export const ARAgingPreview = ({
         if (!mappedRow.company_name) validationErrors.push("Missing company name");
         if (!mappedRow.invoice_number) validationErrors.push("Missing invoice number");
         if (!mappedRow.invoice_date) validationErrors.push("Missing invoice date");
+        if (!mappedRow.payment_terms) validationErrors.push("Missing payment terms");
         if (!mappedRow.invoice_amount) validationErrors.push("Missing invoice amount");
 
         // Try to match with existing debtor
         const debtorMatch = matchDebtor(mappedRow, existingDebtors || []);
 
-        // Calculate due date from payment terms if available
+        // Calculate due date from payment terms
         const dueDate = mappedRow.payment_terms 
           ? calculateDueDateFromTerms(mappedRow.invoice_date || "", mappedRow.payment_terms)
           : mappedRow.invoice_date;
+
+        // Calculate days past due from computed due date
+        const today = new Date();
+        const dueDateObj = new Date(dueDate);
+        const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24)));
 
         return {
           rowIndex: index,
@@ -92,7 +98,7 @@ export const ARAgingPreview = ({
           payment_terms: mappedRow.payment_terms,
           invoice_amount: parseFloat(mappedRow.invoice_amount) || 0,
           outstanding_balance: parseFloat(mappedRow.outstanding_balance || mappedRow.invoice_amount) || 0,
-          days_past_due: parseInt(mappedRow.days_past_due) || undefined,
+          days_past_due: daysPastDue,
           link_to_invoice: mappedRow.link_to_invoice,
           currency: mappedRow.currency || "USD",
           debtorMatch,

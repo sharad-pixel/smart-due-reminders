@@ -21,6 +21,7 @@ const REQUIRED_FIELDS = [
   { key: "company_name", label: "Company Name", required: true },
   { key: "invoice_number", label: "Invoice Number", required: true },
   { key: "invoice_date", label: "Invoice Date", required: true },
+  { key: "payment_terms", label: "Payment Terms (e.g., Net 30, Due on Receipt)", required: true },
   { key: "invoice_amount", label: "Invoice Amount", required: true },
 ];
 
@@ -28,9 +29,7 @@ const OPTIONAL_FIELDS = [
   { key: "contact_name", label: "Contact Name", required: false },
   { key: "contact_email", label: "Contact Email", required: false },
   { key: "contact_phone", label: "Contact Phone", required: false },
-  { key: "payment_terms", label: "Payment Terms (for calculating due date)", required: false },
   { key: "outstanding_balance", label: "Outstanding Balance", required: false },
-  { key: "days_past_due", label: "Days Past Due", required: false },
   { key: "link_to_invoice", label: "Link to Invoice", required: false },
   { key: "currency", label: "Currency", required: false },
 ];
@@ -88,6 +87,9 @@ export const ARAgingColumnMapping = ({
       <div className="bg-muted/50 rounded-lg p-4">
         <p className="text-sm text-muted-foreground">
           Map your file columns to Recouply.ai fields. We've auto-detected some matches for you.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          💡 <strong>Due Date</strong> and <strong>Days Past Due</strong> will be calculated automatically from Invoice Date + Payment Terms.
         </p>
       </div>
 
