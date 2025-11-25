@@ -15,10 +15,13 @@ async function encryptValue(value: string): Promise<string> {
     throw new Error('Encryption key not configured');
   }
 
+  // Derive a proper 256-bit key using SHA-256
   const keyMaterial = encoder.encode(encryptionKey);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyMaterial);
+  
   const key = await crypto.subtle.importKey(
     'raw',
-    keyMaterial.slice(0, 32),
+    hashBuffer,
     { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt']
