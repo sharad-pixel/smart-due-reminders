@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
+import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 
 interface Invoice {
   id: string;
@@ -62,9 +63,8 @@ const Invoices = () => {
     amount: "",
     currency: "USD",
     issue_date: new Date().toISOString().split("T")[0],
-    due_date: "",
     status: "Open",
-    payment_terms: "",
+    payment_terms: "Net 30",
     external_link: "",
     notes: "",
   });
@@ -234,6 +234,9 @@ const Invoices = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Calculate due date from payment terms
+      const dueDate = calculateDueDateFromTerms(formData.issue_date, formData.payment_terms);
+
       const { error } = await supabase.from("invoices").insert({
         user_id: user.id,
         debtor_id: formData.debtor_id,
@@ -241,9 +244,9 @@ const Invoices = () => {
         amount: parseFloat(formData.amount),
         currency: formData.currency || "USD",
         issue_date: formData.issue_date,
-        due_date: formData.due_date,
+        due_date: dueDate,
         status: formData.status || "Open",
-        payment_terms: formData.payment_terms || null,
+        payment_terms: formData.payment_terms,
         external_link: formData.external_link || null,
         notes: formData.notes || null,
       } as any);
@@ -257,9 +260,8 @@ const Invoices = () => {
         amount: "",
         currency: "USD",
         issue_date: new Date().toISOString().split("T")[0],
-        due_date: "",
         status: "Open",
-        payment_terms: "",
+        payment_terms: "Net 30",
         external_link: "",
         notes: "",
       });
@@ -437,24 +439,13 @@ const Invoices = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="due_date">Due Date *</Label>
-                      <Input
-                        id="due_date"
-                        type="date"
-                        value={formData.due_date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, due_date: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="payment_terms">Payment Terms</Label>
+                      <Label htmlFor="payment_terms">Payment Terms * <span className="text-xs text-muted-foreground">(Due date calculated automatically)</span></Label>
                       <Select
                         value={formData.payment_terms}
                         onValueChange={(value) =>
                           setFormData({ ...formData, payment_terms: value })
                         }
+                        required
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select payment terms" />

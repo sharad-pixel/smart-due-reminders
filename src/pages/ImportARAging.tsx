@@ -20,7 +20,7 @@ export interface ParsedRow {
   contact_phone?: string;
   invoice_number: string;
   invoice_date: string;
-  due_date?: string;
+  due_date?: string; // Calculated from payment_terms if not provided
   payment_terms?: string;
   invoice_amount: number;
   outstanding_balance: number;
@@ -59,10 +59,10 @@ const ImportARAging = () => {
   } | null>(null);
 
   const downloadSampleTemplate = () => {
-    const csvContent = `Company Name,Contact Name,Contact Email,Contact Phone,Invoice Number,Invoice Date,Due Date,Payment Terms,Invoice Amount,Outstanding Balance,Days Past Due,Link to Invoice,Currency
-ACME Corporation,John Smith,john@acme.com,555-0100,INV-001,2024-01-15,2024-02-14,Net 30,5000.00,5000.00,10,https://invoices.example.com/001,USD
-Tech Solutions Inc,Jane Doe,jane@techsolutions.com,555-0200,INV-002,2024-02-01,2024-03-03,Net 30,3500.00,3500.00,0,https://invoices.example.com/002,USD
-Global Services LLC,Bob Johnson,bob@globalservices.com,555-0300,INV-003,2023-12-01,2024-01-01,Net 30,7500.00,7500.00,62,https://invoices.example.com/003,USD`;
+    const csvContent = `Company Name,Contact Name,Contact Email,Contact Phone,Invoice Number,Invoice Date,Payment Terms,Invoice Amount,Outstanding Balance,Days Past Due,Link to Invoice,Currency
+ACME Corporation,John Smith,john@acme.com,555-0100,INV-001,2024-01-15,Net 30,5000.00,5000.00,10,https://invoices.example.com/001,USD
+Tech Solutions Inc,Jane Doe,jane@techsolutions.com,555-0200,INV-002,2024-02-01,Net 30,3500.00,3500.00,0,https://invoices.example.com/002,USD
+Global Services LLC,Bob Johnson,bob@globalservices.com,555-0300,INV-003,2023-12-01,Net 30,7500.00,7500.00,62,https://invoices.example.com/003,USD`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
