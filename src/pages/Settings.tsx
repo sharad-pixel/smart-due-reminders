@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2 } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Shield } from "lucide-react";
 
 
 
@@ -389,8 +389,29 @@ const Settings = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <CardTitle>Email Sending Configuration</CardTitle>
+            </div>
+            <CardDescription>
+              Configure your own domain for email sending or use Recouply.ai's shared domain
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choose between sending emails from your own verified business domain (recommended for better deliverability)
+              or using Recouply.ai's shared infrastructure for quick start.
+            </p>
+            <Button onClick={() => window.location.href = '/settings/email-sending'} variant="outline">
+              Configure Email Sending Domain
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
               <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Email Service (SendGrid)</CardTitle>
+              <CardTitle>Email Service (SendGrid) - Legacy</CardTitle>
             </div>
             <CardDescription>
               Configure email delivery for automated messages
