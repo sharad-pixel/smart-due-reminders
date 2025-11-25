@@ -86,7 +86,7 @@ serve(async (req) => {
           throw new Error(`OAuth not supported for provider: ${emailAccount.provider}`);
         }
       } else if (emailAccount.auth_method === "smtp") {
-        sendResult = await sendViaSMTP(emailAccount, recipient, emailSubject, emailBody);
+        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody);
       } else {
         throw new Error(`Unsupported auth method: ${emailAccount.auth_method}`);
       }
@@ -226,6 +226,7 @@ async function sendViaOutlookAPI(
 
 // Helper function to send via SMTP
 async function sendViaSMTP(
+  supabaseClient: any,
   account: any,
   to: string,
   subject: string,
@@ -238,6 +239,28 @@ async function sendViaSMTP(
     throw new Error("SMTP configuration incomplete");
   }
 
+  let smtpPassword = account.smtp_password_encrypted;
+
+  try {
+    // Try to decrypt password (for newly added accounts with encryption)
+    const { data: decryptData, error: decryptError } = await supabaseClient.functions.invoke(
+      "decrypt-field",
+      { body: { encrypted: account.smtp_password_encrypted } }
+    );
+
+    if (!decryptError && decryptData?.decrypted) {
+      smtpPassword = decryptData.decrypted;
+      console.log("Using encrypted password");
+    } else {
+      // If decryption fails, assume it's an old account with plain text password
+      console.warn("⚠️ Using plain text password - please reconnect this email account for security");
+      smtpPassword = account.smtp_password_encrypted;
+    }
+  } catch (error) {
+    // Fallback to plain text if decryption service unavailable
+    console.warn("Decryption service unavailable, using password as-is");
+  }
+
   try {
     // Create SMTP client
     const client = new SMTPClient({
@@ -247,7 +270,7 @@ async function sendViaSMTP(
         tls: account.smtp_use_tls !== false,
         auth: {
           username: account.smtp_username,
-          password: account.smtp_password_encrypted, // TODO: Implement decryption
+          password: smtpPassword,
         },
       },
     });
@@ -263,7 +286,7 @@ async function sendViaSMTP(
 
     await client.close();
 
-    console.log(`Email sent successfully via SMTP to ${to}`);
+    console.log(`✅ Email sent successfully via SMTP to ${to}`);
     return { success: true, provider: "smtp" };
   } catch (error: any) {
     console.error("SMTP send error:", error);

@@ -164,6 +164,14 @@ const BringYourOwnEmail = () => {
           </AlertDescription>
         </Alert>
 
+        <Alert variant="destructive">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Security Update:</strong> Email passwords are now encrypted for security. 
+            If you connected your email before this update, please remove and reconnect your account to enable encryption.
+          </AlertDescription>
+        </Alert>
+
         {emailAccounts.length > 0 && (
           <EmailHealthDashboard 
             accounts={emailAccounts} 
