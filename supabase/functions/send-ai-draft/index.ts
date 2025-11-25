@@ -53,7 +53,7 @@ serve(async (req) => {
         .eq("is_active", true)
         .maybeSingle();
 
-      // If no active account, try any account regardless of verification status
+      // If no active account, try any account regardless of verification/active status
       if (!emailAccount) {
         const { data: anyAccount } = await supabaseClient
           .from("email_accounts")
@@ -65,12 +65,8 @@ serve(async (req) => {
           throw new Error("No email account connected. Please connect your email in Settings > Email Sending.");
         }
         
-        if (!anyAccount.is_active) {
-          throw new Error("Your email account is inactive. Please activate it in Settings > Email Sending.");
-        }
-        
-        // Use the account even if not verified - for testing purposes
-        console.log("Warning: Using unverified email account:", anyAccount.email_address);
+        // Use the account even if not active or verified - for testing purposes
+        console.log("Warning: Using email account (active:", anyAccount.is_active, ", verified:", anyAccount.is_verified, "):", anyAccount.email_address);
         emailAccount = anyAccount;
       }
 
