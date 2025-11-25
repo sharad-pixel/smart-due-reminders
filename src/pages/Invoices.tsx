@@ -60,8 +60,12 @@ const Invoices = () => {
     debtor_id: "",
     invoice_number: "",
     amount: "",
+    currency: "USD",
     issue_date: new Date().toISOString().split("T")[0],
     due_date: "",
+    status: "Open",
+    payment_terms: "",
+    external_link: "",
     notes: "",
   });
 
@@ -235,10 +239,13 @@ const Invoices = () => {
         debtor_id: formData.debtor_id,
         invoice_number: formData.invoice_number,
         amount: parseFloat(formData.amount),
+        currency: formData.currency || "USD",
         issue_date: formData.issue_date,
         due_date: formData.due_date,
+        status: formData.status || "Open",
+        payment_terms: formData.payment_terms || null,
+        external_link: formData.external_link || null,
         notes: formData.notes || null,
-        status: "Open",
       } as any);
 
       if (error) throw error;
@@ -248,8 +255,12 @@ const Invoices = () => {
         debtor_id: "",
         invoice_number: "",
         amount: "",
+        currency: "USD",
         issue_date: new Date().toISOString().split("T")[0],
         due_date: "",
+        status: "Open",
+        payment_terms: "",
+        external_link: "",
         notes: "",
       });
       fetchData();
@@ -373,6 +384,47 @@ const Invoices = () => {
                       />
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="currency">Currency</Label>
+                      <Select
+                        value={formData.currency}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, currency: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="CAD">CAD</SelectItem>
+                          <SelectItem value="AUD">AUD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, status: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Open">Open</SelectItem>
+                          <SelectItem value="Paid">Paid</SelectItem>
+                          <SelectItem value="Disputed">Disputed</SelectItem>
+                          <SelectItem value="Settled">Settled</SelectItem>
+                          <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
+                          <SelectItem value="Canceled">Canceled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="issue_date">Issue Date *</Label>
                       <Input
                         id="issue_date"
@@ -394,6 +446,39 @@ const Invoices = () => {
                           setFormData({ ...formData, due_date: e.target.value })
                         }
                         required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="payment_terms">Payment Terms</Label>
+                      <Select
+                        value={formData.payment_terms}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, payment_terms: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Net 15">Net 15</SelectItem>
+                          <SelectItem value="Net 30">Net 30</SelectItem>
+                          <SelectItem value="Net 45">Net 45</SelectItem>
+                          <SelectItem value="Net 60">Net 60</SelectItem>
+                          <SelectItem value="Net 90">Net 90</SelectItem>
+                          <SelectItem value="Due on Receipt">Due on Receipt</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="external_link">External Link</Label>
+                      <Input
+                        id="external_link"
+                        type="url"
+                        placeholder="https://example.com/invoice.pdf"
+                        value={formData.external_link}
+                        onChange={(e) =>
+                          setFormData({ ...formData, external_link: e.target.value })
+                        }
                       />
                     </div>
                   </div>
