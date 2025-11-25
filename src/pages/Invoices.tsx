@@ -600,17 +600,17 @@ const Invoices = () => {
                         }}
                       />
                     </TableHead>
-                    <TableHead>Recouply ID</TableHead>
-                    <TableHead>Invoice #</TableHead>
-                    <TableHead>Debtor</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Invoice Date</TableHead>
-                    <TableHead>Payment Terms</TableHead>
-                    <TableHead>Days Past Due</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>AI Workflow</TableHead>
-                    <TableHead>Last Contact</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-32 font-semibold">Recouply ID</TableHead>
+                    <TableHead className="w-32 font-semibold">Invoice #</TableHead>
+                    <TableHead className="min-w-[150px] font-semibold">Debtor</TableHead>
+                    <TableHead className="w-28 text-right font-semibold">Amount</TableHead>
+                    <TableHead className="w-28 font-semibold">Invoice Date</TableHead>
+                    <TableHead className="w-28 font-semibold">Payment Terms</TableHead>
+                    <TableHead className="w-32 font-semibold">Days Past Due</TableHead>
+                    <TableHead className="w-28 font-semibold">Status</TableHead>
+                    <TableHead className="w-32 font-semibold">AI Workflow</TableHead>
+                    <TableHead className="w-28 font-semibold">Last Contact</TableHead>
+                    <TableHead className="w-24 text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -633,13 +633,13 @@ const Invoices = () => {
                             }}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{invoice.reference_id}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{invoice.reference_id}</TableCell>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                        <TableCell>{invoice.debtors?.name}</TableCell>
-                        <TableCell className="text-right">${invoice.amount.toLocaleString()}</TableCell>
-                        <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{invoice.debtors?.name}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">${invoice.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-sm tabular-nums">{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-sm px-2 py-1 bg-muted/50 rounded">
                             {invoice.payment_terms || "—"}
                           </span>
                         </TableCell>
@@ -697,10 +697,10 @@ const Invoices = () => {
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm tabular-nums">
                           {invoice.last_contact_date
                             ? new Date(invoice.last_contact_date).toLocaleDateString()
-                            : "-"}
+                            : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
