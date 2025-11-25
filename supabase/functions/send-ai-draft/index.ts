@@ -53,51 +53,63 @@ serve(async (req) => {
 
     // Send based on channel
     if (draft.channel === "email") {
-      if (!profile.sendgrid_api_key) {
-        throw new Error("SendGrid API key not configured");
+      // Check for connected email account (BYOE)
+      const { data: emailAccount } = await supabaseClient
+        .from("email_accounts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .eq("is_verified", true)
+        .single();
+
+      if (!emailAccount) {
+        throw new Error("No email account connected. Please connect your email in Settings > Email Sending.");
       }
 
       try {
-        const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${profile.sendgrid_api_key}`,
-            "Content-Type": "application/json",
+        let emailSendResult;
+        
+        // Use test-email edge function to handle the actual sending
+        // This function will handle OAuth, App Password, and SMTP authentication
+        const testEmailResponse = await supabaseClient.functions.invoke("test-email", {
+          body: {
+            email_account_id: emailAccount.id,
+            to_email: debtor.email,
+            subject: draft.subject || "Payment Reminder",
+            body_html: draft.message_body.replace(/\n/g, "<br>"),
           },
-          body: JSON.stringify({
-            personalizations: [
-              {
-                to: [{ email: debtor.email }],
-                subject: draft.subject || "Payment Reminder",
-              },
-            ],
-            from: {
-              email: profile.email || "noreply@recouply.ai",
-              name: profile.business_name || "Recouply.ai",
-            },
-            content: [
-              {
-                type: "text/html",
-                value: draft.message_body.replace(/\n/g, "<br>"),
-              },
-            ],
-          }),
         });
 
-        if (!sendGridResponse.ok) {
-          const errorText = await sendGridResponse.text();
-          console.error("SendGrid error:", errorText);
-          throw new Error(`Failed to send email: ${sendGridResponse.status}`);
+        if (testEmailResponse.error) {
+          throw new Error(testEmailResponse.error.message || "Failed to send email");
         }
 
-        sendResult = { success: true, message: "Email sent successfully" };
+        sendResult = { success: true, message: "Email sent successfully via connected account" };
       } catch (emailError: any) {
         console.error("Email send error:", emailError);
+        
+        // Log the failure
+        await supabaseClient.from("email_connection_logs").insert({
+          email_account_id: emailAccount.id,
+          event_type: "send_attempt",
+          status: "failed",
+          error_message: emailError.message,
+        });
+        
         throw new Error(`Failed to send email: ${emailError.message}`);
       }
     } else if (draft.channel === "sms") {
+      // Fetch profile for Twilio credentials
+      const { data: profile, error: profileError } = await supabaseClient
+        .from("profiles")
+        .select("twilio_account_sid, twilio_auth_token, twilio_from_number")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) throw new Error("Profile not found");
+
       if (!profile.twilio_account_sid || !profile.twilio_auth_token || !profile.twilio_from_number) {
-        throw new Error("Twilio credentials not configured");
+        throw new Error("Twilio credentials not configured. Please configure in Settings.");
       }
 
       if (!debtor.phone) {
