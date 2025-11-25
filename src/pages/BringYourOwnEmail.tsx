@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Mail, Info } from "lucide-react";
+import { toast } from "sonner";
 import { GmailWizard } from "@/components/email/GmailWizard";
 import { OutlookWizard } from "@/components/email/OutlookWizard";
 import { YahooWizard } from "@/components/email/YahooWizard";
@@ -24,6 +25,7 @@ interface EmailAccount {
   dkim_status: string;
   spf_status: string;
   last_successful_send: string | null;
+  is_primary?: boolean;
 }
 
 const BringYourOwnEmail = () => {
@@ -64,6 +66,76 @@ const BringYourOwnEmail = () => {
     fetchEmailAccounts();
   };
 
+  const handleDeleteAccount = async (accountId: string) => {
+    try {
+      const { error } = await supabase
+        .from("email_accounts")
+        .update({ is_active: false })
+        .eq("id", accountId);
+
+      if (error) throw error;
+
+      toast.success("Email account removed successfully");
+      fetchEmailAccounts();
+    } catch (error: any) {
+      console.error("Error removing email account:", error);
+      toast.error("Failed to remove email account");
+    }
+  };
+
+  const handleTestConnection = async (accountId: string) => {
+    try {
+      const account = emailAccounts.find(a => a.id === accountId);
+      if (!account) throw new Error("Account not found");
+
+      toast.loading("Testing email connection...");
+
+      const { data, error } = await supabase.functions.invoke("test-email-account", {
+        body: { 
+          accountId,
+          recipientEmail: account.email_address 
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success("Test email sent successfully! Check your inbox.");
+      fetchEmailAccounts();
+    } catch (error: any) {
+      console.error("Error testing connection:", error);
+      toast.error(error.message || "Failed to test connection");
+    }
+  };
+
+  const handleSetPrimary = async (accountId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Remove primary flag from all accounts
+      const { error: updateError } = await supabase
+        .from("email_accounts")
+        .update({ is_primary: false })
+        .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
+
+      // Set the selected account as primary
+      const { error: setPrimaryError } = await supabase
+        .from("email_accounts")
+        .update({ is_primary: true })
+        .eq("id", accountId);
+
+      if (setPrimaryError) throw setPrimaryError;
+
+      toast.success("Primary email account updated");
+      fetchEmailAccounts();
+    } catch (error: any) {
+      console.error("Error setting primary account:", error);
+      toast.error("Failed to set primary account");
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -93,7 +165,13 @@ const BringYourOwnEmail = () => {
         </Alert>
 
         {emailAccounts.length > 0 && (
-          <EmailHealthDashboard accounts={emailAccounts} onRefresh={fetchEmailAccounts} />
+          <EmailHealthDashboard 
+            accounts={emailAccounts} 
+            onRefresh={fetchEmailAccounts}
+            onDelete={handleDeleteAccount}
+            onTest={handleTestConnection}
+            onSetPrimary={handleSetPrimary}
+          />
         )}
 
         <Tabs defaultValue="setup" className="w-full">

@@ -1,8 +1,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, AlertCircle, RefreshCw, Mail } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, RefreshCw, Mail, Trash2, TestTube, Star } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 interface EmailAccount {
   id: string;
@@ -14,14 +25,20 @@ interface EmailAccount {
   dkim_status: string;
   spf_status: string;
   last_successful_send: string | null;
+  is_primary?: boolean;
 }
 
 interface EmailHealthDashboardProps {
   accounts: EmailAccount[];
   onRefresh: () => void;
+  onDelete: (accountId: string) => void;
+  onTest: (accountId: string) => void;
+  onSetPrimary: (accountId: string) => void;
 }
 
-export const EmailHealthDashboard = ({ accounts, onRefresh }: EmailHealthDashboardProps) => {
+export const EmailHealthDashboard = ({ accounts, onRefresh, onDelete, onTest, onSetPrimary }: EmailHealthDashboardProps) => {
+  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "connected":
@@ -121,10 +138,63 @@ export const EmailHealthDashboard = ({ accounts, onRefresh }: EmailHealthDashboa
                   Last successful send: {new Date(account.last_successful_send).toLocaleString()}
                 </div>
               )}
+
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSetPrimary(account.id)}
+                  disabled={account.is_primary}
+                >
+                  <Star className={`h-4 w-4 mr-2 ${account.is_primary ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                  {account.is_primary ? 'Primary' : 'Set as Primary'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onTest(account.id)}
+                >
+                  <TestTube className="h-4 w-4 mr-2" />
+                  Test Connection
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteAccountId(account.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove
+                </Button>
+              </div>
             </div>
           ))}
         </div>
       </CardContent>
+
+      <AlertDialog open={!!deleteAccountId} onOpenChange={() => setDeleteAccountId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Email Account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently disconnect this email account. You won't be able to send emails from this account until you reconnect it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteAccountId) {
+                  onDelete(deleteAccountId);
+                  setDeleteAccountId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
