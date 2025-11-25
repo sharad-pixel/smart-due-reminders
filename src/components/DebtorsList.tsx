@@ -19,6 +19,8 @@ interface Debtor {
   primary_contact_name: string | null;
   primary_email: string | null;
   primary_phone: string | null;
+  external_customer_id: string | null;
+  crm_account_id_external: string | null;
 }
 
 interface DebtorsListProps {
@@ -35,6 +37,8 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
     email: "",
     phone: "",
     address: "",
+    external_customer_id: "",
+    crm_account_id_external: "",
   });
 
   useEffect(() => {
@@ -83,6 +87,8 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
         email: "",
         phone: "",
         address: "",
+        external_customer_id: "",
+        crm_account_id_external: "",
       });
       fetchDebtors();
       onUpdate();
@@ -176,6 +182,24 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="external_customer_id">Account ID (Billing System)</Label>
+                  <Input
+                    id="external_customer_id"
+                    value={formData.external_customer_id}
+                    onChange={(e) => setFormData({ ...formData, external_customer_id: e.target.value })}
+                    placeholder="e.g., QB_123456"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="crm_account_id_external">CRM ID</Label>
+                  <Input
+                    id="crm_account_id_external"
+                    value={formData.crm_account_id_external}
+                    onChange={(e) => setFormData({ ...formData, crm_account_id_external: e.target.value })}
+                    placeholder="e.g., SF_001234"
+                  />
+                </div>
                 <Button type="submit" className="w-full">Add Debtor</Button>
               </form>
             </DialogContent>
@@ -195,6 +219,8 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
                 <TableHead>Contact</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Account ID</TableHead>
+                <TableHead>CRM ID</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -205,6 +231,8 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
                   <TableCell>{debtor.primary_contact_name || debtor.contact_name}</TableCell>
                   <TableCell>{debtor.primary_email || debtor.email}</TableCell>
                   <TableCell>{debtor.primary_phone || debtor.phone || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{debtor.external_customer_id || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{debtor.crm_account_id_external || "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
