@@ -170,8 +170,9 @@ export const ARAgingUpload = ({ onFileUploaded }: ARAgingUploadProps) => {
         <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
           <li>Maximum file size: 50MB</li>
           <li>Maximum rows: 10,000</li>
-          <li>Required columns: Company Name, Invoice Number, Invoice Date, Amount</li>
-          <li>Recommended: Contact Email, Contact Phone, Due Date, Outstanding Balance</li>
+          <li>Required columns: Company Name, Invoice Number, Invoice Date, Payment Terms, Invoice Amount</li>
+          <li>Recommended: Contact Email, Contact Phone, Outstanding Balance</li>
+          <li className="font-medium text-foreground">💡 Due Date and Days Past Due will be calculated automatically</li>
         </ul>
       </div>
     </div>
