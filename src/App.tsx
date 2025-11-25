@@ -43,6 +43,7 @@ import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
 import ImportARAging from "./pages/ImportARAging";
 import EmailSendingSettings from "./pages/EmailSendingSettings";
+import BringYourOwnEmail from "./pages/BringYourOwnEmail";
 
 const queryClient = new QueryClient();
 
@@ -85,7 +86,8 @@ const App = () => (
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
-        <Route path="/settings/email-sending" element={<EmailSendingSettings />} />
+          <Route path="/settings/email-sending" element={<EmailSendingSettings />} />
+          <Route path="/settings/email/byoe" element={<BringYourOwnEmail />} />
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
         <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/collections/tasks" element={<CollectionTasks />} />

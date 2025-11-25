@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface ProfileData {
 }
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
@@ -405,6 +407,21 @@ const Settings = () => {
               Configure Email Sending Domain
             </Button>
           </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer hover:border-primary transition-colors"
+          onClick={() => navigate("/settings/email/byoe")}
+        >
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <CardTitle>Bring Your Own Email</CardTitle>
+            </div>
+            <CardDescription>
+              Connect your Gmail, Outlook, Yahoo, or any email account to send collections emails
+            </CardDescription>
+          </CardHeader>
         </Card>
 
         <Card>
