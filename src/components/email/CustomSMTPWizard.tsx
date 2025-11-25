@@ -34,8 +34,11 @@ export const CustomSMTPWizard = ({ onComplete }: CustomSMTPWizardProps) => {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      // Ensure we have a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error("Not authenticated. Please log in again.");
+      }
 
       // Encrypt SMTP password
       const { data: encryptedSmtpData, error: encryptSmtpError } = await supabase.functions.invoke(
@@ -62,7 +65,7 @@ export const CustomSMTPWizard = ({ onComplete }: CustomSMTPWizardProps) => {
       }
 
       const { error } = await supabase.from("email_accounts").insert({
-        user_id: user.id,
+        user_id: session.user.id,
         email_address: email,
         provider: "smtp",
         display_name: displayName,
