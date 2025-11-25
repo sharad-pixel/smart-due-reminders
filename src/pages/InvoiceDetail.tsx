@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -818,35 +818,86 @@ const InvoiceDetail = () => {
           title="Collection Tasks"
         />
 
-        <Card>
+        <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Ask Your AI Agents
+              AI Collection Actions
             </CardTitle>
+            <CardDescription>
+              Generate and send AI-powered collection messages for this invoice
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <PersonaCommandInput
-              placeholder="Ask Sam, James, Katy, Troy, or Gotti… e.g., 'Send a reminder for this invoice'"
-              onSubmit={handlePersonaCommand}
-              contextType="invoice"
-              contextId={invoice?.id}
-              suggestions={[
-                "Send an email for this invoice",
-                "Draft a friendly reminder",
-                "Generate a firm follow-up",
-                `Ask ${getPersonaByDaysPastDue(daysPastDue)?.name || 'the agent'} to send a message`,
-                "Create an SMS reminder"
-              ]}
-            />
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Quick Generate</CardTitle>
+                  <CardDescription className="text-xs">
+                    Generate a draft based on workflow
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => setGenerateDialogOpen(true)} 
+                    disabled={generatingDraft}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {generatingDraft ? "Generating..." : "Generate Draft"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Send Pending Drafts</CardTitle>
+                  <CardDescription className="text-xs">
+                    Send all approved drafts for this invoice
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={async () => {
+                      const approvedDrafts = drafts.filter(d => d.status === 'approved');
+                      if (approvedDrafts.length === 0) {
+                        toast.error("No approved drafts to send");
+                        return;
+                      }
+                      for (const draft of approvedDrafts) {
+                        await handleSendDraft(draft.id);
+                      }
+                    }}
+                    disabled={sendingDraft !== null || drafts.filter(d => d.status === 'approved').length === 0}
+                    className="w-full"
+                    size="lg"
+                    variant="default"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Send {drafts.filter(d => d.status === 'approved').length} Approved
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="pt-2 border-t">
+              <PersonaCommandInput
+                placeholder="Ask Sam, James, Katy, Troy, or Gotti… e.g., 'Send a reminder for this invoice'"
+                onSubmit={handlePersonaCommand}
+                contextType="invoice"
+                contextId={invoice?.id}
+                suggestions={[
+                  "Send an email for this invoice",
+                  "Draft a friendly reminder",
+                  "Generate a firm follow-up",
+                  `Ask ${getPersonaByDaysPastDue(daysPastDue)?.name || 'the agent'} to send a message`,
+                  "Create an SMS reminder"
+                ]}
+              />
+            </div>
           </CardContent>
         </Card>
-
-        <div className="flex justify-end">
-          <Button onClick={() => setGenerateDialogOpen(true)} disabled={generatingDraft}>
-            {generatingDraft ? "Generating..." : "Generate AI Draft"}
-          </Button>
-        </div>
 
         <Tabs defaultValue="outreach" className="space-y-4">
           <TabsList>
@@ -958,23 +1009,32 @@ const InvoiceDetail = () => {
                         </p>
                       )}
                       {draft.status === "pending_approval" && (
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button 
                             onClick={() => handleSendDraft(draft.id)}
                             disabled={sendingDraft === draft.id}
+                            size="lg"
+                            className="flex-1"
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            {sendingDraft === draft.id ? "Sending..." : "Approve & Send"}
+                            {sendingDraft === draft.id ? "Sending..." : "Approve & Send Now"}
                           </Button>
-                          <Button variant="outline" onClick={() => handleEditDraft(draft)}>
-                            Edit
+                          <Button variant="outline" onClick={() => handleEditDraft(draft)} size="lg">
+                            Edit Draft
                           </Button>
                           <Button
                             variant="destructive"
                             onClick={() => handleDraftAction(draft.id, "discarded")}
+                            size="lg"
                           >
                             Discard
                           </Button>
+                        </div>
+                      )}
+                      {draft.status === "approved" && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span>Approved - Ready to send from Quick Actions above</span>
                         </div>
                       )}
                     </CardContent>
