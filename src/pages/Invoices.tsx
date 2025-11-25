@@ -607,7 +607,7 @@ const Invoices = () => {
                         }}
                       />
                     </TableHead>
-                    <TableHead>Reference ID</TableHead>
+                    <TableHead>Recouply ID</TableHead>
                     <TableHead>Invoice #</TableHead>
                     <TableHead>Debtor</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
