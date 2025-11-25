@@ -98,11 +98,14 @@ serve(async (req) => {
     const daysPastDue = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
     // Fetch the appropriate AI agent persona based on days past due
+    // If not past due (daysPastDue = 0), use the first persona (Sam)
+    const queryDays = daysPastDue === 0 ? 1 : daysPastDue;
+    
     const { data: agentPersona, error: agentError } = await supabaseClient
       .from("ai_agent_personas")
       .select("*")
-      .lte("bucket_min", daysPastDue)
-      .or(`bucket_max.is.null,bucket_max.gte.${daysPastDue}`)
+      .lte("bucket_min", queryDays)
+      .or(`bucket_max.is.null,bucket_max.gte.${queryDays}`)
       .order("bucket_min", { ascending: false })
       .limit(1)
       .single();
