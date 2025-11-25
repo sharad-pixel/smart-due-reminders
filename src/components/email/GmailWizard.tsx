@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Mail, Info } from "lucide-react";
+import { CheckCircle2, Mail, Info, AlertTriangle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GmailWizardProps {
   onComplete: () => void;
@@ -17,13 +18,8 @@ export const GmailWizard = ({ onComplete, onCancel }: GmailWizardProps) => {
   const handleConnectGmail = async () => {
     setLoading(true);
     try {
-      // TODO: Implement Google OAuth flow
-      toast.info("Gmail OAuth integration will be implemented with production credentials");
-      // For now, simulate the flow
-      setTimeout(() => {
-        setStep(2);
-        setLoading(false);
-      }, 1000);
+      toast.error("Gmail OAuth requires Google Cloud credentials to be configured. Please use Custom SMTP with an App Password instead, or contact support for OAuth setup assistance.");
+      setLoading(false);
     } catch (error: any) {
       toast.error(error.message || "Failed to connect Gmail");
       setLoading(false);
@@ -42,39 +38,58 @@ export const GmailWizard = ({ onComplete, onCancel }: GmailWizardProps) => {
       <CardContent className="space-y-6">
         {step === 1 && (
           <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Gmail OAuth Setup Required</strong>
+                <br />
+                Gmail OAuth requires Google Cloud project credentials and API configuration. 
+                This feature is not yet configured for your account.
+              </AlertDescription>
+            </Alert>
+
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                We'll securely connect to your Gmail account using Google OAuth. 
-                Recouply will send emails as you and read only replies for workflow automation.
+                <strong>Recommended Alternative: Use Custom SMTP with App Password</strong>
+                <br />
+                For immediate Gmail integration, we recommend using the Custom SMTP option with a Gmail App Password. 
+                This is faster to set up and works reliably.
               </AlertDescription>
             </Alert>
 
             <div className="space-y-2">
-              <h4 className="font-medium">What we'll need:</h4>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Permission to send emails on your behalf</li>
-                <li>Permission to read email replies</li>
-                <li>Your business email address (e.g., billing@yourcompany.com)</li>
-              </ul>
+              <h4 className="font-medium">To use Gmail with Custom SMTP:</h4>
+              <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                <li>Go to your Google Account settings</li>
+                <li>Enable 2-Step Verification if not already enabled</li>
+                <li>Generate an App Password for "Mail"</li>
+                <li>Use the Custom SMTP option with these settings:
+                  <ul className="list-disc list-inside ml-6 mt-1">
+                    <li>SMTP Host: smtp.gmail.com</li>
+                    <li>SMTP Port: 587</li>
+                    <li>Use your Gmail address and App Password</li>
+                  </ul>
+                </li>
+              </ol>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="font-medium">What happens next:</h4>
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-medium mb-2">Need OAuth instead?</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                OAuth setup requires Google Cloud configuration. Contact support for assistance with:
+              </p>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>You'll be redirected to Google's secure login</li>
-                <li>Select your business email account</li>
-                <li>Review and accept permissions</li>
-                <li>You'll be brought back to Recouply to complete setup</li>
+                <li>Creating a Google Cloud project</li>
+                <li>Enabling Gmail API</li>
+                <li>Configuring OAuth 2.0 credentials</li>
+                <li>Setting up redirect URLs</li>
               </ul>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleConnectGmail} disabled={loading}>
-                {loading ? "Connecting..." : "Connect Gmail"}
-              </Button>
               <Button variant="outline" onClick={onCancel}>
-                Cancel
+                Back to Email Setup
               </Button>
             </div>
           </div>
@@ -84,30 +99,19 @@ export const GmailWizard = ({ onComplete, onCancel }: GmailWizardProps) => {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-green-600">
               <CheckCircle2 className="h-5 w-5" />
-              <span className="font-medium">Successfully connected to Gmail!</span>
+              <span className="font-medium">Gmail OAuth requires additional setup</span>
             </div>
 
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Connected email:</strong> billing@yourcompany.com
-                <br />
-                <strong>DKIM Status:</strong> Verified via Google
-                <br />
-                <strong>Authentication:</strong> OAuth 2.0
+                Please use the Custom SMTP option with a Gmail App Password for immediate integration,
+                or contact support for help setting up OAuth.
               </AlertDescription>
             </Alert>
 
-            <div className="space-y-2">
-              <h4 className="font-medium">Your Gmail is now active</h4>
-              <p className="text-sm text-muted-foreground">
-                All collection emails will be sent from your Gmail address. 
-                Replies will automatically flow into Recouply for workflow processing.
-              </p>
-            </div>
-
-            <Button onClick={onComplete}>
-              Complete Setup
+            <Button onClick={onCancel}>
+              Back to Email Setup
             </Button>
           </div>
         )}
