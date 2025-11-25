@@ -23,7 +23,9 @@ interface Invoice {
   reference_id: string;
   invoice_number: string;
   amount: number;
+  issue_date: string;
   due_date: string;
+  payment_terms: string | null;
   status: string;
   last_contact_date: string | null;
   debtor_id: string;
@@ -602,7 +604,8 @@ const Invoices = () => {
                     <TableHead>Invoice #</TableHead>
                     <TableHead>Debtor</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Due Date</TableHead>
+                    <TableHead>Invoice Date</TableHead>
+                    <TableHead>Payment Terms</TableHead>
                     <TableHead>Days Past Due</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>AI Workflow</TableHead>
@@ -634,7 +637,12 @@ const Invoices = () => {
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{invoice.debtors?.name}</TableCell>
                         <TableCell className="text-right">${invoice.amount.toLocaleString()}</TableCell>
-                        <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {invoice.payment_terms || "—"}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
