@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Mail, ArrowRight } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { personaConfig } from "@/lib/personaConfig";
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
@@ -51,15 +54,36 @@ const ComingSoon = () => {
             </p>
           </div>
 
+          {/* AI Personas Carousel */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-xl font-semibold text-foreground text-center">Meet Your AI Collection Team</h3>
+            <Carousel className="w-full max-w-xl mx-auto">
+              <CarouselContent>
+                {Object.values(personaConfig).map((persona) => (
+                  <CarouselItem key={persona.name}>
+                    <Card className="border-2">
+                      <CardContent className="p-6 text-center space-y-4">
+                        <PersonaAvatar persona={persona} size="xl" className="justify-center" />
+                        <div>
+                          <h4 className="text-lg font-bold text-foreground">{persona.name}</h4>
+                          <p className="text-sm text-muted-foreground mb-2">{persona.description}</p>
+                          <div className="inline-block px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary">
+                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground italic">"{persona.tone}"</p>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </div>
+
           {/* Features Preview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            <div className="space-y-2">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <h3 className="font-semibold text-foreground">AI Personas</h3>
-              <p className="text-sm text-muted-foreground">Smart agents handle every aging bucket</p>
-            </div>
             <div className="space-y-2">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
                 <span className="text-2xl">⚡</span>
@@ -73,6 +97,13 @@ const ComingSoon = () => {
               </div>
               <h3 className="font-semibold text-foreground">Analytics Dashboard</h3>
               <p className="text-sm text-muted-foreground">Track every response and outcome</p>
+            </div>
+            <div className="space-y-2">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
+                <span className="text-2xl">🎯</span>
+              </div>
+              <h3 className="font-semibold text-foreground">Smart Targeting</h3>
+              <p className="text-sm text-muted-foreground">Right message at the right time</p>
             </div>
           </div>
 
