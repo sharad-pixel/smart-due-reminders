@@ -3,14 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight } from "lucide-react";
+import { Mail, ArrowRight, MessageCircle, Zap, Target } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
+import { Badge } from "@/components/ui/badge";
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,22 +59,88 @@ const ComingSoon = () => {
 
           {/* AI Personas Carousel */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-xl font-semibold text-foreground text-center">Meet Your AI Collection Team</h3>
-            <Carousel className="w-full max-w-xl mx-auto">
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-semibold text-foreground">Meet Your AI Collection Team</h3>
+              <p className="text-sm text-muted-foreground">6 specialized agents that handle every stage of collections</p>
+            </div>
+            <Carousel className="w-full max-w-2xl mx-auto">
               <CarouselContent>
                 {Object.values(personaConfig).map((persona) => (
                   <CarouselItem key={persona.name}>
-                    <Card className="border-2">
-                      <CardContent className="p-6 text-center space-y-4">
-                        <PersonaAvatar persona={persona} size="xl" className="justify-center" />
-                        <div>
-                          <h4 className="text-lg font-bold text-foreground">{persona.name}</h4>
-                          <p className="text-sm text-muted-foreground mb-2">{persona.description}</p>
-                          <div className="inline-block px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary">
+                    <Card 
+                      className="border-2 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-primary/50"
+                      onMouseEnter={() => setHoveredPersona(persona.name)}
+                      onMouseLeave={() => setHoveredPersona(null)}
+                      onClick={() => setSelectedPersona(selectedPersona === persona.name ? null : persona.name)}
+                    >
+                      <CardContent className="p-8 text-center space-y-6">
+                        <div className="relative">
+                          <div className={`transition-transform duration-300 ${hoveredPersona === persona.name ? 'scale-110' : ''}`}>
+                            <PersonaAvatar persona={persona} size="xl" className="justify-center" />
+                          </div>
+                          {hoveredPersona === persona.name && (
+                            <div className="absolute -top-2 -right-2 animate-pulse">
+                              <Badge className="bg-primary shadow-lg">Click to learn more</Badge>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <h4 className="text-2xl font-bold text-foreground">{persona.name}</h4>
+                          <p className="text-sm text-muted-foreground">{persona.description}</p>
+                          <Badge variant="outline" className="text-primary border-primary">
                             {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                          </Badge>
+                        </div>
+
+                        <div className={`space-y-4 transition-all duration-500 ${
+                          selectedPersona === persona.name 
+                            ? 'max-h-96 opacity-100' 
+                            : 'max-h-0 opacity-0 overflow-hidden'
+                        }`}>
+                          <div className="h-px bg-border" />
+                          
+                          <div className="space-y-3 text-left">
+                            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+                              <MessageCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-1">Communication Style</p>
+                                <p className="text-sm text-muted-foreground italic">"{persona.tone}"</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+                              <Zap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-1">Automated Actions</p>
+                                <p className="text-sm text-muted-foreground">Sends reminders, follows up, and adapts messaging automatically</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+                              <Target className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-1">Success Rate</p>
+                                <p className="text-sm text-muted-foreground">Optimized for maximum recovery at this collection stage</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground italic">"{persona.tone}"</p>
+
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPersona(selectedPersona === persona.name ? null : persona.name);
+                          }}
+                        >
+                          {selectedPersona === persona.name ? 'Show Less' : 'Learn More'}
+                          <ArrowRight className={`ml-2 h-4 w-4 transition-transform ${
+                            selectedPersona === persona.name ? 'rotate-90' : ''
+                          }`} />
+                        </Button>
                       </CardContent>
                     </Card>
                   </CarouselItem>
