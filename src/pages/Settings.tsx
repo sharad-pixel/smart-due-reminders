@@ -433,18 +433,19 @@ const Settings = () => {
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-primary" />
-              <CardTitle>Email Sending Configuration</CardTitle>
+              <CardTitle>Email Sending Domain</CardTitle>
             </div>
             <CardDescription>
-              Configure your own domain for email sending or use Recouply.ai's shared domain
+              Use your own domain for sending collection emails
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Choose between sending emails from your own verified business domain (recommended for better deliverability)
-              or using Recouply.ai's shared infrastructure for quick start.
+              When you use your own domain, customers see emails from your business (e.g. billing@yourcompany.com), not Recouply.ai. 
+              This increases trust and improves payment rates. All AI-generated collection emails will automatically use your verified domain.
             </p>
-            <Button onClick={() => window.location.href = '/settings/email-sending'} variant="outline">
+            <Button onClick={() => navigate('/settings/email-domain')} variant="outline">
+              <Mail className="h-4 w-4 mr-2" />
               Configure Email Sending Domain
             </Button>
           </CardContent>

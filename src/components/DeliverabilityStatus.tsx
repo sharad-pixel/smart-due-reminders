@@ -64,6 +64,18 @@ export const DeliverabilityStatus = ({ profile, onRefresh }: DeliverabilityStatu
         toast.warning("Some DNS records are not yet verified. Please check your DNS configuration.");
       }
       
+      // Log audit event
+      await supabase.from("audit_logs").insert({
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        action_type: "view",
+        resource_type: "email_domain",
+        resource_id: profile.id,
+        metadata: {
+          dns_verification_attempted: true,
+          results: data.results,
+        },
+      });
+      
       onRefresh();
     } catch (error: any) {
       toast.error(error.message || "Failed to reverify DNS records");
