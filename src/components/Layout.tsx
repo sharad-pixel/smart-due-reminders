@@ -183,10 +183,10 @@ const Layout = ({ children }: LayoutProps) => {
       <SecurityAlert />
       <nav className="border-b bg-card shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-6">
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <img src={recouplyLogo} alt="Recouply.ai" className="h-48" />
+                <img src={recouplyLogo} alt="Recouply.ai" className="h-16" />
               </Link>
               <div className="hidden md:flex items-center gap-2">
                 {mainNavItems.map((item) => {
@@ -223,7 +223,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <span className="hidden md:inline-block">{userName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 bg-card z-50">
+                <DropdownMenuContent align="end" className="w-80 bg-card border shadow-lg z-[100]">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
