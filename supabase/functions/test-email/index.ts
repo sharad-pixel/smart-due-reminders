@@ -88,7 +88,7 @@ serve(async (req) => {
           throw new Error(`OAuth not supported for provider: ${emailAccount.provider}`);
         }
       } else if (emailAccount.auth_method === "smtp") {
-        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody, authHeader);
+        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody);
       } else {
         throw new Error(`Unsupported auth method: ${emailAccount.auth_method}`);
       }
@@ -232,8 +232,7 @@ async function sendViaSMTP(
   account: any,
   to: string,
   subject: string,
-  bodyHtml: string,
-  authHeader: string | null
+  bodyHtml: string
 ): Promise<any> {
   console.log(`Sending email via SMTP from ${account.email_address} to ${to}`);
   console.log(`SMTP Settings: ${account.smtp_host}:${account.smtp_port}`);
@@ -242,30 +241,10 @@ async function sendViaSMTP(
     throw new Error("SMTP configuration incomplete");
   }
 
-  let smtpPassword = account.smtp_password_encrypted;
-
-  try {
-    // Try to decrypt password (for newly added accounts with encryption)
-    const { data: decryptData, error: decryptError } = await supabaseClient.functions.invoke(
-      "decrypt-field",
-      { 
-        body: { encrypted: account.smtp_password_encrypted },
-        headers: authHeader ? { Authorization: authHeader } : {}
-      }
-    );
-
-    if (!decryptError && decryptData?.decrypted) {
-      smtpPassword = decryptData.decrypted;
-      console.log("Using encrypted password");
-    } else {
-      // If decryption fails, assume it's an old account with plain text password
-      console.warn("⚠️ Using plain text password - please reconnect this email account for security");
-      smtpPassword = account.smtp_password_encrypted;
-    }
-  } catch (error) {
-    // Fallback to plain text if decryption service unavailable
-    console.warn("Decryption service unavailable, using password as-is");
-  }
+  // For now, use the password as-is (plain text)
+  // TODO: Implement proper encryption/decryption for passwords
+  const smtpPassword = account.smtp_password_encrypted;
+  console.log("Using stored password (plain text)");
 
   try {
     // Create SMTP client
