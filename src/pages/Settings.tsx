@@ -411,7 +411,7 @@ const Settings = () => {
 
         <Card 
           className="cursor-pointer hover:border-primary transition-colors"
-          onClick={() => navigate("/settings/email/byoe")}
+          onClick={() => navigate("/profile/email")}
         >
           <CardHeader>
             <div className="flex items-center space-x-2">
