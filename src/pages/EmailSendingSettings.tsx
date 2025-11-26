@@ -6,9 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Mail, Shield, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Mail, Shield, CheckCircle2, AlertCircle, Info, Send } from "lucide-react";
 import { BYODWizard } from "@/components/BYODWizard";
 import { DeliverabilityStatus } from "@/components/DeliverabilityStatus";
+import { logAuditEvent } from "@/lib/auditLog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface EmailProfile {
   id: string;
@@ -35,6 +38,8 @@ const EmailSendingSettings = () => {
   const [emailProfile, setEmailProfile] = useState<EmailProfile | null>(null);
   const [showBYODWizard, setShowBYODWizard] = useState(false);
   const [useRecouplyDomain, setUseRecouplyDomain] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   useEffect(() => {
     fetchEmailProfile();
@@ -79,9 +84,17 @@ const EmailSendingSettings = () => {
           .eq("id", emailProfile.id);
 
         if (error) throw error;
+
+        await logAuditEvent({
+          action: "update",
+          resourceType: "email_domain",
+          resourceId: emailProfile.id,
+          oldValues: { use_recouply_domain: false },
+          newValues: { use_recouply_domain: true },
+        });
       } else {
         // Create new profile using Recouply domain
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("email_sending_profiles")
           .insert({
             user_id: user.id,
@@ -93,15 +106,54 @@ const EmailSendingSettings = () => {
             spf_validated: true,
             dkim_validated: true,
             dmarc_validated: true,
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+
+        await logAuditEvent({
+          action: "create",
+          resourceType: "email_domain",
+          resourceId: data.id,
+          newValues: { use_recouply_domain: true, domain: "send.recouply.ai" },
+        });
       }
 
       toast.success("Now using Recouply.ai shared sending domain");
       fetchEmailProfile();
     } catch (error: any) {
       toast.error(error.message || "Failed to configure Recouply domain");
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress || !emailProfile) return;
+
+    setSendingTestEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-test-byod-email", {
+        body: { 
+          profileId: emailProfile.id, 
+          recipientEmail: testEmailAddress 
+        },
+      });
+
+      if (error) throw error;
+      
+      toast.success(`Test email sent to ${testEmailAddress}! Check your inbox.`);
+      setTestEmailAddress("");
+
+      await logAuditEvent({
+        action: "send_email",
+        resourceType: "email_domain",
+        resourceId: emailProfile.id,
+        metadata: { test_email: true, recipient: testEmailAddress },
+      });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send test email");
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -119,18 +171,17 @@ const EmailSendingSettings = () => {
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
         <div>
-          <h1 className="text-4xl font-bold text-primary">Email Sending Configuration</h1>
+          <h1 className="text-4xl font-bold text-primary">Email Sending Domain</h1>
           <p className="text-muted-foreground mt-2">
-            Configure how Recouply.ai sends collection emails on your behalf
+            Use your own domain so collections emails come from your business, not Recouply.ai
           </p>
         </div>
 
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Recouply.ai sends emails on your behalf to help recover outstanding invoices.
-            You can choose to send using <strong>your own business domain</strong> for maximum trust and deliverability,
-            or you can use the Recouply.ai shared domain if you're not ready to configure DNS.
+            When you use your own domain, customers see emails from your business (e.g. billing@yourcompany.com), not Recouply.ai. 
+            This <strong>increases trust and improves payment rates</strong>. All collections emails from our AI agents will automatically use your verified domain.
           </AlertDescription>
         </Alert>
 
@@ -152,6 +203,7 @@ const EmailSendingSettings = () => {
                   <div>
                     <div className="font-medium">{emailProfile.sender_name}</div>
                     <div className="text-sm text-muted-foreground">{emailProfile.sender_email}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Domain: {emailProfile.domain}</div>
                   </div>
                   {emailProfile.verification_status === "verified" ? (
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -160,15 +212,21 @@ const EmailSendingSettings = () => {
                   )}
                 </div>
 
-                {emailProfile.use_recouply_domain && (
+                {emailProfile.use_recouply_domain ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      You are currently using Recouply.ai's default sending domain. For best deliverability and trust, we recommend verifying your own domain.
+                    </AlertDescription>
+                  </Alert>
+                ) : emailProfile.verification_status !== "verified" ? (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Using the Recouply.ai domain may reduce open rates and deliverability.
-                      For the best results, consider connecting your own domain.
+                      Your domain is not yet verified. Complete DNS setup to start sending from your domain.
                     </AlertDescription>
                   </Alert>
-                )}
+                ) : null}
 
                 <div className="flex gap-2">
                   <Button
@@ -185,6 +243,36 @@ const EmailSendingSettings = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {emailProfile.verification_status === "verified" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Test Email</CardTitle>
+                  <CardDescription>
+                    Send a test email to verify your domain configuration
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="testEmail">Test Recipient Email</Label>
+                    <Input
+                      id="testEmail"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={testEmailAddress}
+                      onChange={(e) => setTestEmailAddress(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSendTestEmail}
+                    disabled={!testEmailAddress || sendingTestEmail}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {sendingTestEmail ? "Sending..." : "Send Test Email"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </>
         ) : (
           <>

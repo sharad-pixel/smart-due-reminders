@@ -86,6 +86,20 @@ export const BYODWizard = ({ open, onOpenChange, onComplete }: BYODWizardProps) 
 
       if (error) throw error;
       setProfileId(data.id);
+
+      // Log audit event
+      await supabase.from("audit_logs").insert({
+        user_id: user.id,
+        action_type: "create",
+        resource_type: "email_domain",
+        resource_id: data.id,
+        new_values: {
+          domain,
+          sender_email: senderEmail,
+          sender_name: senderName,
+        },
+      });
+
       setStep(3);
     } catch (error: any) {
       toast.error(error.message || "Failed to create email profile");
@@ -102,6 +116,22 @@ export const BYODWizard = ({ open, onOpenChange, onComplete }: BYODWizardProps) 
       });
 
       if (error) throw error;
+
+      // Log audit event
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("audit_logs").insert({
+          user_id: user.id,
+          action_type: "update",
+          resource_type: "email_domain",
+          resource_id: profileId,
+          metadata: {
+            dns_verification: true,
+            all_verified: data.allVerified,
+            results: data.results,
+          },
+        });
+      }
 
       if (data.allVerified) {
         toast.success("Domain verified successfully! Sending test email...");

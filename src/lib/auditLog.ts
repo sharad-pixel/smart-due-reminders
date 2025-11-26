@@ -23,7 +23,8 @@ export type ResourceType =
   | "profile"
   | "team_member"
   | "settings"
-  | "ai_command";
+  | "ai_command"
+  | "email_domain";
 
 export interface AuditLogParams {
   action: AuditAction;
