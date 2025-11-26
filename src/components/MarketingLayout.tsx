@@ -17,7 +17,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             className="cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <img src={recouplyLogo} alt="Recouply.ai" className="h-8" />
+            <h1 className="text-2xl font-bold text-primary">Recouply.ai</h1>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <button 
@@ -83,7 +83,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <img src={recouplyLogo} alt="Recouply.ai" className="h-8 mb-4" />
+              <h3 className="text-xl font-bold text-primary mb-4">Recouply.ai</h3>
               <p className="text-sm text-muted-foreground">
                 AI-powered AR & Collections software. Not a collection agency.
               </p>
