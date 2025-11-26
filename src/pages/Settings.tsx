@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Shield } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2 } from "lucide-react";
 
 
 
@@ -41,6 +41,8 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
+  const [managingSubscription, setManagingSubscription] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
   const [profile, setProfile] = useState<ProfileData>({
     business_name: "",
     business_address: "",
@@ -66,6 +68,7 @@ const Settings = () => {
 
   useEffect(() => {
     fetchProfile();
+    fetchSubscriptionInfo();
   }, []);
 
   const fetchProfile = async () => {
@@ -212,6 +215,44 @@ const Settings = () => {
       toast.error(error.message || "Failed to send test SMS");
     } finally {
       setTestingSMS(false);
+    }
+  };
+
+  const fetchSubscriptionInfo = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan_type, stripe_subscription_id, plans(*)")
+        .eq("id", user.id)
+        .single();
+
+      setSubscriptionInfo(profile);
+    } catch (error: any) {
+      console.error("Failed to load subscription info:", error);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setManagingSubscription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+        toast.success("Stripe portal opened in new tab");
+      } else {
+        throw new Error("No portal URL returned");
+      }
+    } catch (error: any) {
+      console.error("Portal error:", error);
+      toast.error(error.message || "Failed to open billing portal");
+    } finally {
+      setManagingSubscription(false);
     }
   };
 
@@ -423,6 +464,53 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
         </Card>
+
+        {subscriptionInfo && subscriptionInfo.stripe_subscription_id && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <CardTitle>Subscription Management</CardTitle>
+              </div>
+              <CardDescription>
+                Manage your subscription, payment method, or cancel at end of term
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {subscriptionInfo.plans && (
+                <div className="rounded-lg border border-border bg-muted/50 p-4">
+                  <p className="text-sm font-medium mb-1">Current Plan</p>
+                  <p className="text-lg font-semibold capitalize">{subscriptionInfo.plan_type}</p>
+                  {subscriptionInfo.plans.monthly_price && (
+                    <p className="text-sm text-muted-foreground">
+                      ${subscriptionInfo.plans.monthly_price}/month
+                    </p>
+                  )}
+                </div>
+              )}
+              <Button
+                onClick={handleManageSubscription}
+                disabled={managingSubscription}
+                variant="outline"
+              >
+                {managingSubscription ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Opening Portal...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Manage Subscription
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                You can update your payment method, view invoices, or cancel your subscription at the end of your billing period through Stripe's secure portal.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
