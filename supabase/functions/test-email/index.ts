@@ -265,7 +265,8 @@ async function sendViaSMTP(
       from: account.email_address,
       to: to,
       subject: subject,
-      html: bodyHtml,
+      content: bodyHtml.replace(/<[^>]*>/g, ''), // Plain text version (strip HTML tags)
+      html: bodyHtml, // HTML version
     });
 
     await client.close();
