@@ -83,8 +83,21 @@ serve(async (req) => {
           },
         });
 
+        // Check for errors in both the response error and data
         if (testEmailResponse.error) {
-          throw new Error(testEmailResponse.error.message || "Failed to send email");
+          const errorMsg = testEmailResponse.error.message || "Failed to send email";
+          console.error("test-email function error:", errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        // Check if the response data contains an error
+        if (testEmailResponse.data?.error) {
+          console.error("test-email returned error in data:", testEmailResponse.data.error);
+          throw new Error(testEmailResponse.data.error);
+        }
+
+        if (!testEmailResponse.data?.success) {
+          throw new Error("Email sending failed - no success confirmation received");
         }
 
         sendResult = { success: true, message: "Email sent successfully via connected account" };
