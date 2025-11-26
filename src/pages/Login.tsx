@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -132,7 +133,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">Recouply.ai</h1>
+          <img src={recouplyLogo} alt="Recouply.ai" className="h-16 mx-auto mb-4" />
           <p className="text-muted-foreground">AI-Powered Invoice Collection</p>
         </div>
 

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -12,12 +13,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 
-            className="text-2xl font-bold text-primary cursor-pointer"
+          <div 
+            className="cursor-pointer"
             onClick={() => navigate("/")}
           >
-            Recouply.ai
-          </h1>
+            <img src={recouplyLogo} alt="Recouply.ai" className="h-8" />
+          </div>
           <nav className="hidden md:flex items-center gap-6">
             <button 
               onClick={() => navigate("/features")}
@@ -82,7 +83,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="font-bold text-lg mb-4">Recouply.ai</h3>
+              <img src={recouplyLogo} alt="Recouply.ai" className="h-8 mb-4" />
               <p className="text-sm text-muted-foreground">
                 AI-powered AR & Collections software. Not a collection agency.
               </p>
