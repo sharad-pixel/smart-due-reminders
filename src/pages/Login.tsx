@@ -133,7 +133,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={recouplyLogo} alt="Recouply.ai" className="h-20 mx-auto mb-4" />
+          <img src={recouplyLogo} alt="Recouply.ai" className="h-32 mx-auto mb-4" />
           <p className="text-muted-foreground">AI-Powered Invoice Collection</p>
         </div>
 

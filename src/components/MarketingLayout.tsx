@@ -12,12 +12,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-5 flex items-center justify-between">
           <div 
             className="cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <img src={recouplyLogo} alt="Recouply.ai" className="h-14" />
+            <img src={recouplyLogo} alt="Recouply.ai" className="h-16" />
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <button 
@@ -83,7 +83,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <img src={recouplyLogo} alt="Recouply.ai" className="h-10 mb-4" />
+              <img src={recouplyLogo} alt="Recouply.ai" className="h-14 mb-4" />
               <p className="text-sm text-muted-foreground">
                 AI-powered AR & Collections software. Not a collection agency.
               </p>
