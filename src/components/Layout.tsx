@@ -183,10 +183,10 @@ const Layout = ({ children }: LayoutProps) => {
       <SecurityAlert />
       <nav className="border-b bg-card shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-6">
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <img src={recouplyLogo} alt="Recouply.ai" className="h-14" />
+                <img src={recouplyLogo} alt="Recouply.ai" className="h-16" />
               </Link>
               <div className="hidden md:flex items-center gap-2">
                 {mainNavItems.map((item) => {
