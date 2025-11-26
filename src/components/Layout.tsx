@@ -184,11 +184,11 @@ const Layout = ({ children }: LayoutProps) => {
       <nav className="border-b bg-card shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
                 <img src={recouplyLogo} alt="Recouply.ai" className="h-16" />
               </Link>
-              <div className="hidden md:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-1">
                 {mainNavItems.map((item) => {
                   const Icon = item.icon;
                   
@@ -196,7 +196,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium transition-all ${
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -210,7 +210,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2">
