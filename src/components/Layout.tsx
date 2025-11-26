@@ -186,7 +186,9 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-2">
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <h1 className="text-xl font-bold text-primary">Recouply.ai</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                  Recouply.ai
+                </h1>
               </Link>
               <div className="hidden lg:flex items-center gap-1">
                 {mainNavItems.map((item) => {
