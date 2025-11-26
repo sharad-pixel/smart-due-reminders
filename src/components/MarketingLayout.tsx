@@ -17,7 +17,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             className="cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <img src={recouplyLogo} alt="Recouply.ai" className="h-8" />
+            <img src={recouplyLogo} alt="Recouply.ai" className="h-10" />
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <button 
