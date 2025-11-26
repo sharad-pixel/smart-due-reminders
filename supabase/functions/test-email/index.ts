@@ -21,12 +21,14 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
+          headers: { Authorization: authHeader! },
         },
       }
     );
@@ -86,7 +88,7 @@ serve(async (req) => {
           throw new Error(`OAuth not supported for provider: ${emailAccount.provider}`);
         }
       } else if (emailAccount.auth_method === "smtp") {
-        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody);
+        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody, authHeader);
       } else {
         throw new Error(`Unsupported auth method: ${emailAccount.auth_method}`);
       }
@@ -230,7 +232,8 @@ async function sendViaSMTP(
   account: any,
   to: string,
   subject: string,
-  bodyHtml: string
+  bodyHtml: string,
+  authHeader: string | null
 ): Promise<any> {
   console.log(`Sending email via SMTP from ${account.email_address} to ${to}`);
   console.log(`SMTP Settings: ${account.smtp_host}:${account.smtp_port}`);
@@ -245,7 +248,10 @@ async function sendViaSMTP(
     // Try to decrypt password (for newly added accounts with encryption)
     const { data: decryptData, error: decryptError } = await supabaseClient.functions.invoke(
       "decrypt-field",
-      { body: { encrypted: account.smtp_password_encrypted } }
+      { 
+        body: { encrypted: account.smtp_password_encrypted },
+        headers: authHeader ? { Authorization: authHeader } : {}
+      }
     );
 
     if (!decryptError && decryptData?.decrypted) {
