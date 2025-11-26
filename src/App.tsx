@@ -87,8 +87,8 @@ const App = () => (
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
           <Route path="/settings/email-sending" element={<EmailSendingSettings />} />
-          <Route path="/settings/email/byoe" element={<BringYourOwnEmail />} />
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
+        <Route path="/profile/email" element={<BringYourOwnEmail />} />
         <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/collections/tasks" element={<CollectionTasks />} />
         <Route path="/team" element={<Team />} />
