@@ -280,7 +280,6 @@ async function sendViaSMTP(
       from: account.email_address,
       to: to,
       subject: subject,
-      content: bodyHtml,
       html: bodyHtml,
     });
 
