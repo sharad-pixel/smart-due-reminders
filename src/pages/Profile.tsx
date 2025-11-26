@@ -24,7 +24,8 @@ import {
   Zap,
   Info,
   Upload,
-  Camera
+  Camera,
+  Trash2
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
 
@@ -347,6 +348,43 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarDelete = async () => {
+    if (!profile || !profile.avatar_url) return;
+
+    setUploading(true);
+    try {
+      // Delete from storage
+      const oldPath = profile.avatar_url.split('/').slice(-2).join('/');
+      await supabase.storage.from('avatars').remove([oldPath]);
+
+      // Update profile to remove avatar_url
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, avatar_url: null });
+      toast({
+        title: "Success",
+        description: "Profile picture deleted successfully",
+      });
+
+      // Reload to update navigation
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error: any) {
+      console.error("Error deleting avatar:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete profile picture",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -394,20 +432,32 @@ const Profile = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-start gap-4">
-              <div className="relative">
+              <div className="relative group">
                 <Avatar className="h-16 w-16">
                   {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} />}
                   <AvatarFallback className="text-lg">
                     {getInitials(profile.name, profile.email)}
                   </AvatarFallback>
                 </Avatar>
-                <label 
-                  htmlFor="avatar-upload"
-                  className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
-                  title="Change profile picture"
-                >
-                  <Camera className="h-3 w-3" />
-                </label>
+                <div className="absolute -bottom-1 -right-1 flex gap-1">
+                  <label 
+                    htmlFor="avatar-upload"
+                    className="bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
+                    title="Change profile picture"
+                  >
+                    <Camera className="h-3 w-3" />
+                  </label>
+                  {profile.avatar_url && (
+                    <button
+                      onClick={handleAvatarDelete}
+                      disabled={uploading}
+                      className="bg-destructive text-destructive-foreground rounded-full p-1.5 cursor-pointer hover:bg-destructive/90 transition-colors shadow-lg disabled:opacity-50"
+                      title="Delete profile picture"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
                 <input
                   id="avatar-upload"
                   type="file"
