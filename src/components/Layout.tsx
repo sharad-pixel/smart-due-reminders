@@ -30,6 +30,7 @@ import {
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { SecurityAlert } from "@/components/SecurityAlert";
 import { logAuditEvent } from "@/lib/auditLog";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 interface LayoutProps {
   children: ReactNode;
@@ -184,8 +185,8 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-6">
-              <Link to="/dashboard" className="text-2xl font-bold text-primary shrink-0 hover:opacity-80 transition-opacity">
-                Recouply.ai
+              <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
+                <img src={recouplyLogo} alt="Recouply.ai" className="h-8" />
               </Link>
               <div className="hidden md:flex items-center gap-2">
                 {mainNavItems.map((item) => {
