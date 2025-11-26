@@ -186,7 +186,7 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-6">
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <img src={recouplyLogo} alt="Recouply.ai" className="h-8" />
+                <img src={recouplyLogo} alt="Recouply.ai" className="h-10" />
               </Link>
               <div className="hidden md:flex items-center gap-2">
                 {mainNavItems.map((item) => {
