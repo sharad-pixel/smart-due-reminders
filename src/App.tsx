@@ -42,8 +42,6 @@ import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
 import ImportARAging from "./pages/ImportARAging";
-import EmailSendingSettings from "./pages/EmailSendingSettings";
-import BringYourOwnEmail from "./pages/BringYourOwnEmail";
 
 const queryClient = new QueryClient();
 
@@ -86,9 +84,7 @@ const App = () => (
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
-        <Route path="/settings/email-domain" element={<EmailSendingSettings />} />
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
-        <Route path="/profile/email" element={<BringYourOwnEmail />} />
         <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/collections/tasks" element={<CollectionTasks />} />
         <Route path="/team" element={<Team />} />
