@@ -429,42 +429,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <CardTitle>Email Sending Domain</CardTitle>
-            </div>
-            <CardDescription>
-              Use your own domain for sending collection emails
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              When you use your own domain, customers see emails from your business (e.g. billing@yourcompany.com), not Recouply.ai. 
-              This increases trust and improves payment rates. All AI-generated collection emails will automatically use your verified domain.
-            </p>
-            <Button onClick={() => navigate('/settings/email-domain')} variant="outline">
-              <Mail className="h-4 w-4 mr-2" />
-              Configure Email Sending Domain
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:border-primary transition-colors"
-          onClick={() => navigate("/profile/email")}
-        >
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Bring Your Own Email</CardTitle>
-            </div>
-            <CardDescription>
-              Connect your Gmail, Outlook, Yahoo, or any email account to send collections emails
-            </CardDescription>
-          </CardHeader>
-        </Card>
 
         {subscriptionInfo && subscriptionInfo.stripe_subscription_id && (
           <Card>
