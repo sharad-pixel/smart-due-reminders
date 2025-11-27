@@ -260,13 +260,12 @@ async function sendViaSMTP(
       },
     });
 
-    // Send email
+    // Send email with HTML content only
     await client.send({
       from: account.email_address,
       to: to,
       subject: subject,
-      content: bodyHtml.replace(/<[^>]*>/g, ''), // Plain text version (strip HTML tags)
-      html: bodyHtml, // HTML version
+      html: bodyHtml,
     });
 
     await client.close();
