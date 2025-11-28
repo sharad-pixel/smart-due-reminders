@@ -28,9 +28,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Validate ENCRYPTION_KEY upfront
-  // AES-256-GCM requires a 256-bit (32-byte) key
-  // Each character in a string = 1 byte, so we need exactly 32 characters
+  // Get and validate ENCRYPTION_KEY
   const rawKey = Deno.env.get("ENCRYPTION_KEY");
   
   if (!rawKey) {
@@ -43,24 +41,15 @@ serve(async (req) => {
     );
   }
 
-  if (rawKey.length !== 32) {
-    return new Response(
-      JSON.stringify({ 
-        error: `ENCRYPTION_KEY must be 32 characters long for AES-256-GCM. Current length: ${rawKey.length}` 
-      }),
-      { 
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-  }
-
-  // Convert the 32-character string into bytes and import as a crypto key
-  const keyBytes = new TextEncoder().encode(rawKey);
+  // Derive a proper 256-bit key using SHA-256 (must match save-email-account function)
+  const encoder = new TextEncoder();
+  const keyMaterial = encoder.encode(rawKey);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyMaterial);
+  
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
-    keyBytes,
-    { name: "AES-GCM" },
+    hashBuffer,
+    { name: "AES-GCM", length: 256 },
     false,
     ["decrypt"]
   );
