@@ -14,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PaymentScoreCard } from "@/components/PaymentScoreCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
+import AccountSummaryModal from "@/components/AccountSummaryModal";
 
 interface Debtor {
   id: string;
@@ -97,6 +98,7 @@ const DebtorDetail = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [linkingCrm, setLinkingCrm] = useState(false);
   const [copiedRefId, setCopiedRefId] = useState(false);
+  const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -317,6 +319,10 @@ const DebtorDetail = () => {
             </div>
           </div>
           <div className="flex space-x-2">
+            <Button onClick={() => setIsAccountSummaryOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Generate Account Summary Outreach
+            </Button>
             <Button variant="outline" onClick={() => setIsEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
@@ -720,6 +726,12 @@ const DebtorDetail = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AccountSummaryModal
+          open={isAccountSummaryOpen}
+          onOpenChange={setIsAccountSummaryOpen}
+          debtor={debtor}
+        />
       </div>
     </Layout>
   );
