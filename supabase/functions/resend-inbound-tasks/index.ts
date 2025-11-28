@@ -79,10 +79,12 @@ serve(async (req) => {
     // - invoice+<invoice_id>@recouply.ai
     // - debtor+<debtor_id>@recouply.ai
     
-    const toEmailMatch = email.to.match(/^(invoice|debtor)\+([a-f0-9\-]+)@/i);
+    // Handle both array and string formats for email.to
+    const toEmail = Array.isArray(email.to) ? email.to[0] : email.to;
+    const toEmailMatch = toEmail.match(/^(invoice|debtor)\+([a-f0-9\-]+)@/i);
     
     if (!toEmailMatch) {
-      console.log("[RESEND-INBOUND] Email format not recognized:", email.to);
+      console.log("[RESEND-INBOUND] Email format not recognized:", toEmail);
       return new Response(
         JSON.stringify({ success: false, error: "Unrecognized email format" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
