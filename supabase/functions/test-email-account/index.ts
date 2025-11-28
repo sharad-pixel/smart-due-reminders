@@ -1,58 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Decrypt encrypted values using the provided crypto key
-// The crypto key must be AES-256-GCM compatible (32 bytes / 256 bits)
-async function decryptValue(encryptedValue: string, cryptoKey: CryptoKey): Promise<string> {
-  const data = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
-  const iv = data.slice(0, 12);
-  const encryptedData = data.slice(12);
-
-  const decryptedData = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    cryptoKey,
-    encryptedData
-  );
-
-  return new TextDecoder().decode(decryptedData);
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
-  // Get and validate ENCRYPTION_KEY
-  const rawKey = Deno.env.get("ENCRYPTION_KEY");
-  
-  if (!rawKey) {
-    return new Response(
-      JSON.stringify({ error: "ENCRYPTION_KEY is not set" }),
-      { 
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-  }
-
-  // Derive a proper 256-bit key using SHA-256 (must match save-email-account function)
-  const encoder = new TextEncoder();
-  const keyMaterial = encoder.encode(rawKey);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', keyMaterial);
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    hashBuffer,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["decrypt"]
-  );
 
   try {
     const supabaseClient = createClient(
@@ -94,9 +52,6 @@ serve(async (req) => {
 
     console.log(`Testing email account ${account.email_address} (${account.provider})`);
 
-    // Decrypt the SMTP password using the validated crypto key
-    const smtpPassword = await decryptValue(account.smtp_password_encrypted, cryptoKey);
-    
     const testEmailContent = {
       from: {
         email: account.email_address,
@@ -141,31 +96,23 @@ serve(async (req) => {
       `,
     };
 
-    console.log("Sending test email via SMTP...");
+    console.log("Sending test email via Resend...");
 
-    // Configure SMTP client for Gmail (port 587 uses STARTTLS)
-    const client = new SMTPClient({
-      connection: {
-        hostname: account.smtp_host,
-        port: account.smtp_port,
-        tls: account.smtp_port === 465, // Direct TLS only for port 465
-        auth: {
-          username: account.smtp_username,
-          password: smtpPassword,
-        },
-      },
-    });
-
-    await client.send({
-      from: account.email_address,
+    // Use Resend API to send email (works in Deno Deploy, no port restrictions)
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    
+    const emailResponse = await resend.emails.send({
+      from: `${account.display_name} <${account.email_address}>`,
       to: recipientEmail,
       subject: testEmailContent.subject,
       html: testEmailContent.html,
     });
 
-    await client.close();
+    if (emailResponse.error) {
+      throw new Error(`Resend API error: ${emailResponse.error.message}`);
+    }
     
-    console.log("Test email sent successfully via SMTP");
+    console.log("Test email sent successfully via Resend:", emailResponse);
 
     // Update the last_verified_at timestamp
     await supabaseClient
