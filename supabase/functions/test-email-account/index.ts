@@ -143,12 +143,12 @@ serve(async (req) => {
 
     console.log("Sending test email via SMTP...");
 
-    // Actually send the email via SMTP
+    // Configure SMTP client for Gmail (port 587 uses STARTTLS)
     const client = new SMTPClient({
       connection: {
         hostname: account.smtp_host,
         port: account.smtp_port,
-        tls: true,
+        tls: account.smtp_port === 465, // Direct TLS only for port 465
         auth: {
           username: account.smtp_username,
           password: smtpPassword,
@@ -160,7 +160,6 @@ serve(async (req) => {
       from: account.email_address,
       to: recipientEmail,
       subject: testEmailContent.subject,
-      content: testEmailContent.html,
       html: testEmailContent.html,
     });
 
