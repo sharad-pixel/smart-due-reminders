@@ -4,8 +4,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /**
  * RESEND INBOUND TASKS EDGE FUNCTION
  * 
- * This function handles inbound email webhooks from Resend and automatically creates tasks
- * based on customer replies to collection emails.
+ * This function handles inbound email webhooks from Resend and automatically:
+ * 1. Captures customer responses to outreach efforts
+ * 2. Summarizes the response using Lovable AI
+ * 3. Links the response to the original outreach
+ * 4. Logs the activity and auto-generates tasks
  * 
  * SETUP INSTRUCTIONS:
  * 1. In Resend dashboard (https://resend.com/inbound), create an inbound route
@@ -14,11 +17,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * 4. Test with: invoice+<invoice_id>@recouply.ai or debtor+<debtor_id>@recouply.ai
  * 
  * EMAIL SUBADDRESSING:
- * - invoice+<invoice_id>@recouply.ai → Creates invoice-level task
- * - debtor+<debtor_id>@recouply.ai → Creates debtor-level task
+ * - invoice+<invoice_id>@recouply.ai → Creates invoice-level response
+ * - debtor+<debtor_id>@recouply.ai → Creates debtor-level response
  * 
- * TASK CLASSIFICATION:
- * Currently uses rule-based classification. Future versions will use LLM for better accuracy.
+ * RESPONSE FLOW:
+ * 1. Parse email and identify invoice/debtor
+ * 2. Use AI to summarize customer's response
+ * 3. Log as collection activity (links to original outreach if found)
+ * 4. Auto-extract tasks based on response content
  */
 
 const corsHeaders = {
@@ -152,15 +158,10 @@ serve(async (req) => {
 
     console.log("[RESEND-INBOUND] Classified as:", taskType);
 
-    // Generate task summary (first 200 chars of email text)
-    const summary = (email.text || email.subject || "Customer reply received")
-      .substring(0, 200)
-      .trim() + (email.text && email.text.length > 200 ? "..." : "");
-
-    // Get user_id for the task
+    // Get user_id and debtor details
     const { data: debtor } = await supabase
       .from("debtors")
-      .select("user_id")
+      .select("user_id, name, email")
       .eq("id", debtorId)
       .single();
 
@@ -168,41 +169,141 @@ serve(async (req) => {
       throw new Error("Could not determine user_id for task");
     }
 
-    // Insert task into collection_tasks
-    const { data: task, error: taskError } = await supabase
-      .from("collection_tasks")
+    // Use Lovable AI to generate intelligent summary
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    let aiSummary = "";
+    
+    if (LOVABLE_API_KEY) {
+      try {
+        console.log("[RESEND-INBOUND] Generating AI summary");
+        
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: "You are an AR collections assistant. Summarize customer responses in 1-2 concise sentences, highlighting key points like payment intent, disputes, or action requests."
+              },
+              {
+                role: "user",
+                content: `Summarize this customer response:\n\nFrom: ${email.from}\nSubject: ${email.subject}\n\n${email.text || email.html}`
+              }
+            ]
+          })
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          aiSummary = aiData.choices?.[0]?.message?.content || "";
+          console.log("[RESEND-INBOUND] AI summary generated");
+        }
+      } catch (aiError) {
+        console.error("[RESEND-INBOUND] AI summarization failed (non-fatal):", aiError);
+      }
+    }
+
+    // Fallback to simple summary if AI fails
+    const summary = aiSummary || 
+      (email.text || email.subject || "Customer reply received")
+        .substring(0, 200)
+        .trim() + (email.text && email.text.length > 200 ? "..." : "");
+
+    // Try to find the original outreach this is responding to
+    // Check for Message-ID in headers or recent outreach to this debtor/invoice
+    let linkedOutreachId = null;
+    
+    try {
+      const { data: recentOutreach } = await supabase
+        .from("outreach_logs")
+        .select("id")
+        .eq("debtor_id", debtorId)
+        .eq("invoice_id", invoiceId || debtorId)
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (recentOutreach) {
+        linkedOutreachId = recentOutreach.id;
+        console.log("[RESEND-INBOUND] Linked to outreach:", linkedOutreachId);
+      }
+    } catch (e) {
+      console.log("[RESEND-INBOUND] Could not find linked outreach (ok)");
+    }
+
+    // Log this as a collection activity (inbound response)
+    const { data: activity, error: activityError } = await supabase
+      .from("collection_activities")
       .insert({
+        user_id: debtor.user_id,
         debtor_id: debtorId,
         invoice_id: invoiceId,
-        user_id: debtor.user_id,
-        from_email: email.from,
-        to_email: email.to,
+        activity_type: "customer_response",
+        direction: "inbound",
+        channel: "email",
         subject: email.subject,
-        level: level.toLowerCase(),
-        task_type: taskType,
-        summary: summary,
-        details: email.text || email.html,
-        raw_email: JSON.stringify(email),
-        status: "open",
-        source: "email_reply",
-        priority: taskType === "REVIEW_DISPUTE" ? "high" : "normal",
+        message_body: summary,
+        response_message: email.text || email.html,
+        linked_outreach_log_id: linkedOutreachId,
+        responded_at: new Date().toISOString(),
+        metadata: {
+          task_type: taskType,
+          from_email: email.from,
+          to_email: email.to,
+          ai_generated_summary: !!aiSummary
+        }
       })
       .select()
       .single();
 
-    if (taskError) {
-      console.error("[RESEND-INBOUND] Error creating task:", taskError);
-      throw taskError;
+    if (activityError) {
+      console.error("[RESEND-INBOUND] Error logging activity:", activityError);
+    } else {
+      console.log("[RESEND-INBOUND] Activity logged:", activity.id);
     }
 
-    console.log("[RESEND-INBOUND] Task created successfully:", task.id);
+    // Call extract-collection-tasks to auto-generate tasks
+    let tasksCreated = 0;
+    
+    try {
+      console.log("[RESEND-INBOUND] Triggering task extraction");
+      
+      const extractResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/extract-collection-tasks`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          activity_id: activity?.id,
+          message: email.text || email.html,
+          debtor_id: debtorId,
+          invoice_id: invoiceId
+        })
+      });
+
+      if (extractResponse.ok) {
+        const extractData = await extractResponse.json();
+        tasksCreated = extractData.tasks_created || 0;
+        console.log("[RESEND-INBOUND] Tasks auto-created:", tasksCreated);
+      }
+    } catch (extractError) {
+      console.error("[RESEND-INBOUND] Task extraction failed (non-fatal):", extractError);
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        task_id: task.id,
-        task_type: taskType,
-        level: level.toLowerCase()
+        activity_id: activity?.id,
+        tasks_created: tasksCreated,
+        summary: summary,
+        level: level.toLowerCase(),
+        linked_to_outreach: !!linkedOutreachId
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

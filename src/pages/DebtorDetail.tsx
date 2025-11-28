@@ -21,6 +21,8 @@ import { PaymentScoreCard } from "@/components/PaymentScoreCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import AccountSummaryModal from "@/components/AccountSummaryModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import { ResponseActivityCard } from "@/components/ResponseActivityCard";
+import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 
 interface Debtor {
   id: string;
@@ -90,11 +92,13 @@ const DebtorDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { fetchTasks: fetchTasksFromHook } = useCollectionTasks();
+  const { fetchActivities } = useCollectionActivities();
   const [debtor, setDebtor] = useState<Debtor | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
   const [crmAccounts, setCrmAccounts] = useState<CRMAccount[]>([]);
   const [debtorTasks, setDebtorTasks] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -122,8 +126,15 @@ const DebtorDetail = () => {
       fetchCrmAccounts();
       fetchDebtorTasks();
       fetchAllTasks();
+      fetchDebtorActivities();
     }
   }, [id]);
+
+  const fetchDebtorActivities = async () => {
+    if (!id) return;
+    const data = await fetchActivities({ debtor_id: id });
+    setActivities(data || []);
+  };
 
   const fetchDebtorTasks = async () => {
     const tasks = await fetchTasksFromHook({ debtor_id: id });
@@ -482,6 +493,9 @@ const DebtorDetail = () => {
           <TabsList>
             <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
+            <TabsTrigger value="responses">
+              Responses ({activities.filter(a => a.direction === 'inbound').length})
+            </TabsTrigger>
             <TabsTrigger value="outreach">Outreach History ({outreach.length})</TabsTrigger>
           </TabsList>
 
@@ -588,6 +602,36 @@ const DebtorDetail = () => {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="responses">
+            <Card>
+              <CardHeader>
+                <CardTitle>Customer Responses</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Inbound replies from customer, automatically summarized and linked to outreach
+                </p>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {activities.filter(a => a.direction === 'inbound').length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground">No customer responses yet.</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Responses to outreach efforts will appear here automatically.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activities
+                      .filter(a => a.direction === 'inbound')
+                      .map((activity) => (
+                        <ResponseActivityCard key={activity.id} activity={activity} />
+                      ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
