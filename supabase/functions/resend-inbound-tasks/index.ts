@@ -34,11 +34,23 @@ const corsHeaders = {
 
 interface ResendInboundEmail {
   from: string;
-  to: string;
+  to: string | string[];
   subject: string;
-  text: string;
-  html: string;
+  text?: string;
+  html?: string;
   headers?: Record<string, string>;
+  attachments?: Array<{
+    content: string;
+    filename: string;
+    content_type: string;
+    size: number;
+  }>;
+  reply_to?: string;
+  cc?: string | string[];
+  bcc?: string | string[];
+  in_reply_to?: string;
+  message_id?: string;
+  raw?: string;
 }
 
 serve(async (req) => {
@@ -274,10 +286,36 @@ serve(async (req) => {
       console.log("[RESEND-INBOUND] Could not find linked outreach (ok)");
     }
 
-    // Store the FULL email content (text preferred, html as fallback)
+    // Store the FULL email content (text preferred, html as fallback, with raw email)
     const fullEmailBody = email.text || email.html || "";
     
     console.log("[RESEND-INBOUND] Storing full email body, length:", fullEmailBody.length);
+    console.log("[RESEND-INBOUND] Attachments:", email.attachments?.length || 0);
+    console.log("[RESEND-INBOUND] Headers:", Object.keys(email.headers || {}).length);
+
+    // Build comprehensive metadata with ALL email data
+    const comprehensiveMetadata = {
+      task_type: taskType,
+      from_email: email.from,
+      to_email: email.to,
+      cc_email: email.cc,
+      bcc_email: email.bcc,
+      reply_to: email.reply_to,
+      message_id: email.message_id,
+      in_reply_to: email.in_reply_to,
+      ai_generated_summary: !!aiSummary,
+      email_format: level,
+      headers: email.headers || {},
+      attachments: email.attachments?.map(att => ({
+        filename: att.filename,
+        content_type: att.content_type,
+        size: att.size,
+        // Store content for small attachments, reference for large ones
+        content: att.size < 100000 ? att.content : '[Content too large - stored separately]'
+      })) || [],
+      has_attachments: (email.attachments?.length || 0) > 0,
+      raw_email: email.raw || null // Complete raw email if Resend provides it
+    };
 
     // Log this as a collection activity (inbound response)
     const { data: activity, error: activityError } = await supabase
@@ -291,16 +329,10 @@ serve(async (req) => {
         channel: "email",
         subject: email.subject,
         message_body: summary, // AI summary or truncated preview
-        response_message: fullEmailBody, // FULL email content
+        response_message: fullEmailBody, // FULL email content (text or html)
         linked_outreach_log_id: linkedOutreachId,
         responded_at: new Date().toISOString(),
-        metadata: {
-          task_type: taskType,
-          from_email: email.from,
-          to_email: email.to,
-          ai_generated_summary: !!aiSummary,
-          email_format: level
-        }
+        metadata: comprehensiveMetadata
       })
       .select()
       .single();
