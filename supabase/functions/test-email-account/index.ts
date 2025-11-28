@@ -1,10 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Decrypt encrypted values
+async function decryptValue(encryptedValue: string): Promise<string> {
+  const encryptionKey = Deno.env.get("ENCRYPTION_KEY");
+  if (!encryptionKey) {
+    throw new Error("Encryption key not configured");
+  }
+
+  const data = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+  const iv = data.slice(0, 12);
+  const encryptedData = data.slice(12);
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(encryptionKey),
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
+
+  const decryptedData = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encryptedData
+  );
+
+  return new TextDecoder().decode(decryptedData);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -51,8 +80,8 @@ serve(async (req) => {
 
     console.log(`Testing email account ${account.email_address} (${account.provider})`);
 
-    // In production, this would actually attempt to send via the configured SMTP/IMAP
-    // For now, we'll simulate the test
+    // Decrypt the SMTP password
+    const smtpPassword = await decryptValue(account.smtp_password_encrypted);
     
     const testEmailContent = {
       from: {
@@ -98,11 +127,31 @@ serve(async (req) => {
       `,
     };
 
-    // Log the test email for demo purposes
-    console.log("Test email prepared:", testEmailContent);
+    console.log("Sending test email via SMTP...");
 
-    // Simulate email sending delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Actually send the email via SMTP
+    const client = new SMTPClient({
+      connection: {
+        hostname: account.smtp_host,
+        port: account.smtp_port,
+        tls: account.smtp_use_tls || account.smtp_port === 465,
+        auth: {
+          username: account.smtp_username,
+          password: smtpPassword,
+        },
+      },
+    });
+
+    await client.send({
+      from: `${account.display_name} <${account.email_address}>`,
+      to: recipientEmail,
+      subject: testEmailContent.subject,
+      html: testEmailContent.html,
+    });
+
+    await client.close();
+    
+    console.log("Test email sent successfully via SMTP");
 
     // Update the last_verified_at timestamp
     await supabaseClient
