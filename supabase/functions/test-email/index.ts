@@ -2,6 +2,43 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
+async function decryptValue(encryptedValue: string): Promise<string> {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  
+  const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
+  if (!encryptionKey) {
+    throw new Error('Encryption key not configured');
+  }
+
+  // Derive key using SHA-256
+  const keyMaterial = encoder.encode(encryptionKey);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyMaterial);
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    hashBuffer,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  // Decode from base64
+  const encryptedData = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+  
+  // Extract IV (first 12 bytes) and ciphertext
+  const iv = encryptedData.slice(0, 12);
+  const ciphertext = encryptedData.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  );
+
+  return decoder.decode(decrypted);
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -241,10 +278,9 @@ async function sendViaSMTP(
     throw new Error("SMTP configuration incomplete");
   }
 
-  // For now, use the password as-is (plain text)
-  // TODO: Implement proper encryption/decryption for passwords
-  const smtpPassword = account.smtp_password_encrypted;
-  console.log("Using stored password (plain text)");
+  // Decrypt the SMTP password
+  const smtpPassword = await decryptValue(account.smtp_password_encrypted);
+  console.log("Password decrypted successfully");
 
   try {
     // Create SMTP client
