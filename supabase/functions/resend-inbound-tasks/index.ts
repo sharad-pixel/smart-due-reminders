@@ -311,6 +311,43 @@ serve(async (req) => {
       console.log("[RESEND-INBOUND] Activity logged:", activity.id);
     }
 
+    // Send automatic reply using Resend API
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    
+    if (RESEND_API_KEY) {
+      try {
+        console.log("[RESEND-INBOUND] Sending automatic reply to:", email.from);
+        
+        const replyResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: 'Recouply <noreply@recouply.ai>',
+            to: [email.from],
+            subject: `Re: ${email.subject}`,
+            html: `<p>Thank you for your message. We have received your email and will review it shortly.</p>
+                   <p>A member of our team will respond to you as soon as possible.</p>
+                   <p>Best regards,<br>Recouply Team</p>`,
+          }),
+        });
+        
+        if (replyResponse.ok) {
+          const replyData = await replyResponse.json();
+          console.log("[RESEND-INBOUND] Reply sent successfully:", replyData.id);
+        } else {
+          const errorText = await replyResponse.text();
+          console.error("[RESEND-INBOUND] Failed to send reply:", errorText);
+        }
+      } catch (replyError) {
+        console.error("[RESEND-INBOUND] Reply sending failed (non-fatal):", replyError);
+      }
+    } else {
+      console.log("[RESEND-INBOUND] RESEND_API_KEY not set, skipping automatic reply");
+    }
+
     // Call extract-collection-tasks to auto-generate tasks
     let tasksCreated = 0;
     
