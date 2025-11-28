@@ -201,8 +201,7 @@ ${crmAccount ? `Use the CRM account context to adjust tone and recommendations:
 You must respond in JSON format with the following structure:
 {
   "email_subject": "string",
-  "email_body": "string",
-  "sms_body": "string (max 320 characters)"
+  "email_body": "string"
 }`,
           },
           {
@@ -235,9 +234,8 @@ Please generate:
    - Includes the payment link once
    - Invites the customer to contact us if there are any issues or disputes
    - Uses a ${promptData.tone} tone${crmAccount ? "\n   - Takes into account the customer's value and relationship status" : ""}
-3. A short SMS version (max 320 characters) suitable for a reminder
 
-Return the response as JSON with fields: email_subject, email_body, sms_body`,
+Return the response as JSON with fields: email_subject, email_body`,
           },
         ],
         temperature: 0.7,
@@ -268,9 +266,9 @@ Return the response as JSON with fields: email_subject, email_body, sms_body`,
       throw new Error("Failed to parse AI response. Please try again.");
     }
 
-    const { email_subject, email_body, sms_body } = parsedContent;
+    const { email_subject, email_body } = parsedContent;
 
-    if (!email_subject || !email_body || !sms_body) {
+    if (!email_subject || !email_body) {
       throw new Error("Invalid AI response format");
     }
 
@@ -299,36 +297,12 @@ Return the response as JSON with fields: email_subject, email_body, sms_body`,
       throw new Error("Failed to create email draft");
     }
 
-    // Create SMS draft
-    const { data: smsDraft, error: smsError } = await supabaseClient
-      .from("ai_drafts")
-      .insert({
-        user_id: user.id,
-        invoice_id: invoice_id,
-        step_number: step_number,
-        channel: "sms",
-        subject: null,
-        message_body: sms_body,
-        recommended_send_date: today_date,
-        status: "pending_approval",
-        agent_persona_id: agentPersona.id,
-        days_past_due: daysPastDue,
-      })
-      .select()
-      .single();
-
-    if (smsError) {
-      console.error("Error creating SMS draft:", smsError);
-      throw new Error("Failed to create SMS draft");
-    }
-
-    console.log("Drafts created successfully:", emailDraft.id, smsDraft.id);
+    console.log("Draft created successfully:", emailDraft.id);
 
     return new Response(
       JSON.stringify({
         success: true,
         email_draft: emailDraft,
-        sms_draft: smsDraft,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
