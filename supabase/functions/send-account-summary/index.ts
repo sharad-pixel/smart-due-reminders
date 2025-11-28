@@ -160,6 +160,9 @@ serve(async (req) => {
       </div>
     `;
 
+    // Set up reply-to address for tracking responses
+    const replyToAddress = `debtor+${debtorId}@recouply.ai`;
+
     // Send via Resend API if using api auth method
     if (emailAccount.auth_method === "api" && emailAccount.provider === "resend") {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -172,6 +175,7 @@ serve(async (req) => {
       const result = await resend.emails.send({
         from: emailAccount.email_address,
         to: [debtor.email],
+        reply_to: replyToAddress,
         subject: subject,
         html: emailHtml,
       });
@@ -196,8 +200,8 @@ serve(async (req) => {
       console.log("Email sent via test-email function:", emailResult);
     }
 
-    // Log the outreach
-    const { error: logError } = await supabase.from("collection_activities").insert({
+    // Log to collection_activities for audit trail
+    const { data: activity, error: logError } = await supabase.from("collection_activities").insert({
       user_id: user.id,
       debtor_id: debtorId,
       activity_type: "account_summary",
@@ -210,11 +214,48 @@ serve(async (req) => {
         invoice_count: invoices.length,
         total_amount: invoices.reduce((sum, inv) => sum + inv.amount, 0),
         attached_links: attachedLinks.length,
+        reply_to: replyToAddress,
       },
-    });
+    }).select().single();
 
     if (logError) {
       console.error("Failed to log activity:", logError);
+    }
+
+    // Log to outreach_logs so responses can be linked
+    // Use the first invoice as the primary reference for account-level summaries
+    if (invoices.length > 0) {
+      const { data: invoice } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("invoice_number", invoices[0].invoice_number)
+        .eq("debtor_id", debtorId)
+        .single();
+
+      if (invoice) {
+        const { error: outreachError } = await supabase.from("outreach_logs").insert({
+          user_id: user.id,
+          debtor_id: debtorId,
+          invoice_id: invoice.id,
+          channel: "email",
+          subject: subject,
+          message_body: message,
+          sent_to: debtor.email,
+          sent_from: emailAccount.email_address,
+          sent_at: new Date().toISOString(),
+          status: "sent",
+          delivery_metadata: {
+            activity_id: activity?.id,
+            type: "account_summary",
+            invoice_count: invoices.length,
+            reply_to: replyToAddress,
+          },
+        });
+
+        if (outreachError) {
+          console.error("Failed to log outreach:", outreachError);
+        }
+      }
     }
 
     return new Response(
