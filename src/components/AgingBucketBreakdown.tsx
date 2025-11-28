@@ -8,8 +8,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-export const AgingBucketBreakdown = () => {
-  const { data, isLoading } = useAgingBuckets();
+interface AgingBucketBreakdownProps {
+  debtorId?: string;
+}
+
+export const AgingBucketBreakdown = ({ debtorId }: AgingBucketBreakdownProps) => {
+  const { data, isLoading } = useAgingBuckets(debtorId);
   const [chartView, setChartView] = useState<"bar" | "pie">("bar");
 
   if (isLoading) {

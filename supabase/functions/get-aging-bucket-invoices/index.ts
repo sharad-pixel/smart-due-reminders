@@ -37,8 +37,12 @@ Deno.serve(async (req) => {
 
     const userId = userData.user.id;
 
+    // Get optional debtor_id from query params
+    const url = new URL(req.url);
+    const debtorId = url.searchParams.get('debtor_id');
+
     // Get all open/in-payment-plan invoices with aging calculation
-    const { data: invoices, error: invoicesError } = await supabaseClient
+    let query = supabaseClient
       .from('invoices')
       .select(`
         *,
@@ -51,8 +55,14 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('user_id', userId)
-      .in('status', ['Open', 'InPaymentPlan'])
-      .order('due_date', { ascending: true });
+      .in('status', ['Open', 'InPaymentPlan']);
+
+    // Filter by debtor if provided
+    if (debtorId) {
+      query = query.eq('debtor_id', debtorId);
+    }
+
+    const { data: invoices, error: invoicesError } = await query.order('due_date', { ascending: true });
 
     if (invoicesError) {
       console.error('Error fetching invoices:', invoicesError);

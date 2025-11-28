@@ -16,21 +16,23 @@ export interface AgingBucketsResponse {
   dpd_120_plus: AgingBucketData;
 }
 
-export const useAgingBuckets = () => {
+export const useAgingBuckets = (debtorId?: string) => {
   return useQuery({
-    queryKey: ["aging-buckets"],
+    queryKey: ["aging-buckets", debtorId],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No session");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-aging-bucket-invoices`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-aging-bucket-invoices`);
+      if (debtorId) {
+        url.searchParams.set('debtor_id', debtorId);
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch aging buckets");

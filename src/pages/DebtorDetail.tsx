@@ -447,7 +447,7 @@ const DebtorDetail = () => {
         />
 
         {/* Aging Bucket Breakdown */}
-        <AgingBucketBreakdown />
+        <AgingBucketBreakdown debtorId={id} />
 
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList>
