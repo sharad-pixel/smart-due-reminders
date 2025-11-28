@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus } from "lucide-react";
+import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PaymentScoreCard } from "@/components/PaymentScoreCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
@@ -102,7 +102,7 @@ const DebtorDetail = () => {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [linkingCrm, setLinkingCrm] = useState(false);
   const [copiedRefId, setCopiedRefId] = useState(false);
   const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
@@ -195,6 +195,7 @@ const DebtorDetail = () => {
         .from("invoices")
         .select("*")
         .eq("debtor_id", id)
+        .eq("is_archived", false)
         .order("due_date", { ascending: false });
 
       if (error) throw error;
@@ -262,18 +263,18 @@ const DebtorDetail = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleArchive = async () => {
     try {
       const { error } = await supabase
         .from("debtors")
-        .delete()
+        .update({ is_archived: true })
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Debtor deleted successfully");
+      toast.success("Debtor archived successfully");
       navigate("/debtors");
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete debtor");
+      toast.error(error.message || "Failed to archive debtor");
     }
   };
 
@@ -367,9 +368,9 @@ const DebtorDetail = () => {
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            <Button variant="destructive" onClick={() => setIsDeleteOpen(true)}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+            <Button variant="outline" onClick={() => setIsArchiveOpen(true)}>
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
             </Button>
           </div>
         </div>
@@ -849,18 +850,18 @@ const DebtorDetail = () => {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialog open={isArchiveOpen} onOpenChange={setIsArchiveOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogTitle>Archive Debtor?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete this debtor and all related data. This action cannot be undone.
+                This will archive this debtor and hide them from the main list. You can restore them later if needed. This will not delete any data.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
+              <AlertDialogAction onClick={handleArchive} className="bg-orange-600 text-white hover:bg-orange-700">
+                Archive
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

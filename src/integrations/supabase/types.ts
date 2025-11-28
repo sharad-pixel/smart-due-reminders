@@ -955,6 +955,7 @@ export type Database = {
           id: string
           in_payment_plan_invoices_count: number | null
           is_active: boolean | null
+          is_archived: boolean | null
           latitude: number | null
           longitude: number | null
           max_days_past_due: number | null
@@ -1020,6 +1021,7 @@ export type Database = {
           id?: string
           in_payment_plan_invoices_count?: number | null
           is_active?: boolean | null
+          is_archived?: boolean | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
@@ -1085,6 +1087,7 @@ export type Database = {
           id?: string
           in_payment_plan_invoices_count?: number | null
           is_active?: boolean | null
+          is_archived?: boolean | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
@@ -1637,6 +1640,7 @@ export type Database = {
           external_link: string | null
           id: string
           invoice_number: string
+          is_archived: boolean | null
           is_overage: boolean | null
           issue_date: string
           last_contact_date: string | null
@@ -1666,6 +1670,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           invoice_number: string
+          is_archived?: boolean | null
           is_overage?: boolean | null
           issue_date: string
           last_contact_date?: string | null
@@ -1695,6 +1700,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           invoice_number?: string
+          is_archived?: boolean | null
           is_overage?: boolean | null
           issue_date?: string
           last_contact_date?: string | null

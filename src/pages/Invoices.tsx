@@ -96,6 +96,7 @@ const Invoices = () => {
         supabase
           .from("invoices")
           .select("*, debtors(name), ai_workflows(id, is_active)")
+          .eq("is_archived", false)
           .order("due_date", { ascending: false }),
         supabase.from("debtors").select("id, name").order("name"),
         supabase.from("ai_agent_personas").select("name, bucket_min, bucket_max").order("bucket_min"),

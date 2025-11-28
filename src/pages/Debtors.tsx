@@ -82,6 +82,7 @@ const Debtors = () => {
       const { data, error } = await supabase
         .from("debtors")
         .select("*")
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
