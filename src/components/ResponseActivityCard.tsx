@@ -93,6 +93,14 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
   const isInbound = activity.direction === 'inbound';
   const hasLinkedOutreach = !!activity.linked_outreach_log_id;
 
+  // Debug logging
+  console.log('ResponseActivityCard - activity:', {
+    id: activity.id,
+    has_response_message: !!activity.response_message,
+    response_message_length: activity.response_message?.length,
+    direction: activity.direction
+  });
+
   return (
     <Card className={`${isInbound ? 'border-l-4 border-l-primary' : ''}`}>
       <CardHeader className="pb-3">
@@ -122,7 +130,7 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
         </div>
 
         {/* Full Response (if available) */}
-        {activity.response_message && (
+        {(activity.response_message || (isInbound && activity.message_body)) && (
           <div className="mt-2">
             <Button
               variant="outline"
@@ -130,12 +138,21 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
               onClick={() => setShowFullResponse(!showFullResponse)}
               className="mb-2"
             >
-              {showFullResponse ? "Hide Full Response" : "View Full Response"}
+              {showFullResponse ? "Hide Full Message" : "View Full Message"}
             </Button>
             {showFullResponse && (
               <div className="p-3 bg-muted/50 rounded-md border">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Full Email Response:</p>
-                <p className="text-sm whitespace-pre-wrap">{activity.response_message}</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                  {activity.response_message ? 'Full Email Response:' : 'Message Content:'}
+                </p>
+                <p className="text-sm whitespace-pre-wrap">
+                  {activity.response_message || activity.message_body}
+                </p>
+                {!activity.response_message && isInbound && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    ℹ️ Full email content not captured. Configure Resend webhook to capture full responses.
+                  </p>
+                )}
               </div>
             )}
           </div>
