@@ -132,22 +132,22 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
         <div className="flex flex-wrap gap-2 pt-2 border-t">
           {/* Debtor Link */}
           {debtor && (
-            <Link to={`/debtors/${activity.debtor_id}`}>
-              <Button variant="outline" size="sm" className="h-7 text-xs">
+            <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
+              <Link to={`/debtors/${activity.debtor_id}`}>
                 <ExternalLink className="h-3 w-3 mr-1" />
                 {debtor.company_name} ({debtor.reference_id})
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
 
           {/* Invoice Link */}
           {invoice && (
-            <Link to={`/invoices/${activity.invoice_id}`}>
-              <Button variant="outline" size="sm" className="h-7 text-xs">
+            <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
+              <Link to={`/invoices/${activity.invoice_id}`}>
                 <FileText className="h-3 w-3 mr-1" />
                 Invoice {invoice.invoice_number}
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
         </div>
 
@@ -178,19 +178,21 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
               <span>Generated Tasks ({relatedTasks.length})</span>
             </div>
             {relatedTasks.map((task) => (
-              <Link key={task.id} to="/tasks" className="block">
-                <div className="p-2 bg-primary/5 rounded border border-primary/20 hover:bg-primary/10 transition-colors">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{task.summary}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {task.task_type.replace(/_/g, ' ')} • {task.priority} priority
-                      </p>
-                    </div>
-                    <Badge variant={task.status === 'open' ? 'default' : 'secondary'} className="text-xs shrink-0">
-                      {task.status}
-                    </Badge>
+              <Link 
+                key={task.id} 
+                to="/tasks" 
+                className="block p-2 bg-primary/5 rounded border border-primary/20 hover:bg-primary/10 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{task.summary}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {task.task_type.replace(/_/g, ' ')} • {task.priority} priority
+                    </p>
                   </div>
+                  <Badge variant={task.status === 'open' ? 'default' : 'secondary'} className="text-xs shrink-0">
+                    {task.status}
+                  </Badge>
                 </div>
               </Link>
             ))}
