@@ -23,6 +23,7 @@ import AccountSummaryModal from "@/components/AccountSummaryModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import { ResponseActivityCard } from "@/components/ResponseActivityCard";
 import { useCollectionActivities } from "@/hooks/useCollectionActivities";
+import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
 
 interface Debtor {
   id: string;
@@ -106,6 +107,7 @@ const DebtorDetail = () => {
   const [copiedRefId, setCopiedRefId] = useState(false);
   const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -353,9 +355,13 @@ const DebtorDetail = () => {
             </div>
           </div>
           <div className="flex space-x-2">
-            <Button onClick={() => setIsAccountSummaryOpen(true)}>
+            <Button onClick={() => setIsCreateInvoiceOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Invoice
+            </Button>
+            <Button onClick={() => setIsAccountSummaryOpen(true)} variant="outline">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Generate Account Summary Outreach
+              Generate Account Summary
             </Button>
             <Button variant="outline" onClick={() => setIsEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
@@ -872,6 +878,14 @@ const DebtorDetail = () => {
           debtorId={debtor.id}
           level="debtor"
           onTaskCreated={fetchAllTasks}
+        />
+
+        <CreateInvoiceModal
+          open={isCreateInvoiceOpen}
+          onOpenChange={setIsCreateInvoiceOpen}
+          debtorId={debtor.id}
+          debtorName={debtor.company_name}
+          onInvoiceCreated={fetchInvoices}
         />
       </div>
     </Layout>
