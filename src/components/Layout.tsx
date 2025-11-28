@@ -170,7 +170,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/import/ar-aging", label: "Import AR", icon: Upload },
     { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
-    { path: "/collections/tasks", label: "Tasks", icon: CheckSquare },
+    { path: "/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [
       { path: "/team", label: "Team & Roles", icon: Users },

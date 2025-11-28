@@ -13,12 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PaymentScoreCard } from "@/components/PaymentScoreCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import AccountSummaryModal from "@/components/AccountSummaryModal";
+import CreateTaskModal from "@/components/CreateTaskModal";
 
 interface Debtor {
   id: string;
@@ -87,7 +89,7 @@ interface OutreachLog {
 const DebtorDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchTasks } = useCollectionTasks();
+  const { fetchTasks: fetchTasksFromHook } = useCollectionTasks();
   const [debtor, setDebtor] = useState<Debtor | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
@@ -99,6 +101,8 @@ const DebtorDetail = () => {
   const [linkingCrm, setLinkingCrm] = useState(false);
   const [copiedRefId, setCopiedRefId] = useState(false);
   const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -117,12 +121,31 @@ const DebtorDetail = () => {
       fetchOutreach();
       fetchCrmAccounts();
       fetchDebtorTasks();
+      fetchAllTasks();
     }
   }, [id]);
 
   const fetchDebtorTasks = async () => {
-    const tasks = await fetchTasks({ debtor_id: id });
+    const tasks = await fetchTasksFromHook({ debtor_id: id });
     setDebtorTasks(tasks.filter(t => t.status !== 'done'));
+  };
+
+  const fetchAllTasks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("collection_tasks")
+        .select(`
+          *,
+          invoices(invoice_number)
+        `)
+        .eq("debtor_id", id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTasks(data || []);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
   };
 
   const fetchDebtor = async () => {
@@ -458,6 +481,7 @@ const DebtorDetail = () => {
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList>
             <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
             <TabsTrigger value="outreach">Outreach History ({outreach.length})</TabsTrigger>
           </TabsList>
 
@@ -494,6 +518,71 @@ const DebtorDetail = () => {
                             >
                               {invoice.status}
                             </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>All Tasks for this Debtor</CardTitle>
+                  <Button onClick={() => setIsCreateTaskOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Task
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Both debtor-level and invoice-level tasks
+                </p>
+              </CardHeader>
+              <CardContent>
+                {tasks.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No tasks for this debtor yet.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Summary</TableHead>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell className="text-sm">
+                            {new Date(task.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={task.level === "invoice" ? "default" : "secondary"}>
+                              {task.level || "debtor"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {task.task_type.replace(/_/g, " ")}
+                          </TableCell>
+                          <TableCell className="max-w-md line-clamp-2">
+                            {task.summary}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {task.invoices?.invoice_number || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={task.status === "done" ? "outline" : "default"}>
+                              {task.status}
+                            </Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -731,6 +820,14 @@ const DebtorDetail = () => {
           open={isAccountSummaryOpen}
           onOpenChange={setIsAccountSummaryOpen}
           debtor={debtor}
+        />
+
+        <CreateTaskModal
+          open={isCreateTaskOpen}
+          onOpenChange={setIsCreateTaskOpen}
+          debtorId={debtor.id}
+          level="debtor"
+          onTaskCreated={fetchAllTasks}
         />
       </div>
     </Layout>

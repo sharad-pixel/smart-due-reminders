@@ -587,13 +587,19 @@ export type Database = {
           debtor_id: string
           details: string | null
           due_date: string | null
+          from_email: string | null
           id: string
           invoice_id: string | null
+          level: string | null
           priority: string
+          raw_email: string | null
           recommended_action: string | null
+          source: string | null
           status: string
+          subject: string | null
           summary: string
           task_type: string
+          to_email: string | null
           updated_at: string | null
           user_id: string
         }
@@ -607,13 +613,19 @@ export type Database = {
           debtor_id: string
           details?: string | null
           due_date?: string | null
+          from_email?: string | null
           id?: string
           invoice_id?: string | null
+          level?: string | null
           priority?: string
+          raw_email?: string | null
           recommended_action?: string | null
+          source?: string | null
           status?: string
+          subject?: string | null
           summary: string
           task_type: string
+          to_email?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -627,13 +639,19 @@ export type Database = {
           debtor_id?: string
           details?: string | null
           due_date?: string | null
+          from_email?: string | null
           id?: string
           invoice_id?: string | null
+          level?: string | null
           priority?: string
+          raw_email?: string | null
           recommended_action?: string | null
+          source?: string | null
           status?: string
+          subject?: string | null
           summary?: string
           task_type?: string
+          to_email?: string | null
           updated_at?: string | null
           user_id?: string
         }

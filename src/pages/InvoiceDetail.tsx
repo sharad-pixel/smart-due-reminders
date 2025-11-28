@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -22,6 +22,7 @@ import { DraftPreviewModal } from "@/components/DraftPreviewModal";
 import { TasksSummaryCard } from "@/components/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
+import CreateTaskModal from "@/components/CreateTaskModal";
 
 interface Invoice {
   id: string;
@@ -115,6 +116,7 @@ const InvoiceDetail = () => {
   const [editIssueDate, setEditIssueDate] = useState("");
   const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -817,6 +819,17 @@ const InvoiceDetail = () => {
           tasks={tasks} 
           title="Collection Tasks"
         />
+        
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Related Tasks</CardTitle>
+              <Button onClick={() => setIsCreateTaskOpen(true)} size="sm">
+                Create Invoice Task
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
 
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
@@ -1211,6 +1224,15 @@ const InvoiceDetail = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <CreateTaskModal
+          open={isCreateTaskOpen}
+          onOpenChange={setIsCreateTaskOpen}
+          debtorId={invoice?.debtor_id || ""}
+          invoiceId={invoice?.id}
+          level="invoice"
+          onTaskCreated={() => fetchData()}
+        />
       </div>
     </Layout>
   );
