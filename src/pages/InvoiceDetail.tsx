@@ -68,6 +68,10 @@ interface OutreachLog {
   subject: string | null;
   sent_at: string | null;
   status: string;
+  message_body: string;
+  sent_to: string;
+  sent_from: string | null;
+  delivery_metadata: any;
 }
 
 interface AIDraft {
@@ -117,6 +121,8 @@ const InvoiceDetail = () => {
   const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [selectedOutreach, setSelectedOutreach] = useState<OutreachLog | null>(null);
+  const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -937,7 +943,14 @@ const InvoiceDetail = () => {
                     </TableHeader>
                     <TableBody>
                       {outreach.map((log) => (
-                        <TableRow key={log.id}>
+                        <TableRow 
+                          key={log.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => {
+                            setSelectedOutreach(log);
+                            setOutreachDetailOpen(true);
+                          }}
+                        >
                           <TableCell className="capitalize">{log.channel}</TableCell>
                           <TableCell>{log.subject || "N/A"}</TableCell>
                           <TableCell>
@@ -1233,6 +1246,89 @@ const InvoiceDetail = () => {
           level="invoice"
           onTaskCreated={() => fetchData()}
         />
+
+        <Dialog open={outreachDetailOpen} onOpenChange={setOutreachDetailOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Outreach Details</DialogTitle>
+              <DialogDescription>
+                View the full message and delivery information
+              </DialogDescription>
+            </DialogHeader>
+            {selectedOutreach && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Channel</Label>
+                    <p className="font-medium capitalize">{selectedOutreach.channel}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          selectedOutreach.status === "sent"
+                            ? "bg-green-100 text-green-800"
+                            : selectedOutreach.status === "failed"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {selectedOutreach.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Sent To</Label>
+                    <p className="font-medium">{selectedOutreach.sent_to}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Sent At</Label>
+                    <p className="font-medium">
+                      {selectedOutreach.sent_at ? new Date(selectedOutreach.sent_at).toLocaleString() : "Not sent"}
+                    </p>
+                  </div>
+                  {selectedOutreach.sent_from && (
+                    <div className="col-span-2">
+                      <Label className="text-sm text-muted-foreground">Sent From</Label>
+                      <p className="font-medium">{selectedOutreach.sent_from}</p>
+                    </div>
+                  )}
+                </div>
+
+                {selectedOutreach.subject && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Subject</Label>
+                    <p className="font-medium mt-1">{selectedOutreach.subject}</p>
+                  </div>
+                )}
+
+                <div>
+                  <Label className="text-sm text-muted-foreground">Message</Label>
+                  <div className="mt-2 p-4 bg-muted rounded-md">
+                    <p className="whitespace-pre-wrap text-sm">{selectedOutreach.message_body}</p>
+                  </div>
+                </div>
+
+                {selectedOutreach.delivery_metadata && Object.keys(selectedOutreach.delivery_metadata).length > 0 && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Delivery Information</Label>
+                    <div className="mt-2 p-4 bg-muted rounded-md">
+                      <pre className="text-xs overflow-auto">
+                        {JSON.stringify(selectedOutreach.delivery_metadata, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOutreachDetailOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
