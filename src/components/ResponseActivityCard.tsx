@@ -34,6 +34,7 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
   const [relatedTasks, setRelatedTasks] = useState<any[]>([]);
   const [debtor, setDebtor] = useState<any>(null);
   const [invoice, setInvoice] = useState<any>(null);
+  const [showFullResponse, setShowFullResponse] = useState(false);
 
   useEffect(() => {
     const fetchRelatedData = async () => {
@@ -122,9 +123,21 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
 
         {/* Full Response (if available) */}
         {activity.response_message && (
-          <div className="mt-2 p-3 bg-muted/50 rounded-md">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Full Response:</p>
-            <p className="text-sm whitespace-pre-wrap">{activity.response_message}</p>
+          <div className="mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFullResponse(!showFullResponse)}
+              className="mb-2"
+            >
+              {showFullResponse ? "Hide Full Response" : "View Full Response"}
+            </Button>
+            {showFullResponse && (
+              <div className="p-3 bg-muted/50 rounded-md border">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Full Email Response:</p>
+                <p className="text-sm whitespace-pre-wrap">{activity.response_message}</p>
+              </div>
+            )}
           </div>
         )}
 
