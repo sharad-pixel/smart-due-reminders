@@ -148,7 +148,7 @@ serve(async (req) => {
       connection: {
         hostname: account.smtp_host,
         port: account.smtp_port,
-        tls: account.smtp_use_tls || account.smtp_port === 465,
+        tls: true,
         auth: {
           username: account.smtp_username,
           password: smtpPassword,
@@ -157,9 +157,10 @@ serve(async (req) => {
     });
 
     await client.send({
-      from: `${account.display_name} <${account.email_address}>`,
+      from: account.email_address,
       to: recipientEmail,
       subject: testEmailContent.subject,
+      content: testEmailContent.html,
       html: testEmailContent.html,
     });
 
