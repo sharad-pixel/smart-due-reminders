@@ -27,10 +27,52 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
   const [imapUsername, setImapUsername] = useState(initialEmail);
   const [imapPassword, setImapPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const isGmail = email.includes('@gmail.com') || smtpHost.includes('gmail.com');
+  
+  // Auto-populate Gmail settings when Gmail is detected
+  const handleEmailChange = (newEmail: string) => {
+    setEmail(newEmail);
+    setSmtpUsername(newEmail);
+    setImapUsername(newEmail);
+    
+    if (newEmail.includes('@gmail.com')) {
+      setSmtpHost('smtp.gmail.com');
+      setSmtpPort('587');
+      setImapHost('imap.gmail.com');
+      setImapPort('993');
+    }
+  };
 
   const handleSaveCredentials = async () => {
     if (!email || !displayName || !smtpHost || !smtpUsername || !smtpPassword) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Validate Gmail-specific requirements
+    if (isGmail) {
+      if (!smtpPassword || smtpPassword.replace(/\s/g, '').length !== 16) {
+        toast.error("Gmail requires a 16-character App Password (no spaces)");
+        return;
+      }
+      if (smtpHost !== "smtp.gmail.com") {
+        toast.error("Gmail SMTP host must be: smtp.gmail.com");
+        return;
+      }
+      if (smtpPort !== "465" && smtpPort !== "587") {
+        toast.error("Gmail requires port 465 (SSL) or 587 (TLS)");
+        return;
+      }
+      if (smtpUsername !== email) {
+        toast.error("For Gmail, username must be your full email address");
+        return;
+      }
+    }
+
+    // Validate port is secure (SSL/TLS required)
+    if (smtpPort === "25") {
+      toast.error("Port 25 (unencrypted) is not allowed. Use 465 (SSL) or 587 (TLS)");
       return;
     }
 
@@ -78,13 +120,29 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            If you don't know these values, search for "[your provider] SMTP settings" 
-            or contact your email hosting provider (GoDaddy, Namecheap, Zoho, etc.)
-          </AlertDescription>
-        </Alert>
+        {isGmail && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Gmail Setup:</strong><br/>
+              1. Use <code>smtp.gmail.com</code> as SMTP host<br/>
+              2. Port 465 (SSL) or 587 (TLS)<br/>
+              3. Username: Your full Gmail address<br/>
+              4. Password: Generate a 16-digit App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline">myaccount.google.com/apppasswords</a><br/>
+              5. Enable 2-factor authentication first (required for App Passwords)
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!isGmail && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              If you don't know these values, search for "[your provider] SMTP settings" 
+              or contact your email hosting provider (GoDaddy, Namecheap, Zoho, etc.)
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="space-y-4">
           <div className="space-y-2">
@@ -94,8 +152,11 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
               type="email"
               placeholder="billing@yourcompany.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
             />
+            {isGmail && (
+              <p className="text-xs text-success">✓ Gmail detected - settings auto-filled</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -129,11 +190,13 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="25">25 (Unencrypted)</SelectItem>
-                    <SelectItem value="465">465 (SSL)</SelectItem>
-                    <SelectItem value="587">587 (TLS) - Recommended</SelectItem>
+                    <SelectItem value="465">465 (SSL){isGmail ? " - Gmail Compatible" : ""}</SelectItem>
+                    <SelectItem value="587">587 (TLS){isGmail ? " - Gmail Recommended" : " - Recommended"}</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {isGmail ? "Gmail requires port 465 (SSL) or 587 (TLS)" : "Unencrypted connections (port 25) are not allowed"}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -151,10 +214,18 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
                 <Input
                   id="smtpPassword"
                   type="password"
-                  placeholder="Your email password"
+                  placeholder={isGmail ? "16-digit App Password (no spaces)" : "Your email password"}
                   value={smtpPassword}
                   onChange={(e) => setSmtpPassword(e.target.value)}
                 />
+                {isGmail && (
+                  <p className="text-xs text-muted-foreground">
+                    Generate at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline text-primary">myaccount.google.com/apppasswords</a>
+                    {smtpPassword && smtpPassword.replace(/\s/g, '').length !== 16 && (
+                      <span className="text-destructive ml-2">Must be exactly 16 characters</span>
+                    )}
+                  </p>
+                )}
               </div>
             </div>
           </div>
