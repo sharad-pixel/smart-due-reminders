@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1109,22 +1109,25 @@ const Debtors = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Recouply ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Account ID</TableHead>
-                    <TableHead>CRM ID</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-32 font-semibold">Recouply ID</TableHead>
+                    <TableHead className="font-semibold">Name</TableHead>
+                    <TableHead className="font-semibold">Company</TableHead>
+                    <TableHead className="font-semibold">Email</TableHead>
+                    <TableHead className="font-semibold">Phone</TableHead>
+                    <TableHead className="font-semibold">Account ID</TableHead>
+                    <TableHead className="font-semibold">CRM ID</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="text-right font-semibold">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredDebtors.map((debtor) => (
-                    <TableRow key={debtor.id}>
-                      <TableCell className="font-mono text-xs">{debtor.reference_id}</TableCell>
+                    <TableRow 
+                      key={debtor.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/debtors/${debtor.id}`)}
+                    >
+                      <TableCell className="font-mono text-xs text-muted-foreground">{debtor.reference_id}</TableCell>
                       <TableCell className="font-medium">{debtor.name}</TableCell>
                       <TableCell>{debtor.company_name}</TableCell>
                       <TableCell>{debtor.email}</TableCell>
@@ -1142,17 +1145,8 @@ const Debtors = () => {
                           {debtor.type || "N/A"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right font-semibold tabular-nums">
                         ${(debtor.current_balance || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/debtors/${debtor.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
