@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 async function decryptValue(encryptedValue: string): Promise<string> {
   const decoder = new TextDecoder();
@@ -126,6 +127,12 @@ serve(async (req) => {
         }
       } else if (emailAccount.auth_method === "smtp") {
         sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody);
+      } else if (emailAccount.auth_method === "api") {
+        if (emailAccount.provider === "resend") {
+          sendResult = await sendViaResendAPI(emailAccount, recipient, emailSubject, emailBody);
+        } else {
+          throw new Error(`API auth not supported for provider: ${emailAccount.provider}`);
+        }
       } else {
         throw new Error(`Unsupported auth method: ${emailAccount.auth_method}`);
       }
@@ -261,6 +268,43 @@ async function sendViaOutlookAPI(
   
   // Simulate success for now
   return { success: true, provider: "outlook" };
+}
+
+// Helper function to send via Resend API
+async function sendViaResendAPI(
+  account: any,
+  to: string,
+  subject: string,
+  bodyHtml: string
+): Promise<any> {
+  console.log(`Sending email via Resend API from ${account.email_address} to ${to}`);
+  
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    throw new Error("Resend API key not configured");
+  }
+
+  const resend = new Resend(resendApiKey);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: account.email_address,
+      to: to,
+      subject: subject,
+      html: bodyHtml,
+    });
+
+    if (error) {
+      console.error("Resend API error:", error);
+      throw new Error(`Resend API error: ${error.message}`);
+    }
+
+    console.log(`✅ Email sent successfully via Resend to ${to}`, data);
+    return { success: true, provider: "resend", messageId: data?.id };
+  } catch (error: any) {
+    console.error("Resend send error:", error);
+    throw new Error(`Resend error: ${error.message}`);
+  }
 }
 
 // Helper function to send via SMTP
