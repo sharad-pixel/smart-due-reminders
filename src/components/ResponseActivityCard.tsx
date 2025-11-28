@@ -132,22 +132,24 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
         <div className="flex flex-wrap gap-2 pt-2 border-t">
           {/* Debtor Link */}
           {debtor && (
-            <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
-              <Link to={`/debtors/${activity.debtor_id}`}>
-                <ExternalLink className="h-3 w-3 mr-1" />
-                {debtor.company_name} ({debtor.reference_id})
-              </Link>
-            </Button>
+            <Link 
+              to={`/debtors/${activity.debtor_id}`}
+              className="inline-flex items-center justify-center h-7 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
+              {debtor.company_name} ({debtor.reference_id})
+            </Link>
           )}
 
           {/* Invoice Link */}
           {invoice && (
-            <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
-              <Link to={`/invoices/${activity.invoice_id}`}>
-                <FileText className="h-3 w-3 mr-1" />
-                Invoice {invoice.invoice_number}
-              </Link>
-            </Button>
+            <Link 
+              to={`/invoices/${activity.invoice_id}`}
+              className="inline-flex items-center justify-center h-7 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              Invoice {invoice.invoice_number}
+            </Link>
           )}
         </div>
 
