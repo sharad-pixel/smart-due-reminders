@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -147,10 +147,17 @@ const BringYourOwnEmail = () => {
         </div>
 
         <Alert>
-          <Info className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Domain Verification Required</AlertTitle>
           <AlertDescription>
-            <strong>Powered by Resend:</strong> We use Resend API for reliable email delivery. 
-            Your emails will be sent from your domain with high deliverability rates.
+            <strong>Before sending emails, you must verify your domain in Resend:</strong>
+            <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+              <li>Visit <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Resend Domains</a></li>
+              <li>Add your domain (e.g., recouply.ai)</li>
+              <li>Add the DNS records to your domain provider</li>
+              <li>Wait for verification (usually a few minutes)</li>
+            </ol>
+            <p className="mt-2 text-sm">Without domain verification, test emails will fail.</p>
           </AlertDescription>
         </Alert>
 
