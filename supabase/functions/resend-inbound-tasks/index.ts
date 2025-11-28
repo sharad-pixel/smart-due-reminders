@@ -76,30 +76,31 @@ serve(async (req) => {
 
     // Parse the "to" email to determine level and IDs
     // Expected formats:
-    // - invoice+<invoice_id>@recouply.ai
-    // - debtor+<debtor_id>@recouply.ai
+    // - invoice+<invoice_id>@recouply.ai → Links to specific invoice
+    // - debtor+<debtor_id>@recouply.ai → Links to debtor account
+    // - any@recouply.ai → General inbound, try to find debtor by sender email
     
     // Handle both array and string formats for email.to
     const toEmail = Array.isArray(email.to) ? email.to[0] : email.to;
     const toEmailMatch = toEmail.match(/^(invoice|debtor)\+([a-f0-9\-]+)@/i);
     
-    if (!toEmailMatch) {
-      console.log("[RESEND-INBOUND] Email format not recognized:", toEmail);
-      return new Response(
-        JSON.stringify({ success: false, error: "Unrecognized email format" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let level = "general";
+    let id = null;
+    
+    if (toEmailMatch) {
+      [, level, id] = toEmailMatch;
+      console.log("[RESEND-INBOUND] Parsed subaddressing - level:", level, "id:", id);
+    } else {
+      console.log("[RESEND-INBOUND] No subaddressing found, will search by sender email:", email.from);
     }
-
-    const [, level, id] = toEmailMatch;
     console.log("[RESEND-INBOUND] Parsed level:", level, "id:", id);
 
     let invoiceId: string | null = null;
     let debtorId: string | null = null;
+    let userId: string | null = null;
 
-    // INVOICE-LEVEL TASK
-    // Links to a specific invoice, debtor is looked up from the invoice
-    if (level.toLowerCase() === "invoice") {
+    // INVOICE-LEVEL RESPONSE (invoice+<id>@recouply.ai)
+    if (level.toLowerCase() === "invoice" && id) {
       invoiceId = id;
       
       const { data: invoice, error: invoiceError } = await supabase
@@ -117,11 +118,11 @@ serve(async (req) => {
       }
 
       debtorId = invoice.debtor_id;
-      console.log("[RESEND-INBOUND] Invoice-level task, debtor:", debtorId);
+      userId = invoice.user_id;
+      console.log("[RESEND-INBOUND] Invoice-level response, debtor:", debtorId);
     }
-    // DEBTOR-LEVEL TASK
-    // Links to overall customer account, not a specific invoice
-    else if (level.toLowerCase() === "debtor") {
+    // DEBTOR-LEVEL RESPONSE (debtor+<id>@recouply.ai)
+    else if (level.toLowerCase() === "debtor" && id) {
       debtorId = id;
       
       const { data: debtor, error: debtorError } = await supabase
@@ -138,7 +139,39 @@ serve(async (req) => {
         );
       }
 
-      console.log("[RESEND-INBOUND] Debtor-level task");
+      userId = debtor.user_id;
+      console.log("[RESEND-INBOUND] Debtor-level response");
+    }
+    // GENERAL INBOUND (any@recouply.ai) - Search by sender email
+    else {
+      console.log("[RESEND-INBOUND] General inbound, searching for debtor by email:", email.from);
+      
+      const { data: debtor, error: debtorError } = await supabase
+        .from("debtors")
+        .select("id, user_id, email")
+        .ilike("email", email.from)
+        .limit(1)
+        .single();
+
+      if (debtorError || !debtor) {
+        console.log("[RESEND-INBOUND] No debtor found for email:", email.from);
+        // Still capture the email even if we can't link it
+        // Admin will need to manually associate it
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            warning: "Email received but could not be linked to a debtor. Please manually review.",
+            from: email.from,
+            subject: email.subject,
+            captured: true
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      debtorId = debtor.id;
+      userId = debtor.user_id;
+      console.log("[RESEND-INBOUND] Found debtor by email:", debtorId);
     }
 
     // Classify task type using rule-based classification
@@ -160,15 +193,18 @@ serve(async (req) => {
 
     console.log("[RESEND-INBOUND] Classified as:", taskType);
 
-    // Get user_id and debtor details
-    const { data: debtor } = await supabase
-      .from("debtors")
-      .select("user_id, name, email")
-      .eq("id", debtorId)
-      .single();
+    // Ensure we have user_id
+    if (!userId) {
+      const { data: debtor } = await supabase
+        .from("debtors")
+        .select("user_id, name, email")
+        .eq("id", debtorId)
+        .single();
 
-    if (!debtor) {
-      throw new Error("Could not determine user_id for task");
+      if (!debtor) {
+        throw new Error("Could not determine user_id for activity");
+      }
+      userId = debtor.user_id;
     }
 
     // Use Lovable AI to generate intelligent summary
@@ -238,26 +274,32 @@ serve(async (req) => {
       console.log("[RESEND-INBOUND] Could not find linked outreach (ok)");
     }
 
+    // Store the FULL email content (text preferred, html as fallback)
+    const fullEmailBody = email.text || email.html || "";
+    
+    console.log("[RESEND-INBOUND] Storing full email body, length:", fullEmailBody.length);
+
     // Log this as a collection activity (inbound response)
     const { data: activity, error: activityError } = await supabase
       .from("collection_activities")
       .insert({
-        user_id: debtor.user_id,
+        user_id: userId,
         debtor_id: debtorId,
         invoice_id: invoiceId,
         activity_type: "customer_response",
         direction: "inbound",
         channel: "email",
         subject: email.subject,
-        message_body: summary,
-        response_message: email.text || email.html,
+        message_body: summary, // AI summary or truncated preview
+        response_message: fullEmailBody, // FULL email content
         linked_outreach_log_id: linkedOutreachId,
         responded_at: new Date().toISOString(),
         metadata: {
           task_type: taskType,
           from_email: email.from,
           to_email: email.to,
-          ai_generated_summary: !!aiSummary
+          ai_generated_summary: !!aiSummary,
+          email_format: level
         }
       })
       .select()
