@@ -7,28 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Decrypt encrypted values
-async function decryptValue(encryptedValue: string): Promise<string> {
-  const encryptionKey = Deno.env.get("ENCRYPTION_KEY");
-  if (!encryptionKey) {
-    throw new Error("Encryption key not configured");
-  }
-
+// Decrypt encrypted values using the provided crypto key
+// The crypto key must be AES-256-GCM compatible (32 bytes / 256 bits)
+async function decryptValue(encryptedValue: string, cryptoKey: CryptoKey): Promise<string> {
   const data = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
   const iv = data.slice(0, 12);
   const encryptedData = data.slice(12);
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(encryptionKey),
-    { name: "AES-GCM" },
-    false,
-    ["decrypt"]
-  );
-
   const decryptedData = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
-    key,
+    cryptoKey,
     encryptedData
   );
 
@@ -39,6 +27,43 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Validate ENCRYPTION_KEY upfront
+  // AES-256-GCM requires a 256-bit (32-byte) key
+  // Each character in a string = 1 byte, so we need exactly 32 characters
+  const rawKey = Deno.env.get("ENCRYPTION_KEY");
+  
+  if (!rawKey) {
+    return new Response(
+      JSON.stringify({ error: "ENCRYPTION_KEY is not set" }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+  }
+
+  if (rawKey.length !== 32) {
+    return new Response(
+      JSON.stringify({ 
+        error: `ENCRYPTION_KEY must be 32 characters long for AES-256-GCM. Current length: ${rawKey.length}` 
+      }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+  }
+
+  // Convert the 32-character string into bytes and import as a crypto key
+  const keyBytes = new TextEncoder().encode(rawKey);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
 
   try {
     const supabaseClient = createClient(
@@ -80,8 +105,8 @@ serve(async (req) => {
 
     console.log(`Testing email account ${account.email_address} (${account.provider})`);
 
-    // Decrypt the SMTP password
-    const smtpPassword = await decryptValue(account.smtp_password_encrypted);
+    // Decrypt the SMTP password using the validated crypto key
+    const smtpPassword = await decryptValue(account.smtp_password_encrypted, cryptoKey);
     
     const testEmailContent = {
       from: {
