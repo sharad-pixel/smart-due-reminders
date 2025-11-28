@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2 } from "lucide-react";
@@ -429,6 +430,42 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        <Card 
+          className="cursor-pointer hover:border-primary transition-colors"
+          onClick={() => navigate("/settings/email-accounts")}
+        >
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <CardTitle>Email Accounts</CardTitle>
+            </div>
+            <CardDescription>
+              Connect your business email to send collection messages directly from your domain
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Professional email integration increases trust and improves payment rates. 
+                Customers see emails from your business (e.g., billing@yourcompany.com), not a third-party service.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">Gmail</Badge>
+                <Badge variant="outline">Outlook</Badge>
+                <Badge variant="outline">Yahoo</Badge>
+                <Badge variant="outline">iCloud</Badge>
+                <Badge variant="outline">Custom SMTP</Badge>
+              </div>
+              <Button variant="outline" size="sm" onClick={(e) => {
+                e.stopPropagation();
+                navigate("/settings/email-accounts");
+              }}>
+                <Mail className="h-4 w-4 mr-2" />
+                Configure Email Integration
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {subscriptionInfo && subscriptionInfo.stripe_subscription_id && (
           <Card>
