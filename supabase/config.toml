@@ -110,3 +110,9 @@ verify_jwt = true
 
 [functions.check-access]
 verify_jwt = true
+
+[functions.resend-inbound-tasks]
+verify_jwt = false
+
+[functions.send-account-summary]
+verify_jwt = true
