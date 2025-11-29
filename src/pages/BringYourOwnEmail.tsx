@@ -139,9 +139,9 @@ const BringYourOwnEmail = () => {
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
         <div>
-          <h1 className="text-4xl font-bold text-primary">Use Your Email to Send Collections</h1>
+          <h1 className="text-4xl font-bold text-primary">Email Accounts</h1>
           <p className="text-muted-foreground mt-2">
-            Add your business email so invoices and reminders come from you — not Recouply.ai
+            Configure your outbound and inbound email accounts for collections messaging
           </p>
         </div>
 
