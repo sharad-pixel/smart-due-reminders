@@ -63,8 +63,11 @@ serve(async (req) => {
     
     let raw: any;
     
-    // Try signature verification if secret exists and headers are present
-    if (webhookSecret && (requestHeaders['svix-id'] || requestHeaders['webhook-id'])) {
+    // Check if this is a signed webhook (has signature headers) or an inbound email route
+    const hasSignatureHeaders = requestHeaders['svix-id'] || requestHeaders['webhook-id'];
+    
+    if (hasSignatureHeaders && webhookSecret) {
+      // Signed webhook - verify signature
       const wh = new Webhook(webhookSecret);
       
       try {
