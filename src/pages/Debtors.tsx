@@ -648,11 +648,11 @@ const Debtors = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
-            <h1 className="text-4xl font-bold text-primary">Debtors</h1>
-            <p className="text-muted-foreground mt-2">Manage your customer accounts</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Debtors</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Manage your customer accounts</p>
           </div>
           <div className="flex gap-2">
             <Button
