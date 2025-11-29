@@ -72,12 +72,13 @@ serve(async (req) => {
       throw new Error("Debtor not found");
     }
 
-    // Fetch user's email account
+    // Fetch user's outbound email account
     const { data: emailAccount, error: emailError } = await supabase
       .from("email_accounts")
       .select("*")
       .eq("user_id", user.id)
       .eq("is_active", true)
+      .eq("email_type", "outbound")
       .order("is_primary", { ascending: false })
       .limit(1)
       .single();
@@ -85,6 +86,18 @@ serve(async (req) => {
     if (emailError || !emailAccount) {
       throw new Error("No active email account found. Please set up your email account first.");
     }
+
+    // Get verified inbound email for reply-to
+    const { data: inboundAccount } = await supabase
+      .from("email_accounts")
+      .select("email_address")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .eq("email_type", "inbound")
+      .eq("is_verified", true)
+      .maybeSingle();
+
+    const replyToAddress = inboundAccount?.email_address || emailAccount.email_address;
 
     // Build invoice table HTML
     let invoiceTableHtml = "";
@@ -160,8 +173,6 @@ serve(async (req) => {
       </div>
     `;
 
-    // Set up reply-to address for tracking responses
-    const replyToAddress = `debtor+${debtorId}@recouply.ai`;
 
     // Send via Resend API if using api auth method
     if (emailAccount.auth_method === "api" && emailAccount.provider === "resend") {
