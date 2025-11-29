@@ -100,7 +100,7 @@ const BringYourOwnEmail = () => {
 
       if (error) throw error;
 
-      toast.success("Test email sent to your registered email address! Check your inbox.");
+      toast.success("Test email sent to sharad@recouply.ai! Check your inbox.");
       fetchEmailAccounts();
     } catch (error: any) {
       console.error("Error testing connection:", error);
@@ -149,14 +149,17 @@ const BringYourOwnEmail = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Domain Verification Required</AlertTitle>
           <AlertDescription>
-            <strong>Before sending emails, you must verify your domain in Resend:</strong>
+            <strong>Important: Domain Verification & Testing</strong>
             <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
-              <li>Visit <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Resend Domains</a></li>
-              <li>Add your domain (e.g., recouply.ai)</li>
+              <li>Visit <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Resend Domains</a> to verify your domain</li>
+              <li>Add your domain (e.g., services.recouply.ai or recouply.ai)</li>
               <li>Add the DNS records to your domain provider</li>
               <li>Wait for verification (usually a few minutes)</li>
             </ol>
-            <p className="mt-2 text-sm">Without domain verification, test emails will fail.</p>
+            <p className="mt-2 text-sm font-medium text-orange-600">
+              ⚠️ Test emails currently send to sharad@recouply.ai (Resend account owner). 
+              To send from custom domains, verify them in Resend first.
+            </p>
           </AlertDescription>
         </Alert>
 

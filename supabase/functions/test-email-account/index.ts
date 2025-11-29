@@ -38,18 +38,11 @@ serve(async (req) => {
       throw new Error("Account ID is required");
     }
 
-    // Get user's email from their profile to send test email
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("email")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError || !profile?.email) {
-      throw new Error("Could not fetch user email");
-    }
-
-    const recipientEmail = profile.email;
+    // IMPORTANT: When using Resend's test domain (onboarding@resend.dev),
+    // emails can ONLY be sent to the Resend account owner's email address.
+    // This is hardcoded based on the Resend account registration.
+    // To send to other addresses, verify your domain at resend.com/domains
+    const recipientEmail = "sharad@recouply.ai";
 
     // Fetch the email account
     const { data: account, error: accountError } = await supabaseClient
