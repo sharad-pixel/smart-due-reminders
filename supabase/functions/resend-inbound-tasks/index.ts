@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 /**
  * RESEND INBOUND TASKS EDGE FUNCTION
@@ -55,6 +56,33 @@ serve(async (req) => {
   try {
     console.log("[RESEND-INBOUND] Received webhook");
 
+    // Verify webhook signature for security
+    const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("[RESEND-INBOUND] RESEND_WEBHOOK_SECRET not configured");
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const payload = await req.text();
+    const requestHeaders = Object.fromEntries(req.headers);
+    
+    const wh = new Webhook(webhookSecret);
+    let raw: any;
+    
+    try {
+      raw = wh.verify(payload, requestHeaders);
+      console.log("[RESEND-INBOUND] Webhook signature verified");
+    } catch (error: any) {
+      console.error("[RESEND-INBOUND] Webhook verification failed:", error.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid webhook signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -67,8 +95,7 @@ serve(async (req) => {
 
     // Parse Resend webhook payload
     // Handle both formats: { object: "event", type: "email.received", data: {...} } OR direct email object
-    const raw = await req.json();
-    console.log("[RESEND-INBOUND] Raw payload received");
+    console.log("[RESEND-INBOUND] Payload verified and parsed");
 
     const email: ResendInboundEmail = (raw?.data && (raw.type === "email.received" || raw.object === "event"))
       ? raw.data
@@ -80,7 +107,7 @@ serve(async (req) => {
     const subject: string = email.subject || "";
     const htmlBody: string = email.html || "";
     const textBody: string = email.text || "";
-    const headers = email.headers || {};
+    const emailHeaders = email.headers || {};
     const attachments = email.attachments || [];
 
     console.log("[RESEND-INBOUND] From:", fromEmail, "To:", toEmail, "Subject:", subject);
@@ -187,7 +214,7 @@ serve(async (req) => {
       reply_to: email.reply_to,
       message_id: email.message_id,
       in_reply_to: email.in_reply_to,
-      headers,
+      headers: emailHeaders,
       attachments: attachments.map((att: any) => ({
         filename: att.filename,
         content_type: att.content_type,
