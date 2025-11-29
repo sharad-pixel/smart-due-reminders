@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,29 +80,28 @@ serve(async (req) => {
 
     if (replyToEmail) {
       console.log(`Using reply-to email: ${replyToEmail}`);
+    } else {
+      console.warn("No inbound email account found for reply-to");
     }
 
-    // In production, integrate with your email service provider (SendGrid, Postmark, etc.)
-    // For now, we'll log the email details
-    const emailPayload = {
-      from: {
-        email: senderEmail,
-        name: senderName,
-      },
-      to: [{ email: recipientEmail }],
-      ...(replyToEmail && { reply_to: [{ email: replyToEmail }] }),
+    // Send email via Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    
+    console.log(`Sending collection email from ${senderEmail} to ${recipientEmail} with reply-to: ${replyToEmail}`);
+    
+    const emailResponse = await resend.emails.send({
+      from: `${senderName} <${senderEmail}>`,
+      ...(replyToEmail && { reply_to: replyToEmail }),
+      to: recipientEmail,
       subject,
       html: body,
-      metadata: {
-        user_id: user.id,
-        draft_id: draftId || null,
-        invoice_id: invoiceId || null,
-        domain: domain,
-        reply_to_email: replyToEmail || null,
-      },
-    };
+    });
 
-    console.log("Email payload prepared:", JSON.stringify(emailPayload, null, 2));
+    if (emailResponse.error) {
+      throw new Error(`Resend API error: ${emailResponse.error.message}`);
+    }
+    
+    console.log("Email sent successfully via Resend:", emailResponse);
 
     // Log the collection activity
     if (draftId || invoiceId) {
@@ -127,6 +127,7 @@ serve(async (req) => {
             from_email: senderEmail,
             from_name: senderName,
             domain: domain,
+            reply_to_email: replyToEmail || null,
           },
         });
 
