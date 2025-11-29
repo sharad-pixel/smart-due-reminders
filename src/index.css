@@ -114,3 +114,78 @@ All colors MUST be HSL.
   background-size: 40px 40px;
 }
 
+/* Mobile-first responsive utilities */
+@layer utilities {
+  /* Touch-friendly tap targets (min 44x44px) */
+  .tap-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Mobile-optimized spacing */
+  .mobile-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Responsive text scaling */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+  
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl lg:text-4xl;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Mobile-friendly grid */
+  .grid-mobile-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+  
+  /* Card to table conversion for mobile */
+  .mobile-card-table {
+    @apply block lg:table;
+  }
+  
+  .mobile-card-table thead {
+    @apply hidden lg:table-header-group;
+  }
+  
+  .mobile-card-table tr {
+    @apply block lg:table-row border-b lg:border-b-0 mb-4 lg:mb-0 bg-card lg:bg-transparent rounded-lg lg:rounded-none p-4 lg:p-0;
+  }
+  
+  .mobile-card-table td {
+    @apply block lg:table-cell text-left lg:text-left py-2 lg:py-4;
+  }
+  
+  .mobile-card-table td:before {
+    content: attr(data-label);
+    @apply lg:hidden font-semibold text-muted-foreground text-xs uppercase mb-1 block;
+  }
+}
+

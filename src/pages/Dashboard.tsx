@@ -238,10 +238,10 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         <div>
-          <h1 className="text-4xl font-bold text-primary">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
             Welcome back! Here's your collection overview.
           </p>
         </div>
@@ -251,77 +251,80 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold">AI Collection Workflows</h3>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-base sm:text-lg font-semibold">AI Collection Workflows</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Set up automated collection sequences for your invoices
                 </p>
               </div>
-              <Button onClick={() => navigate("/settings/ai-workflows")}>
+              <Button 
+                onClick={() => navigate("/settings/ai-workflows")}
+                className="w-full sm:w-auto shrink-0"
+              >
                 Configure Workflows
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Outstanding</CardTitle>
+              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalOutstanding.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Open + In Payment Plan</p>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">${stats.totalOutstanding.toLocaleString()}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Open + In Payment Plan</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recovered (90 Days)</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Recovered (90 Days)</CardTitle>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRecovered.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Payments received</p>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">${stats.totalRecovered.toLocaleString()}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Payments received</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Open Invoices</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Open Invoices</CardTitle>
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.openInvoicesCount}</div>
-              <p className="text-xs text-muted-foreground">Awaiting payment</p>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats.openInvoicesCount}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Awaiting payment</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Days Past Due</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Avg Days Past Due</CardTitle>
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.avgDaysPastDue}</div>
-              <p className="text-xs text-muted-foreground">For open invoices</p>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats.avgDaysPastDue}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">For open invoices</p>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Invoice Aging Analysis</CardTitle>
-              <div className="flex gap-2 flex-wrap">
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Invoice Aging Analysis</CardTitle>
+              <div className="flex gap-1 sm:gap-2 flex-wrap">
                 {["Open", "InPaymentPlan", "Paid", "Disputed", "Settled", "Canceled"].map((status) => (
                   <Badge
                     key={status}
                     variant={statusFilters.includes(status) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-xs tap-target"
                     onClick={() => toggleStatusFilter(status)}
                   >
                     {status}
@@ -330,8 +333,20 @@ const Dashboard = () => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250} className="sm:hidden">
+              <BarChart data={agingData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="bucket" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip
+                  formatter={(value: number) => `$${value.toLocaleString()}`}
+                  labelFormatter={(label) => `${label} days`}
+                />
+                <Bar dataKey="amount" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={300} className="hidden sm:block">
               <BarChart data={agingData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="bucket" />
@@ -343,18 +358,18 @@ const Dashboard = () => {
                 <Bar dataKey="amount" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-4 grid grid-cols-5 gap-4 text-center">
+            <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 text-center">
               {agingData.map((bucket) => (
                 <div key={bucket.bucket}>
-                  <p className="text-sm font-medium">{bucket.bucket} days</p>
-                  <p className="text-xs text-muted-foreground">{bucket.count} invoices</p>
+                  <p className="text-xs sm:text-sm font-medium">{bucket.bucket} days</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{bucket.count} inv</p>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">

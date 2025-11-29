@@ -17,7 +17,9 @@ import {
   CheckSquare,
   Shield,
   FolderOpen,
-  Upload
+  Upload,
+  Menu,
+  X
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -44,6 +46,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [planType, setPlanType] = useState<string>("free");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -181,16 +184,27 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <SecurityAlert />
-      <nav className="border-b bg-card shadow-sm">
+      <nav className="sticky top-0 z-50 border-b bg-card shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-2">
+          <div className="flex justify-between items-center h-16 sm:h-20">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden p-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+              
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
                   Recouply.ai
                 </h1>
               </Link>
-              <div className="hidden lg:flex items-center gap-1">
+              
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center gap-1 overflow-x-auto">
                 {mainNavItems.map((item) => {
                   const Icon = item.icon;
                   
@@ -198,14 +212,14 @@ const Layout = ({ children }: LayoutProps) => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      <span className="whitespace-nowrap">{item.label}</span>
+                      <span>{item.label}</span>
                     </Link>
                   );
                 })}
@@ -215,17 +229,17 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center space-x-2 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={avatarUrl || undefined} alt={userName} />
                       <AvatarFallback>
                         {userName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline-block">{userName}</span>
+                    <span className="hidden md:inline-block text-sm">{userName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 bg-card border shadow-lg z-[100]">
+                <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-card border shadow-lg z-[100]">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
@@ -276,9 +290,34 @@ const Layout = ({ children }: LayoutProps) => {
               </DropdownMenu>
             </div>
           </div>
+          
+          {/* Mobile Navigation Menu */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden py-4 space-y-1 border-t">
+              {mainNavItems.map((item) => {
+                const Icon = item.icon;
+                
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      isActive(item.path)
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {children}
       </main>
     </div>

@@ -338,29 +338,31 @@ const Invoices = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
-            <h1 className="text-4xl font-bold text-primary">Invoices</h1>
-            <p className="text-muted-foreground mt-2">Track and manage outstanding invoices</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Invoices</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Track and manage outstanding invoices</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               onClick={() => setIsAIPromptOpen(true)}
-              className="gap-2"
+              className="gap-2 flex-1 sm:flex-initial"
+              size="sm"
             >
               <Sparkles className="h-4 w-4" />
-              Create with AI
+              <span className="hidden sm:inline">Create with AI</span>
+              <span className="sm:hidden">AI</span>
             </Button>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="flex-1 sm:flex-initial" size="sm">
                   <Plus className="h-4 w-4 mr-2" />
                   New Invoice
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Invoice</DialogTitle>
                 </DialogHeader>

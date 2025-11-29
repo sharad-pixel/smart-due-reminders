@@ -490,11 +490,11 @@ const AIWorkflows = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-4xl font-bold text-primary">AI Workflows</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">AI Workflows</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               Configure automated AI-powered collection outreach by aging bucket
             </p>
           </div>
