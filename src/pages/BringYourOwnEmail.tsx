@@ -95,15 +95,12 @@ const BringYourOwnEmail = () => {
       toast.loading("Sending test email...");
 
       const { data, error } = await supabase.functions.invoke("test-email-account", {
-        body: { 
-          accountId,
-          recipientEmail: account.email_address 
-        }
+        body: { accountId }
       });
 
       if (error) throw error;
 
-      toast.success("Test email sent successfully! Check your inbox.");
+      toast.success("Test email sent to your registered email address! Check your inbox.");
       fetchEmailAccounts();
     } catch (error: any) {
       console.error("Error testing connection:", error);
