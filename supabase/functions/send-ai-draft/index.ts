@@ -45,12 +45,13 @@ serve(async (req) => {
 
     // Send based on channel
     if (draft.channel === "email") {
-      // Check for connected email account (BYOE) - try active accounts first
+      // Check for connected email account (BYOE) - try active outbound accounts first
       let { data: emailAccount, error: emailAccountError } = await supabaseClient
         .from("email_accounts")
         .select("*")
         .eq("user_id", user.id)
         .eq("is_active", true)
+        .eq("email_type", "outbound")
         .maybeSingle();
 
       // If no active account, try any account regardless of verification/active status
@@ -72,6 +73,18 @@ serve(async (req) => {
 
       sentFrom = emailAccount.email_address;
 
+      // Get verified inbound email for reply-to
+      const { data: inboundAccount } = await supabaseClient
+        .from("email_accounts")
+        .select("email_address")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .eq("email_type", "inbound")
+        .eq("is_verified", true)
+        .maybeSingle();
+
+      const replyToAddress = inboundAccount?.email_address || emailAccount.email_address;
+
       try {
         // Use test-email edge function to handle the actual sending
         const testEmailResponse = await supabaseClient.functions.invoke("test-email", {
@@ -80,6 +93,7 @@ serve(async (req) => {
             to_email: debtor.email,
             subject: draft.subject || "Payment Reminder",
             body_html: draft.message_body.replace(/\n/g, "<br>"),
+            reply_to: replyToAddress,
           },
         });
 
@@ -101,6 +115,9 @@ serve(async (req) => {
         }
 
         sendResult = { success: true, message: "Email sent successfully via connected account" };
+        
+        // Store reply-to for logging
+        (sendResult as any).replyTo = replyToAddress;
       } catch (emailError: any) {
         console.error("Email send error:", emailError);
         
@@ -165,7 +182,7 @@ serve(async (req) => {
     }
 
     // Log the outreach
-    await supabaseClient.from("outreach_logs").insert({
+    const outreachLog = await supabaseClient.from("outreach_logs").insert({
       user_id: user.id,
       invoice_id: invoice.id,
       debtor_id: debtor.id,
@@ -176,7 +193,11 @@ serve(async (req) => {
       sent_from: sentFrom,
       status: "sent",
       sent_at: new Date().toISOString(),
-    });
+      delivery_metadata: {
+        draft_id: draft_id,
+        reply_to: draft.channel === "email" ? (sendResult as any).replyTo : undefined,
+      },
+    }).select().single();
 
     // Update invoice last_contact_date
     await supabaseClient
