@@ -1328,6 +1328,7 @@ export type Database = {
           display_name: string | null
           dkim_status: string | null
           email_address: string
+          email_type: string | null
           error_message: string | null
           id: string
           imap_host: string | null
@@ -1361,6 +1362,7 @@ export type Database = {
           display_name?: string | null
           dkim_status?: string | null
           email_address: string
+          email_type?: string | null
           error_message?: string | null
           id?: string
           imap_host?: string | null
@@ -1394,6 +1396,7 @@ export type Database = {
           display_name?: string | null
           dkim_status?: string | null
           email_address?: string
+          email_type?: string | null
           error_message?: string | null
           id?: string
           imap_host?: string | null
