@@ -184,7 +184,7 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <SecurityAlert />
-      <nav className="sticky top-0 z-50 border-b bg-card shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
@@ -293,7 +293,7 @@ const Layout = ({ children }: LayoutProps) => {
           
           {/* Mobile Navigation Menu */}
           {mobileMenuOpen && (
-            <div className="lg:hidden py-4 space-y-1 border-t">
+            <div className="lg:hidden py-4 space-y-1 border-t bg-card">
               {mainNavItems.map((item) => {
                 const Icon = item.icon;
                 
@@ -302,7 +302,7 @@ const Layout = ({ children }: LayoutProps) => {
                     key={item.path}
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all tap-target ${
                       isActive(item.path)
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -317,6 +317,7 @@ const Layout = ({ children }: LayoutProps) => {
           )}
         </div>
       </nav>
+      <div className="h-16 sm:h-20"></div>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {children}
       </main>
