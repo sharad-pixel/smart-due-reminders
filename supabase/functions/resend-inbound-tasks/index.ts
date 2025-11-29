@@ -102,20 +102,47 @@ serve(async (req) => {
     console.log("[RESEND-INBOUND] From:", fromEmail, "To:", toEmail, "Subject:", subject);
 
     // Parse the recipient local part for routing
-    // Expected: invoice+<uuid>@recouply.ai OR debtor+<uuid>@recouply.ai
+    // Expected: invoice+<uuid>@recouply.ai OR debtor+<uuid>@recouply.ai OR collections@inbound.services.recouply.ai
     let taskLevel: "invoice" | "debtor" | "unknown" = "unknown";
     let refUuid: string | null = null;
 
     if (toEmail) {
       const [localPart] = toEmail.split("@");
-      const [prefix, uuidCandidate] = localPart.split("+");
+      
+      // Check if it's the generic collections address
+      if (localPart === "collections" && toEmail.includes("inbound.services.recouply.ai")) {
+        console.log("[RESEND-INBOUND] Generic collections address, looking up debtor by sender email:", fromEmail);
+        
+        // Try to find debtor by email
+        const { data: debtor, error: debtorError } = await supabase
+          .from("debtors")
+          .select("id, user_id, email")
+          .or(`email.eq.${fromEmail},ar_contact_email.eq.${fromEmail},primary_email.eq.${fromEmail}`)
+          .limit(1)
+          .single();
+        
+        if (!debtorError && debtor) {
+          taskLevel = "debtor";
+          refUuid = debtor.id;
+          console.log("[RESEND-INBOUND] Matched debtor:", debtor.id, "by email:", fromEmail);
+        } else {
+          console.warn("[RESEND-INBOUND] Could not match sender email to debtor:", fromEmail);
+          return new Response(
+            JSON.stringify({ success: true, warning: "Could not match sender to debtor" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        // Parse subaddressing pattern
+        const [prefix, uuidCandidate] = localPart.split("+");
 
-      if (prefix === "invoice" && uuidCandidate) {
-        taskLevel = "invoice";
-        refUuid = uuidCandidate;
-      } else if (prefix === "debtor" && uuidCandidate) {
-        taskLevel = "debtor";
-        refUuid = uuidCandidate;
+        if (prefix === "invoice" && uuidCandidate) {
+          taskLevel = "invoice";
+          refUuid = uuidCandidate;
+        } else if (prefix === "debtor" && uuidCandidate) {
+          taskLevel = "debtor";
+          refUuid = uuidCandidate;
+        }
       }
     }
 
