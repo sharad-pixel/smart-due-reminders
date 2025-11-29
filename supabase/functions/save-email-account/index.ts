@@ -78,7 +78,8 @@ serve(async (req) => {
       imap_host,
       imap_port,
       imap_username,
-      imap_password
+      imap_password,
+      email_type
     } = await req.json();
 
     console.log('Saving email account for user:', user.id, 'provider:', provider);
@@ -108,6 +109,7 @@ serve(async (req) => {
       imap_password_encrypted: encryptedImapPassword,
       connection_status: "pending",
       is_active: true,
+      email_type: email_type || "outbound", // Default to outbound if not specified
     }).select().single();
 
     if (error) {

@@ -48,13 +48,14 @@ serve(async (req) => {
       .eq("is_active", true)
       .maybeSingle();
 
-    // Get inbound email for reply-to
+    // Get inbound email for reply-to (must be verified)
     const { data: inboundAccount } = await supabaseClient
       .from("email_accounts")
       .select("email_address")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .eq("email_type", "inbound")
+      .eq("is_verified", true)
       .maybeSingle();
 
     const replyToEmail = inboundAccount?.email_address;
@@ -79,9 +80,9 @@ serve(async (req) => {
     }
 
     if (replyToEmail) {
-      console.log(`Using reply-to email: ${replyToEmail}`);
+      console.log(`Using verified inbound reply-to email: ${replyToEmail}`);
     } else {
-      console.warn("No inbound email account found for reply-to");
+      console.warn("No verified inbound email account found for reply-to. Emails will be sent without reply-to address.");
     }
 
     // Send email via Resend
