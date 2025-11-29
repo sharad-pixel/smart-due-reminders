@@ -6,6 +6,7 @@ export interface SendingIdentity {
   domain: string;
   isVerified: boolean;
   useRecouplyDomain: boolean;
+  replyToEmail?: string;
 }
 
 /**
@@ -31,6 +32,17 @@ export async function getActiveSendingIdentity(): Promise<SendingIdentity> {
       console.error("Error fetching email profile:", error);
     }
 
+    // Get inbound email for reply-to
+    const { data: inboundAccount } = await supabase
+      .from("email_accounts")
+      .select("email_address")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .eq("email_type", "inbound")
+      .maybeSingle();
+
+    const replyToEmail = inboundAccount?.email_address;
+
     // If custom domain exists and is verified, use it
     if (profile && !profile.use_recouply_domain && profile.verification_status === "verified") {
       return {
@@ -39,6 +51,7 @@ export async function getActiveSendingIdentity(): Promise<SendingIdentity> {
         domain: profile.domain,
         isVerified: true,
         useRecouplyDomain: false,
+        replyToEmail,
       };
     }
 
@@ -50,6 +63,7 @@ export async function getActiveSendingIdentity(): Promise<SendingIdentity> {
         domain: profile.domain,
         isVerified: true,
         useRecouplyDomain: true,
+        replyToEmail,
       };
     }
 
@@ -60,6 +74,7 @@ export async function getActiveSendingIdentity(): Promise<SendingIdentity> {
       domain: "send.recouply.ai",
       isVerified: true,
       useRecouplyDomain: true,
+      replyToEmail,
     };
   } catch (error) {
     console.error("Error getting sending identity:", error);

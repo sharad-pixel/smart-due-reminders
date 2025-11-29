@@ -47,6 +47,17 @@ serve(async (req) => {
       .eq("is_active", true)
       .maybeSingle();
 
+    // Get inbound email for reply-to
+    const { data: inboundAccount } = await supabaseClient
+      .from("email_accounts")
+      .select("email_address")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .eq("email_type", "inbound")
+      .maybeSingle();
+
+    const replyToEmail = inboundAccount?.email_address;
+
     let senderName = "Recouply Collections";
     let senderEmail = `workspace-${user.id.substring(0, 8)}@send.recouply.ai`;
     let domain = "send.recouply.ai";
@@ -66,6 +77,10 @@ serve(async (req) => {
       console.log(`Using default fallback domain`);
     }
 
+    if (replyToEmail) {
+      console.log(`Using reply-to email: ${replyToEmail}`);
+    }
+
     // In production, integrate with your email service provider (SendGrid, Postmark, etc.)
     // For now, we'll log the email details
     const emailPayload = {
@@ -74,6 +89,7 @@ serve(async (req) => {
         name: senderName,
       },
       to: [{ email: recipientEmail }],
+      ...(replyToEmail && { reply_to: [{ email: replyToEmail }] }),
       subject,
       html: body,
       metadata: {
@@ -81,6 +97,7 @@ serve(async (req) => {
         draft_id: draftId || null,
         invoice_id: invoiceId || null,
         domain: domain,
+        reply_to_email: replyToEmail || null,
       },
     };
 

@@ -27,6 +27,7 @@ const BringYourOwnEmail = () => {
   const [formData, setFormData] = useState({
     email: "",
     displayName: "",
+    type: "outbound" as "outbound" | "inbound",
   });
 
   useEffect(() => {
@@ -71,12 +72,13 @@ const BringYourOwnEmail = () => {
           auth_method: "api",
           is_verified: false,
           connection_status: "pending",
+          email_type: formData.type,
         });
 
       if (error) throw error;
 
-      toast.success("Email account added successfully!");
-      setFormData({ email: "", displayName: "" });
+      toast.success(`${formData.type === 'inbound' ? 'Inbound' : 'Outbound'} email account added successfully!`);
+      setFormData({ email: "", displayName: "", type: "outbound" });
       setShowAddForm(false);
       fetchEmailAccounts();
     } catch (error: any) {
@@ -161,20 +163,71 @@ const BringYourOwnEmail = () => {
           </AlertDescription>
         </Alert>
 
-        {emailAccounts.length > 0 && (
+        {emailAccounts.filter(a => (a as any).email_type === 'outbound').length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Connected Email Accounts</CardTitle>
-              <CardDescription>Manage your email accounts for sending collections</CardDescription>
+              <CardTitle>Outbound Email Accounts</CardTitle>
+              <CardDescription>Email addresses for sending collection messages</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {emailAccounts.map((account) => (
+              {emailAccounts.filter(a => (a as any).email_type === 'outbound').map((account) => (
                 <div key={account.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <Mail className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">{account.email_address}</p>
                       <p className="text-sm text-muted-foreground">{account.display_name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {account.is_verified ? (
+                          <span className="flex items-center gap-1 text-xs text-green-600">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs text-orange-600">
+                            <AlertCircle className="h-3 w-3" />
+                            Pending verification
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestConnection(account.id)}
+                    >
+                      Test Connection
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteAccount(account.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {emailAccounts.filter(a => (a as any).email_type === 'inbound').length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Inbound Email Accounts</CardTitle>
+              <CardDescription>Reply-to addresses for receiving customer responses</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {emailAccounts.filter(a => (a as any).email_type === 'inbound').map((account) => (
+                <div key={account.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{account.email_address}</p>
+                      <p className="text-sm text-muted-foreground">{account.display_name} (Reply-To)</p>
                       <div className="flex items-center gap-2 mt-1">
                         {account.is_verified ? (
                           <span className="flex items-center gap-1 text-xs text-green-600">
@@ -221,11 +274,38 @@ const BringYourOwnEmail = () => {
             <CardHeader>
               <CardTitle>Add Email Account</CardTitle>
               <CardDescription>
-                Enter the email address you want to send from. Make sure this email is verified in your Resend account.
+                Configure an email address for sending messages or receiving responses.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddEmail} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="type">Email Type *</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={formData.type === 'outbound' ? 'default' : 'outline'}
+                      onClick={() => setFormData({ ...formData, type: 'outbound' })}
+                      className="flex-1"
+                    >
+                      Outbound (Send)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={formData.type === 'inbound' ? 'default' : 'outline'}
+                      onClick={() => setFormData({ ...formData, type: 'inbound' })}
+                      className="flex-1"
+                    >
+                      Inbound (Reply-To)
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.type === 'outbound' 
+                      ? 'Used to send collection emails to customers'
+                      : 'Used as reply-to address to capture customer responses'}
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address *</Label>
                   <Input
@@ -257,14 +337,14 @@ const BringYourOwnEmail = () => {
 
                 <div className="flex gap-2">
                   <Button type="submit" className="flex-1">
-                    Add Email Account
+                    Add {formData.type === 'inbound' ? 'Inbound' : 'Outbound'} Email
                   </Button>
                   <Button 
                     type="button" 
                     variant="outline" 
                     onClick={() => {
                       setShowAddForm(false);
-                      setFormData({ email: "", displayName: "" });
+                      setFormData({ email: "", displayName: "", type: "outbound" });
                     }}
                   >
                     Cancel
