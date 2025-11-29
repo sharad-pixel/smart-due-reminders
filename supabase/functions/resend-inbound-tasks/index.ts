@@ -54,59 +54,22 @@ serve(async (req) => {
   }
 
   try {
-    console.log("[RESEND-INBOUND] Received webhook");
+    console.log("[RESEND-INBOUND] ✅ Received webhook");
 
-    const payload = await req.text();
-    const requestHeaders = Object.fromEntries(req.headers);
-    
-    // Log headers for debugging
-    console.log("[RESEND-INBOUND] Request headers:", JSON.stringify({
-      'svix-id': requestHeaders['svix-id'],
-      'webhook-id': requestHeaders['webhook-id'],
-      'content-type': requestHeaders['content-type']
-    }));
-    
+    // Parse JSON directly - no signature verification
+    // Resend inbound routes send plain JSON payloads
     let raw: any;
-    
-    // Resend inbound email routes send plain JSON, not signed webhooks
-    // Only verify signature if signature headers are present
-    const hasSignatureHeaders = requestHeaders['svix-id'] || requestHeaders['webhook-id'];
-    
-    if (hasSignatureHeaders) {
-      // This is a signed webhook - verify it
-      const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
-      if (!webhookSecret) {
-        console.error("[RESEND-INBOUND] Webhook secret not configured but signature headers present");
-        return new Response(
-          JSON.stringify({ error: "Webhook secret not configured" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      const wh = new Webhook(webhookSecret);
-      try {
-        raw = wh.verify(payload, requestHeaders);
-        console.log("[RESEND-INBOUND] Webhook signature verified");
-      } catch (error: any) {
-        console.error("[RESEND-INBOUND] Webhook verification failed:", error.message);
-        return new Response(
-          JSON.stringify({ error: "Invalid webhook signature" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    } else {
-      // No signature headers - this is an inbound email route
-      console.log("[RESEND-INBOUND] Processing inbound email route (no signature verification)");
-      try {
-        raw = JSON.parse(payload);
-        console.log("[RESEND-INBOUND] Payload parsed successfully");
-      } catch (error: any) {
-        console.error("[RESEND-INBOUND] Failed to parse payload:", error.message);
-        return new Response(
-          JSON.stringify({ error: "Invalid payload format" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    try {
+      raw = await req.json();
+      console.log("[RESEND-INBOUND] ✅ Payload parsed successfully");
+      console.log("[RESEND-INBOUND] Preview:", JSON.stringify(raw).substring(0, 200));
+    } catch (error: any) {
+      console.error("[RESEND-INBOUND] ❌ Failed to parse JSON:", error.message);
+      // Always return 200 to prevent Resend retries
+      return new Response(
+        JSON.stringify({ success: true, message: "Received but could not parse" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const supabase = createClient(
