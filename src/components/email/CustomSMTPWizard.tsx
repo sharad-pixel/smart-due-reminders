@@ -18,6 +18,7 @@ interface CustomSMTPWizardProps {
 export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig }: CustomSMTPWizardProps) => {
   const [email, setEmail] = useState(initialEmail);
   const [displayName, setDisplayName] = useState("");
+  const [emailType, setEmailType] = useState<"outbound" | "inbound">("outbound");
   const [smtpHost, setSmtpHost] = useState(detectedConfig?.smtp?.host || "");
   const [smtpPort, setSmtpPort] = useState(detectedConfig?.smtp?.port?.toString() || "587");
   const [smtpUsername, setSmtpUsername] = useState(initialEmail);
@@ -92,6 +93,7 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
           imap_port: imapPort ? parseInt(imapPort) : null,
           imap_username: imapUsername || null,
           imap_password: imapPassword || null,
+          email_type: emailType,
         }
       });
 
@@ -167,6 +169,24 @@ export const CustomSMTPWizard = ({ onComplete, initialEmail = "", detectedConfig
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="emailType">Account Type *</Label>
+            <Select value={emailType} onValueChange={(value: "outbound" | "inbound") => setEmailType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="outbound">Outbound (For Sending)</SelectItem>
+                <SelectItem value="inbound">Inbound (For Replies)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {emailType === "outbound" 
+                ? "This account will be used to send collection emails" 
+                : "This account will receive customer replies (set as reply-to address)"}
+            </p>
           </div>
 
           <div className="pt-4 border-t">
