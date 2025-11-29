@@ -32,11 +32,24 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { accountId, recipientEmail } = await req.json();
+    const { accountId } = await req.json();
 
-    if (!accountId || !recipientEmail) {
-      throw new Error("Account ID and recipient email are required");
+    if (!accountId) {
+      throw new Error("Account ID is required");
     }
+
+    // Get user's email from their profile to send test email
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("email")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile?.email) {
+      throw new Error("Could not fetch user email");
+    }
+
+    const recipientEmail = profile.email;
 
     // Fetch the email account
     const { data: account, error: accountError } = await supabaseClient
