@@ -196,11 +196,11 @@ serve(async (req) => {
       // Fallback: invoke test-email function for other email methods
       const { data: emailResult, error: sendError } = await supabase.functions.invoke("test-email", {
         body: {
-          accountId: emailAccount.id,
-          recipient: debtor.email,
+          email_account_id: emailAccount.id,
+          to_email: debtor.email,
           subject: subject,
-          body: emailHtml,
-          isHtml: true,
+          body_html: emailHtml,
+          reply_to: replyToAddress,
         },
       });
 
