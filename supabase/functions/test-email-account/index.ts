@@ -102,7 +102,8 @@ serve(async (req) => {
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
     const emailResponse = await resend.emails.send({
-      from: `${account.display_name} <${account.email_address}>`,
+      from: "Recouply <onboarding@resend.dev>",
+      reply_to: account.email_address,
       to: recipientEmail,
       subject: testEmailContent.subject,
       html: testEmailContent.html,
