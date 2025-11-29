@@ -51,6 +51,7 @@ interface EmailRequest {
   email?: string; // Legacy support
   subject?: string;
   body_html?: string;
+  reply_to?: string;
 }
 
 serve(async (req) => {
@@ -76,7 +77,7 @@ serve(async (req) => {
     if (userError || !user) throw new Error("Not authenticated");
 
     const emailRequest: EmailRequest = await req.json();
-    const { email_account_id, to_email, email, subject, body_html } = emailRequest;
+    const { email_account_id, to_email, email, subject, body_html, reply_to } = emailRequest;
     
     // Determine recipient (support both new and legacy params)
     const recipient = to_email || email;
@@ -119,17 +120,17 @@ serve(async (req) => {
       // Handle different authentication methods
       if (emailAccount.auth_method === "oauth") {
         if (emailAccount.provider === "gmail") {
-          sendResult = await sendViaGmailAPI(emailAccount, recipient, emailSubject, emailBody);
+          sendResult = await sendViaGmailAPI(emailAccount, recipient, emailSubject, emailBody, reply_to);
         } else if (emailAccount.provider === "outlook" || emailAccount.provider === "office365") {
-          sendResult = await sendViaOutlookAPI(emailAccount, recipient, emailSubject, emailBody);
+          sendResult = await sendViaOutlookAPI(emailAccount, recipient, emailSubject, emailBody, reply_to);
         } else {
           throw new Error(`OAuth not supported for provider: ${emailAccount.provider}`);
         }
       } else if (emailAccount.auth_method === "smtp") {
-        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody);
+        sendResult = await sendViaSMTP(supabaseClient, emailAccount, recipient, emailSubject, emailBody, reply_to);
       } else if (emailAccount.auth_method === "api") {
         if (emailAccount.provider === "resend") {
-          sendResult = await sendViaResendAPI(emailAccount, recipient, emailSubject, emailBody);
+          sendResult = await sendViaResendAPI(emailAccount, recipient, emailSubject, emailBody, reply_to);
         } else {
           throw new Error(`API auth not supported for provider: ${emailAccount.provider}`);
         }
@@ -242,7 +243,8 @@ async function sendViaGmailAPI(
   account: any,
   to: string,
   subject: string,
-  bodyHtml: string
+  bodyHtml: string,
+  replyTo?: string
 ): Promise<any> {
   // In production, this would:
   // 1. Refresh OAuth token if expired
@@ -251,6 +253,7 @@ async function sendViaGmailAPI(
   
   console.log(`[SIMULATED] Sending email via Gmail API from ${account.email_address} to ${to}`);
   console.log(`Subject: ${subject}`);
+  if (replyTo) console.log(`Reply-To: ${replyTo}`);
   
   // Simulate success for now
   return { success: true, provider: "gmail" };
@@ -261,10 +264,12 @@ async function sendViaOutlookAPI(
   account: any,
   to: string,
   subject: string,
-  bodyHtml: string
+  bodyHtml: string,
+  replyTo?: string
 ): Promise<any> {
   console.log(`[SIMULATED] Sending email via Outlook API from ${account.email_address} to ${to}`);
   console.log(`Subject: ${subject}`);
+  if (replyTo) console.log(`Reply-To: ${replyTo}`);
   
   // Simulate success for now
   return { success: true, provider: "outlook" };
@@ -273,11 +278,12 @@ async function sendViaOutlookAPI(
 // Helper function to send via Resend API
 async function sendViaResendAPI(
   account: any,
-  to: string,
+  recipient: string,
   subject: string,
-  bodyHtml: string
+  bodyHtml: string,
+  replyTo?: string
 ): Promise<any> {
-  console.log(`Sending email via Resend API from ${account.email_address} to ${to}`);
+  console.log(`Sending email via Resend API from ${account.email_address} to ${recipient}`);
   
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
@@ -287,19 +293,25 @@ async function sendViaResendAPI(
   const resend = new Resend(resendApiKey);
 
   try {
-    const { data, error } = await resend.emails.send({
+    const emailPayload: any = {
       from: account.email_address,
-      to: to,
+      to: recipient,
       subject: subject,
       html: bodyHtml,
-    });
+    };
+    
+    if (replyTo) {
+      emailPayload.reply_to = replyTo;
+    }
+    
+    const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       console.error("Resend API error:", error);
       throw new Error(`Resend API error: ${error.message}`);
     }
 
-    console.log(`✅ Email sent successfully via Resend to ${to}`, data);
+    console.log(`✅ Email sent successfully via Resend to ${recipient}`, data);
     return { success: true, provider: "resend", messageId: data?.id };
   } catch (error: any) {
     console.error("Resend send error:", error);
@@ -313,10 +325,12 @@ async function sendViaSMTP(
   account: any,
   to: string,
   subject: string,
-  bodyHtml: string
+  bodyHtml: string,
+  replyTo?: string
 ): Promise<any> {
   console.log(`Sending email via SMTP from ${account.email_address} to ${to}`);
   console.log(`SMTP Settings: ${account.smtp_host}:${account.smtp_port}`);
+  if (replyTo) console.log(`Reply-To: ${replyTo}`);
   
   if (!account.smtp_host || !account.smtp_port || !account.smtp_username || !account.smtp_password_encrypted) {
     throw new Error("SMTP configuration incomplete");
@@ -341,12 +355,18 @@ async function sendViaSMTP(
     });
 
     // Send email with HTML content only
-    await client.send({
+    const emailPayload: any = {
       from: account.email_address,
       to: to,
       subject: subject,
       html: bodyHtml,
-    });
+    };
+    
+    if (replyTo) {
+      emailPayload.replyTo = replyTo;
+    }
+    
+    await client.send(emailPayload);
 
     await client.close();
 

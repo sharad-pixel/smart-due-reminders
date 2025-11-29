@@ -41,12 +41,19 @@ serve(async (req) => {
     console.log(`Preparing to send collection email to: ${recipientEmail}`);
 
     // Get the active sending identity for this user
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("email_sending_profiles")
+    const { data: emailAccount, error: emailError } = await supabaseClient
+      .from("email_accounts")
       .select("*")
       .eq("user_id", user.id)
       .eq("is_active", true)
-      .maybeSingle();
+      .eq("email_type", "outbound")
+      .order("is_primary", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (emailError || !emailAccount) {
+      throw new Error("No active email account found. Please set up your email account first.");
+    }
 
     // Get inbound email for reply-to (must be verified)
     const { data: inboundAccount } = await supabaseClient
@@ -58,41 +65,22 @@ serve(async (req) => {
       .eq("is_verified", true)
       .maybeSingle();
 
-    const replyToEmail = inboundAccount?.email_address;
-
-    let senderName = "Recouply Collections";
-    let senderEmail = `workspace-${user.id.substring(0, 8)}@send.recouply.ai`;
-    let domain = "send.recouply.ai";
-
-    // If custom domain exists and is verified, use it
-    if (profile && !profile.use_recouply_domain && profile.verification_status === "verified") {
-      senderName = profile.sender_name;
-      senderEmail = profile.sender_email;
-      domain = profile.domain;
-      console.log(`Using verified custom domain: ${domain}`);
-    } else if (profile && profile.use_recouply_domain) {
-      senderName = profile.sender_name;
-      senderEmail = profile.sender_email;
-      domain = profile.domain;
-      console.log(`Using Recouply domain by user preference`);
-    } else {
-      console.log(`Using default fallback domain`);
-    }
+    const replyToEmail = inboundAccount?.email_address || emailAccount.email_address;
 
     if (replyToEmail) {
       console.log(`Using verified inbound reply-to email: ${replyToEmail}`);
     } else {
-      console.warn("No verified inbound email account found for reply-to. Emails will be sent without reply-to address.");
+      console.log("Using outbound email as reply-to fallback");
     }
 
     // Send email via Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
-    console.log(`Sending collection email from ${senderEmail} to ${recipientEmail} with reply-to: ${replyToEmail}`);
+    console.log(`Sending collection email from ${emailAccount.email_address} to ${recipientEmail} with reply-to: ${replyToEmail}`);
     
     const emailResponse = await resend.emails.send({
-      from: `${senderName} <${senderEmail}>`,
-      ...(replyToEmail && { reply_to: replyToEmail }),
+      from: emailAccount.email_address,
+      reply_to: replyToEmail,
       to: recipientEmail,
       subject,
       html: body,
@@ -125,10 +113,9 @@ serve(async (req) => {
           message_body: body,
           sent_at: new Date().toISOString(),
           metadata: {
-            from_email: senderEmail,
-            from_name: senderName,
-            domain: domain,
-            reply_to_email: replyToEmail || null,
+            from_email: emailAccount.email_address,
+            from_name: emailAccount.display_name || "Collections Team",
+            reply_to_email: replyToEmail,
           },
         });
 
@@ -157,9 +144,8 @@ serve(async (req) => {
         success: true,
         message: "Email sent successfully",
         sender: {
-          name: senderName,
-          email: senderEmail,
-          domain: domain,
+          email: emailAccount.email_address,
+          reply_to: replyToEmail,
         },
       }),
       {
