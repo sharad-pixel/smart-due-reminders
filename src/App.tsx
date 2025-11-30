@@ -44,6 +44,7 @@ import Documents from "./pages/Documents";
 import ImportARAging from "./pages/ImportARAging";
 import BringYourOwnEmail from "./pages/BringYourOwnEmail";
 import TasksBoard from "./pages/TasksBoard";
+import InboundCommandCenter from "./pages/InboundCommandCenter";
 
 const queryClient = new QueryClient();
 
@@ -90,7 +91,8 @@ const App = () => (
         <Route path="/settings/email-accounts" element={<BringYourOwnEmail />} />
         <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/collections/tasks" element={<CollectionTasks />} />
-        <Route path="/tasks" element={<TasksBoard />} />
+          <Route path="/tasks" element={<TasksBoard />} />
+          <Route path="/inbound" element={<InboundCommandCenter />} />
         <Route path="/team" element={<Team />} />
         <Route path="/security" element={<SecurityDashboard />} />
         <Route path="/security-settings" element={<SecuritySettings />} />

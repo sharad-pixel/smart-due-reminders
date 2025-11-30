@@ -114,5 +114,8 @@ verify_jwt = true
 [functions.resend-inbound-tasks]
 verify_jwt = false
 
+[functions.process-inbound-ai]
+verify_jwt = false
+
 [functions.send-account-summary]
 verify_jwt = true

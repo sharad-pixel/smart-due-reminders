@@ -1553,6 +1553,99 @@ export type Database = {
           },
         ]
       }
+      inbound_emails: {
+        Row: {
+          ai_actions: Json | null
+          ai_processed_at: string | null
+          ai_summary: string | null
+          bcc_emails: Json | null
+          cc_emails: Json | null
+          created_at: string
+          debtor_id: string | null
+          email_id: string | null
+          error_message: string | null
+          event_type: string
+          from_email: string
+          from_name: string | null
+          html_body: string | null
+          id: string
+          invoice_id: string | null
+          message_id: string
+          raw_payload: Json
+          status: string
+          subject: string
+          text_body: string | null
+          to_emails: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_actions?: Json | null
+          ai_processed_at?: string | null
+          ai_summary?: string | null
+          bcc_emails?: Json | null
+          cc_emails?: Json | null
+          created_at?: string
+          debtor_id?: string | null
+          email_id?: string | null
+          error_message?: string | null
+          event_type: string
+          from_email: string
+          from_name?: string | null
+          html_body?: string | null
+          id?: string
+          invoice_id?: string | null
+          message_id: string
+          raw_payload: Json
+          status?: string
+          subject: string
+          text_body?: string | null
+          to_emails: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_actions?: Json | null
+          ai_processed_at?: string | null
+          ai_summary?: string | null
+          bcc_emails?: Json | null
+          cc_emails?: Json | null
+          created_at?: string
+          debtor_id?: string | null
+          email_id?: string | null
+          error_message?: string | null
+          event_type?: string
+          from_email?: string
+          from_name?: string | null
+          html_body?: string | null
+          id?: string
+          invoice_id?: string | null
+          message_id?: string
+          raw_payload?: Json
+          status?: string
+          subject?: string
+          text_body?: string | null
+          to_emails?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_emails_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_emails_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_line_items: {
         Row: {
           created_at: string | null

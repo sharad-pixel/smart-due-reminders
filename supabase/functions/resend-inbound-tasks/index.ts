@@ -1,21 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 /**
- * RESEND INBOUND TASKS EDGE FUNCTION
+ * RESEND INBOUND EMAIL HANDLER - Platform-Wide
  * 
- * This function handles inbound email webhooks from Resend and automatically:
- * 1. Parses Resend webhook payload (handles both event wrapper and direct email formats)
- * 2. Routes emails based on subaddressing (invoice+<id> or debtor+<id>)
- * 3. Creates tasks in collection_tasks table with full email data
- * 4. Logs activity in collection_activities for history tracking
+ * Handles ALL inbound emails from Resend for the entire platform:
+ * 1. Stores raw email in inbound_emails table
+ * 2. Auto-links to Debtors/Invoices via address patterns
+ * 3. Triggers AI processing for summaries and action extraction
  * 
- * SETUP INSTRUCTIONS:
- * 1. In Resend dashboard, create an inbound route
- * 2. Set the destination to: https://kguurazunazhhrhasahd.supabase.co/functions/v1/resend-inbound-tasks
- * 3. Configure DNS MX records as specified by Resend
- * 4. Use format: invoice+<invoice_id>@recouply.ai or debtor+<debtor_id>@recouply.ai
+ * Address Patterns:
+ * - invoice+<invoice_id>@inbound.services.recouply.ai
+ * - debtor+<debtor_id>@inbound.services.recouply.ai
+ * - collections@inbound.services.recouply.ai (general)
  */
 
 const corsHeaders = {
@@ -41,6 +38,7 @@ interface ResendInboundEmail {
   bcc?: string | string[];
   in_reply_to?: string;
   message_id?: string;
+  email_id?: string;
   raw?: string;
 }
 
@@ -53,234 +51,194 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  try {
-    console.log("[RESEND-INBOUND] ✅ Received webhook");
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    {
+      auth: { persistSession: false },
+    }
+  );
 
-    // Parse JSON directly - no signature verification
-    // Resend inbound routes send plain JSON payloads
+  let inboundEmailId: string | null = null;
+
+  try {
+    console.log("[INBOUND] ✅ Received webhook");
+
+    // Parse payload
     let raw: any;
     try {
       raw = await req.json();
-      console.log("[RESEND-INBOUND] ✅ Payload parsed successfully");
-      console.log("[RESEND-INBOUND] Preview:", JSON.stringify(raw).substring(0, 200));
+      console.log("[INBOUND] Payload preview:", JSON.stringify(raw).substring(0, 200));
     } catch (error: any) {
-      console.error("[RESEND-INBOUND] ❌ Failed to parse JSON:", error.message);
-      // Always return 200 to prevent Resend retries
-      return new Response(
-        JSON.stringify({ success: true, message: "Received but could not parse" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("[INBOUND] ❌ Failed to parse JSON:", error.message);
+      return new Response(JSON.stringify({ success: true, message: "Received but could not parse" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
-    );
-
-    // Parse Resend webhook payload
-    // Handle both formats: { object: "event", type: "email.received", data: {...} } OR direct email object
-    console.log("[RESEND-INBOUND] Payload verified and parsed");
-
-    const email: ResendInboundEmail = (raw?.data && (raw.type === "email.received" || raw.object === "event"))
+    // Extract email object
+    const email: ResendInboundEmail = raw?.data && (raw.type === "email.received" || raw.object === "event")
       ? raw.data
       : raw;
-    // Extract email fields
-    const toArray = email.to ?? [];
-    const toEmail: string = (Array.isArray(toArray) ? (toArray[0] || "") : toArray).toString();
-    const fromEmail: string = email.from || "";
-    const subject: string = email.subject || "";
-    const htmlBody: string = email.html || "";
-    const textBody: string = email.text || "";
-    const emailHeaders = email.headers || {};
-    const attachments = email.attachments || [];
 
-    console.log("[RESEND-INBOUND] From:", fromEmail, "To:", toEmail, "Subject:", subject);
+    const toArray = Array.isArray(email.to) ? email.to : [email.to];
+    const fromEmail = email.from || "";
+    const subject = email.subject || "";
+    const textBody = email.text || "";
+    const htmlBody = email.html || "";
+    const messageId = email.message_id || `${Date.now()}-${Math.random()}`;
 
-    // Parse the recipient local part for routing
-    // Expected: invoice+<uuid>@recouply.ai OR debtor+<uuid>@recouply.ai OR collections@inbound.services.recouply.ai
-    let taskLevel: "invoice" | "debtor" | "unknown" = "unknown";
-    let refUuid: string | null = null;
+    console.log("[INBOUND] From:", fromEmail, "To:", toArray[0], "Subject:", subject);
 
-    if (toEmail) {
-      const [localPart] = toEmail.split("@");
-      
-      // Check if it's the generic collections address
-      if (localPart === "collections" && toEmail.includes("inbound.services.recouply.ai")) {
-        console.log("[RESEND-INBOUND] Generic collections address, looking up debtor by sender email:", fromEmail);
-        
-        // Try to find debtor by email
-        const { data: debtor, error: debtorError } = await supabase
-          .from("debtors")
-          .select("id, user_id, email")
-          .or(`email.eq.${fromEmail},ar_contact_email.eq.${fromEmail},primary_email.eq.${fromEmail}`)
-          .limit(1)
-          .single();
-        
-        if (!debtorError && debtor) {
-          taskLevel = "debtor";
-          refUuid = debtor.id;
-          console.log("[RESEND-INBOUND] Matched debtor:", debtor.id, "by email:", fromEmail);
-        } else {
-          console.warn("[RESEND-INBOUND] Could not match sender email to debtor:", fromEmail);
-          return new Response(
-            JSON.stringify({ success: true, warning: "Could not match sender to debtor" }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // Parse subaddressing pattern
-        const [prefix, uuidCandidate] = localPart.split("+");
-
-        if (prefix === "invoice" && uuidCandidate) {
-          taskLevel = "invoice";
-          refUuid = uuidCandidate;
-        } else if (prefix === "debtor" && uuidCandidate) {
-          taskLevel = "debtor";
-          refUuid = uuidCandidate;
-        }
-      }
-    }
-
-    // Guard unknown patterns
-    if (taskLevel === "unknown" || !refUuid) {
-      console.warn("[RESEND-INBOUND] Unrecognized recipient pattern:", toEmail);
-      return new Response(
-        JSON.stringify({ success: true, warning: "Unrecognized recipient pattern" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("[RESEND-INBOUND] Parsed:", taskLevel, "ID:", refUuid);
-
-    // Resolve invoice_id and debtor_id based on routing
-    let invoiceId: string | null = null;
-    let debtorId: string | null = null;
+    // Parse recipient pattern
+    let taskLevel: "invoice" | "debtor" | "general" = "general";
+    let refId: string | null = null;
     let userId: string | null = null;
+    let debtorId: string | null = null;
+    let invoiceId: string | null = null;
 
-    if (taskLevel === "invoice") {
-      invoiceId = refUuid;
-      
-      const { data: invoice, error: invoiceError } = await supabase
+    const primaryTo = toArray[0] || "";
+    const [localPart] = primaryTo.split("@");
+
+    // Check for invoice+ or debtor+ pattern
+    if (localPart.includes("+")) {
+      const [prefix, id] = localPart.split("+");
+      if (prefix === "invoice" && id) {
+        taskLevel = "invoice";
+        refId = id;
+      } else if (prefix === "debtor" && id) {
+        taskLevel = "debtor";
+        refId = id;
+      }
+    } else if (localPart === "collections") {
+      // General inbox - try to match by sender email
+      taskLevel = "general";
+      console.log("[INBOUND] General inbox, will try to match by sender:", fromEmail);
+    }
+
+    // Resolve user_id, debtor_id, invoice_id
+    if (taskLevel === "invoice" && refId) {
+      const { data: invoice } = await supabase
         .from("invoices")
-        .select("debtor_id, user_id")
-        .eq("id", invoiceId)
+        .select("id, debtor_id, user_id")
+        .eq("id", refId)
         .single();
 
-      if (invoiceError || !invoice) {
-        console.error("[RESEND-INBOUND] Invoice not found:", invoiceId);
-        return new Response(
-          JSON.stringify({ success: false, error: "Invoice not found" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (invoice) {
+        invoiceId = invoice.id;
+        debtorId = invoice.debtor_id;
+        userId = invoice.user_id;
+        console.log("[INBOUND] Linked to invoice:", invoiceId);
       }
-
-      debtorId = invoice.debtor_id;
-      userId = invoice.user_id;
-      console.log("[RESEND-INBOUND] Invoice-level email, debtor:", debtorId);
-    } else if (taskLevel === "debtor") {
-      debtorId = refUuid;
-      
-      const { data: debtor, error: debtorError } = await supabase
+    } else if (taskLevel === "debtor" && refId) {
+      const { data: debtor } = await supabase
         .from("debtors")
         .select("id, user_id")
-        .eq("id", debtorId)
+        .eq("id", refId)
         .single();
 
-      if (debtorError || !debtor) {
-        console.error("[RESEND-INBOUND] Debtor not found:", debtorId);
-        return new Response(
-          JSON.stringify({ success: false, error: "Debtor not found" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (debtor) {
+        debtorId = debtor.id;
+        userId = debtor.user_id;
+        console.log("[INBOUND] Linked to debtor:", debtorId);
+      }
+    } else if (taskLevel === "general") {
+      // Try to find debtor by email
+      const { data: debtor } = await supabase
+        .from("debtors")
+        .select("id, user_id")
+        .or(`email.eq.${fromEmail},ar_contact_email.eq.${fromEmail},primary_email.eq.${fromEmail}`)
+        .limit(1)
+        .single();
+
+      if (debtor) {
+        debtorId = debtor.id;
+        userId = debtor.user_id;
+        console.log("[INBOUND] Matched sender to debtor:", debtorId);
+      }
+    }
+
+    // Insert into inbound_emails table
+    const { data: inboundEmail, error: insertError } = await supabase
+      .from("inbound_emails")
+      .insert({
+        user_id: userId,
+        event_type: raw?.type || "email.received",
+        raw_payload: raw,
+        from_email: fromEmail,
+        from_name: email.from,
+        to_emails: toArray,
+        cc_emails: email.cc ? (Array.isArray(email.cc) ? email.cc : [email.cc]) : null,
+        bcc_emails: email.bcc ? (Array.isArray(email.bcc) ? email.bcc : [email.bcc]) : null,
+        subject: subject,
+        text_body: textBody,
+        html_body: htmlBody,
+        message_id: messageId,
+        email_id: email.email_id,
+        debtor_id: debtorId,
+        invoice_id: invoiceId,
+        status: (debtorId || invoiceId) ? "linked" : "received",
+        error_message: null,
+      })
+      .select()
+      .single();
+
+    if (insertError || !inboundEmail) {
+      console.error("[INBOUND] ❌ Failed to insert:", insertError);
+      // Try to insert error record
+      await supabase.from("inbound_emails").insert({
+        user_id: userId,
+        event_type: "error",
+        raw_payload: raw,
+        from_email: fromEmail,
+        to_emails: toArray,
+        subject: subject,
+        message_id: messageId,
+        status: "error",
+        error_message: insertError?.message || "Unknown error",
+      });
+
+      return new Response(JSON.stringify({ success: true, warning: "Stored with errors" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    inboundEmailId = inboundEmail.id;
+    console.log("[INBOUND] ✅ Stored email:", inboundEmailId);
+
+    // Create collection task for backward compatibility
+    if (userId && debtorId) {
+      const emailContent = (textBody || htmlBody || "").toLowerCase();
+      let taskType = "MANUAL_REVIEW";
+
+      if (emailContent.includes("w9") || emailContent.includes("w-9")) {
+        taskType = "W9_REQUEST";
+      } else if (emailContent.includes("payment plan") || emailContent.includes("installments")) {
+        taskType = "PAYMENT_PLAN_REQUEST";
+      } else if (emailContent.includes("dispute") || emailContent.includes("wrong amount")) {
+        taskType = "DISPUTE_CHARGES";
+      } else if (emailContent.includes("call me") || emailContent.includes("phone call")) {
+        taskType = "NEEDS_CALLBACK";
       }
 
-      userId = debtor.user_id;
-      console.log("[RESEND-INBOUND] Debtor-level email");
-    }
-
-    // Classify task type using rule-based classification
-    const emailContent = (textBody || htmlBody || "").toLowerCase();
-    let taskType = "MANUAL_REVIEW";
-    
-    if (emailContent.includes("payment plan") || emailContent.includes("installments")) {
-      taskType = "SETUP_PAYMENT_PLAN";
-    } else if (emailContent.includes("dispute") || emailContent.includes("wrong amount")) {
-      taskType = "REVIEW_DISPUTE";
-    } else if (emailContent.includes("call me") || emailContent.includes("phone call")) {
-      taskType = "CALL_CUSTOMER";
-    } else if (emailContent.includes("update card") || emailContent.includes("payment method")) {
-      taskType = "UPDATE_PAYMENT_METHOD";
-    } else if (emailContent.includes("pay now") || emailContent.includes("ready to pay")) {
-      taskType = "SEND_PAYMENT_LINK";
-    }
-
-    console.log("[RESEND-INBOUND] Task type:", taskType);
-
-    // Build comprehensive metadata with ALL email data
-    const fullMetadata = {
-      from_email: fromEmail,
-      to_email: toEmail,
-      cc: email.cc,
-      bcc: email.bcc,
-      reply_to: email.reply_to,
-      message_id: email.message_id,
-      in_reply_to: email.in_reply_to,
-      headers: emailHeaders,
-      attachments: attachments.map((att: any) => ({
-        filename: att.filename,
-        content_type: att.content_type,
-        size: att.size,
-        content: att.size < 100000 ? att.content : '[Content too large]'
-      })),
-      has_attachments: attachments.length > 0,
-      raw_email: email.raw || null
-    };
-
-    // Create task directly
-    const taskSummary = subject || "Email response received";
-    const taskDetails = textBody || htmlBody || "";
-
-    const { data: task, error: taskError } = await supabase
-      .from("collection_tasks")
-      .insert({
+      await supabase.from("collection_tasks").insert({
         user_id: userId,
         debtor_id: debtorId,
         invoice_id: invoiceId,
         task_type: taskType,
         priority: "normal",
         status: "open",
-        summary: taskSummary,
-        details: taskDetails,
-        level: taskLevel,
-        from_email: fromEmail,
-        to_email: toEmail,
-        subject: subject,
-        raw_email: JSON.stringify(fullMetadata),
+        summary: subject || "Email response received",
+        details: textBody || htmlBody || "",
         source: "email",
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (taskError) {
-      console.error("[RESEND-INBOUND] Error creating task:", taskError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to create task" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      });
     }
 
-    console.log("[RESEND-INBOUND] Task created:", task.id);
-
-    // Also log as collection activity for history
-    const { error: activityError } = await supabase
-      .from("collection_activities")
-      .insert({
+    // Log as collection activity
+    if (userId && debtorId) {
+      await supabase.from("collection_activities").insert({
         user_id: userId,
         debtor_id: debtorId,
         invoice_id: invoiceId,
@@ -288,34 +246,36 @@ serve(async (req) => {
         direction: "inbound",
         channel: "email",
         subject: subject,
-        message_body: taskSummary,
-        response_message: taskDetails,
+        message_body: subject,
+        response_message: textBody || htmlBody,
         responded_at: new Date().toISOString(),
-        metadata: fullMetadata
       });
-
-    if (activityError) {
-      console.error("[RESEND-INBOUND] Error logging activity:", activityError);
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        task_id: task.id,
-        task_type: taskType,
-        level: taskLevel,
-        summary: taskSummary
+        inbound_email_id: inboundEmailId,
+        linked: !!(debtorId || invoiceId),
+        debtor_id: debtorId,
+        invoice_id: invoiceId,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("[RESEND-INBOUND] Error:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+    console.error("[INBOUND] ❌ Error:", error);
+
+    // Try to log error
+    if (inboundEmailId) {
+      await supabase
+        .from("inbound_emails")
+        .update({ status: "error", error_message: error.message })
+        .eq("id", inboundEmailId);
+    }
+
+    return new Response(JSON.stringify({ success: true, error: error.message }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
