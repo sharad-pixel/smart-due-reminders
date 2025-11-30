@@ -1,21 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import DebtorsList from "@/components/DebtorsList";
-import InvoicesList from "@/components/InvoicesList";
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, CheckSquare } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { TaskCard } from "@/components/TaskCard";
-import { useCollectionTasks } from "@/hooks/useCollectionTasks";
-import { TaskDetailModal } from "@/components/TaskDetailModal";
 
 interface Invoice {
   id: string;
@@ -42,13 +36,10 @@ interface AIDraft {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { fetchTasks, updateTaskStatus } = useCollectionTasks();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pendingDrafts, setPendingDrafts] = useState<AIDraft[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
   const [stats, setStats] = useState({
     totalOutstanding: 0,
     totalRecovered: 0,
@@ -70,31 +61,10 @@ const Dashboard = () => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchDashboardData();
-        loadTasks();
       }
       setLoading(false);
     });
   }, []);
-
-  const loadTasks = async () => {
-    const tasksData = await fetchTasks();
-    setTasks(tasksData.filter(t => t.status !== 'done').slice(0, 10));
-  };
-
-  const handleTaskStatusChange = async (taskId: string, status: string) => {
-    await updateTaskStatus(taskId, status);
-    loadTasks();
-  };
-
-  const handleViewTaskDetails = (task: any) => {
-    setSelectedTask(task);
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    // Delete functionality can be added if needed
-    setSelectedTask(null);
-    loadTasks();
-  };
 
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
@@ -465,65 +435,6 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="debtors" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="debtors">Debtors</TabsTrigger>
-            <TabsTrigger value="invoices">Invoices</TabsTrigger>
-            <TabsTrigger value="tasks">
-              <CheckSquare className="h-4 w-4 mr-2" />
-              Collection Tasks
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="debtors">
-            <DebtorsList onUpdate={fetchDashboardData} />
-          </TabsContent>
-
-          <TabsContent value="invoices">
-            <InvoicesList onUpdate={fetchDashboardData} />
-          </TabsContent>
-
-          <TabsContent value="tasks">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recent Collection Tasks</CardTitle>
-                  <Button variant="outline" onClick={() => navigate("/tasks")}>
-                    View All Tasks
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {tasks.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No active tasks</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {tasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        onStatusChange={handleTaskStatusChange}
-                        onViewDetails={handleViewTaskDetails}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {selectedTask && (
-          <TaskDetailModal
-            task={selectedTask}
-            open={!!selectedTask}
-            onOpenChange={(open) => !open && setSelectedTask(null)}
-            onStatusChange={handleTaskStatusChange}
-            onDelete={handleDeleteTask}
-          />
-        )}
       </div>
     </Layout>
   );
