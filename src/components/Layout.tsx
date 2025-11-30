@@ -19,7 +19,8 @@ import {
   FolderOpen,
   Upload,
   Menu,
-  X
+  X,
+  Inbox
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -174,6 +175,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/import/ar-aging", label: "Import AR", icon: Upload },
     { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
+    { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [
       { path: "/team", label: "Team & Roles", icon: Users },
