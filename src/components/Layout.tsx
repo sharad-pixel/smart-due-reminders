@@ -20,7 +20,9 @@ import {
   Upload,
   Menu,
   X,
-  Inbox
+  Inbox,
+  ChevronDown,
+  Bot
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -168,20 +170,31 @@ const Layout = ({ children }: LayoutProps) => {
 
   if (!user) return null;
 
-  const mainNavItems = [
+  const coreNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/import/ar-aging", label: "Import AR", icon: Upload },
+  ];
+
+  const aiToolsItems = [
     { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
-    { path: "/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
+    { path: "/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
+  ];
+
+  const adminItems = [
+    { path: "/import/ar-aging", label: "Import AR", icon: Upload },
     ...(showTeam ? [
       { path: "/team", label: "Team & Roles", icon: Users },
       { path: "/security", label: "Security Dashboard", icon: Shield }
     ] : []),
   ];
+
+  const mainNavItems = [...coreNavItems, ...aiToolsItems, ...adminItems];
+
+  const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
+  const isAnyAdminActive = adminItems.some(item => isActive(item.path));
 
   return (
     <div className="min-h-screen bg-background">
@@ -206,15 +219,14 @@ const Layout = ({ children }: LayoutProps) => {
               </Link>
               
               {/* Desktop Navigation */}
-              <div className="hidden lg:flex items-center gap-1 overflow-x-auto">
-                {mainNavItems.map((item) => {
+              <div className="hidden lg:flex items-center gap-1">
+                {coreNavItems.map((item) => {
                   const Icon = item.icon;
-                  
                   return (
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -225,6 +237,82 @@ const Layout = ({ children }: LayoutProps) => {
                     </Link>
                   );
                 })}
+
+                {/* AI Tools Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
+                        isAnyAIToolActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <Bot className="h-4 w-4 shrink-0" />
+                      <span>AI Tools</span>
+                      <ChevronDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {aiToolsItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <DropdownMenuItem key={item.path} asChild>
+                          <Link
+                            to={item.path}
+                            className={`flex items-center gap-2 cursor-pointer ${
+                              isActive(item.path) ? "bg-accent" : ""
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Admin Dropdown */}
+                {adminItems.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
+                          isAnyAdminActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                      >
+                        <Settings className="h-4 w-4 shrink-0" />
+                        <span>Admin</span>
+                        <ChevronDown className="h-3 w-3 shrink-0" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      {adminItems.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <DropdownMenuItem key={item.path} asChild>
+                            <Link
+                              to={item.path}
+                              className={`flex items-center gap-2 cursor-pointer ${
+                                isActive(item.path) ? "bg-accent" : ""
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
             
