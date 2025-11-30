@@ -255,7 +255,7 @@ const Layout = ({ children }: LayoutProps) => {
                       <ChevronDown className="h-3 w-3 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuContent align="start" className="w-48 z-[110] bg-card border shadow-lg">
                     {aiToolsItems.map((item) => {
                       const Icon = item.icon;
                       return (
@@ -293,7 +293,7 @@ const Layout = ({ children }: LayoutProps) => {
                         <ChevronDown className="h-3 w-3 shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuContent align="start" className="w-48 z-[110] bg-card border shadow-lg">
                       {adminItems.map((item) => {
                         const Icon = item.icon;
                         return (
