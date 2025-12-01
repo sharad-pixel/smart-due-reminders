@@ -252,6 +252,50 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
     }
   };
 
+  const downloadTemplate = () => {
+    const headers = [
+      "external_invoice_id",
+      "invoice_number",
+      "customer_name",
+      "customer_email",
+      "amount",
+      "currency",
+      "issue_date",
+      "due_date",
+      "status",
+      "source_system",
+      "product_description",
+      "notes"
+    ];
+
+    const exampleRow = [
+      "INV-2024-001",
+      "INT-001",
+      "Acme Corporation",
+      "accounting@acme.com",
+      "1500.00",
+      "USD",
+      "2024-01-01",
+      "2024-01-31",
+      "Open",
+      "QuickBooks",
+      "Professional Services - January 2024",
+      "Net 30 payment terms"
+    ];
+
+    const csv = [
+      headers.join(","),
+      exampleRow.join(",")
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `invoice-import-template.csv`;
+    a.click();
+  };
+
   const downloadErrorCSV = () => {
     const csv = [
       ["Row", "Error", ...Object.keys(errorRows[0]?.data || {})].join(","),
@@ -301,6 +345,13 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
                 <strong>Optional fields:</strong> Internal Invoice #, Customer Name, Customer Email, Issue Date, Invoicing System, Product Description, Notes
               </AlertDescription>
             </Alert>
+
+            <div className="flex justify-end mb-4">
+              <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                <Download className="h-4 w-4 mr-2" />
+                Download Template
+              </Button>
+            </div>
 
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
               <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
