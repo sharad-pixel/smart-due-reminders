@@ -184,17 +184,57 @@ serve(async (req) => {
 Your tone is: ${persona.tone}\n
 Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message compliant, professional, and appropriate for ${daysPastDue} days past due\n- Include a call to action for payment\n- Offer a polite way for the customer to reply or resolve disputes\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}`;
 
-    const userPrompt = `Generate a ${parsed.channel} message for:\n
-Invoice: #${invoice.invoice_number}\n
-Amount: $${invoice.amount}\n
-Due Date: ${invoice.due_date}\n
-Days Past Due: ${daysPastDue}\n
-Customer: ${invoice.debtors?.company_name || invoice.debtors?.name}\n
-Email: ${invoice.debtors?.email}\n
-Action requested: ${parsed.action}\n
-${parsed.channel === "email" ? "Include a subject line." : "Keep it under 160 characters for SMS."}`;
+    const userPrompt = `Generate a ${parsed.channel} message for:
 
-    // Generate draft using Lovable AI
+Invoice: #${invoice.invoice_number}
+Amount: $${invoice.amount}
+Due Date: ${invoice.due_date}
+Days Past Due: ${daysPastDue}
+Customer: ${invoice.debtors?.company_name || invoice.debtors?.name}
+Email: ${invoice.debtors?.email}
+Action requested: ${parsed.action}`;
+
+    // Generate draft using Lovable AI with tool calling
+    const tools = parsed.channel === 'email' ? [{
+      type: 'function',
+      function: {
+        name: 'create_email_draft',
+        description: 'Create an email draft with subject and body',
+        parameters: {
+          type: 'object',
+          properties: {
+            subject: {
+              type: 'string',
+              description: 'Email subject line'
+            },
+            body: {
+              type: 'string',
+              description: 'Email body content'
+            }
+          },
+          required: ['subject', 'body'],
+          additionalProperties: false
+        }
+      }
+    }] : [{
+      type: 'function',
+      function: {
+        name: 'create_sms_draft',
+        description: 'Create an SMS draft',
+        parameters: {
+          type: 'object',
+          properties: {
+            body: {
+              type: 'string',
+              description: 'SMS message content (max 160 characters)'
+            }
+          },
+          required: ['body'],
+          additionalProperties: false
+        }
+      }
+    }];
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -207,6 +247,13 @@ ${parsed.channel === "email" ? "Include a subject line." : "Keep it under 160 ch
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        tools: tools,
+        tool_choice: {
+          type: 'function',
+          function: {
+            name: parsed.channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+          }
+        }
       }),
     });
     
@@ -215,18 +262,18 @@ ${parsed.channel === "email" ? "Include a subject line." : "Keep it under 160 ch
     }
     
     const aiData = await aiResponse.json();
-    const generatedContent = aiData.choices[0].message.content;
-    
-    // Parse subject and body for email
-    let subject = null;
-    let messageBody = generatedContent;
-    
-    if (parsed.channel === "email") {
-      const subjectMatch = generatedContent.match(/Subject:\s*(.+?)(?:\n|$)/i);
-      if (subjectMatch) {
-        subject = subjectMatch[1].trim();
-        messageBody = generatedContent.replace(/Subject:\s*.+?(?:\n|$)/i, '').trim();
-      }
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+
+    if (!toolCall || !toolCall.function?.arguments) {
+      throw new Error('No content generated from AI');
+    }
+
+    const aiParsed = JSON.parse(toolCall.function.arguments);
+    const subject = aiParsed.subject || null;
+    const messageBody = aiParsed.body;
+
+    if (!messageBody) {
+      throw new Error('Empty message body from AI');
     }
     
     // Find persona ID from database

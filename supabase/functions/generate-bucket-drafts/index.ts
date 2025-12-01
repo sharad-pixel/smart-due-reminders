@@ -253,10 +253,49 @@ Step Context: ${step.body_template}
 
 ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}
 
-Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SMS message (160 characters max)'}.
-${step.channel === 'email' ? 'Return JSON with "subject" and "body" fields.' : 'Return JSON with "body" field only.'}`;
+Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SMS message (160 characters max)'}.`;
 
-        // Generate content using Lovable AI
+        // Generate content using Lovable AI with tool calling for structured output
+        const tools = step.channel === 'email' ? [{
+          type: 'function',
+          function: {
+            name: 'create_email_draft',
+            description: 'Create an email draft with subject and body',
+            parameters: {
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'Email subject line'
+                },
+                body: {
+                  type: 'string',
+                  description: 'Email body content'
+                }
+              },
+              required: ['subject', 'body'],
+              additionalProperties: false
+            }
+          }
+        }] : [{
+          type: 'function',
+          function: {
+            name: 'create_sms_draft',
+            description: 'Create an SMS draft',
+            parameters: {
+              type: 'object',
+              properties: {
+                body: {
+                  type: 'string',
+                  description: 'SMS message content (max 160 characters)'
+                }
+              },
+              required: ['body'],
+              additionalProperties: false
+            }
+          }
+        }];
+
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -269,6 +308,13 @@ ${step.channel === 'email' ? 'Return JSON with "subject" and "body" fields.' : '
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
+            tools: tools,
+            tool_choice: {
+              type: 'function',
+              function: {
+                name: step.channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+              }
+            }
           }),
         });
 
@@ -280,29 +326,21 @@ ${step.channel === 'email' ? 'Return JSON with "subject" and "body" fields.' : '
         }
 
         const aiResult = await aiResponse.json();
-        const generatedContent = aiResult.choices?.[0]?.message?.content;
+        const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
 
-        if (!generatedContent) {
+        if (!toolCall || !toolCall.function?.arguments) {
           errors.push(`No content generated for invoice ${invoice.invoice_number}`);
           continue;
         }
 
-        // Try to parse JSON response
-        let messageBody = generatedContent;
-        let subject = null;
+        // Parse the tool call arguments
+        const parsed = JSON.parse(toolCall.function.arguments);
+        const messageBody = parsed.body;
+        const subject = parsed.subject || null;
 
-        try {
-          const parsed = JSON.parse(generatedContent);
-          messageBody = parsed.body || parsed.message || generatedContent;
-          subject = parsed.subject || null;
-        } catch {
-          // If not JSON, use as-is
-          messageBody = generatedContent;
-        }
-
-        // Generate subject if email and not provided
-        if (step.channel === 'email' && !subject) {
-          subject = `Payment Reminder: Invoice ${invoice.invoice_number} - ${daysPastDue} days overdue`;
+        if (!messageBody) {
+          errors.push(`Empty message body for invoice ${invoice.invoice_number}`);
+          continue;
         }
 
         // Insert draft
