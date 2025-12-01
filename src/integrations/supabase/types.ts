@@ -1649,6 +1649,80 @@ export type Database = {
           },
         ]
       }
+      invoice_import_errors: {
+        Row: {
+          error_message: string
+          id: string
+          import_job_id: string
+          raw_row_json: Json
+          row_number: number
+        }
+        Insert: {
+          error_message: string
+          id?: string
+          import_job_id: string
+          raw_row_json: Json
+          row_number: number
+        }
+        Update: {
+          error_message?: string
+          id?: string
+          import_job_id?: string
+          raw_row_json?: Json
+          row_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_import_errors_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_import_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by_user_id: string | null
+          error_count: number | null
+          error_message: string | null
+          file_name: string
+          id: string
+          mode: string
+          status: string
+          success_count: number | null
+          total_rows: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          file_name: string
+          id?: string
+          mode: string
+          status?: string
+          success_count?: number | null
+          total_rows?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          mode?: string
+          status?: string
+          success_count?: number | null
+          total_rows?: number | null
+        }
+        Relationships: []
+      }
       invoice_line_items: {
         Row: {
           created_at: string | null
@@ -1696,6 +1770,77 @@ export type Database = {
           },
         ]
       }
+      invoice_status_update_errors: {
+        Row: {
+          error_message: string
+          id: string
+          raw_row_json: Json
+          row_number: number
+          status_update_job_id: string
+        }
+        Insert: {
+          error_message: string
+          id?: string
+          raw_row_json: Json
+          row_number: number
+          status_update_job_id: string
+        }
+        Update: {
+          error_message?: string
+          id?: string
+          raw_row_json?: Json
+          row_number?: number
+          status_update_job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_status_update_errors_status_update_job_id_fkey"
+            columns: ["status_update_job_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status_update_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_status_update_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by_user_id: string | null
+          error_count: number | null
+          error_message: string | null
+          file_name: string
+          id: string
+          status: string
+          success_count: number | null
+          total_rows: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          file_name: string
+          id?: string
+          status?: string
+          success_count?: number | null
+          total_rows?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          status?: string
+          success_count?: number | null
+          total_rows?: number | null
+        }
+        Relationships: []
+      }
       invoice_usage: {
         Row: {
           created_at: string | null
@@ -1731,11 +1876,13 @@ export type Database = {
       }
       invoices: {
         Row: {
+          aging_bucket: string | null
           amount: number
           created_at: string | null
           currency: string | null
           debtor_id: string
           due_date: string
+          external_invoice_id: string | null
           external_link: string | null
           id: string
           invoice_number: string
@@ -1743,6 +1890,7 @@ export type Database = {
           is_overage: boolean | null
           issue_date: string
           last_contact_date: string | null
+          last_contacted_at: string | null
           next_contact_date: string | null
           notes: string | null
           paid_date: string | null
@@ -1753,6 +1901,7 @@ export type Database = {
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
           reference_id: string
+          source_system: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           subtotal: number | null
           tax_amount: number | null
@@ -1761,11 +1910,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          aging_bucket?: string | null
           amount: number
           created_at?: string | null
           currency?: string | null
           debtor_id: string
           due_date: string
+          external_invoice_id?: string | null
           external_link?: string | null
           id?: string
           invoice_number: string
@@ -1773,6 +1924,7 @@ export type Database = {
           is_overage?: boolean | null
           issue_date: string
           last_contact_date?: string | null
+          last_contacted_at?: string | null
           next_contact_date?: string | null
           notes?: string | null
           paid_date?: string | null
@@ -1783,6 +1935,7 @@ export type Database = {
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
           reference_id: string
+          source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           subtotal?: number | null
           tax_amount?: number | null
@@ -1791,11 +1944,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          aging_bucket?: string | null
           amount?: number
           created_at?: string | null
           currency?: string | null
           debtor_id?: string
           due_date?: string
+          external_invoice_id?: string | null
           external_link?: string | null
           id?: string
           invoice_number?: string
@@ -1803,6 +1958,7 @@ export type Database = {
           is_overage?: boolean | null
           issue_date?: string
           last_contact_date?: string | null
+          last_contacted_at?: string | null
           next_contact_date?: string | null
           notes?: string | null
           paid_date?: string | null
@@ -1813,6 +1969,7 @@ export type Database = {
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
           reference_id?: string
+          source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           subtotal?: number | null
           tax_amount?: number | null
