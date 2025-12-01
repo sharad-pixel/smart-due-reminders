@@ -12,7 +12,6 @@ import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
-import WorkflowTemplates, { Template } from "@/components/WorkflowTemplates";
 import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
@@ -67,8 +66,8 @@ const AIWorkflows = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null);
   const [editingSettings, setEditingSettings] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
+  const [stepInvoiceCounts, setStepInvoiceCounts] = useState<Record<string, Record<number, number>>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [generatingContent, setGeneratingContent] = useState(false);
@@ -94,6 +93,7 @@ const AIWorkflows = () => {
     fetchWorkflows();
     fetchInvoiceCounts();
     fetchDraftsByPersona();
+    fetchStepInvoiceCounts();
   }, []);
 
   const fetchInvoiceCounts = async () => {
@@ -132,6 +132,63 @@ const AIWorkflows = () => {
       setBucketCounts(counts);
     } catch (error) {
       console.error("Error fetching invoice counts:", error);
+    }
+  };
+
+  const fetchStepInvoiceCounts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all open invoices with last_contacted_at
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('id, due_date, last_contacted_at')
+        .eq('user_id', user.id)
+        .in('status', ['Open', 'InPaymentPlan']);
+
+      if (error) throw error;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Count invoices per persona per step (based on days since last contact)
+      const stepCounts: Record<string, Record<number, number>> = {};
+
+      invoices?.forEach(invoice => {
+        const dueDate = new Date(invoice.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Find matching persona
+        Object.entries(personaConfig).forEach(([personaKey, persona]) => {
+          if (daysPastDue >= persona.bucketMin && 
+              (!persona.bucketMax || daysPastDue <= persona.bucketMax)) {
+            
+            if (!stepCounts[personaKey]) {
+              stepCounts[personaKey] = {};
+            }
+
+            // Calculate which step based on last_contacted_at
+            const daysSinceContact = invoice.last_contacted_at 
+              ? Math.floor((today.getTime() - new Date(invoice.last_contacted_at).getTime()) / (1000 * 60 * 60 * 24))
+              : 0;
+
+            // Map to step (1-5 based on day offsets: 3, 7, 14, 21, 30)
+            let step = 1;
+            if (daysSinceContact >= 30) step = 5;
+            else if (daysSinceContact >= 21) step = 4;
+            else if (daysSinceContact >= 14) step = 3;
+            else if (daysSinceContact >= 7) step = 2;
+
+            stepCounts[personaKey][step] = (stepCounts[personaKey][step] || 0) + 1;
+          }
+        });
+      });
+
+      setStepInvoiceCounts(stepCounts);
+    } catch (error) {
+      console.error("Error fetching step invoice counts:", error);
     }
   };
 
@@ -498,6 +555,7 @@ const AIWorkflows = () => {
 
       // Refresh invoice counts
       await fetchInvoiceCounts();
+      await fetchStepInvoiceCounts();
     } catch (error: any) {
       console.error('Manual reassignment error:', error);
       toast.error(error.message || "Failed to reassign workflows");
@@ -648,28 +706,28 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleApplyTemplate = async (template: Template) => {
+  const handleApplyTemplate = async (personaKey: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const persona = personaConfig[personaKey];
+      if (!persona) throw new Error("Invalid persona");
+
+      // Find or create workflow for this persona's bucket
+      const agingBucket = `dpd_${persona.bucketMin}_${persona.bucketMax || 'plus'}`;
+      
       let workflowId = selectedWorkflow?.id;
 
       // If no workflow exists for this bucket, create one
       if (!selectedWorkflow) {
-        const bucketInfo = agingBuckets.find(b => b.value === selectedBucket);
-        if (!bucketInfo) {
-          toast.error("Invalid aging bucket selected");
-          return;
-        }
-
         const { data: newWorkflow, error: createError } = await supabase
           .from("collection_workflows")
           .insert({
             user_id: user.id,
-            aging_bucket: selectedBucket,
-            name: `${bucketInfo.label} - ${template.name}`,
-            description: template.description,
+            aging_bucket: agingBucket,
+            name: `${persona.name}'s Workflow - ${persona.description}`,
+            description: `AI-powered collection workflow managed by ${persona.name}`,
             is_active: false,
             is_locked: false,
           })
@@ -679,22 +737,6 @@ const AIWorkflows = () => {
         if (createError) throw createError;
         workflowId = newWorkflow.id;
       } else {
-        // Check if workflow is locked
-        if (selectedWorkflow.is_locked) {
-          toast.error("Cannot modify locked workflows");
-          return;
-        }
-
-        // Update existing workflow description
-        const { error: workflowError } = await supabase
-          .from("collection_workflows")
-          .update({
-            description: template.description,
-          })
-          .eq("id", selectedWorkflow.id);
-
-        if (workflowError) throw workflowError;
-
         // Delete existing steps
         const { error: deleteError } = await supabase
           .from("collection_workflow_steps")
@@ -704,16 +746,24 @@ const AIWorkflows = () => {
         if (deleteError) throw deleteError;
       }
 
-      // Create new steps from template
-      const newSteps = template.steps.map((step, index) => ({
+      // Create 5 predefined steps based on persona tone
+      const steps = [
+        { day_offset: 3, label: "Initial Reminder", channel: "email" as const },
+        { day_offset: 7, label: "Follow-up Notice", channel: "email" as const },
+        { day_offset: 14, label: "Urgent Payment Request", channel: "email" as const },
+        { day_offset: 21, label: "Final Notice", channel: "email" as const },
+        { day_offset: 30, label: "Critical Action Required", channel: "sms" as const },
+      ];
+
+      const newSteps = steps.map((step, index) => ({
         workflow_id: workflowId,
         step_order: index + 1,
         day_offset: step.day_offset,
         channel: step.channel,
         label: step.label,
         trigger_type: "relative_to_due",
-        ai_template_type: step.tone,
-        body_template: `Generated ${step.tone} collection message`,
+        ai_template_type: persona.tone,
+        body_template: `AI-generated ${persona.tone} collection message`,
         subject_template: step.channel === "email" ? `Payment reminder for invoice {{invoice_number}}` : null,
         sms_template: step.channel === "sms" ? `Hi {{debtor_name}}, this is a reminder about invoice {{invoice_number}}` : null,
         is_active: true,
@@ -727,10 +777,9 @@ const AIWorkflows = () => {
       if (insertError) throw insertError;
 
       await fetchWorkflows();
-      setShowTemplates(false);
-      toast.success(`${template.name} template applied successfully`);
+      toast.success(`${persona.name}'s workflow configured successfully`);
     } catch (error: any) {
-      toast.error("Failed to apply template");
+      toast.error("Failed to configure workflow");
       console.error(error);
     }
   };
@@ -775,10 +824,6 @@ const AIWorkflows = () => {
             >
               <Workflow className="h-4 w-4" />
               <span>{reassigning ? "Reassigning..." : "Reassign All"}</span>
-            </Button>
-            <Button onClick={() => setShowTemplates(true)} className="flex items-center space-x-2">
-              <Sparkles className="h-4 w-4" />
-              <span>Browse Templates</span>
             </Button>
           </div>
         </div>
@@ -1312,6 +1357,19 @@ const AIWorkflows = () => {
                       onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
                       onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
                       isGenerating={generatingContent}
+                      stepInvoiceCounts={(() => {
+                        // Find persona key based on aging bucket
+                        const persona = Object.entries(personaConfig).find(([_, p]) => {
+                          const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
+                          return bucketLabel === selectedBucket || 
+                                 (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
+                                 (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
+                                 (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
+                                 (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
+                                 (selectedBucket === 'dpd_120_plus' && p.bucketMin >= 121);
+                        });
+                        return persona ? stepInvoiceCounts[persona[0]] || {} : {};
+                      })()}
                     />
                   </TabsContent>
                 </Tabs>
@@ -1334,21 +1392,15 @@ const AIWorkflows = () => {
                         >
                           {loading ? "Creating..." : "Create Critical Collections Workflow"}
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setShowTemplates(true)}
-                        >
-                          Browse Templates
-                        </Button>
                       </div>
                     </div>
                   ) : (
                     <Button 
                       variant="outline" 
                       className="mt-4" 
-                      onClick={() => setShowTemplates(true)}
+                      onClick={handleCreateCustomWorkflow}
                     >
-                      Browse Workflow Templates
+                      Create Custom Workflow
                     </Button>
                   )}
                 </CardContent>
@@ -1370,14 +1422,6 @@ const AIWorkflows = () => {
         open={editingSettings}
         onOpenChange={setEditingSettings}
         onSave={handleSaveSettings}
-      />
-
-      <WorkflowTemplates
-        open={showTemplates}
-        onOpenChange={setShowTemplates}
-        onSelectTemplate={handleApplyTemplate}
-        selectedBucket={selectedBucket}
-        bucketLabel={agingBuckets.find(b => b.value === selectedBucket)?.label}
       />
 
       <MessagePreview
