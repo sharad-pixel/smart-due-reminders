@@ -17,7 +17,6 @@ import {
   CheckSquare,
   Shield,
   FolderOpen,
-  Upload,
   Menu,
   X,
   Inbox,
@@ -184,7 +183,6 @@ const Layout = ({ children }: LayoutProps) => {
   ];
 
   const adminItems = [
-    { path: "/import/ar-aging", label: "Import AR", icon: Upload },
     ...(showTeam ? [
       { path: "/team", label: "Team & Roles", icon: Users },
       { path: "/security", label: "Security Dashboard", icon: Shield }

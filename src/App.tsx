@@ -41,7 +41,6 @@ import ComingSoon from "./pages/ComingSoon";
 import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
-import ImportARAging from "./pages/ImportARAging";
 import BringYourOwnEmail from "./pages/BringYourOwnEmail";
 import TasksBoard from "./pages/TasksBoard";
 import InboundCommandCenter from "./pages/InboundCommandCenter";
@@ -98,7 +97,6 @@ const App = () => (
         <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/documents" element={<Documents />} />
-        <Route path="/import/ar-aging" element={<ImportARAging />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
