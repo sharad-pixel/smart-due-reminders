@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
@@ -18,6 +18,7 @@ import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig } from "@/lib/personaConfig";
+import { cn } from "@/lib/utils";
 
 interface WorkflowStep {
   id: string;
@@ -85,6 +86,8 @@ const AIWorkflows = () => {
   const [draftsByPersona, setDraftsByPersona] = useState<DraftsByPersona>({});
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [autoSending, setAutoSending] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+  const [generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -522,6 +525,45 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleGeneratePersonaDrafts = async (personaName: string) => {
+    const persona = Object.values(personaConfig).find(p => p.name === personaName);
+    if (!persona) return;
+
+    // Determine aging bucket from persona bucket range
+    let agingBucket = '';
+    if (persona.bucketMin === 1 && persona.bucketMax === 30) agingBucket = 'dpd_1_30';
+    else if (persona.bucketMin === 31 && persona.bucketMax === 60) agingBucket = 'dpd_31_60';
+    else if (persona.bucketMin === 61 && persona.bucketMax === 90) agingBucket = 'dpd_61_90';
+    else if (persona.bucketMin === 91 && persona.bucketMax === 120) agingBucket = 'dpd_91_120';
+    else if (persona.bucketMin === 121) agingBucket = 'dpd_121_plus';
+
+    if (!agingBucket) {
+      toast.error("Could not determine aging bucket for this persona");
+      return;
+    }
+
+    setGeneratingPersonaDrafts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-bucket-drafts', {
+        body: { aging_bucket: agingBucket }
+      });
+
+      if (error) throw error;
+
+      toast.success(
+        `Generated ${data.created} draft${data.created !== 1 ? 's' : ''} for ${personaName}`,
+        { duration: 5000 }
+      );
+
+      await fetchDraftsByPersona();
+    } catch (error: any) {
+      console.error('Generate drafts error:', error);
+      toast.error(error.message || "Failed to generate drafts");
+    } finally {
+      setGeneratingPersonaDrafts(false);
+    }
+  };
+
   const handleSetupDefaultWorkflow = async (aging_bucket: string) => {
     setLoading(true);
     try {
@@ -692,7 +734,13 @@ const AIWorkflows = () => {
                 {Object.entries(personaConfig).map(([key, persona]) => (
                   <Tooltip key={key}>
                     <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105">
+                      <button
+                        onClick={() => setSelectedPersona(persona.name)}
+                        className={cn(
+                          "flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105 p-2 rounded-lg",
+                          selectedPersona === persona.name && "bg-primary/10 ring-2 ring-primary"
+                        )}
+                      >
                         <PersonaAvatar persona={persona} size="lg" />
                         <div className="text-center">
                           <p className="text-xs font-semibold">{persona.name}</p>
@@ -700,7 +748,7 @@ const AIWorkflows = () => {
                             {persona.bucketMin}-{persona.bucketMax || "+"} Days
                           </p>
                         </div>
-                      </div>
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
                       <div className="space-y-2">
@@ -733,76 +781,120 @@ const AIWorkflows = () => {
         {/* AI Drafts by Persona */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              AI Drafts by Collection Agent
-            </CardTitle>
-            <CardDescription>
-              Review and approve AI-generated drafts organized by assigned collection agent persona
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  AI Drafts by Collection Agent
+                </CardTitle>
+                <CardDescription>
+                  {selectedPersona 
+                    ? `Viewing drafts for ${selectedPersona}` 
+                    : 'Click on a collection agent above to view their drafts'}
+                </CardDescription>
+              </div>
+              {selectedPersona && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setSelectedPersona(null)}
+                >
+                  View All
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {loadingDrafts ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
-            ) : Object.keys(draftsByPersona).length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No pending drafts. Enable auto-generation or click "Generate Now" to create drafts.</p>
+            ) : !selectedPersona ? (
+              <div className="text-center py-8 space-y-2">
+                <p className="text-muted-foreground">Select a collection agent above to view their drafts</p>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {Object.entries(draftsByPersona).map(([personaId, { persona, drafts }]) => {
-                  const personaInfo = Object.values(personaConfig).find(p => p.name === persona.name);
-                  
-                  return (
-                    <div key={personaId} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex items-center gap-3">
-                        {personaInfo && <PersonaAvatar persona={personaInfo} size="md" />}
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{persona.name}</h3>
-                          <p className="text-sm text-muted-foreground">{persona.bucket_min}-{persona.bucket_max || "+"} days past due</p>
-                        </div>
-                        <Badge variant="outline">{drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</Badge>
+            ) : (() => {
+              // Find the matching persona from draftsByPersona
+              const matchingEntry = Object.entries(draftsByPersona).find(
+                ([_, { persona }]) => persona.name === selectedPersona
+              );
+              
+              if (!matchingEntry) {
+                // No drafts for this persona
+                return (
+                  <div className="text-center py-8 space-y-4">
+                    <p className="text-muted-foreground">
+                      No drafts found for {selectedPersona}
+                    </p>
+                    <Button 
+                      onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
+                      disabled={generatingPersonaDrafts}
+                    >
+                      {generatingPersonaDrafts ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate Drafts for {selectedPersona}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              }
+
+              const [personaId, { persona, drafts }] = matchingEntry;
+              const personaInfo = Object.values(personaConfig).find(p => p.name === persona.name);
+
+              return (
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center gap-3">
+                      {personaInfo && <PersonaAvatar persona={personaInfo} size="md" />}
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{persona.name}</h3>
+                        <p className="text-sm text-muted-foreground">{persona.bucket_min}-{persona.bucket_max || "+"} days past due</p>
                       </div>
-                      
-                      <div className="space-y-2">
-                        {drafts.slice(0, 3).map((draft: any) => (
-                          <div key={draft.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-medium text-sm">{draft.invoices.debtors.company_name || draft.invoices.debtors.name}</p>
-                                <Badge variant="secondary" className="text-xs">{draft.channel}</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Invoice {draft.invoices.invoice_number} • ${draft.invoices.amount} {draft.invoices.currency}
-                              </p>
+                      <Badge variant="outline">{drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</Badge>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {drafts.map((draft: any) => (
+                        <div key={draft.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-sm">{draft.invoices.debtors.company_name || draft.invoices.debtors.name}</p>
+                              <Badge variant="secondary" className="text-xs">{draft.channel}</Badge>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => window.location.href = '/collections/drafts'}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              Invoice {draft.invoices.invoice_number} • ${draft.invoices.amount} {draft.invoices.currency}
+                            </p>
                           </div>
-                        ))}
-                        {drafts.length > 3 && (
                           <Button
-                            variant="outline"
                             size="sm"
-                            className="w-full"
+                            variant="ghost"
                             onClick={() => window.location.href = '/collections/drafts'}
                           >
-                            View all {drafts.length} drafts for {persona.name}
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => window.location.href = '/collections/drafts'}
+                      >
+                        View all {drafts.length} drafts for {persona.name}
+                      </Button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
