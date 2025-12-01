@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface ImportRow {
   external_invoice_id: string;
+  invoice_number?: string;
   customer_name?: string;
   customer_email?: string;
   amount: number;
@@ -122,7 +123,7 @@ Deno.serve(async (req) => {
             user_id: user.id,
             debtor_id: debtorId,
             external_invoice_id: row.external_invoice_id,
-            invoice_number: row.external_invoice_id, // Use external ID as invoice number if not provided
+            invoice_number: row.invoice_number || row.external_invoice_id, // Use provided internal invoice # or fall back to external ID
             amount: parseFloat(row.amount.toString()),
             currency: row.currency || 'USD',
             issue_date: row.issue_date || new Date().toISOString().split('T')[0],
