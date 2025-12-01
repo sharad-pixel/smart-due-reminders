@@ -74,6 +74,16 @@ export const useDebtorDashboard = () => {
       const lowRisk = data.filter(d => d.payment_risk_tier === "low").length;
       const mediumRisk = data.filter(d => d.payment_risk_tier === "medium").length;
       const highRisk = data.filter(d => d.payment_risk_tier === "high").length;
+      
+      // Calculate DSO (Days Sales Outstanding)
+      // Weighted average of days to pay based on outstanding balance
+      const totalAR = data.reduce((sum, d) => sum + (d.total_open_balance || 0), 0);
+      const weightedDaysToPay = data.reduce((sum, d) => {
+        const balance = d.total_open_balance || 0;
+        const days = d.avg_days_to_pay || 0;
+        return sum + (balance * days);
+      }, 0);
+      const dso = totalAR > 0 ? Math.round(weightedDaysToPay / totalAR) : 0;
 
       return {
         debtors: data,
@@ -83,6 +93,8 @@ export const useDebtorDashboard = () => {
           lowRisk,
           mediumRisk,
           highRisk,
+          dso,
+          totalAR,
         },
       };
     },
