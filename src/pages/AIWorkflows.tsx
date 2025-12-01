@@ -536,7 +536,7 @@ const AIWorkflows = () => {
     else if (persona.bucketMin === 31 && persona.bucketMax === 60) agingBucket = 'dpd_31_60';
     else if (persona.bucketMin === 61 && persona.bucketMax === 90) agingBucket = 'dpd_61_90';
     else if (persona.bucketMin === 91 && persona.bucketMax === 120) agingBucket = 'dpd_91_120';
-    else if (persona.bucketMin === 121) agingBucket = 'dpd_121_plus';
+    else if (persona.bucketMin === 121) agingBucket = 'dpd_120_plus';
 
     if (!agingBucket) {
       toast.error("Could not determine aging bucket for this persona");
@@ -551,10 +551,18 @@ const AIWorkflows = () => {
 
       if (error) throw error;
 
-      toast.success(
-        `Generated ${data.created} draft${data.created !== 1 ? 's' : ''} for ${personaName}`,
-        { duration: 5000 }
-      );
+      if (data.success) {
+        toast.success(
+          `Generated ${data.drafts_created} draft${data.drafts_created !== 1 ? 's' : ''} for ${personaName}`,
+          { duration: 5000 }
+        );
+        
+        if (data.errors && data.errors.length > 0) {
+          toast.warning(`${data.errors.length} error${data.errors.length !== 1 ? 's' : ''} occurred during generation`);
+        }
+      } else {
+        toast.info(data.message || 'No drafts were created');
+      }
 
       await fetchDraftsByPersona();
     } catch (error: any) {
