@@ -98,28 +98,38 @@ const AIWorkflows = () => {
 
   const fetchInvoiceCounts = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-aging-bucket-invoices`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      // Fetch invoices grouped by days past due
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('id, due_date')
+        .eq('user_id', user.id)
+        .in('status', ['Open', 'InPaymentPlan']);
 
-      if (!response.ok) throw new Error("Failed to fetch invoice counts");
+      if (error) throw error;
 
-      const result = await response.json();
-      if (result.success && result.data) {
-        const counts: Record<string, number> = {};
-        Object.keys(result.data).forEach((bucket) => {
-          counts[bucket] = result.data[bucket].count || 0;
+      // Calculate counts per persona bucket range
+      const counts: Record<string, number> = {};
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      invoices?.forEach(invoice => {
+        const dueDate = new Date(invoice.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Find matching persona
+        Object.entries(personaConfig).forEach(([key, persona]) => {
+          if (daysPastDue >= persona.bucketMin && 
+              (!persona.bucketMax || daysPastDue <= persona.bucketMax)) {
+            counts[key] = (counts[key] || 0) + 1;
+          }
         });
-        setBucketCounts(counts);
-      }
+      });
+
+      setBucketCounts(counts);
     } catch (error) {
       console.error("Error fetching invoice counts:", error);
     }
@@ -1031,41 +1041,57 @@ const AIWorkflows = () => {
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Aging Buckets Sidebar */}
+          {/* Invoice Count by Collection Agent */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg">Aging Buckets</CardTitle>
-              <CardDescription>Select a bucket to configure</CardDescription>
+              <CardTitle className="text-lg">Invoices by Collection Agent</CardTitle>
+              <CardDescription>Open invoices grouped by AI agent</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {agingBuckets.map((bucket) => {
-                const workflow = workflows.find(w => w.aging_bucket === bucket.value);
-                const isActive = workflow?.is_active ?? false;
-                const invoiceCount = bucketCounts[bucket.value] || 0;
-                
+            <CardContent className="space-y-3">
+              {Object.entries(personaConfig).map(([key, persona]) => {
+                const invoiceCount = bucketCounts[key] || 0;
+                const bucket = agingBuckets.find(b => {
+                  if (persona.bucketMin === 1 && persona.bucketMax === 30) return b.value === 'dpd_1_30';
+                  if (persona.bucketMin === 31 && persona.bucketMax === 60) return b.value === 'dpd_31_60';
+                  if (persona.bucketMin === 61 && persona.bucketMax === 90) return b.value === 'dpd_61_90';
+                  if (persona.bucketMin === 91 && persona.bucketMax === 120) return b.value === 'dpd_91_120';
+                  if (persona.bucketMin === 121) return b.value === 'dpd_120_plus';
+                  return false;
+                });
+
                 return (
-                  <button
-                    key={bucket.value}
-                    onClick={() => setSelectedBucket(bucket.value)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      selectedBucket === bucket.value
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "hover:bg-accent"
-                    }`}
+                  <div
+                    key={key}
+                    className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{bucket.label}</span>
-                        <Badge variant={selectedBucket === bucket.value ? "secondary" : "outline"} className="text-xs">
-                          {invoiceCount} {invoiceCount === 1 ? "invoice" : "invoices"}
-                        </Badge>
+                        <PersonaAvatar persona={persona} size="sm" />
+                        <div>
+                          <p className="font-medium text-sm">{persona.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                          </p>
+                        </div>
                       </div>
-                      {isActive && (
-                        <Badge variant="secondary" className="text-xs">Active</Badge>
-                      )}
+                      <Badge variant="outline" className="text-xs">
+                        {invoiceCount} {invoiceCount === 1 ? "invoice" : "invoices"}
+                      </Badge>
                     </div>
-                    <p className="text-xs opacity-80">{bucket.description}</p>
-                  </button>
+                    {bucket && (
+                      <button
+                        onClick={() => setSelectedBucket(bucket.value)}
+                        className={cn(
+                          "w-full text-xs py-1.5 px-2 rounded border transition-colors mt-2",
+                          selectedBucket === bucket.value
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted hover:bg-muted/70"
+                        )}
+                      >
+                        View {bucket.label} Workflow
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </CardContent>
