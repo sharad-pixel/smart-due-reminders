@@ -246,7 +246,7 @@ serve(async (req) => {
         direction: "inbound",
         channel: "email",
         subject: subject,
-        message_body: subject,
+        message_body: textBody || htmlBody || subject,
         response_message: textBody || htmlBody,
         responded_at: new Date().toISOString(),
       });
