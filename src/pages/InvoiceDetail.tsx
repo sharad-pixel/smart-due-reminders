@@ -35,6 +35,28 @@ interface Invoice {
   notes: string | null;
   debtor_id: string;
   payment_terms: string | null;
+  currency: string | null;
+  external_invoice_id: string | null;
+  external_link: string | null;
+  is_archived: boolean | null;
+  is_overage: boolean | null;
+  last_contact_date: string | null;
+  last_contacted_at: string | null;
+  next_contact_date: string | null;
+  paid_date: string | null;
+  payment_date: string | null;
+  payment_method: string | null;
+  payment_terms_days: number | null;
+  product_description: string | null;
+  promise_to_pay_amount: number | null;
+  promise_to_pay_date: string | null;
+  source_system: string | null;
+  subtotal: number | null;
+  tax_amount: number | null;
+  total_amount: number | null;
+  aging_bucket: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   debtors?: { 
     name: string; 
     email: string;
@@ -532,8 +554,28 @@ const InvoiceDetail = () => {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">Amount</p>
-                <p className="text-2xl font-bold">${invoice.amount.toLocaleString()}</p>
+                <p className="text-2xl font-bold">
+                  {invoice.currency || 'USD'} ${invoice.amount.toLocaleString()}
+                </p>
               </div>
+              {invoice.subtotal !== null && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Subtotal</p>
+                  <p className="font-medium">${invoice.subtotal.toLocaleString()}</p>
+                </div>
+              )}
+              {invoice.tax_amount !== null && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Tax</p>
+                  <p className="font-medium">${invoice.tax_amount.toLocaleString()}</p>
+                </div>
+              )}
+              {invoice.total_amount !== null && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="font-medium">${invoice.total_amount.toLocaleString()}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
                 <span
@@ -552,6 +594,12 @@ const InvoiceDetail = () => {
                 <p className="text-sm text-muted-foreground">Due Date</p>
                 <p className="font-medium">{new Date(invoice.due_date).toLocaleDateString()}</p>
               </div>
+              {invoice.payment_terms && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Payment Terms</p>
+                  <p className="font-medium">{invoice.payment_terms}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Days Past Due</p>
                 <p
@@ -568,6 +616,23 @@ const InvoiceDetail = () => {
                   {daysPastDue === 0 ? "Current" : `${daysPastDue} days`}
                 </p>
               </div>
+              {invoice.aging_bucket && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Aging Bucket</p>
+                  <p className="font-medium">{getAgingBucketLabel(invoice.aging_bucket)}</p>
+                </div>
+              )}
+              {invoice.product_description && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Product Description</p>
+                  <p className="text-sm">{invoice.product_description}</p>
+                </div>
+              )}
+              {invoice.is_overage && (
+                <div>
+                  <Badge variant="destructive">Overage Invoice</Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -725,6 +790,129 @@ const InvoiceDetail = () => {
                 <p className="text-sm text-muted-foreground">
                   No CRM account linked. Link this debtor to a CRM account in their profile.
                 </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {invoice.paid_date && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Paid Date</p>
+                  <p className="font-medium">{new Date(invoice.paid_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              {invoice.payment_date && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Payment Date</p>
+                  <p className="font-medium">{new Date(invoice.payment_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              {invoice.payment_method && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Payment Method</p>
+                  <p className="font-medium">{invoice.payment_method}</p>
+                </div>
+              )}
+              {invoice.promise_to_pay_date && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Promise to Pay Date</p>
+                  <p className="font-medium">{new Date(invoice.promise_to_pay_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              {invoice.promise_to_pay_amount !== null && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Promise to Pay Amount</p>
+                  <p className="font-medium">${invoice.promise_to_pay_amount.toLocaleString()}</p>
+                </div>
+              )}
+              {!invoice.paid_date && !invoice.payment_date && !invoice.payment_method && 
+               !invoice.promise_to_pay_date && invoice.promise_to_pay_amount === null && (
+                <p className="text-sm text-muted-foreground">No payment information available</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Collection Dates</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {invoice.last_contacted_at && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Last Contacted</p>
+                  <p className="font-medium">{new Date(invoice.last_contacted_at).toLocaleDateString()}</p>
+                </div>
+              )}
+              {invoice.last_contact_date && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Last Contact Date</p>
+                  <p className="font-medium">{new Date(invoice.last_contact_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              {invoice.next_contact_date && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Next Contact Date</p>
+                  <p className="font-medium">{new Date(invoice.next_contact_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              {!invoice.last_contacted_at && !invoice.last_contact_date && !invoice.next_contact_date && (
+                <p className="text-sm text-muted-foreground">No collection dates set</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {invoice.external_invoice_id && (
+                <div>
+                  <p className="text-sm text-muted-foreground">External Invoice ID</p>
+                  <p className="font-medium text-sm break-all">{invoice.external_invoice_id}</p>
+                </div>
+              )}
+              {invoice.source_system && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Source System</p>
+                  <p className="font-medium">{invoice.source_system}</p>
+                </div>
+              )}
+              {invoice.external_link && (
+                <div>
+                  <p className="text-sm text-muted-foreground">External Link</p>
+                  <a 
+                    href={invoice.external_link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline break-all"
+                  >
+                    View in {invoice.source_system || 'external system'}
+                  </a>
+                </div>
+              )}
+              {invoice.created_at && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-xs">{new Date(invoice.created_at).toLocaleString()}</p>
+                </div>
+              )}
+              {invoice.updated_at && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Last Updated</p>
+                  <p className="text-xs">{new Date(invoice.updated_at).toLocaleString()}</p>
+                </div>
+              )}
+              {invoice.is_archived && (
+                <div>
+                  <Badge variant="secondary">Archived</Badge>
+                </div>
               )}
             </CardContent>
           </Card>
