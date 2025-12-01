@@ -160,7 +160,6 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/debtors", label: "Debtors", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
     { path: "/profile", label: userName || "Profile", icon: UserIcon },
@@ -176,10 +175,9 @@ const Layout = ({ children }: LayoutProps) => {
   ];
 
   const aiToolsItems = [
-    { path: "/collections/drafts", label: "AI Drafts", icon: Mail },
+    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
-    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
   ];
 
   const adminItems = [

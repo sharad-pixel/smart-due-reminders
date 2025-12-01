@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2 } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
@@ -88,6 +88,7 @@ const AIWorkflows = () => {
   const [autoSending, setAutoSending] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
+  const [expandedDrafts, setExpandedDrafts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchWorkflows();
@@ -564,6 +565,52 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleApproveDraft = async (draftId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ status: 'approved' })
+        .eq('id', draftId);
+
+      if (error) throw error;
+
+      toast.success('Draft approved');
+      await fetchDraftsByPersona();
+    } catch (error: any) {
+      console.error('Error approving draft:', error);
+      toast.error('Failed to approve draft');
+    }
+  };
+
+  const handleDiscardDraft = async (draftId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ status: 'discarded' })
+        .eq('id', draftId);
+
+      if (error) throw error;
+
+      toast.success('Draft discarded');
+      await fetchDraftsByPersona();
+    } catch (error: any) {
+      console.error('Error discarding draft:', error);
+      toast.error('Failed to discard draft');
+    }
+  };
+
+  const toggleDraftExpanded = (draftId: string) => {
+    setExpandedDrafts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(draftId)) {
+        newSet.delete(draftId);
+      } else {
+        newSet.add(draftId);
+      }
+      return newSet;
+    });
+  };
+
   const handleSetupDefaultWorkflow = async (aging_bucket: string) => {
     setLoading(true);
     try {
@@ -861,35 +908,80 @@ const AIWorkflows = () => {
                       <Badge variant="outline">{drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</Badge>
                     </div>
                     
-                    <div className="space-y-2">
-                      {drafts.map((draft: any) => (
-                        <div key={draft.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-sm">{draft.invoices.debtors.company_name || draft.invoices.debtors.name}</p>
-                              <Badge variant="secondary" className="text-xs">{draft.channel}</Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Invoice {draft.invoices.invoice_number} • ${draft.invoices.amount} {draft.invoices.currency}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => window.location.href = '/collections/drafts'}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => window.location.href = '/collections/drafts'}
-                      >
-                        View all {drafts.length} drafts for {persona.name}
-                      </Button>
+                    <div className="space-y-3">
+                      {drafts.map((draft: any) => {
+                        const isExpanded = expandedDrafts.has(draft.id);
+                        return (
+                          <Card key={draft.id} className="bg-card border">
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <p className="font-medium text-sm truncate">
+                                      {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                    </p>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {draft.channel}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {draft.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Invoice {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}
+                                  </p>
+                                  {draft.channel === 'email' && draft.subject && (
+                                    <p className="text-xs font-medium mt-2 truncate">
+                                      {draft.subject}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => toggleDraftExpanded(draft.id)}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="space-y-3 pt-3 border-t">
+                                  <div className="bg-muted/50 rounded-md p-3 text-sm">
+                                    <p className="whitespace-pre-wrap">{draft.message_body}</p>
+                                  </div>
+                                  
+                                  {draft.status === 'pending_approval' && (
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveDraft(draft.id)}
+                                        className="flex-1"
+                                      >
+                                        <Check className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleDiscardDraft(draft.id)}
+                                        className="flex-1"
+                                      >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Discard
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
