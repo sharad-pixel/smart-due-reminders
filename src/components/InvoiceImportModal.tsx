@@ -34,10 +34,11 @@ const REQUIRED_FIELDS = [
 ];
 
 const OPTIONAL_FIELDS = [
+  { key: "invoice_number", label: "Internal Invoice #" },
   { key: "customer_name", label: "Customer Name" },
   { key: "customer_email", label: "Customer Email" },
   { key: "issue_date", label: "Issue Date" },
-  { key: "source_system", label: "Source System" },
+  { key: "source_system", label: "Invoicing System" },
   { key: "notes", label: "Notes" },
 ];
 
@@ -114,6 +115,7 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
     
     const mappingRules: Record<string, string[]> = {
       external_invoice_id: ["invoice", "invoice number", "invoice_number", "invoice #", "id", "external_invoice_id"],
+      invoice_number: ["internal invoice", "internal invoice #", "internal invoice number", "internal_invoice_number", "invoice_number"],
       customer_name: ["customer", "customer name", "customer_name", "debtor", "name", "company"],
       customer_email: ["email", "customer email", "customer_email", "contact email"],
       amount: ["amount", "amount due", "amount_due", "total", "balance"],
@@ -121,7 +123,7 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
       issue_date: ["issue date", "issue_date", "invoice date", "date"],
       due_date: ["due date", "due_date", "payment due"],
       status: ["status", "state"],
-      source_system: ["source", "source system", "source_system", "system"],
+      source_system: ["source", "source system", "source_system", "system", "invoicing system", "invoicing_system"],
       notes: ["notes", "note", "comments", "comment"],
     };
 
@@ -293,6 +295,8 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <strong>Required fields:</strong> Invoice ID, Amount, Currency (3 letters), Due Date, Status
+                <br />
+                <strong>Optional fields:</strong> Internal Invoice #, Customer Name, Customer Email, Issue Date, Invoicing System, Notes
               </AlertDescription>
             </Alert>
 

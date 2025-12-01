@@ -17,7 +17,7 @@ interface InvoiceExportModalProps {
 
 const EXPORT_COLUMNS = [
   { key: "external_invoice_id", label: "Invoice ID", default: true },
-  { key: "invoice_number", label: "Invoice Number", default: true },
+  { key: "invoice_number", label: "Internal Invoice #", default: true },
   { key: "customer_name", label: "Customer Name", default: true },
   { key: "customer_email", label: "Customer Email", default: true },
   { key: "amount", label: "Amount", default: true },
@@ -26,7 +26,7 @@ const EXPORT_COLUMNS = [
   { key: "due_date", label: "Due Date", default: true },
   { key: "status", label: "Status", default: true },
   { key: "aging_bucket", label: "Aging Bucket", default: true },
-  { key: "source_system", label: "Source System", default: true },
+  { key: "source_system", label: "Invoicing System", default: true },
   { key: "payment_terms", label: "Payment Terms", default: false },
   { key: "last_contacted_at", label: "Last Contacted", default: false },
   { key: "notes", label: "Notes", default: false },
