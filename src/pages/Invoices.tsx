@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Eye, AlertCircle, Sparkles, X, ListChecks } from "lucide-react";
+import { Plus, Search, Eye, AlertCircle, Sparkles, X, ListChecks, Upload, Download, RefreshCw } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -18,6 +18,10 @@ import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
+import { InvoiceImportModal } from "@/components/InvoiceImportModal";
+import { InvoiceExportModal } from "@/components/InvoiceExportModal";
+import { BulkStatusUpdateModal } from "@/components/BulkStatusUpdateModal";
+import { ImportJobHistory } from "@/components/ImportJobHistory";
 
 interface Invoice {
   id: string;
@@ -61,6 +65,9 @@ const Invoices = () => {
   });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
@@ -344,7 +351,34 @@ const Invoices = () => {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Invoices</h1>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Track and manage outstanding invoices</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportOpen(true)}
+              className="gap-2 flex-1 sm:flex-initial"
+              size="sm"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsExportOpen(true)}
+              className="gap-2 flex-1 sm:flex-initial"
+              size="sm"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkStatusOpen(true)}
+              className="gap-2 flex-1 sm:flex-initial"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Bulk Update</span>
+            </Button>
             <Button
               variant="outline"
               onClick={() => setIsAIPromptOpen(true)}
@@ -852,6 +886,35 @@ const Invoices = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <InvoiceImportModal
+          open={isImportOpen}
+          onOpenChange={setIsImportOpen}
+          onImportComplete={fetchData}
+        />
+
+        <InvoiceExportModal
+          open={isExportOpen}
+          onOpenChange={setIsExportOpen}
+        />
+
+        <BulkStatusUpdateModal
+          open={isBulkStatusOpen}
+          onOpenChange={setIsBulkStatusOpen}
+          onUpdateComplete={fetchData}
+        />
+
+        <AIPromptCreationModal
+          open={isAIPromptOpen}
+          onOpenChange={setIsAIPromptOpen}
+          onSuccess={() => {
+            fetchData();
+          }}
+        />
+
+        <div className="mt-8">
+          <ImportJobHistory />
+        </div>
       </div>
     </Layout>
   );
