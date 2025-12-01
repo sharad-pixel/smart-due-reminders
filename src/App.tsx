@@ -31,7 +31,6 @@ import Profile from "./pages/Profile";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import SecuritySettings from "./pages/SecuritySettings";
 import AIWorkflows from "./pages/AIWorkflows";
-import CollectionDrafts from "./pages/CollectionDrafts";
 import CollectionTasks from "./pages/CollectionTasks";
 import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
 import Personas from "./pages/Personas";
@@ -88,7 +87,6 @@ const App = () => (
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
         <Route path="/settings/email-accounts" element={<BringYourOwnEmail />} />
-        <Route path="/collections/drafts" element={<CollectionDrafts />} />
         <Route path="/collections/tasks" element={<CollectionTasks />} />
           <Route path="/tasks" element={<TasksBoard />} />
           <Route path="/inbound" element={<InboundCommandCenter />} />
