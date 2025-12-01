@@ -84,6 +84,7 @@ const AIWorkflows = () => {
   const [generatingDrafts, setGeneratingDrafts] = useState(false);
   const [draftsByPersona, setDraftsByPersona] = useState<DraftsByPersona>({});
   const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [autoSending, setAutoSending] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -491,6 +492,36 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleAutoSendApprovedDrafts = async () => {
+    setAutoSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('auto-send-approved-drafts');
+
+      if (error) throw error;
+
+      if (data?.sent > 0) {
+        toast.success(
+          `Sent ${data.sent} approved draft${data.sent !== 1 ? 's' : ''}${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.info("No approved drafts ready to send");
+      }
+
+      if (data?.errors && data.errors.length > 0) {
+        toast.warning(`${data.errors.length} error${data.errors.length !== 1 ? 's' : ''} occurred`);
+      }
+
+      // Refresh drafts after sending
+      await fetchDraftsByPersona();
+    } catch (error: any) {
+      console.error('Auto-send error:', error);
+      toast.error(error.message || "Failed to auto-send drafts");
+    } finally {
+      setAutoSending(false);
+    }
+  };
+
   const handleSetupDefaultWorkflow = async (aging_bucket: string) => {
     setLoading(true);
     try {
@@ -620,6 +651,15 @@ const AIWorkflows = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleAutoSendApprovedDrafts}
+              disabled={autoSending}
+              className="flex items-center space-x-2"
+            >
+              <Mail className="h-4 w-4" />
+              <span>{autoSending ? "Sending..." : "Send Approved"}</span>
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleManualReassignment}
@@ -763,6 +803,22 @@ const AIWorkflows = () => {
                 })}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4">
+            <div className="flex gap-3">
+              <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Draft Sending</h3>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  When you approve drafts, they will be automatically sent when invoices enter the appropriate aging bucket. 
+                  Use the "Send Approved" button to manually trigger sending of all approved drafts immediately, 
+                  or set up a cron job to run the auto-send function daily.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

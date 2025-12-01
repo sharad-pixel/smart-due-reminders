@@ -205,6 +205,7 @@ export type Database = {
           invoice_id: string
           message_body: string
           recommended_send_date: string | null
+          sent_at: string | null
           status: Database["public"]["Enums"]["draft_status"] | null
           step_number: number
           subject: string | null
@@ -221,6 +222,7 @@ export type Database = {
           invoice_id: string
           message_body: string
           recommended_send_date?: string | null
+          sent_at?: string | null
           status?: Database["public"]["Enums"]["draft_status"] | null
           step_number: number
           subject?: string | null
@@ -237,6 +239,7 @@ export type Database = {
           invoice_id?: string
           message_body?: string
           recommended_send_date?: string | null
+          sent_at?: string | null
           status?: Database["public"]["Enums"]["draft_status"] | null
           step_number?: number
           subject?: string | null
