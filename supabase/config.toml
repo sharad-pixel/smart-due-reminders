@@ -122,3 +122,6 @@ verify_jwt = true
 
 [functions.generate-bucket-drafts]
 verify_jwt = true
+
+[functions.auto-send-approved-drafts]
+verify_jwt = false
