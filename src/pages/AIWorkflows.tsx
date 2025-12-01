@@ -53,6 +53,13 @@ const agingBuckets = [
   { value: "dpd_120_plus", label: "121+ Days Past Due", description: "Critical collection stage" },
 ];
 
+interface DraftsByPersona {
+  [personaId: string]: {
+    persona: any;
+    drafts: any[];
+  };
+}
+
 const AIWorkflows = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
@@ -75,10 +82,13 @@ const AIWorkflows = () => {
   } | null>(null);
   const [reassigning, setReassigning] = useState(false);
   const [generatingDrafts, setGeneratingDrafts] = useState(false);
+  const [draftsByPersona, setDraftsByPersona] = useState<DraftsByPersona>({});
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
     fetchInvoiceCounts();
+    fetchDraftsByPersona();
   }, []);
 
   const fetchInvoiceCounts = async () => {
@@ -107,6 +117,49 @@ const AIWorkflows = () => {
       }
     } catch (error) {
       console.error("Error fetching invoice counts:", error);
+    }
+  };
+
+  const fetchDraftsByPersona = async () => {
+    setLoadingDrafts(true);
+    try {
+      const { data: drafts, error } = await supabase
+        .from('ai_drafts')
+        .select(`
+          *,
+          ai_agent_personas(id, name, persona_summary, bucket_min, bucket_max),
+          invoices!inner(
+            invoice_number,
+            amount,
+            currency,
+            debtors!inner(name, company_name, email)
+          )
+        `)
+        .eq('status', 'pending_approval')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group drafts by persona
+      const grouped: DraftsByPersona = {};
+      drafts?.forEach(draft => {
+        if (draft.agent_persona_id && draft.ai_agent_personas) {
+          if (!grouped[draft.agent_persona_id]) {
+            grouped[draft.agent_persona_id] = {
+              persona: draft.ai_agent_personas,
+              drafts: []
+            };
+          }
+          grouped[draft.agent_persona_id].drafts.push(draft);
+        }
+      });
+
+      setDraftsByPersona(grouped);
+    } catch (error: any) {
+      console.error('Error fetching drafts:', error);
+      toast.error("Failed to load drafts");
+    } finally {
+      setLoadingDrafts(false);
     }
   };
 
@@ -209,6 +262,9 @@ const AIWorkflows = () => {
         if (result.errors && result.errors.length > 0) {
           toast.warning(`${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} occurred during generation`);
         }
+        
+        // Refresh drafts after generation
+        await fetchDraftsByPersona();
       }
     } catch (error: any) {
       console.error('Error generating drafts:', error);
@@ -631,6 +687,82 @@ const AIWorkflows = () => {
                 ))}
               </div>
             </TooltipProvider>
+          </CardContent>
+        </Card>
+
+        {/* AI Drafts by Persona */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              AI Drafts by Collection Agent
+            </CardTitle>
+            <CardDescription>
+              Review and approve AI-generated drafts organized by assigned collection agent persona
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingDrafts ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : Object.keys(draftsByPersona).length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No pending drafts. Enable auto-generation or click "Generate Now" to create drafts.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(draftsByPersona).map(([personaId, { persona, drafts }]) => {
+                  const personaInfo = Object.values(personaConfig).find(p => p.name === persona.name);
+                  
+                  return (
+                    <div key={personaId} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center gap-3">
+                        {personaInfo && <PersonaAvatar persona={personaInfo} size="md" />}
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{persona.name}</h3>
+                          <p className="text-sm text-muted-foreground">{persona.bucket_min}-{persona.bucket_max || "+"} days past due</p>
+                        </div>
+                        <Badge variant="outline">{drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</Badge>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {drafts.slice(0, 3).map((draft: any) => (
+                          <div key={draft.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-sm">{draft.invoices.debtors.company_name || draft.invoices.debtors.name}</p>
+                                <Badge variant="secondary" className="text-xs">{draft.channel}</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Invoice {draft.invoices.invoice_number} • ${draft.invoices.amount} {draft.invoices.currency}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.location.href = '/collections/drafts'}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {drafts.length > 3 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => window.location.href = '/collections/drafts'}
+                          >
+                            View all {drafts.length} drafts for {persona.name}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
