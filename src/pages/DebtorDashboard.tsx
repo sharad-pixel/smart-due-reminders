@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Clock } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 
@@ -75,13 +75,24 @@ export default function DebtorDashboard() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Debtors</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data?.summary.totalDebtors || 0}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Days Sales Outstanding</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data?.summary.dso || 0}</div>
+              <p className="text-xs text-muted-foreground">Days average</p>
             </CardContent>
           </Card>
           
