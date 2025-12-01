@@ -16,6 +16,7 @@ interface ImportRow {
   due_date: string;
   status: string;
   source_system?: string;
+  product_description?: string;
   notes?: string;
 }
 
@@ -130,6 +131,7 @@ Deno.serve(async (req) => {
             due_date: row.due_date,
             status: row.status,
             source_system: row.source_system || 'CSV Import',
+            product_description: row.product_description || null,
             notes: row.notes || null,
             reference_id: `INV-${Math.random().toString(36).substring(7).toUpperCase()}`,
           };

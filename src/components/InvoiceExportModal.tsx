@@ -27,6 +27,7 @@ const EXPORT_COLUMNS = [
   { key: "status", label: "Status", default: true },
   { key: "aging_bucket", label: "Aging Bucket", default: true },
   { key: "source_system", label: "Invoicing System", default: true },
+  { key: "product_description", label: "Product Description", default: false },
   { key: "payment_terms", label: "Payment Terms", default: false },
   { key: "last_contacted_at", label: "Last Contacted", default: false },
   { key: "notes", label: "Notes", default: false },

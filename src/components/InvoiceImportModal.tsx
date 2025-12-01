@@ -39,6 +39,7 @@ const OPTIONAL_FIELDS = [
   { key: "customer_email", label: "Customer Email" },
   { key: "issue_date", label: "Issue Date" },
   { key: "source_system", label: "Invoicing System" },
+  { key: "product_description", label: "Product Description" },
   { key: "notes", label: "Notes" },
 ];
 
@@ -124,6 +125,7 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
       due_date: ["due date", "due_date", "payment due"],
       status: ["status", "state"],
       source_system: ["source", "source system", "source_system", "system", "invoicing system", "invoicing_system"],
+      product_description: ["product", "product description", "product_description", "description", "item", "service"],
       notes: ["notes", "note", "comments", "comment"],
     };
 
@@ -296,7 +298,7 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
               <AlertDescription>
                 <strong>Required fields:</strong> Invoice ID, Amount, Currency (3 letters), Due Date, Status
                 <br />
-                <strong>Optional fields:</strong> Internal Invoice #, Customer Name, Customer Email, Issue Date, Invoicing System, Notes
+                <strong>Optional fields:</strong> Internal Invoice #, Customer Name, Customer Email, Issue Date, Invoicing System, Product Description, Notes
               </AlertDescription>
             </Alert>
 
