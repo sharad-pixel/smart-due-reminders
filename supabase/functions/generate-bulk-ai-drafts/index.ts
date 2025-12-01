@@ -167,8 +167,46 @@ Context:
 
 ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}`;
 
-        // Generate draft using Lovable AI
+        // Generate draft using Lovable AI with tool calling
         const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        const channel = workflowStep?.channel || 'email';
+        
+        const tools = channel === 'email' ? [{
+          type: 'function',
+          function: {
+            name: 'create_email_draft',
+            description: 'Create an email draft with body content',
+            parameters: {
+              type: 'object',
+              properties: {
+                body: {
+                  type: 'string',
+                  description: 'Email body content'
+                }
+              },
+              required: ['body'],
+              additionalProperties: false
+            }
+          }
+        }] : [{
+          type: 'function',
+          function: {
+            name: 'create_sms_draft',
+            description: 'Create an SMS draft',
+            parameters: {
+              type: 'object',
+              properties: {
+                body: {
+                  type: 'string',
+                  description: 'SMS message content (max 160 characters)'
+                }
+              },
+              required: ['body'],
+              additionalProperties: false
+            }
+          }
+        }];
+
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -181,7 +219,13 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
               { role: 'system', content: systemPrompt },
               { role: 'user', content: contextualPrompt }
             ],
-            temperature: 0.7,
+            tools: tools,
+            tool_choice: {
+              type: 'function',
+              function: {
+                name: channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+              }
+            }
           }),
         });
 
@@ -193,7 +237,20 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
         }
 
         const aiData = await aiResponse.json();
-        const generatedContent = aiData.choices?.[0]?.message?.content || '';
+        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+
+        if (!toolCall || !toolCall.function?.arguments) {
+          errors.push({ invoice_id: invoiceId, error: 'No content generated' });
+          continue;
+        }
+
+        const parsed = JSON.parse(toolCall.function.arguments);
+        const generatedContent = parsed.body;
+
+        if (!generatedContent) {
+          errors.push({ invoice_id: invoiceId, error: 'Empty message body' });
+          continue;
+        }
 
         // Generate subject line
         const subjectPrompt = workflowStep?.subject_template || 

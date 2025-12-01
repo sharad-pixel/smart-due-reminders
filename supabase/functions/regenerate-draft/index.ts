@@ -49,8 +49,49 @@ Deno.serve(async (req) => {
 
     console.log('Regenerating draft with AI for channel:', channel);
 
-    // Generate draft using Lovable AI
+    // Generate draft using Lovable AI with tool calling
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    const tools = channel === 'email' ? [{
+      type: 'function',
+      function: {
+        name: 'create_email_draft',
+        description: 'Create an email draft with subject and body',
+        parameters: {
+          type: 'object',
+          properties: {
+            subject: {
+              type: 'string',
+              description: 'Email subject line'
+            },
+            body: {
+              type: 'string',
+              description: 'Email body content'
+            }
+          },
+          required: ['subject', 'body'],
+          additionalProperties: false
+        }
+      }
+    }] : [{
+      type: 'function',
+      function: {
+        name: 'create_sms_draft',
+        description: 'Create an SMS draft',
+        parameters: {
+          type: 'object',
+          properties: {
+            body: {
+              type: 'string',
+              description: 'SMS message content (max 160 characters)'
+            }
+          },
+          required: ['body'],
+          additionalProperties: false
+        }
+      }
+    }];
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -63,7 +104,13 @@ Deno.serve(async (req) => {
           { role: 'system', content: system_prompt },
           { role: 'user', content: user_prompt }
         ],
-        temperature: 0.7,
+        tools: tools,
+        tool_choice: {
+          type: 'function',
+          function: {
+            name: channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+          }
+        }
       }),
     });
 
@@ -80,23 +127,30 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const generatedContent = aiData.choices?.[0]?.message?.content || '';
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
-    // For email, try to extract subject from the generated content
-    let subject = null;
-    let messageBody = generatedContent;
+    if (!toolCall || !toolCall.function?.arguments) {
+      return new Response(
+        JSON.stringify({ error: 'No content generated from AI' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
-    if (channel === 'email' && generatedContent.includes('Subject:')) {
-      const lines = generatedContent.split('\n');
-      const subjectLine = lines.find((line: string) => line.toLowerCase().startsWith('subject:'));
-      if (subjectLine) {
-        subject = subjectLine.replace(/^subject:\s*/i, '').trim();
-        // Remove subject line from body
-        messageBody = lines
-          .filter((line: string) => !line.toLowerCase().startsWith('subject:'))
-          .join('\n')
-          .trim();
-      }
+    const parsed = JSON.parse(toolCall.function.arguments);
+    const subject = parsed.subject || null;
+    const messageBody = parsed.body;
+
+    if (!messageBody) {
+      return new Response(
+        JSON.stringify({ error: 'Empty message body' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     return new Response(
