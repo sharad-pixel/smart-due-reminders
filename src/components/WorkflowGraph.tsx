@@ -22,9 +22,10 @@ interface WorkflowGraphProps {
   onGenerateContent?: (stepId: string) => void;
   onPreviewMessage?: (step: WorkflowStep) => void;
   isGenerating?: boolean;
+  stepInvoiceCounts?: Record<number, number>;
 }
 
-const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGenerating }: WorkflowGraphProps) => {
+const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGenerating, stepInvoiceCounts }: WorkflowGraphProps) => {
   const sortedSteps = [...steps].sort((a, b) => a.step_order - b.step_order);
   const maxDayOffset = Math.max(...sortedSteps.map(s => s.day_offset), 0);
 
@@ -66,6 +67,11 @@ const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGeneratin
                           <Badge variant={step.is_active ? "default" : "secondary"} className="text-xs">
                             {step.is_active ? "Active" : "Inactive"}
                           </Badge>
+                          {stepInvoiceCounts && stepInvoiceCounts[step.step_order] && (
+                            <Badge variant="outline" className="text-xs">
+                              {stepInvoiceCounts[step.step_order]} invoice{stepInvoiceCounts[step.step_order] !== 1 ? 's' : ''}
+                            </Badge>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
