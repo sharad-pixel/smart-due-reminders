@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
@@ -40,6 +40,7 @@ interface Workflow {
   description: string;
   is_active: boolean;
   is_locked?: boolean;
+  auto_generate_drafts?: boolean;
   steps: WorkflowStep[];
 }
 
@@ -73,6 +74,7 @@ const AIWorkflows = () => {
     dayOffset?: number;
   } | null>(null);
   const [reassigning, setReassigning] = useState(false);
+  const [generatingDrafts, setGeneratingDrafts] = useState(false);
 
   useEffect(() => {
     fetchWorkflows();
@@ -150,6 +152,69 @@ const AIWorkflows = () => {
     } catch (error: any) {
       toast.error("Failed to update workflow");
       console.error(error);
+    }
+  };
+
+  const toggleAutoDrafts = async (workflowId: string, autoGenerate: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("collection_workflows")
+        .update({ auto_generate_drafts: autoGenerate })
+        .eq("id", workflowId);
+
+      if (error) throw error;
+
+      setWorkflows(workflows.map(w => 
+        w.id === workflowId ? { ...w, auto_generate_drafts: autoGenerate } : w
+      ));
+      
+      toast.success(autoGenerate ? "Auto-draft generation enabled" : "Auto-draft generation disabled");
+    } catch (error: any) {
+      toast.error("Failed to update auto-draft setting");
+      console.error(error);
+    }
+  };
+
+  const handleGenerateBucketDrafts = async (agingBucket: string) => {
+    setGeneratingDrafts(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bucket-drafts`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ aging_bucket: agingBucket }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate drafts');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(
+          `Generated ${result.drafts_created} draft${result.drafts_created !== 1 ? 's' : ''} for ${result.invoices_processed} invoice${result.invoices_processed !== 1 ? 's' : ''}`,
+          { duration: 5000 }
+        );
+        
+        if (result.errors && result.errors.length > 0) {
+          toast.warning(`${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} occurred during generation`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error generating drafts:', error);
+      toast.error(error.message || "Failed to generate drafts");
+    } finally {
+      setGeneratingDrafts(false);
     }
   };
 
@@ -690,7 +755,40 @@ const AIWorkflows = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Zap className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="font-semibold">Auto-Generate Drafts</p>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically create drafts for all invoices in this aging bucket
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={selectedWorkflow.auto_generate_drafts ?? false}
+                        onCheckedChange={(checked) => toggleAutoDrafts(selectedWorkflow.id, checked)}
+                        disabled={selectedWorkflow.is_locked || !selectedWorkflow.is_active}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div>
+                        <p className="font-medium">Manual Draft Generation</p>
+                        <p className="text-sm text-muted-foreground">
+                          Generate drafts now for all invoices in {agingBuckets.find(b => b.value === selectedBucket)?.label}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => handleGenerateBucketDrafts(selectedBucket)}
+                        disabled={generatingDrafts || !selectedWorkflow.is_active}
+                        variant="outline"
+                      >
+                        <PlayCircle className="h-4 w-4 mr-2" />
+                        {generatingDrafts ? "Generating..." : "Generate Now"}
+                      </Button>
+                    </div>
                     {selectedWorkflow.is_locked ? (
                       <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">

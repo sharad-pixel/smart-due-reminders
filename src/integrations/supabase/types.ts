@@ -744,6 +744,7 @@ export type Database = {
       collection_workflows: {
         Row: {
           aging_bucket: string
+          auto_generate_drafts: boolean | null
           created_at: string | null
           description: string | null
           id: string
@@ -756,6 +757,7 @@ export type Database = {
         }
         Insert: {
           aging_bucket: string
+          auto_generate_drafts?: boolean | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -768,6 +770,7 @@ export type Database = {
         }
         Update: {
           aging_bucket?: string
+          auto_generate_drafts?: boolean | null
           created_at?: string | null
           description?: string | null
           id?: string

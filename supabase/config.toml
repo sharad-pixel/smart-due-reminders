@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.send-account-summary]
 verify_jwt = true
+
+[functions.generate-bucket-drafts]
+verify_jwt = true
