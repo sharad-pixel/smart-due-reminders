@@ -68,6 +68,7 @@ interface Invoice {
   status: string;
   due_date: string;
   issue_date: string;
+  tasks_count?: number;
 }
 
 interface OutreachLog {
@@ -199,7 +200,24 @@ const DebtorDetail = () => {
         .order("due_date", { ascending: false });
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      // Fetch task counts for each invoice
+      if (data) {
+        const invoicesWithTasks = await Promise.all(
+          data.map(async (invoice) => {
+            const { count } = await supabase
+              .from("collection_tasks")
+              .select("*", { count: "exact", head: true })
+              .eq("invoice_id", invoice.id)
+              .neq("status", "done");
+            
+            return { ...invoice, tasks_count: count || 0 };
+          })
+        );
+        setInvoices(invoicesWithTasks);
+      } else {
+        setInvoices([]);
+      }
     } catch (error: any) {
       console.error("Error fetching invoices:", error);
     }
@@ -522,11 +540,17 @@ const DebtorDetail = () => {
                         <TableHead>Due Date</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Tasks</TableHead>
+                        <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {invoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
+                        <TableRow 
+                          key={invoice.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/invoices/${invoice.id}`)}
+                        >
                           <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                           <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
                           <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
@@ -539,6 +563,19 @@ const DebtorDetail = () => {
                             >
                               {invoice.status}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            {invoice.tasks_count && invoice.tasks_count > 0 ? (
+                              <Badge variant="secondary" className="gap-1">
+                                <FileText className="h-3 w-3" />
+                                {invoice.tasks_count}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
                           </TableCell>
                         </TableRow>
                       ))}
