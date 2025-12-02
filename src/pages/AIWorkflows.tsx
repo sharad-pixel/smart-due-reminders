@@ -1437,22 +1437,6 @@ const AIWorkflows = () => {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                      <div>
-                        <p className="font-medium">Manual Template Generation</p>
-                        <p className="text-sm text-muted-foreground">
-                          Generate draft templates for {agingBuckets.find(b => b.value === selectedBucket)?.label}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => handleGenerateBucketDrafts(selectedBucket)}
-                        disabled={generatingDrafts || !selectedWorkflow.is_active}
-                        variant="outline"
-                      >
-                        <PlayCircle className="h-4 w-4 mr-2" />
-                        {generatingDrafts ? "Generating..." : "Generate Templates"}
-                      </Button>
-                    </div>
                     {selectedWorkflow.is_locked ? (
                       <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">
