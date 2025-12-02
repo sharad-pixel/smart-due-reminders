@@ -1,0 +1,308 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get("Authorization")!;
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { aging_bucket } = await req.json();
+
+    if (!aging_bucket) {
+      return new Response(JSON.stringify({ error: "aging_bucket is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`Generating draft templates for aging bucket: ${aging_bucket}`);
+
+    // Get the active workflow for this bucket
+    const { data: workflow, error: workflowError } = await supabase
+      .from('collection_workflows')
+      .select('*, steps:collection_workflow_steps(*)')
+      .eq('aging_bucket', aging_bucket)
+      .eq('is_active', true)
+      .or(`user_id.eq.${user.id},user_id.is.null`)
+      .order('user_id', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (workflowError || !workflow) {
+      console.error('Workflow error:', workflowError);
+      return new Response(JSON.stringify({ 
+        error: `No active workflow found for ${aging_bucket}`,
+        success: false
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!workflow.steps || workflow.steps.length === 0) {
+      return new Response(JSON.stringify({ 
+        error: `Workflow has no steps configured`,
+        success: false
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get persona for this bucket
+    let minDays = 0;
+    switch (aging_bucket) {
+      case 'dpd_1_30': minDays = 1; break;
+      case 'dpd_31_60': minDays = 31; break;
+      case 'dpd_61_90': minDays = 61; break;
+      case 'dpd_91_120': minDays = 91; break;
+      case 'dpd_120_plus': minDays = 121; break;
+    }
+
+    const { data: persona } = await supabase
+      .from('ai_agent_personas')
+      .select('id, name, tone_guidelines')
+      .lte('bucket_min', minDays)
+      .or(`bucket_max.is.null,bucket_max.gte.${minDays}`)
+      .order('bucket_min', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Get branding settings
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    let templatesCreated = 0;
+    let errors: string[] = [];
+
+    // Check for existing templates
+    const { data: existingTemplates } = await supabase
+      .from('draft_templates')
+      .select('workflow_step_id')
+      .eq('workflow_id', workflow.id)
+      .eq('user_id', user.id)
+      .in('status', ['pending_approval', 'approved']);
+
+    const existingStepIds = new Set(existingTemplates?.map(t => t.workflow_step_id) || []);
+
+    // Generate template for each workflow step
+    for (const step of workflow.steps) {
+      if (!step.is_active || existingStepIds.has(step.id)) {
+        console.log(`Skipping step ${step.label} - ${existingStepIds.has(step.id) ? 'template exists' : 'inactive'}`);
+        continue;
+      }
+
+      try {
+        const getToneForBucket = (bucket: string): string => {
+          switch (bucket) {
+            case 'current': return 'friendly reminder';
+            case 'dpd_1_30': return 'firm but friendly';
+            case 'dpd_31_60': return 'firm and direct';
+            case 'dpd_61_90': return 'urgent and direct but respectful';
+            case 'dpd_91_120': return 'very firm, urgent, and compliant';
+            case 'dpd_120_plus': return 'extremely firm, urgent, final notice tone';
+            default: return 'professional';
+          }
+        };
+
+        const businessName = branding?.business_name || 'Your Company';
+        const fromName = branding?.from_name || businessName;
+
+        const systemPrompt = `You are drafting a professional collections message TEMPLATE for ${businessName}.
+
+CRITICAL RULES:
+- Create a TEMPLATE that will be personalized later with specific invoice data
+- Use placeholders like {{debtor_name}}, {{invoice_number}}, {{amount}}, {{currency}}, {{due_date}}, {{days_past_due}}
+- Be firm, clear, and professional
+- Be respectful and non-threatening
+- NEVER claim to be or act as a "collection agency" or legal authority
+- NEVER use harassment or intimidation
+- Write as if you are ${businessName}, NOT a third party
+- Encourage the customer to pay or reply if there is a dispute or issue
+- Use a ${getToneForBucket(aging_bucket)} tone
+- Follow the persona tone: ${persona?.tone_guidelines || 'professional'}`;
+
+        const userPrompt = `Generate a professional collection message TEMPLATE with the following context:
+
+Business: ${businessName}
+From: ${fromName}
+Aging Bucket: ${aging_bucket}
+Channel: ${step.channel}
+Step: ${step.label} (Day ${step.day_offset})
+Template Context: ${step.body_template}
+
+${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}
+
+Use these placeholders in your template:
+- {{debtor_name}} - The customer's name
+- {{invoice_number}} - The invoice number
+- {{amount}} - The invoice amount
+- {{currency}} - Currency (e.g., USD)
+- {{due_date}} - Original due date
+- {{days_past_due}} - Days overdue
+
+Generate ${step.channel === 'email' ? 'a complete email template' : 'a concise SMS template (160 characters max)'}.`;
+
+        // Generate content using Lovable AI with tool calling
+        const tools = step.channel === 'email' ? [{
+          type: 'function',
+          function: {
+            name: 'create_email_template',
+            description: 'Create an email template with subject and body',
+            parameters: {
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'Email subject line template'
+                },
+                body: {
+                  type: 'string',
+                  description: 'Email body template with placeholders'
+                }
+              },
+              required: ['subject', 'body'],
+              additionalProperties: false
+            }
+          }
+        }] : [{
+          type: 'function',
+          function: {
+            name: 'create_sms_template',
+            description: 'Create an SMS template',
+            parameters: {
+              type: 'object',
+              properties: {
+                body: {
+                  type: 'string',
+                  description: 'SMS message template (max 160 characters)'
+                }
+              },
+              required: ['body'],
+              additionalProperties: false
+            }
+          }
+        }];
+
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            tools: tools,
+            tool_choice: {
+              type: 'function',
+              function: {
+                name: step.channel === 'email' ? 'create_email_template' : 'create_sms_template'
+              }
+            }
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error(`AI API error for step ${step.label}:`, errorText);
+          errors.push(`Failed to generate template for ${step.label}`);
+          continue;
+        }
+
+        const aiResult = await aiResponse.json();
+        const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+
+        if (!toolCall || !toolCall.function?.arguments) {
+          errors.push(`No content generated for ${step.label}`);
+          continue;
+        }
+
+        const parsed = JSON.parse(toolCall.function.arguments);
+        const messageBody = parsed.body;
+        const subject = parsed.subject || null;
+
+        if (!messageBody) {
+          errors.push(`Empty message body for ${step.label}`);
+          continue;
+        }
+
+        // Insert template
+        const { error: templateError } = await supabase
+          .from('draft_templates')
+          .insert({
+            user_id: user.id,
+            workflow_id: workflow.id,
+            workflow_step_id: step.id,
+            agent_persona_id: persona?.id,
+            aging_bucket: aging_bucket,
+            channel: step.channel,
+            subject_template: subject,
+            message_body_template: messageBody,
+            step_number: step.step_order,
+            day_offset: step.day_offset,
+            status: 'pending_approval',
+          });
+
+        if (templateError) {
+          console.error(`Error creating template for ${step.label}:`, templateError);
+          errors.push(`Failed to save template for ${step.label}`);
+          continue;
+        }
+
+        templatesCreated++;
+        console.log(`Created template for step ${step.label}`);
+      } catch (error: any) {
+        console.error(`Error processing step ${step.label}:`, error);
+        errors.push(`Error processing step ${step.label}: ${error.message}`);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      templates_created: templatesCreated,
+      errors: errors.length > 0 ? errors : undefined,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (error: any) {
+    console.error('Error in generate-template-drafts:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Internal server error',
+      success: false
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

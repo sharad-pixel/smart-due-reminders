@@ -125,3 +125,9 @@ verify_jwt = true
 
 [functions.auto-send-approved-drafts]
 verify_jwt = false
+
+[functions.generate-template-drafts]
+verify_jwt = true
+
+[functions.send-template-based-messages]
+verify_jwt = false
