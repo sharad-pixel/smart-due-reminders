@@ -25,8 +25,8 @@ const Home = () => {
             <Button size="lg" onClick={() => navigate("/signup")} className="text-lg px-8">
               Start Free Trial
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/features")} className="text-lg px-8">
-              See How It Works
+            <Button size="lg" variant="outline" onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")} className="text-lg px-8">
+              Book a Demo
             </Button>
           </div>
         </div>
@@ -311,14 +311,24 @@ const Home = () => {
           <p className="text-lg mb-8 opacity-90">
             Stop paying for expensive headcount. Our six AI agents work nonstop, recovering your revenue 24/7—getting smarter with every invoice.
           </p>
-          <Button
-            size="lg"
-            variant="secondary"
-            onClick={() => navigate("/signup")}
-            className="text-lg px-8"
-          >
-            Start Free Trial
-          </Button>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => navigate("/signup")}
+              className="text-lg px-8"
+            >
+              Start Free Trial
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+              className="text-lg px-8 bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              Book a Demo
+            </Button>
+          </div>
         </div>
       </section>
     </MarketingLayout>

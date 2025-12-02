@@ -390,13 +390,23 @@ const Pricing = () => {
           <p className="text-lg text-muted-foreground mb-8">
             Start your free trial today. Six AI agents recovering your revenue 24/7—getting smarter with every invoice.
           </p>
-          <Button
-            size="lg"
-            onClick={() => navigate("/signup")}
-            className="text-lg px-8"
-          >
-            Start Free Trial
-          </Button>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Button
+              size="lg"
+              onClick={() => navigate("/signup")}
+              className="text-lg px-8"
+            >
+              Start Free Trial
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+              className="text-lg px-8"
+            >
+              Book a Demo
+            </Button>
+          </div>
         </div>
       </section>
     </MarketingLayout>

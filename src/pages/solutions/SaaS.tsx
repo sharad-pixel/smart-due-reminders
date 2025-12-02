@@ -91,11 +91,11 @@ const SaaS = () => {
               Start Free Trial
             </Button>
             <Button 
-              onClick={() => navigate("/pricing")}
+              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
               variant="outline"
               size="lg"
             >
-              View Pricing
+              Book a Demo
             </Button>
           </div>
         </div>

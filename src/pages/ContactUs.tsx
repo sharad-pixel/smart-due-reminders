@@ -108,8 +108,18 @@ const ContactUs = () => {
         <div className="container mx-auto max-w-2xl">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Contact Us for Bespoke Plan</h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground mb-6">
               Tell us about your business and we'll create a custom solution tailored to your needs
+            </p>
+            <Button 
+              size="lg" 
+              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+              className="text-lg px-8"
+            >
+              Book a Demo Call
+            </Button>
+            <p className="text-sm text-muted-foreground mt-4">
+              Or fill out the form below and we'll reach out within 24 hours
             </p>
           </div>
 

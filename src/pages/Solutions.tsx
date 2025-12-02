@@ -117,12 +117,21 @@ const Solutions = () => {
               Join businesses using six AI agents that work nonstop, recovering revenue 24/7—
               at a fraction of the cost of one employee.
             </p>
-            <Button 
-              onClick={() => navigate("/signup")}
-              size="lg"
-            >
-              Start Free Trial
-            </Button>
+            <div className="flex gap-4 justify-center flex-wrap">
+              <Button 
+                onClick={() => navigate("/signup")}
+                size="lg"
+              >
+                Start Free Trial
+              </Button>
+              <Button 
+                onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+                size="lg"
+                variant="outline"
+              >
+                Book a Demo
+              </Button>
+            </div>
           </div>
         </div>
       </section>
