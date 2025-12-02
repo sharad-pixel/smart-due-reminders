@@ -41,12 +41,12 @@ const plans = [
     popular: false
   },
   {
-    name: "Enterprise",
+    name: "Enterprise / Custom",
     price: "Custom",
     period: "",
     invoiceLimit: "500+ active invoices/month",
-    description: "Volume-based pricing tailored to your workflow + data complexity.",
-    cta: "Contact Us",
+    description: "Everything in Pro, plus: Custom RCA integrations, CS case intelligence, multi-system sync, and advanced agent personalization using customer relationship data.",
+    cta: "Contact Sales",
     planType: "enterprise",
     popular: false
   }
@@ -61,6 +61,14 @@ const platformFeatures = [
   "Promise-to-Pay tracking",
   "Team collaboration tools",
   "Priority support"
+];
+
+const enterpriseFeatures = [
+  "Custom Salesforce RCA & Revenue platform integrations",
+  "Real-time CS Case feed (Salesforce, Zendesk, Intercom)",
+  "AI agents trained on invoice + case + relationship context",
+  "Contextual tone shifting based on open cases & churn risk",
+  "Dedicated integration workshop, API mapping & tuning"
 ];
 
 const icpBenefits = [
@@ -149,9 +157,11 @@ const Pricing = () => {
                 <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
                 
                 <div className="border-t pt-4 mb-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Full Platform Access</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">
+                    {plan.planType === "enterprise" ? "Case Intelligence & Custom Integrations" : "Full Platform Access"}
+                  </p>
                   <ul className="space-y-2 mb-4 flex-1">
-                    {platformFeatures.slice(0, 4).map((feature, i) => (
+                    {(plan.planType === "enterprise" ? enterpriseFeatures : platformFeatures.slice(0, 4)).map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                         <span className="text-xs">{feature}</span>
