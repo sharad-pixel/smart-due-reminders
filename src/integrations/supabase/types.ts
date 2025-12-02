@@ -921,6 +921,93 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_cases: {
+        Row: {
+          assigned_to: string | null
+          case_number: string | null
+          case_origin: string | null
+          case_type: string | null
+          closed_at: string | null
+          created_at: string
+          debtor_id: string
+          description: string | null
+          external_case_id: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          opened_at: string | null
+          priority: string | null
+          raw_json: Json | null
+          resolution: string | null
+          source_system: string | null
+          status: string | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          case_number?: string | null
+          case_origin?: string | null
+          case_type?: string | null
+          closed_at?: string | null
+          created_at?: string
+          debtor_id: string
+          description?: string | null
+          external_case_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          opened_at?: string | null
+          priority?: string | null
+          raw_json?: Json | null
+          resolution?: string | null
+          source_system?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          case_number?: string | null
+          case_origin?: string | null
+          case_type?: string | null
+          closed_at?: string | null
+          created_at?: string
+          debtor_id?: string
+          description?: string | null
+          external_case_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          opened_at?: string | null
+          priority?: string | null
+          raw_json?: Json | null
+          resolution?: string | null
+          source_system?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_cases_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_cases_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtors: {
         Row: {
           address: string | null
@@ -2394,6 +2481,83 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rca_records: {
+        Row: {
+          account_owner: string | null
+          arr: number | null
+          contract_end_date: string | null
+          contract_name: string | null
+          contract_start_date: string | null
+          contract_status: string | null
+          created_at: string
+          csm_email: string | null
+          csm_name: string | null
+          debtor_id: string
+          external_rca_id: string | null
+          health_score: string | null
+          id: string
+          mrr: number | null
+          raw_json: Json | null
+          renewal_date: string | null
+          risk_category: string | null
+          source_system: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_owner?: string | null
+          arr?: number | null
+          contract_end_date?: string | null
+          contract_name?: string | null
+          contract_start_date?: string | null
+          contract_status?: string | null
+          created_at?: string
+          csm_email?: string | null
+          csm_name?: string | null
+          debtor_id: string
+          external_rca_id?: string | null
+          health_score?: string | null
+          id?: string
+          mrr?: number | null
+          raw_json?: Json | null
+          renewal_date?: string | null
+          risk_category?: string | null
+          source_system?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_owner?: string | null
+          arr?: number | null
+          contract_end_date?: string | null
+          contract_name?: string | null
+          contract_start_date?: string | null
+          contract_status?: string | null
+          created_at?: string
+          csm_email?: string | null
+          csm_name?: string | null
+          debtor_id?: string
+          external_rca_id?: string | null
+          health_score?: string | null
+          id?: string
+          mrr?: number | null
+          raw_json?: Json | null
+          renewal_date?: string | null
+          risk_category?: string | null
+          source_system?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rca_records_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
         ]

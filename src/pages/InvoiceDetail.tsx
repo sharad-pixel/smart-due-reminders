@@ -23,6 +23,7 @@ import { TasksSummaryCard } from "@/components/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import { InvoiceContextPreview } from "@/components/InvoiceContextPreview";
 
 interface Invoice {
   id: string;
@@ -796,6 +797,9 @@ const InvoiceDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Context Preview - RCA + CS Cases */}
+        <InvoiceContextPreview debtorId={invoice.debtor_id} invoiceId={invoice.id} />
 
         <div className="grid md:grid-cols-3 gap-6">
           <Card>
