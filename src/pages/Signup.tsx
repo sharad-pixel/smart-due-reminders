@@ -85,9 +85,21 @@ const Signup = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Google OAuth error:', error);
+        
+        if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
+          toast.error('Google sign-in is not yet configured. Please contact support or use email sign-in.', {
+            duration: 5000,
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
     } catch (error: any) {
-      toast.error(error.message || "Google sign in failed");
+      console.error('Google sign in error:', error);
+      toast.error(error.message || "Google sign in failed. Please try again or use email sign-in.");
     }
   };
 
@@ -101,9 +113,21 @@ const Signup = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Microsoft OAuth error:', error);
+        
+        if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
+          toast.error('Microsoft sign-in is not yet configured. Please contact support or use email sign-in.', {
+            duration: 5000,
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
     } catch (error: any) {
-      toast.error(error.message || "Microsoft sign in failed");
+      console.error('Microsoft sign in error:', error);
+      toast.error(error.message || "Microsoft sign in failed. Please try again or use email sign-in.");
     }
   };
 
