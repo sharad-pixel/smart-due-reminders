@@ -68,6 +68,7 @@ const AIWorkflows = () => {
   const [editingSettings, setEditingSettings] = useState(false);
   const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
   const [stepInvoiceCounts, setStepInvoiceCounts] = useState<Record<string, Record<number, number>>>({});
+  const [stepDraftCounts, setStepDraftCounts] = useState<Record<string, Record<string, number>>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [generatingContent, setGeneratingContent] = useState(false);
@@ -94,6 +95,7 @@ const AIWorkflows = () => {
     fetchInvoiceCounts();
     fetchDraftsByPersona();
     fetchStepInvoiceCounts();
+    fetchStepDraftCounts();
   }, []);
 
   const fetchInvoiceCounts = async () => {
@@ -189,6 +191,53 @@ const AIWorkflows = () => {
       setStepInvoiceCounts(stepCounts);
     } catch (error) {
       console.error("Error fetching step invoice counts:", error);
+    }
+  };
+
+  const fetchStepDraftCounts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all pending_approval drafts with workflow step info
+      const { data: drafts, error } = await supabase
+        .from('ai_drafts')
+        .select(`
+          id,
+          workflow_step_id,
+          collection_workflow_steps!inner(
+            id,
+            workflow_id,
+            collection_workflows!inner(
+              aging_bucket
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'pending_approval');
+
+      if (error) throw error;
+
+      // Count drafts per bucket per workflow_step_id
+      const draftCounts: Record<string, Record<string, number>> = {};
+
+      drafts?.forEach(draft => {
+        const step = draft.collection_workflow_steps;
+        if (step && step.collection_workflows) {
+          const bucket = step.collection_workflows.aging_bucket;
+          
+          if (!draftCounts[bucket]) {
+            draftCounts[bucket] = {};
+          }
+
+          const stepId = draft.workflow_step_id;
+          draftCounts[bucket][stepId] = (draftCounts[bucket][stepId] || 0) + 1;
+        }
+      });
+
+      setStepDraftCounts(draftCounts);
+    } catch (error) {
+      console.error("Error fetching step draft counts:", error);
     }
   };
 
@@ -337,6 +386,7 @@ const AIWorkflows = () => {
         
         // Refresh drafts after generation
         await fetchDraftsByPersona();
+        await fetchStepDraftCounts();
       }
     } catch (error: any) {
       console.error('Error generating drafts:', error);
@@ -586,6 +636,7 @@ const AIWorkflows = () => {
 
       // Refresh drafts after sending
       await fetchDraftsByPersona();
+      await fetchStepDraftCounts();
     } catch (error: any) {
       console.error('Auto-send error:', error);
       toast.error(error.message || "Failed to auto-send drafts");
@@ -633,6 +684,7 @@ const AIWorkflows = () => {
       }
 
       await fetchDraftsByPersona();
+      await fetchStepDraftCounts();
     } catch (error: any) {
       console.error('Generate drafts error:', error);
       toast.error(error.message || "Failed to generate drafts");
@@ -652,6 +704,7 @@ const AIWorkflows = () => {
 
       toast.success('Draft approved');
       await fetchDraftsByPersona();
+      await fetchStepDraftCounts();
     } catch (error: any) {
       console.error('Error approving draft:', error);
       toast.error('Failed to approve draft');
@@ -669,6 +722,7 @@ const AIWorkflows = () => {
 
       toast.success('Draft discarded');
       await fetchDraftsByPersona();
+      await fetchStepDraftCounts();
     } catch (error: any) {
       console.error('Error discarding draft:', error);
       toast.error('Failed to discard draft');
@@ -1370,6 +1424,7 @@ const AIWorkflows = () => {
                         });
                         return persona ? stepInvoiceCounts[persona[0]] || {} : {};
                       })()}
+                      stepDraftCounts={stepDraftCounts[selectedBucket] || {}}
                     />
                   </TabsContent>
                 </Tabs>

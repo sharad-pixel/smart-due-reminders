@@ -23,9 +23,10 @@ interface WorkflowGraphProps {
   onPreviewMessage?: (step: WorkflowStep) => void;
   isGenerating?: boolean;
   stepInvoiceCounts?: Record<number, number>;
+  stepDraftCounts?: Record<string, number>;
 }
 
-const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGenerating, stepInvoiceCounts }: WorkflowGraphProps) => {
+const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGenerating, stepInvoiceCounts, stepDraftCounts }: WorkflowGraphProps) => {
   const sortedSteps = [...steps].sort((a, b) => a.step_order - b.step_order);
   const maxDayOffset = Math.max(...sortedSteps.map(s => s.day_offset), 0);
 
@@ -70,6 +71,11 @@ const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGeneratin
                           {stepInvoiceCounts && stepInvoiceCounts[step.step_order] && (
                             <Badge variant="outline" className="text-xs">
                               {stepInvoiceCounts[step.step_order]} invoice{stepInvoiceCounts[step.step_order] !== 1 ? 's' : ''}
+                            </Badge>
+                          )}
+                          {stepDraftCounts && stepDraftCounts[step.id] && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                              {stepDraftCounts[step.id]} draft{stepDraftCounts[step.id] !== 1 ? 's' : ''}
                             </Badge>
                           )}
                         </div>
