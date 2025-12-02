@@ -209,6 +209,7 @@ const AIWorkflows = () => {
           status
         `)
         .eq('user_id', user.id)
+        .eq('channel', 'email')
         .in('status', ['pending_approval', 'approved']);
 
       if (error) throw error;
@@ -243,6 +244,7 @@ const AIWorkflows = () => {
           ai_agent_personas(id, name, persona_summary, bucket_min, bucket_max),
           collection_workflow_steps!inner(label, step_order, day_offset)
         `)
+        .eq('channel', 'email')
         .in('status', ['pending_approval', 'approved'])
         .order('created_at', { ascending: false });
 
