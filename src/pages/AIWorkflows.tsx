@@ -827,7 +827,15 @@ const AIWorkflows = () => {
     }
   };
 
-  const selectedWorkflow = workflows.find(w => w.aging_bucket === selectedBucket);
+  // Prioritize active workflows for the selected bucket
+  const selectedWorkflow = workflows
+    .filter(w => w.aging_bucket === selectedBucket)
+    .sort((a, b) => {
+      // Active workflows first
+      if (a.is_active && !b.is_active) return -1;
+      if (!a.is_active && b.is_active) return 1;
+      return 0;
+    })[0];
 
   if (loading) {
     return (
@@ -1256,6 +1264,19 @@ const AIWorkflows = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {!selectedWorkflow.is_active && (
+                      <div className="p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <div className="flex gap-3">
+                          <div className="text-yellow-600 dark:text-yellow-400">⚠️</div>
+                          <div>
+                            <p className="font-semibold text-yellow-900 dark:text-yellow-100">Workflow Disabled</p>
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
+                              This workflow is currently disabled. Enable it using the toggle switch above to generate drafts and send messages.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Zap className="h-5 w-5 text-primary" />
