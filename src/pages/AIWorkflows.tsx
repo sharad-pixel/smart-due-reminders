@@ -1548,32 +1548,6 @@ const AIWorkflows = () => {
                                   <Badge variant={step.is_active ? "default" : "secondary"}>
                                     {step.is_active ? "Active" : "Inactive"}
                                   </Badge>
-                                  {!selectedWorkflow.is_locked && (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handlePreviewMessage(step, selectedWorkflow)}
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleGenerateContent(step.id)}
-                                        disabled={generatingContent}
-                                      >
-                                        <Sparkles className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setEditingStep(step)}
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
                                   <Button
                                     variant="ghost"
                                     size="sm"
