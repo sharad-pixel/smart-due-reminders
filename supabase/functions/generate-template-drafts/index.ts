@@ -80,9 +80,10 @@ serve(async (req) => {
       case 'dpd_120_plus': minDays = 121; break;
     }
 
+    // Query for the exact persona that matches this bucket range
     const { data: persona } = await supabase
       .from('ai_agent_personas')
-      .select('id, name, tone_guidelines')
+      .select('id, name, tone_guidelines, persona_summary')
       .lte('bucket_min', minDays)
       .or(`bucket_max.is.null,bucket_max.gte.${minDays}`)
       .order('bucket_min', { ascending: false })
@@ -143,6 +144,10 @@ serve(async (req) => {
         const businessName = branding?.business_name || 'Your Company';
         const fromName = branding?.from_name || businessName;
 
+        const personaContext = persona?.name === 'Rocco' 
+          ? `You are ${persona.name}, ${persona.persona_summary || 'a compliance-focused collections specialist'}. ${persona.tone_guidelines}. Reference credit reporting, delinquency procedures, and the possibility of legal action as appropriate for this stage.`
+          : `You are ${persona?.name || 'a professional collections specialist'}. ${persona?.tone_guidelines || 'professional'}`;
+
         const systemPrompt = `You are drafting a professional collections message TEMPLATE for ${businessName}.
 
 CRITICAL RULES:
@@ -155,7 +160,9 @@ CRITICAL RULES:
 - Write as if you are ${businessName}, NOT a third party
 - Encourage the customer to pay or reply if there is a dispute or issue
 - Use a ${getToneForBucket(aging_bucket)} tone
-- Follow the persona tone: ${persona?.tone_guidelines || 'professional'}`;
+
+PERSONA CONTEXT:
+${personaContext}`;
 
         const userPrompt = `Generate a professional collection message TEMPLATE with the following context:
 
