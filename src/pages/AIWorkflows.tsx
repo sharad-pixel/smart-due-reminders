@@ -68,7 +68,7 @@ const AIWorkflows = () => {
   const [editingSettings, setEditingSettings] = useState(false);
   const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
   const [stepInvoiceCounts, setStepInvoiceCounts] = useState<Record<string, Record<number, number>>>({});
-  const [stepDraftCounts, setStepDraftCounts] = useState<Record<string, Record<string, number>>>({});
+  const [stepDraftCounts, setStepDraftCounts] = useState<Record<string, Record<string, Record<string, number>>>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [generatingContent, setGeneratingContent] = useState(false);
@@ -199,14 +199,15 @@ const AIWorkflows = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch all approved templates (only count approved templates as "ready")
+      // Fetch all approved templates with workflow info
       const { data: templates, error } = await supabase
         .from('draft_templates')
         .select(`
           id,
           workflow_step_id,
           aging_bucket,
-          status
+          status,
+          collection_workflow_steps!inner(workflow_id)
         `)
         .eq('user_id', user.id)
         .eq('channel', 'email')
@@ -215,17 +216,24 @@ const AIWorkflows = () => {
       if (error) throw error;
 
       // Count approved templates per bucket per workflow_step_id
-      const draftCounts: Record<string, Record<string, number>> = {};
+      // Store as { bucket: { workflow_id: { step_id: count } } }
+      const draftCounts: Record<string, Record<string, Record<string, number>>> = {};
 
       templates?.forEach(template => {
         const bucket = template.aging_bucket;
+        const workflowId = template.collection_workflow_steps?.workflow_id;
+        
+        if (!bucket || !workflowId) return;
         
         if (!draftCounts[bucket]) {
           draftCounts[bucket] = {};
         }
+        if (!draftCounts[bucket][workflowId]) {
+          draftCounts[bucket][workflowId] = {};
+        }
 
         const stepId = template.workflow_step_id;
-        draftCounts[bucket][stepId] = (draftCounts[bucket][stepId] || 0) + 1;
+        draftCounts[bucket][workflowId][stepId] = (draftCounts[bucket][workflowId][stepId] || 0) + 1;
       });
 
       setStepDraftCounts(draftCounts);
@@ -242,7 +250,7 @@ const AIWorkflows = () => {
         .select(`
           *,
           ai_agent_personas(id, name, persona_summary, bucket_min, bucket_max),
-          collection_workflow_steps!inner(label, step_order, day_offset)
+          collection_workflow_steps!inner(label, step_order, day_offset, workflow_id)
         `)
         .eq('channel', 'email')
         .in('status', ['pending_approval', 'approved'])
@@ -250,7 +258,7 @@ const AIWorkflows = () => {
 
       if (error) throw error;
 
-      // Group templates by persona
+      // Group templates by persona and workflow
       const grouped: DraftsByPersona = {};
       templates?.forEach(template => {
         if (template.agent_persona_id && template.ai_agent_personas) {
@@ -260,7 +268,11 @@ const AIWorkflows = () => {
               drafts: []
             };
           }
-          grouped[template.agent_persona_id].drafts.push(template);
+          // Store template with workflow_id from the step
+          grouped[template.agent_persona_id].drafts.push({
+            ...template,
+            step_workflow_id: template.collection_workflow_steps?.workflow_id
+          });
         }
       });
 
@@ -1010,6 +1022,37 @@ const AIWorkflows = () => {
               const [personaId, { persona, drafts }] = matchingEntry;
               const personaInfo = Object.values(personaConfig).find(p => p.name === persona.name);
 
+              // Filter drafts to only show those belonging to the selected workflow
+              const filteredDrafts = drafts.filter((template: any) => 
+                template.step_workflow_id === selectedWorkflow?.id
+              );
+
+              if (filteredDrafts.length === 0) {
+                return (
+                  <div className="text-center py-8 space-y-4">
+                    <p className="text-muted-foreground">
+                      No draft templates found for {selectedPersona} in the currently selected workflow
+                    </p>
+                    <Button 
+                      onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
+                      disabled={generatingPersonaDrafts}
+                    >
+                      {generatingPersonaDrafts ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate Templates for {selectedPersona}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              }
+
               return (
                 <div className="space-y-4">
                   <div className="border rounded-lg p-4 space-y-4">
@@ -1019,11 +1062,11 @@ const AIWorkflows = () => {
                         <h3 className="font-semibold">{persona.name}</h3>
                         <p className="text-sm text-muted-foreground">{persona.bucket_min}-{persona.bucket_max || "+"} days past due</p>
                       </div>
-                      <Badge variant="outline">{drafts.length} template{drafts.length === 1 ? '' : 's'}</Badge>
+                      <Badge variant="outline">{filteredDrafts.length} template{filteredDrafts.length === 1 ? '' : 's'}</Badge>
                     </div>
                     
                     <div className="space-y-3">
-                      {drafts.map((template: any) => {
+                      {filteredDrafts.map((template: any) => {
                         const isExpanded = expandedDrafts.has(template.id);
                         const stepInfo = template.collection_workflow_steps;
                         return (
@@ -1344,8 +1387,8 @@ const AIWorkflows = () => {
                       <CardContent>
                         <div className="space-y-4">
                           {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => {
-                            // Check if this step has an approved template
-                            const stepDraftCount = stepDraftCounts[selectedBucket]?.[step.id] || 0;
+                            // Check if this step has an approved template for the SELECTED workflow
+                            const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
                             const hasApprovedTemplate = stepDraftCount > 0;
                             
                             return (
@@ -1453,7 +1496,7 @@ const AIWorkflows = () => {
                         });
                         return persona ? stepInvoiceCounts[persona[0]] || {} : {};
                       })()}
-                      stepDraftCounts={stepDraftCounts[selectedBucket] || {}}
+                      stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
                     />
                   </TabsContent>
                 </Tabs>
