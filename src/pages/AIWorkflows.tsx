@@ -330,26 +330,6 @@ const AIWorkflows = () => {
     }
   };
 
-  const toggleAutoDrafts = async (workflowId: string, autoGenerate: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("collection_workflows")
-        .update({ auto_generate_drafts: autoGenerate })
-        .eq("id", workflowId);
-
-      if (error) throw error;
-
-      setWorkflows(workflows.map(w => 
-        w.id === workflowId ? { ...w, auto_generate_drafts: autoGenerate } : w
-      ));
-      
-      toast.success(autoGenerate ? "Auto-draft generation enabled" : "Auto-draft generation disabled");
-    } catch (error: any) {
-      toast.error("Failed to update auto-draft setting");
-      console.error(error);
-    }
-  };
-
   const handleGenerateBucketDrafts = async (agingBucket: string) => {
     setGeneratingDrafts(true);
     try {
@@ -727,6 +707,71 @@ const AIWorkflows = () => {
     } catch (error: any) {
       console.error('Error discarding template:', error);
       toast.error('Failed to discard template');
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    try {
+      const { error } = await supabase
+        .from('draft_templates')
+        .delete()
+        .eq('id', draftId);
+
+      if (error) throw error;
+
+      toast.success('Template deleted');
+      await fetchDraftsByPersona();
+      await fetchStepDraftCounts();
+    } catch (error: any) {
+      console.error('Error deleting template:', error);
+      toast.error('Failed to delete template');
+    }
+  };
+
+  const handleRegenerateDraft = async (draftId: string, agingBucket: string) => {
+    try {
+      // First delete the existing draft
+      const { error: deleteError } = await supabase
+        .from('draft_templates')
+        .delete()
+        .eq('id', draftId);
+
+      if (deleteError) throw deleteError;
+
+      // Then regenerate
+      await handleGenerateBucketDrafts(agingBucket);
+    } catch (error: any) {
+      console.error('Error regenerating template:', error);
+      toast.error('Failed to regenerate template');
+    }
+  };
+
+  const [editingDraft, setEditingDraft] = useState<{id: string, subject: string, body: string} | null>(null);
+
+  const handleEditDraft = (draftId: string, subject: string, body: string) => {
+    setEditingDraft({ id: draftId, subject, body });
+  };
+
+  const handleSaveDraftEdit = async () => {
+    if (!editingDraft) return;
+
+    try {
+      const { error } = await supabase
+        .from('draft_templates')
+        .update({ 
+          subject_template: editingDraft.subject,
+          message_body_template: editingDraft.body 
+        })
+        .eq('id', editingDraft.id);
+
+      if (error) throw error;
+
+      toast.success('Template updated');
+      setEditingDraft(null);
+      await fetchDraftsByPersona();
+    } catch (error: any) {
+      console.error('Error updating template:', error);
+      toast.error('Failed to update template');
     }
   };
 
@@ -1109,36 +1154,107 @@ const AIWorkflows = () => {
 
                               {isExpanded && (
                                 <div className="space-y-3 pt-3 border-t">
-                                  <div className="text-sm whitespace-pre-wrap bg-muted p-3 rounded">
-                                    {template.message_body_template}
-                                  </div>
-                                  {template.status === 'pending_approval' && (
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={() => handleApproveDraft(template.id)}
-                                        className="flex-1"
-                                      >
-                                        <Check className="h-3 w-3 mr-1" />
-                                        Approve Template
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleDiscardDraft(template.id)}
-                                        className="flex-1"
-                                      >
-                                        <X className="h-3 w-3 mr-1" />
-                                        Discard
-                                      </Button>
+                                  {editingDraft?.id === template.id ? (
+                                    <div className="space-y-3">
+                                      {template.channel === 'email' && (
+                                        <div className="space-y-2">
+                                          <Label className="text-xs">Subject</Label>
+                                          <input
+                                            type="text"
+                                            value={editingDraft.subject}
+                                            onChange={(e) => setEditingDraft({ ...editingDraft, subject: e.target.value })}
+                                            className="w-full px-3 py-2 text-sm border rounded-md"
+                                          />
+                                        </div>
+                                      )}
+                                      <div className="space-y-2">
+                                        <Label className="text-xs">Message Body</Label>
+                                        <textarea
+                                          value={editingDraft.body}
+                                          onChange={(e) => setEditingDraft({ ...editingDraft, body: e.target.value })}
+                                          rows={8}
+                                          className="w-full px-3 py-2 text-sm border rounded-md whitespace-pre-wrap"
+                                        />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={handleSaveDraftEdit}
+                                        >
+                                          Save Changes
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setEditingDraft(null)}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
                                     </div>
-                                  )}
-                                  {template.status === 'approved' && (
-                                    <Badge variant="default" className="w-full justify-center">
-                                      <Check className="h-3 w-3 mr-1" />
-                                      Approved - Auto-sending enabled
-                                    </Badge>
+                                  ) : (
+                                    <>
+                                      <div className="text-sm whitespace-pre-wrap bg-muted p-3 rounded">
+                                        {template.message_body_template}
+                                      </div>
+                                      {template.status === 'pending_approval' && (
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            onClick={() => handleApproveDraft(template.id)}
+                                            className="flex-1"
+                                          >
+                                            <Check className="h-3 w-3 mr-1" />
+                                            Approve
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleDiscardDraft(template.id)}
+                                            className="flex-1"
+                                          >
+                                            <X className="h-3 w-3 mr-1" />
+                                            Discard
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {template.status === 'approved' && (
+                                        <div className="flex items-center justify-center">
+                                          <Badge variant="default">
+                                            <Check className="h-3 w-3 mr-1" />
+                                            Approved - Auto-sending enabled
+                                          </Badge>
+                                        </div>
+                                      )}
+                                      <div className="flex gap-2 pt-2 border-t">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleEditDraft(template.id, template.subject_template || '', template.message_body_template)}
+                                        >
+                                          <Pencil className="h-3 w-3 mr-1" />
+                                          Edit
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleRegenerateDraft(template.id, template.aging_bucket)}
+                                        >
+                                          <Sparkles className="h-3 w-3 mr-1" />
+                                          Regenerate
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleDeleteDraft(template.id)}
+                                          className="text-destructive hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-3 w-3 mr-1" />
+                                          Delete
+                                        </Button>
+                                      </div>
+                                    </>
                                   )}
                                 </div>
                               )}
@@ -1320,22 +1436,6 @@ const AIWorkflows = () => {
                         </div>
                       </div>
                     )}
-                    <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Zap className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="font-semibold">Auto-Generate Drafts</p>
-                          <p className="text-sm text-muted-foreground">
-                            Automatically create drafts for all invoices in this aging bucket
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={selectedWorkflow.auto_generate_drafts ?? false}
-                        onCheckedChange={(checked) => toggleAutoDrafts(selectedWorkflow.id, checked)}
-                        disabled={selectedWorkflow.is_locked || !selectedWorkflow.is_active}
-                      />
-                    </div>
 
                     <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                       <div>
