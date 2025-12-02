@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Home } from "lucide-react";
+import { CheckCircle2, Home, Brain } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,10 +14,10 @@ const HomeServices = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "Invoice Collection for Home Services | Recouply.ai";
+    document.title = "AI-Powered CashOps for Home Services | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'AI-powered invoice collection for plumbing, HVAC, electrical, roofing, and contractor businesses. Automate payment reminders while protecting customer relationships.');
+      metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for plumbing, HVAC, electrical, roofing, and contractor businesses. Getting smarter with every invoice while protecting customer relationships.');
     }
     
     loadMarketingCopy();
@@ -53,12 +53,12 @@ const HomeServices = () => {
   };
 
   const features = [
-    "Automated payment reminders sent from YOUR business",
+    "Six AI agents working 24/7 on payment reminders",
+    "Agents learn and improve recovery rates over time",
     "Embedded payment links in every email and SMS",
     "QuickBooks and accounting software integration",
     "Customer-friendly tone that preserves relationships",
-    "No collection agency fees or contracts",
-    "Track which invoices need attention"
+    "Full CashOps dashboard with real-time visibility"
   ];
 
   return (
@@ -71,11 +71,11 @@ const HomeServices = () => {
             <span className="text-sm font-medium">For Home Services</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Stop Chasing Payments. Start Completing More Jobs.
+            Six AI Agents Recovering Your Revenue—24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            AI-powered invoice reminders that protect your reputation and increase cash flow 
-            for plumbing, HVAC, electrical, roofing, and contractor businesses.
+            Stop chasing payments. Our six AI agents handle outreach around the clock, 
+            getting smarter with every interaction—at a fraction of the cost of one employee.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -112,7 +112,7 @@ const HomeServices = () => {
 
 Between juggling service calls, managing crews, and ordering supplies, following up on overdue invoices falls through the cracks. When you do reach out, it's uncomfortable. You don't want to sound aggressive and damage the relationship, but you need to get paid.
 
-Meanwhile, unpaid invoices pile up, cash flow tightens, and you're stuck choosing between paying your team or covering material costs. Collection agencies charge 25-40% of what they recover, and they often use tactics that hurt your hard-earned reputation in the community.`}
+Meanwhile, unpaid invoices pile up, cash flow tightens, and you're stuck choosing between paying your team or covering material costs. Manual follow-up is inconsistent and time-consuming.`}
               </p>
             </div>
           )}
@@ -132,11 +132,11 @@ Meanwhile, unpaid invoices pile up, cash flow tightens, and you're stuck choosin
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai automates your invoice collection process while keeping everything under your control. Our AI drafts professional, friendly payment reminders that come from YOUR business—not a third-party agency.
+                {copy?.solution_copy || `Recouply.ai deploys six specialized AI agents that work 24/7 on your invoice recovery. Each agent learns from customer responses, payment outcomes, and message effectiveness—automatically improving recovery rates over time.
 
-For example, after completing a plumbing repair, the system automatically sends a polite reminder 3 days before the due date. If payment isn't received, it follows up with increasingly firm (but still professional) messages at 7, 14, and 30 days past due. Each message includes a secure payment link, making it easy for customers to pay immediately.
+For example, after completing a plumbing repair, the system automatically sends a polite reminder 3 days before the due date. If payment isn't received, it follows up with intelligently optimized messages at 7, 14, and 30 days past due. Each message includes a secure payment link, making it easy for customers to pay immediately.
 
-The system pulls data from QuickBooks or your accounting software, so you always know which invoices need attention. You review and approve every message before it goes out, maintaining complete control over your customer communications. No awkward phone calls, no aggressive tactics, no damage to your reputation.`}
+The AI agents pull data from QuickBooks or your accounting software, so you always know which invoices need attention. You review and approve every message before it goes out, maintaining complete control. No awkward phone calls, no aggressive tactics—just intelligent automation that gets smarter every day.`}
               </p>
             </div>
           )}
@@ -151,6 +151,29 @@ The system pulls data from QuickBooks or your accounting software, so you always
                     <span>{feature}</span>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Intelligence Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Brain className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Intelligence That Compounds Over Time</h3>
+                  <p className="text-muted-foreground">
+                    Each AI agent improves with every interaction, learning from customer responses, payment outcomes, 
+                    engagement patterns, and message effectiveness. Recouply.ai becomes more accurate, more predictive, 
+                    and more effective as time goes on—driving higher recovery rates with less manual work.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -172,9 +195,9 @@ The system pulls data from QuickBooks or your accounting software, so you always
               <p className="text-muted-foreground whitespace-pre-line">
                 {copy?.results_copy || `Home service businesses using Recouply.ai typically see payments 12-15 days faster than manual follow-ups. That means better cash flow to pay your crew, buy materials, and grow your business.
 
-You'll spend 90% less time on collections. No more awkward phone calls or manual reminder emails. The system handles it all automatically while you focus on serving customers and completing jobs.
+You'll spend 90% less time on collections. No more awkward phone calls or manual reminder emails. Six AI agents handle it all automatically while you focus on serving customers and completing jobs.
 
-Most importantly, you'll maintain the customer relationships you've worked so hard to build. Professional, respectful reminders keep the conversation positive. Many customers simply forget to pay—a friendly automated reminder is all they need. And because everything comes from YOUR business (not a collection agency), your reputation in the community stays intact.`}
+Most importantly, you'll maintain the customer relationships you've worked so hard to build. Professional, AI-optimized reminders keep the conversation positive. Many customers simply forget to pay—a friendly automated reminder is all they need. Stop paying for expensive headcount—our agents work nonstop, at a fraction of the cost of one employee.`}
               </p>
             </div>
           )}
@@ -185,11 +208,10 @@ Most importantly, you'll maintain the customer relationships you've worked so ha
       <section className="py-20 px-4 bg-primary/5">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold mb-4">
-            Ready to Get Paid Faster?
+            Ready to Put Six AI Agents to Work?
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Join home service businesses that have streamlined their collections 
-            and improved their cash flow with Recouply.ai.
+            Join home service businesses recovering revenue 24/7 with AI agents that get smarter with every invoice.
           </p>
           <Button 
             onClick={() => navigate("/signup?icp=home-services")}

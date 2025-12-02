@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Zap, Shield, Users, BarChart3, CheckCircle } from "lucide-react";
+import { DollarSign, Zap, Shield, Users, BarChart3, CheckCircle, Brain, Clock, TrendingUp } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
@@ -15,11 +15,11 @@ const Home = () => {
       <section className="py-20 px-4 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto text-center max-w-4xl">
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            AI-powered AR & Collections – <br />
-            <span className="text-primary">Without a Collection Agency</span>
+            Six AI Agents Recovering Your Revenue <br />
+            <span className="text-primary">24/7—Getting Smarter Every Day</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Recouply.ai helps your team collect overdue invoices faster, using AI-driven workflows that protect customer relationships and keep you out of regulatory gray zones. Streamline your CashOps with intelligent automation.
+            Recouply.ai deploys six specialized AI agents that handle outreach, reminders, sentiment analysis, and follow-up sequencing around the clock. Get the power of an entire CashOps department for less than the cost of one employee.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" onClick={() => navigate("/signup")} className="text-lg px-8">
@@ -37,31 +37,31 @@ const Home = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-card p-8 rounded-lg border">
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-7 w-7 text-primary" />
+                <Clock className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Collect your own debts, with AI assistance</h3>
+              <h3 className="text-xl font-bold mb-3">Six AI Agents Working 24/7</h3>
               <p className="text-muted-foreground">
-                You remain in full control. All outreach comes from your business, not a third-party agency. Stay compliant and maintain customer trust while optimizing CashOps efficiency.
+                Our AI agents handle outreach, reminders, sentiment analysis, payment behavior tracking, and follow-up sequencing continuously—so you never miss an opportunity to recover revenue.
               </p>
             </div>
 
             <div className="bg-card p-8 rounded-lg border">
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
-                <Users className="h-7 w-7 text-primary" />
+                <Brain className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Customer-aware outreach with CRM context</h3>
+              <h3 className="text-xl font-bold mb-3">Agents That Get Smarter Over Time</h3>
               <p className="text-muted-foreground">
-                Leverage customer data (MRR, health scores, segments) to personalize every message and preserve valuable relationships.
+                Each agent learns from customer responses, payment outcomes, and message effectiveness—automatically adapting tone, frequency, and sequencing for higher recovery rates.
               </p>
             </div>
 
             <div className="bg-card p-8 rounded-lg border">
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
-                <CheckCircle className="h-7 w-7 text-primary" />
+                <TrendingUp className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-3">No agencies. No harassment. Just clean, professional follow-up.</h3>
+              <h3 className="text-xl font-bold mb-3">Intelligence That Compounds</h3>
               <p className="text-muted-foreground">
-                AI generates empathetic, compliant messages. You review and approve everything before it's sent. Simple, ethical, effective.
+                AI-powered CashOps means predictable payments, automated follow-up, and intelligence that compounds over time. Stop paying for expensive headcount—our agents work nonstop.
               </p>
             </div>
           </div>
@@ -88,9 +88,9 @@ const Home = () => {
               <div className="bg-primary text-primary-foreground w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                 2
               </div>
-              <h4 className="font-semibold mb-2 text-lg">AI Generates Smart Drafts</h4>
+              <h4 className="font-semibold mb-2 text-lg">AI Agents Generate Smart Drafts</h4>
               <p className="text-muted-foreground">
-                Our AI creates personalized email and SMS messages based on customer value, payment history, and relationship health.
+                Six specialized AI agents create personalized messages based on customer value, payment history, and relationship health—learning and improving with every interaction.
               </p>
             </div>
 
@@ -111,14 +111,14 @@ const Home = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-4">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-              AI-Powered Collections
+              AI-Powered CashOps
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Meet Your AI Collections Team
+            Meet Your Six AI Agents
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Five specialized AI agents automatically adjust their tone and approach based on how overdue each invoice is
+            Six specialized AI agents work around the clock, automatically adjusting their tone and approach based on invoice age—and getting smarter with every interaction
           </p>
           <TooltipProvider delayDuration={100}>
             <div className="flex justify-center items-center gap-8 flex-wrap mb-8">
@@ -177,9 +177,9 @@ const Home = () => {
             <div className="flex gap-4">
               <Zap className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold mb-2">AI-Powered Efficiency</h4>
+                <h4 className="font-semibold mb-2">Continuous Learning AI</h4>
                 <p className="text-muted-foreground">
-                  Generate professional, context-aware messages in seconds. What used to take hours now takes minutes.
+                  Our agents improve recovery rates with every interaction, learning from customer responses and payment outcomes to optimize messaging automatically.
                 </p>
               </div>
             </div>
@@ -189,7 +189,7 @@ const Home = () => {
               <div>
                 <h4 className="font-semibold mb-2">Preserve Customer Relationships</h4>
                 <p className="text-muted-foreground">
-                  CRM-aware messaging ensures high-value customers get empathetic, relationship-preserving outreach.
+                  CRM-aware messaging ensures high-value customers get empathetic, relationship-preserving outreach that reduces churn risk.
                 </p>
               </div>
             </div>
@@ -197,9 +197,9 @@ const Home = () => {
             <div className="flex gap-4">
               <DollarSign className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold mb-2">Direct Payment to You</h4>
+                <h4 className="font-semibold mb-2">Fraction of the Cost</h4>
                 <p className="text-muted-foreground">
-                  Payments go straight to your Stripe account or payment link. We never touch your funds.
+                  Get an entire CashOps department working 24/7 for less than the cost of a single full-time employee. Payments go directly to your account.
                 </p>
               </div>
             </div>
@@ -207,9 +207,9 @@ const Home = () => {
             <div className="flex gap-4">
               <Shield className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold mb-2">Stay Compliant</h4>
+                <h4 className="font-semibold mb-2">Your Brand, Your Control</h4>
                 <p className="text-muted-foreground">
-                  You're not outsourcing to an agency. You remain in control, reducing regulatory risks.
+                  All outreach comes from YOUR business, maintaining customer trust and compliance. You remain in complete control.
                 </p>
               </div>
             </div>
@@ -227,9 +227,9 @@ const Home = () => {
             <div className="flex gap-4">
               <BarChart3 className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold mb-2">Track Everything</h4>
+                <h4 className="font-semibold mb-2">Full CashOps Dashboard</h4>
                 <p className="text-muted-foreground">
-                  Monitor outreach history, response rates, and payment status all in one dashboard.
+                  Monitor DSO, outreach history, response rates, and payment status all in one place with real-time visibility.
                 </p>
               </div>
             </div>
@@ -243,7 +243,7 @@ const Home = () => {
             Built for SaaS Companies
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Reduce ARR leakage without hiring a collections team
+            Reduce ARR leakage with AI agents that work nonstop—at a fraction of the cost of one employee
           </p>
           <SaaSBenefits />
         </div>
@@ -255,7 +255,7 @@ const Home = () => {
             Who Uses Recouply.ai?
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Businesses across industries trust Recouply.ai to recover revenue without damaging customer relationships.
+            Businesses across industries trust Recouply.ai's six AI agents to recover revenue while strengthening customer relationships.
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div 
@@ -307,9 +307,9 @@ const Home = () => {
 
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Ready to Recover Your Revenue?</h2>
+          <h2 className="text-4xl font-bold mb-4">Ready to Put Six AI Agents to Work?</h2>
           <p className="text-lg mb-8 opacity-90">
-            Join businesses using AI to automate invoice collection professionally and effectively—without hiring a collection agency.
+            Stop paying for expensive headcount. Our six AI agents work nonstop, recovering your revenue 24/7—getting smarter with every invoice.
           </p>
           <Button
             size="lg"

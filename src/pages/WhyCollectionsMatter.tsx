@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import { TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight, Brain } from "lucide-react";
 
 export default function WhyCollectionsMatter() {
   const navigate = useNavigate();
@@ -14,18 +14,18 @@ export default function WhyCollectionsMatter() {
         <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
           <div className="container mx-auto max-w-6xl text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Collections, Cash Flow, and Revenue Recognition — The Lifeblood of Your Business
+              CashOps, Revenue Recognition & Business Growth
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto">
-              Strong collections and clean AR processes are not back-office tasks — they are critical revenue drivers. 
-              Recouply.ai empowers businesses to collect faster, reduce financial risk, and unlock stronger cash flow through precision AI.
+              Strong CashOps and clean AR processes are not back-office tasks — they are critical revenue drivers. 
+              Recouply.ai deploys six AI agents that work 24/7 to recover revenue faster and strengthen your cash flow.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={() => navigate('/signup')}>
                 Try Recouply.ai
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/ai-command-center')}>
-                See the AI Collections Command Center
+                See the AI CashOps Command Center
               </Button>
             </div>
           </div>
@@ -35,7 +35,7 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Why Collections Matter More Than Ever
+              Why CashOps Matter More Than Ever
             </h2>
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <Card>
@@ -49,7 +49,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-destructive mt-1">•</span>
-                      <span>Poor collections drag down EBITDA</span>
+                      <span>Poor CashOps drag down EBITDA</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-destructive mt-1">•</span>
@@ -65,7 +65,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-destructive mt-1">•</span>
-                      <span>Manual collections are slow, inconsistent, and often neglected</span>
+                      <span>Manual processes are slow, inconsistent, and often neglected</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -123,10 +123,10 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-center">
-              Collections → Direct Impact on Revenue Recognition
+              CashOps → Direct Impact on Revenue Recognition
             </h2>
             <p className="text-xl text-muted-foreground mb-12 text-center max-w-3xl mx-auto">
-              Revenue recognition requires collectability assessment. Poor collections directly impact your financial statements.
+              Revenue recognition requires collectability assessment. Poor CashOps directly impact your financial statements.
             </p>
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
@@ -151,7 +151,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                      <span>Clean collections = clean books</span>
+                      <span>Clean CashOps = clean books</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -159,7 +159,7 @@ export default function WhyCollectionsMatter() {
 
               <Card className="bg-gradient-to-br from-primary/10 to-secondary/10">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Benefits of Strong Collections</h3>
+                  <h3 className="text-xl font-semibold mb-4">Benefits of Strong CashOps</h3>
                   <ul className="space-y-3 text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
@@ -171,7 +171,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
-                      <span>AI-driven collections reduces the risk of misstatements</span>
+                      <span>AI-driven CashOps reduces the risk of misstatements</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
@@ -193,7 +193,7 @@ export default function WhyCollectionsMatter() {
             <Card className="bg-gradient-to-r from-success/10 to-primary/10 mb-8">
               <CardContent className="p-8 text-center">
                 <p className="text-2xl md:text-3xl font-bold mb-2">
-                  "Businesses with optimized collections have 30–60% faster cash cycles"
+                  "Businesses with optimized CashOps have 30–60% faster cash cycles"
                 </p>
                 <p className="text-xl text-muted-foreground">
                   and up to 40% fewer bad-debt write-offs
@@ -251,7 +251,7 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Business Problems Caused by Weak Collections
+              Business Problems Caused by Weak CashOps
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
@@ -287,7 +287,7 @@ export default function WhyCollectionsMatter() {
                 <CardContent className="p-0">
                   <div className="grid md:grid-cols-2">
                     <div className="p-8 bg-gradient-to-br from-primary/10 to-secondary/10">
-                      <h3 className="text-2xl font-bold mb-4">AI-Powered Collections Engine</h3>
+                      <h3 className="text-2xl font-bold mb-4">Six AI Agents Working 24/7</h3>
                       <ul className="space-y-3 text-muted-foreground">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
@@ -295,7 +295,7 @@ export default function WhyCollectionsMatter() {
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>6 AI personas: Rocco, Katy, Sam, James, Troy, and Gotti</span>
+                          <span>6 specialized AI agents: Sam, James, Katy, Troy, Gotti, and Rocco</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
@@ -304,11 +304,11 @@ export default function WhyCollectionsMatter() {
                       </ul>
                     </div>
                     <div className="p-8">
-                      <h3 className="text-2xl font-bold mb-4">Collections Command Center</h3>
+                      <h3 className="text-2xl font-bold mb-4">CashOps Command Center</h3>
                       <ul className="space-y-3 text-muted-foreground">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>Full visibility into collections pipeline</span>
+                          <span>Full visibility into CashOps pipeline</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
@@ -319,6 +319,25 @@ export default function WhyCollectionsMatter() {
                           <span>AI-driven recommendations and debtor insights</span>
                         </li>
                       </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Intelligence Section */}
+              <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
+                <CardContent className="p-8">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <Brain className="w-8 h-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2">Intelligence That Compounds Over Time</h3>
+                      <p className="text-muted-foreground">
+                        Each AI agent improves with every interaction, learning from customer responses, payment outcomes, 
+                        engagement patterns, and message effectiveness. Recouply.ai becomes more accurate, more predictive, 
+                        and more effective as time goes on—driving higher recovery rates with less manual work.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -359,11 +378,11 @@ export default function WhyCollectionsMatter() {
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                        <span>Higher recovery rates</span>
+                        <span>Higher recovery rates that improve over time</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                        <span>Automated reminders reduce manual workload</span>
+                        <span>AI agents work 24/7 reducing manual workload</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
@@ -394,7 +413,7 @@ export default function WhyCollectionsMatter() {
                       "High write-offs and bad debt",
                       "Slow revenue close cycles",
                       "Cash shortages and unpredictability",
-                      "Fire-drill collections approach",
+                      "Fire-drill CashOps approach",
                       "Overworked teams",
                       "Inconsistent customer communication"
                     ].map((item, index) => (
@@ -412,14 +431,14 @@ export default function WhyCollectionsMatter() {
                   <h3 className="text-2xl font-bold mb-6 text-success">With Recouply.ai</h3>
                   <ul className="space-y-4">
                     {[
-                      "Automated, on-time internal collections",
+                      "Six AI agents working 24/7",
                       "Predictable cash cycles",
                       "Fewer escalations and disputes",
                       "Stronger financial controls",
                       "Better customer experience",
-                      "Improved team efficiency",
+                      "Intelligence that compounds over time",
                       "Clean AR and accurate reporting",
-                      "Proactive collections strategy"
+                      "Proactive CashOps strategy"
                     ].map((item, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
@@ -437,10 +456,10 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-gradient-to-r from-primary/10 to-secondary/10">
           <div className="container mx-auto max-w-4xl text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to Strengthen Your Cash Flow & Reduce Bad Debt?
+              Ready to Put Six AI Agents to Work?
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Join hundreds of businesses using AI to transform their collections process
+              Stop paying for expensive headcount. Our six AI agents work nonstop, recovering your revenue 24/7—getting smarter with every invoice.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={() => navigate('/signup')}>
