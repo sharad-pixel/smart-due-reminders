@@ -89,6 +89,8 @@ const AIWorkflows = () => {
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
   const [expandedDrafts, setExpandedDrafts] = useState<Set<string>>(new Set());
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const [stepInvoices, setStepInvoices] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     fetchWorkflows();
@@ -240,6 +242,69 @@ const AIWorkflows = () => {
     } catch (error) {
       console.error("Error fetching step draft counts:", error);
     }
+  };
+
+  const fetchInvoicesForStep = async (stepId: string, dayOffset: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select(`
+          id,
+          invoice_number,
+          amount,
+          due_date,
+          bucket_entered_at,
+          created_at,
+          debtors(company_name, email)
+        `)
+        .eq('user_id', user.id)
+        .eq('aging_bucket', selectedBucket)
+        .in('status', ['Open', 'InPaymentPlan']);
+
+      if (error) throw error;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Filter invoices that match this step's day offset
+      const matchingInvoices = invoices?.filter(invoice => {
+        const bucketEnteredDate = new Date(invoice.bucket_entered_at || invoice.created_at);
+        bucketEnteredDate.setHours(0, 0, 0, 0);
+        const daysSinceEntered = Math.floor((today.getTime() - bucketEnteredDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Check if invoice is in the range for this step
+        if (dayOffset === 3) return daysSinceEntered >= 3 && daysSinceEntered < 7;
+        if (dayOffset === 7) return daysSinceEntered >= 7 && daysSinceEntered < 14;
+        if (dayOffset === 14) return daysSinceEntered >= 14 && daysSinceEntered < 21;
+        if (dayOffset === 21) return daysSinceEntered >= 21 && daysSinceEntered < 30;
+        if (dayOffset === 30) return daysSinceEntered >= 30;
+        return false;
+      }) || [];
+
+      setStepInvoices(prev => ({
+        ...prev,
+        [stepId]: matchingInvoices
+      }));
+    } catch (error) {
+      console.error("Error fetching step invoices:", error);
+    }
+  };
+
+  const toggleStepExpansion = async (stepId: string, dayOffset: number) => {
+    const newExpanded = new Set(expandedSteps);
+    if (newExpanded.has(stepId)) {
+      newExpanded.delete(stepId);
+    } else {
+      newExpanded.add(stepId);
+      // Fetch invoices if not already loaded
+      if (!stepInvoices[stepId]) {
+        await fetchInvoicesForStep(stepId, dayOffset);
+      }
+    }
+    setExpandedSteps(newExpanded);
   };
 
   const fetchDraftsByPersona = async () => {
@@ -1395,6 +1460,34 @@ const AIWorkflows = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
+                        {/* Show selected persona */}
+                        {(() => {
+                          const persona = Object.entries(personaConfig).find(([_, p]) => {
+                            const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
+                            return bucketLabel === selectedBucket || 
+                                   (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
+                                   (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
+                                   (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
+                                   (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
+                                   (selectedBucket === 'dpd_120_plus' && p.bucketMin >= 121);
+                          });
+                          
+                          return persona && (
+                            <div className="mb-6 p-4 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <PersonaAvatar persona={persona[1]} size="md" />
+                                <div>
+                                  <p className="font-semibold text-lg">{persona[1].name}</p>
+                                  <p className="text-sm text-muted-foreground">{persona[1].description}</p>
+                                  <Badge variant="outline" className="mt-1">
+                                    {persona[1].bucketMin}-{persona[1].bucketMax || "+"} Days Past Due
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         <div className="space-y-4">
                           {selectedWorkflow.steps
                             ?.sort((a, b) => a.step_order - b.step_order)
@@ -1407,78 +1500,125 @@ const AIWorkflows = () => {
                             // Check if this step has an approved template for the SELECTED workflow
                             const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
                             const hasApprovedTemplate = stepDraftCount > 0;
+                            const isExpanded = expandedSteps.has(step.id);
+                            const invoices = stepInvoices[step.id] || [];
                             
                             return (
                             <div
                               key={step.id}
-                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                              className="border rounded-lg"
                             >
-                              <div className="flex items-center space-x-4 flex-1">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                                  {step.step_order}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium">{step.label}</p>
-                                    {hasApprovedTemplate && (
-                                      <Badge variant="default" className="text-xs">
-                                        <Check className="h-3 w-3 mr-1" />
-                                        Template Ready
-                                      </Badge>
-                                    )}
+                              <div className="flex items-center justify-between p-4 hover:bg-accent/50 transition-colors">
+                                <div className="flex items-center space-x-4 flex-1">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                                    {step.step_order}
                                   </div>
-                                  <div className="flex items-center space-x-3 mt-1">
-                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                                      <Clock className="h-3 w-3" />
-                                      <span>Day {step.day_offset}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                                      {step.channel === "email" ? (
-                                        <>
-                                          <Mail className="h-3 w-3" />
-                                          <span>Email</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <MessageSquare className="h-3 w-3" />
-                                          <span>SMS</span>
-                                        </>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium">{step.label}</p>
+                                      {hasApprovedTemplate && (
+                                        <Badge variant="default" className="text-xs">
+                                          <Check className="h-3 w-3 mr-1" />
+                                          Template Ready
+                                        </Badge>
                                       )}
                                     </div>
+                                    <div className="flex items-center space-x-3 mt-1">
+                                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                                        <Clock className="h-3 w-3" />
+                                        <span>Day {step.day_offset}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                                        {step.channel === "email" ? (
+                                          <>
+                                            <Mail className="h-3 w-3" />
+                                            <span>Email</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <MessageSquare className="h-3 w-3" />
+                                            <span>SMS</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant={step.is_active ? "default" : "secondary"}>
+                                    {step.is_active ? "Active" : "Inactive"}
+                                  </Badge>
+                                  {!selectedWorkflow.is_locked && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handlePreviewMessage(step, selectedWorkflow)}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleGenerateContent(step.id)}
+                                        disabled={generatingContent}
+                                      >
+                                        <Sparkles className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setEditingStep(step)}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleStepExpansion(step.id, step.day_offset)}
+                                  >
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Badge variant={step.is_active ? "default" : "secondary"}>
-                                  {step.is_active ? "Active" : "Inactive"}
-                                </Badge>
-                                {!selectedWorkflow.is_locked && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handlePreviewMessage(step, selectedWorkflow)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleGenerateContent(step.id)}
-                                      disabled={generatingContent}
-                                    >
-                                      <Sparkles className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setEditingStep(step)}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
+                              
+                              {/* Expanded invoices section */}
+                              {isExpanded && (
+                                <div className="border-t px-4 py-3 bg-muted/30">
+                                  <p className="text-sm font-medium mb-3">
+                                    Invoices at this stage ({invoices.length})
+                                  </p>
+                                  {invoices.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {invoices.map((invoice: any) => (
+                                        <div
+                                          key={invoice.id}
+                                          className="flex items-center justify-between p-2 bg-background rounded border hover:border-primary/50 transition-colors"
+                                        >
+                                          <div>
+                                            <p className="font-medium text-sm">{invoice.invoice_number}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                              {invoice.debtors?.company_name}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-semibold text-sm">
+                                              ${invoice.amount.toLocaleString()}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                              Due: {new Date(invoice.due_date).toLocaleDateString()}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">No invoices at this stage</p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                            )})}
                           
