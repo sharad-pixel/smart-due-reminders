@@ -198,52 +198,50 @@ serve(async (req) => {
 
       const existingStepIds = new Set(existingDrafts?.map(d => d.workflow_step_id) || []);
 
-      // Find steps that should trigger based on day_offset
+      // Generate drafts for ALL active steps regardless of day_offset
       const applicableSteps = workflow.steps.filter((step: any) => 
         step.is_active && 
-        step.day_offset <= daysPastDue &&
         !existingStepIds.has(step.id)
       );
 
       console.log(`Found ${applicableSteps.length} applicable steps for invoice ${invoice.invoice_number}`);
 
       if (applicableSteps.length === 0) {
-        console.log(`Skipping invoice ${invoice.invoice_number} - no applicable steps`);
+        console.log(`Skipping invoice ${invoice.invoice_number} - all drafts already exist`);
         continue;
       }
 
-      // Use the most recent applicable step (highest day_offset that's <= daysPastDue)
-      const step = applicableSteps.sort((a: any, b: any) => b.day_offset - a.day_offset)[0];
+      // Generate drafts for ALL applicable steps
+      for (const step of applicableSteps) {
+        try {
+          // Get persona for this bucket
+          const { data: persona } = await supabase
+            .from('ai_agent_personas')
+            .select('id')
+            .lte('bucket_min', daysPastDue)
+            .or(`bucket_max.is.null,bucket_max.gte.${daysPastDue}`)
+            .order('bucket_min', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-      try {
-        // Get persona for this bucket
-        const { data: persona } = await supabase
-          .from('ai_agent_personas')
-          .select('id')
-          .lte('bucket_min', daysPastDue)
-          .or(`bucket_max.is.null,bucket_max.gte.${daysPastDue}`)
-          .order('bucket_min', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          const getToneForBucket = (bucket: string): string => {
+            switch (bucket) {
+              case 'current': return 'friendly reminder';
+              case 'dpd_1_30': return 'firm but friendly';
+              case 'dpd_31_60': return 'firm and direct';
+              case 'dpd_61_90': return 'urgent and direct but respectful';
+              case 'dpd_91_120': return 'very firm, urgent, and compliant';
+              case 'dpd_120_plus': return 'extremely firm, urgent, final notice tone';
+              default: return 'professional';
+            }
+          };
 
-        const getToneForBucket = (bucket: string): string => {
-          switch (bucket) {
-            case 'current': return 'friendly reminder';
-            case 'dpd_1_30': return 'firm but friendly';
-            case 'dpd_31_60': return 'firm and direct';
-            case 'dpd_61_90': return 'urgent and direct but respectful';
-            case 'dpd_91_120': return 'very firm, urgent, and compliant';
-            case 'dpd_120_plus': return 'extremely firm, urgent, final notice tone';
-            default: return 'professional';
-          }
-        };
+          const businessName = branding?.business_name || 'Your Company';
+          const fromName = branding?.from_name || businessName;
+          const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
+          const debtorName = debtor.name || debtor.company_name;
 
-        const businessName = branding?.business_name || 'Your Company';
-        const fromName = branding?.from_name || businessName;
-        const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
-        const debtorName = debtor.name || debtor.company_name;
-
-        const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
+          const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
 CRITICAL RULES:
 - Be firm, clear, and professional
@@ -254,7 +252,7 @@ CRITICAL RULES:
 - Encourage the customer to pay or reply if there is a dispute or issue
 - Use a ${getToneForBucket(aging_bucket)} tone appropriate for ${daysPastDue} days past due`;
 
-        const userPrompt = `Generate a professional collection message with the following context:
+          const userPrompt = `Generate a professional collection message with the following context:
 
 Business: ${businessName}
 From: ${fromName}
@@ -271,122 +269,123 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
 
 Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SMS message (160 characters max)'}.`;
 
-        // Generate content using Lovable AI with tool calling for structured output
-        const tools = step.channel === 'email' ? [{
-          type: 'function',
-          function: {
-            name: 'create_email_draft',
-            description: 'Create an email draft with subject and body',
-            parameters: {
-              type: 'object',
-              properties: {
-                subject: {
-                  type: 'string',
-                  description: 'Email subject line'
+          // Generate content using Lovable AI with tool calling for structured output
+          const tools = step.channel === 'email' ? [{
+            type: 'function',
+            function: {
+              name: 'create_email_draft',
+              description: 'Create an email draft with subject and body',
+              parameters: {
+                type: 'object',
+                properties: {
+                  subject: {
+                    type: 'string',
+                    description: 'Email subject line'
+                  },
+                  body: {
+                    type: 'string',
+                    description: 'Email body content'
+                  }
                 },
-                body: {
-                  type: 'string',
-                  description: 'Email body content'
-                }
-              },
-              required: ['subject', 'body'],
-              additionalProperties: false
-            }
-          }
-        }] : [{
-          type: 'function',
-          function: {
-            name: 'create_sms_draft',
-            description: 'Create an SMS draft',
-            parameters: {
-              type: 'object',
-              properties: {
-                body: {
-                  type: 'string',
-                  description: 'SMS message content (max 160 characters)'
-                }
-              },
-              required: ['body'],
-              additionalProperties: false
-            }
-          }
-        }];
-
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            tools: tools,
-            tool_choice: {
-              type: 'function',
-              function: {
-                name: step.channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+                required: ['subject', 'body'],
+                additionalProperties: false
               }
             }
-          }),
-        });
+          }] : [{
+            type: 'function',
+            function: {
+              name: 'create_sms_draft',
+              description: 'Create an SMS draft',
+              parameters: {
+                type: 'object',
+                properties: {
+                  body: {
+                    type: 'string',
+                    description: 'SMS message content (max 160 characters)'
+                  }
+                },
+                required: ['body'],
+                additionalProperties: false
+              }
+            }
+          }];
 
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error(`AI API error for invoice ${invoice.invoice_number}:`, errorText);
-          errors.push(`Failed to generate content for invoice ${invoice.invoice_number}`);
-          continue;
-        }
-
-        const aiResult = await aiResponse.json();
-        const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-
-        if (!toolCall || !toolCall.function?.arguments) {
-          errors.push(`No content generated for invoice ${invoice.invoice_number}`);
-          continue;
-        }
-
-        // Parse the tool call arguments
-        const parsed = JSON.parse(toolCall.function.arguments);
-        const messageBody = parsed.body;
-        const subject = parsed.subject || null;
-
-        if (!messageBody) {
-          errors.push(`Empty message body for invoice ${invoice.invoice_number}`);
-          continue;
-        }
-
-        // Insert draft
-        const { error: draftError } = await supabase
-          .from('ai_drafts')
-          .insert({
-            user_id: user.id,
-            invoice_id: invoice.id,
-            workflow_step_id: step.id,
-            agent_persona_id: persona?.id,
-            channel: step.channel,
-            subject: subject,
-            message_body: messageBody,
-            step_number: step.step_order,
-            days_past_due: daysPastDue,
-            status: 'pending_approval',
-            recommended_send_date: new Date().toISOString().split('T')[0],
+          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              tools: tools,
+              tool_choice: {
+                type: 'function',
+                function: {
+                  name: step.channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+                }
+              }
+            }),
           });
 
-        if (draftError) {
-          console.error(`Error creating draft for invoice ${invoice.invoice_number}:`, draftError);
-          errors.push(`Failed to save draft for invoice ${invoice.invoice_number}`);
-          continue;
-        }
+          if (!aiResponse.ok) {
+            const errorText = await aiResponse.text();
+            console.error(`AI API error for invoice ${invoice.invoice_number}:`, errorText);
+            errors.push(`Failed to generate content for invoice ${invoice.invoice_number}`);
+            continue;
+          }
 
-        draftsCreated++;
-        console.log(`Created draft for invoice ${invoice.invoice_number}`);
-      } catch (error: any) {
-        console.error(`Error processing invoice ${invoice.invoice_number}:`, error);
-        errors.push(`Error processing invoice ${invoice.invoice_number}: ${error.message}`);
+          const aiResult = await aiResponse.json();
+          const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+
+          if (!toolCall || !toolCall.function?.arguments) {
+            errors.push(`No content generated for invoice ${invoice.invoice_number}`);
+            continue;
+          }
+
+          // Parse the tool call arguments
+          const parsed = JSON.parse(toolCall.function.arguments);
+          const messageBody = parsed.body;
+          const subject = parsed.subject || null;
+
+          if (!messageBody) {
+            errors.push(`Empty message body for invoice ${invoice.invoice_number}`);
+            continue;
+          }
+
+          // Insert draft
+          const { error: draftError } = await supabase
+            .from('ai_drafts')
+            .insert({
+              user_id: user.id,
+              invoice_id: invoice.id,
+              workflow_step_id: step.id,
+              agent_persona_id: persona?.id,
+              channel: step.channel,
+              subject: subject,
+              message_body: messageBody,
+              step_number: step.step_order,
+              days_past_due: daysPastDue,
+              status: 'pending_approval',
+              recommended_send_date: new Date().toISOString().split('T')[0],
+            });
+
+          if (draftError) {
+            console.error(`Error creating draft for invoice ${invoice.invoice_number}:`, draftError);
+            errors.push(`Failed to save draft for invoice ${invoice.invoice_number}`);
+            continue;
+          }
+
+          draftsCreated++;
+          console.log(`Created draft for invoice ${invoice.invoice_number}, step ${step.label}`);
+        } catch (error: any) {
+          console.error(`Error processing invoice ${invoice.invoice_number}, step ${step.label}:`, error);
+          errors.push(`Error processing invoice ${invoice.invoice_number}, step ${step.label}: ${error.message}`);
+        }
       }
     }
 
