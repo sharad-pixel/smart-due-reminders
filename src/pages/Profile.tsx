@@ -10,6 +10,17 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   User, 
   Shield, 
@@ -25,7 +36,8 @@ import {
   Info,
   Upload,
   Camera,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
 
@@ -78,6 +90,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -288,6 +301,50 @@ const Profile = () => {
       });
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to cancel subscription",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: { cancel_at_period_end: true },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Subscription Canceled",
+          description: data.current_period_end 
+            ? `Your subscription will remain active until ${new Date(data.current_period_end).toLocaleDateString()}`
+            : "Your subscription has been canceled",
+        });
+        // Reload profile data
+        loadProfileData();
+      }
+    } catch (error: any) {
+      console.error("Error canceling subscription:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel subscription",
+        variant: "destructive",
+      });
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -730,6 +787,45 @@ const Profile = () => {
                 <p className="text-xs text-center text-muted-foreground">
                   Change your plan, update payment method, or view billing history
                 </p>
+                
+                {profile.stripe_subscription_id && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        disabled={canceling}
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        {canceling ? "Canceling..." : "Cancel Subscription"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Cancel Subscription
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                          <p>Are you sure you want to cancel your subscription?</p>
+                          <p className="text-sm">
+                            Your subscription will remain active until the end of your current billing period. 
+                            After that, you'll be downgraded to the Free plan.
+                          </p>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleCancelSubscription}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Yes, Cancel Subscription
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             )}
 
