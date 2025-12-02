@@ -50,7 +50,8 @@ const agingBuckets = [
   { value: "dpd_31_60", label: "31-60 Days Past Due", description: "Mid-stage collection" },
   { value: "dpd_61_90", label: "61-90 Days Past Due", description: "Late stage collection" },
   { value: "dpd_91_120", label: "91-120 Days Past Due", description: "Final collection efforts" },
-  { value: "dpd_120_plus", label: "121+ Days Past Due", description: "Critical collection stage" },
+  { value: "dpd_121_150", label: "121-150 Days Past Due", description: "Critical collection stage" },
+  { value: "dpd_150_plus", label: "150+ Days Past Due", description: "Final internal collection" },
 ];
 
 interface DraftsByPersona {
@@ -701,7 +702,8 @@ const AIWorkflows = () => {
     else if (persona.bucketMin === 31 && persona.bucketMax === 60) agingBucket = 'dpd_31_60';
     else if (persona.bucketMin === 61 && persona.bucketMax === 90) agingBucket = 'dpd_61_90';
     else if (persona.bucketMin === 91 && persona.bucketMax === 120) agingBucket = 'dpd_91_120';
-    else if (persona.bucketMin === 121) agingBucket = 'dpd_120_plus';
+    else if (persona.bucketMin === 121 && persona.bucketMax === 150) agingBucket = 'dpd_121_150';
+    else if (persona.bucketMin === 151) agingBucket = 'dpd_150_plus';
 
     if (!agingBucket) {
       toast.error("Could not determine aging bucket for this persona");
@@ -1396,7 +1398,8 @@ const AIWorkflows = () => {
                   if (persona.bucketMin === 31 && persona.bucketMax === 60) return b.value === 'dpd_31_60';
                   if (persona.bucketMin === 61 && persona.bucketMax === 90) return b.value === 'dpd_61_90';
                   if (persona.bucketMin === 91 && persona.bucketMax === 120) return b.value === 'dpd_91_120';
-                  if (persona.bucketMin === 121) return b.value === 'dpd_120_plus';
+                  if (persona.bucketMin === 121 && persona.bucketMax === 150) return b.value === 'dpd_121_150';
+                  if (persona.bucketMin === 151) return b.value === 'dpd_150_plus';
                   return false;
                 });
 
@@ -1469,7 +1472,8 @@ const AIWorkflows = () => {
                                    (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
                                    (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
                                    (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
-                                   (selectedBucket === 'dpd_120_plus' && p.bucketMin >= 121);
+                                   (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
+                                   (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
                           });
                           
                           return persona && (
@@ -1638,7 +1642,8 @@ const AIWorkflows = () => {
                                  (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
                                  (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
                                  (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
-                                 (selectedBucket === 'dpd_120_plus' && p.bucketMin >= 121);
+                                 (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
+                                 (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
                         });
                         return persona ? stepInvoiceCounts[persona[0]] || {} : {};
                       })()}
@@ -1651,10 +1656,10 @@ const AIWorkflows = () => {
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground mb-2">
-                    No workflow configured for this aging bucket yet.
-                  </p>
-                  {selectedBucket === 'dpd_120_plus' ? (
-                    <div className="space-y-3">
+                  No workflow configured for this aging bucket yet.
+                </p>
+                {(selectedBucket === 'dpd_121_150' || selectedBucket === 'dpd_150_plus') ? (
+                  <div className="space-y-3">
                       <p className="text-sm text-muted-foreground">
                         Create a specialized workflow for critical 121+ day overdue invoices
                       </p>
