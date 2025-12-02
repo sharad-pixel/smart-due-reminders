@@ -983,24 +983,24 @@ const AIWorkflows = () => {
               Configure automated AI-powered collection outreach by aging bucket
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
               onClick={handleAutoSendApprovedDrafts}
               disabled={autoSending}
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
             >
               <Mail className="h-4 w-4" />
-              <span>{autoSending ? "Sending..." : "Send Templates Now"}</span>
+              <span className="text-sm">{autoSending ? "Sending..." : "Send Templates"}</span>
             </Button>
             <Button 
               variant="outline" 
               onClick={handleManualReassignment}
               disabled={reassigning}
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
             >
               <Workflow className="h-4 w-4" />
-              <span>{reassigning ? "Reassigning..." : "Reassign All"}</span>
+              <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
             </Button>
           </div>
         </div>
@@ -1017,7 +1017,7 @@ const AIWorkflows = () => {
           </CardHeader>
           <CardContent className="pt-6 pb-6">
             <TooltipProvider>
-              <div className="flex justify-evenly items-center">
+              <div className="flex overflow-x-auto gap-4 pb-2 px-2 -mx-2 sm:justify-evenly sm:gap-0 scrollbar-hide">
                 {Object.entries(personaConfig).map(([key, persona]) => {
                   // Map persona to aging bucket
                   const getPersonaBucket = (p: PersonaConfig) => {
@@ -1041,12 +1041,12 @@ const AIWorkflows = () => {
                         <button
                           onClick={handlePersonaClick}
                           className={cn(
-                            "flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105 p-2 rounded-lg",
+                            "flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105 p-3 rounded-lg min-w-[80px] tap-target",
                             selectedPersona === persona.name && "bg-primary/10 ring-2 ring-primary"
                           )}
                         >
                           <PersonaAvatar persona={persona} size="lg" />
-                          <div className="text-center">
+                          <div className="text-center whitespace-nowrap">
                             <p className="text-xs font-semibold">{persona.name}</p>
                             <p className="text-[10px] text-muted-foreground">
                               {persona.bucketMin}-{persona.bucketMax || "+"} Days
@@ -1086,30 +1086,31 @@ const AIWorkflows = () => {
         {/* AI Drafts by Persona */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Mail className="h-5 w-5" />
                   Draft Templates by Collection Agent
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="mt-1">
                   {selectedPersona 
                     ? `Viewing templates for ${selectedPersona}` 
                     : 'Click on a collection agent above to view their draft templates'}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 {selectedPersona && (
                   <Button 
                     variant="ghost" 
                     size="sm"
                     onClick={() => setSelectedPersona(null)}
+                    className="w-full sm:w-auto tap-target"
                   >
                     View All
                   </Button>
                 )}
                 {selectedWorkflow && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-between sm:justify-start space-x-2 p-2 sm:p-0">
                     <Label htmlFor="workflow-active-drafts" className="text-sm">
                       {selectedWorkflow.is_active ? "Enabled" : "Disabled"}
                     </Label>
@@ -1149,16 +1150,17 @@ const AIWorkflows = () => {
                     <Button 
                       onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
                       disabled={generatingPersonaDrafts}
+                      className="w-full sm:w-auto tap-target"
                     >
                       {generatingPersonaDrafts ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
+                          <span className="text-sm">Generating...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Templates for {selectedPersona}
+                          <span className="text-sm">Generate Templates</span>
                         </>
                       )}
                     </Button>
@@ -1183,16 +1185,17 @@ const AIWorkflows = () => {
                     <Button 
                       onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
                       disabled={generatingPersonaDrafts}
+                      className="w-full sm:w-auto tap-target"
                     >
                       {generatingPersonaDrafts ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
+                          <span className="text-sm">Generating...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Templates for {selectedPersona}
+                          <span className="text-sm">Generate Templates</span>
                         </>
                       )}
                     </Button>
@@ -1202,14 +1205,14 @@ const AIWorkflows = () => {
 
               return (
                 <div className="space-y-4">
-                  <div className="border rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-3">
+                  <div className="border rounded-lg p-3 sm:p-4 space-y-4">
+                    <div className="flex items-center gap-3 flex-wrap">
                       {personaInfo && <PersonaAvatar persona={personaInfo} size="md" />}
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-semibold">{persona.name}</h3>
                         <p className="text-sm text-muted-foreground">{persona.bucket_min}-{persona.bucket_max || "+"} days past due</p>
                       </div>
-                      <Badge variant="outline">{filteredDrafts.length} template{filteredDrafts.length === 1 ? '' : 's'}</Badge>
+                      <Badge variant="outline" className="shrink-0">{filteredDrafts.length} template{filteredDrafts.length === 1 ? '' : 's'}</Badge>
                     </div>
                     
                     <div className="space-y-3">
@@ -1403,7 +1406,7 @@ const AIWorkflows = () => {
           </CardContent>
         </Card>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Invoice Count by Collection Agent */}
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -1428,17 +1431,17 @@ const AIWorkflows = () => {
                     key={key}
                     className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <PersonaAvatar persona={persona} size="sm" />
-                        <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PersonaAvatar persona={persona} size="sm" className="shrink-0" />
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm">{persona.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground truncate">
                             {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs shrink-0 self-start sm:self-center">
                         {invoiceCount} {invoiceCount === 1 ? "invoice" : "invoices"}
                       </Badge>
                     </div>
@@ -1446,7 +1449,7 @@ const AIWorkflows = () => {
                       <button
                         onClick={() => setSelectedBucket(bucket.value)}
                         className={cn(
-                          "w-full text-xs py-1.5 px-2 rounded border transition-colors mt-2",
+                          "w-full text-xs py-2 px-3 rounded border transition-colors mt-2 tap-target",
                           selectedBucket === bucket.value
                             ? "bg-primary text-primary-foreground border-primary"
                             : "bg-muted hover:bg-muted/70"
@@ -1467,10 +1470,13 @@ const AIWorkflows = () => {
               <>
                 <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "graph")} className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="list">List View</TabsTrigger>
-                    <TabsTrigger value="graph">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Graph View
+                    <TabsTrigger value="list" className="text-xs sm:text-sm">
+                      List View
+                    </TabsTrigger>
+                    <TabsTrigger value="graph" className="text-xs sm:text-sm">
+                      <BarChart3 className="h-4 w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Graph View</span>
+                      <span className="sm:hidden">Graph</span>
                     </TabsTrigger>
                   </TabsList>
 
@@ -1532,27 +1538,27 @@ const AIWorkflows = () => {
                               key={step.id}
                               className="border rounded-lg"
                             >
-                              <div className="flex items-center justify-between p-4 hover:bg-accent/50 transition-colors">
-                                <div className="flex items-center space-x-4 flex-1">
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 hover:bg-accent/50 transition-colors gap-3">
+                                <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold shrink-0">
                                     {step.step_order}
                                   </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium">{step.label}</p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                      <p className="font-medium text-sm sm:text-base">{step.label}</p>
                                       {hasApprovedTemplate && (
-                                        <Badge variant="default" className="text-xs">
+                                        <Badge variant="default" className="text-xs self-start">
                                           <Check className="h-3 w-3 mr-1" />
                                           Template Ready
                                         </Badge>
                                       )}
                                     </div>
-                                    <div className="flex items-center space-x-3 mt-1">
-                                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
+                                      <div className="flex items-center space-x-1 text-xs sm:text-sm text-muted-foreground">
                                         <Clock className="h-3 w-3" />
                                         <span>Day {step.day_offset}</span>
                                       </div>
-                                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                                      <div className="flex items-center space-x-1 text-xs sm:text-sm text-muted-foreground">
                                         {step.channel === "email" ? (
                                           <>
                                             <Mail className="h-3 w-3" />
@@ -1568,14 +1574,15 @@ const AIWorkflows = () => {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant={step.is_active ? "default" : "secondary"}>
+                                <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0">
+                                  <Badge variant={step.is_active ? "default" : "secondary"} className="text-xs">
                                     {step.is_active ? "Active" : "Inactive"}
                                   </Badge>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => toggleStepExpansion(step.id, step.day_offset)}
+                                    className="tap-target"
                                   >
                                     {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                   </Button>
@@ -1584,18 +1591,18 @@ const AIWorkflows = () => {
                               
                               {/* Expanded invoices section */}
                               {isExpanded && (
-                                <div className="border-t px-4 py-3 bg-muted/30">
-                                  <p className="text-sm font-medium mb-3">
+                                <div className="border-t px-3 sm:px-4 py-3 bg-muted/30">
+                                  <p className="text-xs sm:text-sm font-medium mb-3">
                                     View invoices for this collection stage
                                   </p>
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="w-full"
+                                    className="w-full tap-target"
                                     onClick={() => navigate(`/invoices?bucket=${selectedBucket}&step=${step.step_order}`)}
                                   >
                                     <ExternalLink className="h-4 w-4 mr-2" />
-                                    View Invoices at Day {step.day_offset}
+                                    <span className="text-xs sm:text-sm">View Invoices at Day {step.day_offset}</span>
                                   </Button>
                                 </div>
                               )}

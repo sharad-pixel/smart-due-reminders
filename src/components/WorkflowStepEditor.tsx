@@ -49,12 +49,12 @@ const WorkflowStepEditor = ({ step, open, onOpenChange, onSave }: WorkflowStepEd
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Workflow Step</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Edit Workflow Step</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2 sm:py-4">
           <div className="space-y-2">
             <Label htmlFor="label">Step Label *</Label>
             <Input
@@ -142,11 +142,20 @@ const WorkflowStepEditor = ({ step, open, onOpenChange, onSave }: WorkflowStepEd
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            disabled={saving}
+            className="w-full sm:w-auto tap-target"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="w-full sm:w-auto tap-target"
+          >
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
