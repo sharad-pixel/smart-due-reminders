@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Mail, MessageSquare, Users, CreditCard, CheckCircle, Bot, BarChart3, Shield, Brain, Clock } from "lucide-react";
+import { Mail, MessageSquare, Users, CreditCard, CheckCircle, Bot, BarChart3, Shield, Brain, Clock, TrendingUp, Heart } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
+import AIAgentRoles from "@/components/AIAgentRoles";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Features = () => {
   const navigate = useNavigate();
@@ -10,12 +12,29 @@ const Features = () => {
     <MarketingLayout>
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
+          <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            The Future of Receivables Management
+          </div>
           <h1 className="text-5xl font-bold mb-6">
             Six AI Agents Powering Your <span className="text-primary">CashOps</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8">
+          <p className="text-xl text-muted-foreground mb-4">
             Everything you need to recover revenue efficiently while maintaining customer relationships. Our AI agents work 24/7 and get smarter with every interaction.
           </p>
+          <p className="text-lg text-primary font-medium">
+            "CashOps intelligence that improves every day."
+          </p>
+        </div>
+      </section>
+
+      {/* Agent Roles Section */}
+      <section className="py-16 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-3xl font-bold text-center mb-4">Six Specialized Agent Roles</h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Each agent uses machine learning to improve tone, timing, routing, and sequences—evolving based on engagement, past payments, customer sentiment, and time-of-day responses
+          </p>
+          <AIAgentRoles />
         </div>
       </section>
 
@@ -228,11 +247,53 @@ const Features = () => {
         </div>
       </section>
 
+      {/* Learning Intelligence */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
+            <CardContent className="p-8">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h2 className="text-3xl font-bold mb-4">Intelligence That Compounds</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Recouply.ai becomes more accurate, more predictive, and more effective as time goes on—driving higher recovery rates with less manual work.
+                  </p>
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-muted-foreground">Learns from customer responses and payment outcomes</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-muted-foreground">Adapts messaging based on engagement patterns</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-muted-foreground">Optimizes based on best-performing templates</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="text-center">
+                  <div className="inline-block p-6 bg-card rounded-2xl border">
+                    <Brain className="w-16 h-16 text-primary mx-auto mb-4" />
+                    <p className="text-xl font-bold mb-2">AI That Learns Your Customers</p>
+                    <p className="text-sm text-muted-foreground">Every interaction improves the system</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-4xl font-bold mb-4">Start Using These Features Today</h2>
-          <p className="text-lg mb-8 opacity-90">
-            Six AI agents recovering your revenue 24/7—getting smarter with every invoice. Continuous learning improves recovery rates while strengthening your cash flow.
+          <p className="text-lg mb-4 opacity-90">
+            Six AI agents recovering your revenue 24/7—getting smarter with every invoice.
+          </p>
+          <p className="text-md mb-8 opacity-80">
+            "Predictable cash flow powered by AI. Stop paying for expensive headcount—our agents work nonstop."
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button
