@@ -103,30 +103,16 @@ serve(async (req) => {
     let templatesCreated = 0;
     let errors: string[] = [];
 
-    // Delete only pending templates to preserve approved ones
-    console.log(`Deleting pending templates for workflow ${workflow.id}`);
-    const { error: deleteError } = await supabase
-      .from('draft_templates')
-      .delete()
-      .eq('workflow_id', workflow.id)
-      .eq('aging_bucket', aging_bucket)
-      .eq('user_id', user.id)
-      .eq('status', 'pending_approval');
-
-    if (deleteError) {
-      console.error('Error deleting pending templates:', deleteError);
-    }
-
-    // Check for existing approved templates
-    const { data: existingApproved } = await supabase
+    // Check for existing templates (any status) - don't auto-delete
+    const { data: existingTemplates } = await supabase
       .from('draft_templates')
       .select('workflow_step_id')
       .eq('workflow_id', workflow.id)
       .eq('aging_bucket', aging_bucket)
-      .eq('user_id', user.id)
-      .eq('status', 'approved');
+      .eq('user_id', user.id);
 
-    const approvedStepIds = new Set(existingApproved?.map(t => t.workflow_step_id) || []);
+    const existingStepIds = new Set(existingTemplates?.map(t => t.workflow_step_id) || []);
+    console.log(`Found ${existingStepIds.size} existing templates for workflow ${workflow.id}`);
 
     // Generate template for each workflow step
     for (const step of workflow.steps) {
@@ -135,9 +121,9 @@ serve(async (req) => {
         continue;
       }
 
-      // Skip if this step already has an approved template
-      if (approvedStepIds.has(step.id)) {
-        console.log(`Skipping step ${step.label} - already has approved template`);
+      // Skip if this step already has a template (any status)
+      if (existingStepIds.has(step.id)) {
+        console.log(`Skipping step ${step.label} - already has template`);
         continue;
       }
 
