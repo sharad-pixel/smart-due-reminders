@@ -101,21 +101,23 @@ serve(async (req) => {
     let templatesCreated = 0;
     let errors: string[] = [];
 
-    // Check for existing templates
-    const { data: existingTemplates } = await supabase
+    // Delete existing templates for this workflow to ensure fresh generation
+    console.log(`Deleting existing templates for workflow ${workflow.id}`);
+    const { error: deleteError } = await supabase
       .from('draft_templates')
-      .select('workflow_step_id')
+      .delete()
       .eq('workflow_id', workflow.id)
       .eq('aging_bucket', aging_bucket)
-      .eq('user_id', user.id)
-      .in('status', ['pending_approval', 'approved']);
+      .eq('user_id', user.id);
 
-    const existingStepIds = new Set(existingTemplates?.map(t => t.workflow_step_id) || []);
+    if (deleteError) {
+      console.error('Error deleting existing templates:', deleteError);
+    }
 
     // Generate template for each workflow step
     for (const step of workflow.steps) {
-      if (!step.is_active || existingStepIds.has(step.id)) {
-        console.log(`Skipping step ${step.label} - ${existingStepIds.has(step.id) ? 'template exists' : 'inactive'}`);
+      if (!step.is_active) {
+        console.log(`Skipping step ${step.label} - inactive`);
         continue;
       }
 
