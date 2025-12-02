@@ -199,7 +199,7 @@ const AIWorkflows = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch all pending_approval templates with workflow step info
+      // Fetch all approved templates (only count approved templates as "ready")
       const { data: templates, error } = await supabase
         .from('draft_templates')
         .select(`
@@ -210,11 +210,11 @@ const AIWorkflows = () => {
         `)
         .eq('user_id', user.id)
         .eq('channel', 'email')
-        .in('status', ['pending_approval', 'approved']);
+        .eq('status', 'approved');
 
       if (error) throw error;
 
-      // Count templates per bucket per workflow_step_id
+      // Count approved templates per bucket per workflow_step_id
       const draftCounts: Record<string, Record<string, number>> = {};
 
       templates?.forEach(template => {
@@ -789,13 +789,13 @@ const AIWorkflows = () => {
         if (deleteError) throw deleteError;
       }
 
-      // Create 5 predefined steps based on persona tone
+      // Create 5 predefined email steps based on persona tone
       const steps = [
         { day_offset: 3, label: "Initial Reminder", channel: "email" as const },
         { day_offset: 7, label: "Follow-up Notice", channel: "email" as const },
         { day_offset: 14, label: "Urgent Payment Request", channel: "email" as const },
         { day_offset: 21, label: "Final Notice", channel: "email" as const },
-        { day_offset: 30, label: "Critical Action Required", channel: "sms" as const },
+        { day_offset: 30, label: "Critical Action Required", channel: "email" as const },
       ];
 
       const newSteps = steps.map((step, index) => ({
@@ -808,7 +808,7 @@ const AIWorkflows = () => {
         ai_template_type: persona.tone,
         body_template: `AI-generated ${persona.tone} collection message`,
         subject_template: step.channel === "email" ? `Payment reminder for invoice {{invoice_number}}` : null,
-        sms_template: step.channel === "sms" ? `Hi {{debtor_name}}, this is a reminder about invoice {{invoice_number}}` : null,
+        sms_template: null,
         is_active: true,
         requires_review: true,
       }));
