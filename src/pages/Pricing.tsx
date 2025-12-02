@@ -17,7 +17,7 @@ const Pricing = () => {
     document.title = "Recouply.ai Pricing – AI-Powered CashOps for SMB + SaaS";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Choose a Recouply.ai plan for SMBs, auto, home services, and SaaS companies. Six AI agents recovering revenue 24/7—getting smarter with every invoice.');
+      metaDescription.setAttribute('content', 'Choose a Recouply.ai plan for small businesses and SaaS companies. Six AI agents recovering revenue 24/7—getting smarter with every invoice.');
     }
   }, []);
 
@@ -97,9 +97,9 @@ const Pricing = () => {
 
   const icpBenefits = [
     {
-      title: "Home Services",
+      title: "Small Businesses",
       description: "Six AI agents handling reminders 24/7, payment links in every message, friendly tone to preserve repeat business",
-      link: "/solutions/home-services"
+      link: "/solutions/small-businesses"
     },
     {
       title: "Auto & Dealerships",

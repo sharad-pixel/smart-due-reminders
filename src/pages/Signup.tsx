@@ -323,7 +323,7 @@ const Signup = () => {
                     <SelectValue placeholder="Select your industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="home-services">Home Services</SelectItem>
+                    <SelectItem value="small-businesses">Small Businesses</SelectItem>
                     <SelectItem value="agencies">Agencies / Professional Services</SelectItem>
                     <SelectItem value="local-smb">Local SMB</SelectItem>
                     <SelectItem value="saas">SaaS</SelectItem>

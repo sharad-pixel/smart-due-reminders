@@ -2,22 +2,22 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Home, Brain } from "lucide-react";
+import { CheckCircle2, Store, Brain } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const HomeServices = () => {
+const SmallBusinesses = () => {
   const navigate = useNavigate();
   const [copy, setCopy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // SEO metadata
-    document.title = "AI-Powered CashOps for Home Services | Recouply.ai";
+    document.title = "AI-Powered CashOps for Small Businesses | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for plumbing, HVAC, electrical, roofing, and contractor businesses. Getting smarter with every invoice while protecting customer relationships.');
+      metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for small businesses, service providers, and contractors. Getting smarter with every invoice while protecting customer relationships.');
     }
     
     loadMarketingCopy();
@@ -29,7 +29,7 @@ const HomeServices = () => {
       const { data: existing } = await supabase
         .from('marketing_snippets')
         .select('*')
-        .eq('industry', 'home-services')
+        .eq('industry', 'small-businesses')
         .single();
 
       if (existing) {
@@ -40,7 +40,7 @@ const HomeServices = () => {
 
       // Generate new copy if not exists
       const { data, error } = await supabase.functions.invoke('generate-icp-marketing-copy', {
-        body: { industry: 'home-services' }
+        body: { industry: 'small-businesses' }
       });
 
       if (error) throw error;
@@ -67,8 +67,8 @@ const HomeServices = () => {
       <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
-            <Home className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">For Home Services</span>
+            <Store className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">For Small Businesses</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Six AI Agents Recovering Your Revenue—24/7
@@ -79,7 +79,7 @@ const HomeServices = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
-              onClick={() => navigate("/signup?icp=home-services")}
+              onClick={() => navigate("/signup?icp=small-businesses")}
               size="lg"
             >
               Start Free Trial
@@ -108,11 +108,11 @@ const HomeServices = () => {
           ) : (
             <div className="prose prose-lg max-w-none">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.problem_copy || `Homeowners often delay payment after service completion. You've fixed their plumbing emergency, installed their new HVAC system, or completed their roof repair—but getting paid feels like another full-time job.
+                {copy?.problem_copy || `Small business owners wear many hats. Between serving customers, managing operations, and growing the business, following up on unpaid invoices often falls through the cracks.
 
-Between juggling service calls, managing crews, and ordering supplies, following up on overdue invoices falls through the cracks. When you do reach out, it's uncomfortable. You don't want to sound aggressive and damage the relationship, but you need to get paid.
+When you do find time to chase payments, it's uncomfortable. You don't want to damage customer relationships or sound aggressive—but you need that cash flow to pay your team, cover expenses, and reinvest in growth.
 
-Meanwhile, unpaid invoices pile up, cash flow tightens, and you're stuck choosing between paying your team or covering material costs. Manual follow-up is inconsistent and time-consuming.`}
+Meanwhile, unpaid invoices pile up, cash gets tight, and you're stuck choosing between hiring help you can't afford or spending hours on manual follow-up that's inconsistent at best.`}
               </p>
             </div>
           )}
@@ -134,16 +134,16 @@ Meanwhile, unpaid invoices pile up, cash flow tightens, and you're stuck choosin
               <p className="text-muted-foreground whitespace-pre-line">
                 {copy?.solution_copy || `Recouply.ai deploys six specialized AI agents that work 24/7 on your invoice recovery. Each agent learns from customer responses, payment outcomes, and message effectiveness—automatically improving recovery rates over time.
 
-For example, after completing a plumbing repair, the system automatically sends a polite reminder 3 days before the due date. If payment isn't received, it follows up with intelligently optimized messages at 7, 14, and 30 days past due. Each message includes a secure payment link, making it easy for customers to pay immediately.
+Plug in your invoices and let the agents do the rest. The system automatically sends polite reminders before due dates and intelligently follows up when payments are late. Each message includes a secure payment link, making it easy for customers to pay immediately.
 
-The AI agents pull data from QuickBooks or your accounting software, so you always know which invoices need attention. You review and approve every message before it goes out, maintaining complete control. No awkward phone calls, no aggressive tactics—just intelligent automation that gets smarter every day.`}
+You review and approve every message before it goes out, maintaining complete control. No awkward phone calls, no aggressive tactics—just intelligent automation that gets smarter every day. It's like having a full CashOps department working for you at a fraction of the cost of one employee.`}
               </p>
             </div>
           )}
 
           <Card>
             <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Key Features for Home Services:</h3>
+              <h3 className="text-xl font-semibold mb-4">Key Features for Small Businesses:</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 {features.map((feature, idx) => (
                   <div key={idx} className="flex items-start gap-3">
@@ -193,11 +193,11 @@ The AI agents pull data from QuickBooks or your accounting software, so you alwa
           ) : (
             <div className="prose prose-lg max-w-none">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.results_copy || `Home service businesses using Recouply.ai typically see payments 12-15 days faster than manual follow-ups. That means better cash flow to pay your crew, buy materials, and grow your business.
+                {copy?.results_copy || `Small businesses using Recouply.ai typically see payments 12-15 days faster than manual follow-ups. That means better cash flow to invest back into your business, pay your team on time, and grow without the stress of unpredictable revenue.
 
-You'll spend 90% less time on collections. No more awkward phone calls or manual reminder emails. Six AI agents handle it all automatically while you focus on serving customers and completing jobs.
+You'll spend 90% less time on collections. No more awkward phone calls or manual reminder emails. Six AI agents handle it all automatically while you focus on what you do best—serving customers and growing your business.
 
-Most importantly, you'll maintain the customer relationships you've worked so hard to build. Professional, AI-optimized reminders keep the conversation positive. Many customers simply forget to pay—a friendly automated reminder is all they need. Stop paying for expensive headcount—our agents work nonstop, at a fraction of the cost of one employee.`}
+Most importantly, you'll maintain the customer relationships you've worked so hard to build. Professional, AI-optimized reminders keep the conversation positive. Many customers simply forget to pay—a friendly automated reminder is all they need.`}
               </p>
             </div>
           )}
@@ -211,10 +211,10 @@ Most importantly, you'll maintain the customer relationships you've worked so ha
             Ready to Put Six AI Agents to Work?
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Join home service businesses recovering revenue 24/7 with AI agents that get smarter with every invoice.
+            Join small businesses recovering revenue 24/7 with AI agents that get smarter with every invoice.
           </p>
           <Button 
-            onClick={() => navigate("/signup?icp=home-services")}
+            onClick={() => navigate("/signup?icp=small-businesses")}
             size="lg"
           >
             Start Free Trial
@@ -225,4 +225,4 @@ Most importantly, you'll maintain the customer relationships you've worked so ha
   );
 };
 
-export default HomeServices;
+export default SmallBusinesses;
