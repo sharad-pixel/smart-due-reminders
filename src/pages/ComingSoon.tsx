@@ -8,6 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
@@ -19,12 +20,29 @@ const ComingSoon = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate email capture (you can connect this to your backend later)
-    setTimeout(() => {
-      toast.success("Thanks! We'll notify you when we launch.");
-      setEmail("");
+    try {
+      const { error } = await supabase
+        .from('waitlist_signups')
+        .insert([{ email }]);
+      
+      if (error) {
+        if (error.code === '23505') {
+          toast.error("This email is already on the waitlist!");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Thanks! We'll notify you when we launch.", {
+          description: "You're now on the waitlist for early access."
+        });
+        setEmail("");
+      }
+    } catch (error) {
+      console.error('Error saving to waitlist:', error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
