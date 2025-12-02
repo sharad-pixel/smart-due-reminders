@@ -190,29 +190,32 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body, ag
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-center gap-2">
               {channel === "email" ? <Mail className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
-              Message Preview
+              <span>Message Preview</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:ml-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
+                className="flex-1 sm:flex-none tap-target"
               >
-                {isEditing ? "Cancel Edit" : "Edit"}
+                {isEditing ? "Cancel" : "Edit"}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEnhanceWithAI}
                 disabled={isGenerating}
+                className="flex-1 sm:flex-none tap-target"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {isGenerating ? "Enhancing..." : "Enhance with AI"}
+                <Sparkles className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{isGenerating ? "Enhancing..." : "Enhance with AI"}</span>
+                <span className="sm:hidden">{isGenerating ? "..." : "AI"}</span>
               </Button>
             </div>
           </DialogTitle>
@@ -224,16 +227,16 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body, ag
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">
+            <div className="p-3 sm:p-4 bg-muted rounded-lg">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                 Preview with sample data:
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div><strong>Customer:</strong> {sampleData?.debtor_name}</div>
                 <div><strong>Company:</strong> {sampleData?.company_name}</div>
                 <div><strong>Invoice:</strong> {sampleData?.invoice_number}</div>
                 <div><strong>Amount:</strong> {sampleData?.amount}</div>
-                <div className="col-span-2"><strong>Due Date:</strong> {sampleData?.due_date}</div>
+                <div className="sm:col-span-2"><strong>Due Date:</strong> {sampleData?.due_date}</div>
               </div>
             </div>
 
@@ -315,10 +318,18 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body, ag
         )}
 
         {isEditing && (
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(false)}
+              className="w-full sm:w-auto tap-target"
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleSaveChanges}
               disabled={isSaving}
+              className="w-full sm:w-auto tap-target"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? "Saving..." : "Save Changes"}
