@@ -102,9 +102,9 @@ const Pricing = () => {
       link: "/solutions/small-businesses"
     },
     {
-      title: "Auto & Dealerships",
-      description: "Recover unpaid service invoices with AI agents that learn and improve, service advisor approved follow-up",
-      link: "/solutions/home-services"
+      title: "Professional Services",
+      description: "Eliminate uncomfortable invoice reminders for agencies, consultants, legal practices, and accounting firms",
+      link: "/solutions/professional-services"
     },
     {
       title: "SaaS Companies",
@@ -114,7 +114,7 @@ const Pricing = () => {
     {
       title: "SMB & Local Services",
       description: "Simple AI-powered CashOps, intelligence that compounds over time, maintain customer relationships",
-      link: "/solutions/home-services"
+      link: "/solutions/small-businesses"
     }
   ];
 
