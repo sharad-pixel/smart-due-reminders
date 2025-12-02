@@ -63,11 +63,11 @@ const Solutions = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              CashOps Solutions Built for Your Industry
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Solutions Built for Your Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Recouply.ai brings modern CashOps practices to small businesses across industries—optimizing receivables and accelerating cash flow 
+              Recouply.ai helps small businesses across industries collect overdue invoices 
               without damaging customer relationships or hiring expensive collection agencies.
             </p>
           </div>
@@ -114,8 +114,8 @@ const Solutions = () => {
               Ready to Get Started?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join hundreds of small businesses that have adopted modern CashOps practices—optimizing receivables, accelerating cash flow, 
-              and maintaining customer relationships with AI-powered automation.
+              Join hundreds of small businesses that have streamlined their invoice 
+              collection process with AI-powered automation.
             </p>
             <Button 
               onClick={() => navigate("/signup")}

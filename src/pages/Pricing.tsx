@@ -131,10 +131,10 @@ const Pricing = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <h1 className="text-5xl font-bold mb-6">
-            Simple, Transparent <span className="text-primary">CashOps Pricing</span>
+            Simple, Transparent <span className="text-primary">Pricing</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-12">
-            Choose the plan that fits your business size. All plans include 14-day free trial and our core CashOps features—AI-driven prioritization, intelligent workflows, and human-in-the-loop approvals.
+            Choose the plan that fits your business size. All plans include 14-day free trial and our core AI features with human-in-the-loop approvals.
           </p>
         </div>
 
@@ -188,10 +188,10 @@ const Pricing = () => {
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center mb-4">
-            CashOps Built for Your Industry
+            Built for Your Industry
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Recouply.ai brings modern CashOps practices to businesses across multiple verticals—optimizing receivables and cash flow with intelligent automation
+            Recouply.ai is optimized for businesses across multiple verticals
           </p>
           <div className="grid md:grid-cols-2 gap-6">
             {icpBenefits.map((benefit, idx) => (
@@ -214,10 +214,10 @@ const Pricing = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center mb-4">
-            CashOps Optimized for SaaS Companies
+            Perfect for SaaS Companies
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            All plans include SaaS-optimized CashOps features—intelligent prioritization, customer sentiment analysis, and proactive workflows to reduce ARR leakage
+            All plans include SaaS-optimized features to reduce ARR leakage
           </p>
           <SaaSBenefits />
         </div>

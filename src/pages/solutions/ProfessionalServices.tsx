@@ -69,11 +69,11 @@ const ProfessionalServices = () => {
             <span className="text-sm font-medium">For Professional Services</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Never Send an Awkward "Just Checking In" Email Again with Modern CashOps
+            Never Send an Awkward "Just Checking In on Payment" Email Again
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Intelligent CashOps automation for agencies, consultants, accounting firms, 
-            legal practices, and professional service providers—maintaining relationships while accelerating cash flow.
+            AI-powered invoice collection for agencies, consultants, accounting firms, 
+            legal practices, and professional service providers.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -110,7 +110,7 @@ const ProfessionalServices = () => {
 
 You've completed the consulting project, filed the tax return, finished the legal work, or delivered the marketing campaign. But getting paid feels like chasing. You don't want to damage the relationship by seeming pushy, yet you can't let invoices age indefinitely.
 
-Manual follow-ups consume valuable time you could spend serving clients or growing your practice. Without proactive CashOps processes in place, accounts receivable balloons and cash flow suffers. And hiring a collection agency for professional services feels completely inappropriate—it would destroy the trust and rapport you've built.`}
+Manual follow-ups consume valuable time you could spend serving clients or growing your practice. And hiring a collection agency for professional services feels completely inappropriate—it would destroy the trust and rapport you've built. Yet without consistent follow-up, your accounts receivable balloons and cash flow suffers.`}
               </p>
             </div>
           )}
@@ -130,11 +130,11 @@ Manual follow-ups consume valuable time you could spend serving clients or growi
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai brings modern CashOps to professional services—handling the uncomfortable parts of invoice collection while maintaining your professional reputation. Our platform generates courteous, professional payment reminders that come from YOUR firm—never a third party.
+                {copy?.solution_copy || `Recouply.ai handles the uncomfortable parts of invoice collection while maintaining your professional reputation. Our AI generates courteous, professional payment reminders that come from YOUR firm—never a third party.
 
-For agencies and consultants, the CashOps system can reference specific project milestones or deliverables, making reminders feel personalized and contextual. For accounting and legal practices, it maintains the formal, professional tone appropriate for your industry while intelligently prioritizing accounts and automating follow-up sequences.
+For agencies and consultants, the system can reference specific project milestones or deliverables, making reminders feel personalized and contextual. For accounting and legal practices, it maintains the formal, professional tone appropriate for your industry while still being effective.
 
-You maintain complete control. Review and approve every message before it's sent. Adjust timing, tone, and content to match your practice style. The CashOps platform handles the repetitive work of tracking invoices, prioritizing accounts, scheduling follow-ups, and sending reminders—freeing you to focus on client work while optimizing cash flow.`}
+You maintain complete control. Review and approve every message before it's sent. Adjust timing, tone, and content to match your practice style. The system handles the repetitive work of tracking invoices, scheduling follow-ups, and sending reminders—freeing you to focus on client work.`}
               </p>
             </div>
           )}
