@@ -142,10 +142,10 @@ const AIWorkflows = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch all open invoices with last_contacted_at
+      // Fetch all open invoices with bucket_entered_at
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('id, due_date, last_contacted_at')
+        .select('id, due_date, aging_bucket, bucket_entered_at, created_at')
         .eq('user_id', user.id)
         .in('status', ['Open', 'InPaymentPlan']);
 
@@ -154,7 +154,7 @@ const AIWorkflows = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Count invoices per persona per step (based on days since last contact)
+      // Count invoices per persona per step (based on days since entering bucket)
       const stepCounts: Record<string, Record<number, number>> = {};
 
       invoices?.forEach(invoice => {
@@ -171,17 +171,17 @@ const AIWorkflows = () => {
               stepCounts[personaKey] = {};
             }
 
-            // Calculate which step based on last_contacted_at
-            const daysSinceContact = invoice.last_contacted_at 
-              ? Math.floor((today.getTime() - new Date(invoice.last_contacted_at).getTime()) / (1000 * 60 * 60 * 24))
-              : 0;
+            // Calculate which step based on days since entering bucket
+            const bucketEnteredDate = new Date(invoice.bucket_entered_at || invoice.created_at);
+            bucketEnteredDate.setHours(0, 0, 0, 0);
+            const daysSinceEntered = Math.floor((today.getTime() - bucketEnteredDate.getTime()) / (1000 * 60 * 60 * 24));
 
             // Map to step (1-5 based on day offsets: 3, 7, 14, 21, 30)
             let step = 1;
-            if (daysSinceContact >= 30) step = 5;
-            else if (daysSinceContact >= 21) step = 4;
-            else if (daysSinceContact >= 14) step = 3;
-            else if (daysSinceContact >= 7) step = 2;
+            if (daysSinceEntered >= 30) step = 5;
+            else if (daysSinceEntered >= 21) step = 4;
+            else if (daysSinceEntered >= 14) step = 3;
+            else if (daysSinceEntered >= 7) step = 2;
 
             stepCounts[personaKey][step] = (stepCounts[personaKey][step] || 0) + 1;
           }
@@ -199,40 +199,32 @@ const AIWorkflows = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch all pending_approval drafts with workflow step info
-      const { data: drafts, error } = await supabase
-        .from('ai_drafts')
+      // Fetch all pending_approval templates with workflow step info
+      const { data: templates, error } = await supabase
+        .from('draft_templates')
         .select(`
           id,
           workflow_step_id,
-          collection_workflow_steps!inner(
-            id,
-            workflow_id,
-            collection_workflows!inner(
-              aging_bucket
-            )
-          )
+          aging_bucket,
+          status
         `)
         .eq('user_id', user.id)
-        .eq('status', 'pending_approval');
+        .in('status', ['pending_approval', 'approved']);
 
       if (error) throw error;
 
-      // Count drafts per bucket per workflow_step_id
+      // Count templates per bucket per workflow_step_id
       const draftCounts: Record<string, Record<string, number>> = {};
 
-      drafts?.forEach(draft => {
-        const step = draft.collection_workflow_steps;
-        if (step && step.collection_workflows) {
-          const bucket = step.collection_workflows.aging_bucket;
-          
-          if (!draftCounts[bucket]) {
-            draftCounts[bucket] = {};
-          }
-
-          const stepId = draft.workflow_step_id;
-          draftCounts[bucket][stepId] = (draftCounts[bucket][stepId] || 0) + 1;
+      templates?.forEach(template => {
+        const bucket = template.aging_bucket;
+        
+        if (!draftCounts[bucket]) {
+          draftCounts[bucket] = {};
         }
+
+        const stepId = template.workflow_step_id;
+        draftCounts[bucket][stepId] = (draftCounts[bucket][stepId] || 0) + 1;
       });
 
       setStepDraftCounts(draftCounts);
@@ -244,41 +236,36 @@ const AIWorkflows = () => {
   const fetchDraftsByPersona = async () => {
     setLoadingDrafts(true);
     try {
-      const { data: drafts, error } = await supabase
-        .from('ai_drafts')
+      const { data: templates, error } = await supabase
+        .from('draft_templates')
         .select(`
           *,
           ai_agent_personas(id, name, persona_summary, bucket_min, bucket_max),
-          invoices!inner(
-            invoice_number,
-            amount,
-            currency,
-            debtors!inner(name, company_name, email)
-          )
+          collection_workflow_steps!inner(label, step_order, day_offset)
         `)
-        .eq('status', 'pending_approval')
+        .in('status', ['pending_approval', 'approved'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Group drafts by persona
+      // Group templates by persona
       const grouped: DraftsByPersona = {};
-      drafts?.forEach(draft => {
-        if (draft.agent_persona_id && draft.ai_agent_personas) {
-          if (!grouped[draft.agent_persona_id]) {
-            grouped[draft.agent_persona_id] = {
-              persona: draft.ai_agent_personas,
+      templates?.forEach(template => {
+        if (template.agent_persona_id && template.ai_agent_personas) {
+          if (!grouped[template.agent_persona_id]) {
+            grouped[template.agent_persona_id] = {
+              persona: template.ai_agent_personas,
               drafts: []
             };
           }
-          grouped[draft.agent_persona_id].drafts.push(draft);
+          grouped[template.agent_persona_id].drafts.push(template);
         }
       });
 
       setDraftsByPersona(grouped);
     } catch (error: any) {
-      console.error('Error fetching drafts:', error);
-      toast.error("Failed to load drafts");
+      console.error('Error fetching templates:', error);
+      toast.error("Failed to load templates");
     } finally {
       setLoadingDrafts(false);
     }
@@ -356,7 +343,7 @@ const AIWorkflows = () => {
       if (!session) throw new Error("Not authenticated");
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bucket-drafts`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-template-drafts`,
         {
           method: 'POST',
           headers: {
@@ -369,14 +356,14 @@ const AIWorkflows = () => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to generate drafts');
+        throw new Error(error.error || 'Failed to generate templates');
       }
 
       const result = await response.json();
       
       if (result.success) {
         toast.success(
-          `Generated ${result.drafts_created} draft${result.drafts_created !== 1 ? 's' : ''} for ${result.invoices_processed} invoice${result.invoices_processed !== 1 ? 's' : ''}`,
+          `Generated ${result.templates_created} template${result.templates_created !== 1 ? 's' : ''}`,
           { duration: 5000 }
         );
         
@@ -384,13 +371,13 @@ const AIWorkflows = () => {
           toast.warning(`${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} occurred during generation`);
         }
         
-        // Refresh drafts after generation
+        // Refresh templates after generation
         await fetchDraftsByPersona();
         await fetchStepDraftCounts();
       }
     } catch (error: any) {
-      console.error('Error generating drafts:', error);
-      toast.error(error.message || "Failed to generate drafts");
+      console.error('Error generating templates:', error);
+      toast.error(error.message || "Failed to generate templates");
     } finally {
       setGeneratingDrafts(false);
     }
@@ -617,29 +604,29 @@ const AIWorkflows = () => {
   const handleAutoSendApprovedDrafts = async () => {
     setAutoSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke('auto-send-approved-drafts');
+      const { data, error } = await supabase.functions.invoke('send-template-based-messages');
 
       if (error) throw error;
 
       if (data?.sent > 0) {
         toast.success(
-          `Sent ${data.sent} approved draft${data.sent !== 1 ? 's' : ''}${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`,
+          `Sent ${data.sent} personalized message${data.sent !== 1 ? 's' : ''}${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`,
           { duration: 6000 }
         );
       } else {
-        toast.info("No approved drafts ready to send");
+        toast.info("No messages ready to send (check if invoices match template day offsets)");
       }
 
       if (data?.errors && data.errors.length > 0) {
         toast.warning(`${data.errors.length} error${data.errors.length !== 1 ? 's' : ''} occurred`);
       }
 
-      // Refresh drafts after sending
+      // Refresh templates after sending
       await fetchDraftsByPersona();
       await fetchStepDraftCounts();
     } catch (error: any) {
       console.error('Auto-send error:', error);
-      toast.error(error.message || "Failed to auto-send drafts");
+      toast.error(error.message || "Failed to send messages");
     } finally {
       setAutoSending(false);
     }
@@ -664,7 +651,7 @@ const AIWorkflows = () => {
 
     setGeneratingPersonaDrafts(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-bucket-drafts', {
+      const { data, error } = await supabase.functions.invoke('generate-template-drafts', {
         body: { aging_bucket: agingBucket }
       });
 
@@ -672,7 +659,7 @@ const AIWorkflows = () => {
 
       if (data.success) {
         toast.success(
-          `Generated ${data.drafts_created} draft${data.drafts_created !== 1 ? 's' : ''} for ${personaName}`,
+          `Generated ${data.templates_created} template${data.templates_created !== 1 ? 's' : ''} for ${personaName}`,
           { duration: 5000 }
         );
         
@@ -680,14 +667,14 @@ const AIWorkflows = () => {
           toast.warning(`${data.errors.length} error${data.errors.length !== 1 ? 's' : ''} occurred during generation`);
         }
       } else {
-        toast.info(data.message || 'No drafts were created');
+        toast.info(data.message || 'No templates were created');
       }
 
       await fetchDraftsByPersona();
       await fetchStepDraftCounts();
     } catch (error: any) {
-      console.error('Generate drafts error:', error);
-      toast.error(error.message || "Failed to generate drafts");
+      console.error('Generate templates error:', error);
+      toast.error(error.message || "Failed to generate templates");
     } finally {
       setGeneratingPersonaDrafts(false);
     }
@@ -696,36 +683,36 @@ const AIWorkflows = () => {
   const handleApproveDraft = async (draftId: string) => {
     try {
       const { error } = await supabase
-        .from('ai_drafts')
+        .from('draft_templates')
         .update({ status: 'approved' })
         .eq('id', draftId);
 
       if (error) throw error;
 
-      toast.success('Draft approved');
+      toast.success('Template approved - will auto-send to matching invoices');
       await fetchDraftsByPersona();
       await fetchStepDraftCounts();
     } catch (error: any) {
-      console.error('Error approving draft:', error);
-      toast.error('Failed to approve draft');
+      console.error('Error approving template:', error);
+      toast.error('Failed to approve template');
     }
   };
 
   const handleDiscardDraft = async (draftId: string) => {
     try {
       const { error } = await supabase
-        .from('ai_drafts')
+        .from('draft_templates')
         .update({ status: 'discarded' })
         .eq('id', draftId);
 
       if (error) throw error;
 
-      toast.success('Draft discarded');
+      toast.success('Template discarded');
       await fetchDraftsByPersona();
       await fetchStepDraftCounts();
     } catch (error: any) {
-      console.error('Error discarding draft:', error);
-      toast.error('Failed to discard draft');
+      console.error('Error discarding template:', error);
+      toast.error('Failed to discard template');
     }
   };
 
@@ -1026,37 +1013,38 @@ const AIWorkflows = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      {drafts.map((draft: any) => {
-                        const isExpanded = expandedDrafts.has(draft.id);
+                      {drafts.map((template: any) => {
+                        const isExpanded = expandedDrafts.has(template.id);
+                        const stepInfo = template.collection_workflow_steps;
                         return (
-                          <Card key={draft.id} className="bg-card border">
+                          <Card key={template.id} className="bg-card border">
                             <CardContent className="p-4 space-y-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <p className="font-medium text-sm truncate">
-                                      {draft.invoices.debtors.company_name || draft.invoices.debtors.name}
+                                    <p className="font-medium text-sm">
+                                      {stepInfo?.label || `Step ${template.step_number}`} - Day {template.day_offset}
                                     </p>
                                     <Badge variant="secondary" className="text-xs">
-                                      {draft.channel}
+                                      {template.channel}
                                     </Badge>
-                                    <Badge variant="outline" className="text-xs">
-                                      {draft.status}
+                                    <Badge variant={template.status === 'approved' ? 'default' : 'outline'} className="text-xs">
+                                      {template.status}
                                     </Badge>
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    Invoice {draft.invoices.invoice_number} • ${draft.invoices.amount.toLocaleString()} {draft.invoices.currency}
-                                  </p>
-                                  {draft.channel === 'email' && draft.subject && (
+                                  {template.channel === 'email' && template.subject_template && (
                                     <p className="text-xs font-medium mt-2 truncate">
-                                      {draft.subject}
+                                      {template.subject_template}
                                     </p>
                                   )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Template will auto-send to all invoices in {template.aging_bucket}
+                                  </p>
                                 </div>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => toggleDraftExpanded(draft.id)}
+                                  onClick={() => toggleDraftExpanded(template.id)}
                                 >
                                   {isExpanded ? (
                                     <ChevronUp className="h-4 w-4" />
@@ -1068,30 +1056,36 @@ const AIWorkflows = () => {
 
                               {isExpanded && (
                                 <div className="space-y-3 pt-3 border-t">
-                                  <div className="bg-muted/50 rounded-md p-3 text-sm">
-                                    <p className="whitespace-pre-wrap">{draft.message_body}</p>
+                                  <div className="text-sm whitespace-pre-wrap bg-muted p-3 rounded">
+                                    {template.message_body_template}
                                   </div>
-                                  
-                                  {draft.status === 'pending_approval' && (
+                                  {template.status === 'pending_approval' && (
                                     <div className="flex gap-2">
                                       <Button
                                         size="sm"
-                                        onClick={() => handleApproveDraft(draft.id)}
+                                        variant="default"
+                                        onClick={() => handleApproveDraft(template.id)}
                                         className="flex-1"
                                       >
-                                        <Check className="h-4 w-4 mr-1" />
-                                        Approve
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Approve Template
                                       </Button>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => handleDiscardDraft(draft.id)}
+                                        onClick={() => handleDiscardDraft(template.id)}
                                         className="flex-1"
                                       >
-                                        <X className="h-4 w-4 mr-1" />
+                                        <X className="h-3 w-3 mr-1" />
                                         Discard
                                       </Button>
                                     </div>
+                                  )}
+                                  {template.status === 'approved' && (
+                                    <Badge variant="default" className="w-full justify-center">
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Approved - Auto-sending enabled
+                                    </Badge>
                                   )}
                                 </div>
                               )}
@@ -1112,11 +1106,10 @@ const AIWorkflows = () => {
             <div className="flex gap-3">
               <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Draft Sending</h3>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Template-Based Sending</h3>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  When you approve drafts, they will be automatically sent when invoices enter the appropriate aging bucket. 
-                  Use the "Send Approved" button to manually trigger sending of all approved drafts immediately, 
-                  or set up a cron job to run the auto-send function daily.
+                  When you approve draft templates, they will automatically send personalized emails to all invoices in that aging bucket based on the cadence (days since invoice entered bucket). 
+                  Templates are personalized with invoice-specific data for each debtor. Runs daily at 2 AM UTC.
                 </p>
               </div>
             </div>
@@ -1281,9 +1274,9 @@ const AIWorkflows = () => {
                     <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                       <div>
                         <p className="font-medium">Manual Draft Generation</p>
-                        <p className="text-sm text-muted-foreground">
-                          Generate drafts now for all invoices in {agingBuckets.find(b => b.value === selectedBucket)?.label}
-                        </p>
+                         <p className="text-sm text-muted-foreground">
+                           Generate drafts now for all invoices in {agingBuckets.find(b => b.value === selectedBucket)?.label}
+                         </p>
                       </div>
                       <Button
                         onClick={() => handleGenerateBucketDrafts(selectedBucket)}

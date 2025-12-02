@@ -1325,6 +1325,79 @@ export type Database = {
           },
         ]
       }
+      draft_templates: {
+        Row: {
+          agent_persona_id: string | null
+          aging_bucket: string
+          channel: string
+          created_at: string
+          day_offset: number
+          id: string
+          message_body_template: string
+          status: string
+          step_number: number
+          subject_template: string | null
+          updated_at: string
+          user_id: string
+          workflow_id: string
+          workflow_step_id: string
+        }
+        Insert: {
+          agent_persona_id?: string | null
+          aging_bucket: string
+          channel: string
+          created_at?: string
+          day_offset: number
+          id?: string
+          message_body_template: string
+          status?: string
+          step_number: number
+          subject_template?: string | null
+          updated_at?: string
+          user_id: string
+          workflow_id: string
+          workflow_step_id: string
+        }
+        Update: {
+          agent_persona_id?: string | null
+          aging_bucket?: string
+          channel?: string
+          created_at?: string
+          day_offset?: number
+          id?: string
+          message_body_template?: string
+          status?: string
+          step_number?: number
+          subject_template?: string | null
+          updated_at?: string
+          user_id?: string
+          workflow_id?: string
+          workflow_step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_templates_agent_persona_id_fkey"
+            columns: ["agent_persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_templates_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "collection_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_templates_workflow_step_id_fkey"
+            columns: ["workflow_step_id"]
+            isOneToOne: false
+            referencedRelation: "collection_workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_accounts: {
         Row: {
           access_token_encrypted: string | null
@@ -1881,6 +1954,7 @@ export type Database = {
         Row: {
           aging_bucket: string | null
           amount: number
+          bucket_entered_at: string | null
           created_at: string | null
           currency: string | null
           debtor_id: string
@@ -1916,6 +1990,7 @@ export type Database = {
         Insert: {
           aging_bucket?: string | null
           amount: number
+          bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
           debtor_id: string
@@ -1951,6 +2026,7 @@ export type Database = {
         Update: {
           aging_bucket?: string | null
           amount?: number
+          bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
           debtor_id?: string
@@ -2360,6 +2436,70 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      sent_template_messages: {
+        Row: {
+          channel: string
+          created_at: string
+          debtor_id: string
+          delivery_status: string | null
+          id: string
+          invoice_id: string
+          personalized_body: string
+          sent_at: string
+          subject: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          debtor_id: string
+          delivery_status?: string | null
+          id?: string
+          invoice_id: string
+          personalized_body: string
+          sent_at?: string
+          subject?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          debtor_id?: string
+          delivery_status?: string | null
+          id?: string
+          invoice_id?: string
+          personalized_body?: string
+          sent_at?: string
+          subject?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_template_messages_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_template_messages_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_template_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "draft_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_feature_overrides: {
         Row: {
