@@ -106,6 +106,7 @@ serve(async (req) => {
       .from('draft_templates')
       .select('workflow_step_id')
       .eq('workflow_id', workflow.id)
+      .eq('aging_bucket', aging_bucket)
       .eq('user_id', user.id)
       .in('status', ['pending_approval', 'approved']);
 
