@@ -47,7 +47,7 @@ serve(async (req) => {
       .or(`user_id.eq.${user.id},user_id.is.null`)
       .order('user_id', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (workflowError || !workflow) {
       console.error('Workflow error:', workflowError);
