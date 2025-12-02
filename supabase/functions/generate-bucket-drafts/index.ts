@@ -92,6 +92,8 @@ serve(async (req) => {
       throw invoicesError;
     }
 
+    console.log(`Fetched ${invoices?.length || 0} total invoices`);
+
     if (!invoices || invoices.length === 0) {
       return new Response(JSON.stringify({ 
         success: true, 
@@ -112,13 +114,17 @@ serve(async (req) => {
       dueDate.setHours(0, 0, 0, 0);
       const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
       
+      console.log(`Invoice ${invoice.invoice_number}: ${daysPastDue} days past due (need ${minDays}-${maxDays})`);
+      
       return daysPastDue >= minDays && daysPastDue <= maxDays;
     });
+
+    console.log(`Filtered to ${filteredInvoices.length} invoices in range`);
 
     if (filteredInvoices.length === 0) {
       return new Response(JSON.stringify({ 
         success: true, 
-        message: `No invoices match the criteria for ${aging_bucket} bucket`,
+        message: `No invoices match the criteria for ${aging_bucket} bucket (${minDays}-${maxDays} days)`,
         drafts_created: 0,
         invoices_processed: 0
       }), {
@@ -137,7 +143,10 @@ serve(async (req) => {
       .limit(1)
       .single();
 
+    console.log(`Found workflow:`, workflow?.name, `with ${workflow?.steps?.length || 0} steps`);
+
     if (workflowError || !workflow) {
+      console.error('Workflow error:', workflowError);
       return new Response(JSON.stringify({ 
         error: `No active workflow found for ${aging_bucket}`,
         success: false
@@ -175,6 +184,8 @@ serve(async (req) => {
       dueDate.setHours(0, 0, 0, 0);
       const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
+      console.log(`Processing invoice ${invoice.invoice_number} (${daysPastDue} days past due)`);
+
       // Check if a draft already exists for this invoice from any step in this workflow
       const { data: existingDrafts } = await supabase
         .from('ai_drafts')
@@ -182,6 +193,8 @@ serve(async (req) => {
         .eq('invoice_id', invoice.id)
         .eq('user_id', user.id)
         .in('status', ['pending_approval', 'approved']);
+
+      console.log(`Found ${existingDrafts?.length || 0} existing drafts for invoice ${invoice.invoice_number}`);
 
       const existingStepIds = new Set(existingDrafts?.map(d => d.workflow_step_id) || []);
 
@@ -192,7 +205,10 @@ serve(async (req) => {
         !existingStepIds.has(step.id)
       );
 
+      console.log(`Found ${applicableSteps.length} applicable steps for invoice ${invoice.invoice_number}`);
+
       if (applicableSteps.length === 0) {
+        console.log(`Skipping invoice ${invoice.invoice_number} - no applicable steps`);
         continue;
       }
 
