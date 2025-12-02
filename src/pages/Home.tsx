@@ -304,12 +304,12 @@ const Home = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div 
               className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
-              onClick={() => navigate("/solutions/home-services")}
+              onClick={() => navigate("/solutions/small-businesses")}
             >
-              <div className="text-4xl mb-3">🔧</div>
-              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Home Services</h4>
+              <div className="text-4xl mb-3">🏪</div>
+              <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Small Businesses</h4>
               <p className="text-sm text-muted-foreground">
-                Plumbing, HVAC, electrical, roofing, contractors
+                Service providers, contractors, local businesses
               </p>
             </div>
 
@@ -326,7 +326,7 @@ const Home = () => {
 
             <div 
               className="bg-card p-6 rounded-lg border hover:shadow-lg transition-all cursor-pointer group"
-              onClick={() => navigate("/solutions/home-services")}
+              onClick={() => navigate("/solutions/small-businesses")}
             >
               <div className="text-4xl mb-3">🏪</div>
               <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">Local Retail</h4>

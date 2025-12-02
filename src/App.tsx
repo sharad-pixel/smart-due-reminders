@@ -6,7 +6,7 @@ import Home from "./pages/Home";
 import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
 import Solutions from "./pages/Solutions";
-import HomeServices from "./pages/solutions/HomeServices";
+import SmallBusinesses from "./pages/solutions/SmallBusinesses";
 import SaaS from "./pages/solutions/SaaS";
 import ProfessionalServices from "./pages/solutions/ProfessionalServices";
 import FinalInternalCollections from "./pages/solutions/FinalInternalCollections";
@@ -63,7 +63,7 @@ const App = () => (
         <Route path="/ai-command-center" element={<AICommandCenter />} />
         <Route path="/why-collections-matter" element={<WhyCollectionsMatter />} />
         <Route path="/solutions" element={<Solutions />} />
-        <Route path="/solutions/home-services" element={<HomeServices />} />
+        <Route path="/solutions/small-businesses" element={<SmallBusinesses />} />
         <Route path="/solutions/saas" element={<SaaS />} />
         <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
         <Route path="/solutions/final-internal-collections" element={<FinalInternalCollections />} />

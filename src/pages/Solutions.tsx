@@ -10,15 +10,15 @@ const Solutions = () => {
   const industries = [
     {
       icon: Home,
-      title: "Home Services",
-      description: "For plumbing, HVAC, electrical, roofing, and contractor businesses",
+      title: "Small Businesses",
+      description: "For service providers, contractors, and local businesses",
       benefits: [
         "Six AI agents handling payment reminders 24/7",
         "Embed payment links in every communication",
         "QuickBooks-friendly workflows",
         "Agents learn and improve recovery rates over time"
       ],
-      link: "/solutions/home-services"
+      link: "/solutions/small-businesses"
     },
     {
       icon: Building2,
@@ -54,7 +54,7 @@ const Solutions = () => {
         "Payment tracking and DSO reporting",
         "Intelligence that compounds over time"
       ],
-      link: "/solutions/home-services"
+      link: "/solutions/small-businesses"
     }
   ];
 
