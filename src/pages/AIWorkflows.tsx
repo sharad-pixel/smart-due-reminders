@@ -1386,7 +1386,14 @@ const AIWorkflows = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => {
+                          {selectedWorkflow.steps
+                            ?.sort((a, b) => a.step_order - b.step_order)
+                            .filter((step) => {
+                              // Only show steps that have approved templates
+                              const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
+                              return stepDraftCount > 0;
+                            })
+                            .map((step) => {
                             // Check if this step has an approved template for the SELECTED workflow
                             const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
                             const hasApprovedTemplate = stepDraftCount > 0;
@@ -1463,7 +1470,18 @@ const AIWorkflows = () => {
                                 )}
                               </div>
                             </div>
-                          )})}
+                           )})}
+                          
+                          {selectedWorkflow.steps?.filter((step) => {
+                            const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
+                            return stepDraftCount > 0;
+                          }).length === 0 && (
+                            <div className="text-center py-8">
+                              <p className="text-muted-foreground">
+                                No workflow steps with approved templates yet. Generate templates above to get started.
+                              </p>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="mt-6 p-4 bg-muted rounded-lg">
@@ -1479,7 +1497,11 @@ const AIWorkflows = () => {
 
                   <TabsContent value="graph" className="mt-6">
                     <WorkflowGraph 
-                      steps={selectedWorkflow.steps || []}
+                      steps={selectedWorkflow.steps?.filter((step) => {
+                        // Only show steps with approved templates in graph view
+                        const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
+                        return stepDraftCount > 0;
+                      }) || []}
                       onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
                       onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
                       isGenerating={generatingContent}
