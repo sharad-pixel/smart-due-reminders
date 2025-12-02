@@ -63,12 +63,18 @@ const Solutions = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
+            <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+              AI CashOps Engine
+            </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Six AI Agents Built for Your Industry
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
               Recouply.ai deploys six specialized AI agents that work 24/7 to optimize your CashOps and recover overdue invoices—
               getting smarter with every interaction while preserving customer relationships.
+            </p>
+            <p className="text-lg text-primary font-medium">
+              "The future of receivables management."
             </p>
           </div>
 
@@ -109,13 +115,16 @@ const Solutions = () => {
             })}
           </div>
 
-          <div className="text-center bg-card border rounded-lg p-12">
+          <div className="text-center bg-gradient-to-br from-primary/5 to-secondary/5 border rounded-lg p-12">
             <h2 className="text-3xl font-bold mb-4">
               Ready to Put Six AI Agents to Work?
             </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
               Join businesses using six AI agents that work nonstop, recovering revenue 24/7—
               at a fraction of the cost of one employee.
+            </p>
+            <p className="text-md text-primary font-medium mb-8">
+              "Predictable cash flow powered by AI."
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button 

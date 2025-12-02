@@ -130,11 +130,17 @@ const Pricing = () => {
     <MarketingLayout>
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
+          <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            Equivalent to Six Full-Time Recovery Specialists
+          </div>
           <h1 className="text-5xl font-bold mb-6">
             Simple, Transparent <span className="text-primary">Pricing</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-12">
+          <p className="text-xl text-muted-foreground mb-4">
             Choose the plan that fits your business size. All plans include six AI agents working 24/7, human-in-the-loop approvals, and intelligence that gets smarter over time.
+          </p>
+          <p className="text-lg text-primary font-medium mb-12">
+            "Stop paying for expensive headcount—our agents work nonstop, at a fraction of the cost of one employee."
           </p>
         </div>
 
@@ -384,15 +390,19 @@ const Pricing = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-4xl font-bold mb-4">Ready to Put Six AI Agents to Work?</h2>
-          <p className="text-lg text-muted-foreground mb-8">
+          <p className="text-lg mb-4 opacity-90">
             Start your free trial today. Six AI agents recovering your revenue 24/7—getting smarter with every invoice.
+          </p>
+          <p className="text-md mb-8 opacity-80">
+            "AI-powered CashOps means predictable payments, automated follow-up, and intelligence that compounds over time."
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button
               size="lg"
+              variant="secondary"
               onClick={() => navigate("/signup")}
               className="text-lg px-8"
             >
@@ -402,7 +412,7 @@ const Pricing = () => {
               size="lg"
               variant="outline"
               onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
-              className="text-lg px-8"
+              className="text-lg px-8 bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
             >
               Book a Demo
             </Button>

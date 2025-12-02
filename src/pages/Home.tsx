@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { DollarSign, Zap, Shield, Users, BarChart3, CheckCircle, Brain, Clock, TrendingUp } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
+import PersonaBenefits from "@/components/PersonaBenefits";
+import AIAgentRoles from "@/components/AIAgentRoles";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig } from "@/lib/personaConfig";
@@ -14,12 +16,18 @@ const Home = () => {
     <MarketingLayout>
       <section className="py-20 px-4 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto text-center max-w-4xl">
+          <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            AI-Powered CashOps Platform
+          </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            Six AI Agents Recovering Your Revenue <br />
-            <span className="text-primary">24/7—Getting Smarter Every Day</span>
+            Six AI Agents Recover Your Revenue 24/7 <br />
+            <span className="text-primary">Smart. Automated. Always Improving.</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Recouply.ai deploys six specialized AI agents that handle outreach, reminders, sentiment analysis, and follow-up sequencing around the clock. Get the power of an entire CashOps department for less than the cost of one employee.
+          <p className="text-xl text-muted-foreground mb-4 max-w-3xl mx-auto">
+            Recouply.ai brings modern CashOps automation to your AR workflow—recovering more revenue at a fraction of the cost.
+          </p>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            "Six AI agents recovering your revenue 24/7—getting smarter with every invoice."
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" onClick={() => navigate("/signup")} className="text-lg px-8">
@@ -165,6 +173,42 @@ const Home = () => {
               </p>
             </div>
           </TooltipProvider>
+        </div>
+      </section>
+
+      {/* AI Agent Roles Section */}
+      <section className="py-16 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-4">
+            <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+              Specialized Intelligence
+            </div>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+            Six Specialized Agent Roles
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Each agent uses machine learning to improve tone, timing, routing, and sequences—evolving based on engagement, past payments, and customer sentiment
+          </p>
+          <AIAgentRoles />
+          <div className="text-center mt-8">
+            <p className="text-sm text-muted-foreground italic">
+              "Every interaction improves the system. Your agents get smarter every day."
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Persona Benefits Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+            Built for Your Role
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Whether you're a CFO, AR Manager, Business Owner, or RevOps Leader—Recouply.ai delivers value tailored to your priorities
+          </p>
+          <PersonaBenefits />
         </div>
       </section>
 
