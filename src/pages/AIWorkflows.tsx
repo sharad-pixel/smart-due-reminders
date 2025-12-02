@@ -1011,15 +1011,30 @@ const AIWorkflows = () => {
                     : 'Click on a collection agent above to view their draft templates'}
                 </CardDescription>
               </div>
-              {selectedPersona && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setSelectedPersona(null)}
-                >
-                  View All
-                </Button>
-              )}
+              <div className="flex items-center gap-3">
+                {selectedPersona && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setSelectedPersona(null)}
+                  >
+                    View All
+                  </Button>
+                )}
+                {selectedWorkflow && (
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="workflow-active-drafts" className="text-sm">
+                      {selectedWorkflow.is_active ? "Enabled" : "Disabled"}
+                    </Label>
+                    <Switch
+                      id="workflow-active-drafts"
+                      checked={selectedWorkflow.is_active}
+                      onCheckedChange={(checked) => toggleWorkflow(selectedWorkflow.id, checked)}
+                      disabled={selectedWorkflow.is_locked}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -1362,95 +1377,6 @@ const AIWorkflows = () => {
           <div className="lg:col-span-2 space-y-6">
             {selectedWorkflow ? (
               <>
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="flex items-center space-x-2">
-                          <Workflow className="h-5 w-5 text-primary" />
-                          <span>{selectedWorkflow.name}</span>
-                        </CardTitle>
-                        <CardDescription className="mt-2">
-                          {selectedWorkflow.description}
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        {selectedWorkflow.is_locked ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCreateCustomWorkflow}
-                          >
-                            <Settings className="h-4 w-4 mr-2" />
-                            Create Custom Workflow
-                          </Button>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingSettings(true)}
-                            >
-                              <Settings className="h-4 w-4 mr-2" />
-                              Settings
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setWorkflowToDelete(selectedWorkflow);
-                                setDeleteDialogOpen(true);
-                              }}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </Button>
-                          </>
-                        )}
-                        <div className="flex items-center space-x-2">
-                          <Label htmlFor="workflow-active" className="text-sm">
-                            {selectedWorkflow.is_active ? "Enabled" : "Disabled"}
-                          </Label>
-                          <Switch
-                            id="workflow-active"
-                            checked={selectedWorkflow.is_active}
-                            onCheckedChange={(checked) => toggleWorkflow(selectedWorkflow.id, checked)}
-                            disabled={selectedWorkflow.is_locked}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!selectedWorkflow.is_active && (
-                      <div className="p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                        <div className="flex gap-3">
-                          <div className="text-yellow-600 dark:text-yellow-400">⚠️</div>
-                          <div>
-                            <p className="font-semibold text-yellow-900 dark:text-yellow-100">Workflow Disabled</p>
-                            <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                              This workflow is currently disabled. Enable it using the toggle switch above to generate drafts and send messages.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedWorkflow.is_locked ? (
-                      <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          This is a default workflow template. Click "Create Custom Workflow" to make your own editable version with these same steps.
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Customize this workflow to fit your collection strategy.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
                 <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "graph")} className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="list">List View</TabsTrigger>
