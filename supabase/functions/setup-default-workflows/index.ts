@@ -55,79 +55,250 @@ Deno.serve(async (req) => {
     let workflowDescription = '';
     let steps: any[] = [];
 
-    if (aging_bucket === 'dpd_120_plus') {
-      workflowName = 'Critical Collections (120+ Days)';
-      workflowDescription = 'Intensive recovery workflow for severely overdue accounts';
-      steps = [
+    switch (aging_bucket) {
+      case 'dpd_1_30':
+        workflowName = 'Early Collections (1-30 Days)';
+        workflowDescription = 'Friendly reminder workflow for early-stage collections';
+        steps = [
+          {
+            step_order: 1,
+            day_offset: 3,
+            channel: 'email',
+            label: 'Initial Reminder',
+            ai_template_type: 'payment_reminder',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Friendly reminder about invoice {{invoice_number}} for {{amount}}. Payment was due on {{due_date}}.',
+            subject_template: 'Payment Reminder - Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 2,
+            day_offset: 7,
+            channel: 'email',
+            label: 'Follow-Up Notice',
+            ai_template_type: 'followup',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'This is a follow-up regarding invoice {{invoice_number}}. Please contact us if you need assistance.',
+            subject_template: 'Follow-Up: Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 3,
+            day_offset: 14,
+            channel: 'email',
+            label: 'Urgent Payment Request',
+            ai_template_type: 'urgent_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Urgent: Invoice {{invoice_number}} is now significantly overdue. Please arrange payment.',
+            subject_template: 'Urgent: Payment Required - {{invoice_number}}',
+          },
+        ];
+        break;
+
+      case 'dpd_31_60':
+        workflowName = 'Mid-Stage Collections (31-60 Days)';
+        workflowDescription = 'Firm collection workflow for accounts 31-60 days overdue';
+        steps = [
+          {
+            step_order: 1,
+            day_offset: 3,
+            channel: 'email',
+            label: 'Initial Reminder',
+            ai_template_type: 'payment_reminder',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Your account is significantly overdue. Invoice {{invoice_number}} requires immediate attention.',
+            subject_template: 'Overdue Notice - Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 2,
+            day_offset: 7,
+            channel: 'email',
+            label: 'Follow-Up Notice',
+            ai_template_type: 'urgent_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Second notice regarding invoice {{invoice_number}}. Please contact us to discuss payment options.',
+            subject_template: 'Second Notice: Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 3,
+            day_offset: 14,
+            channel: 'email',
+            label: 'Final Notice',
+            ai_template_type: 'final_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'This is your final notice for invoice {{invoice_number}}. Payment must be received to avoid further action.',
+            subject_template: 'Final Notice: Invoice {{invoice_number}}',
+          },
+        ];
+        break;
+
+      case 'dpd_61_90':
+        workflowName = 'Late Collections (61-90 Days)';
+        workflowDescription = 'Urgent collection workflow for seriously overdue accounts';
+        steps = [
+          {
+            step_order: 1,
+            day_offset: 3,
+            channel: 'email',
+            label: 'Initial Reminder',
+            ai_template_type: 'urgent_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Urgent: Your account is seriously overdue. Invoice {{invoice_number}} must be paid immediately.',
+            subject_template: 'URGENT: Seriously Overdue - {{invoice_number}}',
+          },
+          {
+            step_order: 2,
+            day_offset: 7,
+            channel: 'email',
+            label: 'Follow-Up Notice',
+            ai_template_type: 'final_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'This account will be escalated if payment is not received. Invoice {{invoice_number}} requires immediate settlement.',
+            subject_template: 'Escalation Warning: Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 3,
+            day_offset: 14,
+            channel: 'email',
+            label: 'Final Notice',
+            ai_template_type: 'final_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Final opportunity to resolve invoice {{invoice_number}} before escalation to collections.',
+            subject_template: 'FINAL NOTICE: Invoice {{invoice_number}}',
+          },
+        ];
+        break;
+
+      case 'dpd_91_120':
+        workflowName = 'Advanced Collections (91-120 Days)';
+        workflowDescription = 'Firm collection workflow for accounts approaching critical status';
+        steps = [
+          {
+            step_order: 1,
+            day_offset: 3,
+            channel: 'email',
+            label: 'Initial Reminder',
+            ai_template_type: 'final_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Critical: Invoice {{invoice_number}} is approaching 120 days overdue. Immediate action required.',
+            subject_template: 'CRITICAL: Invoice {{invoice_number}} - Immediate Action Required',
+          },
+          {
+            step_order: 2,
+            day_offset: 7,
+            channel: 'email',
+            label: 'Follow-Up Notice',
+            ai_template_type: 'final_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Your account will be referred for further action if invoice {{invoice_number}} is not resolved immediately.',
+            subject_template: 'Pre-Collections Notice: Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 3,
+            day_offset: 14,
+            channel: 'email',
+            label: 'Final Notice',
+            ai_template_type: 'collections_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'This is your absolute final notice for invoice {{invoice_number}} before external collections.',
+            subject_template: 'FINAL NOTICE: Invoice {{invoice_number}} - Collections Pending',
+          },
+        ];
+        break;
+
+      case 'dpd_121_150':
+        workflowName = 'Critical Collections (121-150 Days)';
+        workflowDescription = 'Critical recovery workflow for severely overdue accounts';
+        steps = [
+          {
+            step_order: 1,
+            day_offset: 3,
+            channel: 'email',
+            label: 'Initial Reminder',
+            ai_template_type: 'collections_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Invoice {{invoice_number}} is now in critical status. This account may be sent to external collections.',
+            subject_template: 'CRITICAL STATUS: Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 2,
+            day_offset: 7,
+            channel: 'email',
+            label: 'Follow-Up Notice',
+            ai_template_type: 'final_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Settlement options available for invoice {{invoice_number}}. Contact us immediately.',
+            subject_template: 'Settlement Offer: Invoice {{invoice_number}}',
+          },
+          {
+            step_order: 3,
+            day_offset: 14,
+            channel: 'email',
+            label: 'Final Notice',
+            ai_template_type: 'collections_notice',
+            trigger_type: 'days_past_due',
+            is_active: true,
+            body_template: 'Final notice before external collections for invoice {{invoice_number}}.',
+            subject_template: 'FINAL NOTICE: Invoice {{invoice_number}}',
+          },
+        ];
+        break;
+
+      case 'dpd_150_plus':
+      case 'dpd_120_plus':
+        workflowName = 'Critical Collections (150+ Days)';
+        workflowDescription = 'Intensive recovery workflow for severely overdue accounts';
+        steps = [
         {
           step_order: 1,
-          day_offset: 0,
+          day_offset: 3,
           channel: 'email',
-          label: 'Critical Status Notice',
+          label: 'Initial Reminder',
           ai_template_type: 'payment_reminder',
           trigger_type: 'days_past_due',
           is_active: true,
-          body_template: 'Your invoice {{invoice_number}} for ${{amount}} is now {{days_past_due}} days overdue. This is a critical collection notice. Immediate payment is required to avoid further action.',
+          body_template: 'Your invoice {{invoice_number}} for {{amount}} is now {{days_past_due}} days overdue. This is a critical collection notice. Immediate payment is required to avoid further action.',
           subject_template: 'URGENT: Critical Payment Required - {{invoice_number}}',
         },
         {
           step_order: 2,
-          day_offset: 3,
-          channel: 'sms',
-          label: 'Urgent Action Required',
+          day_offset: 7,
+          channel: 'email',
+          label: 'Follow-Up Notice',
           ai_template_type: 'urgent_notice',
           trigger_type: 'days_past_due',
           is_active: true,
-          body_template: 'URGENT: Invoice {{invoice_number}} (${{amount}}) requires immediate payment. Contact us today.',
-          sms_template: 'URGENT: Invoice {{invoice_number}} (${{amount}}) requires immediate payment. Contact us today.',
+          body_template: 'URGENT: Invoice {{invoice_number}} ({{amount}}) requires immediate payment. Contact us today.',
+          subject_template: 'URGENT: Invoice {{invoice_number}} - Immediate Action Required',
         },
         {
           step_order: 3,
-          day_offset: 7,
+          day_offset: 14,
           channel: 'email',
-          label: 'Settlement Offer',
+          label: 'Final Notice',
           ai_template_type: 'settlement_offer',
           trigger_type: 'days_past_due',
           is_active: true,
           body_template: 'We are willing to discuss a settlement arrangement for invoice {{invoice_number}}. Please contact us within 7 days to avoid escalation.',
           subject_template: 'Settlement Opportunity - Invoice {{invoice_number}}',
         },
-        {
-          step_order: 4,
-          day_offset: 14,
-          channel: 'email',
-          label: 'Pre-Legal Warning',
-          ai_template_type: 'final_notice',
-          trigger_type: 'days_past_due',
-          is_active: true,
-          body_template: 'This is your final notice before legal action for invoice {{invoice_number}} (${{amount}}). Payment must be received within 7 business days.',
-          subject_template: 'FINAL NOTICE - Legal Action Pending - {{invoice_number}}',
-        },
-        {
-          step_order: 5,
-          day_offset: 21,
-          channel: 'sms',
-          label: 'Final Response Request',
-          ai_template_type: 'urgent_notice',
-          trigger_type: 'days_past_due',
-          is_active: true,
-          body_template: 'Final notice: Invoice {{invoice_number}} will be sent to collections if not paid immediately.',
-          sms_template: 'Final notice: Invoice {{invoice_number}} will be sent to collections if not paid immediately.',
-        },
-        {
-          step_order: 6,
-          day_offset: 30,
-          channel: 'email',
-          label: 'Collections Notice',
-          ai_template_type: 'collections_notice',
-          trigger_type: 'days_past_due',
-          is_active: true,
-          body_template: 'Invoice {{invoice_number}} (${{amount}}) has been forwarded to our collections department. This will impact your credit and future business relationships.',
-          subject_template: 'Account Sent to Collections - {{invoice_number}}',
-        },
       ];
-    } else {
-      throw new Error('Invalid aging bucket');
+      break;
+
+      default:
+        throw new Error(`Unsupported aging bucket: ${aging_bucket}`);
     }
 
     // Create the workflow

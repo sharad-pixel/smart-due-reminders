@@ -49,13 +49,25 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (workflowError || !workflow) {
-      console.error('Workflow error:', workflowError);
+    if (workflowError) {
+      console.error('Workflow query error:', workflowError);
       return new Response(JSON.stringify({ 
-        error: `No active workflow found for ${aging_bucket}`,
+        error: `Database error querying workflow: ${workflowError.message}`,
         success: false
       }), {
-        status: 400,
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!workflow) {
+      console.log(`No active workflow found for ${aging_bucket}, user: ${user.id}`);
+      return new Response(JSON.stringify({ 
+        error: `No active workflow found for ${aging_bucket}. Please create a workflow first.`,
+        success: false,
+        needs_workflow: true
+      }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -416,12 +416,20 @@ const AIWorkflows = () => {
         }
       );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate templates');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        // Check if workflow needs to be created first
+        if (result.needs_workflow) {
+          toast.error(
+            "Please create a workflow for this bucket first",
+            { duration: 5000 }
+          );
+        } else {
+          throw new Error(result.error || 'Failed to generate templates');
+        }
+        return;
+      }
       
       if (result.success) {
         toast.success(
@@ -718,7 +726,28 @@ const AIWorkflows = () => {
         body: { aging_bucket: agingBucket }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Generate templates error:', error);
+        
+        // Check if it's a workflow missing error
+        if (error.message?.includes('No active workflow') || error.message?.includes('needs_workflow')) {
+          toast.error(
+            `Please create a workflow for ${personaName} first. Use "Create Custom Workflow" button below.`,
+            { duration: 6000 }
+          );
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      if (data.needs_workflow) {
+        toast.error(
+          `No workflow found for ${personaName}. Create a workflow first, then generate templates.`,
+          { duration: 6000 }
+        );
+        return;
+      }
 
       if (data.success) {
         toast.success(
@@ -863,13 +892,21 @@ const AIWorkflows = () => {
         body: { aging_bucket },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Setup workflow error:', error);
+        throw new Error(error.message || 'Failed to create workflow');
+      }
 
-      toast.success(data.message || "Default workflow created successfully");
-      await fetchWorkflows();
+      if (data.success) {
+        toast.success(data.message || "Workflow created successfully");
+        await fetchWorkflows();
+        await fetchInvoiceCounts();
+      } else {
+        throw new Error(data.error || 'Failed to create workflow');
+      }
     } catch (error: any) {
       console.error('Setup default workflow error:', error);
-      toast.error(error.message || "Failed to create default workflow");
+      toast.error(error.message || "Failed to create workflow");
     } finally {
       setLoading(false);
     }
@@ -1663,33 +1700,22 @@ const AIWorkflows = () => {
               </>
             ) : (
               <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground mb-2">
-                  No workflow configured for this aging bucket yet.
-                </p>
-                {(selectedBucket === 'dpd_121_150' || selectedBucket === 'dpd_150_plus') ? (
-                  <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        Create a specialized workflow for critical 121+ day overdue invoices
-                      </p>
-                      <div className="flex gap-2 justify-center">
-                        <Button 
-                          onClick={() => handleSetupDefaultWorkflow(selectedBucket)}
-                          disabled={loading}
-                        >
-                          {loading ? "Creating..." : "Create Critical Collections Workflow"}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
+                <CardContent className="py-8 sm:py-12 text-center space-y-3 px-4">
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    No workflow configured for this aging bucket yet.
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Create a workflow to start generating automated collection templates
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
                     <Button 
-                      variant="outline" 
-                      className="mt-4" 
-                      onClick={handleCreateCustomWorkflow}
+                      onClick={() => handleSetupDefaultWorkflow(selectedBucket)}
+                      disabled={loading}
+                      className="w-full sm:w-auto tap-target"
                     >
-                      Create Custom Workflow
+                      {loading ? "Creating..." : "Create Workflow"}
                     </Button>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             )}
