@@ -77,7 +77,8 @@ serve(async (req) => {
       case 'dpd_31_60': minDays = 31; break;
       case 'dpd_61_90': minDays = 61; break;
       case 'dpd_91_120': minDays = 91; break;
-      case 'dpd_120_plus': minDays = 121; break;
+      case 'dpd_121_150': minDays = 121; break;
+      case 'dpd_150_plus': minDays = 151; break;
     }
 
     // Query for the exact persona that matches this bucket range

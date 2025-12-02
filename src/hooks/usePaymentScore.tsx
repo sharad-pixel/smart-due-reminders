@@ -18,7 +18,8 @@ export interface PaymentScoreData {
     dpd_31_60_pct: number;
     dpd_61_90_pct: number;
     dpd_91_120_pct: number;
-    dpd_121_plus_pct: number;
+    dpd_121_150_pct: number;
+    dpd_150_plus_pct: number;
   };
   breakdown: string[];
 }

@@ -13,7 +13,8 @@ export interface AgingBucketsResponse {
   dpd_31_60: AgingBucketData;
   dpd_61_90: AgingBucketData;
   dpd_91_120: AgingBucketData;
-  dpd_120_plus: AgingBucketData;
+  dpd_121_150: AgingBucketData;
+  dpd_150_plus: AgingBucketData;
 }
 
 export const useAgingBuckets = (debtorId?: string) => {
