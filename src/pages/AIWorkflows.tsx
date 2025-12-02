@@ -16,7 +16,7 @@ import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { personaConfig } from "@/lib/personaConfig";
+import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 
 interface WorkflowStep {
@@ -1016,25 +1016,42 @@ const AIWorkflows = () => {
           <CardContent className="pt-6 pb-6">
             <TooltipProvider>
               <div className="flex justify-evenly items-center">
-                {Object.entries(personaConfig).map(([key, persona]) => (
-                  <Tooltip key={key}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setSelectedPersona(persona.name)}
-                        className={cn(
-                          "flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105 p-2 rounded-lg",
-                          selectedPersona === persona.name && "bg-primary/10 ring-2 ring-primary"
-                        )}
-                      >
-                        <PersonaAvatar persona={persona} size="lg" />
-                        <div className="text-center">
-                          <p className="text-xs font-semibold">{persona.name}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days
-                          </p>
-                        </div>
-                      </button>
-                    </TooltipTrigger>
+                {Object.entries(personaConfig).map(([key, persona]) => {
+                  // Map persona to aging bucket
+                  const getPersonaBucket = (p: PersonaConfig) => {
+                    if (p.bucketMin === 1 && p.bucketMax === 30) return "dpd_1_30";
+                    if (p.bucketMin === 31 && p.bucketMax === 60) return "dpd_31_60";
+                    if (p.bucketMin === 61 && p.bucketMax === 90) return "dpd_61_90";
+                    if (p.bucketMin === 91 && p.bucketMax === 120) return "dpd_91_120";
+                    if (p.bucketMin === 121 && p.bucketMax === 150) return "dpd_121_150";
+                    if (p.bucketMin === 151 && p.bucketMax === null) return "dpd_150_plus";
+                    return "dpd_1_30";
+                  };
+
+                  const handlePersonaClick = () => {
+                    setSelectedPersona(persona.name);
+                    setSelectedBucket(getPersonaBucket(persona));
+                  };
+
+                  return (
+                    <Tooltip key={key}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={handlePersonaClick}
+                          className={cn(
+                            "flex flex-col items-center gap-2 cursor-pointer transition-all hover:scale-105 p-2 rounded-lg",
+                            selectedPersona === persona.name && "bg-primary/10 ring-2 ring-primary"
+                          )}
+                        >
+                          <PersonaAvatar persona={persona} size="lg" />
+                          <div className="text-center">
+                            <p className="text-xs font-semibold">{persona.name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {persona.bucketMin}-{persona.bucketMax || "+"} Days
+                            </p>
+                          </div>
+                        </button>
+                      </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -1057,7 +1074,8 @@ const AIWorkflows = () => {
                       </div>
                     </TooltipContent>
                   </Tooltip>
-                ))}
+                  );
+                })}
               </div>
             </TooltipProvider>
           </CardContent>
