@@ -80,7 +80,7 @@ const SaaS = () => {
             Reduce ARR Leakage with AI-Powered Collections Automation
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            For SaaS companies without collections teams — Recouply.ai keeps your revenue on time 
+            For SaaS companies without collections teams — Recouply.ai optimizes your CashOps and keeps revenue on time 
             while protecting customer relationships.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
