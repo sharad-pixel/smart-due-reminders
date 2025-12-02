@@ -67,7 +67,7 @@ const Solutions = () => {
               Solutions Built for Your Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Recouply.ai helps small businesses across industries collect overdue invoices 
+              Recouply.ai helps small businesses across industries optimize their CashOps and collect overdue invoices 
               without damaging customer relationships or hiring expensive collection agencies.
             </p>
           </div>

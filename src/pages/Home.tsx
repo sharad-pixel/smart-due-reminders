@@ -19,7 +19,7 @@ const Home = () => {
             <span className="text-primary">Without a Collection Agency</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Recouply.ai helps your team collect overdue invoices faster, using AI-driven workflows that protect customer relationships and keep you out of regulatory gray zones.
+            Recouply.ai helps your team collect overdue invoices faster, using AI-driven workflows that protect customer relationships and keep you out of regulatory gray zones. Streamline your CashOps with intelligent automation.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" onClick={() => navigate("/signup")} className="text-lg px-8">
@@ -41,7 +41,7 @@ const Home = () => {
               </div>
               <h3 className="text-xl font-bold mb-3">Collect your own debts, with AI assistance</h3>
               <p className="text-muted-foreground">
-                You remain in full control. All outreach comes from your business, not a third-party agency. Stay compliant and maintain customer trust.
+                You remain in full control. All outreach comes from your business, not a third-party agency. Stay compliant and maintain customer trust while optimizing CashOps efficiency.
               </p>
             </div>
 

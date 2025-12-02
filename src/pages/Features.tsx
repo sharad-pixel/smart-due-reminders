@@ -14,7 +14,7 @@ const Features = () => {
             Powerful Features for <span className="text-primary">Professional Collections</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Everything you need to collect overdue invoices efficiently while maintaining customer relationships.
+            Everything you need to collect overdue invoices efficiently while maintaining customer relationships. Modernize your CashOps with AI-powered automation.
           </p>
         </div>
       </section>
@@ -131,7 +131,7 @@ const Features = () => {
               </div>
               <h2 className="text-3xl font-bold mb-4">Invoice & Debtor Management</h2>
               <p className="text-muted-foreground mb-4">
-                Centralized dashboard to track all invoices, customers, and collection activities. Monitor payment status, outreach history, and upcoming follow-ups in one place.
+                Centralized CashOps dashboard to track all invoices, customers, and collection activities. Monitor payment status, outreach history, and upcoming follow-ups in one place.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">

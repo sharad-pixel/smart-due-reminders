@@ -8,7 +8,7 @@ const SaaSBenefits = () => {
     "Customer-friendly tone maintains NRR and reduces churn",
     "Integrates with CRM → customer-aware outreach",
     "Stripe + Chargebee payment link embedding",
-    "Full DSO dashboard"
+    "Full CashOps DSO dashboard"
   ];
 
   return (
