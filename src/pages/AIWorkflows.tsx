@@ -855,7 +855,7 @@ const AIWorkflows = () => {
               className="flex items-center space-x-2"
             >
               <Mail className="h-4 w-4" />
-              <span>{autoSending ? "Sending..." : "Send Approved"}</span>
+              <span>{autoSending ? "Sending..." : "Send Templates Now"}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -936,12 +936,12 @@ const AIWorkflows = () => {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Mail className="h-5 w-5" />
-                  AI Drafts by Collection Agent
+                  Draft Templates by Collection Agent
                 </CardTitle>
                 <CardDescription>
                   {selectedPersona 
-                    ? `Viewing drafts for ${selectedPersona}` 
-                    : 'Click on a collection agent above to view their drafts'}
+                    ? `Viewing templates for ${selectedPersona}` 
+                    : 'Click on a collection agent above to view their draft templates'}
                 </CardDescription>
               </div>
               {selectedPersona && (
@@ -962,7 +962,7 @@ const AIWorkflows = () => {
               </div>
             ) : !selectedPersona ? (
               <div className="text-center py-8 space-y-2">
-                <p className="text-muted-foreground">Select a collection agent above to view their drafts</p>
+                <p className="text-muted-foreground">Select a collection agent above to view their templates</p>
               </div>
             ) : (() => {
               // Find the matching persona from draftsByPersona
@@ -975,7 +975,7 @@ const AIWorkflows = () => {
                 return (
                   <div className="text-center py-8 space-y-4">
                     <p className="text-muted-foreground">
-                      No drafts found for {selectedPersona}
+                      No draft templates found for {selectedPersona}
                     </p>
                     <Button 
                       onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
@@ -989,7 +989,7 @@ const AIWorkflows = () => {
                       ) : (
                         <>
                           <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Drafts for {selectedPersona}
+                          Generate Templates for {selectedPersona}
                         </>
                       )}
                     </Button>
@@ -1009,7 +1009,7 @@ const AIWorkflows = () => {
                         <h3 className="font-semibold">{persona.name}</h3>
                         <p className="text-sm text-muted-foreground">{persona.bucket_min}-{persona.bucket_max || "+"} days past due</p>
                       </div>
-                      <Badge variant="outline">{drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</Badge>
+                      <Badge variant="outline">{drafts.length} template{drafts.length === 1 ? '' : 's'}</Badge>
                     </div>
                     
                     <div className="space-y-3">
@@ -1273,10 +1273,10 @@ const AIWorkflows = () => {
 
                     <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                       <div>
-                        <p className="font-medium">Manual Draft Generation</p>
-                         <p className="text-sm text-muted-foreground">
-                           Generate drafts now for all invoices in {agingBuckets.find(b => b.value === selectedBucket)?.label}
-                         </p>
+                        <p className="font-medium">Manual Template Generation</p>
+                        <p className="text-sm text-muted-foreground">
+                          Generate draft templates for {agingBuckets.find(b => b.value === selectedBucket)?.label}
+                        </p>
                       </div>
                       <Button
                         onClick={() => handleGenerateBucketDrafts(selectedBucket)}
@@ -1284,7 +1284,7 @@ const AIWorkflows = () => {
                         variant="outline"
                       >
                         <PlayCircle className="h-4 w-4 mr-2" />
-                        {generatingDrafts ? "Generating..." : "Generate Now"}
+                        {generatingDrafts ? "Generating..." : "Generate Templates"}
                       </Button>
                     </div>
                     {selectedWorkflow.is_locked ? (
