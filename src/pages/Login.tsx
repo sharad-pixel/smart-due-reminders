@@ -140,33 +140,6 @@ const Login = () => {
     }
   };
 
-  const handleMicrosoftSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          scopes: 'email profile openid',
-        },
-      });
-
-      if (error) {
-        console.error('Microsoft OAuth error:', error);
-        
-        if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
-          toast.error('Microsoft sign-in is not yet configured. Please contact support or use email sign-in.', {
-            duration: 5000,
-          });
-        } else {
-          throw error;
-        }
-        return;
-      }
-    } catch (error: any) {
-      console.error('Microsoft sign in error:', error);
-      toast.error(error.message || "Microsoft sign in failed. Please try again or use email sign-in.");
-    }
-  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,7 +176,7 @@ const Login = () => {
           <CardHeader>
             <CardTitle>Sign in to Recouply.ai</CardTitle>
             <CardDescription>
-              Use your work account via Google or Microsoft to get started
+              Use your Google work account to get started
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -234,22 +207,6 @@ const Login = () => {
                   />
                 </svg>
                 Continue with Google
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-11"
-                onClick={handleMicrosoftSignIn}
-              >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 23 23">
-                  <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
-                  <path fill="#f35325" d="M1 1h10v10H1z"/>
-                  <path fill="#81bc06" d="M12 1h10v10H12z"/>
-                  <path fill="#05a6f0" d="M1 12h10v10H1z"/>
-                  <path fill="#ffba08" d="M12 12h10v10H12z"/>
-                </svg>
-                Continue with Microsoft
               </Button>
             </div>
 
