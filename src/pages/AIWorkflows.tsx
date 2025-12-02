@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -62,6 +63,7 @@ interface DraftsByPersona {
 }
 
 const AIWorkflows = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -1586,14 +1588,15 @@ const AIWorkflows = () => {
                                   <p className="text-sm font-medium mb-3">
                                     Invoices at this stage ({invoices.length})
                                   </p>
-                                  {invoices.length > 0 ? (
+                                   {invoices.length > 0 ? (
                                     <div className="space-y-2">
                                       {invoices.map((invoice: any) => (
-                                        <div
+                                        <button
                                           key={invoice.id}
-                                          className="flex items-center justify-between p-2 bg-background rounded border hover:border-primary/50 transition-colors"
+                                          onClick={() => navigate(`/invoices/${invoice.id}`)}
+                                          className="w-full flex items-center justify-between p-2 bg-background rounded border hover:border-primary/50 hover:bg-accent/50 transition-colors cursor-pointer"
                                         >
-                                          <div>
+                                          <div className="text-left">
                                             <p className="font-medium text-sm">{invoice.invoice_number}</p>
                                             <p className="text-xs text-muted-foreground">
                                               {invoice.debtors?.company_name}
@@ -1607,7 +1610,7 @@ const AIWorkflows = () => {
                                               Due: {new Date(invoice.due_date).toLocaleDateString()}
                                             </p>
                                           </div>
-                                        </div>
+                                        </button>
                                       ))}
                                     </div>
                                   ) : (
