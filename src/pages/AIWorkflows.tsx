@@ -1322,7 +1322,12 @@ const AIWorkflows = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => (
+                          {selectedWorkflow.steps?.sort((a, b) => a.step_order - b.step_order).map((step) => {
+                            // Check if this step has an approved template
+                            const stepDraftCount = stepDraftCounts[selectedBucket]?.[step.id] || 0;
+                            const hasApprovedTemplate = stepDraftCount > 0;
+                            
+                            return (
                             <div
                               key={step.id}
                               className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -1332,7 +1337,15 @@ const AIWorkflows = () => {
                                   {step.step_order}
                                 </div>
                                 <div className="flex-1">
-                                  <p className="font-medium">{step.label}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{step.label}</p>
+                                    {hasApprovedTemplate && (
+                                      <Badge variant="default" className="text-xs">
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Template Ready
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <div className="flex items-center space-x-3 mt-1">
                                     <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                                       <Clock className="h-3 w-3" />
@@ -1386,7 +1399,7 @@ const AIWorkflows = () => {
                                 )}
                               </div>
                             </div>
-                          ))}
+                          )})}
                         </div>
                         
                         <div className="mt-6 p-4 bg-muted rounded-lg">
