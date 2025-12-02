@@ -6,7 +6,7 @@ const SaaSBenefits = () => {
     "No collection staff needed",
     "Frees up CSMs & AEs",
     "Customer-friendly tone maintains NRR and reduces churn",
-    "Integrates with CRM → customer-aware outreach",
+    "Integrates with CRM → intelligent CashOps prioritization",
     "Stripe + Chargebee payment link embedding",
     "Full DSO dashboard"
   ];
@@ -14,7 +14,7 @@ const SaaSBenefits = () => {
   return (
     <Card>
       <CardContent className="pt-6">
-        <h3 className="text-xl font-semibold mb-4">SaaS-Specific Advantages</h3>
+        <h3 className="text-xl font-semibold mb-4">Modern CashOps Advantages for SaaS</h3>
         <div className="grid md:grid-cols-2 gap-4">
           {benefits.map((benefit, idx) => (
             <div key={idx} className="flex items-start gap-3">

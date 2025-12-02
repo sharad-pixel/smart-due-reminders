@@ -77,11 +77,11 @@ const SaaS = () => {
             <span className="text-sm font-medium">For SaaS Companies</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Reduce ARR Leakage with AI-Powered Collections Automation
+            Reduce ARR Leakage with Modern CashOps Automation
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            For SaaS companies without collections teams — Recouply.ai keeps your revenue on time 
-            while protecting customer relationships.
+            For SaaS companies without dedicated collections teams — Recouply.ai delivers proactive CashOps that keeps revenue on time 
+            while protecting customer relationships through intelligent automation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -116,12 +116,13 @@ const SaaS = () => {
               <p className="text-muted-foreground whitespace-pre-line">
                 {copy?.problem_copy || `Small finance teams manually chasing overdue invoices while collections responsibilities fall on CSMs and AEs. Disorganized shared inboxes lead to inconsistent follow-up, and ARR leakage from unmanaged renewals or overdue invoices creates cash flow unpredictability.
 
-Without scalable collections processes, SaaS companies struggle with:
+Without proactive CashOps processes, SaaS companies struggle with:
 • Manual invoice follow-up consuming valuable time
 • CSMs and AEs diverted from revenue-generating activities
-• No systematic approach to handling overdue accounts
+• No systematic approach to prioritizing and handling overdue accounts
 • Revenue recognition delays impacting financial reporting
-• Customer relationships strained by inconsistent communication`}
+• Customer relationships strained by inconsistent communication
+• Limited visibility into receivables health and payment trends`}
               </p>
             </div>
           )}
@@ -141,11 +142,11 @@ Without scalable collections processes, SaaS companies struggle with:
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai integrates with your CRM and billing systems to automatically track invoices and trigger intelligent follow-up sequences. When an account becomes past due, our AI generates professional, customer-safe reminders that maintain your brand voice and protect NRR.
+                {copy?.solution_copy || `Recouply.ai integrates with your CRM and billing systems to deliver modern CashOps—automatically tracking invoices, intelligently prioritizing accounts, and triggering smart follow-up sequences. When an account becomes past due, our AI generates professional, customer-safe reminders that maintain your brand voice and protect NRR.
 
-The system handles everything from gentle initial reminders to structured escalation paths—all while embedding convenient payment links. Communications come directly from YOUR company, not a third-party collector, ensuring continuity in customer relationships.
+The CashOps platform handles everything from gentle initial reminders to structured escalation paths—all while embedding convenient payment links and analyzing customer sentiment. Communications come directly from YOUR company, not a third-party collector, ensuring continuity in customer relationships.
 
-With CRM-connected context, every message is aware of customer history, contract value, and relationship status. Your team reviews and approves messaging before it goes out, maintaining full control while eliminating manual workload.`}
+With CRM-connected intelligence, every message is aware of customer history, contract value, and relationship status. Your team reviews and approves messaging before it goes out, maintaining full control while eliminating manual workload. That's modern CashOps.`}
               </p>
             </div>
           )}
@@ -193,7 +194,7 @@ With CRM-connected context, every message is aware of customer history, contract
       {/* SaaS-Specific Advantages */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
-          <h2 className="text-3xl font-bold mb-6 text-center">Why SaaS Companies Choose Recouply.ai</h2>
+          <h2 className="text-3xl font-bold mb-6 text-center">Why SaaS Companies Choose Recouply.ai for CashOps</h2>
           <SaaSBenefits />
         </div>
       </section>
