@@ -24,6 +24,7 @@ import CreateTaskModal from "@/components/CreateTaskModal";
 import { ResponseActivityCard } from "@/components/ResponseActivityCard";
 import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
+import { CustomerCaseFeed } from "@/components/CustomerCaseFeed";
 
 interface Debtor {
   id: string;
@@ -513,6 +514,9 @@ const DebtorDetail = () => {
 
         {/* Aging Bucket Breakdown */}
         <AgingBucketBreakdown debtorId={id} />
+
+        {/* Customer Case Feed */}
+        <CustomerCaseFeed debtorId={id} />
 
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList>
