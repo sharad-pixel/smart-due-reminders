@@ -13,22 +13,22 @@ const Solutions = () => {
       title: "Home Services",
       description: "For plumbing, HVAC, electrical, roofing, and contractor businesses",
       benefits: [
-        "Automated payment reminders that protect customer relationships",
+        "Six AI agents handling payment reminders 24/7",
         "Embed payment links in every communication",
         "QuickBooks-friendly workflows",
-        "No third-party collection agency needed"
+        "Agents learn and improve recovery rates over time"
       ],
       link: "/solutions/home-services"
     },
     {
       icon: Building2,
       title: "SaaS Companies",
-      description: "For SaaS companies without dedicated collections teams",
+      description: "For SaaS companies looking to reduce ARR leakage",
       benefits: [
-        "Reduce ARR leakage",
-        "Automate follow-ups",
-        "Lighten load on CSM/Finance",
-        "Customer-safe collections"
+        "Reduce ARR leakage with intelligent AI agents",
+        "Automate follow-ups that get smarter over time",
+        "Lighten load on CSM/Finance teams",
+        "Customer-safe CashOps that preserves relationships"
       ],
       link: "/solutions/saas"
     },
@@ -38,9 +38,9 @@ const Solutions = () => {
       description: "For agencies, consultants, accounting firms, legal practices",
       benefits: [
         "Eliminate uncomfortable invoice reminder emails",
-        "Offer flexible payment plan options",
+        "AI agents adapt tone based on client relationships",
         "Accelerate cash collection cycles",
-        "Preserve client relationships"
+        "Preserve client relationships with intelligent outreach"
       ],
       link: "/solutions/professional-services"
     },
@@ -49,10 +49,10 @@ const Solutions = () => {
       title: "Local Retail & Services",
       description: "For retail shops, service providers, and local businesses",
       benefits: [
-        "Simple, automated follow-up on past-due accounts",
+        "Six AI agents working around the clock",
         "Professional outreach from your business",
-        "Payment tracking and reporting",
-        "Keep collection in-house"
+        "Payment tracking and DSO reporting",
+        "Intelligence that compounds over time"
       ],
       link: "/solutions/home-services"
     }
@@ -64,11 +64,11 @@ const Solutions = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Solutions Built for Your Industry
+              Six AI Agents Built for Your Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Recouply.ai helps small businesses across industries optimize their CashOps and collect overdue invoices 
-              without damaging customer relationships or hiring expensive collection agencies.
+              Recouply.ai deploys six specialized AI agents that work 24/7 to optimize your CashOps and recover overdue invoices—
+              getting smarter with every interaction while preserving customer relationships.
             </p>
           </div>
 
@@ -111,11 +111,11 @@ const Solutions = () => {
 
           <div className="text-center bg-card border rounded-lg p-12">
             <h2 className="text-3xl font-bold mb-4">
-              Ready to Get Started?
+              Ready to Put Six AI Agents to Work?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join hundreds of small businesses that have streamlined their invoice 
-              collection process with AI-powered automation.
+              Join businesses using six AI agents that work nonstop, recovering revenue 24/7—
+              at a fraction of the cost of one employee.
             </p>
             <Button 
               onClick={() => navigate("/signup")}

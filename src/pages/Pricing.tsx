@@ -14,10 +14,10 @@ const Pricing = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "Recouply.ai Pricing – AI Collections for SMB + SaaS";
+    document.title = "Recouply.ai Pricing – AI-Powered CashOps for SMB + SaaS";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Choose a Recouply.ai plan for SMBs, auto, home services, and SaaS companies. Automate collections, reduce overdue invoices, and lower DSO with AI—no collection agency required.');
+      metaDescription.setAttribute('content', 'Choose a Recouply.ai plan for SMBs, auto, home services, and SaaS companies. Six AI agents recovering revenue 24/7—getting smarter with every invoice.');
     }
   }, []);
 
@@ -26,14 +26,14 @@ const Pricing = () => {
       name: "Starter",
       price: "$99",
       period: "/month",
-      description: "Perfect for small businesses getting started with collections automation",
+      description: "Perfect for small businesses getting started with AI-powered CashOps",
       features: [
         "50 invoices per month included",
         "$1.00 per additional invoice",
         "Single user only 🚫",
-        "AI email reminders",
+        "Six AI agents working 24/7",
         "Manual SMS sending",
-        "Dashboard analytics",
+        "CashOps dashboard analytics",
         "Unlimited contacts / debtors"
       ],
       cta: "Start Free Trial",
@@ -43,12 +43,12 @@ const Pricing = () => {
       name: "Growth",
       price: "$199",
       period: "/month",
-      description: "For growing businesses that need full automation",
+      description: "For growing businesses that need full AI automation",
       features: [
         "200 invoices per month included",
         "$1.00 per additional invoice",
         "Single user only 🚫",
-        "AI cadence automation",
+        "AI agents with continuous learning",
         "Auto-SMS",
         "Promise-to-Pay tracking",
         "Basic CRM integration"
@@ -61,14 +61,14 @@ const Pricing = () => {
       name: "Professional",
       price: "$399",
       period: "/month",
-      description: "Enterprise-grade collections with team collaboration",
+      description: "Enterprise-grade CashOps with team collaboration",
       features: [
         "500 invoices per month included",
         "$1.00 per additional invoice",
         "✅ Admin + up to 5 team members",
         "Full role-based access control",
         "Manage permissions for each team member",
-        "CRM-context-aware AI",
+        "CRM-context-aware AI agents",
         "Invoice line items",
         "Advanced automations",
         "Priority AI queue"
@@ -98,22 +98,22 @@ const Pricing = () => {
   const icpBenefits = [
     {
       title: "Home Services",
-      description: "Fewer awkward reminder calls, payment links in every message, friendly tone to preserve repeat business",
+      description: "Six AI agents handling reminders 24/7, payment links in every message, friendly tone to preserve repeat business",
       link: "/solutions/home-services"
     },
     {
       title: "Auto & Dealerships",
-      description: "Recover unpaid service invoices, friendly SMS reminders, service advisor approved follow-up",
+      description: "Recover unpaid service invoices with AI agents that learn and improve, service advisor approved follow-up",
       link: "/solutions/home-services"
     },
     {
       title: "SaaS Companies",
-      description: "Reduce ARR leakage, automate invoice reminders for lean finance teams, CRM-aware messaging",
+      description: "Reduce ARR leakage with intelligent AI agents, automate invoice reminders for lean finance teams, CRM-aware messaging",
       link: "/solutions/saas"
     },
     {
       title: "SMB & Local Services",
-      description: "Simple AR automation, no accounting expertise required, maintain customer relationships",
+      description: "Simple AI-powered CashOps, intelligence that compounds over time, maintain customer relationships",
       link: "/solutions/home-services"
     }
   ];
@@ -134,7 +134,7 @@ const Pricing = () => {
             Simple, Transparent <span className="text-primary">Pricing</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-12">
-            Choose the plan that fits your business size. All plans include 14-day free trial and our core AI features with human-in-the-loop approvals.
+            Choose the plan that fits your business size. All plans include six AI agents working 24/7, human-in-the-loop approvals, and intelligence that gets smarter over time.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ const Pricing = () => {
             Built for Your Industry
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Recouply.ai is optimized for businesses across multiple verticals
+            Recouply.ai's six AI agents are optimized for businesses across multiple verticals
           </p>
           <div className="grid md:grid-cols-2 gap-6">
             {icpBenefits.map((benefit, idx) => (
@@ -217,7 +217,7 @@ const Pricing = () => {
             Perfect for SaaS Companies
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            All plans include SaaS-optimized features to reduce ARR leakage
+            All plans include SaaS-optimized features to reduce ARR leakage with AI agents that learn and improve
           </p>
           <SaaSBenefits />
         </div>
@@ -268,7 +268,7 @@ const Pricing = () => {
                       <td className="text-center py-4 px-4">✅</td>
                     </tr>
                     <tr>
-                      <td className="py-4 px-4 font-medium">CRM-aware AI</td>
+                      <td className="py-4 px-4 font-medium">CRM-aware AI agents</td>
                       <td className="text-center py-4 px-4">❌</td>
                       <td className="text-center py-4 px-4">Basic</td>
                       <td className="text-center py-4 px-4">✅</td>
@@ -287,14 +287,14 @@ const Pricing = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-4">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-              AI-Powered Collections
+              AI-Powered CashOps
             </div>
           </div>
           <h2 className="text-3xl font-bold text-center mb-4">
-            Meet Your AI Collections Team
+            Meet Your Six AI Agents
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Every plan includes access to our five specialized AI agents that automatically adjust their approach based on invoice age
+            Every plan includes access to six specialized AI agents that work 24/7—learning and improving with every interaction
           </p>
           <TooltipProvider delayDuration={100}>
             <div className="flex justify-center items-center gap-8 flex-wrap mb-8">
@@ -364,7 +364,7 @@ const Pricing = () => {
             <div>
               <h3 className="font-semibold mb-2">Do you take a percentage of collected payments?</h3>
               <p className="text-muted-foreground">
-                No. We're software, not a collection agency. You pay a flat monthly fee, and 100% of collected payments go directly to you.
+                No. Recouply.ai is AI-powered CashOps software. You pay a flat monthly fee, and 100% of collected payments go directly to you.
               </p>
             </div>
             <div>
@@ -386,9 +386,9 @@ const Pricing = () => {
       {/* CTA */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
+          <h2 className="text-4xl font-bold mb-4">Ready to Put Six AI Agents to Work?</h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Start your free trial today. No credit card required. Cancel anytime.
+            Start your free trial today. Six AI agents recovering your revenue 24/7—getting smarter with every invoice.
           </p>
           <Button
             size="lg"

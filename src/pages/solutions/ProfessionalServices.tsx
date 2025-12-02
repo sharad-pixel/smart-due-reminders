@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Briefcase } from "lucide-react";
+import { CheckCircle2, Briefcase, Brain } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,10 +14,10 @@ const ProfessionalServices = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "Invoice Collection for Professional Services | Recouply.ai";
+    document.title = "AI-Powered CashOps for Professional Services | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'AI-powered invoice collection for agencies, consultants, accounting firms, and professional service providers. Eliminate uncomfortable payment reminders.');
+      metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for agencies, consultants, accounting firms, and professional service providers. Getting smarter with every invoice.');
     }
     
     loadMarketingCopy();
@@ -51,12 +51,12 @@ const ProfessionalServices = () => {
   };
 
   const features = [
-    "Eliminate uncomfortable invoice reminder emails",
+    "Six AI agents eliminating uncomfortable invoice reminders",
+    "Agents learn and adapt tone based on client relationships",
     "Flexible payment plan options",
-    "Professional tone that preserves client relationships",
     "Integration with accounting and practice management software",
-    "Automated follow-up sequences",
-    "Complete control over messaging"
+    "Automated follow-up sequences that improve over time",
+    "Complete control over messaging and approvals"
   ];
 
   return (
@@ -69,11 +69,11 @@ const ProfessionalServices = () => {
             <span className="text-sm font-medium">For Professional Services</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Never Send an Awkward "Just Checking In on Payment" Email Again
+            Six AI Agents Handling Your Collections—24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            AI-powered invoice collection for agencies, consultants, accounting firms, 
-            legal practices, and professional service providers.
+            Never send an awkward "just checking in" email again. Our AI agents work around the clock, 
+            learning and improving with every interaction—at a fraction of the cost of one employee.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -110,7 +110,7 @@ const ProfessionalServices = () => {
 
 You've completed the consulting project, filed the tax return, finished the legal work, or delivered the marketing campaign. But getting paid feels like chasing. You don't want to damage the relationship by seeming pushy, yet you can't let invoices age indefinitely.
 
-Manual follow-ups consume valuable time you could spend serving clients or growing your practice. And hiring a collection agency for professional services feels completely inappropriate—it would destroy the trust and rapport you've built. Yet without consistent follow-up, your accounts receivable balloons and cash flow suffers.`}
+Manual follow-ups consume valuable time you could spend serving clients or growing your practice. Yet without consistent follow-up, your accounts receivable balloons and cash flow suffers.`}
               </p>
             </div>
           )}
@@ -130,11 +130,11 @@ Manual follow-ups consume valuable time you could spend serving clients or growi
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai handles the uncomfortable parts of invoice collection while maintaining your professional reputation. Our AI generates courteous, professional payment reminders that come from YOUR firm—never a third party.
+                {copy?.solution_copy || `Recouply.ai deploys six specialized AI agents that handle the uncomfortable parts of invoice collection while maintaining your professional reputation. Each agent learns from client responses and payment patterns—automatically improving recovery rates over time.
 
-For agencies and consultants, the system can reference specific project milestones or deliverables, making reminders feel personalized and contextual. For accounting and legal practices, it maintains the formal, professional tone appropriate for your industry while still being effective.
+For agencies and consultants, the AI agents can reference specific project milestones or deliverables, making reminders feel personalized and contextual. For accounting and legal practices, they maintain the formal, professional tone appropriate for your industry while still being effective.
 
-You maintain complete control. Review and approve every message before it's sent. Adjust timing, tone, and content to match your practice style. The system handles the repetitive work of tracking invoices, scheduling follow-ups, and sending reminders—freeing you to focus on client work.`}
+You maintain complete control. Review and approve every message before it's sent. Adjust timing, tone, and content to match your practice style. The AI agents handle the repetitive work of tracking invoices, scheduling follow-ups, and sending reminders—freeing you to focus on client work.`}
               </p>
             </div>
           )}
@@ -155,6 +155,29 @@ You maintain complete control. Review and approve every message before it's sent
         </div>
       </section>
 
+      {/* Intelligence Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Brain className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Intelligence That Compounds Over Time</h3>
+                  <p className="text-muted-foreground">
+                    Each AI agent improves with every interaction, learning from client responses, payment outcomes, 
+                    engagement patterns, and message effectiveness. Recouply.ai becomes more accurate, more predictive, 
+                    and more effective as time goes on—driving higher recovery rates with less manual work.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* Results Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -168,11 +191,11 @@ You maintain complete control. Review and approve every message before it's sent
           ) : (
             <div className="prose prose-lg max-w-none">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.results_copy || `Professional service firms using Recouply.ai reduce their average days sales outstanding (DSO) by 30-40%. Invoices get paid faster because consistent, professional reminders keep payment top-of-mind for busy clients.
+                {copy?.results_copy || `Professional service firms using Recouply.ai reduce their average days sales outstanding (DSO) by 30-40%. Invoices get paid faster because consistent, AI-optimized reminders keep payment top-of-mind for busy clients.
 
 You'll reclaim hours every week previously spent on manual follow-ups. No more crafting "just checking in" emails or making uncomfortable phone calls. Your team can focus on billable work and client service instead of collections.
 
-Most importantly, client relationships remain strong. Professional, respectful reminders maintain the trust and rapport you've built. Many clients simply get busy and forget—a courteous automated reminder is exactly what they need. Your reputation for professionalism stays intact while your cash flow improves dramatically.`}
+Most importantly, client relationships remain strong. Professional, AI-refined reminders maintain the trust and rapport you've built. Many clients simply get busy and forget—a courteous automated reminder is exactly what they need. Stop paying for expensive headcount—our agents work nonstop, at a fraction of the cost of one employee.`}
               </p>
             </div>
           )}
@@ -183,11 +206,10 @@ Most importantly, client relationships remain strong. Professional, respectful r
       <section className="py-20 px-4 bg-primary/5">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold mb-4">
-            Ready to Improve Your Collections Process?
+            Ready to Put Six AI Agents to Work?
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Join professional service firms that have accelerated cash collection 
-            while maintaining client relationships.
+            Join professional service firms recovering revenue 24/7 with AI agents that get smarter with every invoice.
           </p>
           <Button 
             onClick={() => navigate("/signup?icp=professional-services")}

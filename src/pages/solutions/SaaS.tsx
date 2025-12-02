@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Building2, TrendingUp, Users, DollarSign } from "lucide-react";
+import { CheckCircle2, Building2, TrendingUp, Users, DollarSign, Brain } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,10 +15,10 @@ const SaaS = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "Recouply.ai for SaaS – Reduce ARR Leakage with AI Collections";
+    document.title = "Recouply.ai for SaaS – Six AI Agents Reducing ARR Leakage 24/7";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Recouply.ai automates invoice collections for SaaS companies without collections teams. Reduce ARR leakage, lower DSO, and free up CSMs using AI-powered, customer-safe reminders.');
+      metaDescription.setAttribute('content', 'Recouply.ai deploys six AI agents that recover revenue 24/7 for SaaS companies. Reduce ARR leakage, lower DSO, and free up CSMs—at a fraction of the cost of one employee.');
     }
     
     loadMarketingCopy();
@@ -52,12 +52,12 @@ const SaaS = () => {
   };
 
   const features = [
-    "AI-generated email + SMS sequences",
-    "Self-service payment workflows",
+    "Six AI agents working 24/7 on invoice recovery",
+    "Agents learn and improve recovery rates over time",
     "CRM-connected context-aware outreach",
     "Automated promise-to-pay and renewal reminders",
-    "Customer-safe language (not a collection agency)",
-    "DSO, aging, and recovery rate reporting"
+    "Customer-safe language that preserves relationships",
+    "Full CashOps DSO dashboard with real-time visibility"
   ];
 
   const examples = [
@@ -77,11 +77,11 @@ const SaaS = () => {
             <span className="text-sm font-medium">For SaaS Companies</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Reduce ARR Leakage with AI-Powered Collections Automation
+            Six AI Agents Reducing ARR Leakage—24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            For SaaS companies without collections teams — Recouply.ai optimizes your CashOps and keeps revenue on time 
-            while protecting customer relationships.
+            Get the power of an entire CashOps department for less than the cost of one employee. 
+            Our AI agents work around the clock, getting smarter with every interaction.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -116,7 +116,7 @@ const SaaS = () => {
               <p className="text-muted-foreground whitespace-pre-line">
                 {copy?.problem_copy || `Small finance teams manually chasing overdue invoices while collections responsibilities fall on CSMs and AEs. Disorganized shared inboxes lead to inconsistent follow-up, and ARR leakage from unmanaged renewals or overdue invoices creates cash flow unpredictability.
 
-Without scalable collections processes, SaaS companies struggle with:
+Without scalable CashOps processes, SaaS companies struggle with:
 • Manual invoice follow-up consuming valuable time
 • CSMs and AEs diverted from revenue-generating activities
 • No systematic approach to handling overdue accounts
@@ -141,11 +141,11 @@ Without scalable collections processes, SaaS companies struggle with:
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai integrates with your CRM and billing systems to automatically track invoices and trigger intelligent follow-up sequences. When an account becomes past due, our AI generates professional, customer-safe reminders that maintain your brand voice and protect NRR.
+                {copy?.solution_copy || `Recouply.ai deploys six specialized AI agents that work 24/7, automatically tracking invoices and triggering intelligent follow-up sequences. Each agent learns from customer responses, payment outcomes, and message effectiveness—continuously improving recovery rates.
 
-The system handles everything from gentle initial reminders to structured escalation paths—all while embedding convenient payment links. Communications come directly from YOUR company, not a third-party collector, ensuring continuity in customer relationships.
+When an account becomes past due, our AI agents generate professional, customer-safe reminders that maintain your brand voice and protect NRR. The agents automatically adapt tone, frequency, and sequencing based on real-world results.
 
-With CRM-connected context, every message is aware of customer history, contract value, and relationship status. Your team reviews and approves messaging before it goes out, maintaining full control while eliminating manual workload.`}
+Communications come directly from YOUR company, ensuring continuity in customer relationships. With CRM-connected context, every message is aware of customer history, contract value, and relationship status. Your team reviews and approves messaging before it goes out, maintaining full control while eliminating manual workload.`}
               </p>
             </div>
           )}
@@ -160,6 +160,29 @@ With CRM-connected context, every message is aware of customer history, contract
                     <span>{feature}</span>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Intelligence Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Brain className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Intelligence That Compounds Over Time</h3>
+                  <p className="text-muted-foreground">
+                    Each AI agent improves with every interaction, learning from customer responses, payment outcomes, 
+                    engagement patterns, and message effectiveness. Recouply.ai becomes more accurate, more predictive, 
+                    and more effective as time goes on—driving higher recovery rates with less manual work.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -215,7 +238,7 @@ With CRM-connected context, every message is aware of customer history, contract
 
 CSMs and AEs are freed from uncomfortable collection conversations, allowing them to focus on expansion and retention. Real-time visibility into receivables provides accurate forecasting and reduces cash flow uncertainty.
 
-Most importantly, customer relationships remain strong. Professional, courteous reminders preserve NRR and reduce churn risk. Many customers simply forgot to pay or missed the invoice—a friendly, automated reminder is all it takes. No need to hire a collections team.`}
+Most importantly, customer relationships remain strong. Professional, courteous reminders preserve NRR and reduce churn risk. Many customers simply forgot to pay or missed the invoice—a friendly, AI-optimized reminder is all it takes. Stop paying for expensive headcount—our agents work nonstop, at a fraction of the cost of one employee.`}
               </p>
             </div>
           )}
@@ -226,10 +249,10 @@ Most importantly, customer relationships remain strong. Professional, courteous 
       <section className="py-20 px-4 bg-primary/5">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold mb-4">
-            Ready to Reduce ARR Leakage?
+            Ready to Put Six AI Agents to Work?
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Start your free trial — get your first 10 invoices automated instantly.
+            Start your free trial—six AI agents recovering your revenue 24/7, getting smarter with every invoice.
           </p>
           <Button 
             onClick={() => navigate("/signup?icp=saas")}

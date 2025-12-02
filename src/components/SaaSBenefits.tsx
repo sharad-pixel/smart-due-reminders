@@ -3,12 +3,12 @@ import { CheckCircle2 } from "lucide-react";
 
 const SaaSBenefits = () => {
   const benefits = [
-    "No collection staff needed",
-    "Frees up CSMs & AEs",
+    "Six AI agents working 24/7 at a fraction of one employee's cost",
+    "Frees up CSMs & AEs from uncomfortable conversations",
     "Customer-friendly tone maintains NRR and reduces churn",
-    "Integrates with CRM → customer-aware outreach",
+    "Agents learn and improve recovery rates over time",
     "Stripe + Chargebee payment link embedding",
-    "Full CashOps DSO dashboard"
+    "Full CashOps DSO dashboard with real-time visibility"
   ];
 
   return (
