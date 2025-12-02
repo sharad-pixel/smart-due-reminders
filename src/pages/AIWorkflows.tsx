@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
@@ -1586,36 +1586,17 @@ const AIWorkflows = () => {
                               {isExpanded && (
                                 <div className="border-t px-4 py-3 bg-muted/30">
                                   <p className="text-sm font-medium mb-3">
-                                    Invoices at this stage ({invoices.length})
+                                    View invoices for this collection stage
                                   </p>
-                                   {invoices.length > 0 ? (
-                                    <div className="space-y-2">
-                                      {invoices.map((invoice: any) => (
-                                        <button
-                                          key={invoice.id}
-                                          onClick={() => navigate(`/invoices/${invoice.id}`)}
-                                          className="w-full flex items-center justify-between p-2 bg-background rounded border hover:border-primary/50 hover:bg-accent/50 transition-colors cursor-pointer"
-                                        >
-                                          <div className="text-left">
-                                            <p className="font-medium text-sm">{invoice.invoice_number}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                              {invoice.debtors?.company_name}
-                                            </p>
-                                          </div>
-                                          <div className="text-right">
-                                            <p className="font-semibold text-sm">
-                                              ${invoice.amount.toLocaleString()}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                              Due: {new Date(invoice.due_date).toLocaleDateString()}
-                                            </p>
-                                          </div>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-sm text-muted-foreground">No invoices at this stage</p>
-                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => navigate(`/invoices?bucket=${selectedBucket}&step=${step.step_order}`)}
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    View Invoices at Day {step.day_offset}
+                                  </Button>
                                 </div>
                               )}
                             </div>
