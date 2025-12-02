@@ -14,11 +14,11 @@ export default function WhyCollectionsMatter() {
         <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
           <div className="container mx-auto max-w-6xl text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Collections, Cash Flow, and Revenue Recognition — The Lifeblood of Your Business
+              CashOps, Cash Flow, and Revenue Recognition — The Lifeblood of Your Business
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto">
-              Strong collections and clean AR processes are not back-office tasks — they are critical revenue drivers. 
-              Recouply.ai empowers businesses to collect faster, reduce financial risk, and unlock stronger cash flow through precision AI.
+              Modern CashOps (Cash Operations) elevates AR from a back-office task to a strategic revenue driver. 
+              Recouply.ai empowers businesses with proactive, AI-driven CashOps—accelerating cash flow, reducing financial risk, and optimizing receivables through intelligent automation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={() => navigate('/signup')}>
@@ -35,7 +35,7 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Why Collections Matter More Than Ever
+              Why CashOps Matters More Than Ever
             </h2>
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <Card>
@@ -123,10 +123,10 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-center">
-              Collections → Direct Impact on Revenue Recognition
+              CashOps → Direct Impact on Revenue Recognition
             </h2>
             <p className="text-xl text-muted-foreground mb-12 text-center max-w-3xl mx-auto">
-              Revenue recognition requires collectability assessment. Poor collections directly impact your financial statements.
+              Revenue recognition requires collectability assessment. Proactive CashOps ensures clean AR and directly strengthens your financial statements.
             </p>
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
@@ -159,7 +159,7 @@ export default function WhyCollectionsMatter() {
 
               <Card className="bg-gradient-to-br from-primary/10 to-secondary/10">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Benefits of Strong Collections</h3>
+                  <h3 className="text-xl font-semibold mb-4">Benefits of Strong CashOps</h3>
                   <ul className="space-y-3 text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
@@ -171,7 +171,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
-                      <span>AI-driven collections reduces the risk of misstatements</span>
+                      <span>AI-driven CashOps reduces the risk of misstatements</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
@@ -251,7 +251,7 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Business Problems Caused by Weak Collections
+              Business Problems Caused by Weak CashOps
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
@@ -280,18 +280,18 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              How Recouply.ai Solves This
+              How Recouply.ai Delivers Modern CashOps
             </h2>
             <div className="space-y-8">
               <Card className="overflow-hidden">
                 <CardContent className="p-0">
                   <div className="grid md:grid-cols-2">
                     <div className="p-8 bg-gradient-to-br from-primary/10 to-secondary/10">
-                      <h3 className="text-2xl font-bold mb-4">AI-Powered Collections Engine</h3>
+                      <h3 className="text-2xl font-bold mb-4">AI-Powered CashOps Engine</h3>
                       <ul className="space-y-3 text-muted-foreground">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>Personalized messaging by aging bucket</span>
+                          <span>Intelligent prioritization by aging, value, and risk</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
@@ -299,24 +299,24 @@ export default function WhyCollectionsMatter() {
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>Automated outreach + human-approved messaging</span>
+                          <span>Proactive automation + human-approved messaging</span>
                         </li>
                       </ul>
                     </div>
                     <div className="p-8">
-                      <h3 className="text-2xl font-bold mb-4">Collections Command Center</h3>
+                      <h3 className="text-2xl font-bold mb-4">CashOps Command Center</h3>
                       <ul className="space-y-3 text-muted-foreground">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>Full visibility into collections pipeline</span>
+                          <span>Full visibility into receivables pipeline</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>Activity tracking and task extraction</span>
+                          <span>Real-time activity tracking and task extraction</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>AI-driven recommendations and debtor insights</span>
+                          <span>AI-driven prioritization and debtor insights</span>
                         </li>
                       </ul>
                     </div>

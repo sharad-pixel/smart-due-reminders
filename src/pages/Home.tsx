@@ -15,11 +15,11 @@ const Home = () => {
       <section className="py-20 px-4 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto text-center max-w-4xl">
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            AI-powered AR & Collections – <br />
-            <span className="text-primary">Without a Collection Agency</span>
+            Modern CashOps Platform – <br />
+            <span className="text-primary">AI-Powered Receivables Without a Collection Agency</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Recouply.ai helps your team collect overdue invoices faster, using AI-driven workflows that protect customer relationships and keep you out of regulatory gray zones.
+            Recouply.ai brings proactive CashOps (Cash Operations) to your AR workflow—using intelligent automation to optimize receivables, accelerate cash flow, and protect customer relationships.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" onClick={() => navigate("/signup")} className="text-lg px-8">
@@ -39,9 +39,9 @@ const Home = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <Shield className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Collect your own debts, with AI assistance</h3>
+              <h3 className="text-xl font-bold mb-3">Proactive CashOps, Not Reactive Collections</h3>
               <p className="text-muted-foreground">
-                You remain in full control. All outreach comes from your business, not a third-party agency. Stay compliant and maintain customer trust.
+                Modern CashOps means staying ahead of overdue accounts with AI-driven workflows. You remain in full control—all outreach comes from your business, not a third-party agency.
               </p>
             </div>
 
@@ -49,9 +49,9 @@ const Home = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <Users className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Customer-aware outreach with CRM context</h3>
+              <h3 className="text-xl font-bold mb-3">CRM-Connected CashOps Intelligence</h3>
               <p className="text-muted-foreground">
-                Leverage customer data (MRR, health scores, segments) to personalize every message and preserve valuable relationships.
+                CashOps thrives on context. Leverage customer data (MRR, health scores, segments) to personalize every message, prioritize high-value accounts, and preserve valuable relationships.
               </p>
             </div>
 
@@ -176,12 +176,12 @@ const Home = () => {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="flex gap-4">
               <Zap className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold mb-2">AI-Powered Efficiency</h4>
-                <p className="text-muted-foreground">
-                  Generate professional, context-aware messages in seconds. What used to take hours now takes minutes.
-                </p>
-              </div>
+            <div>
+              <h4 className="font-semibold mb-2">AI-Powered CashOps Efficiency</h4>
+              <p className="text-muted-foreground">
+                Modern CashOps means intelligent automation. Generate professional, context-aware messages in seconds, prioritize accounts by risk and value, and optimize your entire receivables workflow.
+              </p>
+            </div>
             </div>
 
             <div className="flex gap-4">
@@ -307,9 +307,9 @@ const Home = () => {
 
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Ready to Recover Your Revenue?</h2>
+          <h2 className="text-4xl font-bold mb-4">Ready to Elevate Your CashOps?</h2>
           <p className="text-lg mb-8 opacity-90">
-            Join businesses using AI to automate invoice collection professionally and effectively—without hiring a collection agency.
+            Join businesses using AI-driven CashOps to optimize receivables, accelerate cash flow, and maintain customer relationships—without hiring a collection agency.
           </p>
           <Button
             size="lg"

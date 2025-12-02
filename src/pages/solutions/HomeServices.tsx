@@ -71,11 +71,11 @@ const HomeServices = () => {
             <span className="text-sm font-medium">For Home Services</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Stop Chasing Payments. Start Completing More Jobs.
+            Optimize Cash Flow with Modern CashOps. Focus on Completing More Jobs.
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            AI-powered invoice reminders that protect your reputation and increase cash flow 
-            for plumbing, HVAC, electrical, roofing, and contractor businesses.
+            CashOps-driven invoice management that protects your reputation and accelerates cash flow 
+            for plumbing, HVAC, electrical, roofing, and contractor businesses—without the hassle of manual follow-up.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -132,11 +132,11 @@ Meanwhile, unpaid invoices pile up, cash flow tightens, and you're stuck choosin
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai automates your invoice collection process while keeping everything under your control. Our AI drafts professional, friendly payment reminders that come from YOUR business—not a third-party agency.
+                {copy?.solution_copy || `Recouply.ai brings modern CashOps to home services—automating your invoice collection process while keeping everything under your control. Our platform drafts professional, friendly payment reminders that come from YOUR business—not a third-party agency.
 
-For example, after completing a plumbing repair, the system automatically sends a polite reminder 3 days before the due date. If payment isn't received, it follows up with increasingly firm (but still professional) messages at 7, 14, and 30 days past due. Each message includes a secure payment link, making it easy for customers to pay immediately.
+With proactive CashOps automation, after completing a plumbing repair, the system automatically sends a polite reminder 3 days before the due date. If payment isn't received, it follows up with increasingly firm (but still professional) messages at 7, 14, and 30 days past due. Each message includes a secure payment link, making it easy for customers to pay immediately.
 
-The system pulls data from QuickBooks or your accounting software, so you always know which invoices need attention. You review and approve every message before it goes out, maintaining complete control over your customer communications. No awkward phone calls, no aggressive tactics, no damage to your reputation.`}
+The CashOps platform pulls data from QuickBooks or your accounting software, intelligently prioritizes accounts, and always shows which invoices need attention. You review and approve every message before it goes out, maintaining complete control over your customer communications. No awkward phone calls, no aggressive tactics, no damage to your reputation—just effective, modern CashOps.`}
               </p>
             </div>
           )}

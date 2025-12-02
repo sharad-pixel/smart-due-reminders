@@ -11,10 +11,10 @@ const Features = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <h1 className="text-5xl font-bold mb-6">
-            Powerful Features for <span className="text-primary">Professional Collections</span>
+            Powerful CashOps Features for <span className="text-primary">Modern Receivables Management</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Everything you need to collect overdue invoices efficiently while maintaining customer relationships.
+            Everything you need for proactive CashOps—intelligent prioritization, automated workflows, and customer-aware outreach that accelerates cash flow while maintaining relationships.
           </p>
         </div>
       </section>
@@ -26,9 +26,9 @@ const Features = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <Bot className="h-7 w-7 text-primary" />
               </div>
-              <h2 className="text-3xl font-bold mb-4">AI Email & SMS Drafting</h2>
+              <h2 className="text-3xl font-bold mb-4">AI-Driven CashOps Messaging</h2>
               <p className="text-muted-foreground mb-4">
-                Our AI engine generates professional, compliant collection messages tailored to each invoice and customer. Choose from friendly, neutral, or firm tones based on your relationship and payment history.
+                Our CashOps engine generates professional, compliant messages tailored to each invoice and customer. AI-driven prioritization ensures high-value accounts receive appropriate tone and timing based on relationship and payment history.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
@@ -99,9 +99,9 @@ const Features = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <Users className="h-7 w-7 text-primary" />
               </div>
-              <h2 className="text-3xl font-bold mb-4">Customer-Aware Outreach with CRM Context</h2>
+              <h2 className="text-3xl font-bold mb-4">CashOps Intelligence with CRM Context</h2>
               <p className="text-muted-foreground mb-4">
-                Connect your CRM (Salesforce) to enrich customer profiles with business intelligence. Our AI adjusts messaging tone and recommendations based on customer value, health scores, and relationship status.
+                Effective CashOps requires customer intelligence. Connect your CRM (Salesforce) to enrich profiles with business data. Our AI prioritizes accounts, adjusts messaging tone, and delivers recommendations based on customer value, health scores, and relationship status.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
@@ -129,9 +129,9 @@ const Features = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <BarChart3 className="h-7 w-7 text-primary" />
               </div>
-              <h2 className="text-3xl font-bold mb-4">Invoice & Debtor Management</h2>
+              <h2 className="text-3xl font-bold mb-4">Centralized CashOps Dashboard</h2>
               <p className="text-muted-foreground mb-4">
-                Centralized dashboard to track all invoices, customers, and collection activities. Monitor payment status, outreach history, and upcoming follow-ups in one place.
+                Modern CashOps means complete visibility. Track all invoices, customers, and collection activities in one dashboard. Monitor payment status, outreach history, aging trends, and AI-prioritized follow-ups in real time.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
@@ -209,9 +209,9 @@ const Features = () => {
 
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Start Using These Features Today</h2>
+          <h2 className="text-4xl font-bold mb-4">Start Using CashOps Features Today</h2>
           <p className="text-lg mb-8 opacity-90">
-            Join businesses using AI-powered collections to recover revenue faster while maintaining customer trust.
+            Join businesses leveraging AI-driven CashOps to optimize receivables, accelerate cash flow, and maintain customer trust.
           </p>
           <Button
             size="lg"
