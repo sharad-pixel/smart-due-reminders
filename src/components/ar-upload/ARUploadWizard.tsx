@@ -61,7 +61,17 @@ const getRequiredFields = (uploadType: UploadType): string[] => {
 const getOptionalFields = (uploadType: UploadType): string[] => {
   switch (uploadType) {
     case "invoice_detail":
-      return ["currency", "status", "notes"];
+      return [
+        "currency", 
+        "status", 
+        "notes", 
+        "product_description", 
+        "contact_email", 
+        "contact_name",
+        "external_invoice_id",
+        "po_number",
+        "payment_terms"
+      ];
     case "ar_summary":
       return [];
     case "payments":
@@ -338,18 +348,36 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         customerIdMap.set(normalizeString(d.company_name || d.name), d.id);
       });
 
-      // Create new customers
+      // Create new customers with optional contact details
       for (const customerName of validationResult.newCustomers) {
+        // Find the first row with this customer to get contact details
+        const customerRow = parsedData.rows.find(row => {
+          const name = String(row[columnMapping.customer_name!] || "").trim();
+          return normalizeString(name) === normalizeString(customerName);
+        });
+
+        const debtorData: Record<string, any> = {
+          user_id: user.id,
+          company_name: customerName,
+          name: customerName,
+          contact_name: customerName,
+          email: "",
+          reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+        };
+
+        // Add contact details if available from mapped columns
+        if (customerRow && columnMapping.contact_email && customerRow[columnMapping.contact_email]) {
+          debtorData.email = String(customerRow[columnMapping.contact_email]);
+          debtorData.ar_contact_email = String(customerRow[columnMapping.contact_email]);
+        }
+        if (customerRow && columnMapping.contact_name && customerRow[columnMapping.contact_name]) {
+          debtorData.contact_name = String(customerRow[columnMapping.contact_name]);
+          debtorData.ar_contact_name = String(customerRow[columnMapping.contact_name]);
+        }
+
         const { data: newDebtor, error } = await supabase
           .from("debtors")
-          .insert({
-            user_id: user.id,
-            company_name: customerName,
-            name: customerName,
-            contact_name: customerName,
-            email: "",
-            reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-          })
+          .insert(debtorData as any)
           .select()
           .single();
 
@@ -529,18 +557,42 @@ async function importInvoice(
   const amount = parseFloat(row[mapping.amount!]) || 0;
   const invoiceDate = parseDate(row[mapping.invoice_date!]);
   const dueDate = parseDate(row[mapping.due_date!]);
+  const status = mapping.status ? mapStatus(row[mapping.status]) : "Open";
 
-  const { error } = await supabase.from("invoices").insert({
+  // Build invoice object with all available fields
+  const invoiceData: Record<string, any> = {
     user_id: userId,
     debtor_id: debtorId,
     invoice_number: String(row[mapping.invoice_number!] || ""),
     invoice_date: invoiceDate,
     due_date: dueDate,
     amount: amount,
+    amount_original: amount,
+    amount_outstanding: status === "Paid" ? 0 : amount,
     currency: mapping.currency ? String(row[mapping.currency] || "USD") : "USD",
-    status: mapping.status ? mapStatus(row[mapping.status]) : "Open",
+    status: status,
+    upload_batch_id: batchId,
     reference_id: `INV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-  } as any);
+  };
+
+  // Add optional fields if mapped
+  if (mapping.notes && row[mapping.notes]) {
+    invoiceData.notes = String(row[mapping.notes]);
+  }
+  if (mapping.product_description && row[mapping.product_description]) {
+    invoiceData.product_description = String(row[mapping.product_description]);
+  }
+  if (mapping.external_invoice_id && row[mapping.external_invoice_id]) {
+    invoiceData.external_invoice_id = String(row[mapping.external_invoice_id]);
+  }
+  if (mapping.po_number && row[mapping.po_number]) {
+    invoiceData.po_number = String(row[mapping.po_number]);
+  }
+  if (mapping.payment_terms && row[mapping.payment_terms]) {
+    invoiceData.payment_terms = String(row[mapping.payment_terms]);
+  }
+
+  const { error } = await supabase.from("invoices").insert(invoiceData as any);
 
   if (error) throw error;
 }
