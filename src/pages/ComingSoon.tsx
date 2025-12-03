@@ -32,6 +32,15 @@ const ComingSoon = () => {
           throw error;
         }
       } else {
+        // Send admin alert
+        try {
+          await supabase.functions.invoke('send-admin-alert', {
+            body: { type: 'waitlist', email }
+          });
+        } catch (alertErr) {
+          console.error('Failed to send admin alert:', alertErr);
+        }
+        
         toast.success("Thanks! We'll notify you when we launch.", {
           description: "You're now on the waitlist for early access."
         });

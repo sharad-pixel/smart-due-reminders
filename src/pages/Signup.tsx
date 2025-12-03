@@ -160,6 +160,20 @@ const Signup = () => {
         metadata: { plan: selectedPlan, icp: selectedIcp }
       });
 
+      // Send admin alert
+      try {
+        await supabase.functions.invoke('send-admin-alert', {
+          body: { 
+            type: 'signup', 
+            email: validatedData.email,
+            name: validatedData.name,
+            company: validatedData.businessName
+          }
+        });
+      } catch (alertErr) {
+        console.error('Failed to send admin alert:', alertErr);
+      }
+
       // Update profile with plan and business details
       const { error: profileError } = await supabase
         .from('profiles')
