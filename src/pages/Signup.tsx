@@ -11,11 +11,28 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
+import { Check, X } from "lucide-react";
+import { User } from "@supabase/supabase-js";
+
+// NIST-compliant password requirements
+const passwordRequirements = [
+  { id: 'length', label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { id: 'uppercase', label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lowercase', label: 'One lowercase letter', test: (p: string) => /[a-z]/.test(p) },
+  { id: 'number', label: 'One number', test: (p: string) => /[0-9]/.test(p) },
+  { id: 'special', label: 'One special character', test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
+];
 
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().trim().email("Invalid email address").max(255),
-  password: z.string().min(8, "Password must be at least 8 characters").max(100),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100)
+    .refine((p) => /[A-Z]/.test(p), "Password must contain an uppercase letter")
+    .refine((p) => /[a-z]/.test(p), "Password must contain a lowercase letter")
+    .refine((p) => /[0-9]/.test(p), "Password must contain a number")
+    .refine((p) => /[!@#$%^&*(),.?":{}|<>]/.test(p), "Password must contain a special character"),
   businessName: z.string().trim().min(1, "Business name is required").max(200),
   icp: z.string().min(1, "Please select your industry")
 });
@@ -54,6 +71,7 @@ const Signup = () => {
   const planParam = searchParams.get('plan');
   const icpParam = searchParams.get('icp');
   
+  const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,16 +80,32 @@ const Signup = () => {
   const [selectedIcp, setSelectedIcp] = useState(icpParam || "");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkSession();
-  }, []);
+  // Calculate password strength
+  const passedRequirements = passwordRequirements.filter(req => req.test(password));
+  const passwordStrength = passedRequirements.length;
+  const isPasswordValid = passwordStrength === passwordRequirements.length;
 
-  const checkSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      navigate("/dashboard");
-    }
-  };
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          navigate("/dashboard");
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -132,9 +166,10 @@ const Signup = () => {
         email: validatedData.email,
         password: validatedData.password,
         options: {
-          emailRedirectTo: getAuthRedirectUrl('/onboarding'),
+          emailRedirectTo: getAuthRedirectUrl('/dashboard'),
           data: {
-            name: validatedData.name
+            name: validatedData.name,
+            business_name: validatedData.businessName
           },
         },
       });
@@ -147,6 +182,12 @@ const Signup = () => {
           success: false,
           failureReason: authError.message,
         });
+        
+        // Handle specific error cases
+        if (authError.message?.includes('already registered')) {
+          toast.error("This email is already registered. Please sign in instead.");
+          return;
+        }
         throw authError;
       }
       if (!authData.user) throw new Error("Failed to create account");
@@ -184,14 +225,20 @@ const Signup = () => {
         })
         .eq('id', authData.user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        // Don't throw - profile might not exist yet due to trigger timing
+      }
 
-      toast.success("Account created! Redirecting to checkout...");
-      
-      // Redirect to checkout
-      setTimeout(() => {
-        navigate("/checkout");
-      }, 1000);
+      // Check if email confirmation is required
+      if (authData.session) {
+        // User is immediately signed in (email confirmation disabled)
+        toast.success("Account created! Welcome to Recouply.ai");
+        navigate("/dashboard");
+      } else {
+        // Email confirmation required
+        toast.success("Account created! Please check your email to verify your account.");
+      }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
@@ -203,6 +250,11 @@ const Signup = () => {
       setLoading(false);
     }
   };
+
+  // Don't render form if user is already logged in
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -313,9 +365,60 @@ const Signup = () => {
                   maxLength={100}
                   placeholder="••••••••"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Minimum 8 characters
-                </p>
+                
+                {/* Password Strength Indicator */}
+                {password && (
+                  <div className="space-y-2 mt-2">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1 flex-1 rounded ${
+                            level <= passwordStrength
+                              ? passwordStrength <= 2
+                                ? 'bg-destructive'
+                                : passwordStrength <= 3
+                                ? 'bg-yellow-500'
+                                : 'bg-green-500'
+                              : 'bg-muted'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {passwordStrength <= 2 && "Weak password"}
+                      {passwordStrength === 3 && "Fair password"}
+                      {passwordStrength === 4 && "Good password"}
+                      {passwordStrength === 5 && "Strong password"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Password Requirements Checklist */}
+                <div className="grid grid-cols-1 gap-1 mt-2">
+                  {passwordRequirements.map((req) => {
+                    const passed = req.test(password);
+                    return (
+                      <div
+                        key={req.id}
+                        className={`flex items-center gap-2 text-xs ${
+                          password ? (passed ? 'text-green-600' : 'text-muted-foreground') : 'text-muted-foreground'
+                        }`}
+                      >
+                        {password ? (
+                          passed ? (
+                            <Check className="h-3 w-3" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )
+                        ) : (
+                          <div className="h-3 w-3" />
+                        )}
+                        {req.label}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -346,7 +449,11 @@ const Signup = () => {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading || !isPasswordValid}
+              >
                 {loading ? "Creating Account..." : "Start Free Trial"}
               </Button>
 
