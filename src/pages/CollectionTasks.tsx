@@ -3,15 +3,27 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail } from "lucide-react";
+import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TaskWithRelations {
   id: string;
@@ -57,6 +69,11 @@ export default function CollectionTasks() {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
+  // Bulk selection
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -75,8 +92,12 @@ export default function CollectionTasks() {
     loadTasks();
   }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl]);
 
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedTaskIds(new Set());
+  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, searchQuery]);
+
   const fetchTeamMembers = async () => {
-    // Fetch from team_members table instead of profiles
     const { data } = await supabase
       .from('team_members')
       .select('id, name, email')
@@ -132,7 +153,6 @@ export default function CollectionTasks() {
 
       if (error) throw error;
       
-      // Fetch assigned team member names separately
       const tasksWithUserNames = await Promise.all(
         (data || []).map(async (task: any) => {
           if (task.assigned_to) {
@@ -210,8 +230,122 @@ export default function CollectionTasks() {
     }
   };
 
+  // Bulk action handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTaskIds(new Set(filteredTasks.map(t => t.id)));
+    } else {
+      setSelectedTaskIds(new Set());
+    }
+  };
+
+  const handleSelectTask = (taskId: string, checked: boolean) => {
+    const newSelected = new Set(selectedTaskIds);
+    if (checked) {
+      newSelected.add(taskId);
+    } else {
+      newSelected.delete(taskId);
+    }
+    setSelectedTaskIds(newSelected);
+  };
+
+  const handleBulkStatusChange = async (status: string) => {
+    if (selectedTaskIds.size === 0) return;
+    
+    setIsBulkProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ 
+          status, 
+          completed_at: status === 'done' ? new Date().toISOString() : null 
+        })
+        .in("id", Array.from(selectedTaskIds));
+
+      if (error) throw error;
+      toast.success(`${selectedTaskIds.size} task(s) updated to ${status}`);
+      setSelectedTaskIds(new Set());
+      loadTasks();
+    } catch (error) {
+      console.error("Error bulk updating tasks:", error);
+      toast.error("Failed to update tasks");
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkAssign = async (assignedTo: string | null, assignedPersona: string | null) => {
+    if (selectedTaskIds.size === 0) return;
+    
+    setIsBulkProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ 
+          assigned_to: assignedTo, 
+          assigned_persona: assignedPersona 
+        })
+        .in("id", Array.from(selectedTaskIds));
+
+      if (error) throw error;
+      
+      // Send email notifications for team member assignments
+      if (assignedTo) {
+        const taskIds = Array.from(selectedTaskIds);
+        for (const taskId of taskIds) {
+          const task = tasks.find(t => t.id === taskId);
+          if (task) {
+            try {
+              await supabase.functions.invoke('send-task-assignment', {
+                body: {
+                  taskId,
+                  teamMemberId: assignedTo,
+                  debtorId: task.debtor_id,
+                  invoiceId: task.invoice_id,
+                }
+              });
+            } catch (emailError) {
+              console.error("Error sending assignment email:", emailError);
+            }
+          }
+        }
+      }
+      
+      toast.success(`${selectedTaskIds.size} task(s) assigned`);
+      setSelectedTaskIds(new Set());
+      loadTasks();
+    } catch (error) {
+      console.error("Error bulk assigning tasks:", error);
+      toast.error("Failed to assign tasks");
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTaskIds.size === 0) return;
+    
+    setIsBulkProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .delete()
+        .in("id", Array.from(selectedTaskIds));
+
+      if (error) throw error;
+      toast.success(`${selectedTaskIds.size} task(s) deleted`);
+      setSelectedTaskIds(new Set());
+      setShowDeleteDialog(false);
+      loadTasks();
+    } catch (error) {
+      console.error("Error bulk deleting tasks:", error);
+      toast.error("Failed to delete tasks");
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
   const handleViewDetails = (task: TaskWithRelations) => {
-    // Cast to CollectionTask for the modal
     setSelectedTask({
       ...task,
       priority: task.priority as 'low' | 'normal' | 'high' | 'urgent',
@@ -231,6 +365,9 @@ export default function CollectionTasks() {
     task.debtors?.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     task.invoices?.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const isAllSelected = filteredTasks.length > 0 && filteredTasks.every(t => selectedTaskIds.has(t.id));
+  const isSomeSelected = filteredTasks.some(t => selectedTaskIds.has(t.id));
 
   // Task type options
   const taskTypes = [
@@ -252,6 +389,8 @@ export default function CollectionTasks() {
     { value: 'CALL_CUSTOMER', label: 'Call Customer' },
     { value: 'MANUAL_REVIEW', label: 'Manual Review' },
   ];
+
+  const personas = ['Sam', 'James', 'Katy', 'Troy', 'Gotti', 'Rocco'];
 
   const getTaskIcon = (taskType: string) => {
     const type = taskType.toUpperCase();
@@ -332,6 +471,85 @@ export default function CollectionTasks() {
             </Badge>
           </div>
         </div>
+
+        {/* Bulk Actions Bar */}
+        {selectedTaskIds.size > 0 && (
+          <Card className="border-primary">
+            <CardContent className="py-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium">
+                  {selectedTaskIds.size} task(s) selected
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select onValueChange={handleBulkStatusChange} disabled={isBulkProcessing}>
+                    <SelectTrigger className="w-[140px] h-8">
+                      <SelectValue placeholder="Set Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select 
+                    onValueChange={(value) => {
+                      if (value === 'unassigned') {
+                        handleBulkAssign(null, null);
+                      } else if (personas.includes(value)) {
+                        handleBulkAssign(null, value);
+                      } else {
+                        handleBulkAssign(value, null);
+                      }
+                    }} 
+                    disabled={isBulkProcessing}
+                  >
+                    <SelectTrigger className="w-[160px] h-8">
+                      <SelectValue placeholder="Assign To" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassign</SelectItem>
+                      {personas.map(persona => (
+                        <SelectItem key={persona} value={persona}>
+                          <div className="flex items-center gap-2">
+                            <PersonaAvatar persona={persona} size="sm" />
+                            {persona}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {teamMembers.map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="h-4 w-4" />
+                            {member.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={isBulkProcessing}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setSelectedTaskIds(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card>
@@ -426,6 +644,14 @@ export default function CollectionTasks() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox 
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all"
+                          className={isSomeSelected && !isAllSelected ? "opacity-50" : ""}
+                        />
+                      </TableHead>
                       <TableHead className="w-36">Created</TableHead>
                       <TableHead>Priority</TableHead>
                       <TableHead>Type</TableHead>
@@ -441,9 +667,16 @@ export default function CollectionTasks() {
                     {filteredTasks.map((task) => (
                       <TableRow
                         key={task.id}
-                        className="cursor-pointer hover:bg-muted/50"
+                        className={`cursor-pointer hover:bg-muted/50 ${selectedTaskIds.has(task.id) ? 'bg-muted/30' : ''}`}
                         onClick={() => handleViewDetails(task)}
                       >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox 
+                            checked={selectedTaskIds.has(task.id)}
+                            onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
+                            aria-label={`Select task ${task.summary}`}
+                          />
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(task.created_at || '').toLocaleDateString()}
                         </TableCell>
@@ -506,6 +739,30 @@ export default function CollectionTasks() {
           onDelete={handleDelete}
           onAssign={handleAssign}
         />
+
+        {/* Bulk Delete Confirmation */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedTaskIds.size} task(s)?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. These tasks will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isBulkProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
