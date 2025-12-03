@@ -48,6 +48,9 @@ import Enterprise from "./pages/Enterprise";
 import Billing from "./pages/Billing";
 
 import InboundCommandCenter from "./pages/InboundCommandCenter";
+import ARDataUpload from "./pages/ARDataUpload";
+import Reconciliation from "./pages/Reconciliation";
+import ARAging from "./pages/ARAging";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +108,9 @@ const App = () => (
         <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/documents" element={<Documents />} />
+        <Route path="/ar-upload" element={<ARDataUpload />} />
+        <Route path="/reconciliation" element={<Reconciliation />} />
+        <Route path="/ar-aging" element={<ARAging />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
