@@ -96,57 +96,12 @@ const AIWorkflows = () => {
   const [stepInvoices, setStepInvoices] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    const initializeData = async () => {
-      await fetchWorkflows();
-      await fetchInvoiceCounts();
-      await fetchDraftsByPersona();
-      await fetchStepInvoiceCounts();
-      await fetchStepDraftCounts();
-    };
-    initializeData();
+    fetchWorkflows();
+    fetchInvoiceCounts();
+    fetchDraftsByPersona();
+    fetchStepInvoiceCounts();
+    fetchStepDraftCounts();
   }, []);
-
-  // Auto-generate missing templates for personas
-  useEffect(() => {
-    const ensureTemplatesExist = async () => {
-      if (loadingDrafts || Object.keys(draftsByPersona).length === 0) return;
-      
-      // Check each persona for missing templates
-      for (const [key, persona] of Object.entries(personaConfig)) {
-        const hasTemplates = Object.entries(draftsByPersona).some(
-          ([_, { persona: p }]) => p.name === persona.name
-        );
-        
-        if (!hasTemplates) {
-          // Determine aging bucket from persona
-          let agingBucket = '';
-          if (persona.bucketMin === 1 && persona.bucketMax === 30) agingBucket = 'dpd_1_30';
-          else if (persona.bucketMin === 31 && persona.bucketMax === 60) agingBucket = 'dpd_31_60';
-          else if (persona.bucketMin === 61 && persona.bucketMax === 90) agingBucket = 'dpd_61_90';
-          else if (persona.bucketMin === 91 && persona.bucketMax === 120) agingBucket = 'dpd_91_120';
-          else if (persona.bucketMin === 121 && persona.bucketMax === 150) agingBucket = 'dpd_121_150';
-          else if (persona.bucketMin === 151) agingBucket = 'dpd_150_plus';
-          
-          if (agingBucket) {
-            console.log(`Auto-generating templates for ${persona.name} (${agingBucket})`);
-            try {
-              await supabase.functions.invoke('generate-template-drafts', {
-                body: { aging_bucket: agingBucket }
-              });
-            } catch (error) {
-              console.error(`Failed to auto-generate templates for ${persona.name}:`, error);
-            }
-          }
-        }
-      }
-      
-      // Refresh after generating
-      await fetchDraftsByPersona();
-      await fetchStepDraftCounts();
-    };
-    
-    ensureTemplatesExist();
-  }, [loadingDrafts, Object.keys(draftsByPersona).length]);
 
   const fetchInvoiceCounts = async () => {
     try {
@@ -1223,13 +1178,29 @@ const AIWorkflows = () => {
               );
               
               if (!matchingEntry) {
-                // No drafts for this persona - show loading state as templates are being auto-generated
+                // No drafts for this persona
                 return (
                   <div className="text-center py-8 space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                     <p className="text-muted-foreground">
-                      Loading templates for {selectedPersona}...
+                      No draft templates found for {selectedPersona}
                     </p>
+                    <Button 
+                      onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
+                      disabled={generatingPersonaDrafts}
+                      className="w-full sm:w-auto tap-target"
+                    >
+                      {generatingPersonaDrafts ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <span className="text-sm">Creating Templates...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          <span className="text-sm">Create Default Templates</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 );
               }
@@ -1245,10 +1216,26 @@ const AIWorkflows = () => {
               if (filteredDrafts.length === 0) {
                 return (
                   <div className="text-center py-8 space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                     <p className="text-muted-foreground">
-                      Loading templates for {selectedPersona}...
+                      No draft templates found for {selectedPersona} in the currently selected workflow
                     </p>
+                    <Button 
+                      onClick={() => handleGeneratePersonaDrafts(selectedPersona)}
+                      disabled={generatingPersonaDrafts}
+                      className="w-full sm:w-auto tap-target"
+                    >
+                      {generatingPersonaDrafts ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <span className="text-sm">Creating Templates...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          <span className="text-sm">Create Default Templates</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 );
               }
@@ -1664,9 +1651,8 @@ const AIWorkflows = () => {
                             return stepDraftCount > 0;
                           }).length === 0 && (
                             <div className="text-center py-8">
-                              <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary mb-2" />
                               <p className="text-muted-foreground">
-                                Loading workflow steps with templates...
+                                No workflow steps with approved templates yet. Click on a persona above to create templates.
                               </p>
                             </div>
                           )}
