@@ -84,7 +84,7 @@ const CreateTaskModal = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase
+      const { data: newTask, error } = await supabase
         .from("collection_tasks")
         .insert({
           debtor_id: debtorId,
@@ -97,10 +97,30 @@ const CreateTaskModal = ({
           status: "open",
           priority: priority,
           source: "user_created",
-          assigned_to: assignedTo || null,
-        });
+          assigned_to: assignedTo && assignedTo !== "unassigned" ? assignedTo : null,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send email notification if assigned to a team member
+      if (assignedTo && assignedTo !== "unassigned" && newTask) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke("send-task-assignment", {
+            body: {
+              taskId: newTask.id,
+              teamMemberId: assignedTo,
+            },
+          });
+          
+          if (emailError) {
+            console.error("Failed to send assignment email:", emailError);
+          }
+        } catch (emailErr) {
+          console.error("Email notification error:", emailErr);
+        }
+      }
 
       toast.success("Task created successfully");
       setSummary("");
