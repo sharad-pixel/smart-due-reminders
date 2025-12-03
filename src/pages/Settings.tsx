@@ -28,22 +28,43 @@ interface ProfileData {
   reply_to_email: string;
   email_signature: string;
   email_footer: string;
+  stripe_payment_link_url: string;
+  email: string;
+}
+
+interface CredentialsStatus {
+  sendgrid_configured: boolean;
+  twilio_configured: boolean;
+  twilio_from_number: string | null;
+}
+
+interface CredentialsInput {
   sendgrid_api_key: string;
   twilio_account_sid: string;
   twilio_auth_token: string;
   twilio_from_number: string;
-  stripe_payment_link_url: string;
-  email: string;
 }
 
 const Settings = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingCredentials, setSavingCredentials] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
+  const [credentialsStatus, setCredentialsStatus] = useState<CredentialsStatus>({
+    sendgrid_configured: false,
+    twilio_configured: false,
+    twilio_from_number: null,
+  });
+  const [credentials, setCredentials] = useState<CredentialsInput>({
+    sendgrid_api_key: "",
+    twilio_account_sid: "",
+    twilio_auth_token: "",
+    twilio_from_number: "",
+  });
   const [profile, setProfile] = useState<ProfileData>({
     business_name: "",
     business_address: "",
@@ -59,10 +80,6 @@ const Settings = () => {
     reply_to_email: "",
     email_signature: "",
     email_footer: "",
-    sendgrid_api_key: "",
-    twilio_account_sid: "",
-    twilio_auth_token: "",
-    twilio_from_number: "",
     stripe_payment_link_url: "",
     email: "",
   });
@@ -70,7 +87,21 @@ const Settings = () => {
   useEffect(() => {
     fetchProfile();
     fetchSubscriptionInfo();
+    fetchCredentialsStatus();
   }, []);
+
+  const fetchCredentialsStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-credentials-status");
+      if (error) throw error;
+      setCredentialsStatus(data);
+      if (data.twilio_from_number) {
+        setCredentials(prev => ({ ...prev, twilio_from_number: data.twilio_from_number }));
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch credentials status:", error);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -107,10 +138,6 @@ const Settings = () => {
         reply_to_email: brandingData?.reply_to_email || "",
         email_signature: brandingData?.email_signature || "",
         email_footer: brandingData?.email_footer || "",
-        sendgrid_api_key: data.sendgrid_api_key || "",
-        twilio_account_sid: data.twilio_account_sid || "",
-        twilio_auth_token: data.twilio_auth_token || "",
-        twilio_from_number: data.twilio_from_number || "",
         stripe_payment_link_url: data.stripe_payment_link_url || "",
         email: data.email || "",
       });
@@ -127,7 +154,7 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Update profiles
+      // Update profiles (without credentials - those are handled separately)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -140,10 +167,6 @@ const Settings = () => {
           business_postal_code: profile.business_postal_code,
           business_country: profile.business_country,
           business_phone: profile.business_phone,
-          sendgrid_api_key: profile.sendgrid_api_key,
-          twilio_account_sid: profile.twilio_account_sid,
-          twilio_auth_token: profile.twilio_auth_token,
-          twilio_from_number: profile.twilio_from_number,
           stripe_payment_link_url: profile.stripe_payment_link_url,
         })
         .eq("id", user.id);
@@ -173,7 +196,7 @@ const Settings = () => {
   };
 
   const handleTestEmail = async () => {
-    if (!profile.sendgrid_api_key) {
+    if (!credentialsStatus.sendgrid_configured) {
       toast.error("Please configure your SendGrid API key first");
       return;
     }
@@ -194,7 +217,7 @@ const Settings = () => {
   };
 
   const handleTestSMS = async () => {
-    if (!profile.twilio_account_sid || !profile.twilio_auth_token || !profile.twilio_from_number) {
+    if (!credentialsStatus.twilio_configured || !credentials.twilio_from_number) {
       toast.error("Please configure all Twilio settings first");
       return;
     }
@@ -216,6 +239,50 @@ const Settings = () => {
       toast.error(error.message || "Failed to send test SMS");
     } finally {
       setTestingSMS(false);
+    }
+  };
+
+  const handleSaveCredentials = async () => {
+    setSavingCredentials(true);
+    try {
+      // Only send credentials that have been entered (not empty)
+      const credentialsToSave: Record<string, string | undefined> = {};
+      
+      if (credentials.sendgrid_api_key) {
+        credentialsToSave.sendgrid_api_key = credentials.sendgrid_api_key;
+      }
+      if (credentials.twilio_account_sid) {
+        credentialsToSave.twilio_account_sid = credentials.twilio_account_sid;
+      }
+      if (credentials.twilio_auth_token) {
+        credentialsToSave.twilio_auth_token = credentials.twilio_auth_token;
+      }
+      if (credentials.twilio_from_number) {
+        credentialsToSave.twilio_from_number = credentials.twilio_from_number;
+      }
+
+      const { error } = await supabase.functions.invoke("save-credentials", {
+        body: credentialsToSave,
+      });
+
+      if (error) throw error;
+
+      // Refresh credentials status
+      await fetchCredentialsStatus();
+      
+      // Clear the input fields after save
+      setCredentials({
+        sendgrid_api_key: "",
+        twilio_account_sid: "",
+        twilio_auth_token: "",
+        twilio_from_number: credentials.twilio_from_number, // Keep phone number visible
+      });
+
+      toast.success("API credentials saved securely");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save credentials");
+    } finally {
+      setSavingCredentials(false);
     }
   };
 
@@ -525,14 +592,21 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {credentialsStatus.sendgrid_configured && (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                ✓ SendGrid API key configured
+              </Badge>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="sendgrid_api_key">SendGrid API Key</Label>
+              <Label htmlFor="sendgrid_api_key">
+                {credentialsStatus.sendgrid_configured ? "Update SendGrid API Key" : "SendGrid API Key"}
+              </Label>
               <Input
                 id="sendgrid_api_key"
                 type="password"
-                value={profile.sendgrid_api_key}
-                onChange={(e) => setProfile({ ...profile, sendgrid_api_key: e.target.value })}
-                placeholder="SG.xxxxxxxxxxx"
+                value={credentials.sendgrid_api_key}
+                onChange={(e) => setCredentials({ ...credentials, sendgrid_api_key: e.target.value })}
+                placeholder={credentialsStatus.sendgrid_configured ? "••••••••••••••••" : "SG.xxxxxxxxxxx"}
               />
               <p className="text-sm text-muted-foreground">
                 Get your API key from{" "}
@@ -546,9 +620,20 @@ const Settings = () => {
                 </a>
               </p>
             </div>
-            <Button onClick={handleTestEmail} disabled={testingEmail || !profile.sendgrid_api_key}>
-              {testingEmail ? "Sending..." : "Send Test Email"}
-            </Button>
+            <div className="flex gap-2">
+              {credentials.sendgrid_api_key && (
+                <Button onClick={handleSaveCredentials} disabled={savingCredentials}>
+                  {savingCredentials ? "Saving..." : "Save SendGrid Key"}
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={handleTestEmail} 
+                disabled={testingEmail || !credentialsStatus.sendgrid_configured}
+              >
+                {testingEmail ? "Sending..." : "Send Test Email"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -563,23 +648,33 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {credentialsStatus.twilio_configured && (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                ✓ Twilio credentials configured
+              </Badge>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="twilio_account_sid">Twilio Account SID</Label>
+              <Label htmlFor="twilio_account_sid">
+                {credentialsStatus.twilio_configured ? "Update Twilio Account SID" : "Twilio Account SID"}
+              </Label>
               <Input
                 id="twilio_account_sid"
-                value={profile.twilio_account_sid}
-                onChange={(e) => setProfile({ ...profile, twilio_account_sid: e.target.value })}
-                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                type="password"
+                value={credentials.twilio_account_sid}
+                onChange={(e) => setCredentials({ ...credentials, twilio_account_sid: e.target.value })}
+                placeholder={credentialsStatus.twilio_configured ? "••••••••••••••••" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="twilio_auth_token">Twilio Auth Token</Label>
+              <Label htmlFor="twilio_auth_token">
+                {credentialsStatus.twilio_configured ? "Update Twilio Auth Token" : "Twilio Auth Token"}
+              </Label>
               <Input
                 id="twilio_auth_token"
                 type="password"
-                value={profile.twilio_auth_token}
-                onChange={(e) => setProfile({ ...profile, twilio_auth_token: e.target.value })}
-                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                value={credentials.twilio_auth_token}
+                onChange={(e) => setCredentials({ ...credentials, twilio_auth_token: e.target.value })}
+                placeholder={credentialsStatus.twilio_configured ? "••••••••••••••••" : "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
               />
             </div>
             <div className="space-y-2">
@@ -587,8 +682,8 @@ const Settings = () => {
               <Input
                 id="twilio_from_number"
                 type="tel"
-                value={profile.twilio_from_number}
-                onChange={(e) => setProfile({ ...profile, twilio_from_number: e.target.value })}
+                value={credentials.twilio_from_number}
+                onChange={(e) => setCredentials({ ...credentials, twilio_from_number: e.target.value })}
                 placeholder="+15551234567"
               />
             </div>
@@ -603,17 +698,24 @@ const Settings = () => {
                 Twilio Console
               </a>
             </p>
-            <Button
-              onClick={handleTestSMS}
-              disabled={
-                testingSMS ||
-                !profile.twilio_account_sid ||
-                !profile.twilio_auth_token ||
-                !profile.twilio_from_number
-              }
-            >
-              {testingSMS ? "Sending..." : "Send Test SMS"}
-            </Button>
+            <div className="flex gap-2">
+              {(credentials.twilio_account_sid || credentials.twilio_auth_token || credentials.twilio_from_number) && (
+                <Button onClick={handleSaveCredentials} disabled={savingCredentials}>
+                  {savingCredentials ? "Saving..." : "Save Twilio Settings"}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleTestSMS}
+                disabled={
+                  testingSMS ||
+                  !credentialsStatus.twilio_configured ||
+                  !credentials.twilio_from_number
+                }
+              >
+                {testingSMS ? "Sending..." : "Send Test SMS"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

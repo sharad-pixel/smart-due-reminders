@@ -6,6 +6,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Decrypt a value using AES-GCM
+async function decryptValue(encryptedValue: string): Promise<string> {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  
+  const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
+  if (!encryptionKey) {
+    throw new Error('Encryption key not configured');
+  }
+
+  const keyMaterial = encoder.encode(encryptionKey);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyMaterial.slice(0, 32),
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  // Decode from base64
+  const encryptedData = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+  
+  // Extract IV (first 12 bytes) and ciphertext
+  const iv = encryptedData.slice(0, 12);
+  const ciphertext = encryptedData.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  );
+
+  return decoder.decode(decrypted);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -37,7 +72,7 @@ serve(async (req) => {
       throw new Error("Phone number is required");
     }
 
-    // Get user's Twilio credentials from profile
+    // Get user's Twilio credentials from profile (encrypted)
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("twilio_account_sid, twilio_auth_token, twilio_from_number, business_name")
@@ -53,11 +88,21 @@ serve(async (req) => {
       throw new Error("Twilio credentials not configured");
     }
 
+    // Decrypt credentials
+    let accountSid: string;
+    let authToken: string;
+    
+    try {
+      accountSid = await decryptValue(profile.twilio_account_sid);
+      authToken = await decryptValue(profile.twilio_auth_token);
+    } catch (decryptError) {
+      console.error("Decryption error:", decryptError);
+      throw new Error("Failed to decrypt Twilio credentials. Please reconfigure your Twilio settings.");
+    }
+
     // Send test SMS using Twilio
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${profile.twilio_account_sid}/Messages.json`;
-    const authHeader = `Basic ${btoa(
-      `${profile.twilio_account_sid}:${profile.twilio_auth_token}`
-    )}`;
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const authHeader = `Basic ${btoa(`${accountSid}:${authToken}`)}`;
 
     const formData = new URLSearchParams();
     formData.append("To", to);
