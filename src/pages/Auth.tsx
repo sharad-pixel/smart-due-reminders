@@ -70,6 +70,20 @@ const Auth = () => {
             success: true,
             metadata: { company_name: companyName }
           });
+          
+          // Send welcome email
+          try {
+            await supabase.functions.invoke("send-welcome-email", {
+              body: {
+                email,
+                companyName,
+                userName: email.split("@")[0],
+              },
+            });
+          } catch (welcomeError) {
+            console.error("Failed to send welcome email:", welcomeError);
+            // Don't block signup if welcome email fails
+          }
         }
         toast.success("Account created! Please check your email to verify.");
       } else {
