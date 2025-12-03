@@ -60,19 +60,142 @@ serve(async (req) => {
       });
     }
 
-    if (!workflow) {
-      console.log(`No active workflow found for ${aging_bucket}, user: ${user.id}`);
-      return new Response(JSON.stringify({ 
-        error: `No active workflow found for ${aging_bucket}. Please create a workflow first.`,
-        success: false,
-        needs_workflow: true
-      }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let activeWorkflow = workflow;
+    
+    if (!activeWorkflow) {
+      console.log(`No active workflow found for ${aging_bucket}, creating default workflow for user: ${user.id}`);
+      
+      // Define default workflow configuration based on aging bucket
+      const workflowConfigs: Record<string, { name: string; description: string; steps: Array<{ day_offset: number; label: string; template_type: string }> }> = {
+        'dpd_1_30': {
+          name: '1-30 Days Past Due Workflow',
+          description: 'Friendly reminders for recently overdue invoices',
+          steps: [
+            { day_offset: 3, label: 'Initial Reminder', template_type: 'friendly_reminder' },
+            { day_offset: 7, label: 'Second Reminder', template_type: 'follow_up' },
+            { day_offset: 14, label: 'Final Reminder', template_type: 'urgent_reminder' },
+          ]
+        },
+        'dpd_31_60': {
+          name: '31-60 Days Past Due Workflow',
+          description: 'Firm follow-ups for overdue invoices',
+          steps: [
+            { day_offset: 3, label: 'Initial Follow-up', template_type: 'firm_reminder' },
+            { day_offset: 7, label: 'Payment Request', template_type: 'payment_request' },
+            { day_offset: 14, label: 'Escalation Notice', template_type: 'escalation_notice' },
+          ]
+        },
+        'dpd_61_90': {
+          name: '61-90 Days Past Due Workflow',
+          description: 'Urgent collection notices',
+          steps: [
+            { day_offset: 3, label: 'Urgent Notice', template_type: 'urgent_notice' },
+            { day_offset: 7, label: 'Final Warning', template_type: 'final_warning' },
+            { day_offset: 14, label: 'Collection Notice', template_type: 'collection_notice' },
+          ]
+        },
+        'dpd_91_120': {
+          name: '91-120 Days Past Due Workflow',
+          description: 'Final notices before escalation',
+          steps: [
+            { day_offset: 3, label: 'Pre-Escalation Notice', template_type: 'pre_escalation' },
+            { day_offset: 7, label: 'Final Demand', template_type: 'final_demand' },
+            { day_offset: 14, label: 'Last Chance Notice', template_type: 'last_chance' },
+          ]
+        },
+        'dpd_121_150': {
+          name: '121-150 Days Past Due Workflow',
+          description: 'Escalated collection actions',
+          steps: [
+            { day_offset: 3, label: 'Escalation Notice', template_type: 'escalation_action' },
+            { day_offset: 7, label: 'Credit Report Warning', template_type: 'credit_warning' },
+            { day_offset: 14, label: 'Final Resolution', template_type: 'final_resolution' },
+          ]
+        },
+        'dpd_150_plus': {
+          name: '150+ Days Past Due Workflow',
+          description: 'Final collection and compliance actions',
+          steps: [
+            { day_offset: 3, label: 'Final Notice', template_type: 'final_notice' },
+            { day_offset: 7, label: 'Compliance Notice', template_type: 'compliance_notice' },
+            { day_offset: 14, label: 'Resolution Deadline', template_type: 'resolution_deadline' },
+          ]
+        },
+      };
+
+      const config = workflowConfigs[aging_bucket];
+      if (!config) {
+        return new Response(JSON.stringify({ 
+          error: `Invalid aging bucket: ${aging_bucket}`,
+          success: false
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create the workflow
+      const { data: newWorkflow, error: createWorkflowError } = await supabase
+        .from('collection_workflows')
+        .insert({
+          user_id: user.id,
+          name: config.name,
+          description: config.description,
+          aging_bucket: aging_bucket,
+          is_active: true,
+          is_default: false,
+          is_locked: false,
+          auto_generate_drafts: false,
+        })
+        .select()
+        .single();
+
+      if (createWorkflowError || !newWorkflow) {
+        console.error('Failed to create workflow:', createWorkflowError);
+        return new Response(JSON.stringify({ 
+          error: `Failed to create workflow: ${createWorkflowError?.message}`,
+          success: false
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create workflow steps
+      const stepsToInsert = config.steps.map((step, index) => ({
+        workflow_id: newWorkflow.id,
+        step_order: index + 1,
+        day_offset: step.day_offset,
+        label: step.label,
+        channel: 'email',
+        trigger_type: 'days_since_bucket_entry',
+        ai_template_type: step.template_type,
+        body_template: `Generate a ${step.template_type.replace(/_/g, ' ')} message`,
+        is_active: true,
+        requires_review: true,
+      }));
+
+      const { data: newSteps, error: createStepsError } = await supabase
+        .from('collection_workflow_steps')
+        .insert(stepsToInsert)
+        .select();
+
+      if (createStepsError) {
+        console.error('Failed to create workflow steps:', createStepsError);
+        return new Response(JSON.stringify({ 
+          error: `Failed to create workflow steps: ${createStepsError.message}`,
+          success: false
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Created new workflow ${newWorkflow.id} with ${newSteps?.length || 0} steps`);
+      activeWorkflow = { ...newWorkflow, steps: newSteps || [] };
     }
 
-    if (!workflow.steps || workflow.steps.length === 0) {
+    if (!activeWorkflow.steps || activeWorkflow.steps.length === 0) {
       return new Response(JSON.stringify({ 
         error: `Workflow has no steps configured`,
         success: false
@@ -119,15 +242,15 @@ serve(async (req) => {
     const { data: existingTemplates } = await supabase
       .from('draft_templates')
       .select('workflow_step_id')
-      .eq('workflow_id', workflow.id)
+      .eq('workflow_id', activeWorkflow.id)
       .eq('aging_bucket', aging_bucket)
       .eq('user_id', user.id);
 
     const existingStepIds = new Set(existingTemplates?.map(t => t.workflow_step_id) || []);
-    console.log(`Found ${existingStepIds.size} existing templates for workflow ${workflow.id}`);
+    console.log(`Found ${existingStepIds.size} existing templates for workflow ${activeWorkflow.id}`);
 
     // Generate template for each workflow step
-    for (const step of workflow.steps) {
+    for (const step of activeWorkflow.steps) {
       if (!step.is_active) {
         console.log(`Skipping step ${step.label} - inactive`);
         continue;
@@ -294,7 +417,7 @@ Generate ${step.channel === 'email' ? 'a complete email template' : 'a concise S
           .from('draft_templates')
           .insert({
             user_id: user.id,
-            workflow_id: workflow.id,
+            workflow_id: activeWorkflow.id,
             workflow_step_id: step.id,
             agent_persona_id: persona?.id,
             aging_bucket: aging_bucket,
