@@ -79,7 +79,7 @@ export const ColumnMappingStep = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">-- Not mapped --</SelectItem>
-                    {headers.map((header) => (
+                    {headers.filter(h => h && h.trim() !== '').map((header) => (
                       <SelectItem key={header} value={header}>
                         {header}
                       </SelectItem>
@@ -108,14 +108,14 @@ export const ColumnMappingStep = ({
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">-- Not mapped --</SelectItem>
-                      {headers.map((header) => (
-                        <SelectItem key={header} value={header}>
-                          {header}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="none">-- Not mapped --</SelectItem>
+                    {headers.filter(h => h && h.trim() !== '').map((header) => (
+                      <SelectItem key={header} value={header}>
+                        {header}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                   </Select>
                 </div>
               ))}
