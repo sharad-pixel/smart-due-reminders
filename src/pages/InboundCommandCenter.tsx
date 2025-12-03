@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInboundEmails, InboundEmail } from "@/hooks/useInboundEmails";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Inbox,
   Filter,
@@ -21,6 +23,7 @@ import {
   Bot,
   Sparkles,
   ExternalLink,
+  EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -42,16 +45,20 @@ export default function InboundCommandCenter() {
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
+  const [debtorStatusFilter, setDebtorStatusFilter] = useState<"all" | "active" | "archived">("all");
+  const [hideProcessed, setHideProcessed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadEmails();
-  }, [statusFilter, actionFilter]);
+  }, [statusFilter, actionFilter, debtorStatusFilter, hideProcessed]);
 
   const loadEmails = async () => {
     const data = await fetchInboundEmails({
       status: statusFilter !== "all" ? statusFilter : undefined,
       action_type: actionFilter !== "all" ? actionFilter : undefined,
+      debtor_status: debtorStatusFilter,
+      hide_processed: hideProcessed,
       search: searchQuery || undefined,
     });
     setEmails(data);
@@ -169,7 +176,7 @@ export default function InboundCommandCenter() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="flex gap-2">
                 <Input
                   placeholder="Search emails..."
@@ -207,6 +214,29 @@ export default function InboundCommandCenter() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Select value={debtorStatusFilter} onValueChange={(v) => setDebtorStatusFilter(v as "all" | "active" | "archived")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Debtor Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Debtors</SelectItem>
+                  <SelectItem value="active">Active Debtors</SelectItem>
+                  <SelectItem value="archived">Archived Debtors</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="hide-processed"
+                  checked={hideProcessed}
+                  onCheckedChange={setHideProcessed}
+                />
+                <Label htmlFor="hide-processed" className="flex items-center gap-1 text-sm cursor-pointer">
+                  <EyeOff className="h-4 w-4" />
+                  Hide Processed
+                </Label>
+              </div>
             </div>
           </CardContent>
         </Card>
