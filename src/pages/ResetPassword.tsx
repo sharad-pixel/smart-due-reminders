@@ -32,16 +32,54 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check if user has a valid recovery session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        toast.error("Invalid or expired reset link. Please request a new one.");
-        navigate("/login");
+    // Check URL for error parameters from failed Supabase verification
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const errorDescription = hashParams.get('error_description');
+    
+    if (errorDescription) {
+      toast.error(errorDescription);
+      navigate("/login");
+      return;
+    }
+
+    // Listen for PASSWORD_RECOVERY event from Supabase auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsValidSession(true);
+        setChecking(false);
+      } else if (event === 'SIGNED_IN' && session) {
+        // User might already have a recovery session
+        setIsValidSession(true);
+        setChecking(false);
       }
     });
+
+    // Also check for existing session (in case page is refreshed during recovery)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsValidSession(true);
+      } else {
+        // Give a short delay for the auth state change to fire
+        setTimeout(() => {
+          setChecking(false);
+        }, 1500);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Redirect if no valid session after checking
+  useEffect(() => {
+    if (!checking && !isValidSession) {
+      toast.error("Invalid or expired reset link. Please request a new one.");
+      navigate("/login");
+    }
+  }, [checking, isValidSession, navigate]);
 
   // Check individual password requirements
   const requirements = useMemo(() => ({
@@ -134,6 +172,18 @@ const ResetPassword = () => {
       <span className={met ? "text-green-600" : "text-muted-foreground"}>{label}</span>
     </div>
   );
+
+  // Show loading state while checking session
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-primary mb-4">Recouply.ai</h1>
+          <p className="text-muted-foreground">Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
