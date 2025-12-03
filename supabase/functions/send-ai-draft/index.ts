@@ -6,6 +6,38 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Decrypt a value using AES-GCM
+async function decryptValue(encryptedValue: string): Promise<string> {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  
+  const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
+  if (!encryptionKey) {
+    throw new Error('Encryption key not configured');
+  }
+
+  const keyMaterial = encoder.encode(encryptionKey);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyMaterial.slice(0, 32),
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  const encryptedData = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+  const iv = encryptedData.slice(0, 12);
+  const ciphertext = encryptedData.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  );
+
+  return decoder.decode(decrypted);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -149,12 +181,23 @@ serve(async (req) => {
         throw new Error("Debtor phone number not available");
       }
 
+      // Decrypt Twilio credentials
+      let accountSid: string;
+      let authToken: string;
+      try {
+        accountSid = await decryptValue(twilioProfile.twilio_account_sid);
+        authToken = await decryptValue(twilioProfile.twilio_auth_token);
+      } catch (decryptError) {
+        console.error("Decryption error:", decryptError);
+        throw new Error("Failed to decrypt Twilio credentials. Please reconfigure your Twilio settings.");
+      }
+
       sentFrom = twilioProfile.twilio_from_number;
-      const twilioAuth = btoa(`${twilioProfile.twilio_account_sid}:${twilioProfile.twilio_auth_token}`);
+      const twilioAuth = btoa(`${accountSid}:${authToken}`);
       
       try {
         const twilioResponse = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${twilioProfile.twilio_account_sid}/Messages.json`,
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
           {
             method: "POST",
             headers: {

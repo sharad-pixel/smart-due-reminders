@@ -176,11 +176,20 @@ serve(async (req) => {
         throw new Error("SendGrid API key not configured");
       }
 
+      // Decrypt SendGrid API key
+      let sendgridApiKey: string;
+      try {
+        sendgridApiKey = await decryptValue(profile.sendgrid_api_key);
+      } catch (decryptError) {
+        console.error("Decryption error:", decryptError);
+        throw new Error("Failed to decrypt SendGrid API key. Please reconfigure your SendGrid settings.");
+      }
+
       // Send test email using SendGrid
       const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${profile.sendgrid_api_key}`,
+          Authorization: `Bearer ${sendgridApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
