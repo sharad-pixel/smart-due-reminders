@@ -81,10 +81,14 @@ export default function CollectionTasks() {
       .select('id, name, email');
     
     if (data) {
-      setTeamMembers(data.map(p => ({
-        id: p.id,
-        name: p.name || p.email
-      })));
+      setTeamMembers(
+        data
+          .filter(p => p.id && p.id.trim() !== '')
+          .map(p => ({
+            id: p.id,
+            name: p.name || p.email || 'Unknown'
+          }))
+      );
     }
   };
 
