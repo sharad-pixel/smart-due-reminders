@@ -52,12 +52,12 @@ const Billing = () => {
         return;
       }
 
-      // Fetch profile - use any to bypass type checking for dynamic columns
+      // Fetch profile - cast through unknown for dynamic columns not yet in types
       const { data: profileData } = await supabase
         .from('profiles')
         .select('plan_type, invoice_limit, billing_interval, subscription_status, current_period_end, stripe_subscription_id')
         .eq('id', session.user.id)
-        .single() as { data: ProfileData | null; error: any };
+        .single() as unknown as { data: ProfileData | null; error: unknown };
 
       if (profileData) {
         setProfile(profileData);
