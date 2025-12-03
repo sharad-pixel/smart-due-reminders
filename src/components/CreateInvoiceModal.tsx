@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { extractDaysFromPaymentTerms, calculateDueDate } from "@/lib/paymentTerms";
 
 interface CreateInvoiceModalProps {
   open: boolean;
@@ -35,6 +36,15 @@ export const CreateInvoiceModal = ({
     notes: "",
     currency: "USD"
   });
+
+  // Auto-calculate due date when issue_date or payment_terms changes
+  useEffect(() => {
+    if (formData.issue_date && formData.payment_terms) {
+      const days = extractDaysFromPaymentTerms(formData.payment_terms);
+      const newDueDate = calculateDueDate(formData.issue_date, days);
+      setFormData(prev => ({ ...prev, due_date: newDueDate }));
+    }
+  }, [formData.issue_date, formData.payment_terms]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,30 +104,8 @@ export const CreateInvoiceModal = ({
     }
   };
 
-  const calculateDueDate = (days: number) => {
-    const issueDate = new Date(formData.issue_date);
-    const dueDate = new Date(issueDate);
-    dueDate.setDate(dueDate.getDate() + days);
-    return dueDate.toISOString().split('T')[0];
-  };
-
   const handlePaymentTermsChange = (value: string) => {
     setFormData({ ...formData, payment_terms: value });
-    
-    // Auto-calculate due date based on payment terms
-    const termsDays: { [key: string]: number } = {
-      "Due on Receipt": 0,
-      "Net 15": 15,
-      "Net 30": 30,
-      "Net 45": 45,
-      "Net 60": 60,
-      "Net 90": 90
-    };
-    
-    if (termsDays[value] !== undefined) {
-      const newDueDate = calculateDueDate(termsDays[value]);
-      setFormData(prev => ({ ...prev, due_date: newDueDate, payment_terms: value }));
-    }
   };
 
   return (
