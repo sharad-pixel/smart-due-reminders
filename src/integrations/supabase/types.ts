@@ -1721,8 +1721,15 @@ export type Database = {
       }
       inbound_emails: {
         Row: {
+          action_closed_at: string | null
+          action_closed_by: string | null
+          action_notes: string | null
+          action_status: string | null
           ai_actions: Json | null
+          ai_category: string | null
+          ai_priority: string | null
           ai_processed_at: string | null
+          ai_sentiment: string | null
           ai_summary: string | null
           bcc_emails: Json | null
           cc_emails: Json | null
@@ -1731,6 +1738,8 @@ export type Database = {
           email_id: string | null
           error_message: string | null
           event_type: string
+          forwarded_at: string | null
+          forwarded_to: Json | null
           from_email: string
           from_name: string | null
           html_body: string | null
@@ -1746,8 +1755,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          action_closed_at?: string | null
+          action_closed_by?: string | null
+          action_notes?: string | null
+          action_status?: string | null
           ai_actions?: Json | null
+          ai_category?: string | null
+          ai_priority?: string | null
           ai_processed_at?: string | null
+          ai_sentiment?: string | null
           ai_summary?: string | null
           bcc_emails?: Json | null
           cc_emails?: Json | null
@@ -1756,6 +1772,8 @@ export type Database = {
           email_id?: string | null
           error_message?: string | null
           event_type: string
+          forwarded_at?: string | null
+          forwarded_to?: Json | null
           from_email: string
           from_name?: string | null
           html_body?: string | null
@@ -1771,8 +1789,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          action_closed_at?: string | null
+          action_closed_by?: string | null
+          action_notes?: string | null
+          action_status?: string | null
           ai_actions?: Json | null
+          ai_category?: string | null
+          ai_priority?: string | null
           ai_processed_at?: string | null
+          ai_sentiment?: string | null
           ai_summary?: string | null
           bcc_emails?: Json | null
           cc_emails?: Json | null
@@ -1781,6 +1806,8 @@ export type Database = {
           email_id?: string | null
           error_message?: string | null
           event_type?: string
+          forwarded_at?: string | null
+          forwarded_to?: Json | null
           from_email?: string
           from_name?: string | null
           html_body?: string | null
