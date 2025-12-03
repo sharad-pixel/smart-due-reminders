@@ -258,13 +258,13 @@ export const TaskDetailModal = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Team Member</Label>
-                  <Select value={selectedTeamMember} onValueChange={setSelectedTeamMember}>
+                  <Select value={selectedTeamMember || "unassigned"} onValueChange={(val) => setSelectedTeamMember(val === "unassigned" ? "" : val)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Unassigned" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
-                      {teamMembers.map(member => (
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {teamMembers.filter(m => m.id && m.id.trim() !== '').map(member => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>
@@ -274,12 +274,12 @@ export const TaskDetailModal = ({
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">AI Persona</Label>
-                  <Select value={selectedPersona} onValueChange={setSelectedPersona}>
+                  <Select value={selectedPersona || "none"} onValueChange={(val) => setSelectedPersona(val === "none" ? "" : val)}>
                     <SelectTrigger>
                       <SelectValue placeholder="No persona" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No persona</SelectItem>
+                      <SelectItem value="none">No persona</SelectItem>
                       {AI_PERSONAS.map(persona => (
                         <SelectItem key={persona.id} value={persona.name}>
                           {persona.name} ({persona.bucket})
