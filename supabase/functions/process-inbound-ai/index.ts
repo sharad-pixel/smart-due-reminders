@@ -151,8 +151,14 @@ Extract summary and actions.`;
           throw new Error("No content in AI response");
         }
 
+        // Strip markdown code blocks if present
+        let jsonContent = content.trim();
+        if (jsonContent.startsWith("```")) {
+          jsonContent = jsonContent.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+        }
+
         // Parse AI response
-        const parsed = JSON.parse(content);
+        const parsed = JSON.parse(jsonContent);
         const summary = parsed.summary || "No summary generated";
         const actions = parsed.actions || [];
 
