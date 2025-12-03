@@ -195,14 +195,85 @@ serve(async (req) => {
       activeWorkflow = { ...newWorkflow, steps: newSteps || [] };
     }
 
+    // If workflow exists but has no steps, create default steps
     if (!activeWorkflow.steps || activeWorkflow.steps.length === 0) {
-      return new Response(JSON.stringify({ 
-        error: `Workflow has no steps configured`,
-        success: false
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.log(`Workflow ${activeWorkflow.id} has no steps, creating default steps`);
+      
+      const defaultStepConfigs: Record<string, Array<{ day_offset: number; label: string; template_type: string; trigger_type: string }>> = {
+        'dpd_1_30': [
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'bucket_entry' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'followup', trigger_type: 'days_in_bucket' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'urgent_notice', trigger_type: 'days_in_bucket' },
+        ],
+        'dpd_31_60': [
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'bucket_entry' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+        ],
+        'dpd_61_90': [
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'urgent_notice', trigger_type: 'bucket_entry' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+        ],
+        'dpd_91_120': [
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'final_notice', trigger_type: 'bucket_entry' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'days_in_bucket' },
+        ],
+        'dpd_121_150': [
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'collections_notice', trigger_type: 'bucket_entry' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'days_in_bucket' },
+        ],
+        'dpd_150_plus': [
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'bucket_entry' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'settlement_offer', trigger_type: 'days_in_bucket' },
+        ],
+      };
+
+      const stepConfig = defaultStepConfigs[aging_bucket];
+      if (!stepConfig) {
+        return new Response(JSON.stringify({ 
+          error: `Invalid aging bucket: ${aging_bucket}`,
+          success: false
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const stepsToCreate = stepConfig.map((step, index) => ({
+        workflow_id: activeWorkflow.id,
+        step_order: index + 1,
+        day_offset: step.day_offset,
+        label: step.label,
+        channel: 'email',
+        trigger_type: step.trigger_type,
+        ai_template_type: step.template_type,
+        body_template: `Generate a ${step.template_type.replace(/_/g, ' ')} message`,
+        is_active: true,
+        requires_review: true,
+      }));
+
+      const { data: createdSteps, error: stepsError } = await supabase
+        .from('collection_workflow_steps')
+        .insert(stepsToCreate)
+        .select();
+
+      if (stepsError) {
+        console.error('Failed to create steps for existing workflow:', stepsError);
+        return new Response(JSON.stringify({ 
+          error: `Failed to create workflow steps: ${stepsError.message}`,
+          success: false
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Created ${createdSteps?.length || 0} steps for workflow ${activeWorkflow.id}`);
+      activeWorkflow.steps = createdSteps || [];
     }
 
     // Get persona for this bucket
