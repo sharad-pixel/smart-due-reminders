@@ -149,7 +149,7 @@ const Home = () => {
                   >
                     <div className="space-y-2">
                       <h4 className="font-bold text-lg">{persona.name}</h4>
-                      <p className={`text-sm font-medium ${persona.textColor}`}>
+                      <p className="text-sm font-medium" style={{ color: persona.color }}>
                         {persona.description}
                       </p>
                       <p className="text-xs text-muted-foreground italic">

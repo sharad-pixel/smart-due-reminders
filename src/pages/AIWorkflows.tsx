@@ -1095,7 +1095,8 @@ const AIWorkflows = () => {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <div 
-                            className={`w-3 h-3 rounded-full bg-gradient-to-br ${persona.bgGradient}`}
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: persona.color }}
                           />
                           <p className="font-semibold">{persona.name}</p>
                         </div>

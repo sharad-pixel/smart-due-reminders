@@ -144,7 +144,8 @@ const Personas = () => {
                           <CardTitle className="text-3xl">{persona.name}</CardTitle>
                           <Badge 
                             variant="outline" 
-                            className={`text-sm ${persona.textColor} border-current`}
+                            className="text-sm"
+                            style={{ borderColor: persona.color, color: persona.color }}
                           >
                             {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
                           </Badge>
