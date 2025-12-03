@@ -137,6 +137,11 @@ export const TaskDetailModal = ({
           if (emailError) {
             console.error('Error sending assignment email:', emailError);
           } else {
+            // Update task with email sent timestamp
+            await supabase
+              .from("collection_tasks")
+              .update({ assignment_email_sent_at: new Date().toISOString() })
+              .eq("id", task.id);
             toast.success("Task assigned and notification sent");
             return;
           }
@@ -302,6 +307,37 @@ export const TaskDetailModal = ({
                   'Save Assignment'
                 )}
               </Button>
+            </div>
+          )}
+
+          {/* Assignment Info Display */}
+          {(task.assigned_to || task.assigned_persona) && (
+            <div className="space-y-2 pt-2 border-t">
+              <h4 className="font-semibold text-sm">Current Assignment</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {task.assigned_to && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Assigned To</span>
+                    <p className="text-sm font-medium">
+                      {teamMembers.find(m => m.id === task.assigned_to)?.name || 'Unknown'}
+                    </p>
+                  </div>
+                )}
+                {task.assigned_persona && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">AI Persona</span>
+                    <p className="text-sm font-medium">{task.assigned_persona}</p>
+                  </div>
+                )}
+              </div>
+              {(task as any).assignment_email_sent_at && (
+                <div>
+                  <span className="text-xs text-muted-foreground">Assignment Email Sent</span>
+                  <p className="text-sm font-medium text-green-600">
+                    {format(new Date((task as any).assignment_email_sent_at), 'MMM d, yyyy h:mm a')}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

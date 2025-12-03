@@ -21,6 +21,7 @@ export interface CollectionTask {
   completed_at?: string;
   created_at: string;
   updated_at: string;
+  assignment_email_sent_at?: string;
 }
 
 export const useCollectionTasks = () => {
