@@ -79,6 +79,7 @@ export const TaskDetailModal = ({
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
           to: recipientEmail,
+          from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
           subject: `Task Assignment: ${getTaskTypeLabel(task.task_type)} - ${task.summary}`,
           html: taskHtml,
         },
