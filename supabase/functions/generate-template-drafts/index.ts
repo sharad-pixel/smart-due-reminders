@@ -201,34 +201,34 @@ serve(async (req) => {
       
       const defaultStepConfigs: Record<string, Array<{ day_offset: number; label: string; template_type: string; trigger_type: string }>> = {
         'dpd_1_30': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'bucket_entry' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'followup', trigger_type: 'days_in_bucket' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'urgent_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'relative_to_due' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'followup', trigger_type: 'relative_to_last_step' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'urgent_notice', trigger_type: 'relative_to_last_step' },
         ],
         'dpd_31_60': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'bucket_entry' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'days_in_bucket' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'relative_to_due' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'relative_to_last_step' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
         ],
         'dpd_61_90': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'urgent_notice', trigger_type: 'bucket_entry' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'urgent_notice', trigger_type: 'relative_to_due' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'relative_to_last_step' },
         ],
         'dpd_91_120': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'final_notice', trigger_type: 'bucket_entry' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'final_notice', trigger_type: 'relative_to_due' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'relative_to_last_step' },
         ],
         'dpd_121_150': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'collections_notice', trigger_type: 'bucket_entry' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'days_in_bucket' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'days_in_bucket' },
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'collections_notice', trigger_type: 'relative_to_due' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'relative_to_last_step' },
         ],
         'dpd_150_plus': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'bucket_entry' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'days_in_bucket' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'settlement_offer', trigger_type: 'days_in_bucket' },
+          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'relative_to_due' },
+          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'relative_to_last_step' },
+          { day_offset: 14, label: 'Final Notice', template_type: 'settlement_offer', trigger_type: 'relative_to_last_step' },
         ],
       };
 
