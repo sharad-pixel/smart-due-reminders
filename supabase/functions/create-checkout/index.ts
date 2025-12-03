@@ -63,7 +63,8 @@ serve(async (req) => {
       console.log('Existing customer found:', customerId);
     }
 
-    // Create checkout session with 14-day trial and metered billing for overages
+    // Create checkout session with 14-day trial
+    // Note: Metered overage pricing is added via webhook after subscription creation
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -71,9 +72,6 @@ serve(async (req) => {
         {
           price: PLAN_PRICE_IDS[planId],
           quantity: 1,
-        },
-        {
-          price: OVERAGE_PRICE_ID,
         },
       ],
       mode: 'subscription',
