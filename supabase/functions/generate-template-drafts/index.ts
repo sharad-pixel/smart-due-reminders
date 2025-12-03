@@ -168,7 +168,7 @@ serve(async (req) => {
         day_offset: step.day_offset,
         label: step.label,
         channel: 'email',
-        trigger_type: 'days_since_bucket_entry',
+        trigger_type: 'days_past_due',
         ai_template_type: step.template_type,
         body_template: `Generate a ${step.template_type.replace(/_/g, ' ')} message`,
         is_active: true,
