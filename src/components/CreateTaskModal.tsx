@@ -116,6 +116,12 @@ const CreateTaskModal = ({
           
           if (emailError) {
             console.error("Failed to send assignment email:", emailError);
+          } else {
+            // Update task with email sent timestamp
+            await supabase
+              .from("collection_tasks")
+              .update({ assignment_email_sent_at: new Date().toISOString() })
+              .eq("id", newTask.id);
           }
         } catch (emailErr) {
           console.error("Email notification error:", emailErr);

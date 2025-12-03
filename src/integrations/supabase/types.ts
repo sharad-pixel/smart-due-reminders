@@ -585,6 +585,7 @@ export type Database = {
           ai_reasoning: string | null
           assigned_persona: string | null
           assigned_to: string | null
+          assignment_email_sent_at: string | null
           completed_at: string | null
           created_at: string | null
           debtor_id: string
@@ -611,6 +612,7 @@ export type Database = {
           ai_reasoning?: string | null
           assigned_persona?: string | null
           assigned_to?: string | null
+          assignment_email_sent_at?: string | null
           completed_at?: string | null
           created_at?: string | null
           debtor_id: string
@@ -637,6 +639,7 @@ export type Database = {
           ai_reasoning?: string | null
           assigned_persona?: string | null
           assigned_to?: string | null
+          assignment_email_sent_at?: string | null
           completed_at?: string | null
           created_at?: string | null
           debtor_id?: string
