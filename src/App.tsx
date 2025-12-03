@@ -41,7 +41,7 @@ import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
 import BringYourOwnEmail from "./pages/BringYourOwnEmail";
-import TasksBoard from "./pages/TasksBoard";
+
 import InboundCommandCenter from "./pages/InboundCommandCenter";
 
 const queryClient = new QueryClient();
@@ -88,8 +88,8 @@ const App = () => (
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
         <Route path="/settings/email-accounts" element={<BringYourOwnEmail />} />
         <Route path="/collections/tasks" element={<CollectionTasks />} />
-          <Route path="/tasks" element={<TasksBoard />} />
-          <Route path="/inbound" element={<InboundCommandCenter />} />
+        <Route path="/tasks" element={<CollectionTasks />} />
+        <Route path="/inbound" element={<InboundCommandCenter />} />
         <Route path="/team" element={<Team />} />
         <Route path="/security" element={<SecurityDashboard />} />
         <Route path="/security-settings" element={<SecuritySettings />} />
