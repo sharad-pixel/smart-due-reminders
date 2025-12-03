@@ -6,6 +6,224 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Pre-written templates for each aging bucket and step
+const defaultTemplates: Record<string, Array<{ subject: string; body: string }>> = {
+  'dpd_1_30': [
+    {
+      subject: 'Friendly Reminder - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+This is a friendly reminder that invoice {{invoice_number}} for {{currency}} {{amount}} was due on {{due_date}}.
+
+If you have already sent payment, please disregard this message. If not, we kindly ask that you arrange payment at your earliest convenience.
+
+If you have any questions or concerns regarding this invoice, please don't hesitate to contact us.
+
+Thank you for your prompt attention to this matter.
+
+Best regards`
+    },
+    {
+      subject: 'Follow-Up: Invoice {{invoice_number}} Payment Reminder',
+      body: `Dear {{debtor_name}},
+
+We are following up on our previous reminder regarding invoice {{invoice_number}} for {{currency}} {{amount}}, which is now {{days_past_due}} days past due.
+
+We understand that oversights happen, but we would appreciate your attention to this matter. Please arrange payment or contact us if you need to discuss payment options.
+
+Thank you for your cooperation.
+
+Best regards`
+    },
+    {
+      subject: 'Urgent: Payment Required - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+This is an urgent notice regarding invoice {{invoice_number}} for {{currency}} {{amount}}, which is now significantly overdue.
+
+Please arrange payment immediately to avoid any further action. If there are issues preventing payment, please contact us right away to discuss a resolution.
+
+We value your business and look forward to resolving this matter promptly.
+
+Best regards`
+    }
+  ],
+  'dpd_31_60': [
+    {
+      subject: 'Overdue Notice - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+Your account has an outstanding balance. Invoice {{invoice_number}} for {{currency}} {{amount}} is now {{days_past_due}} days past due.
+
+This matter requires your immediate attention. Please arrange payment or contact us to discuss payment arrangements.
+
+Failure to respond may result in further collection activity.
+
+Best regards`
+    },
+    {
+      subject: 'Second Notice: Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+Despite our previous communications, invoice {{invoice_number}} for {{currency}} {{amount}} remains unpaid.
+
+Please contact us immediately to resolve this matter. We are willing to discuss payment options if you are experiencing financial difficulties.
+
+Please note that continued non-payment may affect your account status.
+
+Best regards`
+    },
+    {
+      subject: 'Final Notice Before Escalation - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+This is your final notice regarding invoice {{invoice_number}} for {{currency}} {{amount}}.
+
+Payment must be received within 7 days to avoid escalation of this matter. If you are unable to pay in full, please contact us immediately to arrange a payment plan.
+
+We strongly urge you to address this matter without delay.
+
+Best regards`
+    }
+  ],
+  'dpd_61_90': [
+    {
+      subject: 'URGENT: Seriously Overdue - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+Your account is seriously delinquent. Invoice {{invoice_number}} for {{currency}} {{amount}} is now {{days_past_due}} days past due.
+
+This is a critical matter requiring your immediate attention. Please contact us today to arrange payment.
+
+Continued non-payment will result in escalation to our collections process.
+
+Best regards`
+    },
+    {
+      subject: 'Escalation Warning - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+We have not received a response regarding the seriously overdue invoice {{invoice_number}} for {{currency}} {{amount}}.
+
+This account is scheduled for escalation if we do not hear from you within the next 5 business days. Please contact us immediately to prevent further action.
+
+Best regards`
+    },
+    {
+      subject: 'FINAL NOTICE: Invoice {{invoice_number}} - Collections Pending',
+      body: `Dear {{debtor_name}},
+
+This is your final opportunity to resolve invoice {{invoice_number}} for {{currency}} {{amount}} before we proceed with formal collection activities.
+
+To avoid escalation, you must contact us within 48 hours. We are still willing to discuss reasonable payment arrangements.
+
+Failure to respond will result in this matter being referred for further collection action.
+
+Best regards`
+    }
+  ],
+  'dpd_91_120': [
+    {
+      subject: 'CRITICAL: Invoice {{invoice_number}} - Immediate Action Required',
+      body: `Dear {{debtor_name}},
+
+Invoice {{invoice_number}} for {{currency}} {{amount}} is approaching 120 days overdue. This is a critical situation requiring your immediate response.
+
+Your account is at risk of being referred to an external collection agency. To prevent this, please contact us today to make payment arrangements.
+
+This is an urgent matter that cannot be delayed further.
+
+Best regards`
+    },
+    {
+      subject: 'Pre-Collections Notice - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+Your account will be referred for further collection action if invoice {{invoice_number}} for {{currency}} {{amount}} is not resolved immediately.
+
+This may have serious consequences for your credit standing. Please contact us within 3 business days to discuss resolution options.
+
+Best regards`
+    },
+    {
+      subject: 'FINAL NOTICE: Invoice {{invoice_number}} - Collections Pending',
+      body: `Dear {{debtor_name}},
+
+This is your absolute final notice for invoice {{invoice_number}} for {{currency}} {{amount}} before external collections proceedings begin.
+
+You have 48 hours to contact us and make payment arrangements. After this time, your account will be transferred to our collections department.
+
+Best regards`
+    }
+  ],
+  'dpd_121_150': [
+    {
+      subject: 'CRITICAL STATUS: Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+Invoice {{invoice_number}} for {{currency}} {{amount}} is now in critical status. Your account may be sent to an external collection agency if not resolved immediately.
+
+Please contact us today. We may still be able to arrange a settlement or payment plan to avoid further action.
+
+Best regards`
+    },
+    {
+      subject: 'Settlement Opportunity - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+We are offering you a final opportunity to settle invoice {{invoice_number}} for {{currency}} {{amount}} before external collection action.
+
+Contact us within 5 business days to discuss settlement options. This offer will not remain available indefinitely.
+
+Best regards`
+    },
+    {
+      subject: 'FINAL NOTICE: Invoice {{invoice_number}} - External Collections',
+      body: `Dear {{debtor_name}},
+
+This is your final notice before invoice {{invoice_number}} for {{currency}} {{amount}} is referred to external collections.
+
+Once this referral occurs, you will be dealing with a third-party collection agency. Contact us immediately if you wish to resolve this matter directly.
+
+Best regards`
+    }
+  ],
+  'dpd_150_plus': [
+    {
+      subject: 'URGENT: Critical Payment Required - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+Invoice {{invoice_number}} for {{currency}} {{amount}} is now {{days_past_due}} days overdue. This is a critical collection notice.
+
+Immediate payment is required to avoid further action, including potential referral to external collections and credit reporting.
+
+Please contact us immediately.
+
+Best regards`
+    },
+    {
+      subject: 'URGENT: Invoice {{invoice_number}} - Immediate Action Required',
+      body: `Dear {{debtor_name}},
+
+URGENT: Invoice {{invoice_number}} for {{currency}} {{amount}} requires immediate payment.
+
+Your account is at serious risk. Contact us today to discuss resolution options before further action is taken.
+
+Best regards`
+    },
+    {
+      subject: 'Settlement Opportunity - Invoice {{invoice_number}}',
+      body: `Dear {{debtor_name}},
+
+We are willing to discuss a settlement arrangement for invoice {{invoice_number}} for {{currency}} {{amount}}.
+
+Please contact us within 7 days to discuss settlement options. This may be your final opportunity to resolve this matter before escalation.
+
+Best regards`
+    }
+  ]
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -36,7 +254,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Generating draft templates for aging bucket: ${aging_bucket}`);
+    console.log(`Creating draft templates for aging bucket: ${aging_bucket}`);
 
     // Get the active workflow for this bucket
     const { data: workflow, error: workflowError } = await supabase
@@ -60,211 +278,29 @@ serve(async (req) => {
       });
     }
 
-    let activeWorkflow = workflow;
-    
-    if (!activeWorkflow) {
-      console.log(`No active workflow found for ${aging_bucket}, creating default workflow for user: ${user.id}`);
-      
-      // Define default workflow configuration based on aging bucket
-      const workflowConfigs: Record<string, { name: string; description: string; steps: Array<{ day_offset: number; label: string; template_type: string }> }> = {
-        'dpd_1_30': {
-          name: '1-30 Days Past Due Workflow',
-          description: 'Friendly reminders for recently overdue invoices',
-          steps: [
-            { day_offset: 3, label: 'Initial Reminder', template_type: 'friendly_reminder' },
-            { day_offset: 7, label: 'Second Reminder', template_type: 'follow_up' },
-            { day_offset: 14, label: 'Final Reminder', template_type: 'urgent_reminder' },
-          ]
-        },
-        'dpd_31_60': {
-          name: '31-60 Days Past Due Workflow',
-          description: 'Firm follow-ups for overdue invoices',
-          steps: [
-            { day_offset: 3, label: 'Initial Follow-up', template_type: 'firm_reminder' },
-            { day_offset: 7, label: 'Payment Request', template_type: 'payment_request' },
-            { day_offset: 14, label: 'Escalation Notice', template_type: 'escalation_notice' },
-          ]
-        },
-        'dpd_61_90': {
-          name: '61-90 Days Past Due Workflow',
-          description: 'Urgent collection notices',
-          steps: [
-            { day_offset: 3, label: 'Urgent Notice', template_type: 'urgent_notice' },
-            { day_offset: 7, label: 'Final Warning', template_type: 'final_warning' },
-            { day_offset: 14, label: 'Collection Notice', template_type: 'collection_notice' },
-          ]
-        },
-        'dpd_91_120': {
-          name: '91-120 Days Past Due Workflow',
-          description: 'Final notices before escalation',
-          steps: [
-            { day_offset: 3, label: 'Pre-Escalation Notice', template_type: 'pre_escalation' },
-            { day_offset: 7, label: 'Final Demand', template_type: 'final_demand' },
-            { day_offset: 14, label: 'Last Chance Notice', template_type: 'last_chance' },
-          ]
-        },
-        'dpd_121_150': {
-          name: '121-150 Days Past Due Workflow',
-          description: 'Escalated collection actions',
-          steps: [
-            { day_offset: 3, label: 'Escalation Notice', template_type: 'escalation_action' },
-            { day_offset: 7, label: 'Credit Report Warning', template_type: 'credit_warning' },
-            { day_offset: 14, label: 'Final Resolution', template_type: 'final_resolution' },
-          ]
-        },
-        'dpd_150_plus': {
-          name: '150+ Days Past Due Workflow',
-          description: 'Final collection and compliance actions',
-          steps: [
-            { day_offset: 3, label: 'Final Notice', template_type: 'final_notice' },
-            { day_offset: 7, label: 'Compliance Notice', template_type: 'compliance_notice' },
-            { day_offset: 14, label: 'Resolution Deadline', template_type: 'resolution_deadline' },
-          ]
-        },
-      };
-
-      const config = workflowConfigs[aging_bucket];
-      if (!config) {
-        return new Response(JSON.stringify({ 
-          error: `Invalid aging bucket: ${aging_bucket}`,
-          success: false
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Create the workflow
-      const { data: newWorkflow, error: createWorkflowError } = await supabase
-        .from('collection_workflows')
-        .insert({
-          user_id: user.id,
-          name: config.name,
-          description: config.description,
-          aging_bucket: aging_bucket,
-          is_active: true,
-          is_default: false,
-          is_locked: false,
-          auto_generate_drafts: false,
-        })
-        .select()
-        .single();
-
-      if (createWorkflowError || !newWorkflow) {
-        console.error('Failed to create workflow:', createWorkflowError);
-        return new Response(JSON.stringify({ 
-          error: `Failed to create workflow: ${createWorkflowError?.message}`,
-          success: false
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Create workflow steps
-      const stepsToInsert = config.steps.map((step, index) => ({
-        workflow_id: newWorkflow.id,
-        step_order: index + 1,
-        day_offset: step.day_offset,
-        label: step.label,
-        channel: 'email',
-        trigger_type: 'days_past_due',
-        ai_template_type: step.template_type,
-        body_template: `Generate a ${step.template_type.replace(/_/g, ' ')} message`,
-        is_active: true,
-        requires_review: true,
-      }));
-
-      const { data: newSteps, error: createStepsError } = await supabase
-        .from('collection_workflow_steps')
-        .insert(stepsToInsert)
-        .select();
-
-      if (createStepsError) {
-        console.error('Failed to create workflow steps:', createStepsError);
-        return new Response(JSON.stringify({ 
-          error: `Failed to create workflow steps: ${createStepsError.message}`,
-          success: false
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      console.log(`Created new workflow ${newWorkflow.id} with ${newSteps?.length || 0} steps`);
-      activeWorkflow = { ...newWorkflow, steps: newSteps || [] };
+    if (!workflow) {
+      return new Response(JSON.stringify({ 
+        error: `No workflow found for ${aging_bucket}. Please set up a workflow first.`,
+        success: false
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // If workflow exists but has no steps, create default steps
-    if (!activeWorkflow.steps || activeWorkflow.steps.length === 0) {
-      console.log(`Workflow ${activeWorkflow.id} has no steps, creating default steps`);
+    // If workflow has no steps, create them
+    if (!workflow.steps || workflow.steps.length === 0) {
+      console.log(`Workflow ${workflow.id} has no steps - calling setup-default-workflows`);
       
-      const defaultStepConfigs: Record<string, Array<{ day_offset: number; label: string; template_type: string; trigger_type: string }>> = {
-        'dpd_1_30': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'relative_to_due' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'followup', trigger_type: 'relative_to_last_step' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'urgent_notice', trigger_type: 'relative_to_last_step' },
-        ],
-        'dpd_31_60': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'relative_to_due' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'relative_to_last_step' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
-        ],
-        'dpd_61_90': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'urgent_notice', trigger_type: 'relative_to_due' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'relative_to_last_step' },
-        ],
-        'dpd_91_120': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'final_notice', trigger_type: 'relative_to_due' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'relative_to_last_step' },
-        ],
-        'dpd_121_150': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'collections_notice', trigger_type: 'relative_to_due' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'final_notice', trigger_type: 'relative_to_last_step' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'collections_notice', trigger_type: 'relative_to_last_step' },
-        ],
-        'dpd_150_plus': [
-          { day_offset: 0, label: 'Initial Reminder', template_type: 'payment_reminder', trigger_type: 'relative_to_due' },
-          { day_offset: 7, label: 'Follow-Up Notice', template_type: 'urgent_notice', trigger_type: 'relative_to_last_step' },
-          { day_offset: 14, label: 'Final Notice', template_type: 'settlement_offer', trigger_type: 'relative_to_last_step' },
-        ],
-      };
+      // Call setup-default-workflows to create the workflow with steps and templates
+      const setupResponse = await supabase.functions.invoke('setup-default-workflows', {
+        body: { aging_bucket },
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      const stepConfig = defaultStepConfigs[aging_bucket];
-      if (!stepConfig) {
+      if (setupResponse.error) {
         return new Response(JSON.stringify({ 
-          error: `Invalid aging bucket: ${aging_bucket}`,
-          success: false
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const stepsToCreate = stepConfig.map((step, index) => ({
-        workflow_id: activeWorkflow.id,
-        step_order: index + 1,
-        day_offset: step.day_offset,
-        label: step.label,
-        channel: 'email',
-        trigger_type: step.trigger_type,
-        ai_template_type: step.template_type,
-        body_template: `Generate a ${step.template_type.replace(/_/g, ' ')} message`,
-        is_active: true,
-        requires_review: true,
-      }));
-
-      const { data: createdSteps, error: stepsError } = await supabase
-        .from('collection_workflow_steps')
-        .insert(stepsToCreate)
-        .select();
-
-      if (stepsError) {
-        console.error('Failed to create steps for existing workflow:', stepsError);
-        return new Response(JSON.stringify({ 
-          error: `Failed to create workflow steps: ${stepsError.message}`,
+          error: `Failed to setup workflow: ${setupResponse.error.message}`,
           success: false
         }), {
           status: 500,
@@ -272,8 +308,13 @@ serve(async (req) => {
         });
       }
 
-      console.log(`Created ${createdSteps?.length || 0} steps for workflow ${activeWorkflow.id}`);
-      activeWorkflow.steps = createdSteps || [];
+      return new Response(JSON.stringify({
+        success: true,
+        templates_created: 3,
+        message: 'Default workflow and templates created'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get persona for this bucket
@@ -287,237 +328,68 @@ serve(async (req) => {
       case 'dpd_150_plus': minDays = 151; break;
     }
 
-    // Query for the exact persona that matches this bucket range
     const { data: persona } = await supabase
       .from('ai_agent_personas')
-      .select('id, name, tone_guidelines, persona_summary')
+      .select('id')
       .lte('bucket_min', minDays)
       .or(`bucket_max.is.null,bucket_max.gte.${minDays}`)
       .order('bucket_min', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    // Get branding settings
-    const { data: branding } = await supabase
-      .from('branding_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
-    let templatesCreated = 0;
-    let errors: string[] = [];
-
-    // Check for existing templates (any status) - don't auto-delete
+    // Check for existing templates
     const { data: existingTemplates } = await supabase
       .from('draft_templates')
       .select('workflow_step_id')
-      .eq('workflow_id', activeWorkflow.id)
+      .eq('workflow_id', workflow.id)
       .eq('aging_bucket', aging_bucket)
       .eq('user_id', user.id);
 
     const existingStepIds = new Set(existingTemplates?.map(t => t.workflow_step_id) || []);
-    console.log(`Found ${existingStepIds.size} existing templates for workflow ${activeWorkflow.id}`);
+    console.log(`Found ${existingStepIds.size} existing templates for workflow ${workflow.id}`);
 
-    // Generate template for each workflow step
-    for (const step of activeWorkflow.steps) {
-      if (!step.is_active) {
-        console.log(`Skipping step ${step.label} - inactive`);
-        continue;
-      }
+    // Get the pre-written templates for this bucket
+    const bucketTemplates = defaultTemplates[aging_bucket] || defaultTemplates['dpd_1_30'];
 
-      // Skip if this step already has a template (any status)
-      if (existingStepIds.has(step.id)) {
-        console.log(`Skipping step ${step.label} - already has template`);
-        continue;
-      }
+    let templatesCreated = 0;
 
-      // Only generate email templates by default, skip SMS
-      if (step.channel === 'sms') {
-        console.log(`Skipping step ${step.label} - SMS templates not generated by default`);
-        continue;
-      }
+    // Create templates for steps that don't have them
+    for (let i = 0; i < workflow.steps.length; i++) {
+      const step = workflow.steps[i];
+      
+      if (!step.is_active || step.channel === 'sms') continue;
+      if (existingStepIds.has(step.id)) continue;
 
-      try {
-        const getToneForBucket = (bucket: string): string => {
-          switch (bucket) {
-            case 'current': return 'friendly reminder';
-            case 'dpd_1_30': return 'firm but friendly';
-            case 'dpd_31_60': return 'firm and direct';
-            case 'dpd_61_90': return 'urgent and direct but respectful';
-            case 'dpd_91_120': return 'very firm, urgent, and compliant';
-            case 'dpd_120_plus': return 'extremely firm, urgent, final notice tone';
-            default: return 'professional';
-          }
-        };
+      const templateContent = bucketTemplates[i] || bucketTemplates[0];
 
-        const businessName = branding?.business_name || 'Your Company';
-        const fromName = branding?.from_name || businessName;
-
-        const personaContext = persona?.name === 'Rocco' 
-          ? `You are ${persona.name}, ${persona.persona_summary || 'a compliance-focused collections specialist'}. ${persona.tone_guidelines}. Reference credit reporting, delinquency procedures, and the possibility of legal action as appropriate for this stage.`
-          : `You are ${persona?.name || 'a professional collections specialist'}. ${persona?.tone_guidelines || 'professional'}`;
-
-        const systemPrompt = `You are drafting a professional collections message TEMPLATE for ${businessName}.
-
-CRITICAL RULES:
-- Create a TEMPLATE that will be personalized later with specific invoice data
-- Use placeholders like {{debtor_name}}, {{invoice_number}}, {{amount}}, {{currency}}, {{due_date}}, {{days_past_due}}
-- Be firm, clear, and professional
-- Be respectful and non-threatening
-- NEVER claim to be or act as a "collection agency" or legal authority
-- NEVER use harassment or intimidation
-- Write as if you are ${businessName}, NOT a third party
-- Encourage the customer to pay or reply if there is a dispute or issue
-- Use a ${getToneForBucket(aging_bucket)} tone
-
-PERSONA CONTEXT:
-${personaContext}`;
-
-        const userPrompt = `Generate a professional collection message TEMPLATE with the following context:
-
-Business: ${businessName}
-From: ${fromName}
-Aging Bucket: ${aging_bucket}
-Channel: ${step.channel}
-Step: ${step.label} (Day ${step.day_offset})
-Template Context: ${step.body_template}
-
-${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}
-
-Use these placeholders in your template:
-- {{debtor_name}} - The customer's name
-- {{invoice_number}} - The invoice number
-- {{amount}} - The invoice amount
-- {{currency}} - Currency (e.g., USD)
-- {{due_date}} - Original due date
-- {{days_past_due}} - Days overdue
-
-Generate ${step.channel === 'email' ? 'a complete email template' : 'a concise SMS template (160 characters max)'}.`;
-
-        // Generate content using Lovable AI with tool calling
-        const tools = step.channel === 'email' ? [{
-          type: 'function',
-          function: {
-            name: 'create_email_template',
-            description: 'Create an email template with subject and body',
-            parameters: {
-              type: 'object',
-              properties: {
-                subject: {
-                  type: 'string',
-                  description: 'Email subject line template'
-                },
-                body: {
-                  type: 'string',
-                  description: 'Email body template with placeholders'
-                }
-              },
-              required: ['subject', 'body'],
-              additionalProperties: false
-            }
-          }
-        }] : [{
-          type: 'function',
-          function: {
-            name: 'create_sms_template',
-            description: 'Create an SMS template',
-            parameters: {
-              type: 'object',
-              properties: {
-                body: {
-                  type: 'string',
-                  description: 'SMS message template (max 160 characters)'
-                }
-              },
-              required: ['body'],
-              additionalProperties: false
-            }
-          }
-        }];
-
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            tools: tools,
-            tool_choice: {
-              type: 'function',
-              function: {
-                name: step.channel === 'email' ? 'create_email_template' : 'create_sms_template'
-              }
-            }
-          }),
+      const { error: templateError } = await supabase
+        .from('draft_templates')
+        .insert({
+          user_id: user.id,
+          workflow_id: workflow.id,
+          workflow_step_id: step.id,
+          agent_persona_id: persona?.id || null,
+          aging_bucket: aging_bucket,
+          channel: step.channel,
+          subject_template: templateContent.subject,
+          message_body_template: templateContent.body,
+          step_number: step.step_order,
+          day_offset: step.day_offset,
+          status: 'approved', // Pre-approved
         });
 
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error(`AI API error for step ${step.label}:`, errorText);
-          errors.push(`Failed to generate template for ${step.label}`);
-          continue;
-        }
-
-        const aiResult = await aiResponse.json();
-        const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-
-        if (!toolCall || !toolCall.function?.arguments) {
-          errors.push(`No content generated for ${step.label}`);
-          continue;
-        }
-
-        const parsed = JSON.parse(toolCall.function.arguments);
-        const messageBody = parsed.body;
-        const subject = parsed.subject || null;
-
-        if (!messageBody) {
-          errors.push(`Empty message body for ${step.label}`);
-          continue;
-        }
-
-        // Insert template
-        const { error: templateError } = await supabase
-          .from('draft_templates')
-          .insert({
-            user_id: user.id,
-            workflow_id: activeWorkflow.id,
-            workflow_step_id: step.id,
-            agent_persona_id: persona?.id,
-            aging_bucket: aging_bucket,
-            channel: step.channel,
-            subject_template: subject,
-            message_body_template: messageBody,
-            step_number: step.step_order,
-            day_offset: step.day_offset,
-            status: 'pending_approval',
-          });
-
-        if (templateError) {
-          console.error(`Error creating template for ${step.label}:`, templateError);
-          errors.push(`Failed to save template for ${step.label}`);
-          continue;
-        }
-
-        templatesCreated++;
-        console.log(`Created template for step ${step.label}`);
-      } catch (error: any) {
-        console.error(`Error processing step ${step.label}:`, error);
-        errors.push(`Error processing step ${step.label}: ${error.message}`);
+      if (templateError) {
+        console.error(`Error creating template for step ${step.label}:`, templateError);
+        continue;
       }
+
+      templatesCreated++;
+      console.log(`Created template for step ${step.label}`);
     }
 
     return new Response(JSON.stringify({
       success: true,
       templates_created: templatesCreated,
-      errors: errors.length > 0 ? errors : undefined,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
