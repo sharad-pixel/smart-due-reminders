@@ -762,6 +762,7 @@ const AIWorkflows = () => {
         toast.info(data.message || 'No templates were created');
       }
 
+      await fetchWorkflows();
       await fetchDraftsByPersona();
       await fetchStepDraftCounts();
     } catch (error: any) {
