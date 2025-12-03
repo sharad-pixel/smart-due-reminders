@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -37,30 +38,36 @@ const signupSchema = z.object({
   icp: z.string().min(1, "Please select your industry")
 });
 
-// Stripe plan configuration
+// Stripe plan configuration with monthly and annual prices
 const STRIPE_PLANS = [
   {
     id: 'starter',
     name: 'Starter Plan',
-    priceId: 'price_1SX2cyFaeMMSBqclAGkxSliI',
-    productId: 'prod_TU0eI8uJBt4uFu',
-    price: 99,
-    description: '50 invoices per month with AI-powered collections'
+    monthlyPriceId: 'price_1SaNQ5FaeMMSBqcli04PsmKX',
+    annualPriceId: 'price_1SaNWBFaeMMSBqcl6EK9frSv',
+    productId: 'prod_TXSKnoJFoHzsKc',
+    monthlyPrice: 99,
+    annualPrice: 84,
+    description: '100 invoices per month with AI-powered collections'
   },
   {
     id: 'growth',
     name: 'Growth Plan',
-    priceId: 'price_1SX2dkFaeMMSBqclPIjUA6N2',
-    productId: 'prod_TU0f7AKZA4QVKe',
-    price: 199,
-    description: '200 invoices per month with AI-powered collections'
+    monthlyPriceId: 'price_1SaNQKFaeMMSBqclWKbyVTSv',
+    annualPriceId: 'price_1SaNWTFaeMMSBqclXYovl2Hj',
+    productId: 'prod_TXSLdpR7XTZZQx',
+    monthlyPrice: 199,
+    annualPrice: 169,
+    description: '300 invoices per month with AI-powered collections'
   },
   {
     id: 'professional',
     name: 'Professional Plan',
-    priceId: 'price_1SX2duFaeMMSBqclrYq4rikr',
-    productId: 'prod_TU0fTQf4l1UgT9',
-    price: 399,
+    monthlyPriceId: 'price_1SaNVyFaeMMSBqclrcAXjUmm',
+    annualPriceId: 'price_1SaNXGFaeMMSBqcl08sXmTEm',
+    productId: 'prod_TXSQ7XHGszt03J',
+    monthlyPrice: 499,
+    annualPrice: 424,
     description: '500 invoices per month with AI-powered collections and team features'
   }
 ];
@@ -70,6 +77,7 @@ const Signup = () => {
   const [searchParams] = useSearchParams();
   const planParam = searchParams.get('plan');
   const icpParam = searchParams.get('icp');
+  const billingParam = searchParams.get('billing');
   
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
@@ -77,6 +85,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [selectedPlan, setSelectedPlan] = useState(planParam || "starter");
+  const [isAnnual, setIsAnnual] = useState(billingParam === 'annual');
   const [selectedIcp, setSelectedIcp] = useState(icpParam || "");
   const [loading, setLoading] = useState(false);
 
@@ -311,6 +320,28 @@ const Signup = () => {
 
             {/* Email/Password Form - Secondary */}
             <form onSubmit={handleSignup} className="space-y-4">
+              {/* Billing Toggle */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Label htmlFor="billing-toggle" className={!isAnnual ? "font-semibold" : "text-muted-foreground"}>
+                    Monthly
+                  </Label>
+                  <Switch
+                    id="billing-toggle"
+                    checked={isAnnual}
+                    onCheckedChange={setIsAnnual}
+                  />
+                  <Label htmlFor="billing-toggle" className={isAnnual ? "font-semibold" : "text-muted-foreground"}>
+                    Annual
+                  </Label>
+                </div>
+                {isAnnual && (
+                  <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 px-2 py-1 rounded-full">
+                    Save 15%
+                  </span>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="plan">Choose Your Plan</Label>
                 <Select value={selectedPlan} onValueChange={setSelectedPlan}>
@@ -320,7 +351,8 @@ const Signup = () => {
                   <SelectContent>
                     {STRIPE_PLANS.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - ${plan.price}/mo
+                        {plan.name} - ${isAnnual ? plan.annualPrice : plan.monthlyPrice}/mo
+                        {isAnnual && <span className="text-muted-foreground ml-1">(billed annually)</span>}
                       </SelectItem>
                     ))}
                   </SelectContent>
