@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // --- Types ------------------------------------------------------------------
 
-// Some Resend payloads use `email`, some use `address` – support both.
+// Resend can send recipients as strings or objects
 interface ResendRecipient {
   email?: string;
   address?: string;
@@ -23,9 +23,28 @@ interface ResendAttachment {
   size?: number;
 }
 
-interface ResendPayload {
-  to?: ResendRecipient[];
-  from?: ResendRecipient[];
+interface ResendEmailData {
+  to?: (string | ResendRecipient)[];
+  from?: string | ResendRecipient | (string | ResendRecipient)[];
+  subject?: string;
+  text?: string;
+  html?: string;
+  raw?: string;
+  headers?: Record<string, string>;
+  attachments?: ResendAttachment[];
+  email_id?: string;
+  message_id?: string;
+  created_at?: string;
+}
+
+// Resend webhook wraps data in a `data` field with `type`
+interface ResendWebhookPayload {
+  type?: string;
+  created_at?: string;
+  data?: ResendEmailData;
+  // Also support direct payload format
+  to?: (string | ResendRecipient)[];
+  from?: string | ResendRecipient | (string | ResendRecipient)[];
   subject?: string;
   text?: string;
   html?: string;
@@ -37,10 +56,32 @@ interface ResendPayload {
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Helper to get email/address from recipient
-function recipientAddress(recipient?: ResendRecipient): string | null {
+// Helper to extract email address from various formats
+function extractEmailAddress(recipient: string | ResendRecipient | undefined): string | null {
   if (!recipient) return null;
+  
+  if (typeof recipient === "string") {
+    return recipient.toLowerCase();
+  }
+  
   return (recipient.address || recipient.email || "").toLowerCase() || null;
+}
+
+// Helper to get first email from to array (handles both string[] and object[])
+function getFirstToEmail(toArray: (string | ResendRecipient)[] | undefined): string | null {
+  if (!toArray || toArray.length === 0) return null;
+  return extractEmailAddress(toArray[0]);
+}
+
+// Helper to get from email (handles string, object, or array)
+function getFromEmail(from: string | ResendRecipient | (string | ResendRecipient)[] | undefined): string | null {
+  if (!from) return null;
+  
+  if (Array.isArray(from)) {
+    return from.length > 0 ? extractEmailAddress(from[0]) : null;
+  }
+  
+  return extractEmailAddress(from);
 }
 
 // ---------------------------------------------------------------------------
@@ -63,10 +104,10 @@ serve(async (req) => {
     });
   }
 
-  let payload: ResendPayload;
+  let rawPayload: ResendWebhookPayload;
 
   try {
-    payload = await req.json();
+    rawPayload = await req.json();
   } catch (err) {
     console.error("Failed to parse JSON payload", err);
     return new Response(JSON.stringify({ error: "Invalid JSON payload" }), {
@@ -77,6 +118,12 @@ serve(async (req) => {
       },
     });
   }
+
+  console.log("Received webhook payload type:", rawPayload.type || "direct");
+
+  // Handle both wrapped webhook format and direct format
+  // Resend webhooks come as { type: "email.received", data: { ... } }
+  const emailData: ResendEmailData = rawPayload.data || rawPayload;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -94,14 +141,11 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const to = payload.to && payload.to[0] ? payload.to[0] : undefined;
-  const from = payload.from && payload.from[0] ? payload.from[0] : undefined;
-
-  const toEmail = recipientAddress(to);
-  const fromEmail = recipientAddress(from);
+  const toEmail = getFirstToEmail(emailData.to);
+  const fromEmail = getFromEmail(emailData.from);
 
   if (!toEmail) {
-    console.error("No 'to' address in payload", payload);
+    console.error("No 'to' address in payload", rawPayload);
     return new Response(JSON.stringify({ error: "Missing 'to' address" }), {
       status: 400,
       headers: {
@@ -111,7 +155,7 @@ serve(async (req) => {
     });
   }
 
-  console.log("Inbound email to:", toEmail);
+  console.log("Inbound email from:", fromEmail, "to:", toEmail, "subject:", emailData.subject);
 
   const [localPart] = toEmail.split("@");
   let invoiceId: string | null = null;
@@ -123,6 +167,7 @@ serve(async (req) => {
     if (UUID_REGEX.test(maybeId)) {
       invoiceId = maybeId;
       routedTo = "invoice";
+      console.log("Routed to invoice:", invoiceId);
     } else {
       console.warn("Invalid invoice UUID in address:", maybeId);
     }
@@ -131,12 +176,13 @@ serve(async (req) => {
     if (UUID_REGEX.test(maybeId)) {
       debtorId = maybeId;
       routedTo = "debtor";
+      console.log("Routed to debtor:", debtorId);
     } else {
       console.warn("Invalid debtor UUID in address:", maybeId);
     }
   }
 
-  const attachments = payload.attachments ?? [];
+  const attachments = emailData.attachments ?? [];
 
   const { data, error } = await supabase
     .from("messages")
@@ -148,10 +194,10 @@ serve(async (req) => {
         user_id: null, // external sender, not an authenticated user
         from_email: fromEmail || "",
         to_email: toEmail,
-        subject: payload.subject ?? null,
-        html_body: payload.html ?? null,
-        text_body: payload.text ?? null,
-        raw_body: payload.raw ?? null,
+        subject: emailData.subject ?? null,
+        html_body: emailData.html ?? null,
+        text_body: emailData.text ?? null,
+        raw_body: emailData.raw ?? null,
         attachments,
       },
     ])
@@ -160,7 +206,7 @@ serve(async (req) => {
 
   if (error) {
     console.error("Error inserting message:", error);
-    return new Response(JSON.stringify({ error: "Failed to store message" }), {
+    return new Response(JSON.stringify({ error: "Failed to store message", details: error.message }), {
       status: 500,
       headers: {
         ...corsHeaders,
@@ -170,6 +216,7 @@ serve(async (req) => {
   }
 
   const messageId = data.id as string;
+  console.log("Message stored with ID:", messageId);
 
   // Fire-and-forget AI processing
   const aiBase = Deno.env.get("INTERNAL_API_BASE_URL") || "";
@@ -186,7 +233,7 @@ serve(async (req) => {
       // Don't fail the webhook because of downstream processing
     }
   } else {
-    console.warn("INTERNAL_API_BASE_URL not set – skipping AI processing call");
+    console.log("INTERNAL_API_BASE_URL not set – skipping AI processing call");
   }
 
   return new Response(
