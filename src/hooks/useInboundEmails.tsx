@@ -48,6 +48,7 @@ export interface InboundEmailFilters {
   start_date?: string;
   end_date?: string;
   hide_processed?: boolean;
+  hide_closed?: boolean;
   action_status?: string;
   ai_category?: string;
   ai_priority?: string;
@@ -77,6 +78,11 @@ export function useInboundEmails() {
       // Hide processed emails if requested
       if (filters.hide_processed) {
         query = query.neq("status", "processed");
+      }
+
+      // Hide closed action items if requested
+      if (filters.hide_closed) {
+        query = query.neq("action_status", "closed");
       }
 
       // Filter by action status
