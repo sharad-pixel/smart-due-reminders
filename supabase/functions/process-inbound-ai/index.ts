@@ -28,8 +28,24 @@ const ACTION_TYPES = [
   "NEEDS_CALLBACK",
   "PROMISE_TO_PAY",
   "WRONG_CUSTOMER",
+  "INVOICE_COPY_REQUEST",
+  "PAYMENT_CONFIRMATION",
+  "GENERAL_INQUIRY",
   "OTHER",
 ] as const;
+
+const CATEGORIES = [
+  "PAYMENT",
+  "DISPUTE",
+  "DOCUMENTATION",
+  "INQUIRY",
+  "COMPLAINT",
+  "CONFIRMATION",
+  "OTHER",
+] as const;
+
+const PRIORITIES = ["high", "medium", "low"] as const;
+const SENTIMENTS = ["positive", "neutral", "negative", "urgent"] as const;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -94,13 +110,22 @@ serve(async (req) => {
 
         const systemPrompt = `You are an AI assistant for Recouply.ai, a collections platform. Analyze customer responses to collection emails and extract:
 1. A brief 1-3 sentence summary
-2. Actionable items with type, confidence, and details
+2. Category classification
+3. Priority level
+4. Sentiment analysis
+5. Actionable items with type, confidence, and details
 
 Valid action types: ${ACTION_TYPES.join(", ")}
+Valid categories: ${CATEGORIES.join(", ")}
+Valid priorities: ${PRIORITIES.join(", ")}
+Valid sentiments: ${SENTIMENTS.join(", ")}
 
 Return JSON only in this exact format:
 {
   "summary": "Brief summary here",
+  "category": "PAYMENT",
+  "priority": "high",
+  "sentiment": "neutral",
   "actions": [
     {
       "type": "W9_REQUEST",
@@ -160,16 +185,23 @@ Extract summary and actions.`;
         // Parse AI response
         const parsed = JSON.parse(jsonContent);
         const summary = parsed.summary || "No summary generated";
+        const category = parsed.category || "OTHER";
+        const priority = parsed.priority || "medium";
+        const sentiment = parsed.sentiment || "neutral";
         const actions = parsed.actions || [];
 
-        // Update inbound_emails
+        // Update inbound_emails with full categorization
         await supabase
           .from("inbound_emails")
           .update({
             ai_summary: summary,
+            ai_category: category,
+            ai_priority: priority,
+            ai_sentiment: sentiment,
             ai_actions: actions,
             ai_processed_at: new Date().toISOString(),
             status: "processed",
+            action_status: actions.length > 0 ? "open" : "closed",
           })
           .eq("id", email.id);
 

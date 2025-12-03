@@ -48,6 +48,9 @@ export interface InboundEmailFilters {
   start_date?: string;
   end_date?: string;
   hide_processed?: boolean;
+  action_status?: string;
+  ai_category?: string;
+  ai_priority?: string;
 }
 
 export function useInboundEmails() {
@@ -74,6 +77,21 @@ export function useInboundEmails() {
       // Hide processed emails if requested
       if (filters.hide_processed) {
         query = query.neq("status", "processed");
+      }
+
+      // Filter by action status
+      if (filters.action_status && filters.action_status !== "all") {
+        query = query.eq("action_status", filters.action_status);
+      }
+
+      // Filter by AI category
+      if (filters.ai_category && filters.ai_category !== "all") {
+        query = query.eq("ai_category", filters.ai_category);
+      }
+
+      // Filter by AI priority
+      if (filters.ai_priority && filters.ai_priority !== "all") {
+        query = query.eq("ai_priority", filters.ai_priority);
       }
 
       if (filters.search) {
@@ -180,10 +198,76 @@ export function useInboundEmails() {
     }
   };
 
+  const updateActionStatus = async (emailId: string, actionStatus: string, notes?: string) => {
+    try {
+      const updates: Record<string, any> = {
+        action_status: actionStatus,
+      };
+      
+      if (actionStatus === "closed") {
+        updates.action_closed_at = new Date().toISOString();
+      }
+      
+      if (notes) {
+        updates.action_notes = notes;
+      }
+
+      const { error } = await supabase
+        .from("inbound_emails")
+        .update(updates)
+        .eq("id", emailId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Action marked as ${actionStatus}`,
+      });
+      return true;
+    } catch (error: any) {
+      console.error("Error updating action status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update action status",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const forwardEmails = async (emailIds: string[], forwardTo: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("forward-inbound-email", {
+        body: { email_ids: emailIds, forward_to: forwardTo },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Forwarded ${data.forwarded} email(s) to ${forwardTo}`,
+      });
+      return data;
+    } catch (error: any) {
+      console.error("Error forwarding emails:", error);
+      toast({
+        title: "Error",
+        description: "Failed to forward emails",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     fetchInboundEmails,
     triggerAIProcessing,
     updateEmailStatus,
+    updateActionStatus,
+    forwardEmails,
     isLoading,
   };
 }

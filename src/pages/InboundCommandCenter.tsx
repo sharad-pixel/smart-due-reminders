@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInboundEmails, InboundEmail } from "@/hooks/useInboundEmails";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Inbox,
   Filter,
@@ -24,6 +25,12 @@ import {
   Sparkles,
   ExternalLink,
   EyeOff,
+  Forward,
+  CheckSquare,
+  Tag,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -35,28 +42,46 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function InboundCommandCenter() {
-  const { fetchInboundEmails, triggerAIProcessing, isLoading } = useInboundEmails();
+  const { fetchInboundEmails, triggerAIProcessing, updateActionStatus, forwardEmails, isLoading } = useInboundEmails();
   const [emails, setEmails] = useState<InboundEmail[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
+  const [forwardEmail, setForwardEmail] = useState("");
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
+  const [actionStatusFilter, setActionStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
   const [debtorStatusFilter, setDebtorStatusFilter] = useState<"all" | "active" | "archived">("all");
   const [hideProcessed, setHideProcessed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadEmails();
-  }, [statusFilter, actionFilter, debtorStatusFilter, hideProcessed]);
+  }, [statusFilter, actionFilter, actionStatusFilter, categoryFilter, priorityFilter, debtorStatusFilter, hideProcessed]);
 
   const loadEmails = async () => {
     const data = await fetchInboundEmails({
       status: statusFilter !== "all" ? statusFilter : undefined,
       action_type: actionFilter !== "all" ? actionFilter : undefined,
+      action_status: actionStatusFilter !== "all" ? actionStatusFilter : undefined,
+      ai_category: categoryFilter !== "all" ? categoryFilter : undefined,
+      ai_priority: priorityFilter !== "all" ? priorityFilter : undefined,
       debtor_status: debtorStatusFilter,
       hide_processed: hideProcessed,
       search: searchQuery || undefined,
@@ -76,6 +101,112 @@ export default function InboundCommandCenter() {
   const handleViewDetails = (email: InboundEmail) => {
     setSelectedEmail(email);
     setDetailsOpen(true);
+  };
+
+  const handleToggleSelect = (emailId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => [...prev, emailId]);
+    } else {
+      setSelectedIds((prev) => prev.filter((id) => id !== emailId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(emails.map((e) => e.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCloseAction = async (emailId: string) => {
+    const success = await updateActionStatus(emailId, "closed");
+    if (success) {
+      loadEmails();
+      if (selectedEmail?.id === emailId) {
+        setSelectedEmail({ ...selectedEmail, action_status: "closed" } as any);
+      }
+    }
+  };
+
+  const handleReopenAction = async (emailId: string) => {
+    const success = await updateActionStatus(emailId, "open");
+    if (success) {
+      loadEmails();
+      if (selectedEmail?.id === emailId) {
+        setSelectedEmail({ ...selectedEmail, action_status: "open" } as any);
+      }
+    }
+  };
+
+  const handleForwardSelected = () => {
+    if (selectedIds.length === 0) {
+      toast.error("Please select at least one email to forward");
+      return;
+    }
+    setForwardDialogOpen(true);
+  };
+
+  const handleForwardSingle = (emailId: string) => {
+    setSelectedIds([emailId]);
+    setForwardDialogOpen(true);
+  };
+
+  const handleConfirmForward = async () => {
+    if (!forwardEmail) {
+      toast.error("Please enter an email address");
+      return;
+    }
+    await forwardEmails(selectedIds, forwardEmail);
+    setForwardDialogOpen(false);
+    setForwardEmail("");
+    setSelectedIds([]);
+    loadEmails();
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
+      case "medium":
+        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+      case "low":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "PAYMENT":
+        return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+      case "DISPUTE":
+        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+      case "DOCUMENTATION":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      case "INQUIRY":
+        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+      case "COMPLAINT":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
+      case "CONFIRMATION":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+    }
+  };
+
+  const getSentimentIcon = (sentiment: string) => {
+    switch (sentiment) {
+      case "positive":
+        return <TrendingUp className="h-3 w-3 text-green-500" />;
+      case "negative":
+        return <TrendingDown className="h-3 w-3 text-red-500" />;
+      case "urgent":
+        return <AlertCircle className="h-3 w-3 text-orange-500" />;
+      default:
+        return <Minus className="h-3 w-3 text-gray-500" />;
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -135,8 +266,29 @@ export default function InboundCommandCenter() {
     { value: "DISPUTE_PO", label: "Dispute PO" },
     { value: "NEEDS_CALLBACK", label: "Callback" },
     { value: "PROMISE_TO_PAY", label: "Promise to Pay" },
+    { value: "INVOICE_COPY_REQUEST", label: "Invoice Copy" },
+    { value: "PAYMENT_CONFIRMATION", label: "Payment Confirmation" },
+    { value: "GENERAL_INQUIRY", label: "General Inquiry" },
     { value: "WRONG_CUSTOMER", label: "Wrong Customer" },
     { value: "OTHER", label: "Other" },
+  ];
+
+  const CATEGORIES = [
+    { value: "all", label: "All Categories" },
+    { value: "PAYMENT", label: "Payment" },
+    { value: "DISPUTE", label: "Dispute" },
+    { value: "DOCUMENTATION", label: "Documentation" },
+    { value: "INQUIRY", label: "Inquiry" },
+    { value: "COMPLAINT", label: "Complaint" },
+    { value: "CONFIRMATION", label: "Confirmation" },
+    { value: "OTHER", label: "Other" },
+  ];
+
+  const PRIORITIES = [
+    { value: "all", label: "All Priorities" },
+    { value: "high", label: "High" },
+    { value: "medium", label: "Medium" },
+    { value: "low", label: "Low" },
   ];
 
   return (
@@ -169,14 +321,25 @@ export default function InboundCommandCenter() {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-            </CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filters
+              </CardTitle>
+              {selectedIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{selectedIds.length} selected</Badge>
+                  <Button size="sm" variant="outline" onClick={handleForwardSelected}>
+                    <Forward className="h-4 w-4 mr-2" />
+                    Forward Selected
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="flex gap-2">
                 <Input
                   placeholder="Search emails..."
@@ -199,6 +362,46 @@ export default function InboundCommandCenter() {
                   <SelectItem value="linked">Linked</SelectItem>
                   <SelectItem value="processed">Processed</SelectItem>
                   <SelectItem value="error">Error</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={actionStatusFilter} onValueChange={setActionStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Action Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Actions</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -241,6 +444,20 @@ export default function InboundCommandCenter() {
           </CardContent>
         </Card>
 
+        {/* Bulk Selection Header */}
+        {emails.length > 0 && (
+          <div className="flex items-center gap-2 px-2">
+            <Checkbox
+              id="select-all"
+              checked={selectedIds.length === emails.length && emails.length > 0}
+              onCheckedChange={handleSelectAll}
+            />
+            <Label htmlFor="select-all" className="text-sm cursor-pointer">
+              Select All
+            </Label>
+          </div>
+        )}
+
         {/* Email List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -258,17 +475,43 @@ export default function InboundCommandCenter() {
               emails.map((email) => (
                 <Card
                   key={email.id}
-                  className="hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => handleViewDetails(email)}
+                  className={`hover:shadow-md transition-shadow ${selectedIds.includes(email.id) ? 'ring-2 ring-primary' : ''}`}
                 >
                   <CardContent className="py-4">
                     <div className="flex items-start gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedIds.includes(email.id)}
+                        onCheckedChange={(checked) => handleToggleSelect(email.id, !!checked)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={getStatusColor(email.status)} variant="outline">
                             {getStatusIcon(email.status)}
                             <span className="ml-1">{email.status}</span>
                           </Badge>
+                          {(email as any).ai_category && (
+                            <Badge className={getCategoryColor((email as any).ai_category)} variant="outline">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {(email as any).ai_category}
+                            </Badge>
+                          )}
+                          {(email as any).ai_priority && (
+                            <Badge className={getPriorityColor((email as any).ai_priority)} variant="outline">
+                              {(email as any).ai_priority}
+                            </Badge>
+                          )}
+                          {(email as any).ai_sentiment && getSentimentIcon((email as any).ai_sentiment)}
+                          {(email as any).action_status && (
+                            <Badge variant={(email as any).action_status === "closed" ? "secondary" : "default"}>
+                              {(email as any).action_status === "closed" ? (
+                                <CheckSquare className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Clock className="h-3 w-3 mr-1" />
+                              )}
+                              {(email as any).action_status}
+                            </Badge>
+                          )}
                           <span className="text-sm text-muted-foreground">
                             {format(new Date(email.created_at), "MMM d, yyyy h:mm a")}
                           </span>
@@ -315,6 +558,41 @@ export default function InboundCommandCenter() {
                             Invoice: {(email.invoices as any).invoice_number}
                           </Badge>
                         )}
+                        <div className="flex gap-1 mt-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleForwardSingle(email.id);
+                            }}
+                          >
+                            <Forward className="h-4 w-4" />
+                          </Button>
+                          {(email as any).action_status !== "closed" ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCloseAction(email.id);
+                              }}
+                            >
+                              <CheckSquare className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReopenAction(email.id);
+                              }}
+                            >
+                              <Clock className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -335,13 +613,69 @@ export default function InboundCommandCenter() {
             {selectedEmail && (
               <ScrollArea className="h-[calc(100vh-8rem)] mt-6">
                 <div className="space-y-6">
-                  {/* Status */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Status</h3>
-                    <Badge className={getStatusColor(selectedEmail.status)}>
-                      {getStatusIcon(selectedEmail.status)}
-                      <span className="ml-2">{selectedEmail.status}</span>
-                    </Badge>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleForwardSingle(selectedEmail.id)}
+                    >
+                      <Forward className="h-4 w-4 mr-2" />
+                      Forward
+                    </Button>
+                    {(selectedEmail as any).action_status !== "closed" ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleCloseAction(selectedEmail.id)}
+                      >
+                        <CheckSquare className="h-4 w-4 mr-2" />
+                        Close Action
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleReopenAction(selectedEmail.id)}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Reopen Action
+                      </Button>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Status & Classification */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium">Status & Classification</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge className={getStatusColor(selectedEmail.status)}>
+                        {getStatusIcon(selectedEmail.status)}
+                        <span className="ml-2">{selectedEmail.status}</span>
+                      </Badge>
+                      {(selectedEmail as any).ai_category && (
+                        <Badge className={getCategoryColor((selectedEmail as any).ai_category)}>
+                          <Tag className="h-3 w-3 mr-1" />
+                          {(selectedEmail as any).ai_category}
+                        </Badge>
+                      )}
+                      {(selectedEmail as any).ai_priority && (
+                        <Badge className={getPriorityColor((selectedEmail as any).ai_priority)}>
+                          {(selectedEmail as any).ai_priority} priority
+                        </Badge>
+                      )}
+                      {(selectedEmail as any).ai_sentiment && (
+                        <Badge variant="outline" className="gap-1">
+                          {getSentimentIcon((selectedEmail as any).ai_sentiment)}
+                          {(selectedEmail as any).ai_sentiment}
+                        </Badge>
+                      )}
+                      {(selectedEmail as any).action_status && (
+                        <Badge variant={(selectedEmail as any).action_status === "closed" ? "secondary" : "default"}>
+                          Action: {(selectedEmail as any).action_status}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <Separator />
@@ -474,6 +808,39 @@ export default function InboundCommandCenter() {
           </SheetContent>
         </Sheet>
       </div>
+
+        {/* Forward Dialog */}
+        <Dialog open={forwardDialogOpen} onOpenChange={setForwardDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Forward Email(s)</DialogTitle>
+              <DialogDescription>
+                Forward {selectedIds.length} email(s) to an email address
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="forward-email">Email Address</Label>
+                <Input
+                  id="forward-email"
+                  type="email"
+                  placeholder="colleague@company.com"
+                  value={forwardEmail}
+                  onChange={(e) => setForwardEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setForwardDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmForward} disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Forward className="h-4 w-4 mr-2" />}
+                Forward
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </Layout>
   );
 }
