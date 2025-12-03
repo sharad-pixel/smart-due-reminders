@@ -323,11 +323,60 @@ Deno.serve(async (req) => {
       workflow_id: newWorkflow.id,
     }));
 
-    const { error: stepsError } = await supabase
+    const { data: createdSteps, error: stepsError } = await supabase
       .from('collection_workflow_steps')
-      .insert(stepsWithWorkflowId);
+      .insert(stepsWithWorkflowId)
+      .select();
 
     if (stepsError) throw stepsError;
+
+    // Get persona for this bucket
+    let minDays = 0;
+    switch (aging_bucket) {
+      case 'dpd_1_30': minDays = 1; break;
+      case 'dpd_31_60': minDays = 31; break;
+      case 'dpd_61_90': minDays = 61; break;
+      case 'dpd_91_120': minDays = 91; break;
+      case 'dpd_121_150': minDays = 121; break;
+      case 'dpd_150_plus': minDays = 151; break;
+    }
+
+    const { data: persona } = await supabase
+      .from('ai_agent_personas')
+      .select('id')
+      .lte('bucket_min', minDays)
+      .or(`bucket_max.is.null,bucket_max.gte.${minDays}`)
+      .order('bucket_min', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Create draft templates with pre-written content
+    if (createdSteps && createdSteps.length > 0) {
+      const draftTemplates = createdSteps.map((step: any) => ({
+        user_id: user.id,
+        workflow_id: newWorkflow.id,
+        workflow_step_id: step.id,
+        agent_persona_id: persona?.id || null,
+        aging_bucket: aging_bucket,
+        channel: step.channel,
+        subject_template: step.subject_template,
+        message_body_template: step.body_template,
+        step_number: step.step_order,
+        day_offset: step.day_offset,
+        status: 'approved', // Pre-approved since these are default templates
+      }));
+
+      const { error: templatesError } = await supabase
+        .from('draft_templates')
+        .insert(draftTemplates);
+
+      if (templatesError) {
+        console.error('[SETUP-DEFAULT-WORKFLOWS] Error creating templates:', templatesError);
+        // Don't fail the workflow creation, just log the error
+      } else {
+        console.log(`[SETUP-DEFAULT-WORKFLOWS] Created ${draftTemplates.length} draft templates`);
+      }
+    }
 
     console.log(`[SETUP-DEFAULT-WORKFLOWS] Created workflow ${newWorkflow.id} for bucket ${aging_bucket}`);
 
@@ -335,7 +384,8 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: `Default workflow created for ${aging_bucket}`,
-        workflow_id: newWorkflow.id 
+        workflow_id: newWorkflow.id,
+        templates_created: createdSteps?.length || 0
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
