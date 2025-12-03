@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, User, Bot } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { formatTaskType } from "@/lib/taskHelpers";
 
 interface CreateTaskModalProps {
@@ -34,8 +34,6 @@ const TASK_TYPES = [
   "MANUAL_REVIEW",
 ];
 
-const AI_PERSONAS = ["Sam", "James", "Katy", "Troy", "Gotti", "Rocco"];
-
 const CreateTaskModal = ({
   open,
   onOpenChange,
@@ -49,9 +47,7 @@ const CreateTaskModal = ({
   const [summary, setSummary] = useState("");
   const [details, setDetails] = useState("");
   const [priority, setPriority] = useState<"normal" | "high" | "low">("normal");
-  const [assignmentType, setAssignmentType] = useState<"none" | "team" | "persona">("none");
   const [assignedTo, setAssignedTo] = useState<string>("");
-  const [assignedPersona, setAssignedPersona] = useState<string>("");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
@@ -101,8 +97,7 @@ const CreateTaskModal = ({
           status: "open",
           priority: priority,
           source: "user_created",
-          assigned_to: assignmentType === "team" ? assignedTo : null,
-          assigned_persona: assignmentType === "persona" ? assignedPersona : null,
+          assigned_to: assignedTo || null,
         });
 
       if (error) throw error;
@@ -112,9 +107,7 @@ const CreateTaskModal = ({
       setDetails("");
       setTaskType("MANUAL_REVIEW");
       setPriority("normal");
-      setAssignmentType("none");
       setAssignedTo("");
-      setAssignedPersona("");
       onOpenChange(false);
       onTaskCreated?.();
     } catch (error: any) {
@@ -166,72 +159,26 @@ const CreateTaskModal = ({
           </div>
 
           <div>
-            <Label htmlFor="assignmentType">Assign To</Label>
-            <Select value={assignmentType} onValueChange={(value: any) => {
-              setAssignmentType(value);
-              setAssignedTo("");
-              setAssignedPersona("");
-            }}>
-              <SelectTrigger id="assignmentType">
-                <SelectValue placeholder="Select assignment type" />
+            <Label htmlFor="assignedTo">Assign To</Label>
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger id="assignedTo">
+                <SelectValue placeholder="Select team member" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Unassigned</SelectItem>
-                <SelectItem value="team">
-                  <span className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Team Member
-                  </span>
-                </SelectItem>
-                <SelectItem value="persona">
-                  <span className="flex items-center gap-2">
-                    <Bot className="h-4 w-4" />
-                    AI Persona
-                  </span>
-                </SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {teamMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name} ({member.email})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {teamMembers.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                No team members found. Add team members in Settings.
+              </p>
+            )}
           </div>
-
-          {assignmentType === "team" && (
-            <div>
-              <Label htmlFor="assignedTo">Team Member</Label>
-              <Select value={assignedTo} onValueChange={setAssignedTo}>
-                <SelectTrigger id="assignedTo">
-                  <SelectValue placeholder="Select team member" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.length === 0 ? (
-                    <SelectItem value="" disabled>No team members found</SelectItem>
-                  ) : (
-                    teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name} ({member.email})
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {assignmentType === "persona" && (
-            <div>
-              <Label htmlFor="assignedPersona">AI Persona</Label>
-              <Select value={assignedPersona} onValueChange={setAssignedPersona}>
-                <SelectTrigger id="assignedPersona">
-                  <SelectValue placeholder="Select AI persona" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AI_PERSONAS.map((persona) => (
-                    <SelectItem key={persona} value={persona}>
-                      {persona}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <div>
             <Label htmlFor="summary">Summary *</Label>
