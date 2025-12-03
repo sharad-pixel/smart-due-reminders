@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.forward-inbound-email]
 verify_jwt = true
+
+[functions.send-admin-alert]
+verify_jwt = false
