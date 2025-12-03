@@ -5,9 +5,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * AI PROCESSING FOR INBOUND EMAILS
  * 
  * Processes unprocessed inbound emails and:
- * 1. Generates AI summary (1-3 sentences)
- * 2. Extracts actionable tasks with structured data
- * 3. Creates tasks in collection_tasks table
+ * 1. Detects if sender is a team member (internal communication)
+ * 2. Generates AI summary (1-3 sentences)
+ * 3. Extracts actionable tasks with structured data
+ * 4. Creates tasks in collection_tasks table
  * 
  * Can be triggered:
  * - Via cron (scheduled)
@@ -34,6 +35,17 @@ const ACTION_TYPES = [
   "OTHER",
 ] as const;
 
+const INTERNAL_ACTION_TYPES = [
+  "ESCALATION",
+  "STATUS_UPDATE",
+  "INTERNAL_NOTE",
+  "REASSIGNMENT_REQUEST",
+  "FOLLOW_UP_NEEDED",
+  "INFO_REQUEST",
+  "APPROVAL_NEEDED",
+  "OTHER",
+] as const;
+
 const CATEGORIES = [
   "PAYMENT",
   "DISPUTE",
@@ -41,6 +53,7 @@ const CATEGORIES = [
   "INQUIRY",
   "COMPLAINT",
   "CONFIRMATION",
+  "INTERNAL",
   "OTHER",
 ] as const;
 
@@ -108,7 +121,77 @@ serve(async (req) => {
         const debtorInfo = email.debtors as any;
         const invoiceInfo = email.invoices as any;
 
-        const systemPrompt = `You are an AI assistant for Recouply.ai, a collections platform. Analyze customer responses to collection emails and extract:
+        // Check if sender is a team member (internal communication)
+        const fromEmailLower = email.from_email?.toLowerCase().trim() || "";
+        let isInternalCommunication = false;
+        let teamMemberName = "";
+
+        if (email.user_id && fromEmailLower) {
+          const { data: teamMember } = await supabase
+            .from("team_members")
+            .select("name, email")
+            .eq("user_id", email.user_id)
+            .eq("is_active", true)
+            .ilike("email", fromEmailLower)
+            .maybeSingle();
+
+          if (teamMember) {
+            isInternalCommunication = true;
+            teamMemberName = teamMember.name;
+            console.log(`[AI-PROCESS] Detected internal communication from team member: ${teamMemberName}`);
+          }
+        }
+
+        let systemPrompt: string;
+        let userPrompt: string;
+
+        if (isInternalCommunication) {
+          // Internal communication prompt
+          systemPrompt = `You are an AI assistant for Recouply.ai, a collections platform. This email is from an INTERNAL team member (${teamMemberName}), NOT a customer/debtor.
+
+Analyze internal team communications about collection tasks/invoices and extract:
+1. A brief 1-3 sentence summary of what the team member is communicating
+2. Category classification (always use INTERNAL for team communications)
+3. Priority level based on urgency
+4. Sentiment analysis
+5. Actionable items for the collections team
+
+Valid internal action types: ${INTERNAL_ACTION_TYPES.join(", ")}
+Valid categories: INTERNAL
+Valid priorities: ${PRIORITIES.join(", ")}
+Valid sentiments: ${SENTIMENTS.join(", ")}
+
+Return JSON only in this exact format:
+{
+  "summary": "Brief summary here",
+  "category": "INTERNAL",
+  "priority": "medium",
+  "sentiment": "neutral",
+  "is_internal": true,
+  "team_member_name": "${teamMemberName}",
+  "actions": [
+    {
+      "type": "STATUS_UPDATE",
+      "confidence": 0.95,
+      "details": "Team member provided update on customer contact"
+    }
+  ]
+}`;
+
+          userPrompt = `Analyze this INTERNAL team member email:
+
+From: ${teamMemberName} (${email.from_email})
+Subject: ${email.subject}
+${debtorInfo ? `Related Debtor: ${debtorInfo.name} (${debtorInfo.company_name})` : ""}
+${invoiceInfo ? `Related Invoice: ${invoiceInfo.invoice_number} - $${invoiceInfo.amount}` : ""}
+
+Body:
+${email.text_body || email.html_body || "(No body)"}
+
+Extract summary and internal action items. Remember this is internal team communication, not a customer response.`;
+        } else {
+          // External/customer communication prompt (original)
+          systemPrompt = `You are an AI assistant for Recouply.ai, a collections platform. Analyze customer responses to collection emails and extract:
 1. A brief 1-3 sentence summary
 2. Category classification
 3. Priority level
@@ -135,7 +218,7 @@ Return JSON only in this exact format:
   ]
 }`;
 
-        const userPrompt = `Analyze this email:
+          userPrompt = `Analyze this email:
 
 From: ${email.from_email}
 Subject: ${email.subject}
@@ -146,6 +229,7 @@ Body:
 ${email.text_body || email.html_body || "(No body)"}
 
 Extract summary and actions.`;
+        }
 
         // Call Lovable AI
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -185,7 +269,7 @@ Extract summary and actions.`;
         // Parse AI response
         const parsed = JSON.parse(jsonContent);
         const summary = parsed.summary || "No summary generated";
-        const category = parsed.category || "OTHER";
+        const category = isInternalCommunication ? "INTERNAL" : (parsed.category || "OTHER");
         const priority = parsed.priority || "medium";
         const sentiment = parsed.sentiment || "neutral";
         const actions = parsed.actions || [];
@@ -194,7 +278,9 @@ Extract summary and actions.`;
         await supabase
           .from("inbound_emails")
           .update({
-            ai_summary: summary,
+            ai_summary: isInternalCommunication 
+              ? `[INTERNAL - ${teamMemberName}] ${summary}` 
+              : summary,
             ai_category: category,
             ai_priority: priority,
             ai_sentiment: sentiment,
@@ -212,18 +298,22 @@ Extract summary and actions.`;
             debtor_id: email.debtor_id,
             invoice_id: email.invoice_id,
             task_type: action.type,
-            priority: action.type === "PROMISE_TO_PAY" ? "high" : "normal",
+            priority: action.type === "PROMISE_TO_PAY" || action.type === "ESCALATION" ? "high" : "normal",
             status: "open",
-            summary: `${action.type}: ${email.subject}`,
-            details: action.details || "",
-            source: "ai_extraction",
+            summary: isInternalCommunication 
+              ? `[Internal] ${action.type}: ${email.subject}`
+              : `${action.type}: ${email.subject}`,
+            details: isInternalCommunication
+              ? `From team member ${teamMemberName}: ${action.details || ""}`
+              : (action.details || ""),
+            source: isInternalCommunication ? "internal_communication" : "ai_extraction",
           }));
 
           await supabase.from("collection_tasks").insert(tasks);
         }
 
         processed++;
-        console.log(`[AI-PROCESS] ✅ Processed email ${email.id}`);
+        console.log(`[AI-PROCESS] ✅ Processed email ${email.id} (internal: ${isInternalCommunication})`);
       } catch (error: any) {
         console.error(`[AI-PROCESS] ❌ Error processing ${email.id}:`, error.message);
         await supabase
