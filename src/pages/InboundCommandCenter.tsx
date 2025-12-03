@@ -25,7 +25,7 @@ import {
   Bot,
   Sparkles,
   ExternalLink,
-  EyeOff,
+  
   Forward,
   CheckSquare,
   Tag,
@@ -98,14 +98,13 @@ export default function InboundCommandCenter() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [debtorStatusFilter, setDebtorStatusFilter] = useState<"all" | "active" | "archived">("all");
-  const [hideProcessed, setHideProcessed] = useState(false);
   const [hideClosed, setHideClosed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadEmails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, actionFilter, actionStatusFilter, categoryFilter, priorityFilter, debtorStatusFilter, hideProcessed, hideClosed]);
+  }, [statusFilter, actionFilter, actionStatusFilter, categoryFilter, priorityFilter, debtorStatusFilter, hideClosed]);
 
   const loadEmails = async () => {
     const data = await fetchInboundEmails({
@@ -115,7 +114,6 @@ export default function InboundCommandCenter() {
       ai_category: categoryFilter !== "all" ? categoryFilter : undefined,
       ai_priority: priorityFilter !== "all" ? priorityFilter : undefined,
       debtor_status: debtorStatusFilter,
-      hide_processed: hideProcessed,
       hide_closed: hideClosed,
       search: searchQuery || undefined,
     });
@@ -546,29 +544,16 @@ export default function InboundCommandCenter() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="hide-processed"
-                    checked={hideProcessed}
-                    onCheckedChange={setHideProcessed}
-                  />
-                  <Label htmlFor="hide-processed" className="flex items-center gap-1 text-sm cursor-pointer">
-                    <EyeOff className="h-4 w-4" />
-                    Hide Processed
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="hide-closed"
-                    checked={hideClosed}
-                    onCheckedChange={setHideClosed}
-                  />
-                  <Label htmlFor="hide-closed" className="flex items-center gap-1 text-sm cursor-pointer">
-                    <CheckSquare className="h-4 w-4" />
-                    Hide Closed
-                  </Label>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="hide-closed"
+                  checked={hideClosed}
+                  onCheckedChange={setHideClosed}
+                />
+                <Label htmlFor="hide-closed" className="flex items-center gap-1 text-sm cursor-pointer">
+                  <CheckSquare className="h-4 w-4" />
+                  Hide Closed
+                </Label>
               </div>
             </div>
           </CardContent>
