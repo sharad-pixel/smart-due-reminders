@@ -278,19 +278,9 @@ serve(async (req) => {
       });
     }
 
-    if (!workflow) {
-      return new Response(JSON.stringify({ 
-        error: `No workflow found for ${aging_bucket}. Please set up a workflow first.`,
-        success: false
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // If workflow has no steps, create them
-    if (!workflow.steps || workflow.steps.length === 0) {
-      console.log(`Workflow ${workflow.id} has no steps - calling setup-default-workflows`);
+    // If no workflow exists or workflow has no steps, create them
+    if (!workflow || !workflow.steps || workflow.steps.length === 0) {
+      console.log(`No workflow or no steps for ${aging_bucket} - calling setup-default-workflows`);
       
       // Call setup-default-workflows to create the workflow with steps and templates
       const setupResponse = await supabase.functions.invoke('setup-default-workflows', {
