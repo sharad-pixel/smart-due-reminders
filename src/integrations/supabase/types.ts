@@ -2213,6 +2213,72 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          debtor_id: string | null
+          from_email: string
+          html_body: string | null
+          id: string
+          invoice_id: string | null
+          raw_body: string | null
+          subject: string | null
+          text_body: string | null
+          to_email: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          debtor_id?: string | null
+          from_email: string
+          html_body?: string | null
+          id?: string
+          invoice_id?: string | null
+          raw_body?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          debtor_id?: string | null
+          from_email?: string
+          html_body?: string | null
+          id?: string
+          invoice_id?: string | null
+          raw_body?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mfa_settings: {
         Row: {
           backup_codes: string[] | null
