@@ -60,6 +60,198 @@ const CATEGORIES = [
 const PRIORITIES = ["high", "medium", "low"] as const;
 const SENTIMENTS = ["positive", "neutral", "negative", "urgent"] as const;
 
+// Persona bucket mapping
+const PERSONA_BUCKET_MAP: Record<string, string> = {
+  dpd_1_30: "Sam",
+  dpd_31_60: "James",
+  dpd_61_90: "Katy",
+  dpd_91_120: "Troy",
+  dpd_121_150: "Gotti",
+  dpd_150_plus: "Rocco",
+};
+
+async function triggerWorkflowEngagement(
+  supabase: any,
+  apiKey: string,
+  invoiceId: string,
+  userId: string,
+  debtorId: string | null,
+  emailContext: {
+    inboundEmailId: string;
+    fromEmail: string;
+    subject: string;
+    summary: string;
+    actions: any[];
+  }
+) {
+  console.log(`[WORKFLOW] Checking workflow engagement for invoice ${invoiceId}`);
+
+  // Fetch invoice with debtor info
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .select(`
+      id,
+      invoice_number,
+      amount,
+      due_date,
+      aging_bucket,
+      status,
+      debtors (id, name, company_name, email)
+    `)
+    .eq("id", invoiceId)
+    .single();
+
+  if (invoiceError || !invoice) {
+    console.log(`[WORKFLOW] Invoice not found: ${invoiceId}`);
+    return;
+  }
+
+  if (!invoice.aging_bucket || invoice.aging_bucket === "current" || invoice.aging_bucket === "paid") {
+    console.log(`[WORKFLOW] Invoice not in active aging bucket: ${invoice.aging_bucket}`);
+    return;
+  }
+
+  if (invoice.status !== "Open" && invoice.status !== "InPaymentPlan") {
+    console.log(`[WORKFLOW] Invoice status not eligible: ${invoice.status}`);
+    return;
+  }
+
+  // Check for active workflow in this aging bucket
+  const { data: workflow, error: workflowError } = await supabase
+    .from("collection_workflows")
+    .select("id, name, aging_bucket, auto_generate_drafts")
+    .eq("aging_bucket", invoice.aging_bucket)
+    .eq("is_active", true)
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .order("user_id", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .single();
+
+  if (workflowError || !workflow) {
+    console.log(`[WORKFLOW] No active workflow for bucket ${invoice.aging_bucket}`);
+    return;
+  }
+
+  console.log(`[WORKFLOW] Found active workflow: ${workflow.name} for bucket ${invoice.aging_bucket}`);
+
+  // Get the appropriate persona for this bucket
+  const personaName = PERSONA_BUCKET_MAP[invoice.aging_bucket] || "Sam";
+
+  // Fetch persona details
+  const { data: persona } = await supabase
+    .from("ai_agent_personas")
+    .select("id, name, tone_guidelines, persona_summary")
+    .eq("name", personaName)
+    .single();
+
+  if (!persona) {
+    console.log(`[WORKFLOW] Persona ${personaName} not found`);
+    return;
+  }
+
+  // Check if we already have a pending response draft for this invoice
+  const { data: existingDraft } = await supabase
+    .from("ai_drafts")
+    .select("id")
+    .eq("invoice_id", invoiceId)
+    .eq("status", "pending_approval")
+    .limit(1);
+
+  if (existingDraft && existingDraft.length > 0) {
+    console.log(`[WORKFLOW] Pending draft already exists for invoice ${invoiceId}`);
+    return;
+  }
+
+  // Generate response draft using AI
+  const debtor = invoice.debtors as any;
+  const systemPrompt = `You are ${persona.name}, an AI collections agent for Recouply.ai. ${persona.persona_summary}
+
+Tone guidelines: ${persona.tone_guidelines}
+
+Generate a professional follow-up email response based on the customer's inbound communication. The response should:
+1. Acknowledge their message/concern
+2. Address any specific issues or requests they mentioned
+3. Move the conversation toward resolution/payment
+4. Maintain the appropriate tone for the aging bucket
+
+Keep the response concise and professional.`;
+
+  const userPrompt = `Generate a follow-up response email for:
+
+Customer: ${debtor?.name || "Customer"} (${debtor?.company_name || ""})
+Invoice: ${invoice.invoice_number} - $${invoice.amount}
+Due Date: ${invoice.due_date}
+Aging Bucket: ${invoice.aging_bucket}
+
+Customer's Original Email Subject: ${emailContext.subject}
+AI Summary of Customer's Email: ${emailContext.summary}
+${emailContext.actions.length > 0 ? `Detected Action Items: ${emailContext.actions.map((a: any) => a.type).join(", ")}` : ""}
+
+Generate a subject line and email body that appropriately responds to this communication.
+
+Return JSON only:
+{
+  "subject": "Re: Subject line here",
+  "body": "Email body here"
+}`;
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    const errorText = await aiResponse.text();
+    throw new Error(`AI API error: ${aiResponse.status} ${errorText}`);
+  }
+
+  const aiData = await aiResponse.json();
+  const content = aiData.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error("No content in AI response for draft");
+  }
+
+  // Parse response
+  let jsonContent = content.trim();
+  if (jsonContent.startsWith("```")) {
+    jsonContent = jsonContent.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  }
+
+  const draftContent = JSON.parse(jsonContent);
+
+  // Create the draft
+  const { error: draftError } = await supabase.from("ai_drafts").insert({
+    user_id: userId,
+    invoice_id: invoiceId,
+    agent_persona_id: persona.id,
+    step_number: 0, // Response draft, not part of regular workflow steps
+    channel: "email",
+    subject: draftContent.subject || `Re: ${emailContext.subject}`,
+    message_body: draftContent.body || "Thank you for your response. We will review and get back to you shortly.",
+    status: "pending_approval",
+    recommended_send_date: new Date().toISOString().split("T")[0],
+    days_past_due: Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)),
+  });
+
+  if (draftError) {
+    throw new Error(`Failed to create draft: ${draftError.message}`);
+  }
+
+  console.log(`[WORKFLOW] ✅ Created response draft for invoice ${invoiceId} using ${personaName}`);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -310,6 +502,29 @@ Extract summary and actions.`;
           }));
 
           await supabase.from("collection_tasks").insert(tasks);
+        }
+
+        // Trigger automatic workflow engagement for external emails linked to invoices
+        if (!isInternalCommunication && email.invoice_id && email.user_id) {
+          try {
+            await triggerWorkflowEngagement(
+              supabase,
+              LOVABLE_API_KEY,
+              email.invoice_id,
+              email.user_id,
+              email.debtor_id,
+              {
+                inboundEmailId: email.id,
+                fromEmail: email.from_email,
+                subject: email.subject,
+                summary,
+                actions,
+              }
+            );
+          } catch (wfError: any) {
+            console.error(`[AI-PROCESS] Workflow engagement failed for email ${email.id}:`, wfError.message);
+            // Don't fail the whole processing if workflow fails
+          }
         }
 
         processed++;
