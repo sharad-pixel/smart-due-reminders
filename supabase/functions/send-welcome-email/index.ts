@@ -1,12 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface WelcomeEmailRequest {
@@ -15,10 +11,19 @@ interface WelcomeEmailRequest {
   userName?: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.error("RESEND_API_KEY is not configured");
+    return new Response(
+      JSON.stringify({ error: "Email service not configured" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
@@ -28,11 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const displayName = userName || companyName || "there";
 
-    const emailResponse = await resend.emails.send({
-      from: "Sharad Chanana - Recouply.ai <notifications@send.inbound.services.recouply.ai>",
-      to: [email],
-      subject: "Welcome to Recouply.ai – Your AI-Powered CashOps Platform",
-      html: `
+    const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -144,28 +145,43 @@ const handler = async (req: Request): Promise<Response> => {
   </table>
 </body>
 </html>
-      `,
-    });
+    `;
 
-    console.log("Welcome email sent successfully:", emailResponse);
-
-    return new Response(JSON.stringify({ success: true, data: emailResponse }), {
-      status: 200,
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
+        Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
-        ...corsHeaders,
       },
+      body: JSON.stringify({
+        from: "Sharad Chanana - Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+        to: [email],
+        subject: "Welcome to Recouply.ai – Your AI-Powered CashOps Platform",
+        html: htmlContent,
+      }),
     });
+
+    const resendData = await resendResponse.json();
+
+    if (!resendResponse.ok) {
+      console.error("Resend API error:", resendData);
+      return new Response(
+        JSON.stringify({ success: false, error: resendData }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Welcome email sent successfully:", resendData);
+
+    return new Response(
+      JSON.stringify({ success: true, message_id: resendData.id }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error: any) {
     console.error("Error in send-welcome-email function:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-};
-
-serve(handler);
+});
