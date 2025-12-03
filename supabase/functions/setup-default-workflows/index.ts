@@ -34,20 +34,91 @@ Deno.serve(async (req) => {
     // Check if workflow already exists for this bucket
     const { data: existingWorkflow } = await supabase
       .from('collection_workflows')
-      .select('id')
+      .select('id, steps:collection_workflow_steps(*)')
       .eq('aging_bucket', aging_bucket)
       .eq('user_id', user.id)
       .maybeSingle();
 
+    // If workflow exists, check if it has templates and create them if missing
     if (existingWorkflow) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Workflow already exists for this bucket',
-          workflow_id: existingWorkflow.id 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Check for existing templates
+      const { data: existingTemplates } = await supabase
+        .from('draft_templates')
+        .select('id')
+        .eq('workflow_id', existingWorkflow.id)
+        .eq('user_id', user.id);
+
+      // If templates already exist, return success
+      if (existingTemplates && existingTemplates.length > 0) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Workflow and templates already exist for this bucket',
+            workflow_id: existingWorkflow.id 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Templates don't exist - create them for existing workflow
+      console.log(`[SETUP-DEFAULT-WORKFLOWS] Workflow exists but no templates - creating templates for ${aging_bucket}`);
+      
+      // Get persona for this bucket
+      let minDays = 0;
+      switch (aging_bucket) {
+        case 'dpd_1_30': minDays = 1; break;
+        case 'dpd_31_60': minDays = 31; break;
+        case 'dpd_61_90': minDays = 61; break;
+        case 'dpd_91_120': minDays = 91; break;
+        case 'dpd_121_150': minDays = 121; break;
+        case 'dpd_150_plus': minDays = 151; break;
+      }
+
+      const { data: persona } = await supabase
+        .from('ai_agent_personas')
+        .select('id')
+        .lte('bucket_min', minDays)
+        .or(`bucket_max.is.null,bucket_max.gte.${minDays}`)
+        .order('bucket_min', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Create templates for existing steps
+      if (existingWorkflow.steps && existingWorkflow.steps.length > 0) {
+        const draftTemplates = existingWorkflow.steps.map((step: any) => ({
+          user_id: user.id,
+          workflow_id: existingWorkflow.id,
+          workflow_step_id: step.id,
+          agent_persona_id: persona?.id || null,
+          aging_bucket: aging_bucket,
+          channel: step.channel,
+          subject_template: step.subject_template,
+          message_body_template: step.body_template,
+          step_number: step.step_order,
+          day_offset: step.day_offset,
+          status: 'approved',
+        }));
+
+        const { error: templatesError } = await supabase
+          .from('draft_templates')
+          .insert(draftTemplates);
+
+        if (templatesError) {
+          console.error('[SETUP-DEFAULT-WORKFLOWS] Error creating templates:', templatesError);
+        } else {
+          console.log(`[SETUP-DEFAULT-WORKFLOWS] Created ${draftTemplates.length} draft templates for existing workflow`);
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Templates created for existing workflow',
+            workflow_id: existingWorkflow.id,
+            templates_created: draftTemplates.length
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Define workflow details based on bucket
