@@ -2471,6 +2471,7 @@ export type Database = {
           address_autocomplete_enabled: boolean | null
           address_autocomplete_provider: string | null
           avatar_url: string | null
+          billing_interval: string | null
           business_address: string | null
           business_address_line1: string | null
           business_address_line2: string | null
@@ -2484,8 +2485,10 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          invoice_limit: number | null
           is_admin: boolean | null
           name: string | null
+          overage_rate: number | null
           password_hash: string | null
           phone: string | null
           plan_id: string | null
@@ -2495,6 +2498,7 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_payment_link_url: string | null
           stripe_subscription_id: string | null
+          subscription_status: string | null
           trial_ends_at: string | null
           twilio_account_sid: string | null
           twilio_auth_token: string | null
@@ -2506,6 +2510,7 @@ export type Database = {
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
           avatar_url?: string | null
+          billing_interval?: string | null
           business_address?: string | null
           business_address_line1?: string | null
           business_address_line2?: string | null
@@ -2519,8 +2524,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id: string
+          invoice_limit?: number | null
           is_admin?: boolean | null
           name?: string | null
+          overage_rate?: number | null
           password_hash?: string | null
           phone?: string | null
           plan_id?: string | null
@@ -2530,6 +2537,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_payment_link_url?: string | null
           stripe_subscription_id?: string | null
+          subscription_status?: string | null
           trial_ends_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
@@ -2541,6 +2549,7 @@ export type Database = {
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
           avatar_url?: string | null
+          billing_interval?: string | null
           business_address?: string | null
           business_address_line1?: string | null
           business_address_line2?: string | null
@@ -2554,8 +2563,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          invoice_limit?: number | null
           is_admin?: boolean | null
           name?: string | null
+          overage_rate?: number | null
           password_hash?: string | null
           phone?: string | null
           plan_id?: string | null
@@ -2565,6 +2576,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_payment_link_url?: string | null
           stripe_subscription_id?: string | null
+          subscription_status?: string | null
           trial_ends_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
