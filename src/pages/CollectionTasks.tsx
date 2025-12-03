@@ -15,7 +15,7 @@ export default function CollectionTasks() {
   const [searchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
   
-  const { fetchTasks, updateTaskStatus, deleteTask, isLoading } = useCollectionTasks();
+  const { fetchTasks, updateTaskStatus, updateTask, deleteTask, isLoading } = useCollectionTasks();
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -58,6 +58,18 @@ export default function CollectionTasks() {
   const handleDelete = async (taskId: string) => {
     await deleteTask(taskId);
     loadTasks();
+  };
+
+  const handleAssign = async (taskId: string, assignedTo: string | null, assignedPersona: string | null) => {
+    try {
+      await updateTask(taskId, {
+        assigned_to: assignedTo || undefined,
+        assigned_persona: assignedPersona || undefined
+      });
+      loadTasks();
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleViewDetails = (task: CollectionTask) => {
@@ -272,6 +284,7 @@ export default function CollectionTasks() {
           onOpenChange={setShowDetailModal}
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}
+          onAssign={handleAssign}
         />
       </div>
     </Layout>

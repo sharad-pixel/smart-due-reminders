@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, AlertTriangle, Info } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Info, User } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { format } from "date-fns";
 
@@ -65,6 +65,16 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
             <Clock className="h-3 w-3" />
             <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
               Due: {format(new Date(task.due_date), 'MMM d, yyyy')}
+            </span>
+          </div>
+        )}
+
+        {(task.assigned_persona || task.assigned_to) && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <User className="h-3 w-3" />
+            <span>
+              {task.assigned_persona && <Badge variant="outline" className="text-xs mr-1">{task.assigned_persona}</Badge>}
+              {task.assigned_to && 'Assigned'}
             </span>
           </div>
         )}
