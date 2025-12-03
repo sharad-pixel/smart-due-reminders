@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
@@ -80,6 +82,7 @@ export default function CollectionTasks() {
   const [taskTypeFilter, setTaskTypeFilter] = useState<string>('all');
   const [assignedFilter, setAssignedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [hideClosed, setHideClosed] = useState(false);
 
   // Team members for filter
   const [teamMembers, setTeamMembers] = useState<{id: string; name: string; email: string}[]>([]);
@@ -356,15 +359,20 @@ export default function CollectionTasks() {
     setShowDetailModal(true);
   };
 
-  // Filter tasks by search query
-  const filteredTasks = tasks.filter(task => 
-    searchQuery === '' || 
-    task.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.details?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.debtors?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.debtors?.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.invoices?.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter tasks by search query and hide closed toggle
+  const filteredTasks = tasks.filter(task => {
+    // Hide closed/done tasks if toggle is on
+    if (hideClosed && task.status === 'done') {
+      return false;
+    }
+    // Search filter
+    return searchQuery === '' || 
+      task.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.details?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.debtors?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.debtors?.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.invoices?.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const isAllSelected = filteredTasks.length > 0 && filteredTasks.every(t => selectedTaskIds.has(t.id));
   const isSomeSelected = filteredTasks.some(t => selectedTaskIds.has(t.id));
@@ -624,6 +632,18 @@ export default function CollectionTasks() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            
+            {/* Hide closed toggle */}
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+              <Switch
+                id="hide-closed"
+                checked={hideClosed}
+                onCheckedChange={setHideClosed}
+              />
+              <Label htmlFor="hide-closed" className="text-sm cursor-pointer">
+                Hide closed tasks
+              </Label>
             </div>
           </CardContent>
         </Card>
