@@ -3,14 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, Mail, Target, AlertTriangle, DollarSign, Clock, BarChart3, Brain } from "lucide-react";
 
 const features = [
-  { icon: Users, title: "Multi-Agent Workflow Automation", description: "6 specialized AI collectors working in sync" },
-  { icon: Mail, title: "AI Email Reading + Smart Response", description: "Automatically reads and responds to customer emails" },
-  { icon: Target, title: "Invoice & Debtor-Level Routing", description: "Smart routing based on customer value and history" },
+  { icon: Users, title: "Multi-Agent Workflow Automation", description: "6 specialized AI collectors working in sync around the clock" },
+  { icon: Mail, title: "AI Email Reading + Smart Response", description: "Automatically reads, understands, and responds to customer emails" },
+  { icon: Target, title: "Invoice & Debtor-Level Routing", description: "Smart routing based on customer value, history, and risk tier" },
   { icon: AlertTriangle, title: "Risk Scoring & Early Warning", description: "Proactive alerts before accounts go delinquent" },
-  { icon: DollarSign, title: "Payment Plan Negotiation", description: "AI-assisted payment arrangement workflows" },
+  { icon: DollarSign, title: "Payment Plan Negotiation", description: "AI-assisted payment arrangement and settlement workflows" },
   { icon: Clock, title: "Aging Bucket Automation", description: "Automated escalation based on days past due" },
-  { icon: BarChart3, title: "Real-time Dashboard", description: "Cash Operations HQ with full visibility" },
-  { icon: Brain, title: "Full Message History + AI Summary", description: "Complete audit trail with intelligent summaries" },
+  { icon: BarChart3, title: "Real-time Dashboard", description: "Cash Operations HQ with full visibility into AR health" },
+  { icon: Brain, title: "Full Message History + AI Summary", description: "Complete audit trail with intelligent conversation summaries" },
 ];
 
 const FeatureGrid = () => {
@@ -22,7 +22,7 @@ const FeatureGrid = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = parseInt(entry.target.getAttribute("data-index") || "0");
+            const index = parseInt(entry.target.getAttribute("data-feature-index") || "0");
             setVisibleItems((prev) => [...new Set([...prev, index])]);
           }
         });
