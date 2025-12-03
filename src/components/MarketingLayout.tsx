@@ -21,7 +21,13 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Recouply.ai
             </h1>
           </div>
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-5">
+            <button 
+              onClick={() => navigate("/home")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Home
+            </button>
             <button 
               onClick={() => navigate("/features")}
               className="text-foreground hover:text-primary transition-colors"
@@ -29,50 +35,39 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Features
             </button>
             <button 
-              onClick={() => navigate("/why-collections-matter")}
-              className="text-foreground hover:text-primary transition-colors"
-            >
-              Why Collections Matter
-            </button>
-            <button 
-              onClick={() => navigate("/solutions")}
-              className="text-foreground hover:text-primary transition-colors"
-            >
-              Solutions
-            </button>
-            <button 
-              onClick={() => navigate("/ai-command-center")}
-              className="text-foreground hover:text-primary transition-colors font-semibold"
-            >
-              AI Command Center
-            </button>
-            <button 
-              onClick={() => navigate("/personas")}
-              className="text-foreground hover:text-primary transition-colors"
-            >
-              AI Personas
-            </button>
-            <button 
               onClick={() => navigate("/pricing")}
               className="text-foreground hover:text-primary transition-colors"
             >
               Pricing
             </button>
+            <div className="relative group">
+              <button className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                Solutions
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full left-0 mt-2 w-48 bg-card border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <button onClick={() => navigate("/startups")} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">Startups</button>
+                <button onClick={() => navigate("/smb")} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">SMB</button>
+                <button onClick={() => navigate("/enterprise")} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">Enterprise</button>
+              </div>
+            </div>
             <button 
-              onClick={() => navigate("/security-public")}
+              onClick={() => navigate("/personas")}
               className="text-foreground hover:text-primary transition-colors"
             >
-              Security
+              AI Agents
             </button>
             <Button onClick={() => navigate("/login")} variant="ghost">
-              Sign In
+              Login
             </Button>
             <Button onClick={() => navigate("/signup")}>
-              Start Free Trial
+              Try Recouply.ai
             </Button>
           </nav>
-          <div className="md:hidden">
-            <Button onClick={() => navigate("/login")}>Sign In</Button>
+          <div className="lg:hidden">
+            <Button onClick={() => navigate("/login")} size="sm">Sign In</Button>
           </div>
         </div>
       </header>

@@ -42,6 +42,9 @@ import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
 import BringYourOwnEmail from "./pages/BringYourOwnEmail";
+import Startups from "./pages/Startups";
+import SMB from "./pages/SMB";
+import Enterprise from "./pages/Enterprise";
 import Billing from "./pages/Billing";
 
 import InboundCommandCenter from "./pages/InboundCommandCenter";
@@ -69,6 +72,9 @@ const App = () => (
         <Route path="/solutions/saas" element={<SaaS />} />
         <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
         <Route path="/solutions/final-internal-collections" element={<FinalInternalCollections />} />
+        <Route path="/startups" element={<Startups />} />
+        <Route path="/smb" element={<SMB />} />
+        <Route path="/enterprise" element={<Enterprise />} />
         <Route path="/legal/terms" element={<Terms />} />
         <Route path="/legal/privacy" element={<Privacy />} />
         <Route path="/security-public" element={<Security />} />
