@@ -8,12 +8,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    logStep('Function started');
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -27,7 +34,7 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    console.log('Opening portal for user:', user.email);
+    logStep('User authenticated', { email: user.email });
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
@@ -39,7 +46,7 @@ serve(async (req) => {
     let customerId: string;
     
     if (customers.data.length === 0) {
-      console.log('No customer found, creating new Stripe customer for:', user.email);
+      logStep('No customer found, creating new Stripe customer');
       
       // Create new Stripe customer
       const newCustomer = await stripe.customers.create({
@@ -50,7 +57,7 @@ serve(async (req) => {
       });
       
       customerId = newCustomer.id;
-      console.log('New customer created:', customerId);
+      logStep('New customer created', { customerId });
       
       // Update profile with Stripe customer ID
       const supabaseAdmin = createClient(
@@ -63,20 +70,20 @@ serve(async (req) => {
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id);
         
-      console.log('Profile updated with Stripe customer ID');
+      logStep('Profile updated with Stripe customer ID');
     } else {
       customerId = customers.data[0].id;
-      console.log('Existing customer found:', customerId);
+      logStep('Existing customer found', { customerId });
     }
 
     // Create portal session
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
+    const origin = req.headers.get('origin') || 'https://app.recouply.ai';
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/upgrade`,
+      return_url: `${origin}/billing`,
     });
 
-    console.log('Portal session created:', portalSession.id);
+    logStep('Portal session created', { sessionId: portalSession.id });
 
     return new Response(
       JSON.stringify({ url: portalSession.url }),
@@ -84,7 +91,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in customer-portal:', error);
+    logStep('ERROR', { message: error instanceof Error ? error.message : 'Unknown error' });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({ error: errorMessage }),

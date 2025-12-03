@@ -2483,6 +2483,7 @@ export type Database = {
           business_state: string | null
           company_name: string | null
           created_at: string | null
+          current_period_end: string | null
           email: string | null
           id: string
           invoice_limit: number | null
@@ -2522,6 +2523,7 @@ export type Database = {
           business_state?: string | null
           company_name?: string | null
           created_at?: string | null
+          current_period_end?: string | null
           email?: string | null
           id: string
           invoice_limit?: number | null
@@ -2561,6 +2563,7 @@ export type Database = {
           business_state?: string | null
           company_name?: string | null
           created_at?: string | null
+          current_period_end?: string | null
           email?: string | null
           id?: string
           invoice_limit?: number | null

@@ -3,20 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, TrendingUp } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UsageData {
-  month: string;
-  included_allowance: number;
-  included_invoices_used: number;
-  overage_invoices: number;
-  overage_charges_total: number;
-  total_invoices_used: number;
-  remaining_quota: number;
-  is_over_limit: boolean;
-  plan_name: string;
-  overage_rate: number;
+  plan: string;
+  invoiceAllowance: number | string;
+  includedUsed: number;
+  overageCount: number;
+  totalUsed: number;
+  remaining: number | string;
+  isOverLimit: boolean;
+  overageRate: number;
+  subscriptionStatus?: string;
 }
 
 export const UsageIndicator = () => {
@@ -50,8 +49,12 @@ export const UsageIndicator = () => {
 
   if (loading || !usage) return null;
 
-  const percentUsed = (usage.total_invoices_used / usage.included_allowance) * 100;
-  const isNearLimit = percentUsed >= 80 && !usage.is_over_limit;
+  const isUnlimited = usage.invoiceAllowance === 'Unlimited';
+  const percentUsed = isUnlimited ? 0 : 
+    typeof usage.invoiceAllowance === 'number' 
+      ? (usage.includedUsed / usage.invoiceAllowance) * 100 
+      : 0;
+  const isNearLimit = percentUsed >= 80 && !usage.isOverLimit;
 
   return (
     <div className="space-y-3">
@@ -59,35 +62,37 @@ export const UsageIndicator = () => {
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium">Invoice Usage</span>
-          <Badge variant={usage.is_over_limit ? "destructive" : "secondary"} className="text-xs">
-            {usage.plan_name}
+          <Badge variant={usage.isOverLimit ? "destructive" : "secondary"} className="text-xs capitalize">
+            {usage.plan}
           </Badge>
         </div>
         
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              <strong className="text-foreground">{usage.total_invoices_used}</strong> / {usage.included_allowance} used
+              <strong className="text-foreground">{usage.includedUsed}</strong> / {isUnlimited ? '∞' : usage.invoiceAllowance} used
             </span>
-            <span>{usage.remaining_quota} left</span>
+            <span>{isUnlimited ? 'Unlimited' : `${usage.remaining} left`}</span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-secondary rounded-full h-1.5">
-            <div 
-              className={`h-1.5 rounded-full transition-all ${
-                usage.is_over_limit ? 'bg-destructive' : 
-                isNearLimit ? 'bg-orange-500' : 
-                'bg-primary'
-              }`}
-              style={{ width: `${Math.min(percentUsed, 100)}%` }}
-            />
-          </div>
+          {!isUnlimited && (
+            <div className="w-full bg-secondary rounded-full h-1.5">
+              <div 
+                className={`h-1.5 rounded-full transition-all ${
+                  usage.isOverLimit ? 'bg-destructive' : 
+                  isNearLimit ? 'bg-orange-500' : 
+                  'bg-primary'
+                }`}
+                style={{ width: `${Math.min(percentUsed, 100)}%` }}
+              />
+            </div>
+          )}
 
-          {usage.is_over_limit && (
+          {usage.overageCount > 0 && (
             <div className="pt-2 border-t">
               <p className="text-xs font-medium text-destructive">
-                Overages: {usage.overage_invoices} (${usage.overage_charges_total.toFixed(2)})
+                Overages: {usage.overageCount} (${(usage.overageCount * usage.overageRate).toFixed(2)})
               </p>
             </div>
           )}
@@ -95,18 +100,18 @@ export const UsageIndicator = () => {
       </div>
 
       {/* Warning Alert - Near Limit or Over Limit */}
-      {(isNearLimit || usage.is_over_limit) && (
-        <Alert variant={usage.is_over_limit ? "destructive" : "default"} className="py-2">
+      {(isNearLimit || usage.isOverLimit) && !isUnlimited && (
+        <Alert variant={usage.isOverLimit ? "destructive" : "default"} className="py-2">
           <AlertCircle className="h-3 w-3" />
           <AlertDescription className="flex items-center justify-between text-xs">
             <span className="flex-1 pr-2">
-              {usage.is_over_limit ? "You've exceeded your plan limit" : "Approaching limit"}
+              {usage.isOverLimit ? "You've exceeded your plan limit" : "Approaching limit"}
             </span>
             <Button 
               variant="outline" 
               size="sm"
               className="h-7 text-xs"
-              onClick={() => navigate('/upgrade')}
+              onClick={() => navigate('/pricing')}
             >
               Upgrade
             </Button>

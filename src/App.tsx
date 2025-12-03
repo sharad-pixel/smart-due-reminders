@@ -42,6 +42,7 @@ import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
 import BringYourOwnEmail from "./pages/BringYourOwnEmail";
+import Billing from "./pages/Billing";
 
 import InboundCommandCenter from "./pages/InboundCommandCenter";
 
@@ -78,6 +79,7 @@ const App = () => (
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/contact-us" element={<ContactUs />} />
         <Route path="/upgrade" element={<Upgrade />} />
+        <Route path="/billing" element={<Billing />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/debtors" element={<DebtorDashboard />} />
         <Route path="/debtors" element={<Debtors />} />

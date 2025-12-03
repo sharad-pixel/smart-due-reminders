@@ -4,17 +4,23 @@ import { Check, Mail, Zap } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig } from "@/lib/personaConfig";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const plans = [
   {
     name: "Starter",
     price: "$99",
+    annualPrice: "$84",
     period: "/month",
-    invoiceLimit: "Up to 50 active invoices/month",
+    invoiceLimit: "Up to 100 active invoices/month",
     description: "Perfect for small businesses with light AR volume.",
     cta: "Start Free Trial",
     planType: "starter",
@@ -23,6 +29,7 @@ const plans = [
   {
     name: "Growth",
     price: "$199",
+    annualPrice: "$169",
     period: "/month",
     invoiceLimit: "Up to 300 active invoices/month",
     description: "Ideal for scaling teams needing automated AR workflows.",
@@ -31,21 +38,23 @@ const plans = [
     popular: true
   },
   {
-    name: "Pro",
+    name: "Professional",
     price: "$499",
+    annualPrice: "$424",
     period: "/month",
     invoiceLimit: "Up to 500 active invoices/month",
     description: "Built for high-volume AR operations ready for advanced automation.",
     cta: "Start Free Trial",
-    planType: "pro",
+    planType: "professional",
     popular: false
   },
   {
     name: "Enterprise / Custom",
     price: "Custom",
+    annualPrice: "Custom",
     period: "",
     invoiceLimit: "500+ active invoices/month",
-    description: "Everything in Pro, plus: Custom RCA integrations, CS case intelligence, multi-system sync, and advanced agent personalization using customer relationship data.",
+    description: "Everything in Professional, plus: Custom RCA integrations, CS case intelligence, multi-system sync, and advanced agent personalization using customer relationship data.",
     cta: "Contact Sales",
     planType: "enterprise",
     popular: false
@@ -96,6 +105,8 @@ const icpBenefits = [
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Recouply.ai Pricing – AI-Powered CashOps for SMB + SaaS";
@@ -105,11 +116,39 @@ const Pricing = () => {
     }
   }, []);
 
-  const handlePlanClick = (planType: string) => {
+  const handlePlanClick = async (planType: string) => {
     if (planType === "enterprise") {
       navigate("/contact-us");
-    } else {
-      navigate(`/signup?plan=${planType}`);
+      return;
+    }
+    
+    setLoading(planType);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate(`/signup?plan=${planType}&billing=${isAnnual ? 'annual' : 'monthly'}`);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          planId: planType,
+          billingInterval: isAnnual ? 'year' : 'month'
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast.error(error.message || 'Failed to start checkout');
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -129,9 +168,29 @@ const Pricing = () => {
           <p className="text-lg text-primary font-medium mb-4">
             Six AI agents recovering your revenue 24/7—included in every plan.
           </p>
-          <p className="text-sm text-muted-foreground mb-12">
+          <p className="text-sm text-muted-foreground mb-8">
             Pricing is based on active invoices per month. All plans include full access to AI agents, automation, dashboards, and support.
           </p>
+          
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-12">
+            <Label htmlFor="billing-toggle" className={!isAnnual ? "font-semibold" : "text-muted-foreground"}>
+              Monthly
+            </Label>
+            <Switch
+              id="billing-toggle"
+              checked={isAnnual}
+              onCheckedChange={setIsAnnual}
+            />
+            <Label htmlFor="billing-toggle" className={isAnnual ? "font-semibold" : "text-muted-foreground"}>
+              Annual
+            </Label>
+            {isAnnual && (
+              <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                Save 15%
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="container mx-auto max-w-7xl px-4">
@@ -150,9 +209,12 @@ const Pricing = () => {
                 )}
                 <h3 className="text-2xl font-bold mb-2 mt-2">{plan.name}</h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold">{plan.price}</span>
+                  <span className="text-4xl font-bold">{isAnnual ? plan.annualPrice : plan.price}</span>
                   <span className="text-muted-foreground">{plan.period}</span>
                 </div>
+                {isAnnual && plan.price !== "Custom" && (
+                  <p className="text-xs text-green-600 mb-1">Billed annually (15% savings)</p>
+                )}
                 <p className="text-sm font-medium text-primary mb-2">{plan.invoiceLimit}</p>
                 <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
                 
@@ -172,7 +234,7 @@ const Pricing = () => {
 
                 {plan.planType !== "enterprise" && (
                   <p className="text-xs text-muted-foreground mb-4 bg-muted/50 p-2 rounded">
-                    +$1.00 per additional active invoice beyond plan limits
+                    +$1.50 per additional active invoice beyond plan limits
                   </p>
                 )}
 
@@ -181,8 +243,9 @@ const Pricing = () => {
                   className="w-full mt-auto"
                   variant={plan.popular ? "default" : "outline"}
                   onClick={() => handlePlanClick(plan.planType)}
+                  disabled={loading === plan.planType}
                 >
-                  {plan.planType === "enterprise" ? (
+                  {loading === plan.planType ? 'Processing...' : plan.planType === "enterprise" ? (
                     <>
                       <Mail className="h-4 w-4 mr-2" />
                       {plan.cta}
@@ -318,7 +381,7 @@ const Pricing = () => {
             <div>
               <h3 className="font-semibold mb-2">What happens if I exceed my invoice limit?</h3>
               <p className="text-muted-foreground">
-                You'll be charged $1.00 per additional active invoice beyond your plan limit. Overage charges are calculated monthly based on actual usage—no surprise bills.
+                You'll be charged $1.50 per additional active invoice beyond your plan limit. Overage charges are calculated monthly based on actual usage—no surprise bills.
               </p>
             </div>
             <div>
