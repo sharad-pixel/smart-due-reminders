@@ -98,7 +98,15 @@ export default function InboundCommandCenter() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [debtorStatusFilter, setDebtorStatusFilter] = useState<"all" | "active" | "archived">("all");
-  const [hideClosed, setHideClosed] = useState(false);
+  const [hideClosed, setHideClosed] = useState(() => {
+    const saved = localStorage.getItem("inbound_hide_closed");
+    return saved === "true";
+  });
+
+  // Persist hideClosed preference
+  useEffect(() => {
+    localStorage.setItem("inbound_hide_closed", String(hideClosed));
+  }, [hideClosed]);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
