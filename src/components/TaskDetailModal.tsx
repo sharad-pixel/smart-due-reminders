@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { format } from "date-fns";
-import { CheckCircle2, XCircle, Mail, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Mail, Loader2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -23,7 +24,23 @@ interface TaskDetailModalProps {
   onOpenChange: (open: boolean) => void;
   onStatusChange: (taskId: string, status: string) => void;
   onDelete: (taskId: string) => void;
+  onAssign?: (taskId: string, assignedTo: string | null, assignedPersona: string | null) => void;
 }
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const AI_PERSONAS = [
+  { id: 'sam', name: 'Sam', bucket: '1-30 days' },
+  { id: 'james', name: 'James', bucket: '31-60 days' },
+  { id: 'katy', name: 'Katy', bucket: '61-90 days' },
+  { id: 'troy', name: 'Troy', bucket: '91-120 days' },
+  { id: 'gotti', name: 'Gotti', bucket: '121-150 days' },
+  { id: 'rocco', name: 'Rocco', bucket: '150+ days' },
+];
 
 const getTaskTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -48,11 +65,97 @@ export const TaskDetailModal = ({
   open,
   onOpenChange,
   onStatusChange,
-  onDelete
+  onDelete,
+  onAssign
 }: TaskDetailModalProps) => {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedTeamMember, setSelectedTeamMember] = useState<string>("");
+  const [selectedPersona, setSelectedPersona] = useState<string>("");
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      fetchTeamMembers();
+      // Set initial values from task
+      setSelectedTeamMember(task?.assigned_to || "");
+      setSelectedPersona(task?.assigned_persona || "");
+    }
+  }, [open, task]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch team members from account_users joined with profiles
+      const { data: accountUsers } = await supabase
+        .from('account_users')
+        .select('user_id')
+        .eq('account_id', user.id)
+        .eq('status', 'active');
+
+      if (accountUsers && accountUsers.length > 0) {
+        const userIds = accountUsers.map(au => au.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', userIds);
+
+        if (profiles) {
+          setTeamMembers(profiles.map(p => ({
+            id: p.id,
+            name: p.name || p.email || 'Unknown',
+            email: p.email || ''
+          })));
+        }
+      }
+
+      // Also add current user
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('id', user.id)
+        .single();
+
+      if (currentProfile) {
+        setTeamMembers(prev => {
+          const exists = prev.some(m => m.id === currentProfile.id);
+          if (!exists) {
+            return [...prev, {
+              id: currentProfile.id,
+              name: currentProfile.name || currentProfile.email || 'Me',
+              email: currentProfile.email || ''
+            }];
+          }
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!task || !onAssign) return;
+    
+    setIsAssigning(true);
+    try {
+      await onAssign(
+        task.id, 
+        selectedTeamMember || null, 
+        selectedPersona || null
+      );
+      toast.success("Task assignment updated");
+    } catch (error) {
+      console.error('Error assigning task:', error);
+      toast.error("Failed to update assignment");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   if (!task) return null;
 
@@ -145,6 +248,66 @@ export const TaskDetailModal = ({
             </div>
           )}
 
+          {/* Assignment Section */}
+          {onAssign && (
+            <div className="space-y-3 pt-2 border-t">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Assignment
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Team Member</Label>
+                  <Select value={selectedTeamMember} onValueChange={setSelectedTeamMember}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {teamMembers.map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">AI Persona</Label>
+                  <Select value={selectedPersona} onValueChange={setSelectedPersona}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="No persona" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No persona</SelectItem>
+                      {AI_PERSONAS.map(persona => (
+                        <SelectItem key={persona.id} value={persona.name}>
+                          {persona.name} ({persona.bucket})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleAssign}
+                disabled={isAssigning}
+                className="w-full"
+              >
+                {isAssigning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Assignment'
+                )}
+              </Button>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4 pt-2 border-t">
             {task.due_date && (
               <div>
@@ -166,12 +329,6 @@ export const TaskDetailModal = ({
                 <p className="text-sm font-medium">
                   {format(new Date(task.completed_at), 'MMM d, yyyy h:mm a')}
                 </p>
-              </div>
-            )}
-            {task.assigned_persona && (
-              <div>
-                <span className="text-xs text-muted-foreground">Assigned Persona</span>
-                <p className="text-sm font-medium">{task.assigned_persona}</p>
               </div>
             )}
           </div>
