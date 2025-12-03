@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,9 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -51,7 +54,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+interface InvoiceGroup {
+  invoiceNumber: string | null;
+  invoiceId: string | null;
+  debtorName: string | null;
+  companyName: string | null;
+  emails: InboundEmail[];
+}
 
 export default function InboundCommandCenter() {
   const { fetchInboundEmails, triggerAIProcessing, updateActionStatus, forwardEmails, isLoading } = useInboundEmails();
@@ -61,6 +88,8 @@ export default function InboundCommandCenter() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardEmail, setForwardEmail] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -88,7 +117,36 @@ export default function InboundCommandCenter() {
       search: searchQuery || undefined,
     });
     setEmails(data);
+    // Expand all groups by default
+    const groupKeys = new Set(data.map(e => e.invoice_id || "unlinked"));
+    setExpandedGroups(groupKeys);
   };
+
+  // Group emails by invoice
+  const groupedEmails = useMemo((): InvoiceGroup[] => {
+    const groups = new Map<string, InvoiceGroup>();
+    
+    emails.forEach(email => {
+      const key = email.invoice_id || "unlinked";
+      if (!groups.has(key)) {
+        groups.set(key, {
+          invoiceNumber: email.invoices ? (email.invoices as any).invoice_number : null,
+          invoiceId: email.invoice_id,
+          debtorName: email.debtors ? (email.debtors as any).name : null,
+          companyName: email.debtors ? (email.debtors as any).company_name : null,
+          emails: [],
+        });
+      }
+      groups.get(key)!.emails.push(email);
+    });
+
+    // Sort groups: linked invoices first, then unlinked
+    return Array.from(groups.values()).sort((a, b) => {
+      if (a.invoiceId && !b.invoiceId) return -1;
+      if (!a.invoiceId && b.invoiceId) return 1;
+      return (b.emails.length - a.emails.length);
+    });
+  }, [emails]);
 
   const handleSearch = () => {
     loadEmails();
@@ -120,6 +178,27 @@ export default function InboundCommandCenter() {
     }
   };
 
+  const handleSelectGroup = (group: InvoiceGroup, checked: boolean) => {
+    const groupIds = group.emails.map(e => e.id);
+    if (checked) {
+      setSelectedIds(prev => [...new Set([...prev, ...groupIds])]);
+    } else {
+      setSelectedIds(prev => prev.filter(id => !groupIds.includes(id)));
+    }
+  };
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const handleCloseAction = async (emailId: string) => {
     const success = await updateActionStatus(emailId, "closed");
     if (success) {
@@ -137,6 +216,51 @@ export default function InboundCommandCenter() {
       if (selectedEmail?.id === emailId) {
         setSelectedEmail({ ...selectedEmail, action_status: "open" } as any);
       }
+    }
+  };
+
+  // Bulk actions
+  const handleBulkCloseActions = async () => {
+    if (selectedIds.length === 0) return;
+    let successCount = 0;
+    for (const id of selectedIds) {
+      const success = await updateActionStatus(id, "closed");
+      if (success) successCount++;
+    }
+    toast.success(`Closed ${successCount} action(s)`);
+    setSelectedIds([]);
+    loadEmails();
+  };
+
+  const handleBulkReopenActions = async () => {
+    if (selectedIds.length === 0) return;
+    let successCount = 0;
+    for (const id of selectedIds) {
+      const success = await updateActionStatus(id, "open");
+      if (success) successCount++;
+    }
+    toast.success(`Reopened ${successCount} action(s)`);
+    setSelectedIds([]);
+    loadEmails();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const { error } = await supabase
+        .from("inbound_emails")
+        .delete()
+        .in("id", selectedIds);
+      
+      if (error) throw error;
+      
+      toast.success(`Deleted ${selectedIds.length} email(s)`);
+      setSelectedIds([]);
+      setDeleteDialogOpen(false);
+      loadEmails();
+    } catch (error: any) {
+      toast.error("Failed to delete emails");
+      console.error(error);
     }
   };
 
@@ -260,7 +384,7 @@ export default function InboundCommandCenter() {
   };
 
   const ACTION_TYPES = [
-    { value: "all", label: "All Actions" },
+    { value: "all", label: "All Types" },
     { value: "W9_REQUEST", label: "W9 Request" },
     { value: "PAYMENT_PLAN_REQUEST", label: "Payment Plan" },
     { value: "DISPUTE_CHARGES", label: "Dispute Charges" },
@@ -323,21 +447,10 @@ export default function InboundCommandCenter() {
         {/* Filters */}
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filters
-              </CardTitle>
-              {selectedIds.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{selectedIds.length} selected</Badge>
-                  <Button size="sm" variant="outline" onClick={handleForwardSelected}>
-                    <Forward className="h-4 w-4 mr-2" />
-                    Forward Selected
-                  </Button>
-                </div>
-              )}
-            </div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filters
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -355,10 +468,10 @@ export default function InboundCommandCenter() {
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder="Email Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="received">Received</SelectItem>
                   <SelectItem value="linked">Linked</SelectItem>
                   <SelectItem value="processed">Processed</SelectItem>
@@ -371,7 +484,7 @@ export default function InboundCommandCenter() {
                   <SelectValue placeholder="Action Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Actions</SelectItem>
+                  <SelectItem value="all">All Action Statuses</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
@@ -445,7 +558,41 @@ export default function InboundCommandCenter() {
           </CardContent>
         </Card>
 
-        {/* Bulk Selection Header */}
+        {/* Bulk Actions Bar */}
+        {selectedIds.length > 0 && (
+          <Card className="border-primary">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{selectedIds.length} selected</Badge>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={handleBulkCloseActions}>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Close All
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleBulkReopenActions}>
+                    <Clock className="h-4 w-4 mr-2" />
+                    Reopen All
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleForwardSelected}>
+                    <Forward className="h-4 w-4 mr-2" />
+                    Forward
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Select All Header */}
         {emails.length > 0 && (
           <div className="flex items-center gap-2 px-2">
             <Checkbox
@@ -454,151 +601,199 @@ export default function InboundCommandCenter() {
               onCheckedChange={handleSelectAll}
             />
             <Label htmlFor="select-all" className="text-sm cursor-pointer">
-              Select All
+              Select All ({emails.length})
             </Label>
           </div>
         )}
 
-        {/* Email List */}
+        {/* Email List - Grouped by Invoice */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-3">
-            {emails.length === 0 ? (
+          <div className="space-y-4">
+            {groupedEmails.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   No inbound emails found
                 </CardContent>
               </Card>
             ) : (
-              emails.map((email) => (
-                <Card
-                  key={email.id}
-                  className={`hover:shadow-md transition-shadow ${selectedIds.includes(email.id) ? 'ring-2 ring-primary' : ''}`}
-                >
-                  <CardContent className="py-4">
-                    <div className="flex items-start gap-4">
-                      <Checkbox
-                        checked={selectedIds.includes(email.id)}
-                        onCheckedChange={(checked) => handleToggleSelect(email.id, !!checked)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="flex-1 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className={getStatusColor(email.status)} variant="outline">
-                            {getStatusIcon(email.status)}
-                            <span className="ml-1">{email.status}</span>
-                          </Badge>
-                          {(email as any).ai_category && (
-                            <Badge className={getCategoryColor((email as any).ai_category)} variant="outline">
-                              <Tag className="h-3 w-3 mr-1" />
-                              {(email as any).ai_category}
-                            </Badge>
-                          )}
-                          {(email as any).ai_priority && (
-                            <Badge className={getPriorityColor((email as any).ai_priority)} variant="outline">
-                              {(email as any).ai_priority}
-                            </Badge>
-                          )}
-                          {(email as any).ai_sentiment && getSentimentIcon((email as any).ai_sentiment)}
-                          {(email as any).action_status && (
-                            <Badge variant={(email as any).action_status === "closed" ? "secondary" : "default"}>
-                              {(email as any).action_status === "closed" ? (
-                                <CheckSquare className="h-3 w-3 mr-1" />
+              groupedEmails.map((group) => {
+                const groupKey = group.invoiceId || "unlinked";
+                const isExpanded = expandedGroups.has(groupKey);
+                const groupEmailIds = group.emails.map(e => e.id);
+                const allSelected = groupEmailIds.every(id => selectedIds.includes(id));
+                const someSelected = groupEmailIds.some(id => selectedIds.includes(id));
+
+                return (
+                  <Card key={groupKey}>
+                    <Collapsible open={isExpanded} onOpenChange={() => toggleGroup(groupKey)}>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={allSelected}
+                                ref={(ref) => {
+                                  if (ref && someSelected && !allSelected) {
+                                    (ref as any).indeterminate = true;
+                                  }
+                                }}
+                                onCheckedChange={(checked) => handleSelectGroup(group, !!checked)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
                               ) : (
-                                <Clock className="h-3 w-3 mr-1" />
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               )}
-                              {(email as any).action_status}
-                            </Badge>
-                          )}
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(email.created_at), "MMM d, yyyy h:mm a")}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{email.from_email}</span>
-                        </div>
-
-                        <div>
-                          <p className="font-semibold">{email.subject}</p>
-                          {email.ai_summary && (
-                            <div className="mt-2 flex items-start gap-2 text-sm">
-                              <Bot className="h-4 w-4 text-purple-500 mt-0.5" />
-                              <p className="text-muted-foreground italic">{email.ai_summary}</p>
+                              <div>
+                                {group.invoiceNumber ? (
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <span className="font-medium">Invoice: {group.invoiceNumber}</span>
+                                    {group.debtorName && (
+                                      <span className="text-muted-foreground">
+                                        • {group.debtorName}
+                                        {group.companyName && ` (${group.companyName})`}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium text-muted-foreground">Unlinked Emails</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
-
-                        {email.ai_actions && email.ai_actions.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {email.ai_actions.map((action, idx) => (
-                              <Badge key={idx} variant="secondary" className="gap-1">
-                                {getActionIcon(action.type)}
-                                {action.type}
-                              </Badge>
-                            ))}
+                            <Badge variant="outline">{group.emails.length} email(s)</Badge>
                           </div>
-                        )}
-                      </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0 space-y-3">
+                          {group.emails.map((email) => (
+                            <div
+                              key={email.id}
+                              className={`border rounded-lg p-4 hover:shadow-sm transition-shadow ${
+                                selectedIds.includes(email.id) ? "ring-2 ring-primary" : ""
+                              }`}
+                            >
+                              <div className="flex items-start gap-4">
+                                <Checkbox
+                                  checked={selectedIds.includes(email.id)}
+                                  onCheckedChange={(checked) => handleToggleSelect(email.id, !!checked)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <div className="flex-1 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge className={getStatusColor(email.status)} variant="outline">
+                                      {getStatusIcon(email.status)}
+                                      <span className="ml-1">{email.status}</span>
+                                    </Badge>
+                                    {(email as any).ai_category && (
+                                      <Badge className={getCategoryColor((email as any).ai_category)} variant="outline">
+                                        <Tag className="h-3 w-3 mr-1" />
+                                        {(email as any).ai_category}
+                                      </Badge>
+                                    )}
+                                    {(email as any).ai_priority && (
+                                      <Badge className={getPriorityColor((email as any).ai_priority)} variant="outline">
+                                        {(email as any).ai_priority}
+                                      </Badge>
+                                    )}
+                                    {(email as any).ai_sentiment && getSentimentIcon((email as any).ai_sentiment)}
+                                    {(email as any).action_status && (
+                                      <Badge variant={(email as any).action_status === "closed" ? "secondary" : "default"}>
+                                        {(email as any).action_status === "closed" ? (
+                                          <CheckSquare className="h-3 w-3 mr-1" />
+                                        ) : (
+                                          <Clock className="h-3 w-3 mr-1" />
+                                        )}
+                                        {(email as any).action_status}
+                                      </Badge>
+                                    )}
+                                    <span className="text-sm text-muted-foreground">
+                                      {format(new Date(email.created_at), "MMM d, yyyy h:mm a")}
+                                    </span>
+                                  </div>
 
-                      <div className="flex flex-col items-end gap-2 text-sm">
-                        {email.debtors && (
-                          <div className="text-right">
-                            <p className="font-medium">{(email.debtors as any).name}</p>
-                            <p className="text-muted-foreground text-xs">
-                              {(email.debtors as any).company_name}
-                            </p>
-                          </div>
-                        )}
-                        {email.invoices && (
-                          <Badge variant="outline">
-                            Invoice: {(email.invoices as any).invoice_number}
-                          </Badge>
-                        )}
-                        <div className="flex gap-1 mt-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleForwardSingle(email.id);
-                            }}
-                          >
-                            <Forward className="h-4 w-4" />
-                          </Button>
-                          {(email as any).action_status !== "closed" ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCloseAction(email.id);
-                              }}
-                            >
-                              <CheckSquare className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReopenAction(email.id);
-                              }}
-                            >
-                              <Clock className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium">{email.from_email}</span>
+                                  </div>
+
+                                  <div>
+                                    <p className="font-semibold">{email.subject}</p>
+                                    {email.ai_summary && (
+                                      <div className="mt-2 flex items-start gap-2 text-sm">
+                                        <Bot className="h-4 w-4 text-purple-500 mt-0.5" />
+                                        <p className="text-muted-foreground italic">{email.ai_summary}</p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {email.ai_actions && email.ai_actions.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {email.ai_actions.map((action, idx) => (
+                                        <Badge key={idx} variant="secondary" className="gap-1">
+                                          {getActionIcon(action.type)}
+                                          {action.type}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-col items-end gap-2 text-sm">
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleForwardSingle(email.id);
+                                      }}
+                                    >
+                                      <Forward className="h-4 w-4" />
+                                    </Button>
+                                    {(email as any).action_status !== "closed" ? (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCloseAction(email.id);
+                                        }}
+                                      >
+                                        <CheckSquare className="h-4 w-4" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleReopenAction(email.id);
+                                        }}
+                                      >
+                                        <Clock className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              })
             )}
           </div>
         )}
@@ -806,38 +1001,56 @@ export default function InboundCommandCenter() {
         </Sheet>
       </div>
 
-        {/* Forward Dialog */}
-        <Dialog open={forwardDialogOpen} onOpenChange={setForwardDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Forward Email(s)</DialogTitle>
-              <DialogDescription>
-                Forward {selectedIds.length} email(s) to an email address
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="forward-email">Email Address</Label>
-                <Input
-                  id="forward-email"
-                  type="email"
-                  placeholder="colleague@company.com"
-                  value={forwardEmail}
-                  onChange={(e) => setForwardEmail(e.target.value)}
-                />
-              </div>
+      {/* Forward Dialog */}
+      <Dialog open={forwardDialogOpen} onOpenChange={setForwardDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Forward Email(s)</DialogTitle>
+            <DialogDescription>
+              Forward {selectedIds.length} email(s) to an email address
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="forward-email">Email Address</Label>
+              <Input
+                id="forward-email"
+                type="email"
+                placeholder="colleague@company.com"
+                value={forwardEmail}
+                onChange={(e) => setForwardEmail(e.target.value)}
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setForwardDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleConfirmForward} disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Forward className="h-4 w-4 mr-2" />}
-                Forward
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForwardDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmForward} disabled={isLoading}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Forward className="h-4 w-4 mr-2" />}
+              Forward
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Emails</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} email(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
