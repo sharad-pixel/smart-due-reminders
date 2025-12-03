@@ -23,6 +23,7 @@ import DebtorDetail from "./pages/DebtorDetail";
 import Invoices from "./pages/Invoices";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import Settings from "./pages/Settings";
+import TeamMembersSettings from "./pages/TeamMembersSettings";
 import Checkout from "./pages/Checkout";
 import ContactUs from "./pages/ContactUs";
 import Upgrade from "./pages/Upgrade";
@@ -84,6 +85,7 @@ const App = () => (
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/team-members" element={<TeamMembersSettings />} />
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
         <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
         <Route path="/settings/email-accounts" element={<BringYourOwnEmail />} />
