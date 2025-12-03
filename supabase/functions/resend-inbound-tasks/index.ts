@@ -203,6 +203,34 @@ serve(async (req) => {
     });
   }
 
+  // Fetch full email content from Resend API if body is not in webhook
+  let textBody = emailData.text || null;
+  let htmlBody = emailData.html || null;
+
+  if (!textBody && !htmlBody && emailData.email_id) {
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (resendApiKey) {
+      try {
+        console.log("Fetching full email from Resend API:", emailData.email_id);
+        const response = await fetch(`https://api.resend.com/emails/${emailData.email_id}`, {
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+        });
+        if (response.ok) {
+          const fullEmail = await response.json();
+          textBody = fullEmail.text || null;
+          htmlBody = fullEmail.html || null;
+          console.log("Fetched email body from Resend API, text length:", textBody?.length || 0);
+        } else {
+          console.warn("Failed to fetch email from Resend:", response.status);
+        }
+      } catch (err) {
+        console.warn("Error fetching email from Resend:", err);
+      }
+    }
+  }
+
   // Insert into inbound_emails table
   const { data, error } = await supabase
     .from("inbound_emails")
@@ -217,8 +245,8 @@ serve(async (req) => {
         cc_emails: toEmailArray(emailData.cc),
         bcc_emails: toEmailArray(emailData.bcc),
         subject: emailData.subject || "(No Subject)",
-        text_body: emailData.text || null,
-        html_body: emailData.html || null,
+        text_body: textBody,
+        html_body: htmlBody,
         message_id: emailData.message_id || `msg-${Date.now()}`,
         email_id: emailData.email_id || null,
         debtor_id: debtorId,
