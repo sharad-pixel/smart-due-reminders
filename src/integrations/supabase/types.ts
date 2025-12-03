@@ -318,6 +318,66 @@ export type Database = {
           },
         ]
       }
+      ar_summary: {
+        Row: {
+          as_of_date: string
+          bucket_1_30: number | null
+          bucket_120_plus: number | null
+          bucket_31_60: number | null
+          bucket_61_90: number | null
+          bucket_91_120: number | null
+          bucket_current: number | null
+          created_at: string
+          debtor_id: string | null
+          id: string
+          upload_batch_id: string | null
+          user_id: string
+        }
+        Insert: {
+          as_of_date: string
+          bucket_1_30?: number | null
+          bucket_120_plus?: number | null
+          bucket_31_60?: number | null
+          bucket_61_90?: number | null
+          bucket_91_120?: number | null
+          bucket_current?: number | null
+          created_at?: string
+          debtor_id?: string | null
+          id?: string
+          upload_batch_id?: string | null
+          user_id: string
+        }
+        Update: {
+          as_of_date?: string
+          bucket_1_30?: number | null
+          bucket_120_plus?: number | null
+          bucket_31_60?: number | null
+          bucket_61_90?: number | null
+          bucket_91_120?: number | null
+          bucket_current?: number | null
+          created_at?: string
+          debtor_id?: string | null
+          id?: string
+          upload_batch_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_summary_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_summary_upload_batch_id_fkey"
+            columns: ["upload_batch_id"]
+            isOneToOne: false
+            referencedRelation: "upload_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action_type: string
@@ -2071,6 +2131,8 @@ export type Database = {
         Row: {
           aging_bucket: string | null
           amount: number
+          amount_original: number | null
+          amount_outstanding: number | null
           bucket_entered_at: string | null
           created_at: string | null
           currency: string | null
@@ -2107,6 +2169,8 @@ export type Database = {
         Insert: {
           aging_bucket?: string | null
           amount: number
+          amount_original?: number | null
+          amount_outstanding?: number | null
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
@@ -2143,6 +2207,8 @@ export type Database = {
         Update: {
           aging_bucket?: string | null
           amount?: number
+          amount_original?: number | null
+          amount_outstanding?: number | null
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
@@ -2428,6 +2494,120 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_invoice_links: {
+        Row: {
+          amount_applied: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          invoice_id: string
+          match_confidence: number | null
+          match_method: string
+          payment_id: string
+          status: string | null
+        }
+        Insert: {
+          amount_applied: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          invoice_id: string
+          match_confidence?: number | null
+          match_method: string
+          payment_id: string
+          status?: string | null
+        }
+        Update: {
+          amount_applied?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          match_confidence?: number | null
+          match_method?: string
+          payment_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_invoice_links_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          debtor_id: string | null
+          id: string
+          invoice_number_hint: string | null
+          notes: string | null
+          payment_date: string
+          reconciliation_status: string | null
+          reference: string | null
+          upload_batch_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          debtor_id?: string | null
+          id?: string
+          invoice_number_hint?: string | null
+          notes?: string | null
+          payment_date: string
+          reconciliation_status?: string | null
+          reference?: string | null
+          upload_batch_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          debtor_id?: string | null
+          id?: string
+          invoice_number_hint?: string | null
+          notes?: string | null
+          payment_date?: string
+          reconciliation_status?: string | null
+          reference?: string | null
+          upload_batch_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_upload_batch_id_fkey"
+            columns: ["upload_batch_id"]
+            isOneToOne: false
+            referencedRelation: "upload_batches"
             referencedColumns: ["id"]
           },
         ]
@@ -2808,6 +2988,98 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      upload_batches: {
+        Row: {
+          column_mapping: Json | null
+          created_at: string
+          error_count: number | null
+          error_message: string | null
+          file_name: string
+          id: string
+          processed_at: string | null
+          processed_count: number | null
+          processed_status: string
+          row_count: number | null
+          upload_type: string
+          user_id: string
+        }
+        Insert: {
+          column_mapping?: Json | null
+          created_at?: string
+          error_count?: number | null
+          error_message?: string | null
+          file_name: string
+          id?: string
+          processed_at?: string | null
+          processed_count?: number | null
+          processed_status?: string
+          row_count?: number | null
+          upload_type: string
+          user_id: string
+        }
+        Update: {
+          column_mapping?: Json | null
+          created_at?: string
+          error_count?: number | null
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          processed_at?: string | null
+          processed_count?: number | null
+          processed_status?: string
+          row_count?: number | null
+          upload_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      upload_staging: {
+        Row: {
+          action: string | null
+          created_at: string
+          duplicate_of_id: string | null
+          id: string
+          mapped_data: Json | null
+          raw_data: Json
+          row_index: number
+          upload_batch_id: string
+          validation_errors: Json | null
+          validation_status: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          duplicate_of_id?: string | null
+          id?: string
+          mapped_data?: Json | null
+          raw_data: Json
+          row_index: number
+          upload_batch_id: string
+          validation_errors?: Json | null
+          validation_status?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          duplicate_of_id?: string | null
+          id?: string
+          mapped_data?: Json | null
+          raw_data?: Json
+          row_index?: number
+          upload_batch_id?: string
+          validation_errors?: Json | null
+          validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_staging_upload_batch_id_fkey"
+            columns: ["upload_batch_id"]
+            isOneToOne: false
+            referencedRelation: "upload_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_feature_overrides: {
         Row: {
