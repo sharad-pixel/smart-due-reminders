@@ -1,17 +1,59 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, AlertTriangle, Clock } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useNavigate } from "react-router-dom";
+import { TaskDetailModal } from "./TaskDetailModal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TasksSummaryCardProps {
   tasks: CollectionTask[];
   title?: string;
+  onTaskUpdate?: () => void;
 }
 
-export const TasksSummaryCard = ({ tasks, title = "Action Items" }: TasksSummaryCardProps) => {
+export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }: TasksSummaryCardProps) => {
   const navigate = useNavigate();
+  const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const handleStatusChange = async (taskId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ 
+          status, 
+          completed_at: status === "done" ? new Date().toISOString() : null 
+        })
+        .eq("id", taskId);
+
+      if (error) throw error;
+      toast.success("Task updated");
+      onTaskUpdate?.();
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleDelete = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .delete()
+        .eq("id", taskId);
+
+      if (error) throw error;
+      toast.success("Task deleted");
+      onTaskUpdate?.();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Failed to delete task");
+    }
+  };
 
   const openTasks = tasks.filter(t => t.status === 'open');
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
@@ -54,6 +96,7 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items" }: TasksSummary
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -77,7 +120,11 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items" }: TasksSummary
         {tasks.slice(0, 5).map(task => (
           <div
             key={task.id}
-            className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+            className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+            onClick={() => {
+              setSelectedTask(task);
+              setModalOpen(true);
+            }}
           >
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2">
@@ -122,5 +169,14 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items" }: TasksSummary
         </Button>
       </CardContent>
     </Card>
+
+    <TaskDetailModal
+      task={selectedTask}
+      open={modalOpen}
+      onOpenChange={setModalOpen}
+      onStatusChange={handleStatusChange}
+      onDelete={handleDelete}
+    />
+    </>
   );
 };
