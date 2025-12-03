@@ -8,17 +8,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Price IDs for each plan - synced with Stripe
-// Note: 'professional' from pricing page maps to 'pro' in the database
-const PLAN_PRICE_IDS: Record<string, string> = {
-  'starter': 'price_1SX2cyFaeMMSBqclAGkxSliI',      // $99/month - 50 invoices
-  'growth': 'price_1SX2dkFaeMMSBqclPIjUA6N2',       // $199/month - 200 invoices
-  'professional': 'price_1SX2duFaeMMSBqclrYq4rikr', // $399/month - 500 invoices, team features
-  'pro': 'price_1SX2duFaeMMSBqclrYq4rikr'           // $399/month - DB value
+// New Stripe Price IDs
+const PRICE_IDS: Record<string, Record<string, string>> = {
+  month: {
+    starter: 'price_1SaNQ5FaeMMSBqcli04PsmKX',
+    growth: 'price_1SaNQKFaeMMSBqclWKbyVTSv',
+    professional: 'price_1SaNVyFaeMMSBqclrcAXjUmm',
+  },
+  year: {
+    starter: 'price_1SaNWBFaeMMSBqcl6EK9frSv',
+    growth: 'price_1SaNWTFaeMMSBqclXYovl2Hj',
+    professional: 'price_1SaNXGFaeMMSBqcl08sXmTEm',
+  }
 };
 
-// Metered price for invoice overages - $1 per invoice over plan limit
-const OVERAGE_PRICE_ID = 'price_1SX35zFaeMMSBqclPXpUHQmv';
+// Overage price for metered billing
+const OVERAGE_PRICE_ID = 'price_1SaNZ7FaeMMSBqcleUXkrzWl';
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,11 +36,14 @@ serve(async (req) => {
   }
 
   try {
-    const { planId } = await req.json();
+    logStep('Function started');
     
-    if (!planId || !PLAN_PRICE_IDS[planId]) {
+    const { planId, billingInterval = 'month' } = await req.json();
+    logStep('Request params', { planId, billingInterval });
+    
+    if (!planId || !PRICE_IDS[billingInterval]?.[planId]) {
       return new Response(
-        JSON.stringify({ error: 'Invalid plan ID' }),
+        JSON.stringify({ error: 'Invalid plan ID or billing interval' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -48,7 +61,7 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    console.log('Creating checkout for user:', user.email, 'plan:', planId);
+    logStep('User authenticated', { email: user.email });
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
@@ -60,42 +73,54 @@ serve(async (req) => {
     
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      console.log('Existing customer found:', customerId);
+      logStep('Existing customer found', { customerId });
     }
 
-    // Create checkout session with 14-day trial
-    // Note: Metered overage pricing is added via webhook after subscription creation
+    const priceId = PRICE_IDS[billingInterval][planId];
+    logStep('Using price ID', { priceId });
+
+    // Create checkout session with trial
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: PLAN_PRICE_IDS[planId],
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: 'subscription',
       subscription_data: {
         trial_period_days: 14,
+        metadata: {
+          plan: planId,
+          user_id: user.id,
+        },
       },
       success_url: `${req.headers.get('origin')}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
+      metadata: {
+        user_id: user.id,
+        plan: planId,
+        billing_interval: billingInterval,
+      },
     });
 
-    console.log('Checkout session created:', session.id);
+    logStep('Checkout session created', { sessionId: session.id });
 
     // Update profile with Stripe customer ID if new
     if (!customerId && session.customer) {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          stripe_customer_id: session.customer as string
-        })
-        .eq('id', user.id);
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
       
-      if (updateError) {
-        console.error('Failed to update profile with customer ID:', updateError);
-      }
+      await supabaseAdmin
+        .from('profiles')
+        .update({ stripe_customer_id: session.customer as string })
+        .eq('id', user.id);
+        
+      logStep('Profile updated with customer ID');
     }
 
     return new Response(
@@ -104,7 +129,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in create-checkout:', error);
+    logStep('ERROR', { message: error instanceof Error ? error.message : 'Unknown error' });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({ error: errorMessage }),
