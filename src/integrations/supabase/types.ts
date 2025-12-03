@@ -2228,7 +2228,7 @@ export type Database = {
           to_email: string
           type: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           attachments?: Json | null
@@ -2244,7 +2244,7 @@ export type Database = {
           to_email: string
           type?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           attachments?: Json | null
@@ -2260,7 +2260,7 @@ export type Database = {
           to_email?: string
           type?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
