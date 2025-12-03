@@ -1,281 +1,189 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/**
- * RESEND INBOUND EMAIL HANDLER - Platform-Wide
- * 
- * Handles ALL inbound emails from Resend for the entire platform:
- * 1. Stores raw email in inbound_emails table
- * 2. Auto-links to Debtors/Invoices via address patterns
- * 3. Triggers AI processing for summaries and action extraction
- * 
- * Address Patterns:
- * - invoice+<invoice_id>@inbound.services.recouply.ai
- * - debtor+<debtor_id>@inbound.services.recouply.ai
- * - collections@inbound.services.recouply.ai (general)
- */
-
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface ResendInboundEmail {
-  from: string;
-  to: string | string[];
+  from: string[];
+  to: string[];
   subject: string;
-  text?: string;
   html?: string;
-  headers?: Record<string, string>;
-  attachments?: Array<{
-    content: string;
-    filename: string;
-    content_type: string;
-    size: number;
-  }>;
-  reply_to?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
-  in_reply_to?: string;
-  message_id?: string;
-  email_id?: string;
+  text?: string;
   raw?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    content_type: string;
+  }>;
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  // Only accept POST
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    {
-      auth: { persistSession: false },
-    }
-  );
-
-  let inboundEmailId: string | null = null;
-
   try {
-    console.log("[INBOUND] ✅ Received webhook");
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse payload
-    let raw: any;
-    try {
-      raw = await req.json();
-      console.log("[INBOUND] Payload preview:", JSON.stringify(raw).substring(0, 200));
-    } catch (error: any) {
-      console.error("[INBOUND] ❌ Failed to parse JSON:", error.message);
-      return new Response(JSON.stringify({ success: true, message: "Received but could not parse" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Parse the inbound email payload
+    const payload: ResendInboundEmail = await req.json();
+    console.log('Received inbound email:', JSON.stringify(payload, null, 2));
 
-    // Extract email object
-    const email: ResendInboundEmail = raw?.data && (raw.type === "email.received" || raw.object === "event")
-      ? raw.data
-      : raw;
+    const fromEmail = payload.from?.[0] || '';
+    const toEmail = payload.to?.[0] || '';
+    const subject = payload.subject || '';
+    const htmlBody = payload.html || null;
+    const textBody = payload.text || null;
+    const rawBody = payload.raw || null;
+    const attachments = payload.attachments || [];
 
-    const toArray = Array.isArray(email.to) ? email.to : [email.to];
-    const fromEmail = email.from || "";
-    const subject = email.subject || "";
-    const textBody = email.text || "";
-    const htmlBody = email.html || "";
-    const messageId = email.message_id || `${Date.now()}-${Math.random()}`;
-
-    console.log("[INBOUND] From:", fromEmail, "To:", toArray[0], "Subject:", subject);
-
-    // Parse recipient pattern
-    let taskLevel: "invoice" | "debtor" | "general" = "general";
-    let refId: string | null = null;
-    let userId: string | null = null;
-    let debtorId: string | null = null;
+    // Parse the to address to extract invoice_id or debtor_id
     let invoiceId: string | null = null;
+    let debtorId: string | null = null;
+    let userId: string | null = null;
 
-    const primaryTo = toArray[0] || "";
-    const [localPart] = primaryTo.split("@");
+    // Pattern: invoice+<uuid>@inbound.services.recouply.ai
+    const invoiceMatch = toEmail.match(/^invoice\+([a-f0-9-]{36})@/i);
+    if (invoiceMatch) {
+      invoiceId = invoiceMatch[1];
+      console.log('Extracted invoice_id:', invoiceId);
 
-    // Check for invoice+ or debtor+ pattern
-    if (localPart.includes("+")) {
-      const [prefix, id] = localPart.split("+");
-      if (prefix === "invoice" && id) {
-        taskLevel = "invoice";
-        refId = id;
-      } else if (prefix === "debtor" && id) {
-        taskLevel = "debtor";
-        refId = id;
-      }
-    } else if (localPart === "collections") {
-      // General inbox - try to match by sender email
-      taskLevel = "general";
-      console.log("[INBOUND] General inbox, will try to match by sender:", fromEmail);
-    }
-
-    // Resolve user_id, debtor_id, invoice_id
-    if (taskLevel === "invoice" && refId) {
-      const { data: invoice } = await supabase
-        .from("invoices")
-        .select("id, debtor_id, user_id")
-        .eq("id", refId)
+      // Look up the invoice to get user_id and debtor_id
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('user_id, debtor_id')
+        .eq('id', invoiceId)
         .single();
 
       if (invoice) {
-        invoiceId = invoice.id;
-        debtorId = invoice.debtor_id;
         userId = invoice.user_id;
-        console.log("[INBOUND] Linked to invoice:", invoiceId);
+        debtorId = invoice.debtor_id;
+      } else {
+        console.error('Invoice not found:', invoiceId, invoiceError);
       }
-    } else if (taskLevel === "debtor" && refId) {
-      const { data: debtor } = await supabase
-        .from("debtors")
-        .select("id, user_id")
-        .eq("id", refId)
+    }
+
+    // Pattern: debtor+<uuid>@inbound.services.recouply.ai
+    const debtorMatch = toEmail.match(/^debtor\+([a-f0-9-]{36})@/i);
+    if (debtorMatch && !invoiceId) {
+      debtorId = debtorMatch[1];
+      console.log('Extracted debtor_id:', debtorId);
+
+      // Look up the debtor to get user_id
+      const { data: debtor, error: debtorError } = await supabase
+        .from('debtors')
+        .select('user_id')
+        .eq('id', debtorId)
         .single();
 
       if (debtor) {
-        debtorId = debtor.id;
         userId = debtor.user_id;
-        console.log("[INBOUND] Linked to debtor:", debtorId);
+      } else {
+        console.error('Debtor not found:', debtorId, debtorError);
       }
-    } else if (taskLevel === "general") {
-      // Try to find debtor by email
-      const { data: debtor } = await supabase
-        .from("debtors")
-        .select("id, user_id")
-        .or(`email.eq.${fromEmail},ar_contact_email.eq.${fromEmail},primary_email.eq.${fromEmail}`)
+    }
+
+    // If we couldn't determine the user, try to match by sender email
+    if (!userId) {
+      console.log('No user_id found from to address, trying sender email match');
+      
+      // Try to find a debtor with matching email
+      const { data: matchedDebtor } = await supabase
+        .from('debtors')
+        .select('id, user_id')
+        .eq('email', fromEmail)
         .limit(1)
         .single();
 
-      if (debtor) {
-        debtorId = debtor.id;
-        userId = debtor.user_id;
-        console.log("[INBOUND] Matched sender to debtor:", debtorId);
+      if (matchedDebtor) {
+        userId = matchedDebtor.user_id;
+        debtorId = matchedDebtor.id;
+        console.log('Matched debtor by email:', debtorId);
       }
     }
 
-    // Insert into inbound_emails table
-    const { data: inboundEmail, error: insertError } = await supabase
-      .from("inbound_emails")
+    // If still no user_id, we cannot process
+    if (!userId) {
+      console.error('Could not determine user_id for inbound email');
+      return new Response(JSON.stringify({ 
+        status: 'error', 
+        message: 'Could not determine recipient user' 
+      }), {
+        status: 200, // Return 200 to prevent Resend retries
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Insert into messages table
+    const { data: message, error: insertError } = await supabase
+      .from('messages')
       .insert({
-        user_id: userId,
-        event_type: raw?.type || "email.received",
-        raw_payload: raw,
-        from_email: fromEmail,
-        from_name: email.from,
-        to_emails: toArray,
-        cc_emails: email.cc ? (Array.isArray(email.cc) ? email.cc : [email.cc]) : null,
-        bcc_emails: email.bcc ? (Array.isArray(email.bcc) ? email.bcc : [email.bcc]) : null,
-        subject: subject,
-        text_body: textBody,
-        html_body: htmlBody,
-        message_id: messageId,
-        email_id: email.email_id,
-        debtor_id: debtorId,
+        type: 'inbound',
         invoice_id: invoiceId,
-        status: (debtorId || invoiceId) ? "linked" : "received",
-        error_message: null,
+        debtor_id: debtorId,
+        user_id: userId,
+        from_email: fromEmail,
+        to_email: toEmail,
+        subject: subject,
+        html_body: htmlBody,
+        text_body: textBody,
+        raw_body: rawBody,
+        attachments: attachments,
       })
-      .select()
+      .select('id')
       .single();
 
-    if (insertError || !inboundEmail) {
-      console.error("[INBOUND] ❌ Failed to insert:", insertError);
-      // Try to insert error record
-      await supabase.from("inbound_emails").insert({
-        user_id: userId,
-        event_type: "error",
-        raw_payload: raw,
-        from_email: fromEmail,
-        to_emails: toArray,
-        subject: subject,
-        message_id: messageId,
-        status: "error",
-        error_message: insertError?.message || "Unknown error",
-      });
-
-      return new Response(JSON.stringify({ success: true, warning: "Stored with errors" }), {
+    if (insertError) {
+      console.error('Error inserting message:', insertError);
+      return new Response(JSON.stringify({ 
+        status: 'error', 
+        message: 'Failed to store message' 
+      }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    inboundEmailId = inboundEmail.id;
-    console.log("[INBOUND] ✅ Stored email:", inboundEmailId);
+    console.log('Message stored with id:', message.id);
 
-    // Create collection task for backward compatibility
-    if (userId && debtorId) {
-      const emailContent = (textBody || htmlBody || "").toLowerCase();
-      let taskType = "MANUAL_REVIEW";
-
-      if (emailContent.includes("w9") || emailContent.includes("w-9")) {
-        taskType = "W9_REQUEST";
-      } else if (emailContent.includes("payment plan") || emailContent.includes("installments")) {
-        taskType = "PAYMENT_PLAN_REQUEST";
-      } else if (emailContent.includes("dispute") || emailContent.includes("wrong amount")) {
-        taskType = "DISPUTE_CHARGES";
-      } else if (emailContent.includes("call me") || emailContent.includes("phone call")) {
-        taskType = "NEEDS_CALLBACK";
-      }
-
-      await supabase.from("collection_tasks").insert({
-        user_id: userId,
-        debtor_id: debtorId,
-        invoice_id: invoiceId,
-        task_type: taskType,
-        priority: "normal",
-        status: "open",
-        summary: subject || "Email response received",
-        details: textBody || htmlBody || "",
-        source: "email",
+    // Call internal AI processing route
+    try {
+      const aiResponse = await supabase.functions.invoke('process-inbound-ai', {
+        body: { message_id: message.id },
       });
+      console.log('AI processing response:', aiResponse);
+    } catch (aiError) {
+      console.error('Error calling AI processing:', aiError);
+      // Don't fail the webhook if AI processing fails
     }
 
-    // Log as collection activity
-    if (userId && debtorId) {
-      await supabase.from("collection_activities").insert({
-        user_id: userId,
-        debtor_id: debtorId,
-        invoice_id: invoiceId,
-        activity_type: "customer_response",
-        direction: "inbound",
-        channel: "email",
-        subject: subject,
-        message_body: textBody || htmlBody || subject,
-        response_message: textBody || htmlBody,
-        responded_at: new Date().toISOString(),
-      });
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        inbound_email_id: inboundEmailId,
-        linked: !!(debtorId || invoiceId),
-        debtor_id: debtorId,
-        invoice_id: invoiceId,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error: any) {
-    console.error("[INBOUND] ❌ Error:", error);
-
-    // Try to log error
-    if (inboundEmailId) {
-      await supabase
-        .from("inbound_emails")
-        .update({ status: "error", error_message: error.message })
-        .eq("id", inboundEmailId);
-    }
-
-    return new Response(JSON.stringify({ success: true, error: error.message }), {
+    return new Response(JSON.stringify({ status: 'ok' }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error: any) {
+    console.error('Error processing inbound email:', error);
+    return new Response(JSON.stringify({ 
+      status: 'error', 
+      message: error?.message || 'Unknown error'
+    }), {
+      status: 200, // Return 200 to prevent Resend retries
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
