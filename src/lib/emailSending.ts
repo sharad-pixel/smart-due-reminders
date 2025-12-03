@@ -1,4 +1,10 @@
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Platform Email Sending Configuration
+ * 
+ * Recouply.ai uses centralized platform email infrastructure.
+ * All emails are sent through Resend via the platform's send-email edge function.
+ * No per-user email configuration is required.
+ */
 
 export interface SendingIdentity {
   senderName: string;
@@ -9,105 +15,50 @@ export interface SendingIdentity {
   replyToEmail?: string;
 }
 
+// Platform email constants
+const PLATFORM_FROM_NAME = "Recouply.ai";
+const PLATFORM_FROM_EMAIL = "notifications@send.inbound.services.recouply.ai";
+const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
+
 /**
- * Get the active sending identity for the current user's workspace
- * Falls back to Recouply.ai default domain if no custom domain is verified
+ * Get the platform sending identity
+ * Always returns the Recouply.ai platform email configuration
  */
 export async function getActiveSendingIdentity(): Promise<SendingIdentity> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
-    // Try to get verified custom domain
-    const { data: profile, error } = await supabase
-      .from("email_sending_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching email profile:", error);
-    }
-
-    // Get inbound email for reply-to
-    const { data: inboundAccount } = await supabase
-      .from("email_accounts")
-      .select("email_address")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .eq("email_type", "inbound")
-      .maybeSingle();
-
-    const replyToEmail = inboundAccount?.email_address;
-
-    // If custom domain exists and is verified, use it
-    if (profile && !profile.use_recouply_domain && profile.verification_status === "verified") {
-      return {
-        senderName: profile.sender_name,
-        senderEmail: profile.sender_email,
-        domain: profile.domain,
-        isVerified: true,
-        useRecouplyDomain: false,
-        replyToEmail,
-      };
-    }
-
-    // If user explicitly chose Recouply domain, use it
-    if (profile && profile.use_recouply_domain) {
-      return {
-        senderName: profile.sender_name,
-        senderEmail: profile.sender_email,
-        domain: profile.domain,
-        isVerified: true,
-        useRecouplyDomain: true,
-        replyToEmail,
-      };
-    }
-
-    // Fallback to Recouply.ai default domain
-    return {
-      senderName: "Recouply Collections",
-      senderEmail: `workspace-${user.id.substring(0, 8)}@send.recouply.ai`,
-      domain: "send.recouply.ai",
-      isVerified: true,
-      useRecouplyDomain: true,
-      replyToEmail,
-    };
-  } catch (error) {
-    console.error("Error getting sending identity:", error);
-    
-    // Safe fallback
-    return {
-      senderName: "Recouply Collections",
-      senderEmail: "notifications@recouply.ai",
-      domain: "recouply.ai",
-      isVerified: true,
-      useRecouplyDomain: true,
-    };
-  }
+  return {
+    senderName: PLATFORM_FROM_NAME,
+    senderEmail: PLATFORM_FROM_EMAIL,
+    domain: "send.inbound.services.recouply.ai",
+    isVerified: true,
+    useRecouplyDomain: true,
+  };
 }
 
 /**
- * Check if user has a verified custom domain
+ * Generate reply-to address for invoice-level communication
+ */
+export function getInvoiceReplyTo(invoiceId: string): string {
+  return `invoice+${invoiceId}@${PLATFORM_INBOUND_DOMAIN}`;
+}
+
+/**
+ * Generate reply-to address for debtor-level communication
+ */
+export function getDebtorReplyTo(debtorId: string): string {
+  return `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
+}
+
+/**
+ * Check if platform email is configured (always true)
  */
 export async function hasVerifiedCustomDomain(): Promise<boolean> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+  // Platform email is always available
+  return true;
+}
 
-    const { data: profile } = await supabase
-      .from("email_sending_profiles")
-      .select("verification_status, use_recouply_domain")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    return profile && !profile.use_recouply_domain && profile.verification_status === "verified";
-  } catch (error) {
-    console.error("Error checking custom domain:", error);
-    return false;
-  }
+/**
+ * Get the platform from address with display name
+ */
+export function getPlatformFromAddress(): string {
+  return `${PLATFORM_FROM_NAME} <${PLATFORM_FROM_EMAIL}>`;
 }

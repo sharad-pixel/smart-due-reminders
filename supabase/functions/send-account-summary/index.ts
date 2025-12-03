@@ -1,11 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Platform email configuration
+const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
+const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 interface Invoice {
   invoice_number: string;
@@ -72,32 +75,8 @@ serve(async (req) => {
       throw new Error("Debtor not found");
     }
 
-    // Fetch user's outbound email account
-    const { data: emailAccount, error: emailError } = await supabase
-      .from("email_accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .eq("email_type", "outbound")
-      .order("is_primary", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (emailError || !emailAccount) {
-      throw new Error("No active email account found. Please set up your email account first.");
-    }
-
-    // Get verified inbound email for reply-to
-    const { data: inboundAccount } = await supabase
-      .from("email_accounts")
-      .select("email_address")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .eq("email_type", "inbound")
-      .eq("is_verified", true)
-      .maybeSingle();
-
-    const replyToAddress = inboundAccount?.email_address || emailAccount.email_address;
+    // Use platform reply-to address based on debtor
+    const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
     // Build invoice table HTML
     let invoiceTableHtml = "";
@@ -173,43 +152,34 @@ serve(async (req) => {
       </div>
     `;
 
+    console.log(`Sending email via platform from ${PLATFORM_FROM_EMAIL} to ${debtor.email}`);
 
-    // Send via Resend API if using api auth method
-    if (emailAccount.auth_method === "api" && emailAccount.provider === "resend") {
-      const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      if (!resendApiKey) {
-        throw new Error("Resend API key not configured");
-      }
-
-      const resend = new Resend(resendApiKey);
-      
-      const result = await resend.emails.send({
-        from: emailAccount.email_address,
-        to: [debtor.email],
-        reply_to: replyToAddress,
-        subject: subject,
-        html: emailHtml,
-      });
-
-      console.log("Email sent via Resend:", result);
-    } else {
-      // Fallback: invoke test-email function for other email methods
-      const { data: emailResult, error: sendError } = await supabase.functions.invoke("test-email", {
-        body: {
-          email_account_id: emailAccount.id,
-          to_email: debtor.email,
-          subject: subject,
-          body_html: emailHtml,
-          reply_to: replyToAddress,
+    // Send via platform send-email function
+    const sendEmailResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
         },
-      });
-
-      if (sendError) {
-        throw new Error(`Failed to send email: ${sendError.message}`);
+        body: JSON.stringify({
+          to: debtor.email,
+          from: PLATFORM_FROM_EMAIL,
+          reply_to: replyToAddress,
+          subject: subject,
+          html: emailHtml,
+        }),
       }
+    );
 
-      console.log("Email sent via test-email function:", emailResult);
+    const emailResult = await sendEmailResponse.json();
+
+    if (!sendEmailResponse.ok) {
+      throw new Error(`Failed to send email: ${emailResult.error || "Unknown error"}`);
     }
+
+    console.log("Email sent via platform:", emailResult);
 
     // Log to collection_activities for audit trail
     const { data: activity, error: logError } = await supabase.from("collection_activities").insert({
@@ -226,6 +196,7 @@ serve(async (req) => {
         total_amount: invoices.reduce((sum, inv) => sum + inv.amount, 0),
         attached_links: attachedLinks.length,
         reply_to: replyToAddress,
+        platform_send: true,
       },
     }).select().single();
 
@@ -234,7 +205,6 @@ serve(async (req) => {
     }
 
     // Log to outreach_logs so responses can be linked
-    // Use the first invoice as the primary reference for account-level summaries
     if (invoices.length > 0) {
       const { data: invoice } = await supabase
         .from("invoices")
@@ -252,7 +222,7 @@ serve(async (req) => {
           subject: subject,
           message_body: message,
           sent_to: debtor.email,
-          sent_from: emailAccount.email_address,
+          sent_from: PLATFORM_FROM_EMAIL,
           sent_at: new Date().toISOString(),
           status: "sent",
           delivery_metadata: {
@@ -260,6 +230,7 @@ serve(async (req) => {
             type: "account_summary",
             invoice_count: invoices.length,
             reply_to: replyToAddress,
+            platform_send: true,
           },
         });
 
