@@ -43,9 +43,11 @@ export interface InboundEmailFilters {
   status?: string;
   action_type?: string;
   debtor_name?: string;
+  debtor_status?: "all" | "active" | "archived";
   search?: string;
   start_date?: string;
   end_date?: string;
+  hide_processed?: boolean;
 }
 
 export function useInboundEmails() {
@@ -59,7 +61,7 @@ export function useInboundEmails() {
         .from("inbound_emails")
         .select(`
           *,
-          debtors (name, company_name, email),
+          debtors (name, company_name, email, is_active, is_archived),
           invoices (invoice_number, amount, due_date)
         `)
         .order("created_at", { ascending: false });
@@ -67,6 +69,11 @@ export function useInboundEmails() {
       // Apply filters
       if (filters.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
+      }
+
+      // Hide processed emails if requested
+      if (filters.hide_processed) {
+        query = query.neq("status", "processed");
       }
 
       if (filters.search) {
@@ -93,6 +100,20 @@ export function useInboundEmails() {
         filteredData = filteredData.filter((email) => {
           if (!email.ai_actions || !Array.isArray(email.ai_actions)) return false;
           return email.ai_actions.some((action: any) => action.type === filters.action_type);
+        });
+      }
+
+      // Filter by debtor status if specified
+      if (filters.debtor_status && filters.debtor_status !== "all") {
+        filteredData = filteredData.filter((email) => {
+          if (!email.debtors) return false;
+          const debtor = email.debtors as any;
+          if (filters.debtor_status === "active") {
+            return debtor.is_active === true && debtor.is_archived !== true;
+          } else if (filters.debtor_status === "archived") {
+            return debtor.is_archived === true;
+          }
+          return true;
         });
       }
 
