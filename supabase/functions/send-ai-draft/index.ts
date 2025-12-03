@@ -6,7 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Decrypt a value using AES-GCM
+// Platform email configuration
+const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
+const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
+
+// Decrypt a value using AES-GCM (kept for SMS Twilio credentials)
 async function decryptValue(encryptedValue: string): Promise<string> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
@@ -72,97 +76,47 @@ serve(async (req) => {
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
-    let sendResult = { success: false, message: "" };
-    let sentFrom = "";
+    let sendResult = { success: false, message: "", replyTo: "" };
+    let sentFrom = PLATFORM_FROM_EMAIL;
 
     // Send based on channel
     if (draft.channel === "email") {
-      // Check for connected email account (BYOE) - try active outbound accounts first
-      let { data: emailAccount, error: emailAccountError } = await supabaseClient
-        .from("email_accounts")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .eq("email_type", "outbound")
-        .maybeSingle();
+      // Use platform email - reply-to is based on invoice
+      const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
+      
+      console.log(`Sending email via platform from ${PLATFORM_FROM_EMAIL} to ${debtor.email} with reply-to: ${replyToAddress}`);
 
-      // If no active account, try any account regardless of verification/active status
-      if (!emailAccount) {
-        const { data: anyAccount } = await supabaseClient
-          .from("email_accounts")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        if (!anyAccount) {
-          throw new Error("No email account connected. Please connect your email in Settings > Email Sending.");
-        }
-        
-        // Use the account even if not active or verified - for testing purposes
-        console.log("Warning: Using email account (active:", anyAccount.is_active, ", verified:", anyAccount.is_verified, "):", anyAccount.email_address);
-        emailAccount = anyAccount;
-      }
-
-      sentFrom = emailAccount.email_address;
-
-      // Get verified inbound email for reply-to
-      const { data: inboundAccount } = await supabaseClient
-        .from("email_accounts")
-        .select("email_address")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .eq("email_type", "inbound")
-        .eq("is_verified", true)
-        .maybeSingle();
-
-      const replyToAddress = inboundAccount?.email_address || emailAccount.email_address;
-
-      try {
-        // Use test-email edge function to handle the actual sending
-        const testEmailResponse = await supabaseClient.functions.invoke("test-email", {
-          body: {
-            email_account_id: emailAccount.id,
-            to_email: debtor.email,
-            subject: draft.subject || "Payment Reminder",
-            body_html: draft.message_body.replace(/\n/g, "<br>"),
-            reply_to: replyToAddress,
+      // Send via platform send-email function
+      const sendEmailResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
           },
-        });
-
-        // Check for errors in both the response error and data
-        if (testEmailResponse.error) {
-          const errorMsg = testEmailResponse.error.message || "Failed to send email";
-          console.error("test-email function error:", errorMsg);
-          throw new Error(errorMsg);
+          body: JSON.stringify({
+            to: debtor.email,
+            from: PLATFORM_FROM_EMAIL,
+            reply_to: replyToAddress,
+            subject: draft.subject || "Payment Reminder",
+            html: draft.message_body.replace(/\n/g, "<br>"),
+          }),
         }
+      );
 
-        // Check if the response data contains an error
-        if (testEmailResponse.data?.error) {
-          console.error("test-email returned error in data:", testEmailResponse.data.error);
-          throw new Error(testEmailResponse.data.error);
-        }
+      const emailResult = await sendEmailResponse.json();
 
-        if (!testEmailResponse.data?.success) {
-          throw new Error("Email sending failed - no success confirmation received");
-        }
-
-        sendResult = { success: true, message: "Email sent successfully via connected account" };
-        
-        // Store reply-to for logging
-        (sendResult as any).replyTo = replyToAddress;
-      } catch (emailError: any) {
-        console.error("Email send error:", emailError);
-        
-        // Log the failure
-        await supabaseClient.from("email_connection_logs").insert({
-          email_account_id: emailAccount.id,
-          event_type: "send_attempt",
-          status: "failed",
-          error_message: emailError.message,
-        });
-        
-        throw new Error(`Failed to send email: ${emailError.message}`);
+      if (!sendEmailResponse.ok) {
+        console.error("Platform email error:", emailResult);
+        throw new Error(`Failed to send email: ${emailResult.error || "Unknown error"}`);
       }
+
+      sendResult = { 
+        success: true, 
+        message: "Email sent successfully via Recouply.ai platform",
+        replyTo: replyToAddress
+      };
     } else if (draft.channel === "sms") {
       // Fetch Twilio credentials from profile
       const { data: twilioProfile, error: twilioProfileError } = await supabaseClient
@@ -217,7 +171,7 @@ serve(async (req) => {
           throw new Error(`Twilio error: ${errorText}`);
         }
 
-        sendResult = { success: true, message: "SMS sent successfully" };
+        sendResult = { success: true, message: "SMS sent successfully", replyTo: "" };
       } catch (smsError: any) {
         console.error("SMS send error:", smsError);
         throw new Error(`Failed to send SMS: ${smsError.message}`);
@@ -225,7 +179,7 @@ serve(async (req) => {
     }
 
     // Log the outreach
-    const outreachLog = await supabaseClient.from("outreach_logs").insert({
+    await supabaseClient.from("outreach_logs").insert({
       user_id: user.id,
       invoice_id: invoice.id,
       debtor_id: debtor.id,
@@ -238,9 +192,10 @@ serve(async (req) => {
       sent_at: new Date().toISOString(),
       delivery_metadata: {
         draft_id: draft_id,
-        reply_to: draft.channel === "email" ? (sendResult as any).replyTo : undefined,
+        reply_to: sendResult.replyTo || undefined,
+        platform_send: draft.channel === "email",
       },
-    }).select().single();
+    });
 
     // Update invoice last_contact_date
     await supabaseClient
@@ -251,7 +206,10 @@ serve(async (req) => {
     // Update draft status
     await supabaseClient
       .from("ai_drafts")
-      .update({ status: "approved" })
+      .update({ 
+        status: "approved",
+        sent_at: new Date().toISOString(),
+      })
       .eq("id", draft_id);
 
     return new Response(

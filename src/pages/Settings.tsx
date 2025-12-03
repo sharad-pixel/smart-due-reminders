@@ -497,38 +497,30 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className="cursor-pointer hover:border-primary transition-colors"
-          onClick={() => navigate("/settings/email-accounts")}
-        >
+        <Card>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Email Accounts</CardTitle>
+              <CardTitle>Email Infrastructure</CardTitle>
             </div>
             <CardDescription>
-              Connect your business email to send collection messages directly from your domain
+              Recouply.ai sends and receives emails through its own secure infrastructure
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Professional email integration increases trust and improves payment rates. 
-                Customers see emails from your business (e.g., billing@yourcompany.com), not a third-party service.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">Gmail</Badge>
-                <Badge variant="outline">Outlook</Badge>
-                <Badge variant="outline">Yahoo</Badge>
-                <Badge variant="outline">iCloud</Badge>
-                <Badge variant="outline">Custom SMTP</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  ✓ Platform Email Active
+                </Badge>
               </div>
-              <Button variant="outline" size="sm" onClick={(e) => {
-                e.stopPropagation();
-                navigate("/settings/email-accounts");
-              }}>
+              <p className="text-sm text-muted-foreground">
+                All collection emails are sent from our verified Recouply.ai address with SPF, DKIM, and DMARC authentication. 
+                No email setup required - start sending immediately.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => navigate("/settings/email-accounts")}>
                 <Mail className="h-4 w-4 mr-2" />
-                Configure Email Integration
+                View Email Details
               </Button>
             </div>
           </CardContent>

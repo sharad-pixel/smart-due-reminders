@@ -1,11 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Platform email configuration
+const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
+const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -32,7 +35,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { recipientEmail, subject, body, draftId, invoiceId } = await req.json();
+    const { recipientEmail, subject, body, draftId, invoiceId, debtorId } = await req.json();
 
     if (!recipientEmail || !subject || !body) {
       throw new Error("Missing required fields: recipientEmail, subject, body");
@@ -40,87 +43,84 @@ serve(async (req) => {
 
     console.log(`Preparing to send collection email to: ${recipientEmail}`);
 
-    // Get the active sending identity for this user
-    const { data: emailAccount, error: emailError } = await supabaseClient
-      .from("email_accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .eq("email_type", "outbound")
-      .order("is_primary", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (emailError || !emailAccount) {
-      throw new Error("No active email account found. Please set up your email account first.");
-    }
-
-    // Get inbound email for reply-to (must be verified)
-    const { data: inboundAccount } = await supabaseClient
-      .from("email_accounts")
-      .select("email_address")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .eq("email_type", "inbound")
-      .eq("is_verified", true)
-      .maybeSingle();
-
-    const replyToEmail = inboundAccount?.email_address || emailAccount.email_address;
-
-    if (replyToEmail) {
-      console.log(`Using verified inbound reply-to email: ${replyToEmail}`);
+    // Determine reply-to address based on context (invoice or debtor level)
+    let replyToEmail: string;
+    if (invoiceId) {
+      replyToEmail = `invoice+${invoiceId}@${PLATFORM_INBOUND_DOMAIN}`;
+    } else if (debtorId) {
+      replyToEmail = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
     } else {
-      console.log("Using outbound email as reply-to fallback");
+      // Fallback to generic collections address
+      replyToEmail = `collections@${PLATFORM_INBOUND_DOMAIN}`;
     }
 
-    // Send email via Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    
-    console.log(`Sending collection email from ${emailAccount.email_address} to ${recipientEmail} with reply-to: ${replyToEmail}`);
-    
-    const emailResponse = await resend.emails.send({
-      from: emailAccount.email_address,
-      reply_to: replyToEmail,
-      to: recipientEmail,
-      subject,
-      html: body,
-    });
+    console.log(`Sending email from platform: ${PLATFORM_FROM_EMAIL}, reply-to: ${replyToEmail}`);
 
-    if (emailResponse.error) {
-      throw new Error(`Resend API error: ${emailResponse.error.message}`);
+    // Send email via platform send-email function
+    const sendEmailResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+        },
+        body: JSON.stringify({
+          to: recipientEmail,
+          from: PLATFORM_FROM_EMAIL,
+          reply_to: replyToEmail,
+          subject,
+          html: body,
+        }),
+      }
+    );
+
+    const sendResult = await sendEmailResponse.json();
+
+    if (!sendEmailResponse.ok) {
+      throw new Error(`Failed to send email: ${sendResult.error || "Unknown error"}`);
     }
-    
-    console.log("Email sent successfully via Resend:", emailResponse);
+
+    console.log("Email sent successfully via platform:", sendResult);
 
     // Log the collection activity
     if (draftId || invoiceId) {
-      const { error: activityError } = await supabaseClient
-        .from("collection_activities")
-        .insert({
-          user_id: user.id,
-          debtor_id: invoiceId ? 
-            (await supabaseClient
-              .from("invoices")
-              .select("debtor_id")
-              .eq("id", invoiceId)
-              .single()).data?.debtor_id : null,
-          invoice_id: invoiceId || null,
-          linked_draft_id: draftId || null,
-          activity_type: "outreach",
-          direction: "outbound",
-          channel: "email",
-          subject,
-          message_body: body,
-          sent_at: new Date().toISOString(),
-          metadata: {
-            from_email: emailAccount.email_address,
-            from_name: emailAccount.display_name || "Collections Team",
-            reply_to_email: replyToEmail,
-          },
-        });
+      // Get debtor_id from invoice if not provided
+      let finalDebtorId = debtorId;
+      if (!finalDebtorId && invoiceId) {
+        const { data: invoice } = await supabaseClient
+          .from("invoices")
+          .select("debtor_id")
+          .eq("id", invoiceId)
+          .single();
+        finalDebtorId = invoice?.debtor_id;
+      }
 
-      if (activityError) {
-        console.error("Failed to log collection activity:", activityError);
+      if (finalDebtorId) {
+        const { error: activityError } = await supabaseClient
+          .from("collection_activities")
+          .insert({
+            user_id: user.id,
+            debtor_id: finalDebtorId,
+            invoice_id: invoiceId || null,
+            linked_draft_id: draftId || null,
+            activity_type: "outreach",
+            direction: "outbound",
+            channel: "email",
+            subject,
+            message_body: body,
+            sent_at: new Date().toISOString(),
+            metadata: {
+              from_email: PLATFORM_FROM_EMAIL,
+              from_name: "Recouply.ai",
+              reply_to_email: replyToEmail,
+              platform_send: true,
+            },
+          });
+
+        if (activityError) {
+          console.error("Failed to log collection activity:", activityError);
+        }
       }
     }
 
@@ -130,6 +130,7 @@ serve(async (req) => {
         .from("ai_drafts")
         .update({ 
           status: "sent",
+          sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", draftId);
@@ -144,7 +145,7 @@ serve(async (req) => {
         success: true,
         message: "Email sent successfully",
         sender: {
-          email: emailAccount.email_address,
+          email: PLATFORM_FROM_EMAIL,
           reply_to: replyToEmail,
         },
       }),
