@@ -30,6 +30,7 @@ interface TaskDetailModalProps {
 interface TeamMember {
   id: string;
   name: string;
+  title: string | null;
   email: string;
 }
 
@@ -87,51 +88,25 @@ export const TaskDetailModal = ({
 
   const fetchTeamMembers = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Fetch from team_members table
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('id, name, title, email')
+        .eq('is_active', true)
+        .order('name');
 
-      // Fetch team members from account_users joined with profiles
-      const { data: accountUsers } = await supabase
-        .from('account_users')
-        .select('user_id')
-        .eq('account_id', user.id)
-        .eq('status', 'active');
-
-      if (accountUsers && accountUsers.length > 0) {
-        const userIds = accountUsers.map(au => au.user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .in('id', userIds);
-
-        if (profiles) {
-          setTeamMembers(profiles.map(p => ({
-            id: p.id,
-            name: p.name || p.email || 'Unknown',
-            email: p.email || ''
-          })));
-        }
+      if (error) {
+        console.error('Error fetching team members:', error);
+        return;
       }
 
-      // Also add current user
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('id', user.id)
-        .single();
-
-      if (currentProfile) {
-        setTeamMembers(prev => {
-          const exists = prev.some(m => m.id === currentProfile.id);
-          if (!exists) {
-            return [...prev, {
-              id: currentProfile.id,
-              name: currentProfile.name || currentProfile.email || 'Me',
-              email: currentProfile.email || ''
-            }];
-          }
-          return prev;
-        });
+      if (data) {
+        setTeamMembers(data.map(m => ({
+          id: m.id,
+          name: m.name,
+          title: m.title,
+          email: m.email
+        })));
       }
     } catch (error) {
       console.error('Error fetching team members:', error);
@@ -148,6 +123,28 @@ export const TaskDetailModal = ({
         selectedTeamMember || null, 
         selectedPersona || null
       );
+      
+      // Send email notification if a team member is assigned
+      if (selectedTeamMember) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke("send-task-assignment", {
+            body: {
+              taskId: task.id,
+              teamMemberId: selectedTeamMember
+            }
+          });
+          
+          if (emailError) {
+            console.error('Error sending assignment email:', emailError);
+          } else {
+            toast.success("Task assigned and notification sent");
+            return;
+          }
+        } catch (emailErr) {
+          console.error('Error invoking send-task-assignment:', emailErr);
+        }
+      }
+      
       toast.success("Task assignment updated");
     } catch (error) {
       console.error('Error assigning task:', error);

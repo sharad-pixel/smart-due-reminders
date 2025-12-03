@@ -65,7 +65,7 @@ export default function CollectionTasks() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Team members for filter
-  const [teamMembers, setTeamMembers] = useState<{id: string; name: string}[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{id: string; name: string; email: string}[]>([]);
 
   useEffect(() => {
     fetchTeamMembers();
@@ -76,17 +76,21 @@ export default function CollectionTasks() {
   }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl]);
 
   const fetchTeamMembers = async () => {
+    // Fetch from team_members table instead of profiles
     const { data } = await supabase
-      .from('profiles')
-      .select('id, name, email');
+      .from('team_members')
+      .select('id, name, email')
+      .eq('is_active', true)
+      .order('name');
     
     if (data) {
       setTeamMembers(
         data
-          .filter(p => p.id && p.id.trim() !== '')
-          .map(p => ({
-            id: p.id,
-            name: p.name || p.email || 'Unknown'
+          .filter(m => m.id && m.id.trim() !== '')
+          .map(m => ({
+            id: m.id,
+            name: m.name,
+            email: m.email
           }))
       );
     }
@@ -128,18 +132,18 @@ export default function CollectionTasks() {
 
       if (error) throw error;
       
-      // Fetch assigned user names separately
+      // Fetch assigned team member names separately
       const tasksWithUserNames = await Promise.all(
         (data || []).map(async (task: any) => {
           if (task.assigned_to) {
-            const { data: profile } = await supabase
-              .from('profiles')
+            const { data: teamMember } = await supabase
+              .from('team_members')
               .select('name, email')
               .eq('id', task.assigned_to)
               .single();
             return {
               ...task,
-              assigned_user_name: profile?.name || profile?.email || null
+              assigned_user_name: teamMember?.name || teamMember?.email || null
             } as TaskWithRelations;
           }
           return { ...task, assigned_user_name: null } as TaskWithRelations;

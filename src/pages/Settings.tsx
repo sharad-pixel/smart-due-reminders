@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2 } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users } from "lucide-react";
 
 
 
@@ -493,6 +493,29 @@ const Settings = () => {
               <p className="text-sm text-muted-foreground">
                 Legal text or company information at the bottom of emails
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Team Members</CardTitle>
+            </div>
+            <CardDescription>
+              Manage team members who can be assigned to collection tasks
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Add team members to assign tasks and receive email notifications with task and invoice details.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => navigate("/settings/team-members")}>
+                <Users className="h-4 w-4 mr-2" />
+                Manage Team Members
+              </Button>
             </div>
           </CardContent>
         </Card>
