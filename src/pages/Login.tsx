@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
+import { getAuthRedirectUrl } from "@/lib/appConfig";
 import recouplyLogo from "@/assets/recouply-logo.png";
 
 const Login = () => {
@@ -114,7 +115,7 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: getAuthRedirectUrl('/dashboard'),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -147,7 +148,7 @@ const Login = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: getAuthRedirectUrl('/auth/reset-password'),
       });
 
       if (error) throw error;

@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
+import { getAuthRedirectUrl } from "@/lib/appConfig";
 
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -77,7 +78,7 @@ const Signup = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: getAuthRedirectUrl('/dashboard'),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -131,7 +132,7 @@ const Signup = () => {
         email: validatedData.email,
         password: validatedData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/onboarding`,
+          emailRedirectTo: getAuthRedirectUrl('/onboarding'),
           data: {
             name: validatedData.name
           },
