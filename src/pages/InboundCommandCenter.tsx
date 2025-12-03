@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -751,44 +752,40 @@ export default function InboundCommandCenter() {
                       <div className="space-y-3">
                         <h3 className="text-sm font-medium">Linked Records</h3>
                         {selectedEmail.debtors && (
-                          <Card>
-                            <CardContent className="py-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="font-medium">{(selectedEmail.debtors as any).name}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {(selectedEmail.debtors as any).company_name}
-                                  </p>
+                          <Link to={`/debtors/${selectedEmail.debtor_id}`}>
+                            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                              <CardContent className="py-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium">{(selectedEmail.debtors as any).name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {(selectedEmail.debtors as any).company_name}
+                                    </p>
+                                  </div>
+                                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <Button size="sm" variant="ghost" asChild>
-                                  <a href={`/debtors/${selectedEmail.debtor_id}`}>
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
+                              </CardContent>
+                            </Card>
+                          </Link>
                         )}
                         {selectedEmail.invoices && (
-                          <Card>
-                            <CardContent className="py-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="font-medium">
-                                    Invoice: {(selectedEmail.invoices as any).invoice_number}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    ${(selectedEmail.invoices as any).amount}
-                                  </p>
+                          <Link to={`/invoices/${selectedEmail.invoice_id}`}>
+                            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                              <CardContent className="py-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium">
+                                      Invoice: {(selectedEmail.invoices as any).invoice_number}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      ${(selectedEmail.invoices as any).amount}
+                                    </p>
+                                  </div>
+                                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <Button size="sm" variant="ghost" asChild>
-                                  <a href={`/invoices/${selectedEmail.invoice_id}`}>
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
+                              </CardContent>
+                            </Card>
+                          </Link>
                         )}
                       </div>
                       <Separator />
