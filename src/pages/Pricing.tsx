@@ -14,7 +14,7 @@ const plans = [
     name: "Starter",
     price: "$99",
     period: "/month",
-    invoiceLimit: "Up to 100 active invoices/month",
+    invoiceLimit: "Up to 50 active invoices/month",
     description: "Perfect for small businesses with light AR volume.",
     cta: "Start Free Trial",
     planType: "starter",
