@@ -147,17 +147,27 @@ const Login = () => {
     setSendingReset(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      // Always show same message regardless of whether email exists (security best practice)
+      await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: getAuthRedirectUrl('/auth/reset-password'),
       });
 
-      if (error) throw error;
+      // Log the password reset request (don't await to not block UI)
+      logSecurityEvent({
+        eventType: "password_reset_request",
+        email: resetEmail,
+        success: true,
+      }).catch(() => {});
 
-      toast.success("Password reset link sent! Check your email.");
+      // Generic success message - don't reveal if email exists
+      toast.success("If an account exists with this email, you'll receive a password reset link shortly.");
       setShowForgotPassword(false);
       setResetEmail("");
     } catch (error: any) {
-      toast.error(error.message || "Failed to send reset email");
+      // Still show generic message even on error (don't reveal system state)
+      toast.success("If an account exists with this email, you'll receive a password reset link shortly.");
+      setShowForgotPassword(false);
+      setResetEmail("");
     } finally {
       setSendingReset(false);
     }
