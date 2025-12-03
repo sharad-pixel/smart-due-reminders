@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
+import { getAuthRedirectUrl } from "@/lib/appConfig";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: getAuthRedirectUrl('/dashboard'),
             data: {
               company_name: companyName,
             },
