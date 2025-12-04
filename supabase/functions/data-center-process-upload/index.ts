@@ -242,6 +242,17 @@ serve(async (req) => {
           if (debtorId) {
             existingCustomersCount++;
             matched++;
+            
+            // Update staging row with matched customer IMMEDIATELY after match
+            await supabase
+              .from("data_center_staging_rows")
+              .update({
+                matched_customer_id: debtorId,
+                match_status: "matched_customer",
+                match_confidence: 100,
+              })
+              .eq("upload_id", uploadId)
+              .eq("row_index", i);
           } else {
             // Need customer name to create new record
             if (!customerName) {
@@ -278,6 +289,17 @@ serve(async (req) => {
               customerRefMap.set(normalizeString(newDebtor.reference_id), debtorId!);
             }
             newCustomers++;
+            
+            // Update staging row for newly created customer
+            await supabase
+              .from("data_center_staging_rows")
+              .update({
+                matched_customer_id: debtorId,
+                match_status: "matched_customer",
+                match_confidence: 100,
+              })
+              .eq("upload_id", uploadId)
+              .eq("row_index", i);
           }
 
           // Create invoice
@@ -332,17 +354,6 @@ serve(async (req) => {
           }
 
           newRecords++;
-
-          // Update staging row with matched customer
-          await supabase
-            .from("data_center_staging_rows")
-            .update({
-              matched_customer_id: debtorId,
-              match_status: "matched_customer",
-              match_confidence: 100,
-            })
-            .eq("upload_id", uploadId)
-            .eq("row_index", i);
 
         } else if (fileType === "payments") {
           // PAYMENTS: Require recouply_account_id and payment_invoice_number
