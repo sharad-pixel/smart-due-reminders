@@ -30,8 +30,11 @@ export const usePaymentScore = (debtorId?: string) => {
 
   const calculateScore = useMutation({
     mutationFn: async ({ debtor_id, recalculate_all }: { debtor_id?: string; recalculate_all?: boolean }) => {
-      const { data, error } = await supabase.functions.invoke("calculate-payment-score", {
-        body: { debtor_id, recalculate_all },
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("risk-engine", {
+        body: { debtor_id, recalculate_all, user_id: user.id },
       });
 
       if (error) throw error;
@@ -66,18 +69,23 @@ export const useDebtorDashboard = () => {
       const { data, error } = await supabase
         .from("debtors")
         .select("*")
-        .order("payment_score", { ascending: false });
+        .eq("is_archived", false)
+        .order("payment_score", { ascending: true, nullsFirst: true });
 
       if (error) throw error;
 
       const totalDebtors = data.length;
-      const avgScore = data.reduce((sum, d) => sum + (d.payment_score || 50), 0) / (totalDebtors || 1);
-      const lowRisk = data.filter(d => d.payment_risk_tier === "low").length;
-      const mediumRisk = data.filter(d => d.payment_risk_tier === "medium").length;
-      const highRisk = data.filter(d => d.payment_risk_tier === "high").length;
+      const avgScore = data.filter(d => d.payment_score !== null).reduce((sum, d) => sum + (d.payment_score || 0), 0) / 
+        (data.filter(d => d.payment_score !== null).length || 1);
+      
+      // Count by new risk tiers
+      const stillLearning = data.filter(d => !d.payment_risk_tier || d.payment_risk_tier === "Still learning").length;
+      const lowRisk = data.filter(d => d.payment_risk_tier === "Low").length;
+      const mediumRisk = data.filter(d => d.payment_risk_tier === "Medium").length;
+      const highRisk = data.filter(d => d.payment_risk_tier === "High").length;
+      const criticalRisk = data.filter(d => d.payment_risk_tier === "Critical").length;
       
       // Calculate DSO (Days Sales Outstanding)
-      // Weighted average of days to pay based on outstanding balance
       const totalAR = data.reduce((sum, d) => sum + (d.total_open_balance || 0), 0);
       const weightedDaysToPay = data.reduce((sum, d) => {
         const balance = d.total_open_balance || 0;
@@ -91,9 +99,11 @@ export const useDebtorDashboard = () => {
         summary: {
           totalDebtors,
           avgScore: Math.round(avgScore),
+          stillLearning,
           lowRisk,
           mediumRisk,
           highRisk,
+          criticalRisk,
           dso,
           totalAR,
         },

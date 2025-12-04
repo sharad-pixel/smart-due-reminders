@@ -96,6 +96,9 @@ verify_jwt = true
 [functions.calculate-payment-score]
 verify_jwt = true
 
+[functions.risk-engine]
+verify_jwt = true
+
 [functions.track-session]
 verify_jwt = true
 
@@ -145,4 +148,43 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.match-payments]
+verify_jwt = true
+
+[functions.data-center-ai-mapping]
+verify_jwt = true
+
+[functions.data-center-process-upload]
+verify_jwt = true
+
+[functions.send-task-assignment]
+verify_jwt = true
+
+[functions.cancel-subscription]
+verify_jwt = true
+
+[functions.address-autocomplete]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.import-invoices]
+verify_jwt = true
+
+[functions.bulk-update-invoice-status]
+verify_jwt = true
+
+[functions.send-collection-email]
+verify_jwt = true
+
+[functions.save-credentials]
+verify_jwt = true
+
+[functions.get-credentials-status]
+verify_jwt = true
+
+[functions.verify-dns-records]
+verify_jwt = true
+
+[functions.test-byod-email]
 verify_jwt = true
