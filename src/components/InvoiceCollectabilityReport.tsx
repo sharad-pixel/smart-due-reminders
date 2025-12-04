@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
 import {
   RefreshCw,
   TrendingUp,
@@ -26,7 +27,6 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  DollarSign,
   FileText,
   Target,
 } from "lucide-react";
@@ -68,6 +68,8 @@ interface AggregateStats {
 export function InvoiceCollectabilityReport() {
   const [expanded, setExpanded] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [sortKey, setSortKey] = useState<string | null>("collectability_score");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["invoice-collectability-report"],
@@ -82,8 +84,49 @@ export function InvoiceCollectabilityReport() {
       if (error) throw error;
       return data as { reports: InvoiceReport[]; aggregate: AggregateStats };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortDirection(null);
+        setSortKey(null);
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedReports = useMemo(() => {
+    const reports = data?.reports || [];
+    if (!sortKey || !sortDirection) return reports;
+
+    return [...reports].sort((a, b) => {
+      let aValue: any = a[sortKey as keyof InvoiceReport];
+      let bValue: any = b[sortKey as keyof InvoiceReport];
+
+      if (aValue === null || aValue === undefined) return sortDirection === "asc" ? 1 : -1;
+      if (bValue === null || bValue === undefined) return sortDirection === "asc" ? -1 : 1;
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      return 0;
+    });
+  }, [data?.reports, sortKey, sortDirection]);
 
   const handleGenerateAISummaries = async () => {
     setGeneratingAI(true);
@@ -96,8 +139,6 @@ export function InvoiceCollectabilityReport() {
       });
 
       if (error) throw error;
-      
-      // Manually update the query cache
       refetch();
       toast.success("AI summaries generated");
     } catch (err: any) {
@@ -112,13 +153,6 @@ export function InvoiceCollectabilityReport() {
     if (score >= 60) return "text-yellow-600";
     if (score >= 40) return "text-orange-600";
     return "text-red-600";
-  };
-
-  const getScoreBg = (score: number) => {
-    if (score >= 80) return "bg-green-500";
-    if (score >= 60) return "bg-yellow-500";
-    if (score >= 40) return "bg-orange-500";
-    return "bg-red-500";
   };
 
   const getTierBadge = (tier: string) => {
@@ -169,7 +203,6 @@ export function InvoiceCollectabilityReport() {
     );
   }
 
-  const reports = data?.reports || [];
   const aggregate = data?.aggregate;
 
   return (
@@ -294,7 +327,7 @@ export function InvoiceCollectabilityReport() {
             onClick={() => setExpanded(!expanded)}
           >
             <span className="text-sm font-medium">
-              Invoice Details ({reports.length})
+              Invoice Details ({sortedReports.length})
             </span>
             {expanded ? (
               <ChevronUp className="h-4 w-4" />
@@ -308,18 +341,63 @@ export function InvoiceCollectabilityReport() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-center">Days</TableHead>
-                    <TableHead className="text-center">Score</TableHead>
-                    <TableHead>Likelihood</TableHead>
+                    <SortableTableHead
+                      sortKey="invoice_number"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Invoice
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="debtor_name"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Account
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="amount"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="text-right"
+                    >
+                      Amount
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="days_past_due"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="text-center"
+                    >
+                      Days
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="collectability_score"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="text-center"
+                    >
+                      Score
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="payment_likelihood"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Likelihood
+                    </SortableTableHead>
                     <TableHead>Recommended Action</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reports.map((report) => (
+                  {sortedReports.map((report) => (
                     <TableRow key={report.invoice_id}>
                       <TableCell>
                         <div className="font-medium">{report.invoice_number}</div>
