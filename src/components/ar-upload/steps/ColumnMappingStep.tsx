@@ -31,13 +31,6 @@ const FIELD_LABELS: Record<string, string> = {
   external_invoice_id: "External Invoice ID",
   po_number: "PO Number",
   payment_terms: "Payment Terms",
-  as_of_date: "As-of Date",
-  bucket_current: "Current (0 days)",
-  bucket_1_30: "1-30 Days",
-  bucket_31_60: "31-60 Days",
-  bucket_61_90: "61-90 Days",
-  bucket_91_120: "91-120 Days",
-  bucket_120_plus: "120+ Days",
   payment_date: "Payment Date",
   reference: "Reference/Check #",
 };

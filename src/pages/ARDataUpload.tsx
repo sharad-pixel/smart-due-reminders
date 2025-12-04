@@ -1,10 +1,10 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileSpreadsheet, Receipt, DollarSign, Upload } from "lucide-react";
+import { FileSpreadsheet, DollarSign, Upload } from "lucide-react";
 import { ARUploadWizard } from "@/components/ar-upload/ARUploadWizard";
 
-type UploadType = "invoice_detail" | "ar_summary" | "payments";
+type UploadType = "invoice_detail" | "payments";
 
 const uploadTypes = [
   {
@@ -13,15 +13,7 @@ const uploadTypes = [
     description: "Upload invoice-level AR aging data with customer and invoice details",
     icon: FileSpreadsheet,
     requiredFields: ["Customer Name", "Invoice Number", "Invoice Date", "Due Date", "Amount"],
-    optionalFields: ["Currency", "Status", "Notes"],
-  },
-  {
-    type: "ar_summary" as UploadType,
-    title: "AR Summary by Bucket",
-    description: "Upload aggregated AR summary by aging bucket for comparison",
-    icon: Receipt,
-    requiredFields: ["Customer Name", "As-of Date", "Current", "1-30", "31-60", "61-90", "91-120", "120+"],
-    optionalFields: [],
+    optionalFields: ["Currency", "Status", "Notes", "Product Description", "Contact Email", "Contact Name"],
   },
   {
     type: "payments" as UploadType,
@@ -57,7 +49,7 @@ const ARDataUpload = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           {uploadTypes.map((uploadType) => {
             const Icon = uploadType.icon;
             return (
