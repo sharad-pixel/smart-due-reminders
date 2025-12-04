@@ -536,7 +536,7 @@ const InvoiceDetail = () => {
           currency: invoice.currency || "USD",
           reference: paymentReference || null,
           invoice_number_hint: invoice.invoice_number,
-          reconciliation_status: "matched",
+          reconciliation_status: "manually_matched",
         })
         .select()
         .single();
