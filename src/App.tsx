@@ -51,6 +51,7 @@ import InboundCommandCenter from "./pages/InboundCommandCenter";
 import ARDataUpload from "./pages/ARDataUpload";
 import Reconciliation from "./pages/Reconciliation";
 import ARAging from "./pages/ARAging";
+import DataCenter from "./pages/DataCenter";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +112,7 @@ const App = () => (
         <Route path="/ar-upload" element={<ARDataUpload />} />
         <Route path="/reconciliation" element={<Reconciliation />} />
         <Route path="/ar-aging" element={<ARAging />} />
+        <Route path="/data-center" element={<DataCenter />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
