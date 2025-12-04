@@ -200,11 +200,14 @@ export const DataCenterMappingStep = ({
           {columnMappings.map((mapping) => {
             const sampleValue = parsedData.sampleRows[0]?.[mapping.fileColumn];
             const fieldDef = allFields.find(f => f.key === mapping.fieldKey);
+            const isMappedToRequired = fieldDef?.required_for_recouply;
 
             return (
               <div
                 key={mapping.fileColumn}
-                className="grid grid-cols-12 gap-4 items-center py-2 border-b last:border-0"
+                className={`grid grid-cols-12 gap-4 items-center py-2 border-b last:border-0 ${
+                  isMappedToRequired ? "bg-primary/5 -mx-4 px-4 rounded" : ""
+                }`}
               >
                 <div className="col-span-4">
                   <p className="font-medium text-sm truncate">{mapping.fileColumn}</p>
@@ -219,19 +222,36 @@ export const DataCenterMappingStep = ({
                     value={mapping.fieldKey || "unmapped"}
                     onValueChange={(v) => handleMappingChange(mapping.fileColumn, v === "unmapped" ? null : v)}
                   >
-                    <SelectTrigger className="h-8">
+                    <SelectTrigger className={`h-8 ${isMappedToRequired ? "border-primary" : ""}`}>
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unmapped">— Skip this column —</SelectItem>
-                      {allFields.map((field: any) => (
+                      {/* Required fields first */}
+                      {allFields.filter((f: any) => f.required_for_recouply).length > 0 && (
+                        <div className="px-2 py-1 text-xs font-semibold text-destructive bg-destructive/10">
+                          Required Fields
+                        </div>
+                      )}
+                      {allFields.filter((f: any) => f.required_for_recouply).map((field: any) => (
+                        <SelectItem key={field.key} value={field.key}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-destructive font-medium">*</span>
+                            {field.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {/* Optional fields */}
+                      {allFields.filter((f: any) => !f.required_for_recouply).length > 0 && (
+                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground bg-muted/50 mt-1">
+                          Optional Fields
+                        </div>
+                      )}
+                      {allFields.filter((f: any) => !f.required_for_recouply).map((field: any) => (
                         <SelectItem key={field.key} value={field.key}>
                           <div className="flex items-center gap-2">
                             {field.label}
                             {field.isCustom && <Badge variant="secondary" className="text-[10px] px-1">Custom</Badge>}
-                            {field.required_for_recouply && (
-                              <span className="text-destructive">*</span>
-                            )}
                           </div>
                         </SelectItem>
                       ))}
