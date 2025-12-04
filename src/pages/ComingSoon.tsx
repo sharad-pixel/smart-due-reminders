@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,12 +10,7 @@ import { personaConfig } from "@/lib/personaConfig";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
-const introLines = [
-  "Initializing AI Collection Agents...",
-  "Loading persona configurations...",
-  "Calibrating communication strategies...",
-  "Your autonomous collection team is ready.",
-];
+const personas = Object.values(personaConfig);
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
@@ -24,46 +19,32 @@ const ComingSoon = () => {
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [introLineIndex, setIntroLineIndex] = useState(0);
-  const [introText, setIntroText] = useState("");
-  const [introComplete, setIntroComplete] = useState(false);
+  const [visibleAgents, setVisibleAgents] = useState<number[]>([]);
 
-  // Typewriter effect for intro
+  // Staggered agent reveal animation
   useEffect(() => {
-    if (introLineIndex >= introLines.length) {
-      setIntroComplete(true);
-      return;
-    }
-
-    const currentLine = introLines[introLineIndex];
-    let charIndex = 0;
-    setIntroText("");
-
-    const typeInterval = setInterval(() => {
-      if (charIndex < currentLine.length) {
-        setIntroText(currentLine.slice(0, charIndex + 1));
-        charIndex++;
-      } else {
-        clearInterval(typeInterval);
+    const revealAgents = () => {
+      personas.forEach((_, index) => {
         setTimeout(() => {
-          setIntroLineIndex(prev => prev + 1);
-        }, 800);
-      }
-    }, 40);
+          setVisibleAgents(prev => [...prev, index]);
+        }, index * 300);
+      });
+    };
+    
+    const timer = setTimeout(revealAgents, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-    return () => clearInterval(typeInterval);
-  }, [introLineIndex]);
-
-  // Auto-rotate carousel
+  // Auto-rotate carousel after all agents visible
   useEffect(() => {
-    if (!carouselApi || !introComplete) return;
+    if (!carouselApi || visibleAgents.length < personas.length) return;
 
     const interval = setInterval(() => {
       carouselApi.scrollNext();
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [carouselApi, introComplete]);
+  }, [carouselApi, visibleAgents.length]);
 
   // Track current slide
   useEffect(() => {
@@ -183,64 +164,80 @@ const ComingSoon = () => {
           </div>
 
           {/* AI Personas Carousel */}
-          <div className="space-y-4 pt-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="space-y-6 pt-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             <div className="text-center space-y-3">
               <h3 className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
-                <Bot className="h-6 w-6 text-primary" />
+                <Bot className="h-6 w-6 text-primary animate-pulse" />
                 Meet Your AI Collection Team
               </h3>
               
-              {/* Animated intro terminal */}
-              <div className="bg-muted/50 border border-border rounded-lg p-4 max-w-md mx-auto">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-destructive" />
-                  <div className="w-2 h-2 rounded-full bg-warning" />
-                  <div className="w-2 h-2 rounded-full bg-success" />
-                  <span className="text-xs text-muted-foreground ml-2">agent_loader.sh</span>
-                </div>
-                <div className="text-left font-mono text-sm">
-                  {introLines.slice(0, introLineIndex).map((line, i) => (
-                    <div key={i} className="text-success flex items-center gap-2">
-                      <span className="text-muted-foreground">$</span>
-                      <span>{line}</span>
-                      <span className="text-primary">✓</span>
+              {/* Animated Avatar Grid */}
+              <div className="flex justify-center items-center gap-3 py-6">
+                {personas.map((persona, index) => (
+                  <div
+                    key={persona.name}
+                    className={`relative transition-all duration-500 ${
+                      visibleAgents.includes(index)
+                        ? 'opacity-100 scale-100 translate-y-0'
+                        : 'opacity-0 scale-50 translate-y-8'
+                    }`}
+                    style={{ 
+                      animationDelay: `${index * 0.15}s`,
+                    }}
+                  >
+                    <div 
+                      className={`relative cursor-pointer transition-all duration-300 hover:scale-125 ${
+                        currentSlide === index ? 'scale-110 z-10' : 'hover:z-10'
+                      }`}
+                      onClick={() => carouselApi?.scrollTo(index)}
+                      style={{
+                        animation: visibleAgents.includes(index) ? `float ${3 + index * 0.5}s ease-in-out infinite` : 'none',
+                        animationDelay: `${index * 0.3}s`,
+                      }}
+                    >
+                      {/* Glow effect for active */}
+                      {currentSlide === index && (
+                        <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+                      )}
+                      <PersonaAvatar 
+                        persona={persona} 
+                        size="lg" 
+                        className={`relative ${currentSlide === index ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+                      />
+                      {/* Name tooltip on hover */}
+                      <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium transition-opacity duration-200 ${
+                        currentSlide === index ? 'opacity-100 text-primary' : 'opacity-0'
+                      }`}>
+                        {persona.name}
+                      </div>
                     </div>
-                  ))}
-                  {!introComplete && (
-                    <div className="text-primary flex items-center gap-2">
-                      <span className="text-muted-foreground">$</span>
-                      <span>{introText}</span>
-                      <span className="animate-blink">_</span>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
 
-              {introComplete && (
+              {visibleAgents.length === personas.length && (
                 <p className="text-sm text-muted-foreground animate-fade-in">
-                  6 specialized agents • Auto-rotating every 4s • Click to explore
+                  6 specialized agents working 24/7 • Click an agent to learn more
                 </p>
               )}
 
               {/* Slide indicators */}
-              {introComplete && (
-                <div className="flex justify-center gap-2 pt-2">
-                  {Object.values(personaConfig).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => carouselApi?.scrollTo(i)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        currentSlide === i 
-                          ? 'bg-primary w-6' 
-                          : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="flex justify-center gap-2 pt-2">
+                {personas.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => carouselApi?.scrollTo(i)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      currentSlide === i 
+                        ? 'bg-primary w-6' 
+                        : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
             <Carousel 
-              className={`w-full max-w-2xl mx-auto transition-opacity duration-500 ${introComplete ? 'opacity-100' : 'opacity-50'}`}
+              className="w-full max-w-2xl mx-auto"
               setApi={setCarouselApi}
             >
               <CarouselContent>
