@@ -1,0 +1,272 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Plus, 
+  Settings, 
+  Download, 
+  Upload, 
+  MoreVertical,
+  Trash2,
+  FileSpreadsheet,
+  Loader2
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface DataCenterSourcesTabProps {
+  onCreateSource: () => void;
+}
+
+const SYSTEM_TYPES: Record<string, { label: string; color: string }> = {
+  quickbooks: { label: "QuickBooks", color: "bg-green-100 text-green-800" },
+  netsuite: { label: "NetSuite", color: "bg-blue-100 text-blue-800" },
+  sap: { label: "SAP", color: "bg-yellow-100 text-yellow-800" },
+  xero: { label: "Xero", color: "bg-cyan-100 text-cyan-800" },
+  custom: { label: "Custom", color: "bg-gray-100 text-gray-800" },
+};
+
+export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabProps) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: sources, isLoading } = useQuery({
+    queryKey: ["data-center-sources"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("data_center_sources")
+        .select(`
+          *,
+          mappings:data_center_source_field_mappings(count),
+          uploads:data_center_uploads(count)
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: fieldDefinitions } = useQuery({
+    queryKey: ["field-definitions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_center_field_definitions")
+        .select("*")
+        .order("grouping", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const deleteSource = useMutation({
+    mutationFn: async (sourceId: string) => {
+      const { error } = await supabase
+        .from("data_center_sources")
+        .delete()
+        .eq("id", sourceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["data-center-sources"] });
+      queryClient.invalidateQueries({ queryKey: ["data-center-stats"] });
+      toast({ title: "Source deleted" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const downloadTemplate = (fileType: "invoice_aging" | "payments") => {
+    if (!fieldDefinitions) return;
+
+    const grouping = fileType === "invoice_aging" ? ["customer", "invoice"] : ["customer", "payment"];
+    const fields = fieldDefinitions.filter(f => grouping.includes(f.grouping));
+
+    // Create CSV content
+    const headers = fields.map(f => f.label);
+    const csvContent = [headers.join(","), ""].join("\n");
+
+    // Download
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recouply_${fileType}_template.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Template downloaded", description: "Fill out the template and upload it to import data." });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Templates Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Download Templates</CardTitle>
+          <CardDescription>
+            Download standardized templates to ensure your data maps correctly
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => downloadTemplate("invoice_aging")}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Invoice Aging Template
+            </Button>
+            <Button variant="outline" onClick={() => downloadTemplate("payments")}>
+              <Download className="h-4 w-4 mr-2" />
+              Payments Template
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sources List */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Data Sources</CardTitle>
+            <CardDescription>
+              Configure mapping profiles for different systems
+            </CardDescription>
+          </div>
+          <Button onClick={onCreateSource}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Source
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {sources && sources.length > 0 ? (
+            <div className="space-y-3">
+              {sources.map((source: any) => {
+                const systemType = SYSTEM_TYPES[source.system_type] || SYSTEM_TYPES.custom;
+                return (
+                  <div
+                    key={source.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Settings className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{source.source_name}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Badge variant="secondary" className={systemType.color}>
+                            {systemType.label}
+                          </Badge>
+                          {source.description && (
+                            <span className="truncate max-w-[200px]">{source.description}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">
+                        {source.mappings?.[0]?.count || 0} mappings
+                      </Badge>
+                      <Badge variant="outline">
+                        {source.uploads?.[0]?.count || 0} uploads
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload File
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Settings className="h-4 w-4 mr-2" />
+                            Edit Mappings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => deleteSource.mutate(source.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No data sources configured yet.</p>
+              <p className="text-sm">Create a source profile to save your column mappings.</p>
+              <Button className="mt-4" onClick={onCreateSource}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Source
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Required Fields Reference */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Required Fields Reference</CardTitle>
+          <CardDescription>
+            These fields are required for a successful import
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-medium mb-2">Invoice Aging Import</h4>
+              <ul className="space-y-1 text-sm">
+                {fieldDefinitions?.filter(f => f.required_for_recouply && ["customer", "invoice"].includes(f.grouping)).map(f => (
+                  <li key={f.key} className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    {f.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Payments Import</h4>
+              <ul className="space-y-1 text-sm">
+                {fieldDefinitions?.filter(f => f.required_for_recouply && ["customer", "payment"].includes(f.grouping)).map(f => (
+                  <li key={f.key} className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    {f.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

@@ -1071,6 +1071,222 @@ export type Database = {
           },
         ]
       }
+      data_center_field_definitions: {
+        Row: {
+          created_at: string
+          data_type: string
+          description: string | null
+          grouping: string
+          id: string
+          key: string
+          label: string
+          required_for_recouply: boolean
+          required_for_roundtrip: boolean
+        }
+        Insert: {
+          created_at?: string
+          data_type: string
+          description?: string | null
+          grouping: string
+          id?: string
+          key: string
+          label: string
+          required_for_recouply?: boolean
+          required_for_roundtrip?: boolean
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          grouping?: string
+          id?: string
+          key?: string
+          label?: string
+          required_for_recouply?: boolean
+          required_for_roundtrip?: boolean
+        }
+        Relationships: []
+      }
+      data_center_source_field_mappings: {
+        Row: {
+          confidence_score: number | null
+          confirmed_field_key: string | null
+          created_at: string
+          file_column_name: string
+          id: string
+          inferred_field_key: string | null
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          confirmed_field_key?: string | null
+          created_at?: string
+          file_column_name: string
+          id?: string
+          inferred_field_key?: string | null
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          confirmed_field_key?: string | null
+          created_at?: string
+          file_column_name?: string
+          id?: string
+          inferred_field_key?: string | null
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_center_source_field_mappings_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_center_sources: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          organization_id: string | null
+          source_name: string
+          system_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          organization_id?: string | null
+          source_name: string
+          system_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          organization_id?: string | null
+          source_name?: string
+          system_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_center_staging_rows: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          match_confidence: number | null
+          match_status: string
+          matched_customer_id: string | null
+          matched_invoice_id: string | null
+          normalized_json: Json | null
+          raw_json: Json
+          row_index: number
+          upload_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          match_confidence?: number | null
+          match_status?: string
+          matched_customer_id?: string | null
+          matched_invoice_id?: string | null
+          normalized_json?: Json | null
+          raw_json: Json
+          row_index: number
+          upload_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          match_confidence?: number | null
+          match_status?: string
+          matched_customer_id?: string | null
+          matched_invoice_id?: string | null
+          normalized_json?: Json | null
+          raw_json?: Json
+          row_index?: number
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_center_staging_rows_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_center_uploads: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          file_type: string
+          file_url: string | null
+          id: string
+          matched_count: number | null
+          processed_at: string | null
+          processed_count: number | null
+          row_count: number | null
+          source_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          file_type: string
+          file_url?: string | null
+          id?: string
+          matched_count?: number | null
+          processed_at?: string | null
+          processed_count?: number | null
+          row_count?: number | null
+          source_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          matched_count?: number | null
+          processed_at?: string | null
+          processed_count?: number | null
+          row_count?: number | null
+          source_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_center_uploads_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtors: {
         Row: {
           address: string | null
@@ -2136,6 +2352,7 @@ export type Database = {
           bucket_entered_at: string | null
           created_at: string | null
           currency: string | null
+          data_center_upload_id: string | null
           debtor_id: string
           due_date: string
           external_invoice_id: string | null
@@ -2174,6 +2391,7 @@ export type Database = {
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
+          data_center_upload_id?: string | null
           debtor_id: string
           due_date: string
           external_invoice_id?: string | null
@@ -2212,6 +2430,7 @@ export type Database = {
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
+          data_center_upload_id?: string | null
           debtor_id?: string
           due_date?: string
           external_invoice_id?: string | null
@@ -2243,6 +2462,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_data_center_upload_id_fkey"
+            columns: ["data_center_upload_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_uploads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -2557,6 +2783,7 @@ export type Database = {
           amount: number
           created_at: string
           currency: string | null
+          data_center_upload_id: string | null
           debtor_id: string | null
           id: string
           invoice_number_hint: string | null
@@ -2571,6 +2798,7 @@ export type Database = {
           amount: number
           created_at?: string
           currency?: string | null
+          data_center_upload_id?: string | null
           debtor_id?: string | null
           id?: string
           invoice_number_hint?: string | null
@@ -2585,6 +2813,7 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string | null
+          data_center_upload_id?: string | null
           debtor_id?: string | null
           id?: string
           invoice_number_hint?: string | null
@@ -2596,6 +2825,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_data_center_upload_id_fkey"
+            columns: ["data_center_upload_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_uploads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_debtor_id_fkey"
             columns: ["debtor_id"]
