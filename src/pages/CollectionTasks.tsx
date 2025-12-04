@@ -12,10 +12,10 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { ExternalLink } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ interface TaskWithRelations {
   debtor_id: string;
   invoice_id?: string | null;
   activity_id?: string | null;
+  inbound_email_id?: string | null;
   task_type: string;
   priority: string;
   status: string;
@@ -145,9 +146,7 @@ export default function CollectionTasks() {
         query = query.eq('debtor_id', debtorIdFromUrl);
       }
       if (assignedFilter === 'unassigned') {
-        query = query.is('assigned_to', null).is('assigned_persona', null);
-      } else if (assignedFilter === 'persona') {
-        query = query.not('assigned_persona', 'is', null);
+        query = query.is('assigned_to', null);
       } else if (assignedFilter !== 'all') {
         query = query.eq('assigned_to', assignedFilter);
       }
@@ -398,8 +397,6 @@ export default function CollectionTasks() {
     { value: 'MANUAL_REVIEW', label: 'Manual Review' },
   ];
 
-  const personas = ['Sam', 'James', 'Katy', 'Troy', 'Gotti', 'Rocco'];
-
   const getTaskIcon = (taskType: string) => {
     const type = taskType.toUpperCase();
     if (type.includes('PAYMENT')) return <DollarSign className="h-4 w-4" />;
@@ -419,33 +416,29 @@ export default function CollectionTasks() {
     return <Badge className={colors[priority] || colors.normal}>{priority}</Badge>;
   };
 
-  const getSourceBadge = (source: string | null | undefined) => {
-    if (source === "email_reply") {
-      return (
-        <Badge variant="secondary" className="gap-1">
-          <Mail className="h-3 w-3" />
-          Email
-        </Badge>
-      );
-    }
-    return null;
-  };
-
   const getAssignedDisplay = (task: TaskWithRelations) => {
-    if (task.assigned_persona) {
-      return (
-        <div className="flex items-center gap-2">
-          <PersonaAvatar persona={task.assigned_persona} size="sm" />
-          <span className="text-sm">{task.assigned_persona}</span>
-        </div>
-      );
-    }
     if (task.assigned_user_name) {
       return (
         <span className="text-sm">{task.assigned_user_name}</span>
       );
     }
     return <span className="text-sm text-muted-foreground">Unassigned</span>;
+  };
+
+  const getInboundLink = (task: TaskWithRelations) => {
+    if (task.inbound_email_id) {
+      return (
+        <Link 
+          to={`/inbound?email=${task.inbound_email_id}`}
+          className="flex items-center gap-1 text-primary hover:underline text-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink className="h-3 w-3" />
+          View Email
+        </Link>
+      );
+    }
+    return <span className="text-sm text-muted-foreground">-</span>;
   };
 
   // Count stats
@@ -504,8 +497,6 @@ export default function CollectionTasks() {
                     onValueChange={(value) => {
                       if (value === 'unassigned') {
                         handleBulkAssign(null, null);
-                      } else if (personas.includes(value)) {
-                        handleBulkAssign(null, value);
                       } else {
                         handleBulkAssign(value, null);
                       }
@@ -517,14 +508,6 @@ export default function CollectionTasks() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassign</SelectItem>
-                      {personas.map(persona => (
-                        <SelectItem key={persona} value={persona}>
-                          <div className="flex items-center gap-2">
-                            <PersonaAvatar persona={persona} size="sm" />
-                            {persona}
-                          </div>
-                        </SelectItem>
-                      ))}
                       {teamMembers.map(member => (
                         <SelectItem key={member.id} value={member.id}>
                           <div className="flex items-center gap-2">
@@ -624,7 +607,6 @@ export default function CollectionTasks() {
                 <SelectContent>
                   <SelectItem value="all">All Assignments</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  <SelectItem value="persona">AI Persona</SelectItem>
                   {teamMembers.map(member => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
@@ -679,7 +661,7 @@ export default function CollectionTasks() {
                       <TableHead>Debtor</TableHead>
                       <TableHead>Invoice</TableHead>
                       <TableHead>Assigned To</TableHead>
-                      <TableHead>Source</TableHead>
+                      <TableHead>Inbound</TableHead>
                       <TableHead className="w-32">Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -725,7 +707,7 @@ export default function CollectionTasks() {
                           {task.invoices?.invoice_number || "-"}
                         </TableCell>
                         <TableCell>{getAssignedDisplay(task)}</TableCell>
-                        <TableCell>{getSourceBadge(task.source)}</TableCell>
+                        <TableCell>{getInboundLink(task)}</TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={task.status}
