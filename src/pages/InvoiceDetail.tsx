@@ -1222,35 +1222,6 @@ const InvoiceDetail = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Send Pending Drafts</CardTitle>
-                  <CardDescription className="text-xs">
-                    Send all approved drafts for this invoice
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={async () => {
-                      const approvedDrafts = drafts.filter(d => d.status === 'approved');
-                      if (approvedDrafts.length === 0) {
-                        toast.error("No approved drafts to send");
-                        return;
-                      }
-                      for (const draft of approvedDrafts) {
-                        await handleSendDraft(draft.id);
-                      }
-                    }}
-                    disabled={sendingDraft !== null || drafts.filter(d => d.status === 'approved').length === 0}
-                    className="w-full"
-                    size="lg"
-                    variant="default"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Send {drafts.filter(d => d.status === 'approved').length} Approved
-                  </Button>
-                </CardContent>
-              </Card>
             </div>
 
             <div className="pt-2 border-t">
