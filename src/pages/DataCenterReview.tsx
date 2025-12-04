@@ -31,7 +31,7 @@ const DataCenterReview = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("needs_review");
+  const [statusFilter, setStatusFilter] = useState<string>("all_pending");
 
   // Fetch upload details
   const { data: upload, isLoading: uploadLoading } = useQuery({
@@ -58,7 +58,9 @@ const DataCenterReview = () => {
         .eq("upload_id", uploadId)
         .order("row_index", { ascending: true });
 
-      if (statusFilter !== "all") {
+      if (statusFilter === "all_pending") {
+        query = query.in("match_status", ["needs_review", "unmatched"]);
+      } else if (statusFilter !== "all") {
         query = query.eq("match_status", statusFilter);
       }
 
@@ -193,6 +195,8 @@ const DataCenterReview = () => {
         return <Badge variant="default" className="bg-green-600">Confirmed</Badge>;
       case "needs_review":
         return <Badge variant="outline" className="border-amber-500 text-amber-600">Needs Review</Badge>;
+      case "unmatched":
+        return <Badge variant="outline" className="border-red-500 text-red-600">Unmatched</Badge>;
       case "skipped":
         return <Badge variant="secondary">Skipped</Badge>;
       case "auto_matched":
@@ -236,9 +240,9 @@ const DataCenterReview = () => {
             <Card>
               <CardContent className="pt-4 text-center">
                 <div className="text-2xl font-bold text-amber-600">
-                  {stagingRows?.filter((r: any) => r.match_status === "needs_review").length || 0}
+                  {stagingRows?.filter((r: any) => r.match_status === "needs_review" || r.match_status === "unmatched").length || 0}
                 </div>
-                <p className="text-sm text-muted-foreground">Needs Review</p>
+                <p className="text-sm text-muted-foreground">Pending Review</p>
               </CardContent>
             </Card>
             <Card>
@@ -269,12 +273,14 @@ const DataCenterReview = () => {
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="all_pending">All Pending</SelectItem>
                     <SelectItem value="needs_review">Needs Review</SelectItem>
+                    <SelectItem value="unmatched">Unmatched</SelectItem>
                     <SelectItem value="confirmed">Confirmed</SelectItem>
                     <SelectItem value="auto_matched">Auto Matched</SelectItem>
                     <SelectItem value="skipped">Skipped</SelectItem>
@@ -320,7 +326,7 @@ const DataCenterReview = () => {
                           </div>
                         </div>
 
-                        {row.match_status === "needs_review" && (
+                        {(row.match_status === "needs_review" || row.match_status === "unmatched") && (
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -358,7 +364,7 @@ const DataCenterReview = () => {
                       )}
 
                       {/* Manual Match Selector */}
-                      {row.match_status === "needs_review" && (
+                      {(row.match_status === "needs_review" || row.match_status === "unmatched") && (
                         <div className="flex items-end gap-3">
                           <div className="flex-1">
                             <Label className="text-sm">Match to existing customer</Label>
