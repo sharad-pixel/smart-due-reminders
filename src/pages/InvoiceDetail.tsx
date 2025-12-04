@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -1190,41 +1190,175 @@ const InvoiceDetail = () => {
           </CardHeader>
         </Card>
 
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              AI Collection Actions
-            </CardTitle>
-            <CardDescription>
-              Generate and send AI-powered collection messages for this invoice
-            </CardDescription>
+        <Card className="border-primary/20">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>AI Collection Actions</CardTitle>
+                  <CardDescription className="mt-1">
+                    Generate and send AI-powered collection messages
+                  </CardDescription>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setGenerateDialogOpen(true)} 
+                disabled={generatingDraft}
+                size="sm"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {generatingDraft ? "Generating..." : "Generate Draft"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Quick Generate</CardTitle>
-                  <CardDescription className="text-xs">
-                    Generate a draft based on workflow
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={() => setGenerateDialogOpen(true)} 
-                    disabled={generatingDraft}
-                    className="w-full"
-                    size="lg"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    {generatingDraft ? "Generating..." : "Generate Draft"}
-                  </Button>
-                </CardContent>
-              </Card>
+            <Tabs defaultValue="history" className="w-full">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="history" className="text-sm">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Outreach History ({outreach.length})
+                </TabsTrigger>
+                <TabsTrigger value="drafts" className="text-sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Pending Drafts ({drafts.filter(d => d.status === 'pending_approval').length})
+                </TabsTrigger>
+              </TabsList>
 
-            </div>
+              <TabsContent value="history" className="mt-4">
+                {outreach.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No outreach history yet</p>
+                    <p className="text-xs mt-1">Generate a draft to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {outreach.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSelectedOutreach(log);
+                          setOutreachDetailOpen(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`p-2 rounded-full ${
+                            log.status === 'sent' ? 'bg-green-100 text-green-600' :
+                            log.status === 'failed' ? 'bg-red-100 text-red-600' :
+                            'bg-yellow-100 text-yellow-600'
+                          }`}>
+                            <Mail className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {log.subject || "No subject"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {log.sent_at ? new Date(log.sent_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : "Not sent"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            log.status === "sent"
+                              ? "bg-green-100 text-green-700"
+                              : log.status === "failed"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}>
+                            {log.status}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
 
-            <div className="pt-2 border-t">
+              <TabsContent value="drafts" className="mt-4">
+                {drafts.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No drafts yet</p>
+                    <p className="text-xs mt-1">Click "Generate Draft" to create one</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {drafts.map((draft) => (
+                      <div key={draft.id} className="p-4 rounded-lg border bg-card">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            {draft.ai_agent_personas && (
+                              <PersonaAvatar persona={draft.ai_agent_personas.name} size="sm" />
+                            )}
+                            <div>
+                              <p className="font-medium text-sm">
+                                Step {draft.step_number} • {draft.channel.toUpperCase()}
+                              </p>
+                              {draft.subject && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {draft.subject}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            draft.status === "approved"
+                              ? "bg-green-100 text-green-700"
+                              : draft.status === "discarded"
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {draft.status === 'pending_approval' ? 'Pending' : draft.status}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-muted/50 rounded-md mb-3">
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {draft.message_body}
+                          </p>
+                        </div>
+                        {draft.status === "pending_approval" && (
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => handleSendDraft(draft.id)}
+                              disabled={sendingDraft === draft.id}
+                              size="sm"
+                              className="flex-1"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              {sendingDraft === draft.id ? "Sending..." : "Approve & Send"}
+                            </Button>
+                            <Button variant="outline" onClick={() => handleEditDraft(draft)} size="sm">
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDraftAction(draft.id, "discarded")}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-2">AI Assistant</p>
               <PersonaCommandInput
                 placeholder="Ask Sam, James, Katy, Troy, or Gotti… e.g., 'Send a reminder for this invoice'"
                 onSubmit={handlePersonaCommand}
@@ -1241,159 +1375,6 @@ const InvoiceDetail = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Tabs defaultValue="outreach" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="outreach">Outreach History ({outreach.length})</TabsTrigger>
-            <TabsTrigger value="drafts">AI Drafts ({drafts.length})</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="outreach">
-            <Card>
-              <CardContent className="pt-6">
-                {outreach.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No outreach history yet.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Channel</TableHead>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Sent Date</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {outreach.map((log) => (
-                        <TableRow 
-                          key={log.id} 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => {
-                            setSelectedOutreach(log);
-                            setOutreachDetailOpen(true);
-                          }}
-                        >
-                          <TableCell className="capitalize">{log.channel}</TableCell>
-                          <TableCell>{log.subject || "N/A"}</TableCell>
-                          <TableCell>
-                            {log.sent_at ? new Date(log.sent_at).toLocaleString() : "Not sent"}
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                log.status === "sent"
-                                  ? "bg-green-100 text-green-800"
-                                  : log.status === "failed"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {log.status}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="drafts">
-            <div className="space-y-4">
-              {drafts.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12">
-                    <div className="text-center">
-                      <p className="text-muted-foreground">
-                        No AI drafts yet. Configure the workflow settings above to generate drafts.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                drafts.map((draft) => (
-                  <Card key={draft.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <CardTitle>Step {draft.step_number} - {draft.channel.toUpperCase()}</CardTitle>
-                            {draft.ai_agent_personas && (
-                              <PersonaAvatar persona={draft.ai_agent_personas.name} size="sm" showName />
-                            )}
-                          </div>
-                          {draft.subject && <p className="text-sm text-muted-foreground">{draft.subject}</p>}
-                          <p className="text-xs text-muted-foreground">
-                            Created: {new Date(draft.created_at || "").toLocaleString()}
-                            {draft.days_past_due !== null && draft.days_past_due !== undefined && ` • ${draft.days_past_due} days past due`}
-                          </p>
-                        </div>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            draft.status === "approved"
-                              ? "bg-green-100 text-green-800"
-                              : draft.status === "discarded"
-                              ? "bg-gray-100 text-gray-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {draft.status}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="p-4 bg-muted rounded-md">
-                        <p className="whitespace-pre-wrap text-sm">
-                          {draft.message_body.length > 200
-                            ? `${draft.message_body.substring(0, 200)}...`
-                            : draft.message_body}
-                        </p>
-                      </div>
-                      {draft.recommended_send_date && (
-                        <p className="text-sm text-muted-foreground">
-                          Recommended send: {new Date(draft.recommended_send_date).toLocaleDateString()}
-                        </p>
-                      )}
-                      {draft.status === "pending_approval" && (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Button 
-                            onClick={() => handleSendDraft(draft.id)}
-                            disabled={sendingDraft === draft.id}
-                            size="lg"
-                            className="flex-1"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            {sendingDraft === draft.id ? "Sending..." : "Approve & Send Now"}
-                          </Button>
-                          <Button variant="outline" onClick={() => handleEditDraft(draft)} size="lg">
-                            Edit Draft
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => handleDraftAction(draft.id, "discarded")}
-                            size="lg"
-                          >
-                            Discard
-                          </Button>
-                        </div>
-                      )}
-                      {draft.status === "approved" && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span>Approved - Ready to send from Quick Actions above</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
 
         <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
           <DialogContent className="max-w-lg">
