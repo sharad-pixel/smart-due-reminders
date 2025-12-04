@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -14,7 +15,8 @@ import {
   Search,
   Loader2,
   Link as LinkIcon,
-  X
+  X,
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +35,8 @@ const DataCenterReview = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all_pending");
   const [selectedMatches, setSelectedMatches] = useState<Record<string, string>>({});
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkMatchCustomerId, setBulkMatchCustomerId] = useState<string>("");
 
   // Fetch upload details
   const { data: upload, isLoading: uploadLoading } = useQuery({
@@ -177,6 +181,56 @@ const DataCenterReview = () => {
     },
   });
 
+  // Bulk match mutation
+  const bulkMatch = useMutation({
+    mutationFn: async ({ rowIds, customerId }: { rowIds: string[]; customerId: string }) => {
+      const { error } = await supabase
+        .from("data_center_staging_rows")
+        .update({
+          matched_customer_id: customerId,
+          match_status: "matched_customer",
+          match_confidence: 100,
+        })
+        .in("id", rowIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${selectedRows.size} rows matched successfully`);
+      setSelectedRows(new Set());
+      setBulkMatchCustomerId("");
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to bulk match: ${error.message}`);
+    },
+  });
+
+  // Get pending rows for selection
+  const pendingRows = stagingRows?.filter((r: any) => 
+    r.match_status === "needs_review" || r.match_status === "unmatched"
+  ) || [];
+
+  const toggleRowSelection = (rowId: string) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(rowId)) {
+        newSet.delete(rowId);
+      } else {
+        newSet.add(rowId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllPending = () => {
+    if (selectedRows.size === pendingRows.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(pendingRows.map((r: any) => r.id)));
+    }
+  };
+
   const filteredRows = stagingRows?.filter((row: any) => {
     if (!searchTerm) return true;
     const rawJson = row.raw_json || {};
@@ -292,6 +346,66 @@ const DataCenterReview = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Bulk Actions Toolbar */}
+            {selectedRows.size > 0 && (
+              <div className="mb-4 p-4 bg-muted rounded-lg flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span className="font-medium">{selectedRows.size} rows selected</span>
+                </div>
+                <div className="flex-1 flex flex-col md:flex-row items-start md:items-center gap-3">
+                  <Select
+                    value={bulkMatchCustomerId}
+                    onValueChange={setBulkMatchCustomerId}
+                  >
+                    <SelectTrigger className="w-[250px]">
+                      <SelectValue placeholder="Select customer to match all..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {debtors?.map((debtor: any) => (
+                        <SelectItem key={debtor.id} value={debtor.id}>
+                          {debtor.name || debtor.company_name}
+                          {debtor.email && ` (${debtor.email})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => {
+                      if (bulkMatchCustomerId) {
+                        bulkMatch.mutate({ rowIds: Array.from(selectedRows), customerId: bulkMatchCustomerId });
+                      }
+                    }}
+                    disabled={!bulkMatchCustomerId || bulkMatch.isPending}
+                  >
+                    {bulkMatch.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Match Selected
+                  </Button>
+                  <Button variant="outline" onClick={() => setSelectedRows(new Set())}>
+                    Clear Selection
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Select All for Pending */}
+            {pendingRows.length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedRows.size === pendingRows.length && pendingRows.length > 0}
+                  onCheckedChange={toggleAllPending}
+                />
+                <Label htmlFor="select-all" className="text-sm cursor-pointer">
+                  Select all pending ({pendingRows.length})
+                </Label>
+              </div>
+            )}
+
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -301,30 +415,40 @@ const DataCenterReview = () => {
                 {filteredRows.map((row: any) => {
                   const rawJson = row.raw_json || {};
                   const matchedDebtor = debtors?.find((d: any) => d.id === row.matched_customer_id);
+                  const isPending = row.match_status === "needs_review" || row.match_status === "unmatched";
 
                   return (
                     <div
                       key={row.id}
-                      className="border rounded-lg p-4 space-y-3"
+                      className={`border rounded-lg p-4 space-y-3 ${selectedRows.has(row.id) ? "border-primary bg-primary/5" : ""}`}
                     >
                       <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">Row #{row.row_index + 1}</span>
-                            {getStatusBadge(row.match_status)}
-                            {row.match_confidence && row.match_confidence < 100 && (
-                              <Badge variant="outline" className="text-xs">
-                                {Math.round(row.match_confidence)}% confidence
-                              </Badge>
-                            )}
-                          </div>
-                          <h3 className="font-medium mt-1">
-                            {rawJson.customer_name || rawJson.company_name || "Unknown Customer"}
-                          </h3>
-                          <div className="text-sm text-muted-foreground space-x-3">
-                            {rawJson.invoice_number && <span>Invoice: {rawJson.invoice_number}</span>}
-                            {rawJson.amount && <span>Amount: ${rawJson.amount}</span>}
-                            {rawJson.email && <span>Email: {rawJson.email}</span>}
+                        <div className="flex items-start gap-3">
+                          {isPending && (
+                            <Checkbox
+                              checked={selectedRows.has(row.id)}
+                              onCheckedChange={() => toggleRowSelection(row.id)}
+                              className="mt-1"
+                            />
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">Row #{row.row_index + 1}</span>
+                              {getStatusBadge(row.match_status)}
+                              {row.match_confidence && row.match_confidence < 100 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {Math.round(row.match_confidence)}% confidence
+                                </Badge>
+                              )}
+                            </div>
+                            <h3 className="font-medium mt-1">
+                              {rawJson.customer_name || rawJson.company_name || "Unknown Customer"}
+                            </h3>
+                            <div className="text-sm text-muted-foreground space-x-3">
+                              {rawJson.invoice_number && <span>Invoice: {rawJson.invoice_number}</span>}
+                              {rawJson.amount && <span>Amount: ${rawJson.amount}</span>}
+                              {rawJson.email && <span>Email: {rawJson.email}</span>}
+                            </div>
                           </div>
                         </div>
 
