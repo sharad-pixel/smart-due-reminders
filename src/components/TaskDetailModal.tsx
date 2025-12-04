@@ -34,14 +34,7 @@ interface TeamMember {
   email: string;
 }
 
-const AI_PERSONAS = [
-  { id: 'sam', name: 'Sam', bucket: '1-30 days' },
-  { id: 'james', name: 'James', bucket: '31-60 days' },
-  { id: 'katy', name: 'Katy', bucket: '61-90 days' },
-  { id: 'troy', name: 'Troy', bucket: '91-120 days' },
-  { id: 'gotti', name: 'Gotti', bucket: '121-150 days' },
-  { id: 'rocco', name: 'Rocco', bucket: '150+ days' },
-];
+// AI Personas removed - tasks are only assigned to team members
 
 const getTaskTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -74,7 +67,6 @@ export const TaskDetailModal = ({
   const [isSending, setIsSending] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedTeamMember, setSelectedTeamMember] = useState<string>("");
-  const [selectedPersona, setSelectedPersona] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
@@ -82,7 +74,6 @@ export const TaskDetailModal = ({
       fetchTeamMembers();
       // Set initial values from task
       setSelectedTeamMember(task?.assigned_to || "");
-      setSelectedPersona(task?.assigned_persona || "");
     }
   }, [open, task]);
 
@@ -121,7 +112,7 @@ export const TaskDetailModal = ({
       await onAssign(
         task.id, 
         selectedTeamMember || null, 
-        selectedPersona || null
+        null // No persona assignment for tasks
       );
       
       // Send email notification if a team member is assigned
@@ -247,6 +238,14 @@ export const TaskDetailModal = ({
             <div>
               <h4 className="font-semibold text-sm mb-2">AI Analysis</h4>
               <p className="text-xs text-muted-foreground italic">{task.ai_reasoning}</p>
+              {(task as any).inbound_email_id && (
+                <a 
+                  href={`/inbound?email=${(task as any).inbound_email_id}`}
+                  className="text-xs text-primary hover:underline mt-1 inline-block"
+                >
+                  View Source Email →
+                </a>
+              )}
             </div>
           )}
 
@@ -257,39 +256,21 @@ export const TaskDetailModal = ({
                 <UserPlus className="h-4 w-4" />
                 Assignment
               </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Team Member</Label>
-                  <Select value={selectedTeamMember || "unassigned"} onValueChange={(val) => setSelectedTeamMember(val === "unassigned" ? "" : val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {teamMembers.filter(m => m.id && m.id.trim() !== '').map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">AI Persona</Label>
-                  <Select value={selectedPersona || "none"} onValueChange={(val) => setSelectedPersona(val === "none" ? "" : val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="No persona" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No persona</SelectItem>
-                      {AI_PERSONAS.map(persona => (
-                        <SelectItem key={persona.id} value={persona.name}>
-                          {persona.name} ({persona.bucket})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Team Member</Label>
+                <Select value={selectedTeamMember || "unassigned"} onValueChange={(val) => setSelectedTeamMember(val === "unassigned" ? "" : val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {teamMembers.filter(m => m.id && m.id.trim() !== '').map(member => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button 
                 size="sm" 
@@ -311,24 +292,14 @@ export const TaskDetailModal = ({
           )}
 
           {/* Assignment Info Display */}
-          {(task.assigned_to || task.assigned_persona) && (
+          {task.assigned_to && (
             <div className="space-y-2 pt-2 border-t">
               <h4 className="font-semibold text-sm">Current Assignment</h4>
-              <div className="grid grid-cols-2 gap-4">
-                {task.assigned_to && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Assigned To</span>
-                    <p className="text-sm font-medium">
-                      {teamMembers.find(m => m.id === task.assigned_to)?.name || 'Unknown'}
-                    </p>
-                  </div>
-                )}
-                {task.assigned_persona && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">AI Persona</span>
-                    <p className="text-sm font-medium">{task.assigned_persona}</p>
-                  </div>
-                )}
+              <div>
+                <span className="text-xs text-muted-foreground">Assigned To</span>
+                <p className="text-sm font-medium">
+                  {teamMembers.find(m => m.id === task.assigned_to)?.name || 'Unknown'}
+                </p>
               </div>
               {(task as any).assignment_email_sent_at && (
                 <div>
@@ -338,6 +309,19 @@ export const TaskDetailModal = ({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Source Email Link */}
+          {(task as any).inbound_email_id && (
+            <div className="pt-2 border-t">
+              <h4 className="font-semibold text-sm mb-2">Source</h4>
+              <a 
+                href={`/inbound?email=${(task as any).inbound_email_id}`}
+                className="text-sm text-primary hover:underline"
+              >
+                View Source Email →
+              </a>
             </div>
           )}
 
