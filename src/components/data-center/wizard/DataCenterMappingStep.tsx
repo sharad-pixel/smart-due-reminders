@@ -1,6 +1,10 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -8,7 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Wand2, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Wand2, Loader2, CheckCircle, AlertCircle, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ParsedFileData, ColumnMapping } from "../DataCenterUploadWizard";
 
 interface DataCenterMappingStepProps {
@@ -19,7 +34,15 @@ interface DataCenterMappingStepProps {
   fileType: "invoice_aging" | "payments";
   isLoadingAI: boolean;
   onRunAI: () => void;
+  selectedSourceId?: string | null;
 }
+
+const DATA_TYPES = [
+  { value: "string", label: "Text" },
+  { value: "number", label: "Number" },
+  { value: "date", label: "Date" },
+  { value: "currency", label: "Currency" },
+];
 
 export const DataCenterMappingStep = ({
   parsedData,
@@ -29,13 +52,77 @@ export const DataCenterMappingStep = ({
   fileType,
   isLoadingAI,
   onRunAI,
+  selectedSourceId,
 }: DataCenterMappingStepProps) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldType, setNewFieldType] = useState("string");
+
+  // Fetch custom fields for selected source
+  const { data: customFields } = useQuery({
+    queryKey: ["source-custom-fields", selectedSourceId],
+    queryFn: async () => {
+      if (!selectedSourceId) return [];
+      const { data, error } = await supabase
+        .from("data_center_custom_fields")
+        .select("*")
+        .eq("source_id", selectedSourceId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedSourceId,
+  });
+
+  // Add custom field mutation
+  const addCustomField = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      if (!selectedSourceId) throw new Error("No source selected");
+
+      const key = `custom_${newFieldLabel.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")}`;
+      
+      const { data, error } = await supabase
+        .from("data_center_custom_fields")
+        .insert({
+          user_id: user.id,
+          source_id: selectedSourceId,
+          key,
+          label: newFieldLabel,
+          data_type: newFieldType,
+          grouping: "custom",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["source-custom-fields", selectedSourceId] });
+      toast({ title: "Custom field created" });
+      setShowAddField(false);
+      setNewFieldLabel("");
+      setNewFieldType("string");
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const relevantGroupings = fileType === "invoice_aging" 
     ? ["customer", "invoice", "meta"] 
     : ["customer", "payment", "meta"];
   
-  const relevantFields = fieldDefinitions.filter(f => relevantGroupings.includes(f.grouping));
-  const requiredFields = relevantFields.filter(f => f.required_for_recouply);
+  // Combine system fields with custom fields
+  const allFields = [
+    ...fieldDefinitions.filter(f => relevantGroupings.includes(f.grouping)),
+    ...(customFields || []).map(f => ({ ...f, isCustom: true })),
+  ];
+  
+  const requiredFields = fieldDefinitions.filter(f => f.required_for_recouply && relevantGroupings.includes(f.grouping));
   const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
   const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));
 
@@ -112,7 +199,7 @@ export const DataCenterMappingStep = ({
         <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
           {columnMappings.map((mapping) => {
             const sampleValue = parsedData.sampleRows[0]?.[mapping.fileColumn];
-            const fieldDef = relevantFields.find(f => f.key === mapping.fieldKey);
+            const fieldDef = allFields.find(f => f.key === mapping.fieldKey);
 
             return (
               <div
@@ -137,10 +224,11 @@ export const DataCenterMappingStep = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unmapped">— Skip this column —</SelectItem>
-                      {relevantFields.map((field) => (
+                      {allFields.map((field: any) => (
                         <SelectItem key={field.key} value={field.key}>
                           <div className="flex items-center gap-2">
                             {field.label}
+                            {field.isCustom && <Badge variant="secondary" className="text-[10px] px-1">Custom</Badge>}
                             {field.required_for_recouply && (
                               <span className="text-destructive">*</span>
                             )}
@@ -168,18 +256,75 @@ export const DataCenterMappingStep = ({
         </CardContent>
       </Card>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="text-destructive">* Required field</span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-green-600" />
-          High confidence
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-amber-600" />
-          Medium confidence
-        </span>
+      {/* Legend and Add Custom Field */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="text-destructive">* Required field</span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-600" />
+            High confidence
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-600" />
+            Medium confidence
+          </span>
+        </div>
+        {selectedSourceId && (
+          <Button variant="outline" size="sm" onClick={() => setShowAddField(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Custom Field
+          </Button>
+        )}
       </div>
+
+      {/* Add Custom Field Dialog */}
+      <Dialog open={showAddField} onOpenChange={setShowAddField}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Custom Field</DialogTitle>
+            <DialogDescription>
+              Create a custom field to map columns specific to this data source
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Field Label *</Label>
+              <Input
+                placeholder="e.g., PO Number, Project Code"
+                value={newFieldLabel}
+                onChange={(e) => setNewFieldLabel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data Type</Label>
+              <Select value={newFieldType} onValueChange={setNewFieldType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATA_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddField(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => addCustomField.mutate()}
+              disabled={!newFieldLabel.trim() || addCustomField.isPending}
+            >
+              {addCustomField.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Field
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
