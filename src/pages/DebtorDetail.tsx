@@ -184,7 +184,7 @@ const DebtorDetail = () => {
         notes: data.notes || "",
       });
     } catch (error: any) {
-      toast.error("Failed to load debtor details");
+      toast.error("Failed to load account details");
       navigate("/debtors");
     } finally {
       setLoading(false);
@@ -274,11 +274,11 @@ const DebtorDetail = () => {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Debtor updated successfully");
+      toast.success("Account updated successfully");
       setIsEditOpen(false);
       fetchDebtor();
     } catch (error: any) {
-      toast.error(error.message || "Failed to update debtor");
+      toast.error(error.message || "Failed to update account");
     }
   };
 
@@ -290,10 +290,10 @@ const DebtorDetail = () => {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Debtor archived successfully");
+      toast.success("Account archived successfully");
       navigate("/debtors");
     } catch (error: any) {
-      toast.error(error.message || "Failed to archive debtor");
+      toast.error(error.message || "Failed to archive account");
     }
   };
 
@@ -533,7 +533,7 @@ const DebtorDetail = () => {
               <CardContent className="pt-6">
                 {invoices.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-muted-foreground">No invoices for this debtor yet.</p>
+                    <p className="text-muted-foreground">No invoices for this account yet.</p>
                   </div>
                 ) : (
                   <Table>
@@ -594,20 +594,20 @@ const DebtorDetail = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>All Tasks for this Debtor</CardTitle>
+                  <CardTitle>All Tasks for this Account</CardTitle>
                   <Button onClick={() => setIsCreateTaskOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Task
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Both debtor-level and invoice-level tasks
+                  Both account-level and invoice-level tasks
                 </p>
               </CardHeader>
               <CardContent>
                 {tasks.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-muted-foreground">No tasks for this debtor yet.</p>
+                    <p className="text-muted-foreground">No tasks for this account yet.</p>
                   </div>
                 ) : (
                   <Table>
@@ -629,7 +629,7 @@ const DebtorDetail = () => {
                           </TableCell>
                           <TableCell>
                             <Badge variant={task.level === "invoice" ? "default" : "secondary"}>
-                              {task.level || "debtor"}
+                              {task.level || "account"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm">
@@ -689,13 +689,13 @@ const DebtorDetail = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Communication Audit Trail</CardTitle>
-                <p className="text-sm text-muted-foreground">Complete history of all communications with this debtor</p>
+                <p className="text-sm text-muted-foreground">Complete history of all communications with this account</p>
               </CardHeader>
               <CardContent className="pt-6">
                 {outreach.length === 0 ? (
                   <div className="text-center py-12">
                     <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <p className="text-muted-foreground">No outreach history for this debtor yet.</p>
+                    <p className="text-muted-foreground">No outreach history for this account yet.</p>
                     <p className="text-sm text-muted-foreground mt-2">Communications will appear here once sent.</p>
                   </div>
                 ) : (

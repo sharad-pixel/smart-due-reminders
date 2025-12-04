@@ -651,7 +651,7 @@ const Debtors = () => {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Debtors</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Accounts</h1>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Manage your customer accounts</p>
           </div>
           <div className="flex gap-2">
@@ -667,7 +667,7 @@ const Debtors = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
                   <Upload className="h-4 w-4 mr-2" />
-                  Import Debtors
+                  Import Accounts
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
@@ -678,11 +678,11 @@ const Debtors = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadDebtorsTemplate('csv')}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Download Debtors Template (CSV)
+                  Download Accounts Template (CSV)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadDebtorsTemplate('excel')}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Download Debtors Template (Excel)
+                  Download Accounts Template (Excel)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={showGoogleSheetsInstructions}>
                   <HelpCircle className="h-4 w-4 mr-2" />
@@ -694,13 +694,13 @@ const Debtors = () => {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  New Debtor
+                  New Account
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <div className="flex items-center justify-between">
-                  <DialogTitle>Create New Debtor</DialogTitle>
+                  <DialogTitle>Create New Account</DialogTitle>
                   <Button
                     onClick={handleAutoCompleteDebtor}
                     disabled={autoCompleting || (!formData.name && !formData.company_name)}
@@ -871,7 +871,7 @@ const Debtors = () => {
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit">Create Debtor</Button>
+                  <Button type="submit">Create Account</Button>
                 </div>
               </form>
             </DialogContent>
@@ -887,11 +887,11 @@ const Debtors = () => {
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Follow these steps to use Google Sheets with the Debtors import template:
+                Follow these steps to use Google Sheets with the Accounts import template:
               </p>
               <ol className="list-decimal list-inside space-y-3 text-sm">
                 <li>
-                  <strong>Download the template:</strong> Click the button below to download the Debtors template as a CSV file.
+                  <strong>Download the template:</strong> Click the button below to download the Accounts template as a CSV file.
                 </li>
                 <li>
                   <strong>Upload to Google Sheets:</strong> Go to{" "}
@@ -906,13 +906,13 @@ const Debtors = () => {
                   , click "File" → "Import" → "Upload", and select your downloaded CSV file.
                 </li>
                 <li>
-                  <strong>Fill in your data:</strong> Add your debtor information following the column structure in the template. Make sure to include all required fields.
+                  <strong>Fill in your data:</strong> Add your account information following the column structure in the template. Make sure to include all required fields.
                 </li>
                 <li>
                   <strong>Export as CSV:</strong> When you're done, go to "File" → "Download" → "Comma-separated values (.csv)" to export your sheet.
                 </li>
                 <li>
-                  <strong>Import to the app:</strong> Use the "Import Debtors" → "Import from File" option and select your exported CSV file.
+                  <strong>Import to the app:</strong> Use the "Import Accounts" → "Import from File" option and select your exported CSV file.
                 </li>
               </ol>
               <div className="flex gap-2 pt-4">
@@ -935,7 +935,7 @@ const Debtors = () => {
         <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Import Debtors</DialogTitle>
+              <DialogTitle>Import Accounts</DialogTitle>
             </DialogHeader>
             
             <div className="space-y-4">
@@ -1102,8 +1102,8 @@ const Debtors = () => {
               <div className="text-center py-12">
                 <p className="text-muted-foreground">
                   {debtors.length === 0
-                    ? "No debtors yet. Create your first debtor to get started."
-                    : "No debtors match your search criteria."}
+                    ? "No accounts yet. Create your first account to get started."
+                    : "No accounts match your search criteria."}
                 </p>
               </div>
             ) : (

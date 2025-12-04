@@ -159,7 +159,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/debtors", label: "Debtors", icon: Users },
+    { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
@@ -171,7 +171,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const coreNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/debtors", label: "Debtors", icon: Users },
+    { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/data-center", label: "Data Center", icon: Database },
   ];

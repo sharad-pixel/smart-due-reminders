@@ -79,7 +79,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       
       if (error) throw error;
       
-      toast.success("Debtor added successfully");
+      toast.success("Account added successfully");
       setOpen(false);
       setFormData({
         company_name: "",
@@ -93,7 +93,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       fetchDebtors();
       onUpdate();
     } catch (error: any) {
-      toast.error(error.message || "Failed to add debtor");
+      toast.error(error.message || "Failed to add account");
     }
   };
 
@@ -103,11 +103,11 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       
       if (error) throw error;
       
-      toast.success("Debtor deleted");
+      toast.success("Account deleted");
       fetchDebtors();
       onUpdate();
     } catch (error: any) {
-      toast.error("Failed to delete debtor");
+      toast.error("Failed to delete account");
     }
   };
 
@@ -120,21 +120,21 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Debtors</CardTitle>
-            <CardDescription>Manage your customers and their contact information</CardDescription>
+            <CardTitle>Accounts</CardTitle>
+            <CardDescription>Manage your accounts and their contact information</CardDescription>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Debtor
+                Add Account
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Debtor</DialogTitle>
+                <DialogTitle>Add New Account</DialogTitle>
                 <DialogDescription>
-                  Enter the customer's information to track their invoices
+                  Enter the account's information to track their invoices
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -200,7 +200,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
                     placeholder="e.g., SF_001234"
                   />
                 </div>
-                <Button type="submit" className="w-full">Add Debtor</Button>
+                <Button type="submit" className="w-full">Add Account</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -209,7 +209,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       <CardContent>
         {debtors.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No debtors yet. Add your first customer to get started.
+            No accounts yet. Add your first account to get started.
           </div>
         ) : (
           <Table>
