@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,12 @@ import {
   AlertCircle,
   Eye,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Archive
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface DataCenterUploadsTabProps {
   onStartUpload: (fileType: "invoice_aging" | "payments") => void;
@@ -33,6 +35,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: any; variant: "defaul
 
 export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProps) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const { data: uploads, isLoading, refetch } = useQuery({
     queryKey: ["data-center-uploads"],
@@ -47,11 +50,29 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
           source:data_center_sources(source_name, system_type)
         `)
         .eq("user_id", user.id)
+        .neq("status", "archived")
         .order("created_at", { ascending: false })
         .limit(50);
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  const archiveUpload = useMutation({
+    mutationFn: async (uploadId: string) => {
+      const { error } = await supabase
+        .from("data_center_uploads")
+        .update({ status: "archived" })
+        .eq("id", uploadId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
+      toast.success("Upload archived");
+    },
+    onError: () => {
+      toast.error("Failed to archive upload");
     },
   });
 
@@ -141,6 +162,15 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
                         View Error
                       </Button>
                     )}
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => archiveUpload.mutate(upload.id)}
+                      disabled={archiveUpload.isPending}
+                      title="Archive upload"
+                    >
+                      <Archive className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                 </div>
               );
