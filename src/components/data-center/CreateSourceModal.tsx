@@ -51,7 +51,8 @@ export const CreateSourceModal = ({ open, onClose }: CreateSourceModalProps) => 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      // Create the source
+      const { data: source, error } = await supabase
         .from("data_center_sources")
         .insert({
           user_id: user.id,
@@ -63,12 +64,33 @@ export const CreateSourceModal = ({ open, onClose }: CreateSourceModalProps) => 
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Fetch field definitions to create default mappings
+      const { data: fieldDefs } = await supabase
+        .from("data_center_field_definitions")
+        .select("*");
+
+      if (fieldDefs && fieldDefs.length > 0) {
+        // Create default mappings using field labels as column names
+        const defaultMappings = fieldDefs.map(field => ({
+          source_id: source.id,
+          file_column_name: field.label,
+          inferred_field_key: field.key,
+          confirmed_field_key: field.key,
+          confidence_score: 1.0,
+        }));
+
+        await supabase
+          .from("data_center_source_field_mappings")
+          .insert(defaultMappings);
+      }
+
+      return source;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["data-center-sources"] });
       queryClient.invalidateQueries({ queryKey: ["data-center-stats"] });
-      toast({ title: "Source created", description: "You can now upload files using this source profile." });
+      toast({ title: "Source created", description: "Default field mappings have been applied. You can customize them in source settings." });
       handleClose();
     },
     onError: (error: any) => {
