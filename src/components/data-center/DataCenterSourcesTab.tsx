@@ -115,6 +115,58 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
     toast({ title: "Template downloaded", description: "Fill out the template and upload it to import data." });
   };
 
+  const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments") => {
+    // Fetch source mappings
+    const { data: mappings } = await supabase
+      .from("data_center_source_field_mappings")
+      .select("file_column_name, confirmed_field_key, inferred_field_key")
+      .eq("source_id", sourceId);
+
+    if (!mappings || mappings.length === 0) {
+      toast({ 
+        title: "No mappings found", 
+        description: "Configure mappings for this source first.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Filter mappings by file type (invoice vs payment)
+    const relevantGroupings = fileType === "invoice_aging" ? ["customer", "invoice"] : ["customer", "payment"];
+    const relevantFieldKeys = fieldDefinitions
+      ?.filter(f => relevantGroupings.includes(f.grouping))
+      .map(f => f.key) || [];
+
+    const filteredMappings = mappings.filter(m => {
+      const fieldKey = m.confirmed_field_key || m.inferred_field_key;
+      return relevantFieldKeys.includes(fieldKey);
+    });
+
+    if (filteredMappings.length === 0) {
+      toast({ 
+        title: "No relevant mappings", 
+        description: `No ${fileType === "invoice_aging" ? "invoice" : "payment"} field mappings found for this source.`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Use file_column_name as headers (this is what the user's system uses)
+    const headers = filteredMappings.map(m => m.file_column_name);
+    const csvContent = [headers.join(","), ""].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeSourceName = sourceName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    a.download = `${safeSourceName}_${fileType}_template.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Template downloaded", description: `Template using ${sourceName} column mappings.` });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -220,7 +272,16 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem onClick={() => downloadSourceTemplate(source.id, source.source_name, "invoice_aging")}>
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Download Invoice Template
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => downloadSourceTemplate(source.id, source.source_name, "payments")}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Payment Template
+                          </DropdownMenuItem>
+                          <div className="border-t my-1" />
                           <DropdownMenuItem>
                             <Upload className="h-4 w-4 mr-2" />
                             Upload File
@@ -229,6 +290,7 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
                             <Settings className="h-4 w-4 mr-2" />
                             Edit Mappings
                           </DropdownMenuItem>
+                          <div className="border-t my-1" />
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => deleteSource.mutate(source.id)}
