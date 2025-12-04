@@ -55,7 +55,22 @@ const DataCenterReview = () => {
     enabled: !!uploadId,
   });
 
-  // Fetch staging rows
+  // Fetch ALL staging rows (unfiltered) for accurate counts
+  const { data: allStagingRows, refetch: refetchAll } = useQuery({
+    queryKey: ["data-center-staging-rows-all", uploadId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_center_staging_rows")
+        .select("*")
+        .eq("upload_id", uploadId)
+        .order("row_index", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!uploadId,
+  });
+
+  // Fetch staging rows with filter applied
   const { data: stagingRows, isLoading: rowsLoading, refetch } = useQuery({
     queryKey: ["data-center-staging-rows", uploadId, statusFilter],
     queryFn: async () => {
@@ -77,6 +92,29 @@ const DataCenterReview = () => {
     },
     enabled: !!uploadId,
   });
+
+  // Calculate actual stats from staging rows
+  const actualStats = {
+    totalRows: allStagingRows?.length || 0,
+    matchedCount: allStagingRows?.filter((r: any) => 
+      r.match_status === "matched_customer" || 
+      r.match_status === "matched_invoice" || 
+      r.match_status === "matched_payment"
+    ).length || 0,
+    pendingCount: allStagingRows?.filter((r: any) => 
+      r.match_status === "needs_review" || r.match_status === "unmatched"
+    ).length || 0,
+    processedCount: allStagingRows?.filter((r: any) => 
+      r.match_status !== "needs_review" && r.match_status !== "unmatched"
+    ).length || 0,
+  };
+
+  // Helper to refetch all data
+  const refetchAllData = () => {
+    refetch();
+    refetchAll();
+    queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+  };
 
   // Fetch debtors for manual matching
   const { data: debtors } = useQuery({
@@ -111,8 +149,7 @@ const DataCenterReview = () => {
     },
     onSuccess: () => {
       toast.success("Match confirmed");
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+      refetchAllData();
     },
     onError: (error: any) => {
       toast.error(`Failed to confirm match: ${error.message}`);
@@ -130,7 +167,7 @@ const DataCenterReview = () => {
     },
     onSuccess: () => {
       toast.success("Row skipped");
-      refetch();
+      refetchAllData();
     },
     onError: (error: any) => {
       toast.error(`Failed to skip row: ${error.message}`);
@@ -148,8 +185,7 @@ const DataCenterReview = () => {
     },
     onSuccess: () => {
       toast.success("Row deleted");
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+      refetchAllData();
     },
     onError: (error: any) => {
       toast.error(`Failed to delete row: ${error.message}`);
@@ -168,8 +204,7 @@ const DataCenterReview = () => {
     onSuccess: () => {
       toast.success(`${selectedRows.size} rows deleted`);
       setSelectedRows(new Set());
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+      refetchAllData();
     },
     onError: (error: any) => {
       toast.error(`Failed to delete rows: ${error.message}`);
@@ -232,7 +267,7 @@ const DataCenterReview = () => {
     },
     onSuccess: () => {
       toast.success("New customer created and matched");
-      refetch();
+      refetchAllData();
       queryClient.invalidateQueries({ queryKey: ["debtors-for-matching"] });
     },
     onError: (error: any) => {
@@ -257,8 +292,7 @@ const DataCenterReview = () => {
       toast.success(`${selectedRows.size} rows matched successfully`);
       setSelectedRows(new Set());
       setBulkMatchCustomerId("");
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+      refetchAllData();
     },
     onError: (error: any) => {
       toast.error(`Failed to bulk match: ${error.message}`);
@@ -355,36 +389,32 @@ const DataCenterReview = () => {
         </div>
 
         {/* Stats */}
-        {upload && (
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <div className="text-2xl font-bold">{upload.row_count || 0}</div>
-                <p className="text-sm text-muted-foreground">Total Rows</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{upload.matched_count || 0}</div>
-                <p className="text-sm text-muted-foreground">Matched</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <div className="text-2xl font-bold text-amber-600">
-                  {stagingRows?.filter((r: any) => r.match_status === "needs_review" || r.match_status === "unmatched").length || 0}
-                </div>
-                <p className="text-sm text-muted-foreground">Pending Review</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{upload.processed_count || 0}</div>
-                <p className="text-sm text-muted-foreground">Processed</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <div className="text-2xl font-bold">{actualStats.totalRows}</div>
+              <p className="text-sm text-muted-foreground">Total Rows</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{actualStats.matchedCount}</div>
+              <p className="text-sm text-muted-foreground">Matched</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <div className="text-2xl font-bold text-amber-600">{actualStats.pendingCount}</div>
+              <p className="text-sm text-muted-foreground">Pending Review</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{actualStats.processedCount}</div>
+              <p className="text-sm text-muted-foreground">Processed</p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Filters */}
         <Card>
