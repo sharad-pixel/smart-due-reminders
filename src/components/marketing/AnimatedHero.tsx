@@ -6,17 +6,28 @@ import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+const headlines = [
+  "Bookings Mean Nothing Without the Cash to Back Them Up",
+  "Revenue Is a Promise. Cash Is the Reality.",
+  "Your Pipeline Won't Pay Payroll—Cash Flow Will",
+  "Bookings Look Great on Paper. Cash Keeps You in Business.",
+  "Turn Outstanding Invoices Into Cash—Automatically",
+  "AI-Powered Collections That Turn ARR Into Actual Revenue",
+];
+
 const AnimatedHero = () => {
   const navigate = useNavigate();
   const [displayText, setDisplayText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
-  const fullText = "AI-Powered Cash Operations That Collect Payments Automatically";
+  const [currentHeadline] = useState(() => 
+    headlines[Math.floor(Math.random() * headlines.length)]
+  );
 
   useEffect(() => {
     let currentIndex = 0;
     const typingInterval = setInterval(() => {
-      if (currentIndex <= fullText.length) {
-        setDisplayText(fullText.slice(0, currentIndex));
+      if (currentIndex <= currentHeadline.length) {
+        setDisplayText(currentHeadline.slice(0, currentIndex));
         currentIndex++;
       } else {
         clearInterval(typingInterval);
@@ -25,7 +36,7 @@ const AnimatedHero = () => {
     }, 40);
 
     return () => clearInterval(typingInterval);
-  }, []);
+  }, [currentHeadline]);
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
