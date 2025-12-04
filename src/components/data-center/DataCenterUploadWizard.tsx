@@ -339,6 +339,7 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
               fileType={fileType}
               isLoadingAI={runAIMapping.isPending}
               onRunAI={() => runAIMapping.mutate()}
+              selectedSourceId={selectedSourceId}
             />
           )}
 

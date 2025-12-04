@@ -1081,6 +1081,50 @@ export type Database = {
           },
         ]
       }
+      data_center_custom_fields: {
+        Row: {
+          created_at: string
+          data_type: string
+          description: string | null
+          grouping: string
+          id: string
+          key: string
+          label: string
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          grouping?: string
+          id?: string
+          key: string
+          label: string
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          grouping?: string
+          id?: string
+          key?: string
+          label?: string
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_center_custom_fields_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_center_field_definitions: {
         Row: {
           created_at: string

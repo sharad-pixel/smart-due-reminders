@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EditSourceMappingsModal } from "./EditSourceMappingsModal";
 
 interface DataCenterSourcesTabProps {
   onCreateSource: () => void;
@@ -34,6 +36,7 @@ const SYSTEM_TYPES: Record<string, { label: string; color: string }> = {
 };
 
 export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabProps) => {
+  const [editingSource, setEditingSource] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -200,7 +203,7 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
                             <Upload className="h-4 w-4 mr-2" />
                             Upload File
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditingSource(source)}>
                             <Settings className="h-4 w-4 mr-2" />
                             Edit Mappings
                           </DropdownMenuItem>
@@ -267,6 +270,12 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
           </div>
         </CardContent>
       </Card>
+      {/* Edit Mappings Modal */}
+      <EditSourceMappingsModal
+        open={!!editingSource}
+        onClose={() => setEditingSource(null)}
+        source={editingSource}
+      />
     </div>
   );
 };
