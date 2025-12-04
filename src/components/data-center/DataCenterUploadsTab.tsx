@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,8 @@ const STATUS_CONFIG: Record<string, { label: string; icon: any; variant: "defaul
 };
 
 export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProps) => {
+  const navigate = useNavigate();
+  
   const { data: uploads, isLoading, refetch } = useQuery({
     queryKey: ["data-center-uploads"],
     queryFn: async () => {
@@ -124,7 +127,11 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
                       {statusConfig.label}
                     </Badge>
                     {upload.status === "needs_review" && (
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => navigate(`/data-center/review/${upload.id}`)}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         Review
                       </Button>
