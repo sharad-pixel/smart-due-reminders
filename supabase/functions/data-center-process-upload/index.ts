@@ -257,7 +257,13 @@ serve(async (req) => {
           const amount = parseNumber(getValue(row, "amount_original") || getValue(row, "amount_outstanding"));
           const amountOutstanding = parseNumber(getValue(row, "amount_outstanding") || getValue(row, "amount_original"));
 
+          // Log invoice fields for debugging
+          if (i < 3) {
+            console.log(`Row ${i} invoice fields: invoice_number="${invoiceNumber}", invoice_date="${invoiceDate}", due_date="${dueDate}", amount=${amount}`);
+          }
+
           if (!invoiceNumber || !invoiceDate || !dueDate) {
+            console.error(`Row ${i}: Missing required invoice fields - invoice_number="${invoiceNumber}", invoice_date="${invoiceDate}", due_date="${dueDate}"`);
             errors++;
             continue;
           }
