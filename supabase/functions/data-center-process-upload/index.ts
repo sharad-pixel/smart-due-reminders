@@ -87,14 +87,36 @@ serve(async (req) => {
     // Fetch existing customers for matching
     const { data: existingCustomers } = await supabase
       .from("debtors")
-      .select("id, company_name, external_customer_id, email")
+      .select("id, company_name, external_customer_id, email, reference_id")
       .eq("user_id", user.id);
 
     const customerMap = new Map<string, string>();
+    const customerRefMap = new Map<string, string>(); // reference_id -> id
     (existingCustomers || []).forEach(c => {
       customerMap.set(normalizeString(c.company_name), c.id);
       if (c.external_customer_id) {
         customerMap.set(normalizeString(c.external_customer_id), c.id);
+      }
+      if (c.reference_id) {
+        customerRefMap.set(normalizeString(c.reference_id), c.id);
+      }
+    });
+
+    // Fetch existing invoices for payment matching
+    const { data: existingInvoices } = await supabase
+      .from("invoices")
+      .select("id, invoice_number, debtor_id, amount_outstanding, status")
+      .eq("user_id", user.id);
+
+    const invoiceMap = new Map<string, { id: string; debtor_id: string; amount_outstanding: number; status: string }>();
+    (existingInvoices || []).forEach(inv => {
+      if (inv.invoice_number) {
+        invoiceMap.set(normalizeString(inv.invoice_number), {
+          id: inv.id,
+          debtor_id: inv.debtor_id,
+          amount_outstanding: inv.amount_outstanding || 0,
+          status: inv.status,
+        });
       }
     });
 
@@ -105,6 +127,8 @@ serve(async (req) => {
     let newCustomers = 0;
     let existingCustomersCount = 0;
     let newRecords = 0;
+    let invoicesPaid = 0;
+    let invoicesPartiallyPaid = 0;
 
     // Insert staging rows
     const stagingRows = rows.map((row, index) => {
@@ -135,58 +159,58 @@ serve(async (req) => {
       const row = rows[i];
       
       try {
-        // Get customer name
-        const customerName = String(getValue(row, "customer_name") || "").trim();
-        const customerId = getValue(row, "customer_id");
-        
-        if (!customerName) {
-          errors++;
-          continue;
-        }
-
-        // Find or create customer
-        let debtorId: string | null = null;
-        
-        // Try to match existing customer
-        if (customerId) {
-          debtorId = customerMap.get(normalizeString(String(customerId))) || null;
-        }
-        if (!debtorId) {
-          debtorId = customerMap.get(normalizeString(customerName)) || null;
-        }
-
-        if (debtorId) {
-          existingCustomersCount++;
-          matched++;
-        } else {
-          // Create new customer
-          const { data: newDebtor, error: debtorError } = await supabase
-            .from("debtors")
-            .insert({
-              user_id: user.id,
-              company_name: customerName,
-              name: customerName,
-              contact_name: String(getValue(row, "contact_name") || customerName),
-              email: String(getValue(row, "customer_email") || ""),
-              phone: String(getValue(row, "customer_phone") || ""),
-              external_customer_id: customerId ? String(customerId) : null,
-              reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-            })
-            .select()
-            .single();
-
-          if (debtorError) {
-            console.error("Debtor creation error:", debtorError);
+        if (fileType === "invoice_aging") {
+          // Get customer name
+          const customerName = String(getValue(row, "customer_name") || "").trim();
+          const customerId = getValue(row, "customer_id");
+          
+          if (!customerName) {
             errors++;
             continue;
           }
 
-          debtorId = newDebtor.id;
-          customerMap.set(normalizeString(customerName), debtorId!);
-          newCustomers++;
-        }
+          // Find or create customer
+          let debtorId: string | null = null;
+          
+          // Try to match existing customer
+          if (customerId) {
+            debtorId = customerMap.get(normalizeString(String(customerId))) || null;
+          }
+          if (!debtorId) {
+            debtorId = customerMap.get(normalizeString(customerName)) || null;
+          }
 
-        if (fileType === "invoice_aging") {
+          if (debtorId) {
+            existingCustomersCount++;
+            matched++;
+          } else {
+            // Create new customer
+            const { data: newDebtor, error: debtorError } = await supabase
+              .from("debtors")
+              .insert({
+                user_id: user.id,
+                company_name: customerName,
+                name: customerName,
+                contact_name: String(getValue(row, "contact_name") || customerName),
+                email: String(getValue(row, "customer_email") || ""),
+                phone: String(getValue(row, "customer_phone") || ""),
+                external_customer_id: customerId ? String(customerId) : null,
+                reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+              })
+              .select()
+              .single();
+
+            if (debtorError) {
+              console.error("Debtor creation error:", debtorError);
+              errors++;
+              continue;
+            }
+
+            debtorId = newDebtor.id;
+            customerMap.set(normalizeString(customerName), debtorId!);
+            newCustomers++;
+          }
+
           // Create invoice
           const invoiceNumber = String(getValue(row, "invoice_number") || "");
           const invoiceDate = parseDate(getValue(row, "invoice_date"));
@@ -227,17 +251,65 @@ serve(async (req) => {
           }
 
           newRecords++;
+
         } else if (fileType === "payments") {
-          // Create payment
+          // PAYMENTS: Require recouply_account_id and payment_invoice_number
+          const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
+          const paymentInvoiceNumber = String(getValue(row, "payment_invoice_number") || "").trim();
           const paymentDate = parseDate(getValue(row, "payment_date"));
           const paymentAmount = parseNumber(getValue(row, "payment_amount"));
 
-          if (!paymentDate || paymentAmount <= 0) {
+          // Validate required fields
+          if (!recouplyAccountId) {
+            console.error(`Row ${i}: Missing required Recouply Account ID`);
             errors++;
             continue;
           }
 
-          const { error: paymentError } = await supabase
+          if (!paymentInvoiceNumber) {
+            console.error(`Row ${i}: Missing required Invoice Number`);
+            errors++;
+            continue;
+          }
+
+          if (!paymentDate || paymentAmount <= 0) {
+            console.error(`Row ${i}: Invalid payment date or amount`);
+            errors++;
+            continue;
+          }
+
+          // Find debtor by reference_id (recouply_account_id)
+          const debtorId = customerRefMap.get(normalizeString(recouplyAccountId));
+          if (!debtorId) {
+            console.error(`Row ${i}: Account not found for Recouply Account ID: ${recouplyAccountId}`);
+            errors++;
+            continue;
+          }
+
+          // Find invoice by invoice_number
+          const invoiceData = invoiceMap.get(normalizeString(paymentInvoiceNumber));
+          if (!invoiceData) {
+            console.error(`Row ${i}: Invoice not found: ${paymentInvoiceNumber}`);
+            errors++;
+            continue;
+          }
+
+          // Verify invoice belongs to the specified account
+          if (invoiceData.debtor_id !== debtorId) {
+            console.error(`Row ${i}: Invoice ${paymentInvoiceNumber} does not belong to account ${recouplyAccountId}`);
+            errors++;
+            continue;
+          }
+
+          // Check if invoice is already paid
+          if (invoiceData.status === "Paid") {
+            console.error(`Row ${i}: Invoice ${paymentInvoiceNumber} is already paid`);
+            errors++;
+            continue;
+          }
+
+          // Create payment record
+          const { data: newPayment, error: paymentError } = await supabase
             .from("payments")
             .insert({
               user_id: user.id,
@@ -247,9 +319,12 @@ serve(async (req) => {
               currency: String(getValue(row, "currency") || "USD"),
               reference: getValue(row, "payment_reference") ? String(getValue(row, "payment_reference")) : null,
               notes: getValue(row, "payment_notes") ? String(getValue(row, "payment_notes")) : null,
+              invoice_number_hint: paymentInvoiceNumber,
               data_center_upload_id: uploadId,
-              reconciliation_status: "pending",
-            });
+              reconciliation_status: "matched",
+            })
+            .select()
+            .single();
 
           if (paymentError) {
             console.error("Payment creation error:", paymentError);
@@ -257,6 +332,57 @@ serve(async (req) => {
             continue;
           }
 
+          // Create payment-invoice link
+          const { error: linkError } = await supabase
+            .from("payment_invoice_links")
+            .insert({
+              payment_id: newPayment.id,
+              invoice_id: invoiceData.id,
+              applied_amount: paymentAmount,
+              match_confidence: 1.0,
+              match_method: "manual_upload",
+              status: "confirmed",
+            });
+
+          if (linkError) {
+            console.error("Payment link creation error:", linkError);
+          }
+
+          // Calculate new outstanding amount
+          const newOutstanding = Math.max(0, invoiceData.amount_outstanding - paymentAmount);
+          
+          // Determine new invoice status
+          let newStatus: string;
+          if (newOutstanding <= 0) {
+            // Full payment - mark as Paid
+            newStatus = "Paid";
+            invoicesPaid++;
+          } else {
+            // Partial payment - mark as PartiallyPaid
+            newStatus = "PartiallyPaid";
+            invoicesPartiallyPaid++;
+          }
+
+          // Update invoice with new outstanding amount and status
+          const { error: invoiceUpdateError } = await supabase
+            .from("invoices")
+            .update({
+              amount_outstanding: newOutstanding,
+              status: newStatus,
+              payment_date: newStatus === "Paid" ? paymentDate : null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", invoiceData.id);
+
+          if (invoiceUpdateError) {
+            console.error("Invoice update error:", invoiceUpdateError);
+          } else {
+            // Update local cache for subsequent payments to same invoice
+            invoiceData.amount_outstanding = newOutstanding;
+            invoiceData.status = newStatus;
+          }
+
+          matched++;
           newRecords++;
         }
 
@@ -289,6 +415,8 @@ serve(async (req) => {
       existingCustomers: existingCustomersCount,
       newRecords,
       fileType,
+      invoicesPaid,
+      invoicesPartiallyPaid,
     };
 
     console.log("Processing complete:", result);
