@@ -10,7 +10,7 @@ import { ColumnMappingStep } from "./steps/ColumnMappingStep";
 import { PreviewStep } from "./steps/PreviewStep";
 import { ImportResultStep } from "./steps/ImportResultStep";
 
-type UploadType = "invoice_detail" | "ar_summary" | "payments";
+type UploadType = "invoice_detail" | "payments";
 
 interface ARUploadWizardProps {
   open: boolean;
@@ -51,8 +51,6 @@ const getRequiredFields = (uploadType: UploadType): string[] => {
   switch (uploadType) {
     case "invoice_detail":
       return ["customer_name", "invoice_number", "invoice_date", "due_date", "amount"];
-    case "ar_summary":
-      return ["customer_name", "as_of_date", "bucket_current", "bucket_1_30", "bucket_31_60", "bucket_61_90", "bucket_91_120", "bucket_120_plus"];
     case "payments":
       return ["customer_name", "payment_date", "amount"];
   }
@@ -72,8 +70,6 @@ const getOptionalFields = (uploadType: UploadType): string[] => {
         "po_number",
         "payment_terms"
       ];
-    case "ar_summary":
-      return [];
     case "payments":
       return ["currency", "reference", "invoice_number", "notes"];
   }
@@ -406,9 +402,6 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
           if (uploadType === "invoice_detail") {
             await importInvoice(row, columnMapping, debtorId, user.id, batchId);
             successCount++;
-          } else if (uploadType === "ar_summary") {
-            await importARSummary(row, columnMapping, debtorId, user.id, batchId);
-            successCount++;
           } else if (uploadType === "payments") {
             await importPayment(row, columnMapping, debtorId, user.id, batchId);
             successCount++;
@@ -471,8 +464,6 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
     switch (uploadType) {
       case "invoice_detail":
         return "Import Invoice Aging";
-      case "ar_summary":
-        return "Import AR Summary";
       case "payments":
         return "Import Payments";
     }
@@ -593,29 +584,6 @@ async function importInvoice(
   }
 
   const { error } = await supabase.from("invoices").insert(invoiceData as any);
-
-  if (error) throw error;
-}
-
-async function importARSummary(
-  row: Record<string, any>,
-  mapping: ColumnMapping,
-  debtorId: string,
-  userId: string,
-  batchId: string
-) {
-  const { error } = await supabase.from("ar_summary").insert({
-    user_id: userId,
-    debtor_id: debtorId,
-    as_of_date: parseDate(row[mapping.as_of_date!]),
-    bucket_current: parseFloat(row[mapping.bucket_current!]) || 0,
-    bucket_1_30: parseFloat(row[mapping.bucket_1_30!]) || 0,
-    bucket_31_60: parseFloat(row[mapping.bucket_31_60!]) || 0,
-    bucket_61_90: parseFloat(row[mapping.bucket_61_90!]) || 0,
-    bucket_91_120: parseFloat(row[mapping.bucket_91_120!]) || 0,
-    bucket_120_plus: parseFloat(row[mapping.bucket_120_plus!]) || 0,
-    upload_batch_id: batchId,
-  });
 
   if (error) throw error;
 }
