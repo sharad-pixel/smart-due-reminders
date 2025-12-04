@@ -135,11 +135,11 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            To import invoices and payments, your data must include the <strong className="text-foreground">Recouply Account ID</strong> (format: RCPLY-XXXXX) 
-            for each record. This links your data to existing accounts in Recouply.
+            To map invoices to accounts, only the <strong className="text-foreground">Recouply Account ID</strong> (format: RCPLY-XXXXX) 
+            is required. No other customer fields are needed—just include the Account ID to link each invoice or payment to its account.
           </p>
           <p>
-            You can find Account IDs on the <strong className="text-foreground">Accounts</strong> page or export them from your existing accounts list.
+            Export your accounts from the <strong className="text-foreground">Accounts</strong> page to get the Account IDs needed for your import files.
           </p>
         </CardContent>
       </Card>
