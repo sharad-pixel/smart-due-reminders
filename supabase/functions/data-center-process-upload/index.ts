@@ -333,6 +333,17 @@ serve(async (req) => {
 
           newRecords++;
 
+          // Update staging row with matched customer
+          await supabase
+            .from("data_center_staging_rows")
+            .update({
+              matched_customer_id: debtorId,
+              match_status: "matched_customer",
+              match_confidence: 100,
+            })
+            .eq("upload_id", uploadId)
+            .eq("row_index", i);
+
         } else if (fileType === "payments") {
           // PAYMENTS: Require recouply_account_id and payment_invoice_number
           const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
