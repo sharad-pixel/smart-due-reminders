@@ -51,7 +51,8 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
         .select(`
           *,
           mappings:data_center_source_field_mappings(count),
-          uploads:data_center_uploads(count)
+          uploads:data_center_uploads(count),
+          custom_fields:data_center_custom_fields(*)
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -235,38 +236,81 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
         </CardContent>
       </Card>
 
-      {/* Required Fields Reference */}
+      {/* Fields Reference per Source */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Required Fields Reference</CardTitle>
+          <CardTitle className="text-lg">Fields Reference</CardTitle>
           <CardDescription>
-            These fields are required for a successful import
+            Available fields for each data source (including custom fields)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium mb-2">Invoice Aging Import</h4>
-              <ul className="space-y-1 text-sm">
-                {fieldDefinitions?.filter(f => f.required_for_recouply && ["customer", "invoice"].includes(f.grouping)).map(f => (
-                  <li key={f.key} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary" />
-                    {f.label}
-                  </li>
-                ))}
-              </ul>
+          {sources && sources.length > 0 ? (
+            <div className="space-y-6">
+              {sources.map((source: any) => {
+                const customFields = source.custom_fields || [];
+                const allSourceFields = [
+                  ...(fieldDefinitions?.filter(f => ["customer", "invoice", "payment", "meta"].includes(f.grouping)) || []),
+                  ...customFields.map((cf: any) => ({ ...cf, isCustom: true })),
+                ];
+                
+                return (
+                  <div key={source.id} className="border-b pb-4 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2 mb-3">
+                      <h4 className="font-medium">{source.source_name}</h4>
+                      <Badge variant="secondary" className="text-xs">
+                        {customFields.length} custom field{customFields.length !== 1 ? "s" : ""}
+                      </Badge>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">Customer</p>
+                        <div className="flex flex-wrap gap-1">
+                          {fieldDefinitions?.filter(f => f.grouping === "customer").map(f => (
+                            <Badge key={f.key} variant="outline" className="text-xs">
+                              {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">Invoice / Payment</p>
+                        <div className="flex flex-wrap gap-1">
+                          {fieldDefinitions?.filter(f => ["invoice", "payment"].includes(f.grouping)).map(f => (
+                            <Badge key={f.key} variant="outline" className="text-xs">
+                              {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">Custom Fields</p>
+                        {customFields.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {customFields.map((cf: any) => (
+                              <Badge key={cf.id} variant="default" className="text-xs">
+                                {cf.label}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">No custom fields</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div>
-              <h4 className="font-medium mb-2">Payments Import</h4>
-              <ul className="space-y-1 text-sm">
-                {fieldDefinitions?.filter(f => f.required_for_recouply && ["customer", "payment"].includes(f.grouping)).map(f => (
-                  <li key={f.key} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary" />
-                    {f.label}
-                  </li>
-                ))}
-              </ul>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              <p>Create a data source to see available fields</p>
             </div>
+          )}
+          
+          {/* Required fields legend */}
+          <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+            <span className="text-destructive">*</span> = Required for import
           </div>
         </CardContent>
       </Card>
