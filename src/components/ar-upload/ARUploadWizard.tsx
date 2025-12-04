@@ -629,8 +629,8 @@ function parseDate(value: any): string {
 
 function mapStatus(status: any): string {
   const statusStr = String(status || "").toLowerCase();
+  if (statusStr.includes("partial")) return "PartiallyPaid";
   if (statusStr.includes("paid")) return "Paid";
-  if (statusStr.includes("partial")) return "Paid";
   if (statusStr.includes("disputed")) return "Disputed";
   if (statusStr.includes("written") || statusStr.includes("cancel")) return "Canceled";
   return "Open";

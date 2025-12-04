@@ -22,7 +22,7 @@ interface UpdateRow {
   notes?: string;
 }
 
-const ALLOWED_STATUSES = ["Open", "Paid", "Disputed", "Settled", "InPaymentPlan", "Canceled", "FinalInternalCollections"];
+const ALLOWED_STATUSES = ["Open", "Paid", "PartiallyPaid", "Disputed", "Settled", "InPaymentPlan", "Canceled", "FinalInternalCollections"];
 
 export function BulkStatusUpdateModal({ open, onOpenChange, onUpdateComplete }: BulkStatusUpdateModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);

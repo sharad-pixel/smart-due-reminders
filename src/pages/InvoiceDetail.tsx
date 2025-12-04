@@ -391,6 +391,7 @@ const InvoiceDetail = () => {
       Settled: "bg-blue-100 text-blue-800",
       InPaymentPlan: "bg-purple-100 text-purple-800",
       Canceled: "bg-gray-100 text-gray-800",
+      PartiallyPaid: "bg-amber-100 text-amber-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };

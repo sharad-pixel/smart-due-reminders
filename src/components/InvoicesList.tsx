@@ -45,7 +45,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     amount: "",
     issue_date: "",
     due_date: "",
-    status: "Open" as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled",
+    status: "Open" as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "PartiallyPaid",
   });
 
   useEffect(() => {
@@ -151,6 +151,8 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         return "bg-info text-white";
       case "InPaymentPlan":
         return "bg-warning text-white";
+      case "PartiallyPaid":
+        return "bg-amber-500 text-white";
       default:
         return "bg-muted";
     }
@@ -246,7 +248,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                   <Label htmlFor="status">Status *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" })}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "PartiallyPaid" })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -254,6 +256,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                     <SelectContent>
                       <SelectItem value="Open">Open</SelectItem>
                       <SelectItem value="Paid">Paid</SelectItem>
+                      <SelectItem value="PartiallyPaid">Partially Paid</SelectItem>
                       <SelectItem value="Disputed">Disputed</SelectItem>
                       <SelectItem value="Settled">Settled</SelectItem>
                       <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>

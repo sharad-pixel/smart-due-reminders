@@ -43,7 +43,7 @@ const OPTIONAL_FIELDS = [
   { key: "notes", label: "Notes" },
 ];
 
-const ALLOWED_STATUSES = ["Open", "Paid", "Disputed", "Settled", "InPaymentPlan", "Canceled", "FinalInternalCollections"];
+const ALLOWED_STATUSES = ["Open", "Paid", "PartiallyPaid", "Disputed", "Settled", "InPaymentPlan", "Canceled", "FinalInternalCollections"];
 
 export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: InvoiceImportModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
