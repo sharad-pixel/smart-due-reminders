@@ -19,12 +19,24 @@ const AnimatedHero = () => {
   const navigate = useNavigate();
   const [displayText, setDisplayText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
-  const [currentHeadline] = useState(() => 
-    headlines[Math.floor(Math.random() * headlines.length)]
-  );
+  const [headlineIndex, setHeadlineIndex] = useState(0);
 
+  // Rotate headlines every 5 seconds
   useEffect(() => {
+    const rotationInterval = setInterval(() => {
+      setHeadlineIndex((prev) => (prev + 1) % headlines.length);
+      setDisplayText("");
+      setIsTypingComplete(false);
+    }, 5000);
+
+    return () => clearInterval(rotationInterval);
+  }, []);
+
+  // Typewriter effect
+  useEffect(() => {
+    const currentHeadline = headlines[headlineIndex];
     let currentIndex = 0;
+    
     const typingInterval = setInterval(() => {
       if (currentIndex <= currentHeadline.length) {
         setDisplayText(currentHeadline.slice(0, currentIndex));
@@ -36,7 +48,7 @@ const AnimatedHero = () => {
     }, 40);
 
     return () => clearInterval(typingInterval);
-  }, [currentHeadline]);
+  }, [headlineIndex]);
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
