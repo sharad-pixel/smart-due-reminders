@@ -95,18 +95,52 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
 
   const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments") => {
     // Fetch source mappings
-    const { data: mappings } = await supabase
+    let { data: mappings } = await supabase
       .from("data_center_source_field_mappings")
       .select("file_column_name, confirmed_field_key, inferred_field_key")
       .eq("source_id", sourceId);
 
+    // Auto-create default mappings if none exist
     if (!mappings || mappings.length === 0) {
-      toast({ 
-        title: "No mappings found", 
-        description: "Configure mappings for this source first.",
-        variant: "destructive" 
-      });
-      return;
+      if (!fieldDefinitions || fieldDefinitions.length === 0) {
+        toast({ 
+          title: "Error", 
+          description: "Field definitions not loaded.",
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Create default mappings using field labels as column names
+      const defaultMappings = fieldDefinitions.map(field => ({
+        source_id: sourceId,
+        file_column_name: field.label,
+        inferred_field_key: field.key,
+        confirmed_field_key: field.key,
+        confidence_score: 1.0,
+      }));
+
+      const { error } = await supabase
+        .from("data_center_source_field_mappings")
+        .insert(defaultMappings);
+
+      if (error) {
+        toast({ 
+          title: "Error creating mappings", 
+          description: error.message,
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Refresh mappings after insert
+      const { data: newMappings } = await supabase
+        .from("data_center_source_field_mappings")
+        .select("file_column_name, confirmed_field_key, inferred_field_key")
+        .eq("source_id", sourceId);
+      
+      mappings = newMappings;
+      queryClient.invalidateQueries({ queryKey: ["data-center-sources"] });
     }
 
     // Filter mappings by file type (invoice vs payment)
@@ -115,7 +149,7 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
       ?.filter(f => relevantGroupings.includes(f.grouping))
       .map(f => f.key) || [];
 
-    const filteredMappings = mappings.filter(m => {
+    const filteredMappings = (mappings || []).filter(m => {
       const fieldKey = m.confirmed_field_key || m.inferred_field_key;
       return relevantFieldKeys.includes(fieldKey);
     });
