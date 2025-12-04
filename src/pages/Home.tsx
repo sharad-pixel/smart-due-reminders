@@ -5,7 +5,7 @@ import AnimatedMetrics from "@/components/marketing/AnimatedMetrics";
 import EmailDemo from "@/components/marketing/EmailDemo";
 import TestimonialCards from "@/components/marketing/TestimonialCards";
 import PricingTeaser from "@/components/marketing/PricingTeaser";
-import LogoMarquee from "@/components/marketing/LogoMarquee";
+
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import FinalCTA from "@/components/marketing/FinalCTA";
 import ValuePropositions from "@/components/marketing/ValuePropositions";
@@ -17,7 +17,6 @@ const Home = () => {
   return (
     <MarketingLayout>
       <AnimatedHero />
-      <LogoMarquee />
       <ScrollPipeline />
       <AnimatedMetrics />
       <ValuePropositions />
