@@ -9,8 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorkflowStepEditor from "@/components/WorkflowStepEditor";
 import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowGraph from "@/components/WorkflowGraph";
@@ -94,6 +96,29 @@ const AIWorkflows = () => {
   const [expandedDrafts, setExpandedDrafts] = useState<Set<string>>(new Set());
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [stepInvoices, setStepInvoices] = useState<Record<string, any[]>>({});
+  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
+  const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; bucket: string } | null>(null);
+  const [regenerateTone, setRegenerateTone] = useState<string>("standard");
+  const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const toneOptions = [
+    { value: "standard", label: "Standard", description: "Default persona tone" },
+    { value: "more_friendly", label: "More Friendly", description: "Warmer, more conversational" },
+    { value: "more_professional", label: "More Professional", description: "Formal business language" },
+    { value: "more_urgent", label: "More Urgent", description: "Emphasize time sensitivity" },
+    { value: "more_empathetic", label: "More Empathetic", description: "Compassionate and understanding" },
+    { value: "more_direct", label: "More Direct", description: "Straight to the point" },
+  ];
+
+  const approachOptions = [
+    { value: "standard", label: "Standard", description: "Default approach" },
+    { value: "invoice_reminder", label: "Invoice Reminder", description: "Simple reminder/heads-up" },
+    { value: "payment_request", label: "Payment Request", description: "Clear payment request" },
+    { value: "settlement_offer", label: "Settlement Offer", description: "Open to negotiations" },
+    { value: "final_notice", label: "Final Notice", description: "Last chance warning" },
+    { value: "relationship_focused", label: "Relationship Focused", description: "Value partnership" },
+  ];
 
   useEffect(() => {
     fetchWorkflows();
@@ -828,20 +853,69 @@ const AIWorkflows = () => {
   };
 
   const handleRegenerateDraft = async (draftId: string, agingBucket: string) => {
+    // Open dialog instead of directly regenerating
+    setRegenerateTarget({ id: draftId, bucket: agingBucket });
+    setRegenerateTone("standard");
+    setRegenerateApproach("standard");
+    setRegenerateDialogOpen(true);
+  };
+
+  const executeRegeneration = async () => {
+    if (!regenerateTarget) return;
+    
+    setIsRegenerating(true);
     try {
       // First delete the existing draft
       const { error: deleteError } = await supabase
         .from('draft_templates')
         .delete()
-        .eq('id', draftId);
+        .eq('id', regenerateTarget.id);
 
       if (deleteError) throw deleteError;
 
-      // Then regenerate
-      await handleGenerateBucketDrafts(agingBucket);
+      // Then regenerate with tone and approach options
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-template-drafts`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            aging_bucket: regenerateTarget.bucket,
+            tone_modifier: regenerateTone,
+            approach_style: regenerateApproach
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to regenerate template');
+      }
+      
+      if (result.success) {
+        toast.success(
+          `Regenerated template with ${regenerateTone !== 'standard' ? toneOptions.find(t => t.value === regenerateTone)?.label + ' tone' : 'default tone'}`,
+          { duration: 5000 }
+        );
+        
+        await fetchDraftsByPersona();
+        await fetchStepDraftCounts();
+      }
+      
+      setRegenerateDialogOpen(false);
+      setRegenerateTarget(null);
     } catch (error: any) {
       console.error('Error regenerating template:', error);
       toast.error('Failed to regenerate template');
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -1766,6 +1840,98 @@ const AIWorkflows = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Regenerate Dialog with Tone & Approach Options */}
+      <Dialog open={regenerateDialogOpen} onOpenChange={setRegenerateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              Regenerate Template with AI
+            </DialogTitle>
+            <DialogDescription>
+              Customize the AI's tone and approach for this template regeneration.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="tone-select">Tone Adjustment</Label>
+              <Select value={regenerateTone} onValueChange={setRegenerateTone}>
+                <SelectTrigger id="tone-select">
+                  <SelectValue placeholder="Select tone..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {toneOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{option.label}</span>
+                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="approach-select">Approach Style</Label>
+              <Select value={regenerateApproach} onValueChange={setRegenerateApproach}>
+                <SelectTrigger id="approach-select">
+                  <SelectValue placeholder="Select approach..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {approachOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{option.label}</span>
+                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(regenerateTone !== 'standard' || regenerateApproach !== 'standard') && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Preview:</strong> The AI will generate content with 
+                  {regenerateTone !== 'standard' && ` ${toneOptions.find(t => t.value === regenerateTone)?.label.toLowerCase()} tone`}
+                  {regenerateTone !== 'standard' && regenerateApproach !== 'standard' && ' and'}
+                  {regenerateApproach !== 'standard' && ` ${approachOptions.find(a => a.value === regenerateApproach)?.label.toLowerCase()} approach`}.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setRegenerateDialogOpen(false)}
+              disabled={isRegenerating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={executeRegeneration}
+              disabled={isRegenerating}
+            >
+              {isRegenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Regenerating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Regenerate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
