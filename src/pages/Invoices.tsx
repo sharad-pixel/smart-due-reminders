@@ -404,12 +404,12 @@ const Invoices = () => {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Note:</strong> Every invoice must be linked to a debtor. If the debtor doesn't exist yet, create them first in the <a href="/debtors" className="text-primary hover:underline font-medium">Debtors page</a>.
+                      <strong>Note:</strong> Every invoice must be linked to an account. If the account doesn't exist yet, create it first in the <a href="/debtors" className="text-primary hover:underline font-medium">Accounts page</a>.
                     </AlertDescription>
                   </Alert>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2 col-span-2">
-                      <Label htmlFor="debtor_id">Debtor * <span className="text-xs text-muted-foreground">(Required - invoices cannot exist without a debtor)</span></Label>
+                      <Label htmlFor="debtor_id">Account * <span className="text-xs text-muted-foreground">(Required - invoices cannot exist without an account)</span></Label>
                       <div className="flex gap-2">
                         <Select
                           value={formData.debtor_id}
@@ -419,7 +419,7 @@ const Invoices = () => {
                           required
                         >
                           <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select debtor" />
+                            <SelectValue placeholder="Select account" />
                           </SelectTrigger>
                           <SelectContent>
                             {debtors.map((debtor) => (
@@ -579,7 +579,7 @@ const Invoices = () => {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by reference ID, invoice #, or debtor..."
+                    placeholder="Search by reference ID, invoice #, or account..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -615,10 +615,10 @@ const Invoices = () => {
               </Select>
               <Select value={debtorFilter} onValueChange={setDebtorFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Debtor" />
+                  <SelectValue placeholder="Account" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Debtors</SelectItem>
+                  <SelectItem value="all">All Accounts</SelectItem>
                   {debtors.map((debtor) => (
                     <SelectItem key={debtor.id} value={debtor.id}>
                       {debtor.name}
