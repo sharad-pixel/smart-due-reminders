@@ -13,6 +13,18 @@ const headlines = [
   "Optimize Working Capital With Automated Collections",
   "Reduce DSO and Improve Cash Conversion Cycles",
   "Transform Receivables Into Recognized Revenue Faster",
+  "Healthy Cash Flow Is the Foundation of Every Thriving Business",
+  "Profitable Companies Prioritize Getting Paid on Time",
+  "Strong Collections Drive Sustainable Business Growth",
+  "Cash Is King—Protect Yours With Smarter Collections",
+  "Your Business Runs on Revenue That Actually Arrives",
+  "Consistent Collections Mean Predictable Business Performance",
+  "Turn Outstanding Invoices Into Operating Capital",
+  "Financial Health Starts With Effective Receivables Management",
+  "Smart Companies Invest in Getting Paid Efficiently",
+  "Grow Your Business With Reliable Cash Inflows",
+  "Reduce Payment Delays and Strengthen Your Bottom Line",
+  "Build a Resilient Business With Proactive Collections",
 ];
 
 const AnimatedHero = () => {
