@@ -6,6 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
+const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -89,13 +92,24 @@ serve(async (req) => {
 
           console.log(`Invoice ${invoice.invoice_number}: ${daysSinceEntered} days in bucket, template offset: ${template.day_offset}`);
 
-          // Only send if days match the template's offset
-          if (daysSinceEntered !== template.day_offset) {
+          // For day_offset 0, send if invoice is at or past day 0 (same day or later)
+          // For other offsets, only send on the exact day
+          const shouldSend = template.day_offset === 0 
+            ? daysSinceEntered >= 0 
+            : daysSinceEntered === template.day_offset;
+
+          if (!shouldSend) {
             continue;
           }
 
           // Personalize the template with invoice data
           const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
+          
+          if (!debtor?.email) {
+            console.log(`No email for debtor on invoice ${invoice.invoice_number}, skipping`);
+            continue;
+          }
+
           const dueDate = new Date(invoice.due_date);
           dueDate.setHours(0, 0, 0, 0);
           const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -116,24 +130,61 @@ serve(async (req) => {
             ?.replace(/\{\{due_date\}\}/g, invoice.due_date)
             ?.replace(/\{\{days_past_due\}\}/g, daysPastDue.toString());
 
-          // Send the email via send-collection-email function
-          const { error: sendError } = await supabase.functions.invoke('send-collection-email', {
-            body: {
-              invoice_id: invoice.id,
-              debtor_id: invoice.debtor_id,
-              subject: personalizedSubject || `Invoice ${invoice.invoice_number} - Payment Required`,
-              message: personalizedBody,
-              channel: template.channel,
-            }
-          });
+          const replyToEmail = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
 
-          if (sendError) {
-            console.error(`Failed to send to invoice ${invoice.invoice_number}:`, sendError);
+          console.log(`Sending email to ${debtor.email} for invoice ${invoice.invoice_number}`);
+
+          // Send email directly via send-email function
+          const sendEmailResponse = await fetch(
+            `${supabaseUrl}/functions/v1/send-email`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                to: debtor.email,
+                from: PLATFORM_FROM_EMAIL,
+                reply_to: replyToEmail,
+                subject: personalizedSubject || `Invoice ${invoice.invoice_number} - Payment Required`,
+                html: personalizedBody,
+              }),
+            }
+          );
+
+          const sendResult = await sendEmailResponse.json();
+
+          if (!sendEmailResponse.ok) {
+            console.error(`Failed to send to invoice ${invoice.invoice_number}:`, sendResult);
             errors.push(`Failed to send to invoice ${invoice.invoice_number}`);
             continue;
           }
 
-          // Log the sent message
+          console.log(`Email sent to ${debtor.email} for invoice ${invoice.invoice_number}`);
+
+          // Log the collection activity
+          await supabase
+            .from('collection_activities')
+            .insert({
+              user_id: template.user_id,
+              debtor_id: invoice.debtor_id,
+              invoice_id: invoice.id,
+              activity_type: 'outreach',
+              direction: 'outbound',
+              channel: 'email',
+              subject: personalizedSubject || `Invoice ${invoice.invoice_number} - Payment Required`,
+              message_body: personalizedBody,
+              sent_at: new Date().toISOString(),
+              metadata: {
+                from_email: PLATFORM_FROM_EMAIL,
+                reply_to_email: replyToEmail,
+                template_id: template.id,
+                platform_send: true,
+              },
+            });
+
+          // Log the sent message to prevent duplicates
           await supabase
             .from('sent_template_messages')
             .insert({
