@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -13,7 +17,8 @@ import {
   Eye,
   Loader2,
   RefreshCw,
-  Archive
+  Archive,
+  RotateCcw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -31,29 +36,48 @@ const STATUS_CONFIG: Record<string, { label: string; icon: any; variant: "defaul
   processed: { label: "Completed", icon: CheckCircle, variant: "default" },
   error: { label: "Error", icon: AlertCircle, variant: "destructive" },
   needs_review: { label: "Needs Review", icon: Eye, variant: "outline" },
+  archived: { label: "Archived", icon: Archive, variant: "secondary" },
 };
 
 export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showArchived, setShowArchived] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fileTypeFilter, setFileTypeFilter] = useState<string>("all");
   
   const { data: uploads, isLoading, refetch } = useQuery({
-    queryKey: ["data-center-uploads"],
+    queryKey: ["data-center-uploads", showArchived, statusFilter, fileTypeFilter],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("data_center_uploads")
         .select(`
           *,
           source:data_center_sources(source_name, system_type)
         `)
         .eq("user_id", user.id)
-        .neq("status", "archived")
         .order("created_at", { ascending: false })
         .limit(50);
 
+      // Filter by archived status
+      if (!showArchived) {
+        query = query.neq("status", "archived");
+      }
+
+      // Filter by status
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      // Filter by file type
+      if (fileTypeFilter !== "all") {
+        query = query.eq("file_type", fileTypeFilter);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -76,6 +100,23 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
     },
   });
 
+  const restoreUpload = useMutation({
+    mutationFn: async (uploadId: string) => {
+      const { error } = await supabase
+        .from("data_center_uploads")
+        .update({ status: "needs_review" })
+        .eq("id", uploadId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
+      toast.success("Upload restored");
+    },
+    onError: () => {
+      toast.error("Failed to restore upload");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -86,18 +127,65 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-lg">Recent Uploads</CardTitle>
-          <CardDescription>
-            Track and manage your data imports
-          </CardDescription>
-        </div>
-        <div className="flex gap-2">
+      <CardHeader className="space-y-4">
+        <div className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Recent Uploads</CardTitle>
+            <CardDescription>
+              Track and manage your data imports
+            </CardDescription>
+          </div>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
+        </div>
+        
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="status-filter" className="text-sm text-muted-foreground">Status:</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="status-filter" className="w-[140px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="uploaded">Uploaded</SelectItem>
+                <SelectItem value="mapping">Mapping</SelectItem>
+                <SelectItem value="mapped">Mapped</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="processed">Completed</SelectItem>
+                <SelectItem value="needs_review">Needs Review</SelectItem>
+                <SelectItem value="error">Error</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Label htmlFor="type-filter" className="text-sm text-muted-foreground">Type:</Label>
+            <Select value={fileTypeFilter} onValueChange={setFileTypeFilter}>
+              <SelectTrigger id="type-filter" className="w-[140px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="invoice_aging">Invoices</SelectItem>
+                <SelectItem value="payments">Payments</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2 ml-auto">
+            <Switch 
+              id="show-archived" 
+              checked={showArchived} 
+              onCheckedChange={setShowArchived}
+            />
+            <Label htmlFor="show-archived" className="text-sm text-muted-foreground cursor-pointer">
+              Show archived
+            </Label>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -162,15 +250,27 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
                         View Error
                       </Button>
                     )}
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => archiveUpload.mutate(upload.id)}
-                      disabled={archiveUpload.isPending}
-                      title="Archive upload"
-                    >
-                      <Archive className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                    {upload.status === "archived" ? (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => restoreUpload.mutate(upload.id)}
+                        disabled={restoreUpload.isPending}
+                        title="Restore upload"
+                      >
+                        <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => archiveUpload.mutate(upload.id)}
+                        disabled={archiveUpload.isPending}
+                        title="Archive upload"
+                      >
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
