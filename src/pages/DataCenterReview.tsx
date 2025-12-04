@@ -32,6 +32,7 @@ const DataCenterReview = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all_pending");
+  const [selectedMatches, setSelectedMatches] = useState<Record<string, string>>({});
 
   // Fetch upload details
   const { data: upload, isLoading: uploadLoading } = useQuery({
@@ -369,8 +370,9 @@ const DataCenterReview = () => {
                           <div className="flex-1">
                             <Label className="text-sm">Match to existing customer</Label>
                             <Select
+                              value={selectedMatches[row.id] || ""}
                               onValueChange={(value) => {
-                                confirmMatch.mutate({ rowId: row.id, customerId: value });
+                                setSelectedMatches(prev => ({ ...prev, [row.id]: value }));
                               }}
                             >
                               <SelectTrigger>
@@ -386,6 +388,27 @@ const DataCenterReview = () => {
                               </SelectContent>
                             </Select>
                           </div>
+                          {selectedMatches[row.id] && (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                confirmMatch.mutate({ rowId: row.id, customerId: selectedMatches[row.id] });
+                                setSelectedMatches(prev => {
+                                  const newState = { ...prev };
+                                  delete newState[row.id];
+                                  return newState;
+                                });
+                              }}
+                              disabled={confirmMatch.isPending}
+                            >
+                              {confirmMatch.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Confirm
+                            </Button>
+                          )}
                         </div>
                       )}
 
