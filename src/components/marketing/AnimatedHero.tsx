@@ -7,12 +7,12 @@ import { personaConfig } from "@/lib/personaConfig";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const headlines = [
-  "Bookings Mean Nothing Without the Cash to Back Them Up",
-  "Revenue Is a Promise. Cash Is the Reality.",
-  "Your Pipeline Won't Pay Payroll—Cash Flow Will",
-  "Bookings Look Great on Paper. Cash Keeps You in Business.",
-  "Turn Outstanding Invoices Into Cash—Automatically",
-  "AI-Powered Collections That Turn ARR Into Actual Revenue",
+  "AI-Powered Cash Operations That Minimize Bad Debt",
+  "Accelerate Cash Flow With Intelligent Collections",
+  "Reduce DSO and Protect Your Revenue Automatically",
+  "Turn Receivables Into Cash With AI-Driven Outreach",
+  "Automate Collections and Eliminate Write-Offs",
+  "Maximize Cash Recovery With Six AI Agents Working 24/7",
 ];
 
 const AnimatedHero = () => {
