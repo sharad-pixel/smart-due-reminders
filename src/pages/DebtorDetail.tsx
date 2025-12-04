@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { PaymentScoreCard } from "@/components/PaymentScoreCard";
+import { RiskEngineCard } from "@/components/RiskEngineCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import AccountSummaryModal from "@/components/AccountSummaryModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
@@ -52,7 +52,10 @@ interface Debtor {
   disputed_invoices_count: number | null;
   in_payment_plan_invoices_count: number | null;
   written_off_invoices_count: number | null;
+  open_invoices_count: number | null;
   payment_score_last_calculated: string | null;
+  risk_status_note: string | null;
+  risk_last_calculated_at: string | null;
 }
 
 interface CRMAccount {
@@ -493,23 +496,17 @@ const DebtorDetail = () => {
           </Card>
         </div>
 
-        {/* Payment Score Card */}
-        <PaymentScoreCard
+        {/* Risk Assessment Card */}
+        <RiskEngineCard
           debtorId={debtor.id}
           paymentScore={debtor.payment_score}
-          paymentRiskTier={debtor.payment_risk_tier}
+          riskTier={debtor.payment_risk_tier}
+          riskStatusNote={debtor.risk_status_note}
+          riskLastCalculatedAt={debtor.risk_last_calculated_at || debtor.payment_score_last_calculated}
           avgDaysToPay={debtor.avg_days_to_pay}
           maxDaysPastDue={debtor.max_days_past_due}
-          agingMixCurrentPct={debtor.aging_mix_current_pct}
-          agingMix1_30Pct={debtor.aging_mix_1_30_pct}
-          agingMix31_60Pct={debtor.aging_mix_31_60_pct}
-          agingMix61_90Pct={debtor.aging_mix_61_90_pct}
-          agingMix91_120Pct={debtor.aging_mix_91_120_pct}
-          agingMix121PlusPct={debtor.aging_mix_121_plus_pct}
+          openInvoicesCount={debtor.open_invoices_count}
           disputedInvoicesCount={debtor.disputed_invoices_count}
-          inPaymentPlanInvoicesCount={debtor.in_payment_plan_invoices_count}
-          writtenOffInvoicesCount={debtor.written_off_invoices_count}
-          paymentScoreLastCalculated={debtor.payment_score_last_calculated}
         />
 
         {/* Aging Bucket Breakdown */}

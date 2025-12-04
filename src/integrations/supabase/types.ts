@@ -1341,6 +1341,59 @@ export type Database = {
           },
         ]
       }
+      debtor_risk_history: {
+        Row: {
+          basis_days_observed: number | null
+          basis_invoices_count: number | null
+          basis_payments_count: number | null
+          calculation_details: Json | null
+          created_at: string
+          debtor_id: string
+          id: string
+          risk_payment_score: number | null
+          risk_status_note: string | null
+          risk_tier: string | null
+          snapshot_at: string
+          user_id: string
+        }
+        Insert: {
+          basis_days_observed?: number | null
+          basis_invoices_count?: number | null
+          basis_payments_count?: number | null
+          calculation_details?: Json | null
+          created_at?: string
+          debtor_id: string
+          id?: string
+          risk_payment_score?: number | null
+          risk_status_note?: string | null
+          risk_tier?: string | null
+          snapshot_at?: string
+          user_id: string
+        }
+        Update: {
+          basis_days_observed?: number | null
+          basis_invoices_count?: number | null
+          basis_payments_count?: number | null
+          calculation_details?: Json | null
+          created_at?: string
+          debtor_id?: string
+          id?: string
+          risk_payment_score?: number | null
+          risk_status_note?: string | null
+          risk_tier?: string | null
+          snapshot_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debtor_risk_history_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtors: {
         Row: {
           address: string | null
@@ -1399,6 +1452,8 @@ export type Database = {
           primary_email: string | null
           primary_phone: string | null
           reference_id: string
+          risk_last_calculated_at: string | null
+          risk_status_note: string | null
           risk_tier: string | null
           state: string | null
           tags: Json | null
@@ -1465,6 +1520,8 @@ export type Database = {
           primary_email?: string | null
           primary_phone?: string | null
           reference_id: string
+          risk_last_calculated_at?: string | null
+          risk_status_note?: string | null
           risk_tier?: string | null
           state?: string | null
           tags?: Json | null
@@ -1531,6 +1588,8 @@ export type Database = {
           primary_email?: string | null
           primary_phone?: string | null
           reference_id?: string
+          risk_last_calculated_at?: string | null
+          risk_status_note?: string | null
           risk_tier?: string | null
           state?: string | null
           tags?: Json | null

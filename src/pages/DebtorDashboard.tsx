@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
+import { useRiskEngine } from "@/hooks/useRiskEngine";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Clock } from "lucide-react";
+import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Clock, HelpCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 
 export default function DebtorDashboard() {
   const navigate = useNavigate();
   const { data, isLoading } = useDebtorDashboard();
-  const { calculateScore } = usePaymentScore();
+  const { calculateRisk } = useRiskEngine();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState<string>("all");
@@ -23,31 +24,39 @@ export default function DebtorDashboard() {
   const filteredDebtors = data?.debtors.filter(debtor => {
     const matchesSearch = debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          debtor.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRisk = riskFilter === "all" || debtor.payment_risk_tier === riskFilter;
+    const tier = debtor.payment_risk_tier || "Still learning";
+    const matchesRisk = riskFilter === "all" || tier === riskFilter;
     const matchesScore = scoreFilter === "all" || 
-      (scoreFilter === "high" && (debtor.payment_score || 50) >= 80) ||
-      (scoreFilter === "medium" && (debtor.payment_score || 50) >= 50 && (debtor.payment_score || 50) < 80) ||
-      (scoreFilter === "low" && (debtor.payment_score || 50) < 50);
+      (scoreFilter === "high" && (debtor.payment_score || 0) >= 85) ||
+      (scoreFilter === "medium" && (debtor.payment_score || 0) >= 70 && (debtor.payment_score || 0) < 85) ||
+      (scoreFilter === "low" && (debtor.payment_score || 0) >= 50 && (debtor.payment_score || 0) < 70) ||
+      (scoreFilter === "critical" && (debtor.payment_score || 0) < 50) ||
+      (scoreFilter === "learning" && (!debtor.payment_risk_tier || debtor.payment_risk_tier === "Still learning"));
     
     return matchesSearch && matchesRisk && matchesScore;
   });
 
-  const getScoreBadge = (score: number | null) => {
-    const s = score || 50;
-    if (s >= 80) return <Badge className="bg-green-500">Low Risk</Badge>;
-    if (s >= 50) return <Badge className="bg-yellow-500">Medium Risk</Badge>;
-    return <Badge className="bg-red-500">High Risk</Badge>;
+  const getScoreBadge = (tier: string | null, score: number | null) => {
+    if (!tier || tier === "Still learning") {
+      return <Badge variant="secondary" className="bg-muted text-muted-foreground gap-1"><HelpCircle className="h-3 w-3" />Learning</Badge>;
+    }
+    if (tier === "Low") return <Badge className="bg-green-500 text-white">Low Risk</Badge>;
+    if (tier === "Medium") return <Badge className="bg-yellow-500 text-white">Medium Risk</Badge>;
+    if (tier === "High") return <Badge className="bg-orange-500 text-white">High Risk</Badge>;
+    if (tier === "Critical") return <Badge className="bg-red-500 text-white">Critical Risk</Badge>;
+    return <Badge variant="secondary">Unknown</Badge>;
   };
 
   const getScoreColor = (score: number | null) => {
-    const s = score || 50;
-    if (s >= 80) return "text-green-600";
-    if (s >= 50) return "text-yellow-600";
+    if (score === null) return "text-muted-foreground";
+    if (score >= 85) return "text-green-600";
+    if (score >= 70) return "text-yellow-600";
+    if (score >= 50) return "text-orange-500";
     return "text-red-600";
   };
 
   const handleRecalculateAll = () => {
-    calculateScore.mutate({ recalculate_all: true });
+    calculateRisk.mutate({ recalculate_all: true });
   };
 
   if (isLoading) {
@@ -68,14 +77,14 @@ export default function DebtorDashboard() {
             <h1 className="text-3xl font-bold">Account Dashboard</h1>
             <p className="text-muted-foreground">Monitor payment scores and risk indicators</p>
           </div>
-          <Button onClick={handleRecalculateAll} disabled={calculateScore.isPending}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${calculateScore.isPending ? "animate-spin" : ""}`} />
+          <Button onClick={handleRecalculateAll} disabled={calculateRisk.isPending}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${calculateRisk.isPending ? "animate-spin" : ""}`} />
             Recalculate All Scores
           </Button>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Accounts</CardTitle>
@@ -87,7 +96,7 @@ export default function DebtorDashboard() {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Days Sales Outstanding</CardTitle>
+              <CardTitle className="text-sm font-medium">DSO</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -98,11 +107,12 @@ export default function DebtorDashboard() {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Payment Score</CardTitle>
+              <CardTitle className="text-sm font-medium">Still Learning</CardTitle>
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data?.summary.avgScore || 50}</div>
-              <p className="text-xs text-muted-foreground">Out of 100</p>
+              <div className="text-2xl font-bold text-muted-foreground">{data?.summary.stillLearning || 0}</div>
+              <p className="text-xs text-muted-foreground">Insufficient history</p>
             </CardContent>
           </Card>
 
@@ -113,17 +123,28 @@ export default function DebtorDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{data?.summary.lowRisk || 0}</div>
-              <p className="text-xs text-muted-foreground">Score 80-100</p>
+              <p className="text-xs text-muted-foreground">Score 85-100</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">High Risk</CardTitle>
+              <TrendingDown className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">{data?.summary.highRisk || 0}</div>
+              <p className="text-xs text-muted-foreground">Score 50-69</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Critical Risk</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{data?.summary.highRisk || 0}</div>
+              <div className="text-2xl font-bold text-red-600">{data?.summary.criticalRisk || 0}</div>
               <p className="text-xs text-muted-foreground">Score 0-49</p>
             </CardContent>
           </Card>
@@ -151,9 +172,11 @@ export default function DebtorDashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Risk Tiers</SelectItem>
-                <SelectItem value="low">Low Risk</SelectItem>
-                <SelectItem value="medium">Medium Risk</SelectItem>
-                <SelectItem value="high">High Risk</SelectItem>
+                <SelectItem value="Still learning">Still Learning</SelectItem>
+                <SelectItem value="Low">Low Risk</SelectItem>
+                <SelectItem value="Medium">Medium Risk</SelectItem>
+                <SelectItem value="High">High Risk</SelectItem>
+                <SelectItem value="Critical">Critical Risk</SelectItem>
               </SelectContent>
             </Select>
 
@@ -163,9 +186,11 @@ export default function DebtorDashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Scores</SelectItem>
-                <SelectItem value="high">80-100 (High)</SelectItem>
-                <SelectItem value="medium">50-79 (Medium)</SelectItem>
-                <SelectItem value="low">0-49 (Low)</SelectItem>
+                <SelectItem value="learning">Still Learning</SelectItem>
+                <SelectItem value="high">85-100 (Low Risk)</SelectItem>
+                <SelectItem value="medium">70-84 (Medium)</SelectItem>
+                <SelectItem value="low">50-69 (High Risk)</SelectItem>
+                <SelectItem value="critical">0-49 (Critical)</SelectItem>
               </SelectContent>
             </Select>
           </CardContent>
@@ -205,7 +230,7 @@ export default function DebtorDashboard() {
                         {debtor.payment_score || 50}
                       </span>
                     </TableCell>
-                    <TableCell>{getScoreBadge(debtor.payment_score)}</TableCell>
+                    <TableCell>{getScoreBadge(debtor.payment_risk_tier, debtor.payment_score)}</TableCell>
                     <TableCell>
                       ${(debtor.total_open_balance || 0).toLocaleString()}
                     </TableCell>
