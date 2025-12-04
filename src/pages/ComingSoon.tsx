@@ -1,20 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight, MessageCircle, Zap, Target, Sparkles } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Mail, ArrowRight, MessageCircle, Zap, Target, Sparkles, Bot } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+
+const introLines = [
+  "Initializing AI Collection Agents...",
+  "Loading persona configurations...",
+  "Calibrating communication strategies...",
+  "Your autonomous collection team is ready.",
+];
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [introLineIndex, setIntroLineIndex] = useState(0);
+  const [introText, setIntroText] = useState("");
+  const [introComplete, setIntroComplete] = useState(false);
+
+  // Typewriter effect for intro
+  useEffect(() => {
+    if (introLineIndex >= introLines.length) {
+      setIntroComplete(true);
+      return;
+    }
+
+    const currentLine = introLines[introLineIndex];
+    let charIndex = 0;
+    setIntroText("");
+
+    const typeInterval = setInterval(() => {
+      if (charIndex < currentLine.length) {
+        setIntroText(currentLine.slice(0, charIndex + 1));
+        charIndex++;
+      } else {
+        clearInterval(typeInterval);
+        setTimeout(() => {
+          setIntroLineIndex(prev => prev + 1);
+        }, 800);
+      }
+    }, 40);
+
+    return () => clearInterval(typeInterval);
+  }, [introLineIndex]);
+
+  // Auto-rotate carousel
+  useEffect(() => {
+    if (!carouselApi || !introComplete) return;
+
+    const interval = setInterval(() => {
+      carouselApi.scrollNext();
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [carouselApi, introComplete]);
+
+  // Track current slide
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const onSelect = () => {
+      setCurrentSlide(carouselApi.selectedScrollSnap());
+    };
+
+    carouselApi.on("select", onSelect);
+    return () => {
+      carouselApi.off("select", onSelect);
+    };
+  }, [carouselApi]);
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,11 +184,65 @@ const ComingSoon = () => {
 
           {/* AI Personas Carousel */}
           <div className="space-y-4 pt-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <div className="text-center space-y-2">
-              <h3 className="text-2xl font-semibold text-foreground">Meet Your AI Collection Team</h3>
-              <p className="text-sm text-muted-foreground">6 specialized agents that handle every stage of collections</p>
+            <div className="text-center space-y-3">
+              <h3 className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
+                <Bot className="h-6 w-6 text-primary" />
+                Meet Your AI Collection Team
+              </h3>
+              
+              {/* Animated intro terminal */}
+              <div className="bg-muted/50 border border-border rounded-lg p-4 max-w-md mx-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-destructive" />
+                  <div className="w-2 h-2 rounded-full bg-warning" />
+                  <div className="w-2 h-2 rounded-full bg-success" />
+                  <span className="text-xs text-muted-foreground ml-2">agent_loader.sh</span>
+                </div>
+                <div className="text-left font-mono text-sm">
+                  {introLines.slice(0, introLineIndex).map((line, i) => (
+                    <div key={i} className="text-success flex items-center gap-2">
+                      <span className="text-muted-foreground">$</span>
+                      <span>{line}</span>
+                      <span className="text-primary">✓</span>
+                    </div>
+                  ))}
+                  {!introComplete && (
+                    <div className="text-primary flex items-center gap-2">
+                      <span className="text-muted-foreground">$</span>
+                      <span>{introText}</span>
+                      <span className="animate-blink">_</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {introComplete && (
+                <p className="text-sm text-muted-foreground animate-fade-in">
+                  6 specialized agents • Auto-rotating every 4s • Click to explore
+                </p>
+              )}
+
+              {/* Slide indicators */}
+              {introComplete && (
+                <div className="flex justify-center gap-2 pt-2">
+                  {Object.values(personaConfig).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => carouselApi?.scrollTo(i)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        currentSlide === i 
+                          ? 'bg-primary w-6' 
+                          : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            <Carousel className="w-full max-w-2xl mx-auto">
+            <Carousel 
+              className={`w-full max-w-2xl mx-auto transition-opacity duration-500 ${introComplete ? 'opacity-100' : 'opacity-50'}`}
+              setApi={setCarouselApi}
+            >
               <CarouselContent>
                 {Object.values(personaConfig).map((persona) => (
                   <CarouselItem key={persona.name}>
