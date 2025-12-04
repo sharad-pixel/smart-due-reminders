@@ -101,7 +101,13 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
       const workbook = XLSX.read(data, { type: "array", cellDates: true });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      // Use defval to ensure empty cells are included, and raw:false for value parsing
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1, 
+        defval: "",  // Include empty cells
+        blankrows: false  // Skip completely blank rows
+      });
 
       if (jsonData.length < 2) {
         toast({ title: "Error", description: "File must have headers and at least one data row", variant: "destructive" });
@@ -112,7 +118,9 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
       const rows = jsonData.slice(1).map((row: any) => {
         const obj: Record<string, any> = {};
         headers.forEach((header, i) => {
-          obj[header] = row[i];
+          // Ensure we get the value at the correct index, defaulting to empty string
+          const value = row[i] !== undefined ? row[i] : "";
+          obj[header] = value;
         });
         return obj;
       }).filter(row => Object.values(row).some(v => v != null && v !== ""));
