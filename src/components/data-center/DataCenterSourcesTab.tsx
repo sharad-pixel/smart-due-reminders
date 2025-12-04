@@ -93,28 +93,6 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
     },
   });
 
-  const downloadTemplate = (fileType: "invoice_aging" | "payments") => {
-    if (!fieldDefinitions) return;
-
-    const grouping = fileType === "invoice_aging" ? ["customer", "invoice"] : ["customer", "payment"];
-    const fields = fieldDefinitions.filter(f => grouping.includes(f.grouping));
-
-    // Create CSV content
-    const headers = fields.map(f => f.label);
-    const csvContent = [headers.join(","), ""].join("\n");
-
-    // Download
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `recouply_${fileType}_template.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    toast({ title: "Template downloaded", description: "Fill out the template and upload it to import data." });
-  };
-
   const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments") => {
     // Fetch source mappings
     const { data: mappings } = await supabase
@@ -193,29 +171,6 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
           <p>
             Export your accounts from the <strong className="text-foreground">Accounts</strong> page to get the Account IDs needed for your import files.
           </p>
-        </CardContent>
-      </Card>
-
-      {/* Templates Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Download Templates</CardTitle>
-          <CardDescription>
-            Download standardized templates to ensure your data maps correctly. 
-            Templates include the required Recouply Account ID column.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => downloadTemplate("invoice_aging")}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Invoice Aging Template
-            </Button>
-            <Button variant="outline" onClick={() => downloadTemplate("payments")}>
-              <Download className="h-4 w-4 mr-2" />
-              Payments Template
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
