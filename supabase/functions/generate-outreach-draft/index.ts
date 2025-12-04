@@ -64,6 +64,16 @@ serve(async (req) => {
       throw new Error("Invoice not found");
     }
 
+    // Fetch payments applied to this invoice
+    const { data: paymentLinks } = await supabaseClient
+      .from("payment_invoice_links")
+      .select("amount_applied, status, payments(payment_date, payment_method, reference)")
+      .eq("invoice_id", invoice_id)
+      .eq("status", "confirmed");
+
+    const totalPaid = paymentLinks?.reduce((sum, link) => sum + (link.amount_applied || 0), 0) || 0;
+    const amountOutstanding = invoice.amount_outstanding ?? (invoice.amount - totalPaid);
+
     // Fetch user profile
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
@@ -158,6 +168,8 @@ serve(async (req) => {
       debtor_company: invoice.debtors.company_name,
       invoice_number: invoice.invoice_number,
       amount: invoice.amount,
+      amount_outstanding: amountOutstanding,
+      total_paid: totalPaid,
       currency: invoice.currency || "USD",
       due_date: new Date(invoice.due_date).toLocaleDateString(),
       days_past_due: daysPastDue,
@@ -167,7 +179,7 @@ serve(async (req) => {
       task_context: taskContext,
     };
 
-    console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number);
+    console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number, "outstanding:", amountOutstanding);
 
     // Call OpenAI API
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
@@ -212,7 +224,9 @@ Business name: ${promptData.business_name}
 Debtor name: ${promptData.debtor_name}
 Debtor company: ${promptData.debtor_company}
 Invoice number: ${promptData.invoice_number}
-Amount due: $${promptData.amount} ${promptData.currency}
+Original Amount: $${promptData.amount} ${promptData.currency}
+Amount Already Paid: $${promptData.total_paid} ${promptData.currency}
+BALANCE DUE: $${promptData.amount_outstanding} ${promptData.currency}
 Due date: ${promptData.due_date}
 Days past due: ${promptData.days_past_due}
 Payment link: ${promptData.payment_link}
@@ -230,7 +244,8 @@ CRM Account Context:
 Please generate:
 1. An email subject line
 2. An email body that:
-   - Clearly states the balance and due date
+   - Clearly states the BALANCE DUE ($${promptData.amount_outstanding}) - not the original amount if payments have been made
+   - ${promptData.total_paid > 0 ? `Acknowledge the partial payment of $${promptData.total_paid} already received` : "States the full amount due"}
    - Includes the payment link once
    - Invites the customer to contact us if there are any issues or disputes
    - Uses a ${promptData.tone} tone${crmAccount ? "\n   - Takes into account the customer's value and relationship status" : ""}
