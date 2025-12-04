@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
+import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
 interface Invoice {
   id: string;
   invoice_number: string;
@@ -66,6 +67,71 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState<string>("all");
   const [scoreFilter, setScoreFilter] = useState<string>("all");
+  
+  // Sorting state for Priority Overdues
+  const [overdueSortKey, setOverdueSortKey] = useState<string | null>("daysPastDue");
+  const [overdueSortDir, setOverdueSortDir] = useState<SortDirection>("desc");
+  
+  // Sorting state for Accounts table
+  const [accountSortKey, setAccountSortKey] = useState<string | null>("payment_score");
+  const [accountSortDir, setAccountSortDir] = useState<SortDirection>("asc");
+  
+  const handleOverdueSort = (key: string) => {
+    if (overdueSortKey === key) {
+      if (overdueSortDir === "asc") setOverdueSortDir("desc");
+      else if (overdueSortDir === "desc") { setOverdueSortDir(null); setOverdueSortKey(null); }
+      else setOverdueSortDir("asc");
+    } else {
+      setOverdueSortKey(key);
+      setOverdueSortDir("asc");
+    }
+  };
+  
+  const handleAccountSort = (key: string) => {
+    if (accountSortKey === key) {
+      if (accountSortDir === "asc") setAccountSortDir("desc");
+      else if (accountSortDir === "desc") { setAccountSortDir(null); setAccountSortKey(null); }
+      else setAccountSortDir("asc");
+    } else {
+      setAccountSortKey(key);
+      setAccountSortDir("asc");
+    }
+  };
+  
+  const sortedOverdues = useMemo(() => {
+    if (!overdueSortKey || !overdueSortDir) return priorityOverdues;
+    return [...priorityOverdues].sort((a: any, b: any) => {
+      let aVal = overdueSortKey === "debtors.name" ? a.debtors?.name : a[overdueSortKey];
+      let bVal = overdueSortKey === "debtors.name" ? b.debtors?.name : b[overdueSortKey];
+      if (aVal == null) return overdueSortDir === "asc" ? 1 : -1;
+      if (bVal == null) return overdueSortDir === "asc" ? -1 : 1;
+      if (typeof aVal === "string") return overdueSortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      return overdueSortDir === "asc" ? aVal - bVal : bVal - aVal;
+    });
+  }, [priorityOverdues, overdueSortKey, overdueSortDir]);
+  
+  const sortedAccounts = useMemo(() => {
+    const filtered = debtorData?.debtors.filter(debtor => {
+      const matchesSearch = debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           debtor.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRisk = riskFilter === "all" || debtor.payment_risk_tier === riskFilter;
+      const matchesScore = scoreFilter === "all" || 
+        (scoreFilter === "high" && (debtor.payment_score || 50) >= 80) ||
+        (scoreFilter === "medium" && (debtor.payment_score || 50) >= 50 && (debtor.payment_score || 50) < 80) ||
+        (scoreFilter === "low" && (debtor.payment_score || 50) < 50);
+      return matchesSearch && matchesRisk && matchesScore;
+    }) || [];
+    
+    if (!accountSortKey || !accountSortDir) return filtered;
+    return [...filtered].sort((a: any, b: any) => {
+      let aVal = a[accountSortKey];
+      let bVal = b[accountSortKey];
+      if (aVal == null) return accountSortDir === "asc" ? 1 : -1;
+      if (bVal == null) return accountSortDir === "asc" ? -1 : 1;
+      if (typeof aVal === "string") return accountSortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      return accountSortDir === "asc" ? aVal - bVal : bVal - aVal;
+    });
+  }, [debtorData?.debtors, searchTerm, riskFilter, scoreFilter, accountSortKey, accountSortDir]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -413,15 +479,45 @@ const Dashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Invoice #</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Days</TableHead>
+                      <SortableTableHead
+                        sortKey="invoice_number"
+                        currentSortKey={overdueSortKey}
+                        currentSortDirection={overdueSortDir}
+                        onSort={handleOverdueSort}
+                      >
+                        Invoice #
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="debtors.name"
+                        currentSortKey={overdueSortKey}
+                        currentSortDirection={overdueSortDir}
+                        onSort={handleOverdueSort}
+                      >
+                        Account
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="amount"
+                        currentSortKey={overdueSortKey}
+                        currentSortDirection={overdueSortDir}
+                        onSort={handleOverdueSort}
+                        className="text-right"
+                      >
+                        Amount
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="daysPastDue"
+                        currentSortKey={overdueSortKey}
+                        currentSortDirection={overdueSortDir}
+                        onSort={handleOverdueSort}
+                        className="text-right"
+                      >
+                        Days
+                      </SortableTableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {priorityOverdues.map((invoice: any) => (
+                    {sortedOverdues.map((invoice: any) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{invoice.debtors?.name}</TableCell>
@@ -611,37 +707,74 @@ const Dashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Accounts</CardTitle>
-              <CardDescription>Click on an account to view detailed score breakdown</CardDescription>
+              <CardDescription>Click on an account to view detailed score breakdown. Click column headers to sort.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Account Name</TableHead>
-                    <TableHead>Payment Score</TableHead>
-                    <TableHead>Risk Tier</TableHead>
-                    <TableHead>Outstanding Balance</TableHead>
-                    <TableHead>Open Invoices</TableHead>
-                    <TableHead>Avg Days to Pay</TableHead>
-                    <TableHead>Max Days Past Due</TableHead>
+                    <SortableTableHead
+                      sortKey="name"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Account Name
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="payment_score"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Payment Score
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="payment_risk_tier"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Risk Tier
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="total_open_balance"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Outstanding Balance
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="open_invoices_count"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Open Invoices
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="avg_days_to_pay"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Avg Days to Pay
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="max_days_past_due"
+                      currentSortKey={accountSortKey}
+                      currentSortDirection={accountSortDir}
+                      onSort={handleAccountSort}
+                    >
+                      Max Days Past Due
+                    </SortableTableHead>
                     <TableHead>Flags</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {debtorData?.debtors
-                    .filter(debtor => {
-                      const matchesSearch = debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                           debtor.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-                      const matchesRisk = riskFilter === "all" || debtor.payment_risk_tier === riskFilter;
-                      const matchesScore = scoreFilter === "all" || 
-                        (scoreFilter === "high" && (debtor.payment_score || 50) >= 80) ||
-                        (scoreFilter === "medium" && (debtor.payment_score || 50) >= 50 && (debtor.payment_score || 50) < 80) ||
-                        (scoreFilter === "low" && (debtor.payment_score || 50) < 50);
-                      
-                      return matchesSearch && matchesRisk && matchesScore;
-                    })
-                    .map((debtor) => {
+                  {sortedAccounts.map((debtor) => {
                       const score = debtor.payment_score || 50;
                       const getScoreBadge = () => {
                         if (score >= 80) return <Badge className="bg-green-500">Low Risk</Badge>;
@@ -718,7 +851,7 @@ const Dashboard = () => {
                       );
                     })}
                   
-                  {debtorData?.debtors.length === 0 && (
+                  {sortedAccounts.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center text-muted-foreground">
                         No accounts found matching your filters
