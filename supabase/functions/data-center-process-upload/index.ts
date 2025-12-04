@@ -143,20 +143,30 @@ serve(async (req) => {
     // Fetch existing invoices for payment matching
     const { data: existingInvoices } = await supabase
       .from("invoices")
-      .select("id, invoice_number, debtor_id, amount_outstanding, status")
+      .select("id, invoice_number, reference_id, debtor_id, amount_outstanding, status")
       .eq("user_id", user.id);
 
-    const invoiceMap = new Map<string, { id: string; debtor_id: string; amount_outstanding: number; status: string }>();
+    // Maps for invoice matching: reference_id (primary) and invoice_number (fallback)
+    const invoiceRefMap = new Map<string, { id: string; debtor_id: string; amount_outstanding: number; status: string }>();
+    const invoiceNumMap = new Map<string, { id: string; debtor_id: string; amount_outstanding: number; status: string }>();
     (existingInvoices || []).forEach(inv => {
+      const invData = {
+        id: inv.id,
+        debtor_id: inv.debtor_id,
+        amount_outstanding: inv.amount_outstanding || 0,
+        status: inv.status,
+      };
+      // Primary: reference_id (Recouply INV ID like INV-XXXXX)
+      if (inv.reference_id) {
+        invoiceRefMap.set(normalizeString(inv.reference_id), invData);
+      }
+      // Fallback: invoice_number
       if (inv.invoice_number) {
-        invoiceMap.set(normalizeString(inv.invoice_number), {
-          id: inv.id,
-          debtor_id: inv.debtor_id,
-          amount_outstanding: inv.amount_outstanding || 0,
-          status: inv.status,
-        });
+        invoiceNumMap.set(normalizeString(inv.invoice_number), invData);
       }
     });
+    
+    console.log(`Invoice maps built: ${invoiceRefMap.size} by reference_id, ${invoiceNumMap.size} by invoice_number`);
 
     let processed = 0;
     let matched = 0;
@@ -397,10 +407,14 @@ serve(async (req) => {
             continue;
           }
 
-          // Find invoice by invoice_number
-          const invoiceData = invoiceMap.get(normalizeString(paymentInvoiceNumber));
+          // Find invoice: try reference_id (Recouply INV ID) first, then invoice_number
+          let invoiceData = invoiceRefMap.get(normalizeString(paymentInvoiceNumber));
           if (!invoiceData) {
-            console.error(`Row ${i}: Invoice not found: ${paymentInvoiceNumber}`);
+            // Fallback to invoice_number
+            invoiceData = invoiceNumMap.get(normalizeString(paymentInvoiceNumber));
+          }
+          if (!invoiceData) {
+            console.error(`Row ${i}: Invoice not found by reference_id or invoice_number: ${paymentInvoiceNumber}`);
             errors++;
             continue;
           }
