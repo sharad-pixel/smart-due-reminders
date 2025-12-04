@@ -188,3 +188,6 @@ verify_jwt = true
 
 [functions.test-byod-email]
 verify_jwt = true
+
+[functions.invoice-collectability-report]
+verify_jwt = true
