@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, ExternalLink } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, ExternalLink, Play } from "lucide-react";
+import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pendingTasks, setPendingTasks] = useState<CollectionTask[]>([]);
+  const [runningOutreach, setRunningOutreach] = useState(false);
   const [stats, setStats] = useState({
     totalOutstanding: 0,
     totalRecovered: 0,
@@ -200,6 +202,28 @@ const Dashboard = () => {
     );
   };
 
+  const runOutreach = async () => {
+    setRunningOutreach(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-template-based-messages');
+      
+      if (error) throw error;
+      
+      if (data?.sent > 0) {
+        toast.success(`Sent ${data.sent} outreach messages`);
+      } else if (data?.skipped > 0) {
+        toast.info(`No new messages to send. ${data.skipped} already sent.`);
+      } else {
+        toast.info("No invoices matched template criteria today");
+      }
+    } catch (err: any) {
+      console.error('Error running outreach:', err);
+      toast.error(err.message || 'Failed to run outreach');
+    } finally {
+      setRunningOutreach(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchDashboardData();
@@ -239,12 +263,27 @@ const Dashboard = () => {
                   Set up automated collection sequences for your invoices
                 </p>
               </div>
-              <Button 
-                onClick={() => navigate("/settings/ai-workflows")}
-                className="w-full sm:w-auto shrink-0"
-              >
-                Configure Workflows
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button 
+                  variant="outline"
+                  onClick={runOutreach}
+                  disabled={runningOutreach}
+                  className="w-full sm:w-auto shrink-0"
+                >
+                  {runningOutreach ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Run Outreach Now
+                </Button>
+                <Button 
+                  onClick={() => navigate("/settings/ai-workflows")}
+                  className="w-full sm:w-auto shrink-0"
+                >
+                  Configure Workflows
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
