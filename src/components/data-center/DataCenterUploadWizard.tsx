@@ -239,7 +239,15 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
   });
 
   const handleNext = () => {
-    if (currentStep === 0 && parsedData) {
+    if (currentStep === 0) {
+      if (!selectedSourceId) {
+        toast({ title: "Source required", description: "Please select a data source before proceeding", variant: "destructive" });
+        return;
+      }
+      if (!parsedData) {
+        toast({ title: "File required", description: "Please upload a file to continue", variant: "destructive" });
+        return;
+      }
       setCurrentStep(1);
       // Trigger AI mapping when entering mapping step
       runAIMapping.mutate();
@@ -327,6 +335,7 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
               sources={sources || []}
               selectedSourceId={selectedSourceId}
               onSourceSelect={setSelectedSourceId}
+              onCreateSource={onClose} // Close wizard so user can create source
             />
           )}
 
@@ -377,7 +386,7 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
             <Button
               onClick={handleNext}
               disabled={
-                (currentStep === 0 && !parsedData) ||
+                (currentStep === 0 && (!parsedData || !selectedSourceId)) ||
                 (currentStep === 2 && processUpload.isPending)
               }
             >
