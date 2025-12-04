@@ -546,11 +546,12 @@ Extract summary and actions.`;
               source: isInternalCommunication ? "internal_communication" : "ai_extraction",
               from_email: email.from_email,
               subject: email.subject,
-              raw_email: (email.text_body || email.html_body || "").substring(0, 5000), // Truncate for storage
+              raw_email: (email.text_body || email.html_body || "").substring(0, 5000),
               ai_reasoning: `AI extracted action with ${Math.round((action.confidence || 0.8) * 100)}% confidence. Category: ${category}, Sentiment: ${sentiment}`,
               recommended_action: getRecommendedAction(action.type, isInternalCommunication),
               due_date: getDueDate(taskPriority),
-              inbound_email_id: email.id, // Link task to source inbound email
+              inbound_email_id: email.id,
+              // Note: assigned_to and assigned_persona are left null - tasks are only assignable to team members via UI
             };
           });
 
