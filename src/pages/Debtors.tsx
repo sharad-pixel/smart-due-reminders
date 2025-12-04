@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -248,6 +248,60 @@ const Debtors = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'Debtors Template');
       XLSX.writeFile(wb, 'debtors_template.xlsx');
       toast.success('Excel template downloaded with instructions');
+    }
+  };
+
+  const exportAllAccounts = (format: 'csv' | 'excel') => {
+    if (debtors.length === 0) {
+      toast.error('No accounts to export');
+      return;
+    }
+
+    const headers = [
+      'recouply_account_id',
+      'name',
+      'company_name',
+      'email',
+      'phone',
+      'type',
+      'current_balance',
+      'external_customer_id',
+      'crm_account_id_external'
+    ];
+
+    const rows = debtors.map(debtor => [
+      debtor.reference_id,
+      debtor.name,
+      debtor.company_name,
+      debtor.email,
+      debtor.phone || '',
+      debtor.type || '',
+      debtor.current_balance?.toString() || '0',
+      debtor.external_customer_id || '',
+      debtor.crm_account_id_external || ''
+    ]);
+
+    if (format === 'csv') {
+      let csvContent = headers.join(',') + '\n';
+      rows.forEach(row => {
+        csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recouply_accounts_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Exported ${debtors.length} accounts to CSV`);
+    } else {
+      const wsData = [headers, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Accounts');
+      XLSX.writeFile(wb, `recouply_accounts_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success(`Exported ${debtors.length} accounts to Excel`);
     }
   };
 
@@ -667,26 +721,35 @@ const Debtors = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
                   <Upload className="h-4 w-4 mr-2" />
-                  Import Accounts
+                  Import / Export
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem onClick={() => exportAllAccounts('csv')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export All Accounts (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportAllAccounts('excel')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export All Accounts (Excel)
+                </DropdownMenuItem>
+                <div className="border-t my-1" />
                 <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
                   <Upload className="h-4 w-4 mr-2" />
                   Import from File
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadDebtorsTemplate('csv')}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Download Accounts Template (CSV)
+                  Download Import Template (CSV)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadDebtorsTemplate('excel')}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Download Accounts Template (Excel)
+                  Download Import Template (Excel)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={showGoogleSheetsInstructions}>
                   <HelpCircle className="h-4 w-4 mr-2" />
-                  View Google Sheets Template Instructions
+                  Google Sheets Instructions
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
