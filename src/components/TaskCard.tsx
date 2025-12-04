@@ -69,13 +69,10 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
           </div>
         )}
 
-        {(task.assigned_persona || task.assigned_to) && (
+        {task.assigned_to && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <User className="h-3 w-3" />
-            <span>
-              {task.assigned_persona && <Badge variant="outline" className="text-xs mr-1">{task.assigned_persona}</Badge>}
-              {task.assigned_to && 'Assigned'}
-            </span>
+            <span>Assigned to team member</span>
           </div>
         )}
 
