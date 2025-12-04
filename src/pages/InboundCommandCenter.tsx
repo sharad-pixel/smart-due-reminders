@@ -365,6 +365,8 @@ const EmailDetailContent = ({
     </div>
   </div>
 );
+
+const InboundCommandCenter = () => {
   const { fetchInboundEmails, triggerAIProcessing, updateActionStatus, forwardEmails, isLoading } = useInboundEmails();
   const [emails, setEmails] = useState<InboundEmail[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
@@ -1294,3 +1296,5 @@ const EmailDetailContent = ({
     </Layout>
   );
 }
+
+export default InboundCommandCenter;
