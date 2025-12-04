@@ -3,7 +3,7 @@ import AnimatedHero from "@/components/marketing/AnimatedHero";
 import ScrollPipeline from "@/components/marketing/ScrollPipeline";
 import AnimatedMetrics from "@/components/marketing/AnimatedMetrics";
 import EmailDemo from "@/components/marketing/EmailDemo";
-import TestimonialCards from "@/components/marketing/TestimonialCards";
+
 import PricingTeaser from "@/components/marketing/PricingTeaser";
 
 import FAQAccordion from "@/components/marketing/FAQAccordion";
@@ -24,7 +24,6 @@ const Home = () => {
       <AIAgentsSection />
       <EmailDemo />
       <WhyDifferent />
-      <TestimonialCards />
       <PricingTeaser />
       <FAQAccordion />
       <FinalCTA />
