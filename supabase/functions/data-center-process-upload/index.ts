@@ -268,19 +268,23 @@ serve(async (req) => {
             continue;
           }
 
+          // Generate unique reference_id for invoice
+          const referenceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
           const { error: invoiceError } = await supabase
             .from("invoices")
             .insert({
               user_id: user.id,
               debtor_id: debtorId,
               invoice_number: invoiceNumber,
-              issue_date: invoiceDate,
+              issue_date: invoiceDate, // Maps from invoice_date field
               due_date: dueDate,
               amount: amount,
               amount_original: amount,
               amount_outstanding: amountOutstanding,
               currency: String(getValue(row, "currency") || "USD"),
               status: "Open",
+              reference_id: referenceId,
               external_invoice_id: getValue(row, "external_invoice_id") ? String(getValue(row, "external_invoice_id")) : null,
               product_description: getValue(row, "product_description") ? String(getValue(row, "product_description")) : null,
               notes: getValue(row, "notes") ? String(getValue(row, "notes")) : null,
