@@ -19,6 +19,7 @@ import {
   Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { DataCenterSourcesTab } from "@/components/data-center/DataCenterSourcesTab";
 import { DataCenterUploadsTab } from "@/components/data-center/DataCenterUploadsTab";
 import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploadWizard";
@@ -50,6 +51,14 @@ const DataCenter = () => {
   });
 
   const handleStartUpload = (fileType: "invoice_aging" | "payments") => {
+    // Force user to create a source first if none exist
+    if (!stats?.sources || stats.sources === 0) {
+      toast.info("Create a data source first", {
+        description: "You need to set up a data source before uploading files."
+      });
+      setCreateSourceOpen(true);
+      return;
+    }
     setSelectedFileType(fileType);
     setUploadWizardOpen(true);
   };
