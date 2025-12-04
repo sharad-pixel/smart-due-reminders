@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
-
+import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
 interface Invoice {
   id: string;
   invoice_number: string;
@@ -387,6 +387,9 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Invoice Collectability Report Widget */}
+        <InvoiceCollectabilityReport />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card>
