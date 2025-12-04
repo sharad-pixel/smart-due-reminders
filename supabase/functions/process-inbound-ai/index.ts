@@ -70,6 +70,38 @@ const PERSONA_BUCKET_MAP: Record<string, string> = {
   dpd_150_plus: "Rocco",
 };
 
+// Helper function to get recommended actions based on task type
+function getRecommendedAction(taskType: string, isInternal: boolean): string {
+  if (isInternal) {
+    const internalActions: Record<string, string> = {
+      ESCALATION: "Review escalation request and take appropriate action",
+      STATUS_UPDATE: "Acknowledge status update and update relevant records",
+      INTERNAL_NOTE: "Review note and add to customer file if relevant",
+      REASSIGNMENT_REQUEST: "Evaluate and reassign task to appropriate team member",
+      FOLLOW_UP_NEEDED: "Schedule follow-up action within 24 hours",
+      INFO_REQUEST: "Gather requested information and respond to team member",
+      APPROVAL_NEEDED: "Review request and provide approval decision",
+      OTHER: "Review internal communication and take appropriate action",
+    };
+    return internalActions[taskType] || "Review and respond to internal communication";
+  }
+
+  const externalActions: Record<string, string> = {
+    W9_REQUEST: "Send W9 form to customer via secure channel",
+    PAYMENT_PLAN_REQUEST: "Contact customer to discuss and set up payment arrangement",
+    DISPUTE_CHARGES: "Review disputed charges and prepare documentation for resolution",
+    DISPUTE_PO: "Verify purchase order details with customer and internal records",
+    NEEDS_CALLBACK: "Call customer within 24 hours at requested time/number",
+    PROMISE_TO_PAY: "Note promised payment date and set reminder for follow-up",
+    WRONG_CUSTOMER: "Verify account assignment and correct if necessary",
+    INVOICE_COPY_REQUEST: "Resend invoice copy to customer via email",
+    PAYMENT_CONFIRMATION: "Verify payment receipt and update account status",
+    GENERAL_INQUIRY: "Review inquiry and provide appropriate response",
+    OTHER: "Review customer communication and determine next steps",
+  };
+  return externalActions[taskType] || "Review and respond to customer inquiry";
+}
+
 async function triggerWorkflowEngagement(
   supabase: any,
   apiKey: string,
@@ -483,25 +515,46 @@ Extract summary and actions.`;
           })
           .eq("id", email.id);
 
-        // Create tasks from actions
+        // Create tasks from actions with full context for follow-up
         if (actions.length > 0 && email.user_id && email.debtor_id) {
-          const tasks = actions.map((action: any) => ({
-            user_id: email.user_id,
-            debtor_id: email.debtor_id,
-            invoice_id: email.invoice_id,
-            task_type: action.type,
-            priority: action.type === "PROMISE_TO_PAY" || action.type === "ESCALATION" ? "high" : "normal",
-            status: "open",
-            summary: isInternalCommunication 
-              ? `[Internal] ${action.type}: ${email.subject}`
-              : `${action.type}: ${email.subject}`,
-            details: isInternalCommunication
-              ? `From team member ${teamMemberName}: ${action.details || ""}`
-              : (action.details || ""),
-            source: isInternalCommunication ? "internal_communication" : "ai_extraction",
-          }));
+          // Calculate due date based on priority (high: 1 day, medium: 3 days, low: 7 days)
+          const getDueDate = (actionPriority: string) => {
+            const daysMap: Record<string, number> = { high: 1, medium: 3, low: 7 };
+            const days = daysMap[actionPriority] || 3;
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + days);
+            return dueDate.toISOString().split("T")[0];
+          };
+
+          const tasks = actions.map((action: any) => {
+            const taskPriority = action.type === "PROMISE_TO_PAY" || action.type === "ESCALATION" ? "high" : 
+                                action.confidence >= 0.9 ? "high" : "normal";
+            
+            return {
+              user_id: email.user_id,
+              debtor_id: email.debtor_id,
+              invoice_id: email.invoice_id,
+              task_type: action.type,
+              priority: taskPriority,
+              status: "open",
+              summary: isInternalCommunication 
+                ? `[Internal] ${action.type}: ${email.subject}`
+                : `${action.type}: ${email.subject}`,
+              details: isInternalCommunication
+                ? `From team member ${teamMemberName}: ${action.details || ""}`
+                : (action.details || ""),
+              source: isInternalCommunication ? "internal_communication" : "ai_extraction",
+              from_email: email.from_email,
+              subject: email.subject,
+              raw_email: (email.text_body || email.html_body || "").substring(0, 5000), // Truncate for storage
+              ai_reasoning: `AI extracted action with ${Math.round((action.confidence || 0.8) * 100)}% confidence. Category: ${category}, Sentiment: ${sentiment}`,
+              recommended_action: getRecommendedAction(action.type, isInternalCommunication),
+              due_date: getDueDate(taskPriority),
+            };
+          });
 
           await supabase.from("collection_tasks").insert(tasks);
+          console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
         }
 
         // Trigger automatic workflow engagement for external emails linked to invoices
