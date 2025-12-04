@@ -160,30 +160,49 @@ serve(async (req) => {
       
       try {
         if (fileType === "invoice_aging") {
-          // Get customer name
+          // Get identifiers for matching
+          const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
           const customerName = String(getValue(row, "customer_name") || "").trim();
           const customerId = getValue(row, "customer_id");
           
-          if (!customerName) {
-            errors++;
-            continue;
-          }
-
           // Find or create customer
           let debtorId: string | null = null;
           
-          // Try to match existing customer
-          if (customerId) {
-            debtorId = customerMap.get(normalizeString(String(customerId))) || null;
+          // PRIORITY 1: Match by Recouply Account ID (reference_id)
+          if (recouplyAccountId) {
+            debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+            if (debtorId) {
+              console.log(`Row ${i}: Matched by recouply_account_id: ${recouplyAccountId}`);
+            }
           }
-          if (!debtorId) {
+          
+          // PRIORITY 2: Match by external customer ID
+          if (!debtorId && customerId) {
+            debtorId = customerMap.get(normalizeString(String(customerId))) || null;
+            if (debtorId) {
+              console.log(`Row ${i}: Matched by customer_id: ${customerId}`);
+            }
+          }
+          
+          // PRIORITY 3: Match by company name
+          if (!debtorId && customerName) {
             debtorId = customerMap.get(normalizeString(customerName)) || null;
+            if (debtorId) {
+              console.log(`Row ${i}: Matched by customer_name: ${customerName}`);
+            }
           }
 
           if (debtorId) {
             existingCustomersCount++;
             matched++;
           } else {
+            // Need customer name to create new record
+            if (!customerName) {
+              console.error(`Row ${i}: No customer name and no matching account found`);
+              errors++;
+              continue;
+            }
+            
             // Create new customer
             const { data: newDebtor, error: debtorError } = await supabase
               .from("debtors")
@@ -208,6 +227,9 @@ serve(async (req) => {
 
             debtorId = newDebtor.id;
             customerMap.set(normalizeString(customerName), debtorId!);
+            if (newDebtor.reference_id) {
+              customerRefMap.set(normalizeString(newDebtor.reference_id), debtorId!);
+            }
             newCustomers++;
           }
 
