@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2, Download } from "lucide-react";
+import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2, Download, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,8 +28,21 @@ interface Debtor {
   phone: string | null;
   type: "B2B" | "B2C" | null;
   current_balance: number | null;
+  total_open_balance: number | null;
   external_customer_id: string | null;
   crm_account_id_external: string | null;
+  open_invoices_count: number | null;
+  max_days_past_due: number | null;
+  payment_score: number | null;
+  avg_days_to_pay: number | null;
+  primary_contact_name: string | null;
+  ar_contact_name: string | null;
+  ar_contact_email: string | null;
+  city: string | null;
+  state: string | null;
+  credit_limit: number | null;
+  payment_terms_default: string | null;
+  created_at: string | null;
 }
 
 const Debtors = () => {
@@ -81,7 +94,14 @@ const Debtors = () => {
     try {
       const { data, error } = await supabase
         .from("debtors")
-        .select("*")
+        .select(`
+          id, reference_id, name, company_name, email, phone, type,
+          current_balance, total_open_balance, external_customer_id,
+          crm_account_id_external, open_invoices_count, max_days_past_due,
+          payment_score, avg_days_to_pay, primary_contact_name,
+          ar_contact_name, ar_contact_email, city, state,
+          credit_limit, payment_terms_default, created_at
+        `)
         .eq("is_archived", false)
         .order("created_at", { ascending: false });
 
@@ -1170,52 +1190,130 @@ const Debtors = () => {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-32 font-semibold">Recouply ID</TableHead>
-                    <TableHead className="font-semibold">Name</TableHead>
-                    <TableHead className="font-semibold">Company</TableHead>
-                    <TableHead className="font-semibold">Email</TableHead>
-                    <TableHead className="font-semibold">Phone</TableHead>
-                    <TableHead className="font-semibold">Account ID</TableHead>
-                    <TableHead className="font-semibold">CRM ID</TableHead>
-                    <TableHead className="font-semibold">Type</TableHead>
-                    <TableHead className="text-right font-semibold">Balance</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDebtors.map((debtor) => (
-                    <TableRow 
-                      key={debtor.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => navigate(`/debtors/${debtor.id}`)}
-                    >
-                      <TableCell className="font-mono text-xs text-muted-foreground">{debtor.reference_id}</TableCell>
-                      <TableCell className="font-medium">{debtor.name}</TableCell>
-                      <TableCell>{debtor.company_name}</TableCell>
-                      <TableCell>{debtor.email}</TableCell>
-                      <TableCell>{debtor.phone || "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{debtor.external_customer_id || "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{debtor.crm_account_id_external || "-"}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            debtor.type === "B2B"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {debtor.type || "N/A"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">
-                        ${(debtor.current_balance || 0).toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredDebtors.map((debtor) => (
+                  <div
+                    key={debtor.id}
+                    className="group border rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card"
+                    onClick={() => navigate(`/debtors/${debtor.id}`)}
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                        }`}>
+                          {debtor.type === "B2B" ? <Building2 className="h-5 w-5" /> : <User className="h-5 w-5" />}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                            {debtor.company_name || debtor.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                      }`}>
+                        {debtor.type || "N/A"}
+                      </span>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="space-y-1.5 mb-3 text-sm">
+                      {debtor.primary_contact_name && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <User className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{debtor.primary_contact_name}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{debtor.email}</span>
+                      </div>
+                      {debtor.phone && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span>{debtor.phone}</span>
+                        </div>
+                      )}
+                      {(debtor.city || debtor.state) && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span>{[debtor.city, debtor.state].filter(Boolean).join(", ")}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-muted/50 rounded-md p-2">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                          <DollarSign className="h-3 w-3" />
+                          <span>Balance</span>
+                        </div>
+                        <p className="font-semibold text-sm tabular-nums">
+                          ${(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="bg-muted/50 rounded-md p-2">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                          <FileBarChart className="h-3 w-3" />
+                          <span>Open Invoices</span>
+                        </div>
+                        <p className="font-semibold text-sm tabular-nums">
+                          {debtor.open_invoices_count || 0}
+                        </p>
+                      </div>
+                      <div className="bg-muted/50 rounded-md p-2">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                          <Clock className="h-3 w-3" />
+                          <span>Max DPD</span>
+                        </div>
+                        <p className={`font-semibold text-sm tabular-nums ${
+                          (debtor.max_days_past_due || 0) > 90 ? "text-destructive" :
+                          (debtor.max_days_past_due || 0) > 30 ? "text-orange-500" : "text-foreground"
+                        }`}>
+                          {debtor.max_days_past_due || 0} days
+                        </p>
+                      </div>
+                      <div className="bg-muted/50 rounded-md p-2">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                          <TrendingUp className="h-3 w-3" />
+                          <span>Pay Score</span>
+                        </div>
+                        <p className={`font-semibold text-sm tabular-nums ${
+                          (debtor.payment_score || 50) >= 70 ? "text-green-600" :
+                          (debtor.payment_score || 50) >= 40 ? "text-orange-500" : "text-destructive"
+                        }`}>
+                          {debtor.payment_score || 50}/100
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer with IDs and Terms */}
+                    <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        {debtor.external_customer_id && (
+                          <div className="flex items-center gap-1" title="Billing System ID">
+                            <ExternalLink className="h-3 w-3" />
+                            <span className="font-mono">{debtor.external_customer_id}</span>
+                          </div>
+                        )}
+                        {debtor.payment_terms_default && (
+                          <div className="flex items-center gap-1" title="Payment Terms">
+                            <CreditCard className="h-3 w-3" />
+                            <span>{debtor.payment_terms_default}</span>
+                          </div>
+                        )}
+                      </div>
+                      {debtor.avg_days_to_pay && (
+                        <span title="Avg Days to Pay">~{Math.round(debtor.avg_days_to_pay)}d avg</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
