@@ -16,7 +16,9 @@ import {
   Loader2,
   Link as LinkIcon,
   X,
-  Users
+  Users,
+  Trash2,
+  Archive
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -132,6 +134,63 @@ const DataCenterReview = () => {
     },
     onError: (error: any) => {
       toast.error(`Failed to skip row: ${error.message}`);
+    },
+  });
+
+  // Delete row mutation
+  const deleteRow = useMutation({
+    mutationFn: async (rowId: string) => {
+      const { error } = await supabase
+        .from("data_center_staging_rows")
+        .delete()
+        .eq("id", rowId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Row deleted");
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete row: ${error.message}`);
+    },
+  });
+
+  // Bulk delete mutation
+  const bulkDelete = useMutation({
+    mutationFn: async (rowIds: string[]) => {
+      const { error } = await supabase
+        .from("data_center_staging_rows")
+        .delete()
+        .in("id", rowIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${selectedRows.size} rows deleted`);
+      setSelectedRows(new Set());
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete rows: ${error.message}`);
+    },
+  });
+
+  // Archive upload mutation
+  const archiveUpload = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("data_center_uploads")
+        .update({ status: "archived" })
+        .eq("id", uploadId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Upload archived");
+      navigate("/data-center");
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to archive upload: ${error.message}`);
     },
   });
 
@@ -267,16 +326,32 @@ const DataCenterReview = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/data-center")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Review Matches</h1>
-            <p className="text-muted-foreground">
-              {upload?.file_name || "Loading..."} • Review and confirm customer matches
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/data-center")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Review Matches</h1>
+              <p className="text-muted-foreground">
+                {upload?.file_name || "Loading..."} • Review and confirm customer matches
+              </p>
+            </div>
           </div>
+          {upload && upload.status !== "archived" && (
+            <Button
+              variant="outline"
+              onClick={() => archiveUpload.mutate()}
+              disabled={archiveUpload.isPending}
+            >
+              {archiveUpload.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Archive className="h-4 w-4 mr-2" />
+              )}
+              Archive Upload
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -385,6 +460,18 @@ const DataCenterReview = () => {
                     )}
                     Match Selected
                   </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => bulkDelete.mutate(Array.from(selectedRows))}
+                    disabled={bulkDelete.isPending}
+                  >
+                    {bulkDelete.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Delete Selected
+                  </Button>
                   <Button variant="outline" onClick={() => setSelectedRows(new Set())}>
                     Clear Selection
                   </Button>
@@ -452,27 +539,38 @@ const DataCenterReview = () => {
                           </div>
                         </div>
 
-                        {(row.match_status === "needs_review" || row.match_status === "unmatched") && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => skipRow.mutate(row.id)}
-                              disabled={skipRow.isPending}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Skip
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => createAndMatch.mutate({ rowId: row.id, rawJson })}
-                              disabled={createAndMatch.isPending}
-                            >
-                              Create New
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex gap-2">
+                          {(row.match_status === "needs_review" || row.match_status === "unmatched") && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => skipRow.mutate(row.id)}
+                                disabled={skipRow.isPending}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Skip
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => createAndMatch.mutate({ rowId: row.id, rawJson })}
+                                disabled={createAndMatch.isPending}
+                              >
+                                Create New
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => deleteRow.mutate(row.id)}
+                            disabled={deleteRow.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Current Match */}
