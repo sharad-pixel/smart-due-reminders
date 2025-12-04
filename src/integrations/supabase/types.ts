@@ -653,6 +653,7 @@ export type Database = {
           due_date: string | null
           from_email: string | null
           id: string
+          inbound_email_id: string | null
           invoice_id: string | null
           level: string | null
           priority: string
@@ -680,6 +681,7 @@ export type Database = {
           due_date?: string | null
           from_email?: string | null
           id?: string
+          inbound_email_id?: string | null
           invoice_id?: string | null
           level?: string | null
           priority?: string
@@ -707,6 +709,7 @@ export type Database = {
           due_date?: string | null
           from_email?: string | null
           id?: string
+          inbound_email_id?: string | null
           invoice_id?: string | null
           level?: string | null
           priority?: string
@@ -734,6 +737,13 @@ export type Database = {
             columns: ["debtor_id"]
             isOneToOne: false
             referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_tasks_inbound_email_id_fkey"
+            columns: ["inbound_email_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_emails"
             referencedColumns: ["id"]
           },
           {

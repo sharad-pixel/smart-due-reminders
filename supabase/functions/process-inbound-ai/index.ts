@@ -550,10 +550,16 @@ Extract summary and actions.`;
               ai_reasoning: `AI extracted action with ${Math.round((action.confidence || 0.8) * 100)}% confidence. Category: ${category}, Sentiment: ${sentiment}`,
               recommended_action: getRecommendedAction(action.type, isInternalCommunication),
               due_date: getDueDate(taskPriority),
+              inbound_email_id: email.id, // Link task to source inbound email
             };
           });
 
-          await supabase.from("collection_tasks").insert(tasks);
+          const { error: taskError } = await supabase.from("collection_tasks").insert(tasks);
+          if (taskError) {
+            console.error(`[AI-PROCESS] Error creating tasks:`, taskError.message);
+          } else {
+            console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
+          }
           console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
         }
 
