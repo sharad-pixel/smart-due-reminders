@@ -320,13 +320,53 @@ const InvoiceDetail = () => {
       });
 
       if (error) throw error;
-      toast.success("AI drafts generated successfully!");
+      
+      // Close generate dialog and show preview with generated draft
       setGenerateDialogOpen(false);
+      
+      if (data?.email_draft) {
+        setPreviewDraft({
+          ...data.email_draft,
+          invoice_number: invoice?.invoice_number,
+        });
+        setPreviewModalOpen(true);
+      }
+      
+      toast.success("AI draft generated! Review and approve to send.");
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to generate draft");
     } finally {
       setGeneratingDraft(false);
+    }
+  };
+
+  const handleApproveAndSend = async (draftId: string) => {
+    try {
+      // First approve the draft
+      const { error: approveError } = await supabase
+        .from("ai_drafts")
+        .update({ status: "approved" })
+        .eq("id", draftId);
+      
+      if (approveError) throw approveError;
+
+      // Then send it
+      setSendingDraft(draftId);
+      const { data, error } = await supabase.functions.invoke("send-ai-draft", {
+        body: { draft_id: draftId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      toast.success("Email sent to " + (invoice?.debtors?.email || "account contact") + "!");
+      setPreviewModalOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send email");
+    } finally {
+      setSendingDraft(null);
     }
   };
 
@@ -1385,14 +1425,48 @@ const InvoiceDetail = () => {
         </Tabs>
 
         <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Generate AI Draft</DialogTitle>
+              <DialogTitle>Generate AI Collection Draft</DialogTitle>
               <DialogDescription>
-                Choose the tone and step number for the outreach draft.
+                Generate a personalized collection email for this invoice.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Payment Context Summary */}
+              <Card className="bg-muted/50">
+                <CardContent className="pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Invoice Amount:</span>
+                    <span className="font-medium">${invoice?.amount?.toLocaleString()} {invoice?.currency || 'USD'}</span>
+                  </div>
+                  {invoice?.amount_outstanding !== null && invoice?.amount_outstanding !== invoice?.amount && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Payments Applied:</span>
+                        <span className="font-medium text-green-600">
+                          -${((invoice?.amount || 0) - (invoice?.amount_outstanding || 0)).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+                        <span>Balance Due:</span>
+                        <span className="text-destructive">${invoice?.amount_outstanding?.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                  {(invoice?.amount_outstanding === null || invoice?.amount_outstanding === invoice?.amount) && (
+                    <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+                      <span>Balance Due:</span>
+                      <span className="text-destructive">${invoice?.amount?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Send To:</span>
+                    <span className="font-medium">{invoice?.debtors?.email}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="space-y-2">
                 <Label>Tone</Label>
                 <Select
@@ -1424,7 +1498,8 @@ const InvoiceDetail = () => {
                 Cancel
               </Button>
               <Button onClick={handleGenerateDraft} disabled={generatingDraft}>
-                {generatingDraft ? "Generating..." : "Generate"}
+                <Sparkles className="h-4 w-4 mr-2" />
+                {generatingDraft ? "Generating..." : "Generate Draft"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1475,7 +1550,7 @@ const InvoiceDetail = () => {
           open={previewModalOpen}
           onOpenChange={setPreviewModalOpen}
           draft={previewDraft}
-          onApprove={handleApproveDraft}
+          onApprove={handleApproveAndSend}
           onEdit={handleEditDraftFromPreview}
           onDiscard={handleDiscardDraft}
         />
