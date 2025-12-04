@@ -35,6 +35,7 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
+  ListTodo,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -80,6 +81,18 @@ interface InvoiceGroup {
   emails: InboundEmail[];
 }
 
+interface EmailTask {
+  id: string;
+  task_type: string;
+  priority: string;
+  status: string;
+  summary: string;
+  details: string | null;
+  recommended_action: string | null;
+  due_date: string | null;
+  created_at: string;
+}
+
 export default function InboundCommandCenter() {
   const { fetchInboundEmails, triggerAIProcessing, updateActionStatus, forwardEmails, isLoading } = useInboundEmails();
   const [emails, setEmails] = useState<InboundEmail[]>([]);
@@ -90,6 +103,8 @@ export default function InboundCommandCenter() {
   const [forwardEmail, setForwardEmail] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [emailTasks, setEmailTasks] = useState<EmailTask[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -166,9 +181,27 @@ export default function InboundCommandCenter() {
     loadEmails();
   };
 
-  const handleViewDetails = (email: InboundEmail) => {
+  const handleViewDetails = async (email: InboundEmail) => {
     setSelectedEmail(email);
     setDetailsOpen(true);
+    setEmailTasks([]);
+    
+    // Fetch tasks linked to this email
+    setLoadingTasks(true);
+    try {
+      const { data: tasks, error } = await supabase
+        .from("collection_tasks")
+        .select("id, task_type, priority, status, summary, details, recommended_action, due_date, created_at")
+        .eq("inbound_email_id", email.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setEmailTasks(tasks || []);
+    } catch (err) {
+      console.error("Error fetching tasks for email:", err);
+    } finally {
+      setLoadingTasks(false);
+    }
   };
 
   const handleToggleSelect = (emailId: string, checked: boolean) => {
@@ -945,6 +978,63 @@ export default function InboundCommandCenter() {
                             </Card>
                           ))}
                         </div>
+                      </div>
+                      <Separator />
+                    </>
+                  )}
+
+                  {/* Created Tasks */}
+                  {(emailTasks.length > 0 || loadingTasks) && (
+                    <>
+                      <div>
+                        <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <ListTodo className="h-4 w-4 text-blue-500" />
+                          Created Tasks ({emailTasks.length})
+                        </h3>
+                        {loadingTasks ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading tasks...
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {emailTasks.map((task) => (
+                              <Link key={task.id} to="/collections/tasks">
+                                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                                  <CardContent className="py-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <Badge variant={task.status === "open" ? "default" : task.status === "done" ? "secondary" : "outline"}>
+                                            {task.status}
+                                          </Badge>
+                                          <Badge className={getPriorityColor(task.priority)} variant="outline">
+                                            {task.priority}
+                                          </Badge>
+                                          <span className="text-xs text-muted-foreground">
+                                            {task.task_type}
+                                          </span>
+                                        </div>
+                                        <p className="font-medium text-sm">{task.summary}</p>
+                                        {task.recommended_action && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Action: {task.recommended_action}
+                                          </p>
+                                        )}
+                                        {task.due_date && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Due: {format(new Date(task.due_date), "MMM d, yyyy")}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <Separator />
                     </>
