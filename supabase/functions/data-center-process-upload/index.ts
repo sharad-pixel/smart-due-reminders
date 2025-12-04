@@ -83,8 +83,29 @@ serve(async (req) => {
 
     const getValue = (row: Record<string, any>, fieldKey: string): any => {
       const fileCol = reverseMap[fieldKey];
-      return fileCol ? row[fileCol] : null;
+      if (!fileCol) return null;
+      
+      // Try exact match first
+      if (row[fileCol] !== undefined) {
+        return row[fileCol];
+      }
+      
+      // Try case-insensitive match
+      const lowerFileCol = fileCol.toLowerCase();
+      for (const key of Object.keys(row)) {
+        if (key.toLowerCase() === lowerFileCol) {
+          return row[key];
+        }
+      }
+      
+      return null;
     };
+    
+    // Log first row keys for debugging
+    if (rows.length > 0) {
+      console.log(`First row keys:`, Object.keys(rows[0]));
+      console.log(`First row sample:`, JSON.stringify(rows[0]).substring(0, 500));
+    }
 
     // Fetch existing customers for matching
     const { data: existingCustomers } = await supabase
