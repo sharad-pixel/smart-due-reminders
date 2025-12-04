@@ -97,7 +97,7 @@ const DataCenterReview = () => {
         .from("data_center_staging_rows")
         .update({
           matched_customer_id: customerId,
-          match_status: "confirmed",
+          match_status: "matched_customer",
           match_confidence: 100,
         })
         .eq("id", rowId);
@@ -113,12 +113,12 @@ const DataCenterReview = () => {
     },
   });
 
-  // Skip row mutation
+  // Skip row mutation (mark as error/skip)
   const skipRow = useMutation({
     mutationFn: async (rowId: string) => {
       const { error } = await supabase
         .from("data_center_staging_rows")
-        .update({ match_status: "skipped" })
+        .update({ match_status: "error", error_message: "Skipped by user" })
         .eq("id", rowId);
       if (error) throw error;
     },
@@ -158,7 +158,7 @@ const DataCenterReview = () => {
         .from("data_center_staging_rows")
         .update({
           matched_customer_id: newDebtor.id,
-          match_status: "confirmed",
+          match_status: "matched_customer",
           match_confidence: 100,
         })
         .eq("id", rowId);
@@ -192,16 +192,18 @@ const DataCenterReview = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "confirmed":
-        return <Badge variant="default" className="bg-green-600">Confirmed</Badge>;
+      case "matched_customer":
+        return <Badge variant="default" className="bg-green-600">Matched</Badge>;
+      case "matched_invoice":
+        return <Badge variant="default" className="bg-green-600">Invoice Matched</Badge>;
+      case "matched_payment":
+        return <Badge variant="default" className="bg-green-600">Payment Matched</Badge>;
       case "needs_review":
         return <Badge variant="outline" className="border-amber-500 text-amber-600">Needs Review</Badge>;
       case "unmatched":
         return <Badge variant="outline" className="border-red-500 text-red-600">Unmatched</Badge>;
-      case "skipped":
-        return <Badge variant="secondary">Skipped</Badge>;
-      case "auto_matched":
-        return <Badge variant="default">Auto Matched</Badge>;
+      case "error":
+        return <Badge variant="destructive">Skipped/Error</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -282,9 +284,8 @@ const DataCenterReview = () => {
                     <SelectItem value="all_pending">All Pending</SelectItem>
                     <SelectItem value="needs_review">Needs Review</SelectItem>
                     <SelectItem value="unmatched">Unmatched</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="auto_matched">Auto Matched</SelectItem>
-                    <SelectItem value="skipped">Skipped</SelectItem>
+                    <SelectItem value="matched_customer">Matched</SelectItem>
+                    <SelectItem value="error">Skipped/Error</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
