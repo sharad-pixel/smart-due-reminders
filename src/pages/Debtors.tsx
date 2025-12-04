@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2, Download, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard } from "lucide-react";
+import { Plus, Search, Upload, FileSpreadsheet, FileText, HelpCircle, ChevronDown, AlertCircle, Sparkles, Loader2, Download, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -63,6 +63,7 @@ const Debtors = () => {
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState(false);
   const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
   const [autoCompleting, setAutoCompleting] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -1178,6 +1179,24 @@ const Debtors = () => {
                   <SelectItem value="B2C">B2C</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === "card" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("card")}
+                  className="rounded-none"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="rounded-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -1189,7 +1208,7 @@ const Debtors = () => {
                     : "No accounts match your search criteria."}
                 </p>
               </div>
-            ) : (
+            ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredDebtors.map((debtor) => (
                   <div
@@ -1313,6 +1332,86 @@ const Debtors = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead className="text-center">Invoices</TableHead>
+                      <TableHead className="text-center">Max DPD</TableHead>
+                      <TableHead className="text-center">Score</TableHead>
+                      <TableHead>External ID</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDebtors.map((debtor) => (
+                      <TableRow
+                        key={debtor.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/debtors/${debtor.id}`)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                            }`}>
+                              {debtor.type === "B2B" ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{debtor.company_name || debtor.name}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p className="truncate max-w-[180px]">{debtor.email}</p>
+                            {debtor.phone && <p className="text-xs text-muted-foreground">{debtor.phone}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                          }`}>
+                            {debtor.type || "N/A"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">
+                          ${(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {debtor.open_invoices_count || 0}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-medium tabular-nums ${
+                            (debtor.max_days_past_due || 0) > 90 ? "text-destructive" :
+                            (debtor.max_days_past_due || 0) > 30 ? "text-orange-500" : ""
+                          }`}>
+                            {debtor.max_days_past_due || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-medium tabular-nums ${
+                            (debtor.payment_score || 50) >= 70 ? "text-green-600" :
+                            (debtor.payment_score || 50) >= 40 ? "text-orange-500" : "text-destructive"
+                          }`}>
+                            {debtor.payment_score || 50}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {debtor.external_customer_id || "-"}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
