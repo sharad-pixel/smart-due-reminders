@@ -7,12 +7,12 @@ import { personaConfig } from "@/lib/personaConfig";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const headlines = [
-  "AI-Powered Cash Operations That Minimize Bad Debt",
-  "Accelerate Cash Flow With Intelligent Collections",
-  "Reduce DSO and Protect Your Revenue Automatically",
-  "Turn Receivables Into Cash With AI-Driven Outreach",
-  "Automate Collections and Eliminate Write-Offs",
-  "Maximize Cash Recovery With Six AI Agents Working 24/7",
+  "Accelerate Cash Flow With Intelligent AR Automation",
+  "Improve Revenue Recognition Through Timely Collections",
+  "Strengthen Cash Position With AI-Powered Outreach",
+  "Optimize Working Capital With Automated Collections",
+  "Reduce DSO and Improve Cash Conversion Cycles",
+  "Transform Receivables Into Recognized Revenue Faster",
 ];
 
 const AnimatedHero = () => {
