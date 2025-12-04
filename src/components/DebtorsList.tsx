@@ -55,7 +55,7 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       if (error) throw error;
       setDebtors(data || []);
     } catch (error: any) {
-      toast.error("Failed to load debtors");
+      toast.error("Failed to load accounts");
     } finally {
       setLoading(false);
     }

@@ -576,12 +576,12 @@ export default function InboundCommandCenter() {
 
               <Select value={debtorStatusFilter} onValueChange={(v) => setDebtorStatusFilter(v as "all" | "active" | "archived")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Debtor Status" />
+                  <SelectValue placeholder="Account Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Debtors</SelectItem>
-                  <SelectItem value="active">Active Debtors</SelectItem>
-                  <SelectItem value="archived">Archived Debtors</SelectItem>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  <SelectItem value="active">Active Accounts</SelectItem>
+                  <SelectItem value="archived">Archived Accounts</SelectItem>
                 </SelectContent>
               </Select>
 

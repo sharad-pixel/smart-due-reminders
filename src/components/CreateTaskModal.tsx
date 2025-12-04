@@ -149,7 +149,7 @@ const CreateTaskModal = ({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            Create {level === "invoice" ? "Invoice-Level" : "Debtor-Level"} Task
+            Create {level === "invoice" ? "Invoice-Level" : "Account-Level"} Task
           </DialogTitle>
         </DialogHeader>
 

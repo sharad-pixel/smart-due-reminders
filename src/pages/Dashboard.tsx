@@ -464,11 +464,11 @@ const Dashboard = () => {
             </Button>
           </div>
 
-          {/* Debtor Summary Cards */}
+          {/* Account Summary Cards */}
           <div className="grid gap-4 md:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Debtors</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Accounts</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{debtorData?.summary.totalDebtors || 0}</div>
@@ -522,14 +522,14 @@ const Dashboard = () => {
           {/* Aging Bucket Breakdown */}
           <AgingBucketBreakdown />
 
-          {/* Debtor Filters */}
+          {/* Account Filters */}
           <Card>
             <CardHeader>
-              <CardTitle>Debtor Filters</CardTitle>
+              <CardTitle>Account Filters</CardTitle>
             </CardHeader>
             <CardContent className="flex gap-4 flex-wrap">
               <Input
-                placeholder="Search debtors..."
+                placeholder="Search accounts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-sm"
@@ -561,17 +561,17 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Debtor Table */}
+          {/* Account Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Debtors</CardTitle>
-              <CardDescription>Click on a debtor to view detailed score breakdown</CardDescription>
+              <CardTitle>Accounts</CardTitle>
+              <CardDescription>Click on an account to view detailed score breakdown</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Debtor Name</TableHead>
+                    <TableHead>Account Name</TableHead>
                     <TableHead>Payment Score</TableHead>
                     <TableHead>Risk Tier</TableHead>
                     <TableHead>Outstanding Balance</TableHead>
@@ -675,7 +675,7 @@ const Dashboard = () => {
                   {debtorData?.debtors.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center text-muted-foreground">
-                        No debtors found matching your filters
+                        No accounts found matching your filters
                       </TableCell>
                     </TableRow>
                   )}

@@ -65,7 +65,7 @@ const platformFeatures = [
   "Six AI agents working 24/7",
   "Full automation capabilities",
   "CashOps dashboard & analytics",
-  "Unlimited contacts / debtors",
+  "Unlimited contacts / accounts",
   "Email & SMS outreach",
   "Promise-to-Pay tracking",
   "Team collaboration tools",

@@ -65,7 +65,7 @@ export default function DebtorDashboard() {
       <div className="container mx-auto py-8 space-y-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Debtor Dashboard</h1>
+            <h1 className="text-3xl font-bold">Account Dashboard</h1>
             <p className="text-muted-foreground">Monitor payment scores and risk indicators</p>
           </div>
           <Button onClick={handleRecalculateAll} disabled={calculateScore.isPending}>
@@ -78,7 +78,7 @@ export default function DebtorDashboard() {
         <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Debtors</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Accounts</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data?.summary.totalDebtors || 0}</div>
@@ -139,7 +139,7 @@ export default function DebtorDashboard() {
           </CardHeader>
           <CardContent className="flex gap-4">
             <Input
-              placeholder="Search debtors..."
+              placeholder="Search accounts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
@@ -174,14 +174,14 @@ export default function DebtorDashboard() {
         {/* Debtor Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Debtors</CardTitle>
-            <CardDescription>Click on a debtor to view detailed score breakdown</CardDescription>
+            <CardTitle>Accounts</CardTitle>
+            <CardDescription>Click on an account to view detailed score breakdown</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Debtor Name</TableHead>
+                  <TableHead>Account Name</TableHead>
                   <TableHead>Payment Score</TableHead>
                   <TableHead>Risk Tier</TableHead>
                   <TableHead>Outstanding Balance</TableHead>
@@ -259,7 +259,7 @@ export default function DebtorDashboard() {
                 {filteredDebtors?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground">
-                      No debtors found matching your filters
+                      No accounts found matching your filters
                     </TableCell>
                   </TableRow>
                 )}

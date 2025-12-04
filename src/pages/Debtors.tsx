@@ -109,7 +109,7 @@ const Debtors = () => {
       if (error) throw error;
       setDebtors(data || []);
     } catch (error: any) {
-      toast.error("Failed to load debtors");
+      toast.error("Failed to load accounts");
     } finally {
       setLoading(false);
     }
@@ -639,7 +639,7 @@ const Debtors = () => {
       } as any);
 
       if (error) throw error;
-      toast.success("Debtor created successfully");
+      toast.success("Account created successfully");
       setIsCreateOpen(false);
       setFormData({
         name: "",
@@ -661,7 +661,7 @@ const Debtors = () => {
       });
       fetchDebtors();
     } catch (error: any) {
-      toast.error(error.message || "Failed to create debtor");
+      toast.error(error.message || "Failed to create account");
     }
   };
 

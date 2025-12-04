@@ -236,9 +236,9 @@ export const PaymentScoreCard = ({
         {/* Risk Explanation */}
         <div className={`p-4 rounded-lg ${getScoreBg()}`}>
           <p className="text-sm font-medium">
-            {tier === "low" && "This debtor consistently pays on time with minimal risk."}
-            {tier === "medium" && "This debtor occasionally pays late but is generally reliable."}
-            {tier === "high" && "This debtor has a history of late payments and requires close monitoring."}
+            {tier === "low" && "This account consistently pays on time with minimal risk."}
+            {tier === "medium" && "This account occasionally pays late but is generally reliable."}
+            {tier === "high" && "This account has a history of late payments and requires close monitoring."}
           </p>
         </div>
       </CardContent>

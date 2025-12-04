@@ -21,7 +21,7 @@ const PersonaBenefits = () => {
       tagline: "Let AI handle repetitive follow-up.",
       benefits: [
         "Eliminate manual outreach and reminders",
-        "Centralized communication threads per debtor",
+        "Centralized communication threads per account",
         "AI-driven next actions and recommendations",
         "Agents that learn what messaging works best",
         "Real-time intelligence improves recovery rates"
