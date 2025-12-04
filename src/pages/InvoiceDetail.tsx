@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -30,6 +30,7 @@ interface Invoice {
   reference_id: string;
   invoice_number: string;
   amount: number;
+  amount_outstanding: number | null;
   due_date: string;
   issue_date: string;
   status: string;
@@ -146,6 +147,12 @@ const InvoiceDetail = () => {
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachLog | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
+  const [applyPaymentOpen, setApplyPaymentOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [applyingPayment, setApplyingPayment] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -504,6 +511,100 @@ const InvoiceDetail = () => {
     }
   };
 
+  const handleApplyPayment = async () => {
+    if (!invoice) return;
+    
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid payment amount");
+      return;
+    }
+
+    setApplyingPayment(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create payment record
+      const { data: newPayment, error: paymentError } = await supabase
+        .from("payments")
+        .insert({
+          user_id: user.id,
+          debtor_id: invoice.debtor_id,
+          payment_date: paymentDate,
+          amount: amount,
+          currency: invoice.currency || "USD",
+          reference: paymentReference || null,
+          invoice_number_hint: invoice.invoice_number,
+          reconciliation_status: "matched",
+        })
+        .select()
+        .single();
+
+      if (paymentError) throw paymentError;
+
+      // Create payment-invoice link
+      const { error: linkError } = await supabase
+        .from("payment_invoice_links")
+        .insert({
+          payment_id: newPayment.id,
+          invoice_id: invoice.id,
+          amount_applied: amount,
+          match_confidence: 1.0,
+          match_method: "manual",
+          status: "confirmed",
+        });
+
+      if (linkError) {
+        console.error("Payment link error:", linkError);
+      }
+
+      // Calculate new outstanding amount
+      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
+      const newOutstanding = Math.max(0, currentOutstanding - amount);
+      
+      // Determine new invoice status
+      let newStatus = invoice.status;
+      let newPaymentDate: string | null = null;
+      
+      if (newOutstanding <= 0) {
+        newStatus = "Paid";
+        newPaymentDate = paymentDate;
+      } else if (invoice.status === "Open") {
+        newStatus = "PartiallyPaid";
+      }
+
+      // Update invoice
+      const { error: invoiceError } = await supabase
+        .from("invoices")
+        .update({
+          amount_outstanding: newOutstanding,
+          status: newStatus as any,
+          payment_date: newPaymentDate,
+          payment_method: paymentMethod || null,
+        })
+        .eq("id", invoice.id);
+
+      if (invoiceError) throw invoiceError;
+
+      toast.success(
+        newOutstanding <= 0 
+          ? "Payment applied - Invoice marked as Paid" 
+          : `Payment of $${amount.toLocaleString()} applied - $${newOutstanding.toLocaleString()} remaining`
+      );
+      
+      setApplyPaymentOpen(false);
+      setPaymentAmount("");
+      setPaymentMethod("");
+      setPaymentReference("");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to apply payment");
+    } finally {
+      setApplyingPayment(false);
+    }
+  };
+
   if (loading || !invoice) {
     return (
       <Layout>
@@ -562,6 +663,14 @@ const InvoiceDetail = () => {
                   {invoice.currency || 'USD'} ${invoice.amount.toLocaleString()}
                 </p>
               </div>
+              {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Outstanding Balance</p>
+                  <p className={`text-lg font-semibold ${invoice.amount_outstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                    ${invoice.amount_outstanding.toLocaleString()}
+                  </p>
+                </div>
+              )}
               {invoice.subtotal !== null && (
                 <div>
                   <p className="text-sm text-muted-foreground">Subtotal</p>
@@ -645,6 +754,15 @@ const InvoiceDetail = () => {
               <CardTitle>Status Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              <Button
+                variant="default"
+                className="w-full justify-start"
+                onClick={() => setApplyPaymentOpen(true)}
+                disabled={invoice.status === "Paid"}
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Apply Payment
+              </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
@@ -1520,6 +1638,89 @@ const InvoiceDetail = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setOutreachDetailOpen(false)}>
                 Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={applyPaymentOpen} onOpenChange={setApplyPaymentOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Apply Payment</DialogTitle>
+              <DialogDescription>
+                Record a payment for Invoice #{invoice?.invoice_number}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted rounded-md">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Invoice Amount:</span>
+                  <span className="font-medium">${invoice?.amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-muted-foreground">Outstanding:</span>
+                  <span className="font-medium">
+                    ${(invoice?.amount_outstanding ?? invoice?.amount)?.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="payment-amount">Payment Amount *</Label>
+                <Input
+                  id="payment-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="payment-date">Payment Date *</Label>
+                <Input
+                  id="payment-date"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger id="payment-method">
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="check">Check</SelectItem>
+                    <SelectItem value="wire">Wire Transfer</SelectItem>
+                    <SelectItem value="ach">ACH</SelectItem>
+                    <SelectItem value="credit_card">Credit Card</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="payment-reference">Reference / Check Number</Label>
+                <Input
+                  id="payment-reference"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="e.g., Check #1234"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApplyPaymentOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleApplyPayment} disabled={applyingPayment || !paymentAmount}>
+                {applyingPayment ? "Applying..." : "Apply Payment"}
               </Button>
             </DialogFooter>
           </DialogContent>
