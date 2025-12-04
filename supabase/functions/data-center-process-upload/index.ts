@@ -72,12 +72,14 @@ serve(async (req) => {
     const { uploadId, rows, mappings, fileType }: ProcessRequest = await req.json();
 
     console.log(`Processing upload ${uploadId}: ${rows.length} rows, fileType: ${fileType}`);
+    console.log(`Mappings received:`, JSON.stringify(mappings));
 
     // Get reverse mapping (field key -> file column)
     const reverseMap: Record<string, string> = {};
     for (const [fileCol, fieldKey] of Object.entries(mappings)) {
       reverseMap[fieldKey] = fileCol;
     }
+    console.log(`Reverse map:`, JSON.stringify(reverseMap));
 
     const getValue = (row: Record<string, any>, fieldKey: string): any => {
       const fileCol = reverseMap[fieldKey];
@@ -90,6 +92,8 @@ serve(async (req) => {
       .select("id, company_name, external_customer_id, email, reference_id")
       .eq("user_id", user.id);
 
+    console.log(`Found ${existingCustomers?.length || 0} existing customers`);
+
     const customerMap = new Map<string, string>();
     const customerRefMap = new Map<string, string>(); // reference_id -> id
     (existingCustomers || []).forEach(c => {
@@ -101,6 +105,10 @@ serve(async (req) => {
         customerRefMap.set(normalizeString(c.reference_id), c.id);
       }
     });
+    
+    // Log some sample reference IDs for debugging
+    const sampleRefs = Array.from(customerRefMap.keys()).slice(0, 5);
+    console.log(`Sample reference IDs in system:`, sampleRefs);
 
     // Fetch existing invoices for payment matching
     const { data: existingInvoices } = await supabase
@@ -165,14 +173,23 @@ serve(async (req) => {
           const customerName = String(getValue(row, "customer_name") || "").trim();
           const customerId = getValue(row, "customer_id");
           
+          // Log first few rows for debugging
+          if (i < 3) {
+            console.log(`Row ${i} values: recouply_account_id="${recouplyAccountId}", customer_name="${customerName}", customer_id="${customerId}"`);
+            console.log(`Row ${i} raw keys:`, Object.keys(row).slice(0, 5));
+          }
+          
           // Find or create customer
           let debtorId: string | null = null;
           
           // PRIORITY 1: Match by Recouply Account ID (reference_id)
           if (recouplyAccountId) {
-            debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+            const normalizedId = normalizeString(recouplyAccountId);
+            debtorId = customerRefMap.get(normalizedId) || null;
             if (debtorId) {
               console.log(`Row ${i}: Matched by recouply_account_id: ${recouplyAccountId}`);
+            } else if (i < 3) {
+              console.log(`Row ${i}: No match for normalized recouply_account_id: "${normalizedId}"`);
             }
           }
           
