@@ -108,6 +108,13 @@ serve(async (req) => {
       console.log(`First row keys:`, Object.keys(rows[0]));
       console.log(`First row values for invoice_number field:`, getValue(rows[0], "invoice_number"));
     }
+    // Debug row 1 specifically
+    if (rows.length > 1) {
+      console.log(`Row 1 ALL data:`, JSON.stringify(rows[1]));
+      console.log(`Row 1 invoice_number lookup - fileCol:`, reverseMap["invoice_number"]);
+      console.log(`Row 1 direct access rows[1]["Invoice Number"]:`, rows[1]["Invoice Number"]);
+      console.log(`Row 1 getValue result:`, getValue(rows[1], "invoice_number"));
+    }
 
     // Fetch existing customers for matching
     const { data: existingCustomers } = await supabase
