@@ -274,7 +274,7 @@ serve(async (req) => {
               user_id: user.id,
               debtor_id: debtorId,
               invoice_number: invoiceNumber,
-              invoice_date: invoiceDate,
+              issue_date: invoiceDate,
               due_date: dueDate,
               amount: amount,
               amount_original: amount,
@@ -282,12 +282,10 @@ serve(async (req) => {
               currency: String(getValue(row, "currency") || "USD"),
               status: "Open",
               external_invoice_id: getValue(row, "external_invoice_id") ? String(getValue(row, "external_invoice_id")) : null,
-              po_number: getValue(row, "po_number") ? String(getValue(row, "po_number")) : null,
               product_description: getValue(row, "product_description") ? String(getValue(row, "product_description")) : null,
               notes: getValue(row, "notes") ? String(getValue(row, "notes")) : null,
               data_center_upload_id: uploadId,
-              reference_id: `INV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-            } as any);
+            });
 
           if (invoiceError) {
             console.error("Invoice creation error:", invoiceError);
