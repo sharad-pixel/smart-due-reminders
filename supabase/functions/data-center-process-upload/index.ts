@@ -167,6 +167,7 @@ serve(async (req) => {
     let newRecords = 0;
     let invoicesPaid = 0;
     let invoicesPartiallyPaid = 0;
+    const createdInvoiceIds: string[] = [];
 
     // Insert staging rows
     const stagingRows = rows.map((row, index) => {
@@ -324,7 +325,7 @@ serve(async (req) => {
           const referenceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
           // Use upsert to handle duplicates - update existing invoice if found
-          const { error: invoiceError } = await supabase
+          const { data: createdInvoice, error: invoiceError } = await supabase
             .from("invoices")
             .upsert({
               user_id: user.id,
@@ -345,12 +346,19 @@ serve(async (req) => {
             }, {
               onConflict: "user_id,invoice_number",
               ignoreDuplicates: false,
-            });
+            })
+            .select("id")
+            .single();
 
           if (invoiceError) {
             console.error("Invoice creation error:", invoiceError);
             errors++;
             continue;
+          }
+
+          // Track created invoice for workflow assignment
+          if (createdInvoice?.id) {
+            createdInvoiceIds.push(createdInvoice.id);
           }
 
           newRecords++;
@@ -508,6 +516,80 @@ serve(async (req) => {
       })
       .eq("id", uploadId);
 
+    // Trigger AI workflow assignment and draft generation for new invoices
+    let draftsGenerated = 0;
+    let workflowErrors: string[] = [];
+    
+    if (fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
+      console.log(`Triggering AI workflow for ${createdInvoiceIds.length} new invoices`);
+      
+      // Fetch the created invoices with their aging buckets
+      const { data: newInvoices } = await supabase
+        .from("invoices")
+        .select("id, aging_bucket, due_date")
+        .in("id", createdInvoiceIds);
+      
+      // Group invoices by aging bucket
+      const bucketInvoices: Record<string, string[]> = {};
+      
+      for (const inv of newInvoices || []) {
+        // Calculate aging bucket from due date if not set
+        let bucket = inv.aging_bucket;
+        if (!bucket) {
+          const today = new Date();
+          const dueDate = new Date(inv.due_date);
+          const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysPastDue <= 0) bucket = 'current';
+          else if (daysPastDue <= 30) bucket = 'dpd_1_30';
+          else if (daysPastDue <= 60) bucket = 'dpd_31_60';
+          else if (daysPastDue <= 90) bucket = 'dpd_61_90';
+          else if (daysPastDue <= 120) bucket = 'dpd_91_120';
+          else if (daysPastDue <= 150) bucket = 'dpd_121_150';
+          else bucket = 'dpd_150_plus';
+        }
+        
+        if (bucket && bucket !== 'current') {
+          if (!bucketInvoices[bucket]) bucketInvoices[bucket] = [];
+          bucketInvoices[bucket].push(inv.id);
+        }
+      }
+      
+      console.log(`Invoice buckets:`, JSON.stringify(bucketInvoices));
+      
+      // Trigger draft generation for each bucket with invoices
+      for (const [bucket, invoiceIds] of Object.entries(bucketInvoices)) {
+        try {
+          console.log(`Generating drafts for bucket ${bucket} with ${invoiceIds.length} invoices`);
+          
+          const response = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-bucket-drafts`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ aging_bucket: bucket }),
+            }
+          );
+          
+          if (response.ok) {
+            const result = await response.json();
+            draftsGenerated += result.drafts_created || 0;
+            console.log(`Generated ${result.drafts_created || 0} drafts for bucket ${bucket}`);
+          } else {
+            const errorText = await response.text();
+            console.error(`Failed to generate drafts for bucket ${bucket}:`, errorText);
+            workflowErrors.push(`Failed to generate drafts for ${bucket}`);
+          }
+        } catch (error: any) {
+          console.error(`Error generating drafts for bucket ${bucket}:`, error);
+          workflowErrors.push(`Error generating drafts for ${bucket}: ${error.message}`);
+        }
+      }
+    }
+
     const result = {
       totalRows: rows.length,
       processed,
@@ -520,6 +602,8 @@ serve(async (req) => {
       fileType,
       invoicesPaid,
       invoicesPartiallyPaid,
+      draftsGenerated,
+      workflowErrors: workflowErrors.length > 0 ? workflowErrors : undefined,
     };
 
     console.log("Processing complete:", result);
