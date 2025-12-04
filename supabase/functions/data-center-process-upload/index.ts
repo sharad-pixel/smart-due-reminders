@@ -101,10 +101,12 @@ serve(async (req) => {
       return null;
     };
     
-    // Log first row keys for debugging
+    // Log mapping and first row for debugging
+    console.log(`Mappings (fileCol -> fieldKey):`, JSON.stringify(mappings));
+    console.log(`Reverse map (fieldKey -> fileCol):`, JSON.stringify(reverseMap));
     if (rows.length > 0) {
       console.log(`First row keys:`, Object.keys(rows[0]));
-      console.log(`First row sample:`, JSON.stringify(rows[0]).substring(0, 500));
+      console.log(`First row values for invoice_number field:`, getValue(rows[0], "invoice_number"));
     }
 
     // Fetch existing customers for matching
@@ -292,9 +294,10 @@ serve(async (req) => {
           // Generate unique reference_id for invoice
           const referenceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
+          // Use upsert to handle duplicates - update existing invoice if found
           const { error: invoiceError } = await supabase
             .from("invoices")
-            .insert({
+            .upsert({
               user_id: user.id,
               debtor_id: debtorId,
               invoice_number: invoiceNumber,
@@ -310,6 +313,9 @@ serve(async (req) => {
               product_description: getValue(row, "product_description") ? String(getValue(row, "product_description")) : null,
               notes: getValue(row, "notes") ? String(getValue(row, "notes")) : null,
               data_center_upload_id: uploadId,
+            }, {
+              onConflict: "user_id,invoice_number",
+              ignoreDuplicates: false,
             });
 
           if (invoiceError) {
