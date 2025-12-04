@@ -11,7 +11,8 @@ import {
   MoreVertical,
   Trash2,
   FileSpreadsheet,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -124,12 +125,32 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
 
   return (
     <div className="space-y-6">
+      {/* Account ID Requirement Notice */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            Recouply Account ID Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            To import invoices and payments, your data must include the <strong className="text-foreground">Recouply Account ID</strong> (format: RCPLY-XXXXX) 
+            for each record. This links your data to existing accounts in Recouply.
+          </p>
+          <p>
+            You can find Account IDs on the <strong className="text-foreground">Accounts</strong> page or export them from your existing accounts list.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Templates Section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Download Templates</CardTitle>
           <CardDescription>
-            Download standardized templates to ensure your data maps correctly
+            Download standardized templates to ensure your data maps correctly. 
+            Templates include the required Recouply Account ID column.
           </CardDescription>
         </CardHeader>
         <CardContent>
