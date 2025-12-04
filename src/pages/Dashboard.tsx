@@ -25,17 +25,15 @@ interface Invoice {
   debtors?: { name: string };
 }
 
-interface AIDraft {
+interface CollectionTask {
   id: string;
-  invoice_id: string;
-  step_number: number;
-  channel: string;
-  subject: string | null;
+  summary: string;
+  task_type: string;
+  priority: string;
   status: string;
-  invoices?: {
-    invoice_number: string;
-    debtors?: { name: string };
-  };
+  due_date: string | null;
+  debtors?: { name: string; company_name: string };
+  invoices?: { invoice_number: string };
 }
 
 const Dashboard = () => {
@@ -43,7 +41,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [pendingDrafts, setPendingDrafts] = useState<AIDraft[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<CollectionTask[]>([]);
   const [stats, setStats] = useState({
     totalOutstanding: 0,
     totalRecovered: 0,
@@ -87,12 +85,13 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [invoicesRes, draftsRes] = await Promise.all([
+      const [invoicesRes, tasksRes] = await Promise.all([
         supabase.from("invoices").select("*, debtors(name)"),
         supabase
-          .from("ai_drafts")
-          .select("*, invoices(invoice_number, debtors(name))")
-          .eq("status", "pending_approval")
+          .from("collection_tasks")
+          .select("*, debtors(name, company_name), invoices(invoice_number)")
+          .in("status", ["open", "in_progress"])
+          .order("created_at", { ascending: false })
           .limit(10),
       ]);
 
@@ -100,8 +99,8 @@ const Dashboard = () => {
       const allInvoices = invoicesRes.data || [];
       setInvoices(allInvoices);
 
-      if (!draftsRes.error) {
-        setPendingDrafts(draftsRes.data || []);
+      if (!tasksRes.error) {
+        setPendingTasks(tasksRes.data || []);
       }
 
       // Calculate Total Outstanding
@@ -373,7 +372,7 @@ const Dashboard = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Invoice #</TableHead>
-                      <TableHead>Debtor</TableHead>
+                      <TableHead>Account</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead className="text-right">Days</TableHead>
                       <TableHead></TableHead>
@@ -411,33 +410,38 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>AI Drafts Awaiting Approval</CardTitle>
+              <CardTitle>Open Tasks</CardTitle>
             </CardHeader>
             <CardContent>
-              {pendingDrafts.length === 0 ? (
+              {pendingTasks.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No drafts pending approval</p>
+                  <p className="text-muted-foreground">No open tasks</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pendingDrafts.map((draft) => (
+                  {pendingTasks.map((task) => (
                     <div
-                      key={draft.id}
+                      key={task.id}
                       className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
-                      onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
+                      onClick={() => navigate(`/tasks`)}
                     >
                       <div className="flex-1">
-                        <p className="font-medium">
-                          {draft.invoices?.invoice_number} - {draft.invoices?.debtors?.name}
+                        <p className="font-medium line-clamp-1">
+                          {task.summary}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Step {draft.step_number} • {draft.channel.toUpperCase()}
-                          {draft.subject && ` • ${draft.subject}`}
+                          {task.debtors?.company_name || task.debtors?.name}
+                          {task.invoices?.invoice_number && ` • ${task.invoices.invoice_number}`}
                         </p>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
+                          {task.priority}
+                        </Badge>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -446,11 +450,11 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Debtor Dashboard Section */}
+        {/* Account Dashboard Section */}
         <div className="space-y-6 pt-8 border-t">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold">Debtor Analytics</h2>
+              <h2 className="text-2xl font-bold">Account Analytics</h2>
               <p className="text-muted-foreground">Monitor payment scores and risk indicators</p>
             </div>
             <Button 
