@@ -559,12 +559,21 @@ const DataCenterReview = () => {
                               )}
                             </div>
                             <h3 className="font-medium mt-1">
-                              {rawJson.customer_name || rawJson.company_name || "Unknown Customer"}
+                              {matchedDebtor?.name || matchedDebtor?.company_name || rawJson.customer_name || rawJson.company_name || "Unknown Customer"}
+                              {matchedDebtor && (
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  Linked to Account
+                                </Badge>
+                              )}
                             </h3>
                             <div className="text-sm text-muted-foreground space-x-3">
                               {rawJson.invoice_number && <span>Invoice: {rawJson.invoice_number}</span>}
-                              {rawJson.amount && <span>Amount: ${rawJson.amount}</span>}
-                              {rawJson.email && <span>Email: {rawJson.email}</span>}
+                              {(rawJson.amount_outstanding || rawJson.amount || rawJson.amount_original) && (
+                                <span>Amount: ${rawJson.amount_outstanding || rawJson.amount || rawJson.amount_original}</span>
+                              )}
+                              {(matchedDebtor?.email || rawJson.email || rawJson.customer_email) && (
+                                <span>Email: {matchedDebtor?.email || rawJson.email || rawJson.customer_email}</span>
+                              )}
                             </div>
                           </div>
                         </div>
