@@ -75,6 +75,10 @@ serve(async (req) => {
       throw new Error("Debtor not found");
     }
 
+    if (!debtor.email || debtor.email.trim() === "") {
+      throw new Error("Debtor does not have an email address configured. Please add an email address to send the account summary.");
+    }
+
     // Use platform reply-to address based on debtor
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
