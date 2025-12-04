@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight, MessageCircle, Zap, Target } from "lucide-react";
+import { Mail, ArrowRight, MessageCircle, Zap, Target, Sparkles } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
@@ -55,29 +55,64 @@ const ComingSoon = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full border-2 shadow-xl">
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
+      
+      {/* Animated gradient orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
+      </div>
+
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-primary/40 rounded-full animate-float-particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${8 + Math.random() * 4}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Radial glow behind main card */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-primary/10 via-transparent to-transparent rounded-full blur-2xl" />
+
+      <Card className="max-w-2xl w-full border-2 shadow-2xl relative z-10 backdrop-blur-sm bg-card/95">
         <CardContent className="pt-12 pb-12 px-8 text-center space-y-8">
-          {/* Logo */}
-          <div className="space-y-4">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+          {/* Logo with glow effect */}
+          <div className="space-y-4 relative">
+            <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full" />
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent relative animate-fade-in">
               Recouply.ai
             </h1>
-            <p className="text-2xl font-semibold text-foreground">
+            <p className="text-2xl font-semibold text-foreground relative animate-fade-in" style={{ animationDelay: '0.1s' }}>
               AI-Powered Invoice Collection
             </p>
           </div>
 
-          {/* Status Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full">
+          {/* Status Badge with pulse animation */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             <span className="text-sm font-medium text-primary">Private Beta</span>
           </div>
 
           {/* Main Message */}
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-foreground">
+          <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
               Coming Soon
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" style={{ animationDelay: '0.5s' }} />
             </h2>
             <p className="text-lg text-muted-foreground max-w-lg mx-auto">
               The AI Collections Command Center is launching soon. Get early access and transform how you collect overdue invoices.
@@ -85,7 +120,7 @@ const ComingSoon = () => {
           </div>
 
           {/* AI Personas Carousel */}
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4 pt-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             <div className="text-center space-y-2">
               <h3 className="text-2xl font-semibold text-foreground">Meet Your AI Collection Team</h3>
               <p className="text-sm text-muted-foreground">6 specialized agents that handle every stage of collections</p>
@@ -95,12 +130,15 @@ const ComingSoon = () => {
                 {Object.values(personaConfig).map((persona) => (
                   <CarouselItem key={persona.name}>
                     <Card 
-                      className="border-2 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-primary/50"
+                      className="border-2 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-primary/50 group"
                       onMouseEnter={() => setHoveredPersona(persona.name)}
                       onMouseLeave={() => setHoveredPersona(null)}
                       onClick={() => setSelectedPersona(selectedPersona === persona.name ? null : persona.name)}
                     >
-                      <CardContent className="p-8 text-center space-y-6">
+                      <CardContent className="p-8 text-center space-y-6 relative overflow-hidden">
+                        {/* Subtle gradient on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
                         <div className="relative">
                           <div className={`transition-transform duration-300 ${hoveredPersona === persona.name ? 'scale-110' : ''}`}>
                             <PersonaAvatar persona={persona} size="xl" className="justify-center" />
@@ -112,7 +150,7 @@ const ComingSoon = () => {
                           )}
                         </div>
                         
-                        <div className="space-y-3">
+                        <div className="space-y-3 relative">
                           <h4 className="text-2xl font-bold text-foreground">{persona.name}</h4>
                           <p className="text-sm text-muted-foreground">{persona.description}</p>
                           <Badge variant="outline" className="text-primary border-primary">
@@ -120,7 +158,7 @@ const ComingSoon = () => {
                           </Badge>
                         </div>
 
-                        <div className={`space-y-4 transition-all duration-500 ${
+                        <div className={`space-y-4 transition-all duration-500 relative ${
                           selectedPersona === persona.name 
                             ? 'max-h-96 opacity-100' 
                             : 'max-h-0 opacity-0 overflow-hidden'
@@ -157,7 +195,7 @@ const ComingSoon = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="w-full mt-2"
+                          className="w-full mt-2 relative"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedPersona(selectedPersona === persona.name ? null : persona.name);
@@ -178,34 +216,31 @@ const ComingSoon = () => {
             </Carousel>
           </div>
 
-          {/* Features Preview */}
+          {/* Features Preview with staggered animation */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            <div className="space-y-2">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                <span className="text-2xl">⚡</span>
+            {[
+              { icon: "⚡", title: "Automated Workflows", desc: "Set it and forget it collections", delay: "0.5s" },
+              { icon: "📊", title: "Analytics Dashboard", desc: "Track every response and outcome", delay: "0.6s" },
+              { icon: "🎯", title: "Smart Targeting", desc: "Right message at the right time", delay: "0.7s" },
+            ].map((feature, i) => (
+              <div 
+                key={i} 
+                className="space-y-2 animate-fade-in group hover:scale-105 transition-transform duration-300"
+                style={{ animationDelay: feature.delay }}
+              >
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto group-hover:bg-primary/20 transition-colors duration-300 group-hover:shadow-lg group-hover:shadow-primary/20">
+                  <span className="text-2xl">{feature.icon}</span>
+                </div>
+                <h3 className="font-semibold text-foreground">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.desc}</p>
               </div>
-              <h3 className="font-semibold text-foreground">Automated Workflows</h3>
-              <p className="text-sm text-muted-foreground">Set it and forget it collections</p>
-            </div>
-            <div className="space-y-2">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                <span className="text-2xl">📊</span>
-              </div>
-              <h3 className="font-semibold text-foreground">Analytics Dashboard</h3>
-              <p className="text-sm text-muted-foreground">Track every response and outcome</p>
-            </div>
-            <div className="space-y-2">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                <span className="text-2xl">🎯</span>
-              </div>
-              <h3 className="font-semibold text-foreground">Smart Targeting</h3>
-              <p className="text-sm text-muted-foreground">Right message at the right time</p>
-            </div>
+            ))}
           </div>
 
-          {/* Waitlist Form */}
-          <form onSubmit={handleWaitlistSubmit} className="max-w-md mx-auto space-y-4">
-            <div className="flex gap-2">
+          {/* Waitlist Form with glow effect */}
+          <form onSubmit={handleWaitlistSubmit} className="max-w-md mx-auto space-y-4 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+            <div className="flex gap-2 relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-1000" />
               <div className="relative flex-1">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -214,12 +249,13 @@ const ComingSoon = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-10"
+                  className="pl-10 bg-background"
                 />
               </div>
-              <Button type="submit" disabled={loading} size="lg">
-                {loading ? "Joining..." : "Request Access"}
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button type="submit" disabled={loading} size="lg" className="relative overflow-hidden group">
+                <span className="relative z-10">{loading ? "Joining..." : "Request Access"}</span>
+                <ArrowRight className="ml-2 h-4 w-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
