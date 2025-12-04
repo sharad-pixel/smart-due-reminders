@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { system_prompt, user_prompt, channel } = await req.json();
+    const { system_prompt, user_prompt, channel, tone_modifier, approach_style } = await req.json();
 
     if (!system_prompt || !user_prompt || !channel) {
       return new Response(
@@ -46,6 +46,84 @@ Deno.serve(async (req) => {
         }
       );
     }
+
+    // Tone modifiers to adjust the persona's default tone
+    const toneModifiers: Record<string, string> = {
+      'standard': '',
+      'more_friendly': `
+TONE ADJUSTMENT - Make this message MORE FRIENDLY:
+- Use warmer, more conversational language
+- Add more empathy and understanding
+- Soften any direct requests
+- Focus on relationship preservation`,
+      'more_professional': `
+TONE ADJUSTMENT - Make this message MORE PROFESSIONAL:
+- Use formal business language
+- Be more structured and precise
+- Maintain courteous but businesslike tone
+- Focus on facts and deadlines`,
+      'more_urgent': `
+TONE ADJUSTMENT - Make this message MORE URGENT:
+- Emphasize time sensitivity
+- Be more direct about consequences
+- Use action-oriented language
+- Include clear deadlines`,
+      'more_empathetic': `
+TONE ADJUSTMENT - Make this message MORE EMPATHETIC:
+- Acknowledge potential difficulties
+- Offer flexibility and understanding
+- Use compassionate language
+- Focus on finding solutions together`,
+      'more_direct': `
+TONE ADJUSTMENT - Make this message MORE DIRECT:
+- Get straight to the point
+- Be clear about expectations
+- Minimize pleasantries
+- Focus on specific action needed`
+    };
+
+    // Approach styles to change the message focus
+    const approachStyles: Record<string, string> = {
+      'standard': '',
+      'invoice_reminder': `
+APPROACH STYLE - INVOICE REMINDER:
+- Focus on invoice details and due date
+- Treat as a simple reminder/heads-up
+- Assume it may have been overlooked
+- Keep tone light and helpful`,
+      'payment_request': `
+APPROACH STYLE - PAYMENT REQUEST:
+- Be clear this is a request for payment
+- Include payment options if known
+- Set expectation for response
+- Professional and action-oriented`,
+      'settlement_offer': `
+APPROACH STYLE - SETTLEMENT OFFER:
+- Mention willingness to discuss payment options
+- Open door to payment plans or negotiations
+- Focus on finding mutually beneficial resolution
+- Be solution-oriented`,
+      'final_notice': `
+APPROACH STYLE - FINAL NOTICE:
+- Clearly state this is a final notice
+- Outline potential next steps if no response
+- Be firm but professional
+- Include clear deadline for response`,
+      'relationship_focused': `
+APPROACH STYLE - RELATIONSHIP FOCUSED:
+- Emphasize value of ongoing business relationship
+- Express desire to maintain partnership
+- Be understanding of circumstances
+- Focus on working together to resolve`
+    };
+
+    const selectedTone = toneModifiers[tone_modifier || 'standard'] || '';
+    const selectedApproach = approachStyles[approach_style || 'standard'] || '';
+
+    // Augment system prompt with tone and approach adjustments
+    const augmentedSystemPrompt = `${system_prompt}
+${selectedTone ? `\n${selectedTone}` : ''}
+${selectedApproach ? `\n${selectedApproach}` : ''}`;
 
     console.log('Regenerating draft with AI for channel:', channel);
 
@@ -101,7 +179,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: system_prompt },
+          { role: 'system', content: augmentedSystemPrompt },
           { role: 'user', content: user_prompt }
         ],
         tools: tools,

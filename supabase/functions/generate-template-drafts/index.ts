@@ -245,7 +245,7 @@ serve(async (req) => {
       });
     }
 
-    const { aging_bucket } = await req.json();
+    const { aging_bucket, tone_modifier, approach_style } = await req.json();
 
     if (!aging_bucket) {
       return new Response(JSON.stringify({ error: "aging_bucket is required" }), {
@@ -253,6 +253,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const useAIGeneration = (tone_modifier && tone_modifier !== 'standard') || (approach_style && approach_style !== 'standard');
 
     console.log(`Creating draft templates for aging bucket: ${aging_bucket}`);
 
@@ -341,7 +343,87 @@ serve(async (req) => {
     // Get the pre-written templates for this bucket
     const bucketTemplates = defaultTemplates[aging_bucket] || defaultTemplates['dpd_1_30'];
 
+    // Tone and approach modifiers for AI generation
+    const toneModifiers: Record<string, string> = {
+      'standard': '',
+      'more_friendly': `
+TONE ADJUSTMENT - Make this message MORE FRIENDLY:
+- Use warmer, more conversational language
+- Add more empathy and understanding
+- Soften any direct requests
+- Focus on relationship preservation`,
+      'more_professional': `
+TONE ADJUSTMENT - Make this message MORE PROFESSIONAL:
+- Use formal business language
+- Be more structured and precise
+- Maintain courteous but businesslike tone
+- Focus on facts and deadlines`,
+      'more_urgent': `
+TONE ADJUSTMENT - Make this message MORE URGENT:
+- Emphasize time sensitivity
+- Be more direct about consequences
+- Use action-oriented language
+- Include clear deadlines`,
+      'more_empathetic': `
+TONE ADJUSTMENT - Make this message MORE EMPATHETIC:
+- Acknowledge potential difficulties
+- Offer flexibility and understanding
+- Use compassionate language
+- Focus on finding solutions together`,
+      'more_direct': `
+TONE ADJUSTMENT - Make this message MORE DIRECT:
+- Get straight to the point
+- Be clear about expectations
+- Minimize pleasantries
+- Focus on specific action needed`
+    };
+
+    const approachStyles: Record<string, string> = {
+      'standard': '',
+      'invoice_reminder': `
+APPROACH STYLE - INVOICE REMINDER:
+- Focus on invoice details and due date
+- Treat as a simple reminder/heads-up
+- Assume it may have been overlooked
+- Keep tone light and helpful`,
+      'payment_request': `
+APPROACH STYLE - PAYMENT REQUEST:
+- Be clear this is a request for payment
+- Include payment options if known
+- Set expectation for response
+- Professional and action-oriented`,
+      'settlement_offer': `
+APPROACH STYLE - SETTLEMENT OFFER:
+- Mention willingness to discuss payment options
+- Open door to payment plans or negotiations
+- Focus on finding mutually beneficial resolution
+- Be solution-oriented`,
+      'final_notice': `
+APPROACH STYLE - FINAL NOTICE:
+- Clearly state this is a final notice
+- Outline potential next steps if no response
+- Be firm but professional
+- Include clear deadline for response`,
+      'relationship_focused': `
+APPROACH STYLE - RELATIONSHIP FOCUSED:
+- Emphasize value of ongoing business relationship
+- Express desire to maintain partnership
+- Be understanding of circumstances
+- Focus on working together to resolve`
+    };
+
+    const selectedTone = toneModifiers[tone_modifier || 'standard'] || '';
+    const selectedApproach = approachStyles[approach_style || 'standard'] || '';
+
     let templatesCreated = 0;
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+    // Get branding settings for AI generation
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
     // Create templates for steps that don't have them
     for (let i = 0; i < workflow.steps.length; i++) {
@@ -350,7 +432,107 @@ serve(async (req) => {
       if (!step.is_active || step.channel === 'sms') continue;
       if (existingStepIds.has(step.id)) continue;
 
-      const templateContent = bucketTemplates[i] || bucketTemplates[0];
+      let templateSubject: string;
+      let templateBody: string;
+
+      if (useAIGeneration && LOVABLE_API_KEY) {
+        // Use AI to generate with tone/approach modifiers
+        const businessName = branding?.business_name || 'Your Company';
+        const personaName = minDays <= 30 ? 'Sam' : minDays <= 60 ? 'James' : minDays <= 90 ? 'Katy' : minDays <= 120 ? 'Troy' : minDays <= 150 ? 'Gotti' : 'Rocco';
+        
+        const systemPrompt = `You are ${personaName}, an AI collections agent for ${businessName}.
+
+Generate a professional collection email template. Use placeholders like {{debtor_name}}, {{invoice_number}}, {{amount}}, {{currency}}, {{due_date}}, {{days_past_due}} for dynamic content.
+${selectedTone}
+${selectedApproach}
+
+CRITICAL RULES:
+- NEVER claim to be a "collection agency" or legal authority
+- NEVER use harassment, threats, or intimidation
+- Write as the company's accounts receivable team
+- Always offer a chance to respond for disputes or issues
+- Stay professional`;
+
+        const userPrompt = `Generate an email template for Step ${step.step_order} (Day ${step.day_offset}) of the ${aging_bucket} collection workflow.
+
+The template should include placeholders for:
+- {{debtor_name}} - Customer/debtor name
+- {{invoice_number}} - Invoice number
+- {{amount}} - Invoice amount
+- {{currency}} - Currency code
+- {{due_date}} - Original due date
+- {{days_past_due}} - Days past due
+
+Generate a complete email with subject line and body.`;
+
+        try {
+          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              tools: [{
+                type: 'function',
+                function: {
+                  name: 'create_email_template',
+                  description: 'Create an email template with subject and body',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      subject: { type: 'string', description: 'Email subject line template' },
+                      body: { type: 'string', description: 'Email body template' }
+                    },
+                    required: ['subject', 'body'],
+                    additionalProperties: false
+                  }
+                }
+              }],
+              tool_choice: { type: 'function', function: { name: 'create_email_template' } }
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiResult = await aiResponse.json();
+            const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+            
+            if (toolCall?.function?.arguments) {
+              const parsed = JSON.parse(toolCall.function.arguments);
+              templateSubject = parsed.subject || bucketTemplates[i]?.subject || bucketTemplates[0].subject;
+              templateBody = parsed.body || bucketTemplates[i]?.body || bucketTemplates[0].body;
+              console.log(`AI generated template for step ${step.label} with tone: ${tone_modifier}, approach: ${approach_style}`);
+            } else {
+              // Fallback to pre-written
+              const templateContent = bucketTemplates[i] || bucketTemplates[0];
+              templateSubject = templateContent.subject;
+              templateBody = templateContent.body;
+            }
+          } else {
+            // Fallback to pre-written
+            const templateContent = bucketTemplates[i] || bucketTemplates[0];
+            templateSubject = templateContent.subject;
+            templateBody = templateContent.body;
+            console.log(`AI generation failed, using pre-written template for step ${step.label}`);
+          }
+        } catch (aiError) {
+          // Fallback to pre-written
+          const templateContent = bucketTemplates[i] || bucketTemplates[0];
+          templateSubject = templateContent.subject;
+          templateBody = templateContent.body;
+          console.error(`AI error, using pre-written template:`, aiError);
+        }
+      } else {
+        // Use pre-written templates
+        const templateContent = bucketTemplates[i] || bucketTemplates[0];
+        templateSubject = templateContent.subject;
+        templateBody = templateContent.body;
+      }
 
       const { error: templateError } = await supabase
         .from('draft_templates')
@@ -361,11 +543,11 @@ serve(async (req) => {
           agent_persona_id: persona?.id || null,
           aging_bucket: aging_bucket,
           channel: step.channel,
-          subject_template: templateContent.subject,
-          message_body_template: templateContent.body,
+          subject_template: templateSubject,
+          message_body_template: templateBody,
           step_number: step.step_order,
           day_offset: step.day_offset,
-          status: 'approved', // Pre-approved
+          status: 'pending_approval', // Pending approval when AI generated with customizations
         });
 
       if (templateError) {
@@ -380,6 +562,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       templates_created: templatesCreated,
+      ai_generated: useAIGeneration,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
