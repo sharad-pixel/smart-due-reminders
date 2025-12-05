@@ -7,7 +7,6 @@ import {
   MessageCircle, 
   X, 
   Send, 
-  Bot, 
   User, 
   Loader2, 
   AlertTriangle,
@@ -15,8 +14,9 @@ import {
   ExternalLink
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
+import nicolasAvatar from "@/assets/personas/nicolas.png";
 
 interface Message {
   id: string;
@@ -25,84 +25,159 @@ interface Message {
   timestamp: Date;
   isEscalated?: boolean;
   confidence?: number;
+  links?: { label: string; path: string }[];
 }
 
-// Knowledge base for Nicolas
+// Knowledge base for Nicolas with links
 const KNOWLEDGE_BASE = [
   {
     keywords: ["invoice", "create invoice", "add invoice"],
     answer: "To create an invoice, go to the Invoices page and click 'Create Invoice'. You can also import invoices in bulk via the Data Center.",
-    confidence: 0.9
+    confidence: 0.9,
+    links: [
+      { label: "Go to Invoices", path: "/invoices" },
+      { label: "Open Data Center", path: "/data-center" }
+    ]
   },
   {
     keywords: ["account", "debtor", "customer", "add account"],
-    answer: "Accounts (formerly called debtors) can be managed from the Accounts page. You can add individual accounts or import them in bulk through the Data Center.",
-    confidence: 0.9
+    answer: "Accounts can be managed from the Accounts page. You can add individual accounts or import them in bulk through the Data Center.",
+    confidence: 0.9,
+    links: [
+      { label: "View Accounts", path: "/debtors" },
+      { label: "Open Data Center", path: "/data-center" }
+    ]
   },
   {
     keywords: ["workflow", "ai workflow", "collection workflow"],
-    answer: "AI Workflows automatically generate collection drafts based on invoice aging buckets. Go to Settings → AI Workflows to configure your collection automation.",
-    confidence: 0.85
+    answer: "AI Workflows automatically generate collection drafts based on invoice aging buckets. Configure your collection automation from the AI Workflows page.",
+    confidence: 0.85,
+    links: [
+      { label: "Configure AI Workflows", path: "/settings/ai-workflows" }
+    ]
   },
   {
     keywords: ["persona", "ai agent", "sam", "james", "katy", "troy", "gotti", "rocco"],
     answer: "Recouply.ai has 6 AI personas: Sam (0-30 days), James (31-60), Katy (61-90), Troy (91-120), Gotti (121-150), and Rocco (150+ days). Each has a unique tone suited for different aging stages.",
-    confidence: 0.9
+    confidence: 0.9,
+    links: [
+      { label: "View AI Agents", path: "/personas" },
+      { label: "Configure Workflows", path: "/settings/ai-workflows" }
+    ]
   },
   {
     keywords: ["data center", "import", "upload", "csv", "excel"],
-    answer: "The Data Center is your hub for importing invoices, payments, and account data. Go to Data Center to upload files, map columns, and reconcile your data.",
-    confidence: 0.85
+    answer: "The Data Center is your hub for importing invoices, payments, and account data. Upload files, map columns, and reconcile your data.",
+    confidence: 0.85,
+    links: [
+      { label: "Open Data Center", path: "/data-center" }
+    ]
   },
   {
     keywords: ["payment", "apply payment", "reconcile"],
-    answer: "You can apply payments from invoice detail pages using the 'Apply Payment' button, or import payments in bulk via the Data Center and reconcile them automatically.",
-    confidence: 0.85
+    answer: "You can apply payments from invoice detail pages using the 'Apply Payment' button, or import payments in bulk via the Data Center and reconcile them.",
+    confidence: 0.85,
+    links: [
+      { label: "View Invoices", path: "/invoices" },
+      { label: "Reconciliation", path: "/reconciliation" },
+      { label: "Data Center", path: "/data-center" }
+    ]
   },
   {
     keywords: ["billing", "subscription", "plan", "pricing", "upgrade"],
-    answer: "Manage your subscription from Settings → Billing. We offer Starter ($99/mo), Growth ($199/mo), and Professional ($499/mo) plans based on invoice volume.",
-    confidence: 0.8
+    answer: "Manage your subscription from the Billing page. We offer Starter ($99/mo), Growth ($199/mo), and Professional ($499/mo) plans based on invoice volume.",
+    confidence: 0.8,
+    links: [
+      { label: "Manage Billing", path: "/billing" },
+      { label: "View Pricing", path: "/pricing" }
+    ]
   },
   {
     keywords: ["email", "send email", "outreach", "draft"],
     answer: "AI-generated email drafts are created automatically based on your workflows. Review and approve drafts from the AI Workflows page before they're sent.",
-    confidence: 0.85
+    confidence: 0.85,
+    links: [
+      { label: "AI Workflows", path: "/settings/ai-workflows" }
+    ]
   },
   {
     keywords: ["task", "collection task", "todo"],
     answer: "Collection tasks are created automatically from inbound emails and AI analysis. View and manage all tasks from the Collection Tasks page.",
-    confidence: 0.85
+    confidence: 0.85,
+    links: [
+      { label: "View Tasks", path: "/tasks" }
+    ]
   },
   {
     keywords: ["risk", "payment score", "risk engine"],
     answer: "The Risk Engine calculates Payment Scores (0-100) for each account based on payment history, aging mix, disputes, and engagement. Higher scores indicate lower risk.",
-    confidence: 0.85
+    confidence: 0.85,
+    links: [
+      { label: "View Accounts", path: "/debtors" },
+      { label: "Dashboard", path: "/dashboard" }
+    ]
   },
   {
     keywords: ["logo", "branding", "customize"],
-    answer: "Upload your company logo and customize branding from Settings → Branding & Logo. Your logo will appear in all outbound collection emails.",
-    confidence: 0.8
+    answer: "Upload your company logo and customize branding from the Settings page. Your logo will appear in all outbound collection emails.",
+    confidence: 0.8,
+    links: [
+      { label: "Branding Settings", path: "/settings" }
+    ]
   },
   {
     keywords: ["security", "password", "mfa", "two factor"],
-    answer: "Enable two-factor authentication from Settings → Security. We support TOTP authenticator apps for enhanced account security.",
-    confidence: 0.85
+    answer: "Enable two-factor authentication from the Security Settings page. We support TOTP authenticator apps for enhanced account security.",
+    confidence: 0.85,
+    links: [
+      { label: "Security Settings", path: "/settings/security" }
+    ]
   },
   {
     keywords: ["team", "member", "invite", "user"],
-    answer: "Add team members from Settings → Team Members. Team members can be assigned to tasks and receive email notifications about their assignments.",
-    confidence: 0.8
+    answer: "Add team members from the Team Members settings. Team members can be assigned to tasks and receive email notifications about their assignments.",
+    confidence: 0.8,
+    links: [
+      { label: "Team Members", path: "/settings/team-members" }
+    ]
   },
   {
     keywords: ["daily digest", "report", "summary"],
     answer: "The Daily Collections Health Digest provides AR summaries, payment trends, and task counts. View it from the Daily Digest page or receive it via email.",
-    confidence: 0.8
+    confidence: 0.8,
+    links: [
+      { label: "Daily Digest", path: "/daily-digest" }
+    ]
+  },
+  {
+    keywords: ["dashboard", "overview", "home"],
+    answer: "Your Dashboard shows key metrics including AR aging, payment scores, tasks, and collectability reports at a glance.",
+    confidence: 0.85,
+    links: [
+      { label: "Go to Dashboard", path: "/dashboard" }
+    ]
+  },
+  {
+    keywords: ["aging", "ar aging", "overdue"],
+    answer: "View your AR Aging breakdown from the AR Aging page. See invoices grouped by days past due (Current, 1-30, 31-60, 61-90, 91-120, 121+ days).",
+    confidence: 0.85,
+    links: [
+      { label: "AR Aging Report", path: "/ar-aging" }
+    ]
+  },
+  {
+    keywords: ["inbound", "email reply", "customer response"],
+    answer: "Inbound emails from customers are captured and processed automatically. View and manage them from the Inbound Command Center.",
+    confidence: 0.85,
+    links: [
+      { label: "Inbound Command Center", path: "/inbound" }
+    ]
   },
   {
     keywords: ["help", "support", "contact"],
     answer: "I'm Nicolas, your knowledge base assistant! If I can't answer your question, I can escalate it to our support team at support@recouply.ai.",
-    confidence: 0.9
+    confidence: 0.9,
+    links: []
   }
 ];
 
@@ -134,7 +209,12 @@ export default function NicolasChat() {
       role: "assistant",
       content: "Hi! I'm Nicolas, your Recouply.ai assistant. How can I help you today?",
       timestamp: new Date(),
-      confidence: 1
+      confidence: 1,
+      links: [
+        { label: "Dashboard", path: "/dashboard" },
+        { label: "Invoices", path: "/invoices" },
+        { label: "Accounts", path: "/debtors" }
+      ]
     }
   ]);
   const [input, setInput] = useState("");
@@ -155,18 +235,18 @@ export default function NicolasChat() {
     }
   }, [messages]);
 
-  const findAnswer = (question: string): { answer: string; confidence: number } => {
+  const findAnswer = (question: string): { answer: string; confidence: number; links: { label: string; path: string }[] } => {
     const lowerQuestion = question.toLowerCase();
     
     // Check for explicit escalation triggers
     for (const trigger of ESCALATION_TRIGGERS) {
       if (lowerQuestion.includes(trigger)) {
-        return { answer: "__ESCALATE__", confidence: 0 };
+        return { answer: "__ESCALATE__", confidence: 0, links: [] };
       }
     }
 
     // Search knowledge base
-    let bestMatch = { answer: "", confidence: 0 };
+    let bestMatch = { answer: "", confidence: 0, links: [] as { label: string; path: string }[] };
     
     for (const entry of KNOWLEDGE_BASE) {
       const matchCount = entry.keywords.filter(kw => 
@@ -176,7 +256,7 @@ export default function NicolasChat() {
       if (matchCount > 0) {
         const score = (matchCount / entry.keywords.length) * entry.confidence;
         if (score > bestMatch.confidence) {
-          bestMatch = { answer: entry.answer, confidence: score };
+          bestMatch = { answer: entry.answer, confidence: score, links: entry.links || [] };
         }
       }
     }
@@ -185,7 +265,8 @@ export default function NicolasChat() {
     if (bestMatch.confidence < 0.3) {
       return { 
         answer: "I'm not confident I can answer that question accurately. Would you like me to escalate this to our support team?", 
-        confidence: 0.2 
+        confidence: 0.2,
+        links: []
       };
     }
 
@@ -199,7 +280,7 @@ export default function NicolasChat() {
       const { error } = await supabase.functions.invoke('nicolas-escalate-support', {
         body: {
           user_id: user?.id || null,
-          organization_id: null, // Could be fetched from profile if needed
+          organization_id: null,
           page_route: location.pathname,
           question,
           confidence_score: 0.2,
@@ -237,12 +318,12 @@ export default function NicolasChat() {
     setIsLoading(true);
 
     try {
-      const { answer, confidence } = findAnswer(userMessage.content);
+      const { answer, confidence, links } = findAnswer(userMessage.content);
       let responseContent: string;
       let isEscalated = false;
+      let responseLinks = links;
 
       if (answer === "__ESCALATE__") {
-        // Build transcript
         const transcript = messages
           .slice(-6)
           .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
@@ -250,6 +331,7 @@ export default function NicolasChat() {
         
         responseContent = await escalateToSupport(userMessage.content, transcript);
         isEscalated = true;
+        responseLinks = [];
       } else {
         responseContent = answer;
       }
@@ -260,7 +342,8 @@ export default function NicolasChat() {
         content: responseContent,
         timestamp: new Date(),
         confidence,
-        isEscalated
+        isEscalated,
+        links: responseLinks
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -299,14 +382,22 @@ export default function NicolasChat() {
     }]);
   };
 
+  const handleLinkClick = () => {
+    setIsOpen(false);
+  };
+
   if (!isOpen) {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0 overflow-hidden"
         size="icon"
       >
-        <MessageCircle className="h-6 w-6" />
+        <img 
+          src={nicolasAvatar} 
+          alt="Nicolas" 
+          className="h-full w-full object-cover"
+        />
       </Button>
     );
   }
@@ -316,8 +407,12 @@ export default function NicolasChat() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-primary/5 rounded-t-xl">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Bot className="h-5 w-5 text-primary" />
+          <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
+            <img 
+              src={nicolasAvatar} 
+              alt="Nicolas" 
+              className="h-full w-full object-cover"
+            />
           </div>
           <div>
             <h3 className="font-semibold text-sm">Nicolas</h3>
@@ -338,8 +433,12 @@ export default function NicolasChat() {
               className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {message.role === "assistant" && (
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-4 w-4 text-primary" />
+                <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                  <img 
+                    src={nicolasAvatar} 
+                    alt="Nicolas" 
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               )}
               <div className={`max-w-[75%] ${message.role === "user" ? "order-first" : ""}`}>
@@ -352,6 +451,22 @@ export default function NicolasChat() {
                 >
                   {message.content}
                 </div>
+                {/* Clickable Links */}
+                {message.role === "assistant" && message.links && message.links.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {message.links.map((link, idx) => (
+                      <Link
+                        key={idx}
+                        to={link.path}
+                        onClick={handleLinkClick}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        {link.label}
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
                 {message.isEscalated && (
                   <Badge variant="outline" className="mt-1 text-xs gap-1">
                     <AlertTriangle className="h-3 w-3" />
@@ -368,8 +483,12 @@ export default function NicolasChat() {
           ))}
           {isLoading && (
             <div className="flex gap-3">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-primary" />
+              <div className="h-8 w-8 rounded-full overflow-hidden">
+                <img 
+                  src={nicolasAvatar} 
+                  alt="Nicolas" 
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="bg-muted rounded-lg px-3 py-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
