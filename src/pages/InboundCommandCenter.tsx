@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import Layout from "@/components/Layout";
@@ -477,6 +477,50 @@ const InboundCommandCenter = () => {
     loadEmails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, actionFilter, actionStatusFilter, categoryFilter, priorityFilter, debtorStatusFilter, hideClosed]);
+
+  // Handle email query parameter to auto-open email details
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const emailIdParam = searchParams.get("email");
+    if (emailIdParam && emails.length > 0) {
+      const emailToOpen = emails.find(e => e.id === emailIdParam);
+      if (emailToOpen) {
+        handleViewDetails(emailToOpen);
+        // Clear the query param after opening
+        setSearchParams({});
+      } else {
+        // Email not in current list, fetch it directly
+        fetchEmailById(emailIdParam);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emails, searchParams]);
+
+  const fetchEmailById = async (emailId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("inbound_emails")
+        .select(`
+          *,
+          debtors:debtor_id (id, name, company_name),
+          invoices:invoice_id (id, invoice_number, amount)
+        `)
+        .eq("id", emailId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching email:", error);
+        return;
+      }
+      
+      if (data) {
+        handleViewDetails(data as unknown as InboundEmail);
+        setSearchParams({});
+      }
+    } catch (err) {
+      console.error("Error fetching email by ID:", err);
+    }
+  };
 
   const loadEmails = async () => {
     const data = await fetchInboundEmails({
