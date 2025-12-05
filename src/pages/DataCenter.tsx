@@ -24,6 +24,7 @@ import { DataCenterSourcesTab } from "@/components/data-center/DataCenterSources
 import { DataCenterUploadsTab } from "@/components/data-center/DataCenterUploadsTab";
 import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploadWizard";
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
+import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
 
 const DataCenter = () => {
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
@@ -66,6 +67,9 @@ const DataCenter = () => {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Data Retention Banner */}
+        <DataRetentionBanner />
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
