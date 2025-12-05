@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Database, 
   Upload, 
@@ -16,7 +17,9 @@ import {
   CheckCircle,
   AlertCircle,
   Eye,
-  Loader2
+  Loader2,
+  Info,
+  FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -144,6 +147,45 @@ const DataCenter = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Payment Matching Guide */}
+        <Alert className="border-primary/30 bg-primary/5">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary">Payment Matching Requirements</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2 text-sm">
+            <p>
+              To successfully match payments to invoices, your payment files <strong>must include the Recouply Invoice ID</strong> (starts with <code className="px-1 py-0.5 bg-muted rounded text-xs">INV-</code>).
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4 mt-3">
+              <div className="p-3 bg-background rounded-lg border">
+                <h4 className="font-medium flex items-center gap-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Primary Match (Recommended)
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Use <strong>Recouply Invoice ID</strong> field. This is the unique identifier assigned to each invoice in Recouply.ai. 
+                  Export your invoices from the Invoices page to get this ID.
+                </p>
+              </div>
+              <div className="p-3 bg-background rounded-lg border">
+                <h4 className="font-medium flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  Fallback Match
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  If Recouply Invoice ID is not available, the system will attempt to match using your <strong>Invoice Number</strong>. 
+                  This may result in lower match confidence.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                Tip: Export your invoices first, then use the Recouply Invoice ID column when preparing payment data.
+              </span>
+            </div>
+          </AlertDescription>
+        </Alert>
 
         {/* Main Tabs */}
         <Tabs defaultValue="uploads" className="space-y-4">

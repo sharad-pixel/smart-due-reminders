@@ -183,6 +183,11 @@ export const DataCenterMappingStep = ({
               </Badge>
             ))}
           </div>
+          {fileType === "payments" && missingRequired.some(f => f.key === "recouply_invoice_id") && (
+            <p className="text-xs mt-2 text-destructive/80">
+              💡 The Recouply Invoice ID is required for accurate payment matching. Export your invoices to get this ID.
+            </p>
+          )}
         </div>
       )}
 
@@ -225,7 +230,7 @@ export const DataCenterMappingStep = ({
                     <SelectTrigger className={`h-8 ${isMappedToRequired ? "border-primary" : ""}`}>
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-md">
                       <SelectItem value="unmapped">— Skip this column —</SelectItem>
                       {/* Required fields first */}
                       {allFields.filter((f: any) => f.required_for_recouply).length > 0 && (
@@ -234,10 +239,20 @@ export const DataCenterMappingStep = ({
                         </div>
                       )}
                       {allFields.filter((f: any) => f.required_for_recouply).map((field: any) => (
-                        <SelectItem key={field.key} value={field.key}>
-                          <div className="flex items-center gap-2">
-                            <span className="text-destructive font-medium">*</span>
-                            {field.label}
+                        <SelectItem key={field.key} value={field.key} className="py-2">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-destructive font-medium">*</span>
+                              {field.label}
+                              {field.key === "recouply_invoice_id" && (
+                                <Badge variant="default" className="text-[10px] px-1">Primary</Badge>
+                              )}
+                            </div>
+                            {field.description && (
+                              <span className="text-[10px] text-muted-foreground leading-tight max-w-[280px]">
+                                {field.description}
+                              </span>
+                            )}
                           </div>
                         </SelectItem>
                       ))}
@@ -248,10 +263,17 @@ export const DataCenterMappingStep = ({
                         </div>
                       )}
                       {allFields.filter((f: any) => !f.required_for_recouply).map((field: any) => (
-                        <SelectItem key={field.key} value={field.key}>
-                          <div className="flex items-center gap-2">
-                            {field.label}
-                            {field.isCustom && <Badge variant="secondary" className="text-[10px] px-1">Custom</Badge>}
+                        <SelectItem key={field.key} value={field.key} className="py-2">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              {field.label}
+                              {field.isCustom && <Badge variant="secondary" className="text-[10px] px-1">Custom</Badge>}
+                            </div>
+                            {field.description && (
+                              <span className="text-[10px] text-muted-foreground leading-tight max-w-[280px]">
+                                {field.description}
+                              </span>
+                            )}
                           </div>
                         </SelectItem>
                       ))}
