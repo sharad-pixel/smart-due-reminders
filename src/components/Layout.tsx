@@ -411,9 +411,43 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </nav>
       <div className="h-16 sm:h-20"></div>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20">
         {children}
       </main>
+      
+      {/* Footer */}
+      <footer className="border-t bg-card/50 py-6 mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                Recouply.ai
+              </span>
+              <span className="text-muted-foreground text-sm">
+                AI-Powered CashOps Platform
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Link to="/legal/privacy" className="hover:text-foreground transition-colors">
+                Privacy Policy
+              </Link>
+              <Link to="/legal/terms" className="hover:text-foreground transition-colors">
+                Terms of Service
+              </Link>
+              <a 
+                href="mailto:support@recouply.ai" 
+                className="hover:text-foreground transition-colors"
+              >
+                Support
+              </a>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Recouply.ai. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
+      
       <NicolasChat />
     </div>
   );
