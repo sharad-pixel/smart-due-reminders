@@ -91,14 +91,40 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">6. Data Retention</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">6. Content Moderation & Safety</h2>
+            <p className="mb-4">
+              To maintain a safe platform environment, all uploaded images and visual content are automatically scanned using AI-powered content moderation technology before being stored on our platform.
+            </p>
+            <p className="mb-4 font-semibold text-foreground">What We Scan For:</p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>Nudity and sexually explicit content</li>
+              <li>Graphic violence</li>
+              <li>Hate speech and harassment imagery</li>
+              <li>Self-harm content</li>
+              <li>Illegal drug-related content</li>
+              <li>Other inappropriate or offensive material</li>
+            </ul>
+            <p className="mb-4 font-semibold text-foreground">How Content Moderation Works:</p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li><strong>Automatic Scanning:</strong> All image uploads (logos, avatars, attachments, documents) are processed through our moderation system before acceptance</li>
+              <li><strong>Immediate Rejection:</strong> Content flagged as inappropriate is automatically blocked and never stored on our servers</li>
+              <li><strong>Audit Logging:</strong> We maintain moderation logs for security and compliance purposes, including upload metadata and moderation decisions</li>
+              <li><strong>No Rejected Content Storage:</strong> Images that fail moderation are not stored on our platform</li>
+            </ul>
+            <p>
+              This moderation applies uniformly across all organizations using Recouply.ai to ensure a safe, professional environment for all users.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-foreground mb-4">7. Data Retention</h2>
             <p>
               We retain your data for as long as your account is active or as needed to provide services. Upon account termination, we will retain data for a reasonable period to comply with legal obligations and resolve disputes, after which it will be securely deleted.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">7. Your Rights</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">8. Your Rights</h2>
             <p className="mb-4">Depending on your jurisdiction, you may have the following rights:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Access:</strong> Request a copy of the personal data we hold about you</li>
@@ -113,7 +139,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">8. Cookies and Tracking</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">9. Cookies and Tracking</h2>
             <p className="mb-4">
               We use cookies and similar technologies to:
             </p>
@@ -128,28 +154,28 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">9. International Data Transfers</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">10. International Data Transfers</h2>
             <p>
               Your data may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place when transferring data internationally, including standard contractual clauses and compliance with applicable data protection laws.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">10. Children's Privacy</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">11. Children's Privacy</h2>
             <p>
               Our platform is not intended for use by individuals under the age of 18. We do not knowingly collect information from children.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">11. Changes to This Policy</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">12. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of material changes via email or through the platform. Continued use after changes constitutes acceptance of the updated policy.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">12. Contact Us</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">13. Contact Us</h2>
             <p>
               For questions or concerns about this Privacy Policy or our data practices, contact us at:
             </p>
