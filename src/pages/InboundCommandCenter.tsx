@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { CollectionTask } from "@/hooks/useCollectionTasks";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +121,7 @@ interface EmailDetailContentProps {
   onClose: () => void;
   onReopen: () => void;
   onGenerateAIResponse: () => void;
+  onTaskClick: (task: EmailTask) => void;
   isGeneratingAI: boolean;
   getPriorityColor: (priority: string) => string;
   getCategoryColor: (category: string) => string;
@@ -136,6 +139,7 @@ const EmailDetailContent = ({
   onClose,
   onReopen,
   onGenerateAIResponse,
+  onTaskClick,
   isGeneratingAI,
   getPriorityColor,
   getCategoryColor,
@@ -290,31 +294,33 @@ const EmailDetailContent = ({
           ) : (
             <div className="space-y-2">
               {tasks.map((task) => (
-                <Link key={task.id} to="/collections/tasks">
-                  <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                    <CardContent className="py-2 px-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                            <Badge variant={task.status === "open" ? "default" : "secondary"} className="text-xs">
-                              {task.status}
-                            </Badge>
-                            <Badge className={getPriorityColor(task.priority)} variant="outline">
-                              {task.priority}
-                            </Badge>
-                          </div>
-                          <p className="font-medium text-sm line-clamp-2">{task.summary}</p>
-                          {task.due_date && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Due: {format(new Date(task.due_date), "MMM d")}
-                            </p>
-                          )}
+                <Card 
+                  key={task.id} 
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => onTaskClick(task)}
+                >
+                  <CardContent className="py-2 px-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <Badge variant={task.status === "open" ? "default" : "secondary"} className="text-xs">
+                            {task.status}
+                          </Badge>
+                          <Badge className={getPriorityColor(task.priority)} variant="outline">
+                            {task.priority}
+                          </Badge>
                         </div>
-                        <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <p className="font-medium text-sm line-clamp-2">{task.summary}</p>
+                        {task.due_date && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Due: {format(new Date(task.due_date), "MMM d")}
+                          </p>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
@@ -396,7 +402,25 @@ const InboundCommandCenter = () => {
   const [aiResponseDialogOpen, setAiResponseDialogOpen] = useState(false);
   const [generatedResponse, setGeneratedResponse] = useState<{ subject: string | null; body: string } | null>(null);
   const [isSendingResponse, setIsSendingResponse] = useState(false);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<CollectionTask | null>(null);
+  const [taskDetailOpen, setTaskDetailOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const handleTaskClick = (task: EmailTask) => {
+    // Convert EmailTask to CollectionTask format
+    setSelectedTaskForDetail({
+      id: task.id,
+      task_type: task.task_type,
+      priority: task.priority,
+      status: task.status,
+      summary: task.summary,
+      details: task.details,
+      recommended_action: task.recommended_action,
+      due_date: task.due_date,
+      created_at: task.created_at,
+    } as CollectionTask);
+    setTaskDetailOpen(true);
+  };
 
   const createPendingResponseTask = async (email: InboundEmail) => {
     try {
@@ -1301,6 +1325,7 @@ const InboundCommandCenter = () => {
                     onClose={() => handleCloseAction(selectedEmail.id)}
                     onReopen={() => handleReopenAction(selectedEmail.id)}
                     onGenerateAIResponse={() => handleGenerateAIResponse(selectedEmail)}
+                    onTaskClick={handleTaskClick}
                     isGeneratingAI={isGeneratingAI}
                     getPriorityColor={getPriorityColor}
                     getCategoryColor={getCategoryColor}
@@ -1328,6 +1353,7 @@ const InboundCommandCenter = () => {
                     onClose={() => handleCloseAction(selectedEmail.id)}
                     onReopen={() => handleReopenAction(selectedEmail.id)}
                     onGenerateAIResponse={() => handleGenerateAIResponse(selectedEmail)}
+                    onTaskClick={handleTaskClick}
                     isGeneratingAI={isGeneratingAI}
                     getPriorityColor={getPriorityColor}
                     getCategoryColor={getCategoryColor}
@@ -1533,6 +1559,55 @@ const InboundCommandCenter = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        task={selectedTaskForDetail}
+        open={taskDetailOpen}
+        onOpenChange={setTaskDetailOpen}
+        onStatusChange={async (taskId, status) => {
+          await supabase
+            .from("collection_tasks")
+            .update({ status, completed_at: status === "done" ? new Date().toISOString() : null })
+            .eq("id", taskId);
+          // Refresh tasks for the selected email
+          if (selectedEmail) {
+            const { data } = await supabase
+              .from("collection_tasks")
+              .select("*")
+              .eq("inbound_email_id", selectedEmail.id)
+              .order("created_at", { ascending: false });
+            setEmailTasks(data || []);
+          }
+          toast.success("Task updated");
+        }}
+        onDelete={async (taskId) => {
+          await supabase.from("collection_tasks").delete().eq("id", taskId);
+          if (selectedEmail) {
+            const { data } = await supabase
+              .from("collection_tasks")
+              .select("*")
+              .eq("inbound_email_id", selectedEmail.id)
+              .order("created_at", { ascending: false });
+            setEmailTasks(data || []);
+          }
+          toast.success("Task deleted");
+        }}
+        onAssign={async (taskId, assignedTo, assignedPersona) => {
+          await supabase
+            .from("collection_tasks")
+            .update({ assigned_to: assignedTo, assigned_persona: assignedPersona })
+            .eq("id", taskId);
+          if (selectedEmail) {
+            const { data } = await supabase
+              .from("collection_tasks")
+              .select("*")
+              .eq("inbound_email_id", selectedEmail.id)
+              .order("created_at", { ascending: false });
+            setEmailTasks(data || []);
+          }
+        }}
+      />
     </Layout>
   );
 }
