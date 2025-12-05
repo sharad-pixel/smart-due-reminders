@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Platform email configuration
+// Platform email configuration (fallback)
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
@@ -30,6 +30,16 @@ interface RequestBody {
   invoices: Invoice[];
   attachedLinks: AttachedLink[];
   attachedDocs: any[];
+}
+
+interface BrandingSettings {
+  business_name: string;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to_email: string | null;
+  email_signature: string | null;
+  email_footer: string | null;
+  logo_url: string | null;
 }
 
 serve(async (req) => {
@@ -64,6 +74,29 @@ serve(async (req) => {
 
     console.log("Sending account summary to debtor:", debtorId);
 
+    // Fetch user's branding settings
+    const { data: branding, error: brandingError } = await supabase
+      .from("branding_settings")
+      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, logo_url")
+      .eq("user_id", user.id)
+      .single();
+
+    if (brandingError && brandingError.code !== "PGRST116") {
+      console.error("Error fetching branding settings:", brandingError);
+    }
+
+    const brandingSettings: BrandingSettings = branding || {
+      business_name: "Recouply.ai",
+      from_name: null,
+      from_email: null,
+      reply_to_email: null,
+      email_signature: null,
+      email_footer: null,
+      logo_url: null,
+    };
+
+    console.log("Using branding settings:", brandingSettings);
+
     // Fetch debtor details
     const { data: debtor, error: debtorError } = await supabase
       .from("debtors")
@@ -79,7 +112,11 @@ serve(async (req) => {
       throw new Error("Debtor does not have an email address configured. Please add an email address to send the account summary.");
     }
 
-    // Use platform reply-to address based on debtor
+    // Determine from address - use branding if available, otherwise platform default
+    const fromName = brandingSettings.from_name || brandingSettings.business_name || "Recouply.ai";
+    const fromEmail = `${fromName} <notifications@send.inbound.services.recouply.ai>`;
+    
+    // Use platform reply-to address based on debtor for inbound routing
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
     // Build invoice table HTML
@@ -140,23 +177,63 @@ serve(async (req) => {
       `;
     }
 
-    // Build email HTML
+    // Build signature HTML from branding settings
+    let signatureHtml = "";
+    if (brandingSettings.email_signature) {
+      signatureHtml = `
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <div style="white-space: pre-wrap; line-height: 1.5; color: #374151;">
+            ${brandingSettings.email_signature.replace(/\n/g, '<br>')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Build footer HTML from branding settings
+    let footerHtml = "";
+    if (brandingSettings.email_footer) {
+      footerHtml = `
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+          <div style="white-space: pre-wrap; line-height: 1.5;">
+            ${brandingSettings.email_footer.replace(/\n/g, '<br>')}
+          </div>
+        </div>
+      `;
+    } else {
+      // Default footer if none configured
+      footerHtml = `
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+          <p>This is an automated message from ${brandingSettings.business_name || 'your collections team'}.</p>
+        </div>
+      `;
+    }
+
+    // Build logo HTML if available
+    let logoHtml = "";
+    if (brandingSettings.logo_url) {
+      logoHtml = `
+        <div style="margin-bottom: 24px;">
+          <img src="${brandingSettings.logo_url}" alt="${brandingSettings.business_name}" style="max-height: 60px; max-width: 200px;" />
+        </div>
+      `;
+    }
+
+    // Build email HTML with branding
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        ${logoHtml}
         <div style="white-space: pre-wrap; line-height: 1.6;">
           ${message.replace(/\n/g, '<br>')}
         </div>
         
         ${invoiceTableHtml}
         ${linksHtml}
-        
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-          <p>This is an automated message from your collections team.</p>
-        </div>
+        ${signatureHtml}
+        ${footerHtml}
       </div>
     `;
 
-    console.log(`Sending email via platform from ${PLATFORM_FROM_EMAIL} to ${debtor.email}`);
+    console.log(`Sending email via platform from ${fromEmail} to ${debtor.email}`);
 
     // Send via platform send-email function
     const sendEmailResponse = await fetch(
@@ -169,7 +246,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           to: debtor.email,
-          from: PLATFORM_FROM_EMAIL,
+          from: fromEmail,
           reply_to: replyToAddress,
           subject: subject,
           html: emailHtml,
@@ -201,6 +278,8 @@ serve(async (req) => {
         attached_links: attachedLinks.length,
         reply_to: replyToAddress,
         platform_send: true,
+        branding_applied: !!branding,
+        from_name: fromName,
       },
     }).select().single();
 
@@ -226,7 +305,7 @@ serve(async (req) => {
           subject: subject,
           message_body: message,
           sent_to: debtor.email,
-          sent_from: PLATFORM_FROM_EMAIL,
+          sent_from: fromEmail,
           sent_at: new Date().toISOString(),
           status: "sent",
           delivery_metadata: {
@@ -235,6 +314,7 @@ serve(async (req) => {
             invoice_count: invoices.length,
             reply_to: replyToAddress,
             platform_send: true,
+            branding_applied: !!branding,
           },
         });
 
