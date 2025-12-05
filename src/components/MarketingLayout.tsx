@@ -60,6 +60,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               AI Agents
             </button>
+            <button 
+              onClick={() => navigate("/about")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              About
+            </button>
             <Button onClick={() => navigate("/login")} variant="ghost">
               Login
             </Button>
@@ -118,8 +124,16 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
+              <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm">
+                <li>
+                  <button 
+                    onClick={() => navigate("/about")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    About Us
+                  </button>
+                </li>
                 <li>
                   <button 
                     onClick={() => navigate("/legal/terms")}

@@ -54,6 +54,7 @@ import ARAging from "./pages/ARAging";
 import DataCenter from "./pages/DataCenter";
 import DataCenterReview from "./pages/DataCenterReview";
 import DailyDigest from "./pages/DailyDigest";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
         <Route path="/startups" element={<Startups />} />
         <Route path="/smb" element={<SMB />} />
         <Route path="/enterprise" element={<Enterprise />} />
+        <Route path="/about" element={<About />} />
         <Route path="/legal/terms" element={<Terms />} />
         <Route path="/legal/privacy" element={<Privacy />} />
         <Route path="/security-public" element={<Security />} />
