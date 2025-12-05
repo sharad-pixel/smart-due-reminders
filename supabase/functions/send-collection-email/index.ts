@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateEmailSignature } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +57,16 @@ serve(async (req) => {
 
     console.log(`Sending email from platform: ${PLATFORM_FROM_EMAIL}, reply-to: ${replyToEmail}`);
 
+    // Fetch branding settings for signature
+    const { data: branding } = await supabaseClient
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, email_signature, email_footer")
+      .eq("user_id", user.id)
+      .single();
+
+    const signature = generateEmailSignature(branding || {});
+    const emailBody = body + signature;
+
     // Send email via platform send-email function
     const sendEmailResponse = await fetch(
       `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
@@ -70,7 +81,7 @@ serve(async (req) => {
           from: PLATFORM_FROM_EMAIL,
           reply_to: replyToEmail,
           subject,
-          html: body,
+          html: emailBody,
         }),
       }
     );
