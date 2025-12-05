@@ -3159,6 +3159,7 @@ export type Database = {
           twilio_auth_token: string | null
           twilio_from_number: string | null
           updated_at: string | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           address_autocomplete_api_key?: string | null
@@ -3199,6 +3200,7 @@ export type Database = {
           twilio_auth_token?: string | null
           twilio_from_number?: string | null
           updated_at?: string | null
+          welcome_email_sent_at?: string | null
         }
         Update: {
           address_autocomplete_api_key?: string | null
@@ -3239,6 +3241,7 @@ export type Database = {
           twilio_auth_token?: string | null
           twilio_from_number?: string | null
           updated_at?: string | null
+          welcome_email_sent_at?: string | null
         }
         Relationships: [
           {
