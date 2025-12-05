@@ -383,6 +383,40 @@ function generateEmailHtml(data: {
           High-risk AR: <strong style="color: #ef4444;">${formatCurrency(data.highRiskArOutstanding)}</strong> across ${data.highRiskCustomersCount} accounts
         </p>
       </div>
+
+      <div style="margin-bottom: 24px; background: #fef3c7; border-radius: 8px; padding: 16px;">
+        <h3 style="color: #92400e; margin: 0 0 12px; font-size: 16px;">📰 CFO Cash Flow Insights</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #78350f; line-height: 1.8;">
+          <li><a href="https://app.recouply.ai/features" style="color: #b45309;">Automate Your AR with AI Agents →</a></li>
+          <li><a href="https://app.recouply.ai/solutions/saas" style="color: #b45309;">SaaS Revenue Recovery Strategies →</a></li>
+          <li><a href="https://app.recouply.ai/solutions/professional-services" style="color: #b45309;">Professional Services Collections Guide →</a></li>
+          <li><a href="https://app.recouply.ai/enterprise" style="color: #b45309;">Enterprise CashOps Platform Overview →</a></li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 24px; background: #dbeafe; border-radius: 8px; padding: 16px;">
+        <h3 style="color: #1e40af; margin: 0 0 12px; font-size: 16px;">🤖 CashOps & AR Automation</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #1e3a8a; line-height: 1.8;">
+          <li><a href="https://app.recouply.ai/settings/ai-workflows" style="color: #2563eb;">Configure Your AI Collection Agents →</a></li>
+          <li><a href="https://app.recouply.ai/data-center" style="color: #2563eb;">Data Center: Import & Reconcile AR →</a></li>
+          <li><a href="https://app.recouply.ai/debtors" style="color: #2563eb;">Manage Accounts & Risk Scores →</a></li>
+          <li><a href="https://app.recouply.ai/collections/tasks" style="color: #2563eb;">Review Collection Tasks →</a></li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 32px; background: #dcfce7; border-radius: 8px; padding: 16px;">
+        <h3 style="color: #166534; margin: 0 0 12px; font-size: 16px;">💡 Collection Best Practices</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #15803d; line-height: 1.8; font-size: 14px;">
+          <li><strong>Follow up within 3-5 days</strong> of invoice due date for best results</li>
+          <li><strong>Segment by risk tier</strong> – prioritize High/Critical accounts first</li>
+          <li><strong>Use multiple channels</strong> – email sequences with phone follow-up</li>
+          <li><strong>Offer payment plans</strong> for accounts 60+ days past due</li>
+          <li><strong>Monitor DSO weekly</strong> – target under 45 days for healthy cash flow</li>
+        </ul>
+        <p style="margin: 12px 0 0; color: #166534; font-size: 13px; font-style: italic;">
+          💎 Pro Tip: Let your AI agents handle routine follow-ups while you focus on strategic accounts.
+        </p>
+      </div>
       
       <div style="text-align: center;">
         <a href="https://app.recouply.ai/daily-digest" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
