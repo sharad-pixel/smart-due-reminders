@@ -45,30 +45,88 @@ const Signup = () => {
   const [businessName, setBusinessName] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingWhitelist, setCheckingWhitelist] = useState(false);
+  const [isInviteFlow, setIsInviteFlow] = useState(false);
+  const [inviteProcessing, setInviteProcessing] = useState(true);
 
   // Calculate password strength
   const passedRequirements = passwordRequirements.filter(req => req.test(password));
   const passwordStrength = passedRequirements.length;
 
   useEffect(() => {
+    // Check for invite token in URL hash
+    const handleInviteToken = async () => {
+      const hash = window.location.hash;
+      
+      // Check if this is an invite flow (type=invite or type=recovery in hash)
+      if (hash && (hash.includes('type=invite') || hash.includes('type=signup') || hash.includes('access_token'))) {
+        setIsInviteFlow(true);
+        
+        // Let Supabase handle the token exchange
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error processing invite:', error);
+          toast.error('Failed to process invite link. Please try again or contact support.');
+          setInviteProcessing(false);
+          return;
+        }
+        
+        if (data.session?.user) {
+          // User is authenticated via invite, pre-fill email
+          setEmail(data.session.user.email || '');
+          setUser(data.session.user);
+          
+          // Check if profile needs to be completed
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, business_name')
+            .eq('id', data.session.user.id)
+            .maybeSingle();
+          
+          if (profile?.name && profile?.business_name) {
+            // Profile is complete, redirect to dashboard
+            toast.success('Welcome back!');
+            navigate('/dashboard');
+            return;
+          }
+          
+          // Profile needs completion, show form
+          if (profile?.name) setName(profile.name);
+          toast.info('Please complete your profile to continue.');
+        }
+      }
+      
+      setInviteProcessing(false);
+    };
+
+    handleInviteToken();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (inviteProcessing) return;
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
-        if (session?.user) {
+        
+        // Don't auto-redirect during invite flow - user needs to complete profile
+        if (session?.user && !isInviteFlow) {
           navigate("/dashboard");
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        navigate("/dashboard");
+      if (!isInviteFlow) {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          navigate("/dashboard");
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isInviteFlow, inviteProcessing]);
 
   const checkWhitelist = async (emailToCheck: string): Promise<boolean> => {
     try {
@@ -129,16 +187,75 @@ const Signup = () => {
     setCheckingWhitelist(true);
 
     try {
-      const validatedData = signupSchema.parse({
-        name,
-        email,
-        password,
-        businessName,
-      });
+      // For invite flow, password may not be required if already authenticated
+      const validationSchema = isInviteFlow && user
+        ? z.object({
+            name: z.string().trim().min(1, "Name is required").max(100),
+            email: z.string().trim().email("Invalid email address").max(255),
+            businessName: z.string().trim().min(1, "Business name is required").max(200),
+          })
+        : signupSchema;
 
-      // Check whitelist first
-      const isWhitelisted = await checkWhitelist(validatedData.email);
+      const dataToValidate = isInviteFlow && user
+        ? { name, email, businessName }
+        : { name, email, password, businessName };
+
+      const validatedData = validationSchema.parse(dataToValidate);
       setCheckingWhitelist(false);
+
+      // If invite flow with authenticated user, just update profile
+      if (isInviteFlow && user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            name: validatedData.name,
+            business_name: validatedData.businessName,
+            plan_type: 'free'
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+          throw new Error('Failed to update profile');
+        }
+
+        // Mark whitelist as used
+        await markWhitelistUsed(validatedData.email);
+
+        // Send admin alert
+        try {
+          await supabase.functions.invoke('send-admin-alert', {
+            body: { 
+              type: 'signup', 
+              email: validatedData.email,
+              name: validatedData.name,
+              company: validatedData.businessName
+            }
+          });
+        } catch (alertErr) {
+          console.error('Failed to send admin alert:', alertErr);
+        }
+
+        // Send welcome email
+        try {
+          await supabase.functions.invoke('send-welcome-email', {
+            body: { 
+              email: validatedData.email,
+              userName: validatedData.name,
+              companyName: validatedData.businessName
+            }
+          });
+        } catch (welcomeErr) {
+          console.error('Failed to send welcome email:', welcomeErr);
+        }
+
+        toast.success("Welcome to Recouply.ai! You're on your way to CashOps Excellence.");
+        navigate("/dashboard");
+        return;
+      }
+
+      // Standard signup flow - check whitelist first
+      const isWhitelisted = await checkWhitelist(validatedData.email);
       
       if (!isWhitelisted) {
         toast.error("This email is not on the early access list. Please contact us at support@recouply.ai to request an invite.");
@@ -154,7 +271,7 @@ const Signup = () => {
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
-        password: validatedData.password,
+        password: (validatedData as any).password,
         options: {
           emailRedirectTo: getAuthRedirectUrl('/dashboard'),
           data: {
@@ -249,8 +366,21 @@ const Signup = () => {
     }
   };
 
-  if (user) {
+  // Don't redirect invited users - they need to complete profile
+  if (user && !isInviteFlow) {
     return null;
+  }
+
+  // Show loading state while processing invite
+  if (inviteProcessing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Processing your invite...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -301,34 +431,42 @@ const Signup = () => {
 
         <Card className="border-2">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-xl">Join Early Access</CardTitle>
+            <CardTitle className="text-xl">
+              {isInviteFlow && user ? "Complete Your Profile" : "Join Early Access"}
+            </CardTitle>
             <CardDescription>
-              Sign up with your invited email address
+              {isInviteFlow && user 
+                ? "Just a few more details to get started" 
+                : "Sign up with your invited email address"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Google SSO - Primary */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-11"
-              onClick={handleGoogleSignIn}
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Continue with Google
-            </Button>
+            {/* Google SSO - Only show for non-invite flow */}
+            {!(isInviteFlow && user) && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11"
+                  onClick={handleGoogleSignIn}
+                >
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  Continue with Google
+                </Button>
 
-            <div className="relative">
-              <Separator />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                or sign up with email
-              </span>
-            </div>
+                <div className="relative">
+                  <Separator />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                    or sign up with email
+                  </span>
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -359,7 +497,7 @@ const Signup = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Invited Email</Label>
+                <Label htmlFor="email">{isInviteFlow && user ? "Email" : "Invited Email"}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -368,69 +506,73 @@ const Signup = () => {
                   required
                   maxLength={255}
                   placeholder="you@company.com"
+                  disabled={isInviteFlow && !!user}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  maxLength={100}
-                  placeholder="••••••••"
-                />
+              {/* Only show password for non-invite or unauthenticated users */}
+              {!(isInviteFlow && user) && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    maxLength={100}
+                    placeholder="••••••••"
+                  />
                 
-                {/* Password Strength Indicator */}
-                {password && (
-                  <div className="space-y-2 mt-2">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((level) => (
-                        <div
-                          key={level}
-                          className={`h-1 flex-1 rounded ${
-                            level <= passwordStrength
-                              ? passwordStrength <= 2
-                                ? 'bg-destructive'
-                                : passwordStrength <= 3
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
-                              : 'bg-muted'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Password Requirements */}
-                <div className="grid grid-cols-2 gap-1 mt-2">
-                  {passwordRequirements.map((req) => {
-                    const passed = req.test(password);
-                    return (
-                      <div
-                        key={req.id}
-                        className={`flex items-center gap-1.5 text-xs ${
-                          password ? (passed ? 'text-green-600' : 'text-muted-foreground') : 'text-muted-foreground'
-                        }`}
-                      >
-                        {password ? (
-                          passed ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />
-                        ) : (
-                          <div className="h-3 w-3" />
-                        )}
-                        {req.label}
+                  {/* Password Strength Indicator */}
+                  {password && (
+                    <div className="space-y-2 mt-2">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <div
+                            key={level}
+                            className={`h-1 flex-1 rounded ${
+                              level <= passwordStrength
+                                ? passwordStrength <= 2
+                                  ? 'bg-destructive'
+                                  : passwordStrength <= 3
+                                  ? 'bg-yellow-500'
+                                  : 'bg-green-500'
+                                : 'bg-muted'
+                            }`}
+                          />
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+
+                  {/* Password Requirements */}
+                  <div className="grid grid-cols-2 gap-1 mt-2">
+                    {passwordRequirements.map((req) => {
+                      const passed = req.test(password);
+                      return (
+                        <div
+                          key={req.id}
+                          className={`flex items-center gap-1.5 text-xs ${
+                            password ? (passed ? 'text-green-600' : 'text-muted-foreground') : 'text-muted-foreground'
+                          }`}
+                        >
+                          {password ? (
+                            passed ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />
+                          ) : (
+                            <div className="h-3 w-3" />
+                          )}
+                          {req.label}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {checkingWhitelist ? "Verifying invite..." : loading ? "Creating account..." : "Join Early Access"}
+                {checkingWhitelist ? "Verifying invite..." : loading ? (isInviteFlow && user ? "Completing profile..." : "Creating account...") : (isInviteFlow && user ? "Complete Profile" : "Join Early Access")}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
@@ -441,26 +583,30 @@ const Signup = () => {
               </p>
             </form>
 
-            <div className="text-center pt-2">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link to="/login" className="text-primary font-medium hover:underline">
-                  Sign in
-                </Link>
-              </p>
-            </div>
+            {!(isInviteFlow && user) && (
+              <div className="text-center pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link to="/login" className="text-primary font-medium hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Request Access Info */}
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg border text-center">
-          <p className="text-sm text-muted-foreground">
-            Don't have an invite?{" "}
-            <a href="mailto:support@recouply.ai?subject=Early Access Request" className="text-primary font-medium hover:underline">
-              Request access
-            </a>
-          </p>
-        </div>
+        {!(isInviteFlow && user) && (
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg border text-center">
+            <p className="text-sm text-muted-foreground">
+              Don't have an invite?{" "}
+              <a href="mailto:support@recouply.ai?subject=Early Access Request" className="text-primary font-medium hover:underline">
+                Request access
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
