@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { type PlanType, getInvoiceLimit, getMaxAgents, PLAN_CONFIGS } from '@/lib/subscriptionConfig';
+import { type PlanType } from '@/lib/subscriptionConfig';
 
 interface SubscriptionState {
   plan: PlanType;
@@ -14,32 +14,19 @@ interface SubscriptionState {
   refresh: () => Promise<void>;
 }
 
+// Stripe disconnected - all users get free access with full features
+const FREE_INVOICE_LIMIT = 15;
+const FREE_MAX_AGENTS = 6;
+
 export function useSubscription(): SubscriptionState {
-  const [plan, setPlan] = useState<PlanType>('free');
-  const [subscriptionStatus, setSubscriptionStatus] = useState('inactive');
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSubscription = useCallback(async () => {
+    // Stripe disconnected - just verify user is logged in
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setPlan('free');
-        setSubscriptionStatus('inactive');
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan_type, subscription_status')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profile) {
-        setPlan((profile.plan_type as PlanType) || 'free');
-        setSubscriptionStatus(profile.subscription_status || 'inactive');
-      }
+      await supabase.auth.getSession();
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      console.error('Error checking session:', error);
     } finally {
       setIsLoading(false);
     }
@@ -48,40 +35,28 @@ export function useSubscription(): SubscriptionState {
   useEffect(() => {
     fetchSubscription();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       fetchSubscription();
     });
 
-    // Refresh periodically
-    const interval = setInterval(fetchSubscription, 60000);
-
     return () => {
       subscription.unsubscribe();
-      clearInterval(interval);
     };
   }, [fetchSubscription]);
 
-  const canAccessFeature = useCallback((feature: string): boolean => {
-    if (plan === 'enterprise') return true;
-    if (plan === 'free') return false;
-    
-    const config = PLAN_CONFIGS[plan];
-    if (!config) return false;
-    
-    return config.features.some(f => 
-      f.toLowerCase().includes(feature.toLowerCase())
-    );
-  }, [plan]);
+  // All features enabled for free users (Stripe disconnected)
+  const canAccessFeature = useCallback((_feature: string): boolean => {
+    return true;
+  }, []);
 
   return {
-    plan,
-    invoiceLimit: getInvoiceLimit(plan),
-    maxAgents: getMaxAgents(plan),
-    subscriptionStatus,
+    plan: 'free',
+    invoiceLimit: FREE_INVOICE_LIMIT,
+    maxAgents: FREE_MAX_AGENTS,
+    subscriptionStatus: 'active',
     isLoading,
-    isSubscribed: ['active', 'trialing'].includes(subscriptionStatus),
-    isPastDue: subscriptionStatus === 'past_due',
+    isSubscribed: true, // All users treated as subscribed
+    isPastDue: false,
     canAccessFeature,
     refresh: fetchSubscription,
   };

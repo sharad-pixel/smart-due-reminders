@@ -135,12 +135,11 @@ export function canAccessFeature(plan: PlanType, feature: string): boolean {
 }
 
 export function getInvoiceLimit(plan: PlanType): number {
-  if (plan === 'free') return 5;
-  if (plan === 'enterprise') return -1;
-  return PLAN_CONFIGS[plan]?.invoiceLimit || 0;
+  // All users get free access with 15 invoice limit (Stripe disconnected)
+  return 15;
 }
 
 export function getMaxAgents(plan: PlanType): number {
-  if (plan === 'free') return 1;
-  return PLAN_CONFIGS[plan]?.maxAgents || 1;
+  // All users get access to all 6 agents (Stripe disconnected)
+  return 6;
 }
