@@ -54,75 +54,18 @@ const Layout = ({ children }: LayoutProps) => {
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [accessChecked, setAccessChecked] = useState(false);
-
-  const checkEarlyAccess = async (userEmail: string, userId: string) => {
-    try {
-      // Check if user is admin first
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single();
-
-      if (profile?.is_admin) {
-        setAccessChecked(true);
-        return true;
-      }
-
-      // Check whitelist
-      const { data: whitelistEntry } = await supabase
-        .from('early_access_whitelist')
-        .select('id, used_at')
-        .ilike('email', userEmail)
-        .maybeSingle();
-
-      if (!whitelistEntry) {
-        toast.error(
-          "Your email is not on the early access list. Please request an invite to join.",
-          { duration: 6000 }
-        );
-        await supabase.auth.signOut();
-        navigate("/login");
-        return false;
-      }
-
-      // Mark as used if not already
-      if (!whitelistEntry.used_at) {
-        await supabase
-          .from('early_access_whitelist')
-          .update({ used_at: new Date().toISOString() })
-          .eq('id', whitelistEntry.id);
-      }
-
-      setAccessChecked(true);
-      return true;
-    } catch (error) {
-      console.error('Error checking early access:', error);
-      setAccessChecked(true);
-      return true; // Allow access on error to prevent lockouts
-    }
-  };
-
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
-        setAccessChecked(false);
         navigate("/login");
-      } else if (session.user.email) {
-        // Check early access for all logins (including OAuth)
-        await checkEarlyAccess(session.user.email, session.user.id);
       }
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
-        setAccessChecked(false);
         navigate("/login");
-      } else if (session.user.email) {
-        await checkEarlyAccess(session.user.email, session.user.id);
       }
     });
 
@@ -227,7 +170,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
-  if (!user || !accessChecked) return null;
+  if (!user) return null;
 
   const coreNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
