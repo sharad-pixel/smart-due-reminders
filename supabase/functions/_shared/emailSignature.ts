@@ -35,6 +35,70 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * Generate Recouply.ai branded footer section
+ */
+function generateRecouplyFooter(): string {
+  return `
+    <!-- Recouply.ai Branded Footer -->
+    <tr>
+      <td style="padding: 24px 32px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 0 0 12px 12px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+          <tr>
+            <td style="text-align: center;">
+              <!-- Recouply Logo -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 16px;">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 10px;">
+                    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 8px; text-align: center; line-height: 36px;">
+                      <span style="color: #ffffff; font-weight: bold; font-size: 18px;">R</span>
+                    </div>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Recouply</span><span style="color: #3b82f6; font-size: 20px; font-weight: 700;">.ai</span>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Tagline -->
+              <p style="margin: 0 0 16px; font-size: 14px; color: #94a3b8; font-weight: 500;">
+                AI-Powered CashOps Platform
+              </p>
+              
+              <!-- Feature badges -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 16px;">
+                <tr>
+                  <td style="padding: 0 6px;">
+                    <span style="display: inline-block; background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">🤖 6 AI Agents</span>
+                  </td>
+                  <td style="padding: 0 6px;">
+                    <span style="display: inline-block; background: rgba(139, 92, 246, 0.2); color: #a78bfa; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">⚡ 24/7 Collections</span>
+                  </td>
+                  <td style="padding: 0 6px;">
+                    <span style="display: inline-block; background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">📈 Smart Recovery</span>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Link -->
+              <p style="margin: 0 0 12px;">
+                <a href="https://recouply.ai" style="color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: 600;">
+                  Learn more at recouply.ai →
+                </a>
+              </p>
+              
+              <!-- Copyright -->
+              <p style="margin: 0; font-size: 11px; color: #64748b;">
+                © ${new Date().getFullYear()} Recouply.ai • Transforming how businesses recover revenue
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `.trim();
+}
+
+/**
  * Generate styled email wrapper with Recouply.ai branding
  */
 export function wrapEmailContent(body: string, branding: BrandingSettings = {}): string {
@@ -64,6 +128,11 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}):
                       : `<span style="color: #ffffff; font-size: 20px; font-weight: 700;">${escapeHtml(businessName)}</span>`
                     }
                   </td>
+                  <td style="text-align: right;">
+                    <span style="display: inline-block; background: rgba(255, 255, 255, 0.15); color: #ffffff; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                      via Recouply.ai
+                    </span>
+                  </td>
                 </tr>
               </table>
             </td>
@@ -75,6 +144,8 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}):
               ${body}
             </td>
           </tr>
+          
+          ${generateRecouplyFooter()}
         </table>
       </td>
     </tr>
@@ -144,20 +215,28 @@ export function generateEmailSignature(
     <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
       ${customSignature}
       ${logoSection}
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px;">
+      
+      <!-- Sent on behalf notice -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; width: 100%;">
         <tr>
-          <td style="vertical-align: top; padding-right: 12px;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-              <span style="color: #ffffff; font-weight: bold; font-size: 16px;">R</span>
-            </div>
-          </td>
-          <td style="vertical-align: top;">
-            <p style="margin: 0; font-size: 13px; color: #64748b;">
-              Sent on behalf of <strong style="color: #1e293b;">${escapeHtml(businessName)}</strong>
-            </p>
-            <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8;">
-              Powered by <a href="https://recouply.ai" style="color: #2563eb; text-decoration: none;">Recouply.ai</a> • AI-Powered CashOps
-            </p>
+          <td style="padding: 16px;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+                <td style="vertical-align: top; padding-right: 14px;">
+                  <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 10px; text-align: center; line-height: 44px;">
+                    <span style="color: #ffffff; font-weight: bold; font-size: 20px;">R</span>
+                  </div>
+                </td>
+                <td style="vertical-align: top;">
+                  <p style="margin: 0 0 4px; font-size: 14px; color: #1e293b; font-weight: 600;">
+                    Sent on behalf of ${escapeHtml(businessName)}
+                  </p>
+                  <p style="margin: 0; font-size: 13px; color: #64748b;">
+                    Powered by <a href="https://recouply.ai" style="color: #3b82f6; text-decoration: none; font-weight: 600;">Recouply.ai</a> • AI-Powered CashOps Platform
+                  </p>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
       </table>
@@ -183,14 +262,17 @@ export function generatePlainTextSignature(
     signature += `💳 Pay Now${amountText}: ${paymentOptions.paymentUrl}\n\n`;
   }
   
-  signature += "---\n";
+  signature += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
   
   if (branding.email_signature) {
     signature += branding.email_signature + "\n\n";
   }
   
-  signature += `Sent on behalf of ${businessName}\n`;
-  signature += `Powered by Recouply.ai • AI-Powered CashOps`;
+  signature += `Sent on behalf of ${businessName}\n\n`;
+  signature += `🤖 Powered by Recouply.ai\n`;
+  signature += `   AI-Powered CashOps Platform\n`;
+  signature += `   6 AI Agents • 24/7 Collections • Smart Recovery\n`;
+  signature += `   https://recouply.ai\n`;
   
   if (branding.email_footer) {
     signature += "\n" + branding.email_footer;
