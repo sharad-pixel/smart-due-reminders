@@ -194,3 +194,6 @@ verify_jwt = true
 
 [functions.daily-digest-runner]
 verify_jwt = false
+
+[functions.data-retention-cron]
+verify_jwt = false

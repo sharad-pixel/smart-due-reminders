@@ -1368,7 +1368,9 @@ export type Database = {
       }
       data_center_uploads: {
         Row: {
+          archived_at: string | null
           created_at: string
+          deletion_warning_sent_at: string | null
           error_message: string | null
           file_name: string
           file_type: string
@@ -1383,7 +1385,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
+          deletion_warning_sent_at?: string | null
           error_message?: string | null
           file_name: string
           file_type: string
@@ -1398,7 +1402,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
+          deletion_warning_sent_at?: string | null
           error_message?: string | null
           file_name?: string
           file_type?: string
@@ -1418,6 +1424,44 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "data_center_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_retention_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          notification_type: string
+          read_at: string | null
+          upload_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          notification_type: string
+          read_at?: string | null
+          upload_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          upload_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_retention_notifications_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "data_center_uploads"
             referencedColumns: ["id"]
           },
         ]
