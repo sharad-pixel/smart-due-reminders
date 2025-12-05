@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Clock, HelpCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
+import { PaymentActivityCard } from "@/components/PaymentActivityCard";
 
 export default function DebtorDashboard() {
   const navigate = useNavigate();
@@ -152,6 +153,9 @@ export default function DebtorDashboard() {
 
         {/* Aging Bucket Breakdown */}
         <AgingBucketBreakdown />
+
+        {/* Payment Activity */}
+        <PaymentActivityCard limit={5} />
 
         {/* Filters */}
         <Card>

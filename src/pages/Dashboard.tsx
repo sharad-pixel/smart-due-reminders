@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
+import { PaymentActivityCard } from "@/components/PaymentActivityCard";
 import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
 interface Invoice {
   id: string;
@@ -587,6 +588,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Payment Activity Section */}
+        <PaymentActivityCard limit={5} />
 
         {/* Account Dashboard Section */}
         <div className="space-y-6 pt-8 border-t">
