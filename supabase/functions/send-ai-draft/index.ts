@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateEmailSignature } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,6 +77,15 @@ serve(async (req) => {
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
+    // Fetch branding settings for signature
+    const { data: branding } = await supabaseClient
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, email_signature, email_footer")
+      .eq("user_id", user.id)
+      .single();
+
+    const signature = generateEmailSignature(branding || {});
+
     let sendResult = { success: false, message: "", replyTo: "" };
     let sentFrom = PLATFORM_FROM_EMAIL;
 
@@ -85,6 +95,9 @@ serve(async (req) => {
       const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
       
       console.log(`Sending email via platform from ${PLATFORM_FROM_EMAIL} to ${debtor.email} with reply-to: ${replyToAddress}`);
+
+      // Build email body with signature
+      const emailBody = draft.message_body.replace(/\n/g, "<br>") + signature;
 
       // Send via platform send-email function
       const sendEmailResponse = await fetch(
@@ -100,7 +113,7 @@ serve(async (req) => {
             from: PLATFORM_FROM_EMAIL,
             reply_to: replyToAddress,
             subject: draft.subject || "Payment Reminder",
-            html: draft.message_body.replace(/\n/g, "<br>"),
+            html: emailBody,
           }),
         }
       );

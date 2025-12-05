@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette } from "lucide-react";
+import { LogoUpload } from "@/components/LogoUpload";
 
 
 
@@ -30,6 +31,7 @@ interface ProfileData {
   email_footer: string;
   stripe_payment_link_url: string;
   email: string;
+  logo_url: string | null;
 }
 
 interface CredentialsStatus {
@@ -82,6 +84,7 @@ const Settings = () => {
     email_footer: "",
     stripe_payment_link_url: "",
     email: "",
+    logo_url: null,
   });
 
   useEffect(() => {
@@ -140,6 +143,7 @@ const Settings = () => {
         email_footer: brandingData?.email_footer || "",
         stripe_payment_link_url: data.stripe_payment_link_url || "",
         email: data.email || "",
+        logo_url: brandingData?.logo_url || null,
       });
     } catch (error: any) {
       toast.error("Failed to load profile");
@@ -184,6 +188,7 @@ const Settings = () => {
           reply_to_email: profile.reply_to_email,
           email_signature: profile.email_signature,
           email_footer: profile.email_footer,
+          logo_url: profile.logo_url,
         }, { onConflict: 'user_id' });
 
       if (brandingError) throw brandingError;
@@ -427,6 +432,24 @@ const Settings = () => {
                 placeholder="+1 (555) 123-4567"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Palette className="h-5 w-5 text-primary" />
+              <CardTitle>Company Logo</CardTitle>
+            </div>
+            <CardDescription>
+              Upload your company logo to appear in the signature of all outbound messages
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LogoUpload
+              currentLogoUrl={profile.logo_url}
+              onLogoChange={(url) => setProfile({ ...profile, logo_url: url })}
+            />
           </CardContent>
         </Card>
 
