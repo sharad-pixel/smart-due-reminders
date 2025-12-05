@@ -734,19 +734,18 @@ const InboundCommandCenter = () => {
   const handleGenerateAIResponse = async (email: InboundEmail) => {
     // Use invoice_id from email, or fallback to context from task navigation
     const invoiceId = email.invoice_id || contextInvoiceId;
-    
-    if (!invoiceId) {
-      toast.error("Cannot generate AI response: No linked invoice found");
-      return;
-    }
+    const debtorId = email.debtor_id;
 
     setIsGeneratingAI(true);
     try {
       const { data, error } = await supabase.functions.invoke("process-persona-command", {
         body: {
           command: `Respond to this customer email: "${email.subject || 'No subject'}"\n\nEmail content:\n${email.text_body || email.html_body || 'No content'}`,
-          contextInvoiceId: invoiceId,
+          contextInvoiceId: invoiceId || undefined,
+          contextDebtorId: debtorId || undefined,
           contextType: "inbound_email",
+          senderEmail: email.from_email,
+          emailSubject: email.subject,
         },
       });
 
