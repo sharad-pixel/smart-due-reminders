@@ -215,9 +215,11 @@ const Layout = ({ children }: LayoutProps) => {
               </Button>
               
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                  Recouply.ai
-                </h1>
+                <img 
+                  src={recouplyLogo} 
+                  alt="Recouply.ai" 
+                  className="h-8 w-auto"
+                />
               </Link>
               
               {/* Desktop Navigation */}

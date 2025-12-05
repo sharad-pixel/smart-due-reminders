@@ -14,6 +14,7 @@ import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
 import { Check, X } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 // NIST-compliant password requirements
 const passwordRequirements = [
@@ -269,7 +270,11 @@ const Signup = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">Recouply.ai</h1>
+          <img 
+            src={recouplyLogo} 
+            alt="Recouply.ai" 
+            className="h-16 w-auto mx-auto mb-2"
+          />
           <p className="text-muted-foreground">AI-Powered Invoice Collection</p>
         </div>
 
