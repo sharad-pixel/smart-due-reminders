@@ -21,8 +21,44 @@ import {
   RotateCcw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, addHours, addDays, differenceInHours, differenceInDays, isPast } from "date-fns";
 import { toast } from "sonner";
+
+// Calculate expiration info for an upload
+const getExpirationInfo = (upload: any) => {
+  const createdAt = new Date(upload.created_at);
+  const archivedAt = upload.archived_at ? new Date(upload.archived_at) : null;
+  
+  if (upload.status === "archived" && archivedAt) {
+    // Archived uploads are permanently deleted 30 days after archiving
+    const deletionDate = addDays(archivedAt, 30);
+    const daysRemaining = differenceInDays(deletionDate, new Date());
+    const isExpired = isPast(deletionDate);
+    
+    return {
+      type: "deletion" as const,
+      date: deletionDate,
+      remaining: daysRemaining,
+      isExpired,
+      label: isExpired ? "Pending deletion" : `Deletes in ${daysRemaining}d`,
+      urgent: daysRemaining <= 7
+    };
+  } else {
+    // Non-archived uploads are auto-archived 24 hours after creation
+    const archiveDate = addHours(createdAt, 24);
+    const hoursRemaining = differenceInHours(archiveDate, new Date());
+    const isExpired = isPast(archiveDate);
+    
+    return {
+      type: "archive" as const,
+      date: archiveDate,
+      remaining: hoursRemaining,
+      isExpired,
+      label: isExpired ? "Auto-archiving soon" : `Archives in ${hoursRemaining}h`,
+      urgent: hoursRemaining <= 6
+    };
+  }
+};
 
 interface DataCenterUploadsTabProps {
   onStartUpload: (fileType: "invoice_aging" | "payments") => void;
@@ -196,6 +232,8 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
               const StatusIcon = statusConfig.icon;
               const isProcessing = upload.status === "processing" || upload.status === "mapping";
 
+              const expirationInfo = getExpirationInfo(upload);
+
               return (
                 <div
                   key={upload.id}
@@ -225,6 +263,18 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {/* Expiration Counter */}
+                    <div 
+                      className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                        expirationInfo.urgent 
+                          ? "bg-destructive/10 text-destructive" 
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      title={`${expirationInfo.type === "deletion" ? "Permanent deletion" : "Auto-archive"}: ${expirationInfo.date.toLocaleDateString()}`}
+                    >
+                      <Clock className="h-3 w-3" />
+                      {expirationInfo.label}
+                    </div>
                     {upload.row_count > 0 && (
                       <div className="text-sm text-muted-foreground text-right">
                         <p>{upload.processed_count}/{upload.row_count} rows</p>
