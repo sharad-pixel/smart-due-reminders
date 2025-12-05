@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateEmailSignature } from "../_shared/emailSignature.ts";
+import { generateBrandedEmail } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +36,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { recipientEmail, subject, body, draftId, invoiceId, debtorId } = await req.json();
+    const { recipientEmail, subject, body, draftId, invoiceId, debtorId, paymentUrl, invoiceAmount } = await req.json();
 
     if (!recipientEmail || !subject || !body) {
       throw new Error("Missing required fields: recipientEmail, subject, body");
@@ -60,12 +60,20 @@ serve(async (req) => {
     // Fetch branding settings for signature
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
       .eq("user_id", user.id)
       .single();
 
-    const signature = generateEmailSignature(branding || {});
-    const emailBody = body + signature;
+    // Build fully branded email with signature and optional payment link
+    const emailHtml = generateBrandedEmail(
+      body,
+      branding || {},
+      {
+        invoiceId,
+        amount: invoiceAmount,
+        paymentUrl,
+      }
+    );
 
     // Send email via platform send-email function
     const sendEmailResponse = await fetch(
@@ -81,7 +89,7 @@ serve(async (req) => {
           from: PLATFORM_FROM_EMAIL,
           reply_to: replyToEmail,
           subject,
-          html: emailBody,
+          html: emailHtml,
         }),
       }
     );
@@ -126,6 +134,7 @@ serve(async (req) => {
               from_name: "Recouply.ai",
               reply_to_email: replyToEmail,
               platform_send: true,
+              payment_url: paymentUrl || null,
             },
           });
 

@@ -67,6 +67,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Fetch branding settings for the task owner
+    const { data: branding } = await supabase
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
+      .eq("user_id", task.user_id)
+      .single();
+
+    const businessName = branding?.business_name || branding?.from_name || "Your Organization";
+    const primaryColor = branding?.primary_color || "#1e3a5f";
+
     // Build reply-to address for AI processing
     const replyTo = task.invoice_id 
       ? `invoice+${task.invoice_id}@inbound.services.recouply.ai`
@@ -134,6 +144,21 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }
 
+    // Custom signature section
+    const signatureSection = branding?.email_signature 
+      ? `<p style="font-size: 14px; color: #374151; margin: 16px 0; white-space: pre-line;">${branding.email_signature}</p>`
+      : "";
+
+    // Logo section
+    const logoSection = branding?.logo_url
+      ? `<img src="${branding.logo_url}" alt="${businessName}" style="max-width: 140px; height: auto; margin-bottom: 12px;" />`
+      : "";
+
+    // Footer section
+    const footerSection = branding?.email_footer
+      ? `<p style="font-size: 12px; color: #64748b; margin-top: 12px;">${branding.email_footer}</p>`
+      : "";
+
     // Build email HTML
     const html = `
       <!DOCTYPE html>
@@ -142,9 +167,13 @@ const handler = async (req: Request): Promise<Response> => {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Task Assigned to You</h1>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background: linear-gradient(135deg, ${primaryColor} 0%, #2d5a87 100%); padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+          ${branding?.logo_url 
+            ? `<img src="${branding.logo_url}" alt="${businessName}" style="max-height: 48px; max-width: 180px; height: auto; margin-bottom: 12px;" />`
+            : `<h1 style="color: white; margin: 0; font-size: 24px;">${businessName}</h1>`
+          }
+          <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 14px;">Task Assigned to You</p>
         </div>
         
         <div style="background-color: white; padding: 24px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px;">
@@ -186,10 +215,30 @@ const handler = async (req: Request): Promise<Response> => {
               <strong>💡 Tip:</strong> Reply to this email to log your communication. Responses will be processed by AI for further task extraction.
             </p>
           </div>
-        </div>
-        
-        <div style="text-align: center; padding: 16px; color: #999; font-size: 12px;">
-          <p style="margin: 0;">Sent by Recouply.ai • AI-Powered Collections Platform</p>
+
+          <!-- Signature Section -->
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            ${signatureSection}
+            ${logoSection}
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px;">
+              <tr>
+                <td style="vertical-align: top; padding-right: 12px;">
+                  <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 8px; text-align: center; line-height: 40px;">
+                    <span style="color: #ffffff; font-weight: bold; font-size: 16px;">R</span>
+                  </div>
+                </td>
+                <td style="vertical-align: top;">
+                  <p style="margin: 0; font-size: 13px; color: #64748b;">
+                    Sent on behalf of <strong style="color: #1e293b;">${businessName}</strong>
+                  </p>
+                  <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8;">
+                    Powered by <a href="https://recouply.ai" style="color: #2563eb; text-decoration: none;">Recouply.ai</a> • AI-Powered CashOps
+                  </p>
+                </td>
+              </tr>
+            </table>
+            ${footerSection}
+          </div>
         </div>
       </body>
       </html>

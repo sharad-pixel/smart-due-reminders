@@ -1,13 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateEmailSignature } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Platform email configuration (fallback)
-const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
+// Platform email configuration
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 interface Invoice {
@@ -30,16 +30,7 @@ interface RequestBody {
   invoices: Invoice[];
   attachedLinks: AttachedLink[];
   attachedDocs: any[];
-}
-
-interface BrandingSettings {
-  business_name: string;
-  from_name: string | null;
-  from_email: string | null;
-  reply_to_email: string | null;
-  email_signature: string | null;
-  email_footer: string | null;
-  logo_url: string | null;
+  paymentUrl?: string;
 }
 
 serve(async (req) => {
@@ -70,14 +61,14 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { debtorId, subject, message, invoices, attachedLinks, attachedDocs }: RequestBody = await req.json();
+    const { debtorId, subject, message, invoices, attachedLinks, attachedDocs, paymentUrl }: RequestBody = await req.json();
 
     console.log("Sending account summary to debtor:", debtorId);
 
     // Fetch user's branding settings
     const { data: branding, error: brandingError } = await supabase
       .from("branding_settings")
-      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, logo_url")
+      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, logo_url, primary_color")
       .eq("user_id", user.id)
       .single();
 
@@ -85,7 +76,7 @@ serve(async (req) => {
       console.error("Error fetching branding settings:", brandingError);
     }
 
-    const brandingSettings: BrandingSettings = branding || {
+    const brandingSettings = branding || {
       business_name: "Recouply.ai",
       from_name: null,
       from_email: null,
@@ -93,6 +84,7 @@ serve(async (req) => {
       email_signature: null,
       email_footer: null,
       logo_url: null,
+      primary_color: "#1e3a5f",
     };
 
     console.log("Using branding settings:", brandingSettings);
@@ -112,48 +104,49 @@ serve(async (req) => {
       throw new Error("Debtor does not have an email address configured. Please add an email address to send the account summary.");
     }
 
-    // Determine from address - use branding if available, otherwise platform default
+    // Determine from address
     const fromName = brandingSettings.from_name || brandingSettings.business_name || "Recouply.ai";
     const fromEmail = `${fromName} <notifications@send.inbound.services.recouply.ai>`;
     
     // Use platform reply-to address based on debtor for inbound routing
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
+    const primaryColor = brandingSettings.primary_color || "#1e3a5f";
+    const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+
     // Build invoice table HTML
     let invoiceTableHtml = "";
     if (invoices.length > 0) {
-      const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-      
       invoiceTableHtml = `
-        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 600;">Open Invoices</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 600; color: #1e293b;">Open Invoices</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border-radius: 8px; overflow: hidden;">
           <thead>
-            <tr style="background-color: #f3f4f6;">
-              <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Invoice #</th>
-              <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Issue Date</th>
-              <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Due Date</th>
-              <th style="padding: 12px; text-align: right; border: 1px solid #e5e7eb;">Amount</th>
-              <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Status</th>
+            <tr style="background: linear-gradient(135deg, ${primaryColor} 0%, #2d5a87 100%);">
+              <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-weight: 600;">Invoice #</th>
+              <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-weight: 600;">Issue Date</th>
+              <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-weight: 600;">Due Date</th>
+              <th style="padding: 12px 16px; text-align: right; color: #ffffff; font-weight: 600;">Amount</th>
+              <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-weight: 600;">Status</th>
             </tr>
           </thead>
           <tbody>
-            ${invoices.map(inv => `
-              <tr>
-                <td style="padding: 12px; border: 1px solid #e5e7eb; font-family: monospace;">${inv.invoice_number}</td>
-                <td style="padding: 12px; border: 1px solid #e5e7eb;">${new Date(inv.issue_date).toLocaleDateString()}</td>
-                <td style="padding: 12px; border: 1px solid #e5e7eb;">${new Date(inv.due_date).toLocaleDateString()}</td>
-                <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: right; font-weight: 600;">$${inv.amount.toLocaleString()}</td>
-                <td style="padding: 12px; border: 1px solid #e5e7eb;">
-                  <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; ${inv.status === 'Open' ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #ddd6fe; color: #5b21b6;'}">
+            ${invoices.map((inv, idx) => `
+              <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-family: monospace; color: #1e293b;">${inv.invoice_number}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${new Date(inv.issue_date).toLocaleDateString()}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${new Date(inv.due_date).toLocaleDateString()}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; color: #1e293b;">$${inv.amount.toLocaleString()}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                  <span style="padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; ${inv.status === 'Open' ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #ddd6fe; color: #5b21b6;'}">
                     ${inv.status}
                   </span>
                 </td>
               </tr>
             `).join('')}
-            <tr style="background-color: #f9fafb; font-weight: 600;">
-              <td colspan="3" style="padding: 12px; border: 1px solid #e5e7eb; text-align: right;">Total Outstanding:</td>
-              <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: right;">$${totalAmount.toLocaleString()}</td>
-              <td style="padding: 12px; border: 1px solid #e5e7eb;"></td>
+            <tr style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);">
+              <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b;">Total Outstanding:</td>
+              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">$${totalAmount.toLocaleString()}</td>
+              <td style="padding: 14px 16px;"></td>
             </tr>
           </tbody>
         </table>
@@ -164,74 +157,84 @@ serve(async (req) => {
     let linksHtml = "";
     if (attachedLinks.length > 0) {
       linksHtml = `
-        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 600;">Helpful Links</h3>
-        <ul style="list-style-type: none; padding: 0;">
-          ${attachedLinks.map(link => `
-            <li style="margin-bottom: 8px;">
-              <a href="${link.url}" style="color: #2563eb; text-decoration: none;">
-                🔗 ${link.label}
-              </a>
-            </li>
-          `).join('')}
-        </ul>
-      `;
-    }
-
-    // Build signature HTML from branding settings
-    let signatureHtml = "";
-    if (brandingSettings.email_signature) {
-      signatureHtml = `
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-          <div style="white-space: pre-wrap; line-height: 1.5; color: #374151;">
-            ${brandingSettings.email_signature.replace(/\n/g, '<br>')}
-          </div>
+        <div style="margin-top: 24px; padding: 16px; background-color: #f8fafc; border-radius: 8px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1e293b;">Helpful Links</h3>
+          <ul style="list-style-type: none; padding: 0; margin: 0;">
+            ${attachedLinks.map(link => `
+              <li style="margin-bottom: 8px;">
+                <a href="${link.url}" style="color: #2563eb; text-decoration: none; font-weight: 500;">
+                  🔗 ${link.label}
+                </a>
+              </li>
+            `).join('')}
+          </ul>
         </div>
       `;
     }
 
-    // Build footer HTML from branding settings
-    let footerHtml = "";
-    if (brandingSettings.email_footer) {
-      footerHtml = `
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-          <div style="white-space: pre-wrap; line-height: 1.5;">
-            ${brandingSettings.email_footer.replace(/\n/g, '<br>')}
-          </div>
-        </div>
-      `;
-    } else {
-      // Default footer if none configured
-      footerHtml = `
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-          <p>This is an automated message from ${brandingSettings.business_name || 'your collections team'}.</p>
-        </div>
-      `;
-    }
+    // Generate signature with payment link
+    const signature = generateEmailSignature(
+      brandingSettings,
+      {
+        paymentUrl: paymentUrl,
+        amount: totalAmount,
+      }
+    );
 
-    // Build logo HTML if available
-    let logoHtml = "";
-    if (brandingSettings.logo_url) {
-      logoHtml = `
-        <div style="margin-bottom: 24px;">
-          <img src="${brandingSettings.logo_url}" alt="${brandingSettings.business_name}" style="max-height: 60px; max-width: 200px;" />
-        </div>
-      `;
-    }
-
-    // Build email HTML with branding
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        ${logoHtml}
-        <div style="white-space: pre-wrap; line-height: 1.6;">
-          ${message.replace(/\n/g, '<br>')}
-        </div>
-        
-        ${invoiceTableHtml}
-        ${linksHtml}
-        ${signatureHtml}
-        ${footerHtml}
+    // Build email content body
+    const emailContent = `
+      <div style="white-space: pre-wrap; line-height: 1.6; color: #374151;">
+        ${message.replace(/\n/g, '<br>')}
       </div>
+      ${invoiceTableHtml}
+      ${linksHtml}
     `;
+
+    // Build full email HTML with branding wrapper
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
+    <tr>
+      <td style="padding: 32px 20px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="700" style="margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+          <!-- Header with branding -->
+          <tr>
+            <td style="padding: 24px 32px; background: linear-gradient(135deg, ${primaryColor} 0%, #2d5a87 100%); border-radius: 12px 12px 0 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td>
+                    ${brandingSettings.logo_url 
+                      ? `<img src="${brandingSettings.logo_url}" alt="${brandingSettings.business_name}" style="max-height: 48px; max-width: 180px; height: auto;" />`
+                      : `<span style="color: #ffffff; font-size: 20px; font-weight: 700;">${brandingSettings.business_name || 'Account Summary'}</span>`
+                    }
+                  </td>
+                  <td style="text-align: right;">
+                    <span style="color: rgba(255,255,255,0.9); font-size: 14px;">Account Summary</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 32px; color: #1e293b; font-size: 15px;">
+              ${emailContent}
+              ${signature}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
 
     console.log(`Sending email via platform from ${fromEmail} to ${debtor.email}`);
 
@@ -274,12 +277,13 @@ serve(async (req) => {
       sent_at: new Date().toISOString(),
       metadata: {
         invoice_count: invoices.length,
-        total_amount: invoices.reduce((sum, inv) => sum + inv.amount, 0),
+        total_amount: totalAmount,
         attached_links: attachedLinks.length,
         reply_to: replyToAddress,
         platform_send: true,
         branding_applied: !!branding,
         from_name: fromName,
+        payment_url: paymentUrl || null,
       },
     }).select().single();
 
@@ -315,6 +319,7 @@ serve(async (req) => {
             reply_to: replyToAddress,
             platform_send: true,
             branding_applied: !!branding,
+            payment_url: paymentUrl || null,
           },
         });
 

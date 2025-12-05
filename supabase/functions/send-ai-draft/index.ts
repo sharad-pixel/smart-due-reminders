@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateEmailSignature } from "../_shared/emailSignature.ts";
+import { generateBrandedEmail } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,11 +80,9 @@ serve(async (req) => {
     // Fetch branding settings for signature
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
       .eq("user_id", user.id)
       .single();
-
-    const signature = generateEmailSignature(branding || {});
 
     let sendResult = { success: false, message: "", replyTo: "" };
     let sentFrom = PLATFORM_FROM_EMAIL;
@@ -96,8 +94,19 @@ serve(async (req) => {
       
       console.log(`Sending email via platform from ${PLATFORM_FROM_EMAIL} to ${debtor.email} with reply-to: ${replyToAddress}`);
 
-      // Build email body with signature
-      const emailBody = draft.message_body.replace(/\n/g, "<br>") + signature;
+      // Format message body with line breaks
+      const formattedBody = draft.message_body.replace(/\n/g, "<br>");
+
+      // Build fully branded email with signature and payment link
+      const emailHtml = generateBrandedEmail(
+        formattedBody,
+        branding || {},
+        {
+          invoiceId: invoice.id,
+          amount: invoice.amount,
+          // Payment URL would be added here if Stripe payment links are configured
+        }
+      );
 
       // Send via platform send-email function
       const sendEmailResponse = await fetch(
@@ -113,7 +122,7 @@ serve(async (req) => {
             from: PLATFORM_FROM_EMAIL,
             reply_to: replyToAddress,
             subject: draft.subject || "Payment Reminder",
-            html: emailBody,
+            html: emailHtml,
           }),
         }
       );
