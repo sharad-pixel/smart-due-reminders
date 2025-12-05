@@ -15,7 +15,8 @@ import {
   CheckCircle, 
   Loader2,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,81 @@ interface DataCenterUploadWizardProps {
   onClose: () => void;
   fileType: "invoice_aging" | "payments";
 }
+
+// Keywords that indicate payment data
+const PAYMENT_KEYWORDS = [
+  "payment_date", "payment date", "paymentdate", "pay_date", "paid_date", "paid date",
+  "payment_amount", "payment amount", "paymentamount", "pay_amount", "amount_paid", "amount paid",
+  "payment_method", "payment method", "pay_method", "method",
+  "check_number", "check number", "checknumber", "check_no", "check no", "check #",
+  "transaction_id", "transaction id", "transactionid", "trans_id", "reference_number",
+  "applied_amount", "applied amount", "amount_applied", "applied_to",
+  "receipt", "deposit", "remittance"
+];
+
+// Keywords that indicate invoice data
+const INVOICE_KEYWORDS = [
+  "invoice_number", "invoice number", "invoicenumber", "inv_number", "inv number", "inv#", "invoice#", "invoice_no",
+  "invoice_date", "invoice date", "invoicedate", "inv_date", "bill_date", "bill date",
+  "due_date", "due date", "duedate", "payment_due", "due",
+  "invoice_amount", "invoice amount", "total_amount", "amount_due", "amount due", "balance_due", "balance due",
+  "aging_bucket", "aging bucket", "agingbucket", "aging", "days_past_due", "days past due",
+  "outstanding", "open_balance", "open balance", "balance", "original_amount"
+];
+
+const detectFileType = (headers: string[]): { detected: "invoice_aging" | "payments" | "unknown"; confidence: number; reasons: string[] } => {
+  const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+  
+  let paymentScore = 0;
+  let invoiceScore = 0;
+  const paymentReasons: string[] = [];
+  const invoiceReasons: string[] = [];
+
+  normalizedHeaders.forEach(header => {
+    // Check payment keywords
+    const paymentMatch = PAYMENT_KEYWORDS.some(kw => header.includes(kw.toLowerCase()));
+    if (paymentMatch) {
+      paymentScore += 2;
+      paymentReasons.push(header);
+    }
+
+    // Check invoice keywords
+    const invoiceMatch = INVOICE_KEYWORDS.some(kw => header.includes(kw.toLowerCase()));
+    if (invoiceMatch) {
+      invoiceScore += 2;
+      invoiceReasons.push(header);
+    }
+  });
+
+  // Specific high-confidence indicators
+  if (normalizedHeaders.some(h => h.includes("payment_date") || h.includes("payment date") || h === "paid_date")) {
+    paymentScore += 5;
+  }
+  if (normalizedHeaders.some(h => h.includes("check") || h.includes("remittance"))) {
+    paymentScore += 3;
+  }
+  if (normalizedHeaders.some(h => h.includes("invoice_number") || h.includes("invoice number") || h.includes("inv#"))) {
+    invoiceScore += 3;
+  }
+  if (normalizedHeaders.some(h => h.includes("due_date") || h.includes("due date") || h.includes("aging"))) {
+    invoiceScore += 4;
+  }
+
+  const totalScore = paymentScore + invoiceScore;
+  if (totalScore === 0) {
+    return { detected: "unknown", confidence: 0, reasons: [] };
+  }
+
+  if (paymentScore > invoiceScore) {
+    const confidence = Math.min(100, Math.round((paymentScore / (paymentScore + invoiceScore)) * 100));
+    return { detected: "payments", confidence, reasons: paymentReasons.slice(0, 3) };
+  } else if (invoiceScore > paymentScore) {
+    const confidence = Math.min(100, Math.round((invoiceScore / (paymentScore + invoiceScore)) * 100));
+    return { detected: "invoice_aging", confidence, reasons: invoiceReasons.slice(0, 3) };
+  }
+
+  return { detected: "unknown", confidence: 50, reasons: [] };
+};
 
 export interface ParsedFileData {
   headers: string[];
@@ -51,7 +127,7 @@ const STEPS = [
   { id: "complete", label: "Complete", icon: CheckCircle },
 ];
 
-export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUploadWizardProps) => {
+export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileType }: DataCenterUploadWizardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
@@ -62,6 +138,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<any>(null);
+  const [fileType, setFileType] = useState<"invoice_aging" | "payments">(initialFileType);
+  const [detectedType, setDetectedType] = useState<{ detected: "invoice_aging" | "payments" | "unknown"; confidence: number; reasons: string[] } | null>(null);
 
   const { data: fieldDefinitions } = useQuery({
     queryKey: ["field-definitions"],
@@ -128,6 +206,25 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
       const sampleRows = rows.slice(0, 5);
 
       setParsedData({ headers, rows, sampleRows });
+      
+      // Detect file type from headers
+      const detection = detectFileType(headers);
+      setDetectedType(detection);
+      
+      // If detected type differs from selected type with high confidence, auto-switch and notify
+      if (detection.detected !== "unknown" && detection.detected !== fileType && detection.confidence >= 70) {
+        setFileType(detection.detected);
+        toast({
+          title: `File detected as ${detection.detected === "payments" ? "Payments" : "Invoice Aging"}`,
+          description: `Switched to ${detection.detected === "payments" ? "payment" : "invoice"} mapping based on columns: ${detection.reasons.join(", ")}`,
+        });
+      } else if (detection.detected !== "unknown" && detection.detected !== fileType) {
+        toast({
+          title: "File type may not match",
+          description: `This file looks like ${detection.detected === "payments" ? "payment" : "invoice"} data (${detection.confidence}% confidence). You can change the type below if needed.`,
+          variant: "destructive",
+        });
+      }
       
       // Initialize mappings
       const initialMappings: ColumnMapping[] = headers.map(header => ({
@@ -294,6 +391,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
     setSelectedSourceId(null);
     setUploadId(null);
     setProcessResult(null);
+    setDetectedType(null);
+    setFileType(initialFileType);
     onClose();
   };
 
@@ -343,7 +442,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType }: DataCenterUp
               sources={sources || []}
               selectedSourceId={selectedSourceId}
               onSourceSelect={setSelectedSourceId}
-              onCreateSource={onClose} // Close wizard so user can create source
+              onCreateSource={onClose}
+              fileType={fileType}
+              onFileTypeChange={setFileType}
+              detectedType={detectedType}
             />
           )}
 

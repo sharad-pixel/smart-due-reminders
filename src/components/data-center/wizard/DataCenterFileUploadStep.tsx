@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Plus } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Plus, DollarSign, AlertTriangle } from "lucide-react";
 
 interface DataCenterFileUploadStepProps {
   file: File | null;
@@ -20,6 +21,9 @@ interface DataCenterFileUploadStepProps {
   selectedSourceId: string | null;
   onSourceSelect: (sourceId: string | null) => void;
   onCreateSource?: () => void;
+  fileType: "invoice_aging" | "payments";
+  onFileTypeChange: (type: "invoice_aging" | "payments") => void;
+  detectedType?: { detected: "invoice_aging" | "payments" | "unknown"; confidence: number; reasons: string[] } | null;
 }
 
 export const DataCenterFileUploadStep = ({
@@ -29,6 +33,9 @@ export const DataCenterFileUploadStep = ({
   selectedSourceId,
   onSourceSelect,
   onCreateSource,
+  fileType,
+  onFileTypeChange,
+  detectedType,
 }: DataCenterFileUploadStepProps) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -90,6 +97,58 @@ export const DataCenterFileUploadStep = ({
               Select the data source this file comes from. Column mappings will be saved for reuse.
             </p>
           </>
+        )}
+      </div>
+
+      {/* File Type Selection */}
+      <div className="space-y-2">
+        <Label>Data Type</Label>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={fileType === "invoice_aging" ? "default" : "outline"}
+            className="flex-1"
+            onClick={() => onFileTypeChange("invoice_aging")}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Invoice Aging
+          </Button>
+          <Button
+            type="button"
+            variant={fileType === "payments" ? "default" : "outline"}
+            className="flex-1"
+            onClick={() => onFileTypeChange("payments")}
+          >
+            <DollarSign className="h-4 w-4 mr-2" />
+            Payments
+          </Button>
+        </div>
+        
+        {/* Detection Alert */}
+        {detectedType && detectedType.detected !== "unknown" && detectedType.detected !== fileType && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                File appears to be <strong>{detectedType.detected === "payments" ? "Payment" : "Invoice"}</strong> data 
+                ({detectedType.confidence}% confidence based on: {detectedType.reasons.join(", ")})
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => onFileTypeChange(detectedType.detected as "invoice_aging" | "payments")}
+              >
+                Switch Type
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {detectedType && detectedType.detected !== "unknown" && detectedType.detected === fileType && (
+          <div className="flex items-center gap-2 text-sm text-green-600 mt-1">
+            <CheckCircle className="h-4 w-4" />
+            <span>File type matches detected content ({detectedType.confidence}% confidence)</span>
+          </div>
         )}
       </div>
 
