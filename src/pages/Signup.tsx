@@ -224,6 +224,19 @@ const Signup = () => {
         console.error('Failed to send admin alert:', alertErr);
       }
 
+      // Send welcome email
+      try {
+        await supabase.functions.invoke('send-welcome-email', {
+          body: { 
+            email: validatedData.email,
+            userName: validatedData.name,
+            companyName: validatedData.businessName
+          }
+        });
+      } catch (welcomeErr) {
+        console.error('Failed to send welcome email:', welcomeErr);
+      }
+
       // Update profile with plan and business details
       const { error: profileError } = await supabase
         .from('profiles')
