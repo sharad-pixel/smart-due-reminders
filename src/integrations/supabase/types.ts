@@ -1081,6 +1081,87 @@ export type Database = {
           },
         ]
       }
+      daily_digests: {
+        Row: {
+          ar_1_30: number | null
+          ar_120_plus: number | null
+          ar_31_60: number | null
+          ar_61_90: number | null
+          ar_91_120: number | null
+          ar_current: number | null
+          collection_trend: string | null
+          created_at: string | null
+          digest_date: string
+          email_sent_at: string | null
+          health_label: string | null
+          health_score: number | null
+          high_risk_ar_outstanding: number | null
+          high_risk_customers_count: number | null
+          id: string
+          open_tasks_count: number | null
+          overdue_tasks_count: number | null
+          payments_collected_last_7_days: number | null
+          payments_collected_prev_7_days: number | null
+          payments_collected_today: number | null
+          tasks_created_today: number | null
+          total_ar_outstanding: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ar_1_30?: number | null
+          ar_120_plus?: number | null
+          ar_31_60?: number | null
+          ar_61_90?: number | null
+          ar_91_120?: number | null
+          ar_current?: number | null
+          collection_trend?: string | null
+          created_at?: string | null
+          digest_date: string
+          email_sent_at?: string | null
+          health_label?: string | null
+          health_score?: number | null
+          high_risk_ar_outstanding?: number | null
+          high_risk_customers_count?: number | null
+          id?: string
+          open_tasks_count?: number | null
+          overdue_tasks_count?: number | null
+          payments_collected_last_7_days?: number | null
+          payments_collected_prev_7_days?: number | null
+          payments_collected_today?: number | null
+          tasks_created_today?: number | null
+          total_ar_outstanding?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ar_1_30?: number | null
+          ar_120_plus?: number | null
+          ar_31_60?: number | null
+          ar_61_90?: number | null
+          ar_91_120?: number | null
+          ar_current?: number | null
+          collection_trend?: string | null
+          created_at?: string | null
+          digest_date?: string
+          email_sent_at?: string | null
+          health_label?: string | null
+          health_score?: number | null
+          high_risk_ar_outstanding?: number | null
+          high_risk_customers_count?: number | null
+          id?: string
+          open_tasks_count?: number | null
+          overdue_tasks_count?: number | null
+          payments_collected_last_7_days?: number | null
+          payments_collected_prev_7_days?: number | null
+          payments_collected_today?: number | null
+          tasks_created_today?: number | null
+          total_ar_outstanding?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_center_custom_fields: {
         Row: {
           created_at: string

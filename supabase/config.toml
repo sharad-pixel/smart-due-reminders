@@ -191,3 +191,6 @@ verify_jwt = true
 
 [functions.invoice-collectability-report]
 verify_jwt = true
+
+[functions.daily-digest-runner]
+verify_jwt = false
