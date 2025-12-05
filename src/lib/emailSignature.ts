@@ -128,11 +128,6 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}):
                       : `<span style="color: #ffffff; font-size: 20px; font-weight: 700;">${escapeHtml(businessName)}</span>`
                     }
                   </td>
-                  <td style="text-align: right;">
-                    <span style="display: inline-block; background: rgba(255, 255, 255, 0.15); color: #ffffff; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                      via Recouply.ai
-                    </span>
-                  </td>
                 </tr>
               </table>
             </td>
