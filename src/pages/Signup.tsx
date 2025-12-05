@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
-import { Check, X, Sparkles, Zap, Users, FileText, Bot } from "lucide-react";
+import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 
 // NIST-compliant password requirements
@@ -44,6 +44,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingWhitelist, setCheckingWhitelist] = useState(false);
 
   // Calculate password strength
   const passedRequirements = passwordRequirements.filter(req => req.test(password));
@@ -68,6 +69,34 @@ const Signup = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkWhitelist = async (emailToCheck: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-whitelist', {
+        body: { email: emailToCheck }
+      });
+      
+      if (error) {
+        console.error('Whitelist check error:', error);
+        return false;
+      }
+      
+      return data?.isWhitelisted === true;
+    } catch (err) {
+      console.error('Whitelist check failed:', err);
+      return false;
+    }
+  };
+
+  const markWhitelistUsed = async (emailToMark: string) => {
+    try {
+      await supabase.functions.invoke('mark-whitelist-used', {
+        body: { email: emailToMark }
+      });
+    } catch (err) {
+      console.error('Failed to mark whitelist as used:', err);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -97,6 +126,7 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setCheckingWhitelist(true);
 
     try {
       const validatedData = signupSchema.parse({
@@ -105,6 +135,22 @@ const Signup = () => {
         password,
         businessName,
       });
+
+      // Check whitelist first
+      const isWhitelisted = await checkWhitelist(validatedData.email);
+      setCheckingWhitelist(false);
+      
+      if (!isWhitelisted) {
+        toast.error("This email is not on the early access list. Please contact us at support@recouply.ai to request an invite.");
+        await logSecurityEvent({
+          eventType: "signup",
+          email: validatedData.email,
+          success: false,
+          failureReason: "Email not on whitelist",
+        });
+        setLoading(false);
+        return;
+      }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
@@ -133,6 +179,9 @@ const Signup = () => {
         throw authError;
       }
       if (!authData.user) throw new Error("Failed to create account");
+
+      // Mark whitelist as used
+      await markWhitelistUsed(validatedData.email);
 
       await logSecurityEvent({
         eventType: "signup",
@@ -196,6 +245,7 @@ const Signup = () => {
       }
     } finally {
       setLoading(false);
+      setCheckingWhitelist(false);
     }
   };
 
@@ -209,8 +259,8 @@ const Signup = () => {
         {/* Early Access Banner */}
         <div className="text-center mb-6">
           <Badge variant="secondary" className="mb-4 px-4 py-1.5 text-sm bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="w-4 h-4 mr-2" />
-            Early Access Program
+            <Lock className="w-4 h-4 mr-2" />
+            Invite-Only Early Access
           </Badge>
           <h1 className="text-4xl font-bold mb-2">
             <span className="text-foreground">Recouply</span>
@@ -244,16 +294,16 @@ const Signup = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              We're in early trial phase. Enjoy full platform access while we perfect our AI collection agents.
+              Access is currently invite-only. Contact support@recouply.ai to request an invite.
             </p>
           </CardContent>
         </Card>
 
         <Card className="border-2">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-xl">Get Started Free</CardTitle>
+            <CardTitle className="text-xl">Join Early Access</CardTitle>
             <CardDescription>
-              Join the early access program and experience AI-powered collections
+              Sign up with your invited email address
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -309,7 +359,7 @@ const Signup = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Work Email</Label>
+                <Label htmlFor="email">Invited Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -380,7 +430,7 @@ const Signup = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Start Free Trial"}
+                {checkingWhitelist ? "Verifying invite..." : loading ? "Creating account..." : "Join Early Access"}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
@@ -401,6 +451,16 @@ const Signup = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Request Access Info */}
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg border text-center">
+          <p className="text-sm text-muted-foreground">
+            Don't have an invite?{" "}
+            <a href="mailto:support@recouply.ai?subject=Early Access Request" className="text-primary font-medium hover:underline">
+              Request access
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

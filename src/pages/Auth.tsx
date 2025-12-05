@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
-import { Sparkles, Zap, Users } from "lucide-react";
+import { Lock, Zap, Users } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -19,18 +19,60 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+
+  const checkWhitelist = async (emailToCheck: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-whitelist', {
+        body: { email: emailToCheck }
+      });
+      
+      if (error) {
+        console.error('Whitelist check error:', error);
+        return false;
+      }
+      
+      return data?.isWhitelisted === true;
+    } catch (err) {
+      console.error('Whitelist check failed:', err);
+      return false;
+    }
+  };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
+        // Check whitelist for OAuth users
+        const isWhitelisted = await checkWhitelist(session.user.email || '');
+        
+        if (!isWhitelisted) {
+          // Sign out non-whitelisted OAuth users
+          await supabase.auth.signOut();
+          toast.error("Your email is not on the early access list. Please contact support@recouply.ai to request an invite.");
+          return;
+        }
+        
         navigate("/dashboard");
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
+        // Check whitelist for existing session
+        const isWhitelisted = await checkWhitelist(session.user.email || '');
+        
+        if (!isWhitelisted) {
+          await supabase.auth.signOut();
+          toast.error("Your email is not on the early access list. Please contact support@recouply.ai to request an invite.");
+          return;
+        }
+        
         navigate("/dashboard");
       }
     });
@@ -68,6 +110,21 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Check whitelist first
+      const isWhitelisted = await checkWhitelist(email);
+      
+      if (!isWhitelisted) {
+        await logSecurityEvent({
+          eventType: "login",
+          email,
+          success: false,
+          failureReason: "Email not on whitelist"
+        });
+        toast.error("Your email is not on the early access list. Please contact support@recouply.ai to request an invite.");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -107,8 +164,8 @@ const Auth = () => {
         {/* Early Access Banner */}
         <div className="text-center mb-6">
           <Badge variant="secondary" className="mb-4 px-4 py-1.5 text-sm bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="w-4 h-4 mr-2" />
-            Early Access Program
+            <Lock className="w-4 h-4 mr-2" />
+            Invite-Only Early Access
           </Badge>
           <h1 className="text-4xl font-bold mb-2">
             <span className="text-foreground">Recouply</span>
@@ -186,7 +243,7 @@ const Auth = () => {
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link to="/signup" className="text-primary font-medium hover:underline">
-                  Sign up free
+                  Sign up
                 </Link>
               </p>
             </div>
@@ -197,18 +254,17 @@ const Auth = () => {
         <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <Zap className="w-4 h-4 text-primary" />
-            <span className="font-medium">Early Access Benefits</span>
+            <span className="font-medium">Invite-Only Access</span>
           </div>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li className="flex items-center gap-2">
-              <Users className="w-3 h-3" />
-              Free access to all 6 AI collection agents
-            </li>
-            <li className="flex items-center gap-2">
-              <Sparkles className="w-3 h-3" />
-              Up to 15 invoices included
-            </li>
-          </ul>
+          <p className="text-xs text-muted-foreground mb-2">
+            Recouply.ai is currently in early access. Only invited users can sign in.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Need an invite?{" "}
+            <a href="mailto:support@recouply.ai?subject=Early Access Request" className="text-primary hover:underline">
+              Request access
+            </a>
+          </p>
         </div>
       </div>
     </div>
