@@ -19,7 +19,8 @@ import {
   Search,
   DollarSign,
   FileText,
-  Loader2
+  Loader2,
+  Building2
 } from "lucide-react";
 import { ReconciliationDetailModal } from "@/components/reconciliation/ReconciliationDetailModal";
 
@@ -64,14 +65,14 @@ const Reconciliation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch payments with their suggested links
-  const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ["reconciliation-payments", activeTab],
+  // Fetch ALL payments to calculate proper counts for all tabs
+  const { data: allPayments, isLoading: allPaymentsLoading } = useQuery({
+    queryKey: ["all-reconciliation-payments"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("payments")
         .select(`
           *,
@@ -80,19 +81,28 @@ const Reconciliation = () => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (activeTab === "needs_review") {
-        query = query.in("reconciliation_status", ["ai_suggested", "needs_review"]);
-      } else if (activeTab === "unapplied") {
-        query = query.in("reconciliation_status", ["pending", "unapplied"]);
-      } else if (activeTab === "matched") {
-        query = query.in("reconciliation_status", ["auto_matched", "manually_matched"]);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data as Payment[];
     },
   });
+
+  // Filter payments based on active tab
+  const payments = allPayments?.filter((p) => {
+    if (activeTab === "needs_review") {
+      return ["ai_suggested", "needs_review"].includes(p.reconciliation_status);
+    } else if (activeTab === "account_matched") {
+      // Payments matched to account but not yet to an invoice
+      return p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status);
+    } else if (activeTab === "unapplied") {
+      // Payments NOT matched to any account
+      return !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status);
+    } else if (activeTab === "matched") {
+      return ["auto_matched", "manually_matched"].includes(p.reconciliation_status);
+    }
+    return true;
+  });
+
+  const paymentsLoading = allPaymentsLoading;
 
   // Fetch payment links for display
   const { data: paymentLinks } = useQuery({
@@ -284,7 +294,7 @@ const Reconciliation = () => {
         </div>
 
         {/* Summary cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -294,7 +304,20 @@ const Reconciliation = () => {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                {payments?.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length || 0}
+                {allPayments?.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length || 0}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-blue-500" />
+                Account Matched
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {allPayments?.filter(p => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length || 0}
               </p>
             </CardContent>
           </Card>
@@ -302,12 +325,12 @@ const Reconciliation = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-500" />
-                Unapplied
+                Unmatched
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                {payments?.filter(p => ["pending", "unapplied"].includes(p.reconciliation_status)).length || 0}
+                {allPayments?.filter(p => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length || 0}
               </p>
             </CardContent>
           </Card>
@@ -315,12 +338,12 @@ const Reconciliation = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                Matched
+                Fully Matched
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                {payments?.filter(p => ["auto_matched", "manually_matched"].includes(p.reconciliation_status)).length || 0}
+                {allPayments?.filter(p => ["auto_matched", "manually_matched"].includes(p.reconciliation_status)).length || 0}
               </p>
             </CardContent>
           </Card>
@@ -341,17 +364,32 @@ const Reconciliation = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="needs_review">
               AI Suggested
-              {payments?.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length > 0 && (
+              {allPayments?.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length > 0 && (
                 <Badge className="ml-2" variant="secondary">
-                  {payments.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length}
+                  {allPayments.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="unapplied">Unapplied</TabsTrigger>
-            <TabsTrigger value="matched">Matched</TabsTrigger>
+            <TabsTrigger value="account_matched">
+              Account Matched
+              {allPayments?.filter(p => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length > 0 && (
+                <Badge className="ml-2" variant="secondary">
+                  {allPayments.filter(p => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="unapplied">
+              Unmatched
+              {allPayments?.filter(p => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length > 0 && (
+                <Badge className="ml-2" variant="secondary">
+                  {allPayments.filter(p => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="matched">Fully Matched</TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-4">
@@ -367,8 +405,10 @@ const Reconciliation = () => {
                   <p className="text-sm text-muted-foreground">
                     {activeTab === "needs_review"
                       ? "All AI suggestions have been reviewed"
+                      : activeTab === "account_matched"
+                      ? "No payments matched to accounts pending invoice matching"
                       : activeTab === "unapplied"
-                      ? "No unapplied payments"
+                      ? "No unmatched payments"
                       : "No matched payments yet"}
                   </p>
                 </CardContent>
@@ -384,12 +424,21 @@ const Reconciliation = () => {
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between">
                           <div>
-                            <CardTitle className="text-base">
-                              {payment.debtors?.company_name || payment.debtors?.name}
-                            </CardTitle>
+                            <div className="flex items-center gap-2 mb-1">
+                              <CardTitle className="text-base">
+                                {payment.debtors?.company_name || payment.debtors?.name || "Unknown Account"}
+                              </CardTitle>
+                              {payment.debtor_id && ["pending", "unapplied"].includes(payment.reconciliation_status) && (
+                                <Badge className="bg-blue-100 text-blue-800">
+                                  <Building2 className="h-3 w-3 mr-1" />
+                                  Account Linked
+                                </Badge>
+                              )}
+                            </div>
                             <CardDescription>
                               {format(new Date(payment.payment_date), "MMM d, yyyy")}
                               {payment.reference && ` • Ref: ${payment.reference}`}
+                              {payment.invoice_number_hint && ` • Invoice Hint: ${payment.invoice_number_hint}`}
                             </CardDescription>
                           </div>
                           <div className="text-right">
@@ -472,7 +521,9 @@ const Reconciliation = () => {
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-muted-foreground">
                               {activeTab === "matched"
-                                ? "Payment has been matched"
+                                ? "Payment has been matched to invoice"
+                                : activeTab === "account_matched"
+                                ? "Linked to account - needs invoice match"
                                 : "No suggested matches found"}
                             </p>
                             <Button
@@ -483,7 +534,7 @@ const Reconciliation = () => {
                                 setDetailModalOpen(true);
                               }}
                             >
-                              Manual Match
+                              {activeTab === "account_matched" ? "Match to Invoice" : "Manual Match"}
                             </Button>
                           </div>
                         )}
