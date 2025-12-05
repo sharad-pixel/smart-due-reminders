@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
-import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock } from "lucide-react";
+import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock, Mail, ArrowRight } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 
 // NIST-compliant password requirements
@@ -47,6 +48,10 @@ const Signup = () => {
   const [checkingWhitelist, setCheckingWhitelist] = useState(false);
   const [isInviteFlow, setIsInviteFlow] = useState(false);
   const [inviteProcessing, setInviteProcessing] = useState(true);
+  const [showRequestAccess, setShowRequestAccess] = useState(false);
+  const [requestName, setRequestName] = useState("");
+  const [requestEmail, setRequestEmail] = useState("");
+  const [requestingAccess, setRequestingAccess] = useState(false);
 
   // Calculate password strength
   const passedRequirements = passwordRequirements.filter(req => req.test(password));
@@ -598,15 +603,113 @@ const Signup = () => {
 
         {/* Request Access Info */}
         {!(isInviteFlow && user) && (
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border text-center">
-            <p className="text-sm text-muted-foreground">
-              Don't have an invite?{" "}
-              <a href="mailto:support@recouply.ai?subject=Early Access Request" className="text-primary font-medium hover:underline">
-                Request access
-              </a>
-            </p>
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-3">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="font-medium">Don't have an invite?</span>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setShowRequestAccess(true)}
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Request Early Access
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
         )}
+
+        {/* Request Early Access Dialog */}
+        <Dialog open={showRequestAccess} onOpenChange={setShowRequestAccess}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request Early Access</DialogTitle>
+              <DialogDescription>
+                Enter your details and we'll review your request for early access to Recouply.ai.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              
+              if (!requestName.trim()) {
+                toast.error("Please enter your name");
+                return;
+              }
+              
+              setRequestingAccess(true);
+
+              try {
+                const { error } = await supabase
+                  .from('waitlist_signups')
+                  .insert([{ email: requestEmail, name: requestName.trim() }]);
+                
+                if (error) {
+                  if (error.code === '23505') {
+                    toast.error("This email is already on the waitlist!");
+                  } else {
+                    throw error;
+                  }
+                } else {
+                  try {
+                    await supabase.functions.invoke('send-admin-alert', {
+                      body: { type: 'waitlist', email: requestEmail, name: requestName.trim() }
+                    });
+                  } catch (alertErr) {
+                    console.error('Failed to send admin alert:', alertErr);
+                  }
+                  
+                  toast.success("Thanks! We'll review your request and get back to you soon.", {
+                    description: "You've been added to the early access waitlist."
+                  });
+                  setShowRequestAccess(false);
+                  setRequestName("");
+                  setRequestEmail("");
+                }
+              } catch (error) {
+                console.error('Error saving to waitlist:', error);
+                toast.error("Something went wrong. Please try again.");
+              } finally {
+                setRequestingAccess(false);
+              }
+            }} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="request-name">Name</Label>
+                <Input
+                  id="request-name"
+                  type="text"
+                  value={requestName}
+                  onChange={(e) => setRequestName(e.target.value)}
+                  required
+                  placeholder="Your name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="request-email">Email</Label>
+                <Input
+                  id="request-email"
+                  type="email"
+                  value={requestEmail}
+                  onChange={(e) => setRequestEmail(e.target.value)}
+                  required
+                  placeholder="you@company.com"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowRequestAccess(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={requestingAccess}>
+                  {requestingAccess ? "Submitting..." : "Request Access"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
