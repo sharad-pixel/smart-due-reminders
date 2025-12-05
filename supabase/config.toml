@@ -203,3 +203,6 @@ verify_jwt = true
 
 [functions.moderated-image-upload]
 verify_jwt = true
+
+[functions.nicolas-escalate-support]
+verify_jwt = false

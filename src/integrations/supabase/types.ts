@@ -2917,6 +2917,45 @@ export type Database = {
         }
         Relationships: []
       }
+      nicolas_escalations: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          email_sent: boolean | null
+          escalation_reason: string | null
+          id: string
+          organization_id: string | null
+          page_route: string | null
+          question: string
+          transcript_excerpt: string | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          email_sent?: boolean | null
+          escalation_reason?: string | null
+          id?: string
+          organization_id?: string | null
+          page_route?: string | null
+          question: string
+          transcript_excerpt?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          email_sent?: boolean | null
+          escalation_reason?: string | null
+          id?: string
+          organization_id?: string | null
+          page_route?: string | null
+          question?: string
+          transcript_excerpt?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string

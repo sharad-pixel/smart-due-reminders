@@ -38,6 +38,7 @@ import { SecurityAlert } from "@/components/SecurityAlert";
 import { DigestNotificationBanner } from "@/components/DigestNotificationBanner";
 import { logAuditEvent } from "@/lib/auditLog";
 import recouplyLogo from "@/assets/recouply-logo.png";
+import NicolasChat from "@/components/NicolasChat";
 
 interface LayoutProps {
   children: ReactNode;
@@ -413,6 +414,7 @@ const Layout = ({ children }: LayoutProps) => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {children}
       </main>
+      <NicolasChat />
     </div>
   );
 };

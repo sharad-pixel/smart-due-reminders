@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import recouplyLogo from "@/assets/recouply-logo.png";
+import NicolasChat from "@/components/NicolasChat";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -162,6 +163,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           </div>
         </div>
       </footer>
+      <NicolasChat />
     </div>
   );
 };
