@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { TasksSummaryCard } from "@/components/TasksSummaryCard";
-import { useCollectionTasks } from "@/hooks/useCollectionTasks";
+import { useCollectionTasks, CollectionTask } from "@/hooks/useCollectionTasks";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import { RiskEngineCard } from "@/components/RiskEngineCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import AccountSummaryModal from "@/components/AccountSummaryModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ResponseActivityCard } from "@/components/ResponseActivityCard";
 import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
@@ -113,6 +114,8 @@ const DebtorDetail = () => {
   const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -620,7 +623,14 @@ const DebtorDetail = () => {
                     </TableHeader>
                     <TableBody>
                       {tasks.map((task) => (
-                        <TableRow key={task.id}>
+                        <TableRow 
+                          key={task.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => {
+                            setSelectedTask(task as CollectionTask);
+                            setIsTaskDetailOpen(true);
+                          }}
+                        >
                           <TableCell className="text-sm">
                             {new Date(task.created_at).toLocaleDateString()}
                           </TableCell>
@@ -925,6 +935,32 @@ const DebtorDetail = () => {
           debtorId={debtor.id}
           debtorName={debtor.company_name}
           onInvoiceCreated={fetchInvoices}
+        />
+
+        <TaskDetailModal
+          task={selectedTask}
+          open={isTaskDetailOpen}
+          onOpenChange={setIsTaskDetailOpen}
+          onStatusChange={async (taskId, status) => {
+            await supabase
+              .from("collection_tasks")
+              .update({ status, completed_at: status === "done" ? new Date().toISOString() : null })
+              .eq("id", taskId);
+            fetchAllTasks();
+            toast.success("Task updated");
+          }}
+          onDelete={async (taskId) => {
+            await supabase.from("collection_tasks").delete().eq("id", taskId);
+            fetchAllTasks();
+            toast.success("Task deleted");
+          }}
+          onAssign={async (taskId, assignedTo, assignedPersona) => {
+            await supabase
+              .from("collection_tasks")
+              .update({ assigned_to: assignedTo, assigned_persona: assignedPersona })
+              .eq("id", taskId);
+            fetchAllTasks();
+          }}
         />
       </div>
     </Layout>
