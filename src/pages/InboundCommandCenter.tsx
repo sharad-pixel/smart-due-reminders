@@ -404,8 +404,8 @@ const InboundCommandCenter = () => {
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<CollectionTask | null>(null);
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
+  const [contextInvoiceId, setContextInvoiceId] = useState<string | null>(null);
   const isMobile = useIsMobile();
-
   const handleTaskClick = (task: EmailTask) => {
     // Convert EmailTask to CollectionTask format
     setSelectedTaskForDetail({
@@ -482,6 +482,13 @@ const InboundCommandCenter = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const emailIdParam = searchParams.get("email");
+    const invoiceIdParam = searchParams.get("invoiceId");
+    
+    // Store invoice_id from task context for AI response generation
+    if (invoiceIdParam) {
+      setContextInvoiceId(invoiceIdParam);
+    }
+    
     if (emailIdParam && emails.length > 0) {
       const emailToOpen = emails.find(e => e.id === emailIdParam);
       if (emailToOpen) {
@@ -725,7 +732,10 @@ const InboundCommandCenter = () => {
   };
 
   const handleGenerateAIResponse = async (email: InboundEmail) => {
-    if (!email.invoice_id) {
+    // Use invoice_id from email, or fallback to context from task navigation
+    const invoiceId = email.invoice_id || contextInvoiceId;
+    
+    if (!invoiceId) {
       toast.error("Cannot generate AI response: No linked invoice found");
       return;
     }
@@ -735,7 +745,7 @@ const InboundCommandCenter = () => {
       const { data, error } = await supabase.functions.invoke("process-persona-command", {
         body: {
           command: `Respond to this customer email: "${email.subject || 'No subject'}"\n\nEmail content:\n${email.text_body || email.html_body || 'No content'}`,
-          contextInvoiceId: email.invoice_id,
+          contextInvoiceId: invoiceId,
           contextType: "inbound_email",
         },
       });

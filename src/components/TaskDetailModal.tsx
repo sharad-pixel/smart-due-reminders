@@ -240,7 +240,7 @@ export const TaskDetailModal = ({
               <p className="text-xs text-muted-foreground italic">{task.ai_reasoning}</p>
               {(task as any).inbound_email_id && (
                 <a 
-                  href={`/inbound?email=${(task as any).inbound_email_id}`}
+                  href={`/inbound?email=${(task as any).inbound_email_id}${task.invoice_id ? `&invoiceId=${task.invoice_id}` : ''}`}
                   className="text-xs text-primary hover:underline mt-1 inline-block"
                 >
                   View Source Email →
@@ -317,7 +317,7 @@ export const TaskDetailModal = ({
             <div className="pt-2 border-t">
               <h4 className="font-semibold text-sm mb-2">Source</h4>
               <a 
-                href={`/inbound?email=${(task as any).inbound_email_id}`}
+                href={`/inbound?email=${(task as any).inbound_email_id}${task.invoice_id ? `&invoiceId=${task.invoice_id}` : ''}`}
                 className="text-sm text-primary hover:underline"
               >
                 View Source Email →
