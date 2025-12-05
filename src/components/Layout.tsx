@@ -22,7 +22,8 @@ import {
   Inbox,
   ChevronDown,
   Bot,
-  Database
+  Database,
+  CalendarDays
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { SecurityAlert } from "@/components/SecurityAlert";
+import { DigestNotificationBanner } from "@/components/DigestNotificationBanner";
 import { logAuditEvent } from "@/lib/auditLog";
 import recouplyLogo from "@/assets/recouply-logo.png";
 
@@ -180,6 +182,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
+    { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
   ];
 
   const adminItems = [
@@ -197,6 +200,7 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <SecurityAlert />
+      <DigestNotificationBanner />
       <nav className="fixed top-0 left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">

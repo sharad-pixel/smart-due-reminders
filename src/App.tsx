@@ -53,6 +53,7 @@ import Reconciliation from "./pages/Reconciliation";
 import ARAging from "./pages/ARAging";
 import DataCenter from "./pages/DataCenter";
 import DataCenterReview from "./pages/DataCenterReview";
+import DailyDigest from "./pages/DailyDigest";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => (
         <Route path="/ar-aging" element={<ARAging />} />
         <Route path="/data-center" element={<DataCenter />} />
         <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
+        <Route path="/daily-digest" element={<DailyDigest />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
