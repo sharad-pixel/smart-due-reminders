@@ -18,6 +18,9 @@ import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
 import { PaymentActivityCard } from "@/components/PaymentActivityCard";
 import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
+import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
+import { SavedViewsManager } from "@/components/SavedViewsManager";
+
 interface Invoice {
   id: string;
   invoice_number: string;
@@ -76,6 +79,41 @@ const Dashboard = () => {
   // Sorting state for Accounts table
   const [accountSortKey, setAccountSortKey] = useState<string | null>("payment_score");
   const [accountSortDir, setAccountSortDir] = useState<SortDirection>("asc");
+
+  // Saved views
+  const {
+    savedViews,
+    activeView,
+    saveView,
+    updateView,
+    deleteView,
+    setDefaultView,
+    loadView,
+    clearActiveView
+  } = useSavedViews('/dashboard');
+
+  // Build current view config
+  const currentConfig: ViewConfig = useMemo(() => ({
+    filters: { searchTerm, riskFilter, scoreFilter, statusFilters },
+    sorting: overdueSortKey ? { column: overdueSortKey, direction: overdueSortDir || 'asc' } : undefined
+  }), [searchTerm, riskFilter, scoreFilter, statusFilters, overdueSortKey, overdueSortDir]);
+
+  // Apply loaded view config
+  useEffect(() => {
+    if (activeView?.view_config) {
+      const config = activeView.view_config;
+      if (config.filters) {
+        if (config.filters.searchTerm !== undefined) setSearchTerm(config.filters.searchTerm);
+        if (config.filters.riskFilter !== undefined) setRiskFilter(config.filters.riskFilter);
+        if (config.filters.scoreFilter !== undefined) setScoreFilter(config.filters.scoreFilter);
+        if (config.filters.statusFilters !== undefined) setStatusFilters(config.filters.statusFilters);
+      }
+      if (config.sorting) {
+        setOverdueSortKey(config.sorting.column);
+        setOverdueSortDir(config.sorting.direction as SortDirection);
+      }
+    }
+  }, [activeView]);
   
   const handleOverdueSort = (key: string) => {
     if (overdueSortKey === key) {
@@ -310,11 +348,24 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-            Welcome back! Here's your collection overview.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
+              Welcome back! Here's your collection overview.
+            </p>
+          </div>
+          <SavedViewsManager
+            savedViews={savedViews}
+            activeView={activeView}
+            currentConfig={currentConfig}
+            onSave={saveView}
+            onUpdate={updateView}
+            onDelete={deleteView}
+            onSetDefault={setDefaultView}
+            onLoad={loadView}
+            onClear={clearActiveView}
+          />
         </div>
 
         {/* Usage Indicator */}
