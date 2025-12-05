@@ -1474,145 +1474,284 @@ const InboundCommandCenter = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* AI Response Dialog */}
-      <Dialog open={aiResponseDialogOpen} onOpenChange={(open) => {
-        if (!open && generatedResponse && selectedEmail) {
-          // Create a pending response task when closing without sending
-          createPendingResponseTask(selectedEmail);
-        }
-        setAiResponseDialogOpen(open);
-        if (!open) setGeneratedResponse(null);
-      }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-purple-500" />
-              AI Generated Response
-            </DialogTitle>
-            <DialogDescription>
-              Review and edit the response, then send or save as draft
-            </DialogDescription>
-          </DialogHeader>
-          {generatedResponse && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="response-subject">Subject</Label>
-                <Input
-                  id="response-subject"
-                  value={generatedResponse.subject || ""}
-                  onChange={(e) => setGeneratedResponse({ ...generatedResponse, subject: e.target.value })}
-                />
+      {/* AI Response Dialog - Mobile uses Drawer, Desktop uses Dialog */}
+      {isMobile ? (
+        <Drawer open={aiResponseDialogOpen} onOpenChange={(open) => {
+          if (!open && generatedResponse && selectedEmail) {
+            createPendingResponseTask(selectedEmail);
+          }
+          setAiResponseDialogOpen(open);
+          if (!open) setGeneratedResponse(null);
+        }}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                AI Generated Response
+              </DrawerTitle>
+              <DrawerDescription>
+                Review and edit the response, then send or save as draft
+              </DrawerDescription>
+            </DrawerHeader>
+            <ScrollArea className="px-4 pb-4 max-h-[60vh]">
+              {generatedResponse && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="response-subject-mobile">Subject</Label>
+                    <Input
+                      id="response-subject-mobile"
+                      value={generatedResponse.subject || ""}
+                      onChange={(e) => setGeneratedResponse({ ...generatedResponse, subject: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="response-body-mobile">Message</Label>
+                    <Textarea
+                      id="response-body-mobile"
+                      value={generatedResponse.body}
+                      onChange={(e) => setGeneratedResponse({ ...generatedResponse, body: e.target.value })}
+                      rows={8}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
+            <div className="p-4 border-t space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={async () => {
+                    if (!selectedEmail || !generatedResponse) return;
+                    setIsSendingResponse(true);
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error("Not authenticated");
+                      
+                      const { error: sendError } = await supabase.functions.invoke("send-email", {
+                        body: {
+                          to: selectedEmail.from_email,
+                          subject: generatedResponse.subject,
+                          body: generatedResponse.body,
+                          replyToInvoiceId: selectedEmail.invoice_id || contextInvoiceId,
+                        },
+                      });
+                      
+                      if (sendError) throw sendError;
+                      
+                      await supabase.from("inbound_emails").update({
+                        action_status: "closed",
+                        action_closed_at: new Date().toISOString(),
+                        action_closed_by: user.id,
+                        action_notes: "Responded via AI-generated email",
+                      }).eq("id", selectedEmail.id);
+                      
+                      toast.success("Response sent successfully");
+                      setAiResponseDialogOpen(false);
+                      setGeneratedResponse(null);
+                      loadEmails();
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to send response");
+                    } finally {
+                      setIsSendingResponse(false);
+                    }
+                  }}
+                  disabled={isSendingResponse}
+                >
+                  {isSendingResponse ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4 mr-2" />
+                  )}
+                  Send Response
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="response-body">Message</Label>
-                <Textarea
-                  id="response-body"
-                  value={generatedResponse.body}
-                  onChange={(e) => setGeneratedResponse({ ...generatedResponse, body: e.target.value })}
-                  rows={12}
-                  className="font-mono text-sm"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setGeneratedResponse(null);
-                  setAiResponseDialogOpen(false);
-                  toast.info("Response discarded");
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-            <div className="flex gap-2 ml-auto">
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  if (!selectedEmail || !generatedResponse) return;
-                  await createPendingResponseTask(selectedEmail);
-                  try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) throw new Error("Not authenticated");
-                    
-                    const { error } = await supabase.from("ai_drafts").insert({
-                      user_id: user.id,
-                      invoice_id: selectedEmail.invoice_id!,
-                      channel: "email",
-                      subject: generatedResponse.subject,
-                      message_body: generatedResponse.body,
-                      status: "pending_approval",
-                      step_number: 0,
-                    });
-                    
-                    if (error) throw error;
-                    toast.success("Draft saved - response pending task created");
-                    setAiResponseDialogOpen(false);
-                    setGeneratedResponse(null);
-                  } catch (err: any) {
-                    toast.error(err.message || "Failed to save draft");
-                  }
-                }}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Save Draft
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!selectedEmail || !generatedResponse) return;
-                  setIsSendingResponse(true);
-                  try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) throw new Error("Not authenticated");
-                    
-                    // Send the email
-                    const { error: sendError } = await supabase.functions.invoke("send-email", {
-                      body: {
-                        to: selectedEmail.from_email,
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={async () => {
+                    if (!selectedEmail || !generatedResponse) return;
+                    await createPendingResponseTask(selectedEmail);
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error("Not authenticated");
+                      
+                      const { error } = await supabase.from("ai_drafts").insert({
+                        user_id: user.id,
+                        invoice_id: selectedEmail.invoice_id || contextInvoiceId,
+                        channel: "email",
                         subject: generatedResponse.subject,
-                        body: generatedResponse.body,
-                        replyToInvoiceId: selectedEmail.invoice_id,
-                      },
-                    });
-                    
-                    if (sendError) throw sendError;
-                    
-                    // Update inbound email action status
-                    await supabase.from("inbound_emails").update({
-                      action_status: "closed",
-                      action_closed_at: new Date().toISOString(),
-                      action_closed_by: user.id,
-                      action_notes: "Responded via AI-generated email",
-                    }).eq("id", selectedEmail.id);
-                    
-                    toast.success("Response sent successfully");
-                    setAiResponseDialogOpen(false);
+                        message_body: generatedResponse.body,
+                        status: "pending_approval",
+                        step_number: 0,
+                      });
+                      
+                      if (error) throw error;
+                      toast.success("Draft saved");
+                      setAiResponseDialogOpen(false);
+                      setGeneratedResponse(null);
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to save draft");
+                    }
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Save Draft
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="flex-1"
+                  onClick={() => {
                     setGeneratedResponse(null);
-                    loadEmails();
-                  } catch (err: any) {
-                    toast.error(err.message || "Failed to send response");
-                  } finally {
-                    setIsSendingResponse(false);
-                  }
-                }}
-                disabled={isSendingResponse}
-              >
-                {isSendingResponse ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Mail className="h-4 w-4 mr-2" />
-                )}
-                Send Response
-              </Button>
+                    setAiResponseDialogOpen(false);
+                    toast.info("Response discarded");
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Discard
+                </Button>
+              </div>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={aiResponseDialogOpen} onOpenChange={(open) => {
+          if (!open && generatedResponse && selectedEmail) {
+            createPendingResponseTask(selectedEmail);
+          }
+          setAiResponseDialogOpen(open);
+          if (!open) setGeneratedResponse(null);
+        }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                AI Generated Response
+              </DialogTitle>
+              <DialogDescription>
+                Review and edit the response, then send or save as draft
+              </DialogDescription>
+            </DialogHeader>
+            {generatedResponse && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="response-subject">Subject</Label>
+                  <Input
+                    id="response-subject"
+                    value={generatedResponse.subject || ""}
+                    onChange={(e) => setGeneratedResponse({ ...generatedResponse, subject: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="response-body">Message</Label>
+                  <Textarea
+                    id="response-body"
+                    value={generatedResponse.body}
+                    onChange={(e) => setGeneratedResponse({ ...generatedResponse, body: e.target.value })}
+                    rows={12}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <div className="flex gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setGeneratedResponse(null);
+                    setAiResponseDialogOpen(false);
+                    toast.info("Response discarded");
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!selectedEmail || !generatedResponse) return;
+                    await createPendingResponseTask(selectedEmail);
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error("Not authenticated");
+                      
+                      const { error } = await supabase.from("ai_drafts").insert({
+                        user_id: user.id,
+                        invoice_id: selectedEmail.invoice_id || contextInvoiceId,
+                        channel: "email",
+                        subject: generatedResponse.subject,
+                        message_body: generatedResponse.body,
+                        status: "pending_approval",
+                        step_number: 0,
+                      });
+                      
+                      if (error) throw error;
+                      toast.success("Draft saved - response pending task created");
+                      setAiResponseDialogOpen(false);
+                      setGeneratedResponse(null);
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to save draft");
+                    }
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Save Draft
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!selectedEmail || !generatedResponse) return;
+                    setIsSendingResponse(true);
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error("Not authenticated");
+                      
+                      const { error: sendError } = await supabase.functions.invoke("send-email", {
+                        body: {
+                          to: selectedEmail.from_email,
+                          subject: generatedResponse.subject,
+                          body: generatedResponse.body,
+                          replyToInvoiceId: selectedEmail.invoice_id || contextInvoiceId,
+                        },
+                      });
+                      
+                      if (sendError) throw sendError;
+                      
+                      await supabase.from("inbound_emails").update({
+                        action_status: "closed",
+                        action_closed_at: new Date().toISOString(),
+                        action_closed_by: user.id,
+                        action_notes: "Responded via AI-generated email",
+                      }).eq("id", selectedEmail.id);
+                      
+                      toast.success("Response sent successfully");
+                      setAiResponseDialogOpen(false);
+                      setGeneratedResponse(null);
+                      loadEmails();
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to send response");
+                    } finally {
+                      setIsSendingResponse(false);
+                    }
+                  }}
+                  disabled={isSendingResponse}
+                >
+                  {isSendingResponse ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4 mr-2" />
+                  )}
+                  Send Response
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Task Detail Modal */}
       <TaskDetailModal
