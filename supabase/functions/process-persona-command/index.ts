@@ -112,17 +112,25 @@ serve(async (req) => {
       );
     }
     
-    // Fetch invoice details
-    const { data: invoice, error: invoiceError } = await supabaseAdmin
+    // Fetch invoice details - try by id first (UUID), then by invoice_number
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.invoiceId || '');
+    
+    let invoiceQuery = supabaseAdmin
       .from('invoices')
       .select('*, debtors(name, email, company_name)')
-      .eq('invoice_number', parsed.invoiceId)
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', user.id);
+    
+    if (isUUID) {
+      invoiceQuery = invoiceQuery.eq('id', parsed.invoiceId);
+    } else {
+      invoiceQuery = invoiceQuery.eq('invoice_number', parsed.invoiceId);
+    }
+    
+    const { data: invoice, error: invoiceError } = await invoiceQuery.single();
     
     if (invoiceError || !invoice) {
       return new Response(
-        JSON.stringify({ error: `Invoice #${parsed.invoiceId} not found` }),
+        JSON.stringify({ error: `Invoice ${parsed.invoiceId} not found` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

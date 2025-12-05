@@ -632,9 +632,9 @@ const InboundCommandCenter = () => {
     try {
       const { data, error } = await supabase.functions.invoke("process-persona-command", {
         body: {
-          command_text: `Respond to this customer email: "${email.subject || 'No subject'}"\n\nEmail content:\n${email.text_body || email.html_body || 'No content'}`,
-          context_invoice_id: email.invoice_id,
-          channel: "email",
+          command: `Respond to this customer email: "${email.subject || 'No subject'}"\n\nEmail content:\n${email.text_body || email.html_body || 'No content'}`,
+          contextInvoiceId: email.invoice_id,
+          contextType: "inbound_email",
         },
       });
 
