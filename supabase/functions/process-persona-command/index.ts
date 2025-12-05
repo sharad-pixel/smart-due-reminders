@@ -98,50 +98,13 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
     
-    const { command, contextInvoiceId, contextType } = await req.json();
+    const { command, contextInvoiceId, contextDebtorId, contextType, senderEmail, emailSubject } = await req.json();
     
     console.log('Processing command:', command);
+    console.log('Context - invoiceId:', contextInvoiceId, 'debtorId:', contextDebtorId);
     
     // Parse the command
     const parsed = parseCommand(command, contextInvoiceId);
-    
-    if (!parsed.invoiceId) {
-      return new Response(
-        JSON.stringify({ error: "Please specify an invoice number or select an invoice" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Fetch invoice details - try by id first (UUID), then by invoice_number
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.invoiceId || '');
-    
-    let invoiceQuery = supabaseAdmin
-      .from('invoices')
-      .select('*, debtors(name, email, company_name)')
-      .eq('user_id', user.id);
-    
-    if (isUUID) {
-      invoiceQuery = invoiceQuery.eq('id', parsed.invoiceId);
-    } else {
-      invoiceQuery = invoiceQuery.eq('invoice_number', parsed.invoiceId);
-    }
-    
-    const { data: invoice, error: invoiceError } = await invoiceQuery.single();
-    
-    if (invoiceError || !invoice) {
-      return new Response(
-        JSON.stringify({ error: `Invoice ${parsed.invoiceId} not found` }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Calculate days past due
-    const today = new Date();
-    const dueDate = new Date(invoice.due_date);
-    const daysPastDue = Math.max(0, Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-    
-    // Resolve persona
-    const persona = resolvePersona(daysPastDue, parsed.personaName);
     
     // Get business info
     const { data: profile } = await supabaseAdmin
@@ -152,55 +115,205 @@ serve(async (req) => {
     
     const businessName = profile?.business_name || "Your Business";
     
-    // Fetch any open tasks for this invoice/debtor
-    const { data: openTasks } = await supabaseAdmin
-      .from('collection_tasks')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('invoice_id', invoice.id)
-      .in('status', ['open', 'in_progress'])
-      .order('priority', { ascending: false });
-    
-    // Build task context for AI
+    let invoice: any = null;
+    let debtor: any = null;
+    let daysPastDue = 0;
     let taskContext = '';
-    if (openTasks && openTasks.length > 0) {
-      const taskLabels: Record<string, string> = {
-        w9_request: 'W9 tax form request',
-        payment_plan_needed: 'payment arrangement request',
-        incorrect_po: 'dispute about wrong PO number',
-        dispute_charges: 'dispute about incorrect charges',
-        invoice_copy_request: 'request to resend invoice',
-        billing_address_update: 'billing address correction needed',
-        payment_method_update: 'payment details update needed',
-        service_not_delivered: 'claim that service/product not received',
-        overpayment_inquiry: 'question about double charge or overpayment',
-        paid_verification: 'claim that invoice already paid',
-        extension_request: 'request for payment deadline extension',
-        callback_required: 'request for phone call or meeting'
-      };
+    
+    // Try to get invoice context if available
+    if (parsed.invoiceId) {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.invoiceId || '');
+      
+      let invoiceQuery = supabaseAdmin
+        .from('invoices')
+        .select('*, debtors(id, name, email, company_name)')
+        .eq('user_id', user.id);
+      
+      if (isUUID) {
+        invoiceQuery = invoiceQuery.eq('id', parsed.invoiceId);
+      } else {
+        invoiceQuery = invoiceQuery.eq('invoice_number', parsed.invoiceId);
+      }
+      
+      const { data: invoiceData } = await invoiceQuery.single();
+      invoice = invoiceData;
+      debtor = invoice?.debtors;
+      
+      if (invoice) {
+        const today = new Date();
+        const dueDate = new Date(invoice.due_date);
+        daysPastDue = Math.max(0, Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        
+        // Fetch any open tasks for this invoice
+        const { data: openTasks } = await supabaseAdmin
+          .from('collection_tasks')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('invoice_id', invoice.id)
+          .in('status', ['open', 'in_progress'])
+          .order('priority', { ascending: false });
+        
+        if (openTasks && openTasks.length > 0) {
+          const taskLabels: Record<string, string> = {
+            w9_request: 'W9 tax form request',
+            payment_plan_needed: 'payment arrangement request',
+            incorrect_po: 'dispute about wrong PO number',
+            dispute_charges: 'dispute about incorrect charges',
+            invoice_copy_request: 'request to resend invoice',
+            billing_address_update: 'billing address correction needed',
+            payment_method_update: 'payment details update needed',
+            service_not_delivered: 'claim that service/product not received',
+            overpayment_inquiry: 'question about double charge or overpayment',
+            paid_verification: 'claim that invoice already paid',
+            extension_request: 'request for payment deadline extension',
+            callback_required: 'request for phone call or meeting'
+          };
 
-      const taskDescriptions = openTasks.map(task => {
-        const label = taskLabels[task.task_type] || task.task_type;
-        return `- ${label}: ${task.summary}${task.recommended_action ? ` (Recommended: ${task.recommended_action})` : ''}`;
-      }).join('\n');
+          const taskDescriptions = openTasks.map(task => {
+            const label = taskLabels[task.task_type] || task.task_type;
+            return `- ${label}: ${task.summary}${task.recommended_action ? ` (Recommended: ${task.recommended_action})` : ''}`;
+          }).join('\n');
 
-      taskContext = `\n\nIMPORTANT CONTEXT - Customer has made the following requests/raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these open items in your message. Reference them naturally and provide appropriate responses or next steps.`;
+          taskContext = `\n\nIMPORTANT CONTEXT - Customer has made the following requests/raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these open items in your message. Reference them naturally and provide appropriate responses or next steps.`;
+        }
+      }
     }
     
-    // Build AI prompt
-    const systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
-Your tone is: ${persona.tone}\n
-Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message compliant, professional, and appropriate for ${daysPastDue} days past due\n- Include a call to action for payment\n- Offer a polite way for the customer to reply or resolve disputes\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}`;
+    // If no invoice, try to get debtor context
+    if (!invoice && contextDebtorId) {
+      const { data: debtorData } = await supabaseAdmin
+        .from('debtors')
+        .select('*')
+        .eq('id', contextDebtorId)
+        .eq('user_id', user.id)
+        .single();
+      
+      debtor = debtorData;
+      
+      // Try to get the most recent open invoice for this debtor
+      if (debtor) {
+        const { data: recentInvoice } = await supabaseAdmin
+          .from('invoices')
+          .select('*')
+          .eq('debtor_id', debtor.id)
+          .eq('user_id', user.id)
+          .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
+          .order('due_date', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (recentInvoice) {
+          invoice = recentInvoice;
+          const today = new Date();
+          const dueDate = new Date(invoice.due_date);
+          daysPastDue = Math.max(0, Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+        
+        // Get open tasks for this debtor
+        const { data: openTasks } = await supabaseAdmin
+          .from('collection_tasks')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('debtor_id', debtor.id)
+          .in('status', ['open', 'in_progress'])
+          .order('priority', { ascending: false });
+        
+        if (openTasks && openTasks.length > 0) {
+          const taskLabels: Record<string, string> = {
+            w9_request: 'W9 tax form request',
+            payment_plan_needed: 'payment arrangement request',
+            incorrect_po: 'dispute about wrong PO number',
+            dispute_charges: 'dispute about incorrect charges',
+            invoice_copy_request: 'request to resend invoice',
+            billing_address_update: 'billing address correction needed',
+            payment_method_update: 'payment details update needed',
+            service_not_delivered: 'claim that service/product not received',
+            overpayment_inquiry: 'question about double charge or overpayment',
+            paid_verification: 'claim that invoice already paid',
+            extension_request: 'request for payment deadline extension',
+            callback_required: 'request for phone call or meeting'
+          };
 
-    const userPrompt = `Generate a ${parsed.channel} message for:
+          const taskDescriptions = openTasks.map(task => {
+            const label = taskLabels[task.task_type] || task.task_type;
+            return `- ${label}: ${task.summary}${task.recommended_action ? ` (Recommended: ${task.recommended_action})` : ''}`;
+          }).join('\n');
+
+          taskContext = `\n\nIMPORTANT CONTEXT - Customer has made the following requests/raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these open items in your message. Reference them naturally and provide appropriate responses or next steps.`;
+        }
+      }
+    }
+    
+    // If still no debtor, try to find by sender email
+    if (!debtor && senderEmail) {
+      const { data: debtorByEmail } = await supabaseAdmin
+        .from('debtors')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('email', senderEmail)
+        .single();
+      
+      debtor = debtorByEmail;
+      
+      if (debtor) {
+        // Try to get the most recent open invoice for this debtor
+        const { data: recentInvoice } = await supabaseAdmin
+          .from('invoices')
+          .select('*')
+          .eq('debtor_id', debtor.id)
+          .eq('user_id', user.id)
+          .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
+          .order('due_date', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (recentInvoice) {
+          invoice = recentInvoice;
+          const today = new Date();
+          const dueDate = new Date(invoice.due_date);
+          daysPastDue = Math.max(0, Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+      }
+    }
+    
+    // Resolve persona (default to Sam for general responses)
+    const persona = resolvePersona(daysPastDue, parsed.personaName);
+    
+    // Build AI prompt based on available context
+    let systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
+Your tone is: ${persona.tone}\n
+Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}`;
+
+    let userPrompt: string;
+    
+    if (invoice) {
+      userPrompt = `Generate a ${parsed.channel} response for:
 
 Invoice: #${invoice.invoice_number}
 Amount: $${invoice.amount}
 Due Date: ${invoice.due_date}
 Days Past Due: ${daysPastDue}
-Customer: ${invoice.debtors?.company_name || invoice.debtors?.name}
-Email: ${invoice.debtors?.email}
+Customer: ${debtor?.company_name || debtor?.name || 'Customer'}
+Email: ${debtor?.email || senderEmail || 'Unknown'}
 Action requested: ${parsed.action}`;
+    } else if (debtor) {
+      userPrompt = `Generate a ${parsed.channel} response for a customer inquiry:
+
+Customer: ${debtor.company_name || debtor.name}
+Email: ${debtor.email}
+Total Outstanding Balance: $${debtor.total_open_balance || 0}
+Open Invoices: ${debtor.open_invoices_count || 0}
+
+Please craft a helpful response addressing their inquiry. If they have outstanding invoices, you may politely reference their account status.`;
+    } else {
+      // No invoice or debtor context - generate a general professional response
+      userPrompt = `Generate a professional ${parsed.channel} response to a customer inquiry.
+
+Sender Email: ${senderEmail || 'Unknown'}
+Subject: ${emailSubject || 'Customer Inquiry'}
+
+Please craft a helpful, professional response. Since we don't have specific account details, keep the response general but offer to help with their inquiry. Ask for clarification if needed to better assist them.`;
+    }
 
     // Generate draft using Lovable AI with tool calling
     const tools = parsed.channel === 'email' ? [{
@@ -243,6 +356,8 @@ Action requested: ${parsed.action}`;
       }
     }];
 
+    console.log('Calling AI with prompt:', userPrompt);
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -266,6 +381,8 @@ Action requested: ${parsed.action}`;
     });
     
     if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI response error:', errorText);
       throw new Error(`AI generation failed: ${aiResponse.statusText}`);
     }
     
@@ -291,24 +408,31 @@ Action requested: ${parsed.action}`;
       .eq('name', persona.name)
       .single();
     
-    // Save draft
+    // Save draft - invoice_id is optional now
+    const draftData: any = {
+      user_id: user.id,
+      channel: parsed.channel,
+      subject,
+      message_body: messageBody,
+      status: 'pending_approval',
+      step_number: 1,
+      days_past_due: daysPastDue,
+      agent_persona_id: personaRecord?.id
+    };
+    
+    // Only add invoice_id if we have one
+    if (invoice) {
+      draftData.invoice_id = invoice.id;
+    }
+    
     const { data: draft, error: draftError } = await supabaseAdmin
       .from('ai_drafts')
-      .insert({
-        user_id: user.id,
-        invoice_id: invoice.id,
-        channel: parsed.channel,
-        subject,
-        message_body: messageBody,
-        status: 'pending_approval',
-        step_number: 1,
-        days_past_due: daysPastDue,
-        agent_persona_id: personaRecord?.id
-      })
+      .insert(draftData)
       .select()
       .single();
     
     if (draftError) {
+      console.error('Draft save error:', draftError);
       throw draftError;
     }
     
@@ -319,7 +443,7 @@ Action requested: ${parsed.action}`;
         user_id: user.id,
         command_text: command,
         persona_name: persona.name,
-        invoice_id: invoice.id,
+        invoice_id: invoice?.id || null,
         draft_id: draft.id,
         context_type: contextType
       });
@@ -329,7 +453,8 @@ Action requested: ${parsed.action}`;
         success: true,
         draft,
         persona: persona.name,
-        invoiceNumber: invoice.invoice_number
+        invoiceNumber: invoice?.invoice_number || null,
+        debtorName: debtor?.company_name || debtor?.name || null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
