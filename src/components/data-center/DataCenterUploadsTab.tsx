@@ -29,9 +29,11 @@ const getExpirationInfo = (upload: any) => {
   const createdAt = new Date(upload.created_at);
   const archivedAt = upload.archived_at ? new Date(upload.archived_at) : null;
   
-  if (upload.status === "archived" && archivedAt) {
+  if (upload.status === "archived") {
     // Archived uploads are permanently deleted 30 days after archiving
-    const deletionDate = addDays(archivedAt, 30);
+    // Use archived_at if available, otherwise fall back to created_at
+    const baseDate = archivedAt || createdAt;
+    const deletionDate = addDays(baseDate, 30);
     const daysRemaining = differenceInDays(deletionDate, new Date());
     const isExpired = isPast(deletionDate);
     
@@ -123,13 +125,13 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
     mutationFn: async (uploadId: string) => {
       const { error } = await supabase
         .from("data_center_uploads")
-        .update({ status: "archived" })
+        .update({ status: "archived", archived_at: new Date().toISOString() })
         .eq("id", uploadId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
-      toast.success("Upload archived");
+      toast.success("Upload archived - will be permanently deleted in 30 days");
     },
     onError: () => {
       toast.error("Failed to archive upload");
@@ -140,13 +142,13 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
     mutationFn: async (uploadId: string) => {
       const { error } = await supabase
         .from("data_center_uploads")
-        .update({ status: "needs_review" })
+        .update({ status: "needs_review", archived_at: null })
         .eq("id", uploadId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
-      toast.success("Upload restored");
+      toast.success("Upload restored - will be auto-archived in 24 hours");
     },
     onError: () => {
       toast.error("Failed to restore upload");
