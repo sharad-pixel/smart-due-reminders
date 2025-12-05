@@ -184,7 +184,7 @@ const Settings = () => {
           reply_to_email: profile.reply_to_email,
           email_signature: profile.email_signature,
           email_footer: profile.email_footer,
-        });
+        }, { onConflict: 'user_id' });
 
       if (brandingError) throw brandingError;
       toast.success("Settings saved successfully");
