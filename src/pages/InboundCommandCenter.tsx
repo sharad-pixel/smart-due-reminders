@@ -395,7 +395,41 @@ const InboundCommandCenter = () => {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiResponseDialogOpen, setAiResponseDialogOpen] = useState(false);
   const [generatedResponse, setGeneratedResponse] = useState<{ subject: string | null; body: string } | null>(null);
+  const [isSendingResponse, setIsSendingResponse] = useState(false);
   const isMobile = useIsMobile();
+
+  const createPendingResponseTask = async (email: InboundEmail) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !email.debtor_id) return;
+      
+      // Check if a pending response task already exists for this email
+      const { data: existingTask } = await supabase
+        .from("collection_tasks")
+        .select("id")
+        .eq("inbound_email_id", email.id)
+        .eq("task_type", "pending_response")
+        .eq("status", "open")
+        .single();
+      
+      if (existingTask) return; // Task already exists
+      
+      await supabase.from("collection_tasks").insert({
+        user_id: user.id,
+        debtor_id: email.debtor_id,
+        invoice_id: email.invoice_id,
+        inbound_email_id: email.id,
+        task_type: "pending_response",
+        priority: "high",
+        status: "open",
+        summary: `Response pending: ${email.subject || 'No subject'}`,
+        details: `AI response was generated but not sent for email from ${email.from_email}. Review and send the response.`,
+        source: "ai_generated",
+      });
+    } catch (err) {
+      console.error("Error creating pending response task:", err);
+    }
+  };
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1348,7 +1382,14 @@ const InboundCommandCenter = () => {
       </AlertDialog>
 
       {/* AI Response Dialog */}
-      <Dialog open={aiResponseDialogOpen} onOpenChange={setAiResponseDialogOpen}>
+      <Dialog open={aiResponseDialogOpen} onOpenChange={(open) => {
+        if (!open && generatedResponse && selectedEmail) {
+          // Create a pending response task when closing without sending
+          createPendingResponseTask(selectedEmail);
+        }
+        setAiResponseDialogOpen(open);
+        if (!open) setGeneratedResponse(null);
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1356,7 +1397,7 @@ const InboundCommandCenter = () => {
               AI Generated Response
             </DialogTitle>
             <DialogDescription>
-              Review and edit the AI-generated response before sending
+              Review and edit the response, then send or save as draft
             </DialogDescription>
           </DialogHeader>
           {generatedResponse && (
@@ -1381,40 +1422,101 @@ const InboundCommandCenter = () => {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAiResponseDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!selectedEmail || !generatedResponse) return;
-                try {
-                  // Create draft in ai_drafts table
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) throw new Error("Not authenticated");
-                  
-                  const { error } = await supabase.from("ai_drafts").insert({
-                    user_id: user.id,
-                    invoice_id: selectedEmail.invoice_id!,
-                    channel: "email",
-                    subject: generatedResponse.subject,
-                    message_body: generatedResponse.body,
-                    status: "pending_approval",
-                    step_number: 0,
-                  });
-                  
-                  if (error) throw error;
-                  toast.success("Draft saved for review");
-                  setAiResponseDialogOpen(false);
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
                   setGeneratedResponse(null);
-                } catch (err: any) {
-                  toast.error(err.message || "Failed to save draft");
-                }
-              }}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Save as Draft
-            </Button>
+                  setAiResponseDialogOpen(false);
+                  toast.info("Response discarded");
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (!selectedEmail || !generatedResponse) return;
+                  await createPendingResponseTask(selectedEmail);
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Not authenticated");
+                    
+                    const { error } = await supabase.from("ai_drafts").insert({
+                      user_id: user.id,
+                      invoice_id: selectedEmail.invoice_id!,
+                      channel: "email",
+                      subject: generatedResponse.subject,
+                      message_body: generatedResponse.body,
+                      status: "pending_approval",
+                      step_number: 0,
+                    });
+                    
+                    if (error) throw error;
+                    toast.success("Draft saved - response pending task created");
+                    setAiResponseDialogOpen(false);
+                    setGeneratedResponse(null);
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to save draft");
+                  }
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Save Draft
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedEmail || !generatedResponse) return;
+                  setIsSendingResponse(true);
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Not authenticated");
+                    
+                    // Send the email
+                    const { error: sendError } = await supabase.functions.invoke("send-email", {
+                      body: {
+                        to: selectedEmail.from_email,
+                        subject: generatedResponse.subject,
+                        body: generatedResponse.body,
+                        replyToInvoiceId: selectedEmail.invoice_id,
+                      },
+                    });
+                    
+                    if (sendError) throw sendError;
+                    
+                    // Update inbound email action status
+                    await supabase.from("inbound_emails").update({
+                      action_status: "closed",
+                      action_closed_at: new Date().toISOString(),
+                      action_closed_by: user.id,
+                      action_notes: "Responded via AI-generated email",
+                    }).eq("id", selectedEmail.id);
+                    
+                    toast.success("Response sent successfully");
+                    setAiResponseDialogOpen(false);
+                    setGeneratedResponse(null);
+                    loadEmails();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to send response");
+                  } finally {
+                    setIsSendingResponse(false);
+                  }
+                }}
+                disabled={isSendingResponse}
+              >
+                {isSendingResponse ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Send Response
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
