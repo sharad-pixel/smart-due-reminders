@@ -1274,12 +1274,25 @@ const InboundCommandCenter = () => {
         {selectedEmail && (
           isMobile ? (
             <Drawer open={detailsOpen} onOpenChange={setDetailsOpen}>
-              <DrawerContent className="max-h-[90vh]">
-                <DrawerHeader className="text-left pb-2">
-                  <DrawerTitle className="text-lg">Email Details</DrawerTitle>
-                  <DrawerDescription className="text-sm">AI insights and actions</DrawerDescription>
+              <DrawerContent className="h-[85vh] flex flex-col">
+                <DrawerHeader className="text-left pb-2 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <DrawerTitle className="text-lg">Email Details</DrawerTitle>
+                      <DrawerDescription className="text-sm">AI insights and actions</DrawerDescription>
+                    </div>
+                    <DrawerClose asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </DrawerClose>
+                  </div>
+                  {/* Subject line - prominent on mobile */}
+                  <div className="mt-2 pt-2 border-t">
+                    <p className="font-medium text-sm line-clamp-2">{selectedEmail.subject || "No subject"}</p>
+                  </div>
                 </DrawerHeader>
-                <ScrollArea className="flex-1 px-4 pb-4" style={{ maxHeight: 'calc(90vh - 80px)' }}>
+                <div className="flex-1 overflow-y-auto px-4 pb-6">
                   <EmailDetailContent
                     email={selectedEmail}
                     tasks={emailTasks}
@@ -1296,7 +1309,7 @@ const InboundCommandCenter = () => {
                     getSentimentIcon={getSentimentIcon}
                     getActionIcon={getActionIcon}
                   />
-                </ScrollArea>
+                </div>
               </DrawerContent>
             </Drawer>
           ) : (
