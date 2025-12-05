@@ -16,8 +16,9 @@ interface InvoiceExportModalProps {
 }
 
 const EXPORT_COLUMNS = [
-  { key: "external_invoice_id", label: "Invoice ID", default: true },
-  { key: "invoice_number", label: "Internal Invoice #", default: true },
+  { key: "recouply_invoice_id", label: "Recouply Invoice ID", default: true },
+  { key: "external_invoice_id", label: "External Invoice ID", default: true },
+  { key: "invoice_number", label: "Invoice Number", default: true },
   { key: "customer_name", label: "Customer Name", default: true },
   { key: "customer_email", label: "Customer Email", default: true },
   { key: "amount", label: "Amount", default: true },
@@ -109,7 +110,8 @@ export function InvoiceExportModal({ open, onOpenChange }: InvoiceExportModalPro
         else if (daysPastDue > 120) aging_bucket = "121+";
 
         return {
-          external_invoice_id: inv.external_invoice_id || inv.reference_id,
+          recouply_invoice_id: inv.reference_id,
+          external_invoice_id: inv.external_invoice_id || "",
           invoice_number: inv.invoice_number,
           customer_name: inv.debtors?.name || "",
           customer_email: inv.debtors?.email || "",
@@ -120,6 +122,7 @@ export function InvoiceExportModal({ open, onOpenChange }: InvoiceExportModalPro
           status: inv.status,
           aging_bucket,
           source_system: inv.source_system || "manual",
+          product_description: inv.product_description || "",
           payment_terms: inv.payment_terms || "",
           last_contacted_at: inv.last_contacted_at || "",
           notes: inv.notes || "",
