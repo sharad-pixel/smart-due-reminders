@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, Trash2, Loader2, ImageIcon } from "lucide-react";
+import { Upload, Trash2, Loader2, ImageIcon, ShieldCheck } from "lucide-react";
+import { uploadModeratedImage } from "@/lib/moderatedUpload";
 
 interface LogoUploadProps {
   currentLogoUrl: string | null;
@@ -40,7 +41,7 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       if (!user) throw new Error("Not authenticated");
 
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
-      const filePath = `${user.id}/logo.${fileExt}`;
+      const storagePath = `${user.id}/logo.${fileExt}`;
 
       // Delete existing logo if any
       if (currentLogoUrl) {
@@ -50,30 +51,35 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
         }
       }
 
-      // Upload new logo
-      const { error: uploadError } = await supabase.storage
-        .from("org-logos")
-        .upload(filePath, file, { upsert: true });
+      // Upload through moderated pipeline
+      const result = await uploadModeratedImage({
+        file,
+        purpose: "org_logo",
+        bucket: "org-logos",
+        storagePath,
+      });
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("org-logos")
-        .getPublicUrl(filePath);
+      if (!result.success) {
+        if (result.rejected) {
+          toast.error(result.error || "Image was rejected due to inappropriate content");
+        } else {
+          toast.error(result.error || "Failed to upload logo");
+        }
+        return;
+      }
 
       // Update branding settings
       const { error: updateError } = await supabase
         .from("branding_settings")
         .upsert({
           user_id: user.id,
-          logo_url: publicUrl,
+          logo_url: result.publicUrl,
           business_name: "", // Required field, will be merged
         }, { onConflict: "user_id" });
 
       if (updateError) throw updateError;
 
-      onLogoChange(publicUrl);
+      onLogoChange(result.publicUrl!);
       toast.success("Logo updated. It will appear on all outgoing message signatures.");
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -189,10 +195,14 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        This logo will appear in the footer/signature of all outbound Recouply.ai messages.
-        Recommended: Transparent PNG or SVG with landscape orientation. Max 2MB.
-      </p>
+      <div className="flex items-start gap-2 text-xs text-muted-foreground">
+        <ShieldCheck className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
+        <p>
+          All uploads are automatically scanned for inappropriate content.
+          This logo will appear in the footer/signature of all outbound Recouply.ai messages.
+          Recommended: Transparent PNG or SVG with landscape orientation. Max 2MB.
+        </p>
+      </div>
     </div>
   );
 }

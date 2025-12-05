@@ -48,6 +48,8 @@ export function useDocuments(organizationId?: string, debtorId?: string) {
   });
 }
 
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp", "image/gif"];
+
 export function useUploadDocument() {
   const queryClient = useQueryClient();
 
@@ -65,13 +67,48 @@ export function useUploadDocument() {
       debtorId?: string;
       notes?: string;
     }) => {
-      // Upload file to storage
       const filePath = `${Date.now()}-${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, file);
+      let uploadPath = filePath;
 
-      if (uploadError) throw uploadError;
+      // Check if file is an image type - use moderated upload
+      if (IMAGE_TYPES.includes(file.type)) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("purpose", `document_${category}`);
+        formData.append("bucket", "documents");
+        formData.append("storagePath", filePath);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderated-image-upload`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          if (result.rejected) {
+            throw new Error("Image was rejected due to inappropriate content. Please upload a different image.");
+          }
+          throw new Error(result.error || "Failed to upload image");
+        }
+        uploadPath = result.storagePath;
+      } else {
+        // Non-image files: direct upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+        uploadPath = uploadData.path;
+      }
 
       // Create document record
       const { data: user } = await supabase.auth.getUser();
@@ -79,7 +116,7 @@ export function useUploadDocument() {
 
       const insertData: any = {
         uploaded_by_user_id: user.user.id,
-        file_url: uploadData.path,
+        file_url: uploadPath,
         file_name: file.name,
         file_type: file.type,
         file_size: file.size,
