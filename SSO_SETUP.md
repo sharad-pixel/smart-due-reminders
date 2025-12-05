@@ -1,135 +1,131 @@
 # SSO Setup Guide for Recouply.ai
 
-This guide explains how to configure Google Workspace and Microsoft 365 SSO for Recouply.ai.
+This guide explains how to configure Google OAuth for Recouply.ai.
+
+## ⚠️ CRITICAL: Required Google Cloud Console Configuration
+
+For Google OAuth to work, you MUST add the following redirect URI to your Google Cloud Console:
+
+```
+https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback
+```
+
+**This is the Supabase callback URL that handles the OAuth response. Without this exact URI configured, you will get a `redirect_uri_mismatch` error.**
 
 ## Overview
 
 Recouply.ai uses Supabase Auth to enable enterprise SSO login with:
 - **Google Workspace** (Google OAuth)
-- **Microsoft 365** (Azure AD / Microsoft OAuth)
 
-## Configuration Steps
+## Quick Setup Checklist
 
-### 1. Access Backend Settings
+1. ✅ Create OAuth 2.0 credentials in Google Cloud Console
+2. ✅ Add the exact redirect URI: `https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback`
+3. ✅ Configure Google OAuth in Lovable Cloud (Users → Auth Settings → Google Settings)
+4. ✅ Add authorized JavaScript origins for your app URLs
 
-Open your Lovable Cloud backend to configure OAuth providers:
+## Detailed Configuration Steps
 
-**Users → Auth Settings**
+### 1. Google Cloud Console Setup
 
-### 2. Configure Google OAuth (Google Workspace)
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Navigate to **APIs & Services → Credentials**
+4. Click **Create Credentials → OAuth 2.0 Client IDs**
+5. Select **Web application** as the application type
+6. Configure the following:
 
-1. Navigate to **Auth Settings → Google Settings**
-2. Follow the Supabase setup wizard
-3. You'll need to create OAuth credentials in Google Cloud Console:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select existing
-   - Enable Google+ API
-   - Create OAuth 2.0 credentials
-   - Add authorized redirect URIs (provided by Supabase)
+**Authorized JavaScript origins:**
+- `https://recouply.ai` (production)
+- `https://*.lovableproject.com` (preview environments)
+- `https://*.lovable.app` (preview environments)
 
-**Required Information:**
-- Google Client ID
-- Google Client Secret
-- Authorized JavaScript origins: `https://your-app-url.lovable.app`
-- Authorized redirect URIs: `https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback`
+**Authorized redirect URIs (REQUIRED):**
+```
+https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback
+```
 
-### 3. Configure Microsoft OAuth (Microsoft 365 / Azure AD)
+7. Copy your **Client ID** and **Client Secret**
 
-1. Navigate to **Auth Settings → Azure Settings**
-2. Follow the Supabase setup wizard
-3. You'll need to register an app in Azure Portal:
-   - Go to [Azure Portal](https://portal.azure.com/)
-   - Navigate to Azure Active Directory → App registrations
-   - Create a new registration
-   - Add redirect URI (provided by Supabase)
-   - Create a client secret
+### 2. Configure in Lovable Cloud Backend
 
-**Required Information:**
-- Azure Application (client) ID
-- Azure Client Secret
-- Azure Directory (tenant) ID
-- Redirect URI: `https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback`
+1. Open your Lovable Cloud backend: **Users → Auth Settings → Google Settings**
+2. Enter your Google Client ID
+3. Enter your Google Client Secret
+4. Save and enable the provider
 
-### 4. Set Authorized Domains
+### 3. Set Authorized Domains
 
-In the Lovable Cloud backend:
+In **Users → Auth Settings → URLs and Redirects**:
 
-**Users → Auth Settings → URLs and Redirects**
+**Site URL:** `https://recouply.ai`
 
-Add your application URLs:
-- Preview URL: `https://your-preview-url.lovable.app`
-- Production URL: `https://your-custom-domain.com` (if applicable)
-
-**Site URL:** Set to your main application URL
-**Redirect URLs:** Add all URLs where users can be redirected after authentication
+**Redirect URLs:**
+- `https://recouply.ai`
+- `https://recouply.ai/dashboard`
+- Your preview URLs (e.g., `https://*.lovableproject.com`)
 
 ## Frontend Implementation
 
-The login and signup pages already include SSO buttons that call:
+The login and signup pages use:
 
 ```typescript
-// Google OAuth
 await supabase.auth.signInWithOAuth({
   provider: 'google',
   options: {
-    redirectTo: `${window.location.origin}/dashboard`,
-  }
-});
-
-// Microsoft OAuth
-await supabase.auth.signInWithOAuth({
-  provider: 'azure',
-  options: {
-    redirectTo: `${window.location.origin}/dashboard`,
-  }
+    redirectTo: getAuthRedirectUrl('/dashboard'),
+    queryParams: {
+      access_type: 'offline',
+      prompt: 'consent',
+    },
+  },
 });
 ```
 
-## Testing SSO
-
-1. Ensure OAuth providers are fully configured in backend
-2. Navigate to `/login` or `/signup`
-3. Click "Continue with Google" or "Continue with Microsoft"
-4. Complete OAuth flow with your work account
-5. You should be redirected to `/dashboard` upon success
+**Note:** The `redirectTo` option specifies where users go AFTER OAuth completes successfully. It is NOT the OAuth callback URL.
 
 ## Troubleshooting
 
-### Error: "Unsupported provider: provider is not enabled"
+### Error: `redirect_uri_mismatch`
 
-This means the OAuth provider is not enabled in Supabase. Ensure you've:
-1. Configured the provider in **Auth Settings**
-2. Added Client ID and Client Secret
-3. Saved and enabled the provider
+**Cause:** The redirect URI in Google Cloud Console doesn't match Supabase's callback URL.
 
-### Error: "redirect_uri_mismatch"
+**Solution:** 
+1. Go to Google Cloud Console → APIs & Services → Credentials
+2. Edit your OAuth 2.0 Client ID
+3. In **Authorized redirect URIs**, add EXACTLY:
+   ```
+   https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback
+   ```
+4. Ensure there are no trailing slashes or typos
+5. Wait a few minutes for changes to propagate
 
-The redirect URI in Google Cloud Console or Azure Portal doesn't match Supabase's callback URL. Make sure:
-- The exact Supabase callback URL is added to authorized redirect URIs
-- No trailing slashes or protocol mismatches
+### Error: "provider is not enabled"
 
-### Email/Password Still Works
+**Solution:** Enable Google OAuth in Lovable Cloud → Users → Auth Settings → Google Settings
 
-Email/password authentication remains available as a fallback method. SSO is positioned as the primary option in the UI, but users can still sign up with email if needed.
+### Error: "Invalid OAuth client"
+
+**Solution:** Verify your Client ID and Client Secret are correctly entered in Lovable Cloud
 
 ## Security Best Practices
 
-1. **Use Work Emails Only**: Consider adding domain validation to only allow corporate email domains
-2. **Enable MFA**: Encourage users to enable MFA through their identity provider (Google/Microsoft)
-3. **Regular Audits**: Review auth logs in the backend regularly
+1. **Restrict to Work Emails**: Consider domain validation for corporate emails only
+2. **Enable MFA**: Encourage users to enable 2FA through Google
+3. **Regular Audits**: Review auth logs regularly
 4. **Rotate Secrets**: Periodically rotate OAuth client secrets
 
-## Environment Variables
+## Summary
 
-The following environment variables are automatically managed by Lovable Cloud:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-
-OAuth provider credentials are stored securely in Supabase and don't need to be added to environment variables.
+| Setting | Value |
+|---------|-------|
+| Supabase Callback URL | `https://kguurazunazhhrhasahd.supabase.co/auth/v1/callback` |
+| Production Site URL | `https://recouply.ai` |
+| Configure OAuth | Lovable Cloud → Users → Auth Settings → Google Settings |
 
 ## Support
 
-For configuration help, refer to:
+For configuration help:
 - [Supabase Auth Documentation](https://supabase.com/docs/guides/auth)
 - [Google OAuth Setup](https://supabase.com/docs/guides/auth/social-login/auth-google)
-- [Microsoft OAuth Setup](https://supabase.com/docs/guides/auth/social-login/auth-azure)
+- Contact: support@recouply.ai
