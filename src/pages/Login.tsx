@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -178,9 +178,9 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-            src={recouplyLogo} 
+            src={recouplyLogoHeader} 
             alt="Recouply.ai" 
-            className="h-16 w-auto mb-4"
+            className="h-12 w-auto mx-auto mb-4"
           />
           <p className="text-muted-foreground">AI-Powered Invoice Collection</p>
         </div>
