@@ -1,13 +1,14 @@
 import { PLAN_CONFIGS, type PlanType } from './subscriptionConfig';
 
+// Stripe disconnected - all users get free access with 15 invoice limit
 export const PLAN_FEATURES = {
   free: {
-    can_use_invoice_line_items: false,
-    invoice_limit: 5,
-    can_have_team_users: false,
-    can_manage_roles: false,
-    max_invited_users: 0,
-    max_agents: 1,
+    can_use_invoice_line_items: true,
+    invoice_limit: 15,
+    can_have_team_users: true,
+    can_manage_roles: true,
+    max_invited_users: 5,
+    max_agents: 6,
   },
   starter: {
     can_use_invoice_line_items: true,
@@ -61,15 +62,13 @@ export function getRequiredPlanForFeature(feature: keyof typeof PLAN_FEATURES.fr
 }
 
 export function getInvoiceLimit(planType: PlanType | 'pro' | null): number {
-  if (!planType) return PLAN_FEATURES.free.invoice_limit;
-  const normalizedPlan = planType === 'pro' ? 'professional' : planType;
-  return PLAN_FEATURES[normalizedPlan as keyof typeof PLAN_FEATURES]?.invoice_limit ?? 5;
+  // All users get 15 invoice limit (Stripe disconnected)
+  return 15;
 }
 
 export function getMaxAgents(planType: PlanType | 'pro' | null): number {
-  if (!planType) return PLAN_FEATURES.free.max_agents;
-  const normalizedPlan = planType === 'pro' ? 'professional' : planType;
-  return PLAN_FEATURES[normalizedPlan as keyof typeof PLAN_FEATURES]?.max_agents ?? 1;
+  // All users get access to all 6 agents (Stripe disconnected)
+  return 6;
 }
 
 export { type PlanType };
