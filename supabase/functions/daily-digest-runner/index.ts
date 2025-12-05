@@ -387,20 +387,20 @@ function generateEmailHtml(data: {
       <div style="margin-bottom: 24px; background: #fef3c7; border-radius: 8px; padding: 16px;">
         <h3 style="color: #92400e; margin: 0 0 12px; font-size: 16px;">📰 CFO Cash Flow Insights</h3>
         <ul style="margin: 0; padding-left: 20px; color: #78350f; line-height: 1.8;">
-          <li><a href="https://app.recouply.ai/features" style="color: #b45309;">Automate Your AR with AI Agents →</a></li>
-          <li><a href="https://app.recouply.ai/solutions/saas" style="color: #b45309;">SaaS Revenue Recovery Strategies →</a></li>
-          <li><a href="https://app.recouply.ai/solutions/professional-services" style="color: #b45309;">Professional Services Collections Guide →</a></li>
-          <li><a href="https://app.recouply.ai/enterprise" style="color: #b45309;">Enterprise CashOps Platform Overview →</a></li>
+          <li><a href="https://recouply.ai/features" style="color: #b45309;">Automate Your AR with AI Agents →</a></li>
+          <li><a href="https://recouply.ai/solutions/saas" style="color: #b45309;">SaaS Revenue Recovery Strategies →</a></li>
+          <li><a href="https://recouply.ai/solutions/professional-services" style="color: #b45309;">Professional Services Collections Guide →</a></li>
+          <li><a href="https://recouply.ai/enterprise" style="color: #b45309;">Enterprise CashOps Platform Overview →</a></li>
         </ul>
       </div>
 
       <div style="margin-bottom: 24px; background: #dbeafe; border-radius: 8px; padding: 16px;">
         <h3 style="color: #1e40af; margin: 0 0 12px; font-size: 16px;">🤖 CashOps & AR Automation</h3>
         <ul style="margin: 0; padding-left: 20px; color: #1e3a8a; line-height: 1.8;">
-          <li><a href="https://app.recouply.ai/settings/ai-workflows" style="color: #2563eb;">Configure Your AI Collection Agents →</a></li>
-          <li><a href="https://app.recouply.ai/data-center" style="color: #2563eb;">Data Center: Import & Reconcile AR →</a></li>
-          <li><a href="https://app.recouply.ai/debtors" style="color: #2563eb;">Manage Accounts & Risk Scores →</a></li>
-          <li><a href="https://app.recouply.ai/collections/tasks" style="color: #2563eb;">Review Collection Tasks →</a></li>
+          <li><a href="https://recouply.ai/settings/ai-workflows" style="color: #2563eb;">Configure Your AI Collection Agents →</a></li>
+          <li><a href="https://recouply.ai/data-center" style="color: #2563eb;">Data Center: Import & Reconcile AR →</a></li>
+          <li><a href="https://recouply.ai/debtors" style="color: #2563eb;">Manage Accounts & Risk Scores →</a></li>
+          <li><a href="https://recouply.ai/collections/tasks" style="color: #2563eb;">Review Collection Tasks →</a></li>
         </ul>
       </div>
 
@@ -419,7 +419,7 @@ function generateEmailHtml(data: {
       </div>
       
       <div style="text-align: center;">
-        <a href="https://app.recouply.ai/daily-digest" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+        <a href="https://recouply.ai/daily-digest" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
           Open Recouply.ai Dashboard
         </a>
       </div>
