@@ -2008,6 +2008,8 @@ export type Database = {
           id: string
           invited_at: string
           invited_by: string | null
+          inviter_email: string | null
+          inviter_name: string | null
           notes: string | null
           used_at: string | null
         }
@@ -2016,6 +2018,8 @@ export type Database = {
           id?: string
           invited_at?: string
           invited_by?: string | null
+          inviter_email?: string | null
+          inviter_name?: string | null
           notes?: string | null
           used_at?: string | null
         }
@@ -2024,6 +2028,8 @@ export type Database = {
           id?: string
           invited_at?: string
           invited_by?: string | null
+          inviter_email?: string | null
+          inviter_name?: string | null
           notes?: string | null
           used_at?: string | null
         }
