@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInboundEmails, InboundEmail } from "@/hooks/useInboundEmails";
 import { Switch } from "@/components/ui/switch";
@@ -117,6 +118,8 @@ interface EmailDetailContentProps {
   onForward: () => void;
   onClose: () => void;
   onReopen: () => void;
+  onGenerateAIResponse: () => void;
+  isGeneratingAI: boolean;
   getPriorityColor: (priority: string) => string;
   getCategoryColor: (category: string) => string;
   getStatusColor: (status: string) => string;
@@ -132,6 +135,8 @@ const EmailDetailContent = ({
   onForward,
   onClose,
   onReopen,
+  onGenerateAIResponse,
+  isGeneratingAI,
   getPriorityColor,
   getCategoryColor,
   getStatusColor,
@@ -142,12 +147,20 @@ const EmailDetailContent = ({
   <div className="space-y-4 md:space-y-6">
     {/* Action Buttons */}
     <div className="flex gap-2 flex-wrap">
+      <Button size="sm" variant="default" onClick={onGenerateAIResponse} disabled={isGeneratingAI}>
+        {isGeneratingAI ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Sparkles className="h-4 w-4 mr-2" />
+        )}
+        Generate AI Response
+      </Button>
       <Button size="sm" variant="outline" onClick={onForward}>
         <Forward className="h-4 w-4 mr-2" />
         Forward
       </Button>
       {(email as any).action_status !== "closed" ? (
-        <Button size="sm" onClick={onClose}>
+        <Button size="sm" variant="outline" onClick={onClose}>
           <CheckSquare className="h-4 w-4 mr-2" />
           Close
         </Button>
@@ -379,6 +392,9 @@ const InboundCommandCenter = () => {
   const [emailTasks, setEmailTasks] = useState<EmailTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiResponseDialogOpen, setAiResponseDialogOpen] = useState(false);
+  const [generatedResponse, setGeneratedResponse] = useState<{ subject: string | null; body: string } | null>(null);
   const isMobile = useIsMobile();
 
   // Filters
@@ -604,6 +620,39 @@ const InboundCommandCenter = () => {
     setForwardEmail("");
     setSelectedIds([]);
     loadEmails();
+  };
+
+  const handleGenerateAIResponse = async (email: InboundEmail) => {
+    if (!email.invoice_id) {
+      toast.error("Cannot generate AI response: No linked invoice found");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-persona-command", {
+        body: {
+          command_text: `Respond to this customer email: "${email.subject || 'No subject'}"\n\nEmail content:\n${email.text_body || email.html_body || 'No content'}`,
+          context_invoice_id: email.invoice_id,
+          channel: "email",
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.draft) throw new Error("No response generated");
+
+      setGeneratedResponse({
+        subject: data.draft.subject || `Re: ${email.subject || 'Your inquiry'}`,
+        body: data.draft.message_body,
+      });
+      setAiResponseDialogOpen(true);
+      toast.success("AI response generated");
+    } catch (err: any) {
+      console.error("Error generating AI response:", err);
+      toast.error(err.message || "Failed to generate AI response");
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -1204,6 +1253,8 @@ const InboundCommandCenter = () => {
                     onForward={() => handleForwardSingle(selectedEmail.id)}
                     onClose={() => handleCloseAction(selectedEmail.id)}
                     onReopen={() => handleReopenAction(selectedEmail.id)}
+                    onGenerateAIResponse={() => handleGenerateAIResponse(selectedEmail)}
+                    isGeneratingAI={isGeneratingAI}
                     getPriorityColor={getPriorityColor}
                     getCategoryColor={getCategoryColor}
                     getStatusColor={getStatusColor}
@@ -1229,6 +1280,8 @@ const InboundCommandCenter = () => {
                     onForward={() => handleForwardSingle(selectedEmail.id)}
                     onClose={() => handleCloseAction(selectedEmail.id)}
                     onReopen={() => handleReopenAction(selectedEmail.id)}
+                    onGenerateAIResponse={() => handleGenerateAIResponse(selectedEmail)}
+                    isGeneratingAI={isGeneratingAI}
                     getPriorityColor={getPriorityColor}
                     getCategoryColor={getCategoryColor}
                     getStatusColor={getStatusColor}
@@ -1293,6 +1346,78 @@ const InboundCommandCenter = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Response Dialog */}
+      <Dialog open={aiResponseDialogOpen} onOpenChange={setAiResponseDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              AI Generated Response
+            </DialogTitle>
+            <DialogDescription>
+              Review and edit the AI-generated response before sending
+            </DialogDescription>
+          </DialogHeader>
+          {generatedResponse && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="response-subject">Subject</Label>
+                <Input
+                  id="response-subject"
+                  value={generatedResponse.subject || ""}
+                  onChange={(e) => setGeneratedResponse({ ...generatedResponse, subject: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="response-body">Message</Label>
+                <Textarea
+                  id="response-body"
+                  value={generatedResponse.body}
+                  onChange={(e) => setGeneratedResponse({ ...generatedResponse, body: e.target.value })}
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAiResponseDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!selectedEmail || !generatedResponse) return;
+                try {
+                  // Create draft in ai_drafts table
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) throw new Error("Not authenticated");
+                  
+                  const { error } = await supabase.from("ai_drafts").insert({
+                    user_id: user.id,
+                    invoice_id: selectedEmail.invoice_id!,
+                    channel: "email",
+                    subject: generatedResponse.subject,
+                    message_body: generatedResponse.body,
+                    status: "pending_approval",
+                    step_number: 0,
+                  });
+                  
+                  if (error) throw error;
+                  toast.success("Draft saved for review");
+                  setAiResponseDialogOpen(false);
+                  setGeneratedResponse(null);
+                } catch (err: any) {
+                  toast.error(err.message || "Failed to save draft");
+                }
+              }}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Save as Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
