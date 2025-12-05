@@ -18,6 +18,7 @@ const personas = Object.values(personaConfig);
 const ComingSoon = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
@@ -87,12 +88,18 @@ const ComingSoon = () => {
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    
     setLoading(true);
 
     try {
       const { error } = await supabase
         .from('waitlist_signups')
-        .insert([{ email }]);
+        .insert([{ email, name: name.trim() }]);
       
       if (error) {
         if (error.code === '23505') {
@@ -101,10 +108,10 @@ const ComingSoon = () => {
           throw error;
         }
       } else {
-        // Send admin alert
+        // Send admin alert with name
         try {
           await supabase.functions.invoke('send-admin-alert', {
-            body: { type: 'waitlist', email }
+            body: { type: 'waitlist', email, name: name.trim() }
           });
         } catch (alertErr) {
           console.error('Failed to send admin alert:', alertErr);
@@ -114,6 +121,7 @@ const ComingSoon = () => {
           description: "You're now on the waitlist for early access."
         });
         setEmail("");
+        setName("");
       }
     } catch (error) {
       console.error('Error saving to waitlist:', error);
@@ -446,24 +454,36 @@ const ComingSoon = () => {
             </div>
             
             <form onSubmit={handleWaitlistSubmit} className="max-w-md mx-auto space-y-4">
-              <div className="flex gap-2 relative">
+              <div className="space-y-3 relative">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-1000" />
-                <div className="relative flex-1">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <div className="relative">
                   <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     required
-                    className="pl-10 bg-background"
+                    className="bg-background"
                   />
                 </div>
-                <Button type="submit" disabled={loading} size="lg" className="relative overflow-hidden group">
-                  <span className="relative z-10">{loading ? "Joining..." : "Request Access"}</span>
-                  <ArrowRight className="ml-2 h-4 w-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </Button>
+                <div className="relative flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="pl-10 bg-background"
+                    />
+                  </div>
+                  <Button type="submit" disabled={loading} size="lg" className="relative overflow-hidden group">
+                    <span className="relative z-10">{loading ? "Joining..." : "Request Access"}</span>
+                    <ArrowRight className="ml-2 h-4 w-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground text-center">
                 Join the waitlist to get early access and exclusive launch benefits

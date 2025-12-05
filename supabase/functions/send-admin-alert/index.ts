@@ -45,15 +45,16 @@ serve(async (req) => {
     let html = "";
 
     if (type === "waitlist") {
-      subject = "🎉 New Waitlist Signup - Recouply.ai";
+      subject = "🎉 New Early Access Request - Recouply.ai";
       html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #1a1a1a; margin-bottom: 24px;">New Waitlist Signup!</h1>
+          <h1 style="color: #1a1a1a; margin-bottom: 24px;">New Early Access Request!</h1>
           <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+            ${name ? `<p style="margin: 0 0 12px 0;"><strong>Name:</strong> ${name}</p>` : ''}
             <p style="margin: 0 0 12px 0;"><strong>Email:</strong> ${email}</p>
             <p style="margin: 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
           </div>
-          <p style="color: #666; font-size: 14px;">Someone new is interested in Recouply.ai!</p>
+          <p style="color: #666; font-size: 14px;">Someone new is requesting early access to Recouply.ai!</p>
         </div>
       `;
     } else if (type === "signup") {
