@@ -202,7 +202,7 @@ export type Database = {
           created_at: string | null
           days_past_due: number | null
           id: string
-          invoice_id: string
+          invoice_id: string | null
           message_body: string
           recommended_send_date: string | null
           sent_at: string | null
@@ -219,7 +219,7 @@ export type Database = {
           created_at?: string | null
           days_past_due?: number | null
           id?: string
-          invoice_id: string
+          invoice_id?: string | null
           message_body: string
           recommended_send_date?: string | null
           sent_at?: string | null
@@ -236,7 +236,7 @@ export type Database = {
           created_at?: string | null
           days_past_due?: number | null
           id?: string
-          invoice_id?: string
+          invoice_id?: string | null
           message_body?: string
           recommended_send_date?: string | null
           sent_at?: string | null
