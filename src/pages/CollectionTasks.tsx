@@ -427,9 +427,14 @@ export default function CollectionTasks() {
 
   const getInboundLink = (task: TaskWithRelations) => {
     if (task.inbound_email_id) {
+      // Pass invoice_id from task context so AI response can use it
+      const params = new URLSearchParams({ email: task.inbound_email_id });
+      if (task.invoice_id) {
+        params.set('invoiceId', task.invoice_id);
+      }
       return (
         <Link 
-          to={`/inbound?email=${task.inbound_email_id}`}
+          to={`/inbound?${params.toString()}`}
           className="flex items-center gap-1 text-primary hover:underline text-sm"
           onClick={(e) => e.stopPropagation()}
         >
