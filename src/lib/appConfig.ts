@@ -1,7 +1,7 @@
 // App configuration for redirects and URLs
 // Use custom domain for production, fallback to current origin for development
 
-const PRODUCTION_DOMAIN = 'https://app.recouply.ai';
+const PRODUCTION_DOMAIN = 'https://recouply.ai';
 
 // Use production domain if deployed, otherwise use current origin (for preview/dev)
 export const getAppUrl = (): string => {
@@ -9,7 +9,7 @@ export const getAppUrl = (): string => {
   if (typeof window !== 'undefined') {
     const origin = window.location.origin;
     // If already on the custom domain, use it
-    if (origin.includes('app.recouply.ai')) {
+    if (origin.includes('recouply.ai')) {
       return PRODUCTION_DOMAIN;
     }
     // For Lovable preview URLs, use the current origin

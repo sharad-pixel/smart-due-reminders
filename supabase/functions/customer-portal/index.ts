@@ -77,7 +77,7 @@ serve(async (req) => {
     }
 
     // Create portal session
-    const origin = req.headers.get('origin') || 'https://app.recouply.ai';
+    const origin = req.headers.get('origin') || 'https://recouply.ai';
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/billing`,

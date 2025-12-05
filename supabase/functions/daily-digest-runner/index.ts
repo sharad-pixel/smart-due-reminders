@@ -546,7 +546,7 @@ function generateWelcomeEmailHtml(displayName: string): string {
               </ol>
 
               <div style="text-align: center; margin: 32px 0;">
-                <a href="https://app.recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
+<a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
                   Start Your CashOps Journey →
                 </a>
               </div>
