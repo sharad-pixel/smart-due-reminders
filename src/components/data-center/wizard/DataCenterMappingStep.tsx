@@ -20,11 +20,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Wand2, Loader2, CheckCircle, AlertCircle, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ParsedFileData, ColumnMapping } from "../DataCenterUploadWizard";
+
+// Display label overrides for cleaner UI
+const FIELD_DISPLAY_LABELS: Record<string, { short: string; full: string }> = {
+  payment_invoice_number: { short: "SS Invoice #", full: "Source System Invoice Number - Your accounting system's invoice identifier (fallback if Recouply ID unavailable)" },
+};
 
 interface DataCenterMappingStepProps {
   parsedData: ParsedFileData;
@@ -238,45 +249,93 @@ export const DataCenterMappingStep = ({
                           Required Fields
                         </div>
                       )}
-                      {allFields.filter((f: any) => f.required_for_recouply).map((field: any) => (
-                        <SelectItem key={field.key} value={field.key} className="py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-destructive font-medium">*</span>
-                              {field.label}
-                              {field.key === "recouply_invoice_id" && (
-                                <Badge variant="default" className="text-[10px] px-1">Primary</Badge>
+                      {allFields.filter((f: any) => f.required_for_recouply).map((field: any) => {
+                        const displayOverride = FIELD_DISPLAY_LABELS[field.key];
+                        const displayLabel = displayOverride?.short || field.label;
+                        const fullDescription = displayOverride?.full || field.description;
+                        
+                        return (
+                          <SelectItem key={field.key} value={field.key} className="py-2">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-destructive font-medium">*</span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className={displayOverride ? "border-b border-dotted border-muted-foreground cursor-help" : ""}>
+                                        {displayLabel}
+                                      </span>
+                                    </TooltipTrigger>
+                                    {displayOverride && (
+                                      <TooltipContent side="right" className="max-w-xs">
+                                        <p className="font-medium">{displayOverride.full.split(' - ')[0]}</p>
+                                        {displayOverride.full.includes(' - ') && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {displayOverride.full.split(' - ')[1]}
+                                          </p>
+                                        )}
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                                {field.key === "recouply_invoice_id" && (
+                                  <Badge variant="default" className="text-[10px] px-1">Primary</Badge>
+                                )}
+                              </div>
+                              {fullDescription && !displayOverride && (
+                                <span className="text-[10px] text-muted-foreground leading-tight max-w-[280px]">
+                                  {fullDescription}
+                                </span>
                               )}
                             </div>
-                            {field.description && (
-                              <span className="text-[10px] text-muted-foreground leading-tight max-w-[280px]">
-                                {field.description}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
+                          </SelectItem>
+                        );
+                      })}
                       {/* Optional fields */}
                       {allFields.filter((f: any) => !f.required_for_recouply).length > 0 && (
                         <div className="px-2 py-1 text-xs font-semibold text-muted-foreground bg-muted/50 mt-1">
                           Optional Fields
                         </div>
                       )}
-                      {allFields.filter((f: any) => !f.required_for_recouply).map((field: any) => (
-                        <SelectItem key={field.key} value={field.key} className="py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                              {field.label}
-                              {field.isCustom && <Badge variant="secondary" className="text-[10px] px-1">Custom</Badge>}
+                      {allFields.filter((f: any) => !f.required_for_recouply).map((field: any) => {
+                        const displayOverride = FIELD_DISPLAY_LABELS[field.key];
+                        const displayLabel = displayOverride?.short || field.label;
+                        const fullDescription = displayOverride?.full || field.description;
+                        
+                        return (
+                          <SelectItem key={field.key} value={field.key} className="py-2">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className={displayOverride ? "border-b border-dotted border-muted-foreground cursor-help" : ""}>
+                                        {displayLabel}
+                                      </span>
+                                    </TooltipTrigger>
+                                    {displayOverride && (
+                                      <TooltipContent side="right" className="max-w-xs">
+                                        <p className="font-medium">{displayOverride.full.split(' - ')[0]}</p>
+                                        {displayOverride.full.includes(' - ') && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {displayOverride.full.split(' - ')[1]}
+                                          </p>
+                                        )}
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                                {field.isCustom && <Badge variant="secondary" className="text-[10px] px-1">Custom</Badge>}
+                              </div>
+                              {fullDescription && !displayOverride && (
+                                <span className="text-[10px] text-muted-foreground leading-tight max-w-[280px]">
+                                  {fullDescription}
+                                </span>
+                              )}
                             </div>
-                            {field.description && (
-                              <span className="text-[10px] text-muted-foreground leading-tight max-w-[280px]">
-                                {field.description}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
