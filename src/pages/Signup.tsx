@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
-import { getAuthRedirectUrl } from "@/lib/appConfig";
-import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock, Mail, ArrowRight } from "lucide-react";
+import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
+import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock, Mail, ArrowRight, AlertTriangle } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // NIST-compliant password requirements
 const passwordRequirements = [
@@ -52,6 +53,7 @@ const Signup = () => {
   const [requestName, setRequestName] = useState("");
   const [requestEmail, setRequestEmail] = useState("");
   const [requestingAccess, setRequestingAccess] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   // Calculate password strength
   const passedRequirements = passwordRequirements.filter(req => req.test(password));
@@ -162,6 +164,7 @@ const Signup = () => {
   };
 
   const handleGoogleSignIn = async () => {
+    setOauthError(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -175,14 +178,22 @@ const Signup = () => {
       });
 
       if (error) {
-        if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
+        if (isRedirectUriMismatchError(error)) {
+          setOauthError(`redirect_uri_mismatch: The Google OAuth redirect URI is not configured correctly. Admin: Add "${SUPABASE_CALLBACK_URL}" to Authorized redirect URIs in Google Cloud Console.`);
+          toast.error('OAuth configuration error. Please contact the administrator.');
+        } else if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
           toast.error('Google sign-in is not yet configured. Please use email sign-up.');
         } else {
           throw error;
         }
       }
     } catch (error: any) {
-      toast.error(error.message || "Google sign in failed");
+      if (isRedirectUriMismatchError(error)) {
+        setOauthError(`redirect_uri_mismatch: The Google OAuth redirect URI is not configured correctly. Admin: Add "${SUPABASE_CALLBACK_URL}" to Authorized redirect URIs in Google Cloud Console.`);
+        toast.error('OAuth configuration error. Please contact the administrator.');
+      } else {
+        toast.error(error.message || "Google sign in failed");
+      }
     }
   };
 
@@ -446,6 +457,21 @@ const Signup = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* OAuth Error Alert - Admin Only */}
+            {oauthError && (
+              <Alert variant="destructive" className="text-left">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>OAuth Configuration Error</AlertTitle>
+                <AlertDescription className="text-xs mt-2">
+                  <p className="mb-2">{oauthError}</p>
+                  <p className="font-medium">Required Redirect URI:</p>
+                  <code className="block mt-1 p-2 bg-destructive/10 rounded text-xs break-all">
+                    {SUPABASE_CALLBACK_URL}
+                  </code>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Google SSO - Only show for non-invite flow */}
             {!(isInviteFlow && user) && (
               <>

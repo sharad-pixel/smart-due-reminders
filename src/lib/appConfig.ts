@@ -3,6 +3,10 @@
 
 const PRODUCTION_DOMAIN = 'https://recouply.ai';
 
+// Supabase project configuration
+export const SUPABASE_PROJECT_ID = 'kguurazunazhhrhasahd';
+export const SUPABASE_CALLBACK_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/auth/v1/callback`;
+
 // Use production domain if deployed, otherwise use current origin (for preview/dev)
 export const getAppUrl = (): string => {
   // In production builds or when on custom domain, use the production URL
@@ -21,7 +25,24 @@ export const getAppUrl = (): string => {
   return PRODUCTION_DOMAIN;
 };
 
-// Get redirect URL for auth callbacks
+// Get redirect URL for auth callbacks (where user goes AFTER OAuth completes)
 export const getAuthRedirectUrl = (path: string = '/dashboard'): string => {
   return `${getAppUrl()}${path}`;
+};
+
+// Check if an error is a redirect_uri_mismatch error from Google OAuth
+export const isRedirectUriMismatchError = (error: any): boolean => {
+  const errorMessage = error?.message?.toLowerCase() || '';
+  const errorCode = error?.code?.toLowerCase() || '';
+  return (
+    errorMessage.includes('redirect_uri_mismatch') ||
+    errorMessage.includes('redirect uri') ||
+    errorCode.includes('redirect_uri_mismatch')
+  );
+};
+
+// Get the list of redirect URIs that need to be configured in Google Cloud Console
+export const getRequiredGoogleRedirectUris = (): string[] => {
+  const uris = [SUPABASE_CALLBACK_URL];
+  return uris;
 };

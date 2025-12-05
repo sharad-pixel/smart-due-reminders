@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight, MessageCircle, Zap, Target, Sparkles, Bot, LogIn } from "lucide-react";
+import { Mail, ArrowRight, MessageCircle, Zap, Target, Sparkles, Bot, LogIn, AlertTriangle } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { getAuthRedirectUrl } from "@/lib/appConfig";
+import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const personas = Object.values(personaConfig);
 
@@ -21,6 +22,7 @@ const ComingSoon = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -133,6 +135,7 @@ const ComingSoon = () => {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
+    setOauthError(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -146,14 +149,22 @@ const ComingSoon = () => {
       });
 
       if (error) {
-        if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
+        if (isRedirectUriMismatchError(error)) {
+          setOauthError(`redirect_uri_mismatch: The Google OAuth redirect URI is not configured correctly. Admin: Add "${SUPABASE_CALLBACK_URL}" to Authorized redirect URIs in Google Cloud Console.`);
+          toast.error('OAuth configuration error. Please contact the administrator.');
+        } else if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
           toast.error('Google sign-in is not yet configured. Please contact support.');
         } else {
           throw error;
         }
       }
     } catch (error: any) {
-      toast.error(error.message || "Google sign in failed");
+      if (isRedirectUriMismatchError(error)) {
+        setOauthError(`redirect_uri_mismatch: The Google OAuth redirect URI is not configured correctly. Admin: Add "${SUPABASE_CALLBACK_URL}" to Authorized redirect URIs in Google Cloud Console.`);
+        toast.error('OAuth configuration error. Please contact the administrator.');
+      } else {
+        toast.error(error.message || "Google sign in failed");
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -422,6 +433,21 @@ const ComingSoon = () => {
             </div>
 
             <div className="max-w-sm mx-auto space-y-3">
+              {/* OAuth Error Alert - Admin Only */}
+              {oauthError && (
+                <Alert variant="destructive" className="text-left">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>OAuth Configuration Error</AlertTitle>
+                  <AlertDescription className="text-xs mt-2">
+                    <p className="mb-2">{oauthError}</p>
+                    <p className="font-medium">Required Redirect URI:</p>
+                    <code className="block mt-1 p-2 bg-destructive/10 rounded text-xs break-all">
+                      {SUPABASE_CALLBACK_URL}
+                    </code>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Button
                 type="button"
                 variant="outline"
