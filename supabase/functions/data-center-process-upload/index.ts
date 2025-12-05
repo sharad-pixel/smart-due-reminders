@@ -374,11 +374,15 @@ serve(async (req) => {
           newRecords++;
 
         } else if (fileType === "payments") {
-          // PAYMENTS: Require recouply_account_id and payment_invoice_number
+          // PAYMENTS: Require recouply_account_id and recouply_invoice_id (or payment_invoice_number as fallback)
           const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
+          const recouplyInvoiceId = String(getValue(row, "recouply_invoice_id") || "").trim();
           const paymentInvoiceNumber = String(getValue(row, "payment_invoice_number") || "").trim();
           const paymentDate = parseDate(getValue(row, "payment_date"));
           const paymentAmount = parseNumber(getValue(row, "payment_amount"));
+          
+          // Use recouply_invoice_id if provided, otherwise fall back to payment_invoice_number
+          const invoiceIdentifier = recouplyInvoiceId || paymentInvoiceNumber;
 
           // Validate required fields
           if (!recouplyAccountId) {
@@ -387,8 +391,8 @@ serve(async (req) => {
             continue;
           }
 
-          if (!paymentInvoiceNumber) {
-            console.error(`Row ${i}: Missing required Invoice Number`);
+          if (!invoiceIdentifier) {
+            console.error(`Row ${i}: Missing required Recouply Invoice ID or Invoice Number`);
             errors++;
             continue;
           }
@@ -407,14 +411,26 @@ serve(async (req) => {
             continue;
           }
 
-          // Find invoice: try reference_id (Recouply INV ID) first, then invoice_number
-          let invoiceData = invoiceRefMap.get(normalizeString(paymentInvoiceNumber));
-          if (!invoiceData) {
-            // Fallback to invoice_number
-            invoiceData = invoiceNumMap.get(normalizeString(paymentInvoiceNumber));
+          // Find invoice: try recouply_invoice_id (reference_id) first, then payment_invoice_number
+          let invoiceData = null;
+          if (recouplyInvoiceId) {
+            invoiceData = invoiceRefMap.get(normalizeString(recouplyInvoiceId));
+            if (invoiceData) {
+              console.log(`Row ${i}: Matched invoice by Recouply Invoice ID: ${recouplyInvoiceId}`);
+            }
+          }
+          if (!invoiceData && paymentInvoiceNumber) {
+            // Try reference_id lookup first, then invoice_number
+            invoiceData = invoiceRefMap.get(normalizeString(paymentInvoiceNumber));
+            if (!invoiceData) {
+              invoiceData = invoiceNumMap.get(normalizeString(paymentInvoiceNumber));
+            }
+            if (invoiceData) {
+              console.log(`Row ${i}: Matched invoice by invoice_number: ${paymentInvoiceNumber}`);
+            }
           }
           if (!invoiceData) {
-            console.error(`Row ${i}: Invoice not found by reference_id or invoice_number: ${paymentInvoiceNumber}`);
+            console.error(`Row ${i}: Invoice not found by Recouply Invoice ID (${recouplyInvoiceId}) or invoice_number (${paymentInvoiceNumber})`);
             errors++;
             continue;
           }
