@@ -13,7 +13,7 @@ export const getAppUrl = (): string => {
       return PRODUCTION_DOMAIN;
     }
     // For Lovable preview URLs, use the current origin
-    if (origin.includes('lovable.app') || origin.includes('localhost')) {
+    if (origin.includes('lovable.app') || origin.includes('lovableproject.com') || origin.includes('localhost')) {
       return origin;
     }
   }
