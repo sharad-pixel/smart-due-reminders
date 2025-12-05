@@ -121,19 +121,19 @@ const Reconciliation = () => {
     enabled: !!payments && payments.length > 0,
   });
 
-  // Run matching mutation
+  // Run AI matching mutation - uses Lovable AI for intelligent matching
   const runMatchingMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("match-payments");
+      const { data, error } = await supabase.functions.invoke("ai-match-payments");
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["reconciliation-payments"] });
       queryClient.invalidateQueries({ queryKey: ["payment-links"] });
       toast({
-        title: "Matching complete",
-        description: "AI has analyzed your payments and suggested matches.",
+        title: "AI Matching complete",
+        description: `Matched ${data?.matched || 0} of ${data?.total || 0} payments (${data?.aiMatched || 0} via AI)`,
       });
     },
     onError: (error: any) => {
@@ -239,10 +239,18 @@ const Reconciliation = () => {
 
   const getMethodBadge = (method: string) => {
     switch (method) {
+      case "recouply_id_exact":
+        return <Badge className="bg-green-100 text-green-800">Recouply ID Match</Badge>;
+      case "external_id_exact":
+        return <Badge className="bg-blue-100 text-blue-800">External ID Match</Badge>;
+      case "invoice_number_exact":
+        return <Badge variant="default">Invoice # Match</Badge>;
+      case "amount_exact":
+        return <Badge variant="secondary">Amount Match</Badge>;
       case "exact":
         return <Badge variant="default">Exact Match</Badge>;
       case "heuristic":
-        return <Badge variant="secondary">Amount Match</Badge>;
+        return <Badge variant="secondary">Heuristic</Badge>;
       case "ai_suggested":
         return <Badge className="bg-purple-100 text-purple-800">AI Suggested</Badge>;
       case "manual":
