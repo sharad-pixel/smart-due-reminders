@@ -76,28 +76,53 @@ const Terms = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">7. Termination</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">7. Content Safety & Acceptable Use</h2>
+            <p className="mb-4">
+              Recouply.ai maintains a safe and professional environment for all users. All uploaded content, including images (logos, attachments, avatars, and documents), is automatically scanned for inappropriate material.
+            </p>
+            <p className="mb-4 font-semibold text-foreground">Prohibited Content:</p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>Nudity or sexually explicit content</li>
+              <li>Graphic violence or gore</li>
+              <li>Hate speech, harassment, or discriminatory imagery</li>
+              <li>Self-harm or dangerous activity promotion</li>
+              <li>Illegal drug use or promotion</li>
+              <li>Any other content that is offensive, harmful, or violates applicable laws</li>
+            </ul>
+            <p className="mb-4">
+              <strong>Automatic Moderation:</strong> All image uploads are processed through our automated content moderation system before being accepted. Content that violates our policies will be automatically rejected and will not be stored on our platform.
+            </p>
+            <p className="mb-4">
+              <strong>Moderation Logging:</strong> For security and compliance purposes, we maintain logs of all content moderation decisions. These logs may include metadata about upload attempts but do not store rejected content.
+            </p>
+            <p>
+              <strong>Violations:</strong> Repeated attempts to upload prohibited content may result in account suspension or termination. We reserve the right to report illegal content to appropriate authorities.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-foreground mb-4">8. Termination</h2>
             <p>
               Either party may terminate this agreement at any time. Upon termination, you will retain access to your data for a reasonable export period. We reserve the right to suspend or terminate accounts that violate these terms or engage in illegal activity.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">8. Changes to Terms</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">9. Changes to Terms</h2>
             <p>
               We may update these terms from time to time. Continued use of the platform after changes constitutes acceptance of the new terms. We will notify you of material changes via email.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">9. Governing Law</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">10. Governing Law</h2>
             <p>
               These terms are governed by the laws of [Your Jurisdiction]. Any disputes shall be resolved in the courts of [Your Jurisdiction].
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">10. Contact</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">11. Contact</h2>
             <p>
               For questions about these terms, contact us at <a href="mailto:legal@recouply.ai" className="text-primary hover:underline">legal@recouply.ai</a>.
             </p>
