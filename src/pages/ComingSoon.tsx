@@ -9,7 +9,7 @@ import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
 
 const personas = Object.values(personaConfig);
 
@@ -139,9 +139,9 @@ const ComingSoon = () => {
           <div className="space-y-4 relative">
             <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full" />
             <img 
-              src={recouplyLogo} 
+              src={recouplyLogoHeader} 
               alt="Recouply.ai" 
-              className="h-20 w-auto mx-auto relative animate-fade-in"
+              className="h-12 w-auto mx-auto relative animate-fade-in"
             />
             <p className="text-2xl font-semibold text-foreground relative animate-fade-in" style={{ animationDelay: '0.1s' }}>
               AI-Powered Invoice Collection

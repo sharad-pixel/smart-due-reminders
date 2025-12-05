@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { logSecurityEvent } from "@/lib/auditLog";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
 
 // Password requirements based on industry best practices (NIST guidelines)
 const PASSWORD_REQUIREMENTS = {
@@ -180,9 +180,9 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center">
           <img 
-            src={recouplyLogo} 
+            src={recouplyLogoHeader} 
             alt="Recouply.ai" 
-            className="h-16 w-auto mx-auto mb-4"
+            className="h-12 w-auto mx-auto mb-4"
           />
           <p className="text-muted-foreground">Verifying reset link...</p>
         </div>
@@ -195,9 +195,9 @@ const ResetPassword = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-            src={recouplyLogo} 
+            src={recouplyLogoHeader} 
             alt="Recouply.ai" 
-            className="h-16 w-auto mx-auto mb-2"
+            className="h-12 w-auto mx-auto mb-2"
           />
           <p className="text-muted-foreground">AI-Powered Invoice Collection</p>
         </div>
