@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -17,11 +17,9 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             className="cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <img 
-              src={recouplyLogoHeader} 
-              alt="Recouply.ai" 
-              className="h-8 w-auto mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert"
-            />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+              Recouply.ai
+            </h1>
           </div>
           <nav className="hidden lg:flex items-center gap-5">
             <button 
@@ -82,11 +80,9 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <img 
-                src={recouplyLogoHeader} 
-                alt="Recouply.ai" 
-                className="h-8 w-auto mb-4 mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert"
-              />
+              <h3 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-4">
+                Recouply.ai
+              </h3>
               <p className="text-sm text-muted-foreground">
                 AI-powered AR & Collections software. Not a collection agency.
               </p>

@@ -9,7 +9,6 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { logSecurityEvent } from "@/lib/auditLog";
-import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
 
 // Password requirements based on industry best practices (NIST guidelines)
 const PASSWORD_REQUIREMENTS = {
@@ -177,13 +176,9 @@ const ResetPassword = () => {
   // Show loading state while checking session
   if (checking) {
     return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center">
-          <img 
-            src={recouplyLogoHeader} 
-            alt="Recouply.ai" 
-            className="h-12 w-auto mx-auto mb-4"
-          />
+          <h1 className="text-4xl font-bold text-primary mb-4">Recouply.ai</h1>
           <p className="text-muted-foreground">Verifying reset link...</p>
         </div>
       </div>
@@ -194,11 +189,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src={recouplyLogoHeader} 
-            alt="Recouply.ai" 
-            className="h-12 w-auto mx-auto mb-2"
-          />
+          <h1 className="text-4xl font-bold text-primary mb-2">Recouply.ai</h1>
           <p className="text-muted-foreground">AI-Powered Invoice Collection</p>
         </div>
 

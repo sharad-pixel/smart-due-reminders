@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
 
 // Stripe plan configuration
 const STRIPE_PLANS = [
@@ -153,11 +152,7 @@ const Checkout = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
-          <img 
-            src={recouplyLogoHeader} 
-            alt="Recouply.ai" 
-            className="h-12 w-auto mx-auto mb-2"
-          />
+          <h1 className="text-4xl font-bold text-primary mb-2">Recouply.ai</h1>
           <p className="text-muted-foreground">Complete your plan setup</p>
         </div>
 

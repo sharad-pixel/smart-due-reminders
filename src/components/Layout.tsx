@@ -37,7 +37,7 @@ import { UsageIndicator } from "@/components/UsageIndicator";
 import { SecurityAlert } from "@/components/SecurityAlert";
 import { DigestNotificationBanner } from "@/components/DigestNotificationBanner";
 import { logAuditEvent } from "@/lib/auditLog";
-import recouplyLogoHeader from "@/assets/recouply-logo-header.png";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 interface LayoutProps {
   children: ReactNode;
@@ -215,11 +215,9 @@ const Layout = ({ children }: LayoutProps) => {
               </Button>
               
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <img 
-                  src={recouplyLogoHeader} 
-                  alt="Recouply.ai" 
-                  className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert"
-                />
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                  Recouply.ai
+                </h1>
               </Link>
               
               {/* Desktop Navigation */}
