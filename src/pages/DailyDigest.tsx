@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Newspaper, Lightbulb, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -273,6 +273,253 @@ const DailyDigest = () => {
                     </div>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* CFO Cash Flow News & CashOps Insights */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* CFO News & Trends */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Newspaper className="h-5 w-5 text-primary" />
+                  CFO Cash Flow News
+                </CardTitle>
+                <CardDescription>Latest trends shaping finance leadership</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <a 
+                    href="https://fortune.com/2025/12/03/boeing-new-cfo-sees-performance-culture-return-positive-cash-flow-next-year/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Boeing CFO: 'Performance Culture' Driving Return to Positive Cash Flow</h4>
+                        <p className="text-xs text-muted-foreground mt-1">New leadership emphasizes operational discipline for 2025 recovery</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">Fortune</Badge>
+                  </a>
+
+                  <a 
+                    href="https://www.highradius.com/finsider/cfo-outlook-2025/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">6 Key Trends Shaping CFO Decisions in 2025</h4>
+                        <p className="text-xs text-muted-foreground mt-1">2.9% inflation expected • 73% taking more risk • 30% prioritize cost-cutting</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">HighRadius</Badge>
+                  </a>
+
+                  <a 
+                    href="https://ey.com/en_us/insights/strategy/cash-forecasting-difficult-and-more-urgent-than-ever"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Cash Forecasting: More Urgent Than Ever</h4>
+                        <p className="text-xs text-muted-foreground mt-1">EY insights on why accurate cash forecasting remains challenging</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">EY</Badge>
+                  </a>
+
+                  <a 
+                    href="https://mexicobusiness.news/finance/news/cash-king-once-again-2025-strategies-business-success"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Cash is King Once Again in 2025</h4>
+                        <p className="text-xs text-muted-foreground mt-1">Strategies for business success in tight liquidity environment</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">Mexico Business</Badge>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* CashOps & AR Automation News */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  CashOps & AR Automation
+                </CardTitle>
+                <CardDescription>Industry updates on collections technology</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <a 
+                    href="https://www.chaserhq.com/blog/automated-debt-collection"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Automated Debt Collection Reduces DSO by Up to 75%</h4>
+                        <p className="text-xs text-muted-foreground mt-1">How AI-powered collection workflows accelerate cash conversion</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">Chaser</Badge>
+                  </a>
+
+                  <a 
+                    href="https://fortispay.com/the-hidden-cost-of-fragmented-ar-workflows-what-tech-leaders-should-know/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Hidden Cost of Fragmented AR Workflows: $1.3M Annually</h4>
+                        <p className="text-xs text-muted-foreground mt-1">59% of companies attribute poor cash flow to manual AR processes</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">Fortis</Badge>
+                  </a>
+
+                  <a 
+                    href="https://www.serrala.com/blog/top-10-ar-automation-software-solutions-in-2025"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Top 10 AR Automation Software Solutions in 2025</h4>
+                        <p className="text-xs text-muted-foreground mt-1">Must-have features for modern accounts receivable automation</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">Serrala</Badge>
+                  </a>
+
+                  <a 
+                    href="https://www.highradius.com/resources/Blog/best-cash-application-automation-tools/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">9 Best Cash Application Automation Tools in 2025</h4>
+                        <p className="text-xs text-muted-foreground mt-1">AI-powered tools for accurate payment matching and reconciliation</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">HighRadius</Badge>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Collection Best Practices */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-yellow-500" />
+                Collection Best Practices
+              </CardTitle>
+              <CardDescription>Proven strategies to optimize your AR collections</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-green-500/10 to-transparent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-green-600">1</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">Clear Payment Terms</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Establish and communicate payment terms upfront. Include due dates, accepted methods, and late payment penalties in all contracts.</p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-blue-500/10 to-transparent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-blue-600">2</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">Invoice Promptly</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Send invoices immediately upon delivery. Timely, accurate invoicing reduces disputes and accelerates payment cycles.</p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-500/10 to-transparent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-purple-600">3</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">Systematic Follow-ups</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Implement automated reminder sequences. Consistent follow-up at 7, 14, 30, and 60 days significantly improves collection rates.</p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-orange-500/10 to-transparent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-orange-600">4</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">Offer Payment Flexibility</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Provide multiple payment options and consider payment plans for larger balances. Flexibility often converts reluctant payers.</p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-red-500/10 to-transparent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-red-600">5</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">Prioritize High-Value</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Focus collection efforts on high-value, high-risk accounts first. Use scoring to identify accounts needing immediate attention.</p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-teal-500/10 to-transparent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-teal-600">6</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">Leverage AI Automation</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Use AI-powered tools for personalized outreach, sentiment analysis, and optimal send timing to maximize response rates.</p>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-sm">Pro Tip: Monitor Your DSO</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Days Sales Outstanding (DSO) is your key health metric. Industry benchmark is 30-45 days. 
+                      Every day you reduce DSO improves working capital. Companies using AR automation 
+                      report up to 75% reduction in DSO and 80% faster reconciliation.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
