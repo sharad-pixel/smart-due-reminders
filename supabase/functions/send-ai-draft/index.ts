@@ -225,11 +225,11 @@ serve(async (req) => {
       .update({ last_contact_date: new Date().toISOString().split('T')[0] })
       .eq("id", invoice.id);
 
-    // Update draft status
+    // Update draft status to sent
     await supabaseClient
       .from("ai_drafts")
       .update({ 
-        status: "approved",
+        status: "sent",
         sent_at: new Date().toISOString(),
       })
       .eq("id", draft_id);
