@@ -143,7 +143,7 @@ const ComingSoon = () => {
           redirectTo: getAuthRedirectUrl('/dashboard'),
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'select_account',
           },
         },
       });
