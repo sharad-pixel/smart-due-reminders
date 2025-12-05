@@ -3327,6 +3327,39 @@ export type Database = {
           },
         ]
       }
+      saved_views: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          page_path: string
+          updated_at: string
+          user_id: string
+          view_config: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          page_path: string
+          updated_at?: string
+          user_id: string
+          view_config?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          page_path?: string
+          updated_at?: string
+          user_id?: string
+          view_config?: Json
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string

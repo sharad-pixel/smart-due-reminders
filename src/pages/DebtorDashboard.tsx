@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
 import { useRiskEngine } from "@/hooks/useRiskEngine";
+import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Clock, Help
 import { useNavigate, Link } from "react-router-dom";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import { PaymentActivityCard } from "@/components/PaymentActivityCard";
+import { SavedViewsManager } from "@/components/SavedViewsManager";
 
 export default function DebtorDashboard() {
   const navigate = useNavigate();
@@ -21,6 +23,35 @@ export default function DebtorDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState<string>("all");
   const [scoreFilter, setScoreFilter] = useState<string>("all");
+
+  // Saved views
+  const {
+    savedViews,
+    activeView,
+    saveView,
+    updateView,
+    deleteView,
+    setDefaultView,
+    loadView,
+    clearActiveView
+  } = useSavedViews('/accounts-dashboard');
+
+  // Build current view config
+  const currentConfig: ViewConfig = useMemo(() => ({
+    filters: { searchTerm, riskFilter, scoreFilter }
+  }), [searchTerm, riskFilter, scoreFilter]);
+
+  // Apply loaded view config
+  useEffect(() => {
+    if (activeView?.view_config) {
+      const config = activeView.view_config;
+      if (config.filters) {
+        if (config.filters.searchTerm !== undefined) setSearchTerm(config.filters.searchTerm);
+        if (config.filters.riskFilter !== undefined) setRiskFilter(config.filters.riskFilter);
+        if (config.filters.scoreFilter !== undefined) setScoreFilter(config.filters.scoreFilter);
+      }
+    }
+  }, [activeView]);
 
   const filteredDebtors = data?.debtors.filter(debtor => {
     const matchesSearch = debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,10 +109,23 @@ export default function DebtorDashboard() {
             <h1 className="text-3xl font-bold">Account Dashboard</h1>
             <p className="text-muted-foreground">Monitor payment scores and risk indicators</p>
           </div>
-          <Button onClick={handleRecalculateAll} disabled={calculateRisk.isPending}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${calculateRisk.isPending ? "animate-spin" : ""}`} />
-            Recalculate All Scores
-          </Button>
+          <div className="flex items-center gap-2">
+            <SavedViewsManager
+              savedViews={savedViews}
+              activeView={activeView}
+              currentConfig={currentConfig}
+              onSave={saveView}
+              onUpdate={updateView}
+              onDelete={deleteView}
+              onSetDefault={setDefaultView}
+              onLoad={loadView}
+              onClear={clearActiveView}
+            />
+            <Button onClick={handleRecalculateAll} disabled={calculateRisk.isPending}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${calculateRisk.isPending ? "animate-spin" : ""}`} />
+              Recalculate All Scores
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
