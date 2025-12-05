@@ -200,3 +200,6 @@ verify_jwt = false
 
 [functions.ai-match-payments]
 verify_jwt = true
+
+[functions.moderated-image-upload]
+verify_jwt = true

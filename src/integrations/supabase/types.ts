@@ -2236,6 +2236,48 @@ export type Database = {
           },
         ]
       }
+      image_moderation_logs: {
+        Row: {
+          categories: Json | null
+          created_at: string | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          image_purpose: string
+          moderation_status: string
+          organization_id: string | null
+          rejection_reason: string | null
+          storage_path: string | null
+          user_id: string | null
+        }
+        Insert: {
+          categories?: Json | null
+          created_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          image_purpose: string
+          moderation_status: string
+          organization_id?: string | null
+          rejection_reason?: string | null
+          storage_path?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          categories?: Json | null
+          created_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          image_purpose?: string
+          moderation_status?: string
+          organization_id?: string | null
+          rejection_reason?: string | null
+          storage_path?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       inbound_emails: {
         Row: {
           action_closed_at: string | null
