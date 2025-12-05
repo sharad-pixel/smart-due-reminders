@@ -388,17 +388,22 @@ export default function NicolasChat() {
 
   if (!isOpen) {
     return (
-      <Button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0 overflow-hidden"
-        size="icon"
-      >
-        <img 
-          src={nicolasAvatar} 
-          alt="Nicolas" 
-          className="h-full w-full object-cover"
-        />
-      </Button>
+      <div className="fixed bottom-6 right-6 z-50 animate-float">
+        <div className="relative group cursor-pointer" onClick={() => setIsOpen(true)}>
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          {/* Avatar container */}
+          <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-primary/20 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 hover:scale-110">
+            <img 
+              src={nicolasAvatar} 
+              alt="Nicolas" 
+              className="h-full w-full object-cover"
+            />
+          </div>
+          {/* Online indicator */}
+          <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-accent rounded-full border-2 border-background animate-pulse"></div>
+        </div>
+      </div>
     );
   }
 
