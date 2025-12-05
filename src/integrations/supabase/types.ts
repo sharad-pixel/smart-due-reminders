@@ -2002,6 +2002,33 @@ export type Database = {
           },
         ]
       }
+      early_access_whitelist: {
+        Row: {
+          email: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          notes: string | null
+          used_at: string | null
+        }
+        Insert: {
+          email: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          email?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       email_accounts: {
         Row: {
           access_token_encrypted: string | null
@@ -3798,6 +3825,7 @@ export type Database = {
         Args: { _account_id: string; _user_id: string }
         Returns: boolean
       }
+      is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {

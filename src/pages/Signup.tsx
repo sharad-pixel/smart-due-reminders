@@ -106,6 +106,26 @@ const Signup = () => {
         businessName,
       });
 
+      // Check if email is whitelisted for early access
+      const { data: whitelistCheck, error: whitelistError } = await supabase
+        .from('early_access_whitelist')
+        .select('id, used_at')
+        .ilike('email', validatedData.email)
+        .maybeSingle();
+
+      if (whitelistError) {
+        console.error('Whitelist check error:', whitelistError);
+      }
+
+      if (!whitelistCheck) {
+        toast.error(
+          "This email is not on our early access list. Please request an invite or join our waitlist.",
+          { duration: 6000 }
+        );
+        setLoading(false);
+        return;
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
         password: validatedData.password,
@@ -133,6 +153,14 @@ const Signup = () => {
         throw authError;
       }
       if (!authData.user) throw new Error("Failed to create account");
+
+      // Mark whitelist entry as used
+      if (whitelistCheck?.id) {
+        await supabase
+          .from('early_access_whitelist')
+          .update({ used_at: new Date().toISOString() })
+          .eq('id', whitelistCheck.id);
+      }
 
       await logSecurityEvent({
         eventType: "signup",
