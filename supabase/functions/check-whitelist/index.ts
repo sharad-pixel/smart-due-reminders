@@ -25,22 +25,35 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if email is in whitelist
-    const { data: whitelistEntry, error } = await supabase
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if email is in manual whitelist table
+    const { data: whitelistEntry, error: whitelistError } = await supabase
       .from("early_access_whitelist")
       .select("id, email, used_at")
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", normalizedEmail)
       .maybeSingle();
 
-    if (error) {
-      console.error("Whitelist check error:", error);
+    if (whitelistError) {
+      console.error("Whitelist check error:", whitelistError);
       return new Response(
         JSON.stringify({ error: "Failed to check whitelist" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const isWhitelisted = !!whitelistEntry;
+    // Also check if user was invited via Supabase Auth (Cloud UI invites)
+    const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+    
+    let invitedViaAuth = false;
+    if (!authError && authUser?.users) {
+      // Check if user exists in auth.users (invited via Cloud UI)
+      invitedViaAuth = authUser.users.some(
+        (u) => u.email?.toLowerCase() === normalizedEmail
+      );
+    }
+
+    const isWhitelisted = !!whitelistEntry || invitedViaAuth;
 
     return new Response(
       JSON.stringify({ 
