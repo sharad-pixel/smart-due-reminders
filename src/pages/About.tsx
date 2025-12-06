@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Bot
 } from "lucide-react";
+import founderPhoto from "@/assets/founder-sharad.jpg";
 import {
   founderConfig,
   companyTimeline,
@@ -67,9 +68,14 @@ const About = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm border rounded-full px-6 py-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-lg">
-                  SC
+              <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm border rounded-full px-6 py-3 animate-float" style={{ animationDelay: '0.5s' }}>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-primary/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <img 
+                    src={founderPhoto} 
+                    alt={founderConfig.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 transition-transform group-hover:scale-110"
+                  />
                 </div>
                 <div className="text-left">
                   <p className="font-semibold">{founderConfig.name}</p>
@@ -101,17 +107,24 @@ const About = () => {
             <div className="grid lg:grid-cols-5 gap-12 items-start">
               <div className="lg:col-span-2">
                 <div className="sticky top-24">
-                  <div className="relative">
-                    <div className="w-full aspect-square max-w-sm mx-auto rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20 flex items-center justify-center overflow-hidden border-2 border-primary/20">
-                      <div className="text-center p-8">
-                        <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6">
-                          <span className="text-5xl font-bold text-primary-foreground">SC</span>
-                        </div>
+                  <div className="relative group">
+                    {/* Animated glow effect behind image */}
+                    <div className="absolute inset-0 max-w-sm mx-auto rounded-2xl bg-gradient-to-br from-primary/30 via-primary/20 to-accent/30 blur-xl opacity-50 group-hover:opacity-80 transition-opacity animate-pulse-slow"></div>
+                    
+                    <div className="relative w-full aspect-square max-w-sm mx-auto rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20 overflow-hidden border-2 border-primary/20 animate-float" style={{ animationDelay: '0.2s' }}>
+                      <img 
+                        src={founderPhoto} 
+                        alt={founderConfig.name}
+                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                      />
+                      {/* Overlay with info */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/60 to-transparent p-6">
                         <h3 className="text-2xl font-bold mb-1">{founderConfig.name}</h3>
                         <p className="text-muted-foreground">{founderConfig.title}, {founderConfig.company}</p>
                       </div>
                     </div>
-                    <div className="mt-6 text-center">
+                    
+                    <div className="mt-6 text-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
                       <p className="italic text-muted-foreground text-sm border-l-2 border-primary pl-4 text-left">
                         "Building the future of CashOps — where enterprise-grade reliability meets startup agility."
                       </p>
