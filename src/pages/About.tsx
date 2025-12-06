@@ -19,7 +19,7 @@ import {
   TrendingUp,
   Bot
 } from "lucide-react";
-import founderPhoto from "@/assets/founder-sharad-stylized.png";
+import founderPhoto from "@/assets/founder-sharad-avatar.png";
 import {
   founderConfig,
   companyTimeline,
