@@ -1558,6 +1558,7 @@ export type Database = {
           high_risk_invoice_count: number | null
           id: string
           in_payment_plan_invoices_count: number | null
+          industry: string | null
           is_active: boolean | null
           is_archived: boolean | null
           latitude: number | null
@@ -1626,6 +1627,7 @@ export type Database = {
           high_risk_invoice_count?: number | null
           id?: string
           in_payment_plan_invoices_count?: number | null
+          industry?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
           latitude?: number | null
@@ -1694,6 +1696,7 @@ export type Database = {
           high_risk_invoice_count?: number | null
           id?: string
           in_payment_plan_invoices_count?: number | null
+          industry?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
           latitude?: number | null
@@ -3146,6 +3149,7 @@ export type Database = {
           payment_date: string
           reconciliation_status: string | null
           reference: string | null
+          reference_id: string | null
           upload_batch_id: string | null
           user_id: string
         }
@@ -3161,6 +3165,7 @@ export type Database = {
           payment_date: string
           reconciliation_status?: string | null
           reference?: string | null
+          reference_id?: string | null
           upload_batch_id?: string | null
           user_id: string
         }
@@ -3176,6 +3181,7 @@ export type Database = {
           payment_date?: string
           reconciliation_status?: string | null
           reference?: string | null
+          reference_id?: string | null
           upload_batch_id?: string | null
           user_id?: string
         }

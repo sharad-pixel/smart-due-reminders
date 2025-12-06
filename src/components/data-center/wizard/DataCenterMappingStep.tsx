@@ -124,8 +124,8 @@ export const DataCenterMappingStep = ({
   });
 
   const relevantGroupings = fileType === "invoice_aging" 
-    ? ["customer", "invoice", "meta"] 
-    : ["customer", "payment", "meta"];
+    ? ["customer", "invoice", "account", "meta"] 
+    : ["customer", "payment", "account", "meta"];
   
   // Combine system fields with custom fields
   const allFields = [

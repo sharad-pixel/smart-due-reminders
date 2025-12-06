@@ -357,8 +357,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       // Trigger AI mapping when entering mapping step
       runAIMapping.mutate();
     } else if (currentStep === 1) {
-      // Validate required fields
-      const relevantGroupings = fileType === "invoice_aging" ? ["customer", "invoice"] : ["customer", "payment"];
+    // Validate required fields
+      const relevantGroupings = fileType === "invoice_aging" ? ["customer", "invoice", "account"] : ["customer", "payment", "account"];
       const requiredFields = fieldDefinitions?.filter(f => f.required_for_recouply && relevantGroupings.includes(f.grouping)) || [];
       const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
       const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));
