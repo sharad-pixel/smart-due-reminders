@@ -5,7 +5,7 @@ export const founderConfig = {
   company: "Recouply.ai",
   tagline: "Enterprise Functionality with Startup Mentality",
   yearsExperience: "15+",
-  linkedIn: "https://www.linkedin.com/in/sharadchanana/",
+  linkedIn: "https://www.linkedin.com/in/schanana/",
   email: "sharad@recouply.ai",
   bio: `Sharad Chanana is the Founder of Recouply.ai — a transformational leader with 15+ years of experience shaping Revenue Operations, Quote-to-Cash architecture, Billing modernization, Collections strategy, and enterprise-grade GTM systems. He has built and scaled operational frameworks for some of the most respected high-growth SaaS and enterprise companies, including ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum, CallidusCloud, Ooyala, and Chegg.`,
   expertise: [
