@@ -19,6 +19,8 @@ import {
   Eye,
   Loader2,
   Info,
+  Users,
+  DollarSign,
   FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +34,7 @@ import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanne
 const DataCenter = () => {
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
   const [createSourceOpen, setCreateSourceOpen] = useState(false);
-  const [selectedFileType, setSelectedFileType] = useState<"invoice_aging" | "payments">("invoice_aging");
+  const [selectedFileType, setSelectedFileType] = useState<"invoice_aging" | "payments" | "accounts">("invoice_aging");
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["data-center-stats"],
@@ -54,7 +56,7 @@ const DataCenter = () => {
     },
   });
 
-  const handleStartUpload = (fileType: "invoice_aging" | "payments") => {
+  const handleStartUpload = (fileType: "invoice_aging" | "payments" | "accounts") => {
     // Force user to create a source first if none exist
     if (!stats?.sources || stats.sources === 0) {
       toast.info("Create a data source first", {
@@ -135,57 +137,136 @@ const DataCenter = () => {
             <CardHeader className="pb-2">
               <CardDescription>Quick Actions</CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => handleStartUpload("accounts")}>
+                <Users className="h-4 w-4 mr-1" />
+                Accounts
+              </Button>
               <Button size="sm" variant="outline" onClick={() => handleStartUpload("invoice_aging")}>
                 <FileSpreadsheet className="h-4 w-4 mr-1" />
                 Invoices
               </Button>
               <Button size="sm" variant="outline" onClick={() => handleStartUpload("payments")}>
-                <Download className="h-4 w-4 mr-1" />
+                <DollarSign className="h-4 w-4 mr-1" />
                 Payments
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Payment Matching Guide */}
-        <Alert className="border-primary/30 bg-primary/5">
-          <Info className="h-4 w-4 text-primary" />
-          <AlertTitle className="text-primary">Payment Matching Requirements</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-sm">
-            <p>
-              To successfully match payments to invoices, your payment files <strong>must include the Recouply Invoice ID</strong> (starts with <code className="px-1 py-0.5 bg-muted rounded text-xs">INV-</code>).
-            </p>
-            <div className="grid sm:grid-cols-2 gap-4 mt-3">
-              <div className="p-3 bg-background rounded-lg border">
-                <h4 className="font-medium flex items-center gap-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  Primary Match (Recommended)
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Use <strong>Recouply Invoice ID</strong> field. This is the unique identifier assigned to each invoice in Recouply.ai. 
-                  Export your invoices from the Invoices page to get this ID.
-                </p>
-              </div>
-              <div className="p-3 bg-background rounded-lg border">
-                <h4 className="font-medium flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  Fallback Match
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  If Recouply Invoice ID is not available, the system will attempt to match using your <strong>Invoice Number</strong>. 
-                  This may result in lower match confidence.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                Tip: Export your invoices first, then use the Recouply Invoice ID column when preparing payment data.
-              </span>
-            </div>
-          </AlertDescription>
-        </Alert>
+        {/* How to Prepare Data Guide */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Info className="h-5 w-5 text-primary" />
+            How to Prepare Your Data
+          </h3>
+          
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Accounts Guide */}
+            <Card className="border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-500" />
+                  Accounts
+                </CardTitle>
+                <CardDescription className="text-xs">Import your customer/company records</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div>
+                  <p className="font-medium text-foreground mb-1">Required Fields:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                    <li><strong>Account Name</strong> - Company or customer name</li>
+                    <li><strong>Email</strong> - Primary contact email</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                    <li>Contact Name, Phone</li>
+                    <li>External Customer ID</li>
+                    <li>Industry, Account Type</li>
+                    <li>Billing Address fields</li>
+                  </ul>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-muted-foreground">
+                    <strong>Tip:</strong> Import accounts first, then invoices, then payments for best matching.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoices Guide */}
+            <Card className="border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-amber-500" />
+                  Invoices
+                </CardTitle>
+                <CardDescription className="text-xs">Import your AR aging or invoice data</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div>
+                  <p className="font-medium text-foreground mb-1">Required Fields:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                    <li><strong>Recouply Account ID</strong> - Links to existing account</li>
+                    <li><strong>Invoice Number</strong> - Your invoice identifier</li>
+                    <li><strong>Invoice Amount</strong> - Total amount due</li>
+                    <li><strong>Due Date</strong> - Payment due date</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                    <li>Invoice Date, Outstanding Amount</li>
+                    <li>Payment Terms, Status</li>
+                    <li>External Invoice ID</li>
+                  </ul>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-muted-foreground">
+                    <strong>Tip:</strong> Export accounts first to get Recouply Account IDs for linking.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payments Guide */}
+            <Card className="border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-green-500" />
+                  Payments
+                </CardTitle>
+                <CardDescription className="text-xs">Import payments to reconcile invoices</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div>
+                  <p className="font-medium text-foreground mb-1">Required Fields:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                    <li><strong>Recouply Account ID</strong> - Links to account</li>
+                    <li><strong>Recouply Invoice ID</strong> - Primary match key</li>
+                    <li><strong>Payment Amount</strong> - Amount paid</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                    <li>Payment Date, Payment Method</li>
+                    <li>Check/Reference Number</li>
+                    <li>SS Invoice # (fallback match)</li>
+                  </ul>
+                </div>
+                <div className="pt-2 border-t flex items-start gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                  <p className="text-muted-foreground">
+                    Export invoices first to get Recouply Invoice IDs for accurate matching.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Main Tabs */}
         <Tabs defaultValue="uploads" className="space-y-4">

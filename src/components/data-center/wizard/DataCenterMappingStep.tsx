@@ -42,7 +42,7 @@ interface DataCenterMappingStepProps {
   columnMappings: ColumnMapping[];
   onMappingsChange: (mappings: ColumnMapping[]) => void;
   fieldDefinitions: any[];
-  fileType: "invoice_aging" | "payments";
+  fileType: "invoice_aging" | "payments" | "accounts";
   isLoadingAI: boolean;
   onRunAI: () => void;
   selectedSourceId?: string | null;
@@ -123,9 +123,11 @@ export const DataCenterMappingStep = ({
     },
   });
 
-  const relevantGroupings = fileType === "invoice_aging" 
-    ? ["customer", "invoice", "account", "meta"] 
-    : ["customer", "payment", "account", "meta"];
+  const relevantGroupings = fileType === "accounts"
+    ? ["account", "customer", "meta"]
+    : fileType === "invoice_aging" 
+      ? ["customer", "invoice", "account", "meta"] 
+      : ["customer", "payment", "account", "meta"];
   
   // Combine system fields with custom fields
   const allFields = [
