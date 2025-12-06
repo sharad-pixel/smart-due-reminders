@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Plus, DollarSign, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Plus, DollarSign, AlertTriangle, Users } from "lucide-react";
 
 interface DataCenterFileUploadStepProps {
   file: File | null;
@@ -21,9 +21,9 @@ interface DataCenterFileUploadStepProps {
   selectedSourceId: string | null;
   onSourceSelect: (sourceId: string | null) => void;
   onCreateSource?: () => void;
-  fileType: "invoice_aging" | "payments";
-  onFileTypeChange: (type: "invoice_aging" | "payments") => void;
-  detectedType?: { detected: "invoice_aging" | "payments" | "unknown"; confidence: number; reasons: string[] } | null;
+  fileType: "invoice_aging" | "payments" | "accounts";
+  onFileTypeChange: (type: "invoice_aging" | "payments" | "accounts") => void;
+  detectedType?: { detected: "invoice_aging" | "payments" | "accounts" | "unknown"; confidence: number; reasons: string[] } | null;
 }
 
 export const DataCenterFileUploadStep = ({
@@ -106,12 +106,21 @@ export const DataCenterFileUploadStep = ({
         <div className="flex gap-2">
           <Button
             type="button"
+            variant={fileType === "accounts" ? "default" : "outline"}
+            className="flex-1"
+            onClick={() => onFileTypeChange("accounts")}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Accounts
+          </Button>
+          <Button
+            type="button"
             variant={fileType === "invoice_aging" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onFileTypeChange("invoice_aging")}
           >
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Invoice Aging
+            Invoices
           </Button>
           <Button
             type="button"
@@ -130,13 +139,13 @@ export const DataCenterFileUploadStep = ({
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>
-                File appears to be <strong>{detectedType.detected === "payments" ? "Payment" : "Invoice"}</strong> data 
+                File appears to be <strong>{detectedType.detected === "payments" ? "Payment" : detectedType.detected === "accounts" ? "Account" : "Invoice"}</strong> data 
                 ({detectedType.confidence}% confidence based on: {detectedType.reasons.join(", ")})
               </span>
               <Button 
                 size="sm" 
                 variant="outline" 
-                onClick={() => onFileTypeChange(detectedType.detected as "invoice_aging" | "payments")}
+                onClick={() => onFileTypeChange(detectedType.detected as "invoice_aging" | "payments" | "accounts")}
               >
                 Switch Type
               </Button>

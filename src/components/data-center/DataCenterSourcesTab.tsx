@@ -93,7 +93,7 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
     },
   });
 
-  const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments") => {
+  const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments" | "accounts") => {
     // Fetch source mappings
     let { data: mappings } = await supabase
       .from("data_center_source_field_mappings")
@@ -144,7 +144,7 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
     }
 
     // Filter mappings by file type (invoice vs payment)
-    const relevantGroupings = fileType === "invoice_aging" ? ["customer", "invoice"] : ["customer", "payment"];
+    const relevantGroupings = fileType === "accounts" ? ["account", "customer"] : fileType === "invoice_aging" ? ["customer", "invoice", "account"] : ["customer", "payment", "account"];
     const relevantFieldKeys = fieldDefinitions
       ?.filter(f => relevantGroupings.includes(f.grouping))
       .map(f => f.key) || [];

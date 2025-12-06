@@ -10,7 +10,7 @@ interface ProcessRequest {
   uploadId: string;
   rows: Record<string, any>[];
   mappings: Record<string, string>;
-  fileType: "invoice_aging" | "payments";
+  fileType: "invoice_aging" | "payments" | "accounts";
 }
 
 function parseDate(value: any): string | null {
@@ -525,6 +525,72 @@ serve(async (req) => {
 
           matched++;
           newRecords++;
+        } else if (fileType === "accounts") {
+          // ACCOUNTS: Create or update customer/debtor records
+          const accountName = String(getValue(row, "account_name") || getValue(row, "customer_name") || "").trim();
+          const email = String(getValue(row, "customer_email") || getValue(row, "email") || "").trim();
+          const externalId = getValue(row, "external_customer_id") ? String(getValue(row, "external_customer_id")) : null;
+          
+          if (!accountName) {
+            console.error(`Row ${i}: Missing required account name`);
+            errors++;
+            continue;
+          }
+
+          // Check if account already exists
+          let debtorId = customerMap.get(normalizeString(accountName));
+          if (externalId) {
+            debtorId = debtorId || customerMap.get(normalizeString(externalId));
+          }
+
+          if (debtorId) {
+            // Update existing account
+            await supabase
+              .from("debtors")
+              .update({
+                company_name: accountName,
+                email: email || undefined,
+                phone: getValue(row, "customer_phone") ? String(getValue(row, "customer_phone")) : undefined,
+                contact_name: getValue(row, "contact_name") ? String(getValue(row, "contact_name")) : undefined,
+                industry: getValue(row, "industry") ? String(getValue(row, "industry")) : undefined,
+                external_customer_id: externalId || undefined,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", debtorId);
+            
+            existingCustomersCount++;
+            matched++;
+          } else {
+            // Create new account
+            const { data: newDebtor, error: debtorError } = await supabase
+              .from("debtors")
+              .insert({
+                user_id: user.id,
+                company_name: accountName,
+                name: accountName,
+                contact_name: String(getValue(row, "contact_name") || accountName),
+                email: email || `no-email-${Date.now()}@placeholder.com`,
+                phone: getValue(row, "customer_phone") ? String(getValue(row, "customer_phone")) : null,
+                industry: getValue(row, "industry") ? String(getValue(row, "industry")) : null,
+                external_customer_id: externalId,
+                reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+              })
+              .select()
+              .single();
+
+            if (debtorError) {
+              console.error("Account creation error:", debtorError);
+              errors++;
+              continue;
+            }
+
+            customerMap.set(normalizeString(accountName), newDebtor.id);
+            if (newDebtor.reference_id) {
+              customerRefMap.set(normalizeString(newDebtor.reference_id), newDebtor.id);
+            }
+            newCustomers++;
+            newRecords++;
+          }
         }
 
         processed++;

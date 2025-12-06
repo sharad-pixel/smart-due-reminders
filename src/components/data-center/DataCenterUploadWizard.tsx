@@ -16,7 +16,9 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
-  AlertTriangle
+  AlertTriangle,
+  Users,
+  DollarSign
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +31,7 @@ import { DataCenterCompleteStep } from "./wizard/DataCenterCompleteStep";
 interface DataCenterUploadWizardProps {
   open: boolean;
   onClose: () => void;
-  fileType: "invoice_aging" | "payments";
+  fileType: "invoice_aging" | "payments" | "accounts";
 }
 
 // Keywords that indicate payment data
@@ -53,13 +55,26 @@ const INVOICE_KEYWORDS = [
   "outstanding", "open_balance", "open balance", "balance", "original_amount"
 ];
 
-const detectFileType = (headers: string[]): { detected: "invoice_aging" | "payments" | "unknown"; confidence: number; reasons: string[] } => {
+// Keywords that indicate account/customer data
+const ACCOUNT_KEYWORDS = [
+  "customer_name", "customer name", "customername", "company_name", "company name", "companyname",
+  "account_name", "account name", "accountname", "client_name", "client name",
+  "contact_name", "contact name", "contactname", "primary_contact",
+  "customer_email", "customer email", "contact_email", "email_address", "email address",
+  "customer_phone", "customer phone", "phone_number", "phone number",
+  "billing_address", "billing address", "address_line", "address line",
+  "industry", "account_type", "customer_type", "credit_limit"
+];
+
+const detectFileType = (headers: string[]): { detected: "invoice_aging" | "payments" | "accounts" | "unknown"; confidence: number; reasons: string[] } => {
   const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
   
   let paymentScore = 0;
   let invoiceScore = 0;
+  let accountScore = 0;
   const paymentReasons: string[] = [];
   const invoiceReasons: string[] = [];
+  const accountReasons: string[] = [];
 
   normalizedHeaders.forEach(header => {
     // Check payment keywords
@@ -74,6 +89,13 @@ const detectFileType = (headers: string[]): { detected: "invoice_aging" | "payme
     if (invoiceMatch) {
       invoiceScore += 2;
       invoiceReasons.push(header);
+    }
+
+    // Check account keywords
+    const accountMatch = ACCOUNT_KEYWORDS.some(kw => header.includes(kw.toLowerCase()));
+    if (accountMatch) {
+      accountScore += 2;
+      accountReasons.push(header);
     }
   });
 
@@ -90,18 +112,30 @@ const detectFileType = (headers: string[]): { detected: "invoice_aging" | "payme
   if (normalizedHeaders.some(h => h.includes("due_date") || h.includes("due date") || h.includes("aging"))) {
     invoiceScore += 4;
   }
+  if (normalizedHeaders.some(h => h.includes("customer_name") || h.includes("company_name") || h.includes("account_name"))) {
+    accountScore += 4;
+  }
+  if (normalizedHeaders.some(h => h.includes("industry") || h.includes("credit_limit"))) {
+    accountScore += 3;
+  }
 
-  const totalScore = paymentScore + invoiceScore;
+  const totalScore = paymentScore + invoiceScore + accountScore;
   if (totalScore === 0) {
     return { detected: "unknown", confidence: 0, reasons: [] };
   }
 
-  if (paymentScore > invoiceScore) {
-    const confidence = Math.min(100, Math.round((paymentScore / (paymentScore + invoiceScore)) * 100));
+  // Find the highest scoring type
+  const maxScore = Math.max(paymentScore, invoiceScore, accountScore);
+  
+  if (maxScore === paymentScore && paymentScore > invoiceScore && paymentScore > accountScore) {
+    const confidence = Math.min(100, Math.round((paymentScore / totalScore) * 100));
     return { detected: "payments", confidence, reasons: paymentReasons.slice(0, 3) };
-  } else if (invoiceScore > paymentScore) {
-    const confidence = Math.min(100, Math.round((invoiceScore / (paymentScore + invoiceScore)) * 100));
+  } else if (maxScore === invoiceScore && invoiceScore > accountScore) {
+    const confidence = Math.min(100, Math.round((invoiceScore / totalScore) * 100));
     return { detected: "invoice_aging", confidence, reasons: invoiceReasons.slice(0, 3) };
+  } else if (maxScore === accountScore) {
+    const confidence = Math.min(100, Math.round((accountScore / totalScore) * 100));
+    return { detected: "accounts", confidence, reasons: accountReasons.slice(0, 3) };
   }
 
   return { detected: "unknown", confidence: 50, reasons: [] };
@@ -138,8 +172,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<any>(null);
-  const [fileType, setFileType] = useState<"invoice_aging" | "payments">(initialFileType);
-  const [detectedType, setDetectedType] = useState<{ detected: "invoice_aging" | "payments" | "unknown"; confidence: number; reasons: string[] } | null>(null);
+  const [fileType, setFileType] = useState<"invoice_aging" | "payments" | "accounts">(initialFileType);
+  const [detectedType, setDetectedType] = useState<{ detected: "invoice_aging" | "payments" | "accounts" | "unknown"; confidence: number; reasons: string[] } | null>(null);
 
   const { data: fieldDefinitions } = useQuery({
     queryKey: ["field-definitions"],
@@ -358,7 +392,11 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       runAIMapping.mutate();
     } else if (currentStep === 1) {
     // Validate required fields
-      const relevantGroupings = fileType === "invoice_aging" ? ["customer", "invoice", "account"] : ["customer", "payment", "account"];
+      const relevantGroupings = fileType === "accounts" 
+        ? ["account", "customer"] 
+        : fileType === "invoice_aging" 
+          ? ["customer", "invoice", "account"] 
+          : ["customer", "payment", "account"];
       const requiredFields = fieldDefinitions?.filter(f => f.required_for_recouply && relevantGroupings.includes(f.grouping)) || [];
       const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
       const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));
@@ -403,12 +441,14 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {fileType === "invoice_aging" ? (
-              <FileSpreadsheet className="h-5 w-5 text-blue-500" />
+            {fileType === "accounts" ? (
+              <Users className="h-5 w-5 text-blue-500" />
+            ) : fileType === "invoice_aging" ? (
+              <FileSpreadsheet className="h-5 w-5 text-amber-500" />
             ) : (
-              <FileSpreadsheet className="h-5 w-5 text-green-500" />
+              <DollarSign className="h-5 w-5 text-green-500" />
             )}
-            {fileType === "invoice_aging" ? "Import Invoice Aging" : "Import Payments"}
+            {fileType === "accounts" ? "Import Accounts" : fileType === "invoice_aging" ? "Import Invoices" : "Import Payments"}
           </DialogTitle>
         </DialogHeader>
 
