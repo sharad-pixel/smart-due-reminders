@@ -30,8 +30,124 @@ interface Message {
 
 // Knowledge base for Nicolas with links
 const KNOWLEDGE_BASE = [
+  // ===== DATA CENTER PROCESSES =====
   {
-    keywords: ["invoice", "create invoice", "add invoice"],
+    keywords: ["data center", "import", "upload", "csv", "excel", "bulk import"],
+    answer: "The Data Center is your central hub for importing Accounts, Invoices, and Payments. You can upload CSV or Excel files, map columns to our standard fields, and review matches before finalizing. Start by choosing what type of data you want to import.",
+    confidence: 0.95,
+    links: [
+      { label: "Open Data Center", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["upload accounts", "import accounts", "accounts upload", "customer upload", "bulk accounts"],
+    answer: "To upload accounts: 1) Go to Data Center and click 'Accounts', 2) Download our template or upload your own file, 3) Map your columns to our standard fields (Company Name, Email, Phone are key), 4) Review the preview and submit. Each account gets a Recouply Account ID (RID) for future invoice/payment mapping.",
+    confidence: 0.95,
+    links: [
+      { label: "Upload Accounts", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["upload invoices", "import invoices", "invoices upload", "bulk invoices"],
+    answer: "To upload invoices: 1) Go to Data Center and click 'Invoices', 2) Download our template which includes required fields, 3) Include the Recouply Account ID to link invoices to accounts, 4) Map columns like Invoice Number, Amount, Due Date, 5) Review and submit. AI workflows auto-trigger for aging invoices.",
+    confidence: 0.95,
+    links: [
+      { label: "Upload Invoices", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["upload payments", "import payments", "payments upload", "bulk payments", "payment import"],
+    answer: "To upload payments: 1) Go to Data Center and click 'Payments', 2) Download our template, 3) Include Recouply Account ID and Recouply Invoice ID to match payments to invoices, 4) Map Payment Amount, Payment Date, and Method, 5) Review matches and reconcile. Invoices auto-update to Paid or PartiallyPaid.",
+    confidence: 0.95,
+    links: [
+      { label: "Upload Payments", path: "/data-center" },
+      { label: "Reconciliation", path: "/reconciliation" }
+    ]
+  },
+  {
+    keywords: ["template", "download template", "csv template", "excel template", "sample file"],
+    answer: "Download pre-formatted templates from the Data Center's 'Sources & Templates' tab. We have templates for Accounts (with RID, company info, address), Invoices (with invoice number, amounts, dates), and Payments (with payment matching fields). Templates include all required and optional fields.",
+    confidence: 0.95,
+    links: [
+      { label: "Get Templates", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["column mapping", "map columns", "field mapping", "how to map"],
+    answer: "Column mapping connects your file columns to Recouply fields. After uploading, you'll see a mapping screen where you select which Recouply field each of your columns represents. Our AI suggests mappings automatically. Required fields are marked - you must map these before proceeding.",
+    confidence: 0.9,
+    links: [
+      { label: "Data Center", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["recouply id", "rid", "account id", "recouply account id", "reference id"],
+    answer: "The Recouply Account ID (RID) is auto-generated when you create accounts (format: RCPLY-ACCT-XXXX). Use this ID in invoice and payment uploads to correctly link data. You can export all accounts with their RIDs from the Accounts page for reference.",
+    confidence: 0.95,
+    links: [
+      { label: "View Accounts", path: "/debtors" },
+      { label: "Data Center", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["recouply invoice id", "rinvd", "invoice reference", "invoice id"],
+    answer: "The Recouply Invoice ID (RINVD) is auto-generated when invoices are created (format: RCPLY-INV-XXXX). Use this ID in payment uploads to match payments to specific invoices. It's the primary matching field for payment reconciliation.",
+    confidence: 0.95,
+    links: [
+      { label: "View Invoices", path: "/invoices" }
+    ]
+  },
+  {
+    keywords: ["source", "data source", "accounting system", "quickbooks", "netsuite", "sap"],
+    answer: "Data Sources represent your external accounting systems (QuickBooks, NetSuite, SAP, etc.). Create a source profile in the Data Center to save column mappings. Once saved, future uploads from that source automatically use your saved mappings.",
+    confidence: 0.9,
+    links: [
+      { label: "Manage Sources", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["review upload", "staging", "match status", "unmatched", "needs review"],
+    answer: "After uploading, rows go to staging for review. You'll see match statuses: 'Matched' (linked to existing records), 'Pending' (needs review), or 'Unmatched' (no match found). You can manually assign matches, bulk-select rows, or delete incorrect entries before finalizing.",
+    confidence: 0.9,
+    links: [
+      { label: "Data Center", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["required fields", "mandatory fields", "what fields"],
+    answer: "Required fields vary by type: ACCOUNTS need Company Name, Email; INVOICES need Recouply Account ID, Invoice Number, Amount, Due Date; PAYMENTS need Recouply Account ID, Recouply Invoice ID, Payment Amount, Payment Date. Check our templates for the full list.",
+    confidence: 0.9,
+    links: [
+      { label: "Get Templates", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["export accounts", "download accounts", "get account list"],
+    answer: "Export all your accounts with their Recouply IDs from the Accounts page. Click the dropdown menu and select 'Export All Accounts'. This gives you a file with RIDs you can use for invoice and payment imports.",
+    confidence: 0.9,
+    links: [
+      { label: "Export Accounts", path: "/debtors" }
+    ]
+  },
+  {
+    keywords: ["custom fields", "add field", "extra fields"],
+    answer: "You can create custom fields when editing source mappings in the Data Center. Custom fields are saved per data source and can be reused across multiple uploads. Define the field key, label, and data type when creating.",
+    confidence: 0.85,
+    links: [
+      { label: "Manage Sources", path: "/data-center" }
+    ]
+  },
+  {
+    keywords: ["archive upload", "delete upload", "remove upload"],
+    answer: "You can archive uploads from the Data Center to hide them from your active view. Archived uploads aren't deleted - toggle 'Show archived' to view them, and restore if needed. Individual staging rows can also be deleted during review.",
+    confidence: 0.85,
+    links: [
+      { label: "Data Center", path: "/data-center" }
+    ]
+  },
+  // ===== ORIGINAL KNOWLEDGE BASE ENTRIES =====
+  {
+    keywords: ["invoice", "create invoice", "add invoice", "new invoice"],
     answer: "To create an invoice, go to the Invoices page and click 'Create Invoice'. You can also import invoices in bulk via the Data Center.",
     confidence: 0.9,
     links: [
@@ -66,15 +182,7 @@ const KNOWLEDGE_BASE = [
     ]
   },
   {
-    keywords: ["data center", "import", "upload", "csv", "excel"],
-    answer: "The Data Center is your hub for importing invoices, payments, and account data. Upload files, map columns, and reconcile your data.",
-    confidence: 0.85,
-    links: [
-      { label: "Open Data Center", path: "/data-center" }
-    ]
-  },
-  {
-    keywords: ["payment", "apply payment", "reconcile"],
+    keywords: ["payment", "apply payment", "reconcile payment"],
     answer: "You can apply payments from invoice detail pages using the 'Apply Payment' button, or import payments in bulk via the Data Center and reconcile them.",
     confidence: 0.85,
     links: [
