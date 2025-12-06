@@ -145,6 +145,100 @@ const KNOWLEDGE_BASE = [
       { label: "Data Center", path: "/data-center" }
     ]
   },
+  // ===== TASKS & INBOUND EMAIL PROCESSING =====
+  {
+    keywords: ["task", "tasks", "collection task", "task list", "todo", "action items"],
+    answer: "Collection tasks are action items that need attention. Tasks are created automatically from inbound customer emails, or manually by your team. View all tasks from the Collection Tasks page where you can filter by status, priority, type, and assignee.",
+    confidence: 0.95,
+    links: [
+      { label: "View Tasks", path: "/tasks" }
+    ]
+  },
+  {
+    keywords: ["task assignment", "assign task", "assign to", "who is assigned"],
+    answer: "Tasks can be assigned to team members you've added in Settings. When a task is assigned, that team member receives an email with task details and a reply-to address. Their replies are captured and can generate follow-up tasks automatically.",
+    confidence: 0.95,
+    links: [
+      { label: "View Tasks", path: "/tasks" },
+      { label: "Team Members", path: "/settings/team-members" }
+    ]
+  },
+  {
+    keywords: ["automatic task", "auto task", "task created automatically", "how tasks created"],
+    answer: "Tasks are created automatically when: 1) Inbound emails are received from customers - AI analyzes the email and extracts actionable items, 2) AI detects requests like W9 forms, payment plans, disputes, or invoice copies, 3) Each extracted action becomes a separate task linked to the email and account.",
+    confidence: 0.95,
+    links: [
+      { label: "Inbound Command Center", path: "/inbound" },
+      { label: "View Tasks", path: "/tasks" }
+    ]
+  },
+  {
+    keywords: ["inbound email", "customer email", "email response", "received email"],
+    answer: "When customers reply to collection emails, their responses are captured in the Inbound Command Center. Each email is automatically processed by AI to extract summaries, sentiment, priority, and actionable items. You can view the full email, AI analysis, and linked account/invoice.",
+    confidence: 0.95,
+    links: [
+      { label: "Inbound Command Center", path: "/inbound" }
+    ]
+  },
+  {
+    keywords: ["ai summary", "email summary", "summarize email", "ai analysis"],
+    answer: "AI automatically summarizes every inbound email, extracting: 1) A brief summary of the customer's message, 2) Sentiment (positive/neutral/negative), 3) Priority level (high/medium/low), 4) Category (payment plan request, dispute, question, etc.), 5) Recommended actions to take.",
+    confidence: 0.95,
+    links: [
+      { label: "Inbound Command Center", path: "/inbound" }
+    ]
+  },
+  {
+    keywords: ["ai response", "generate response", "ai reply", "draft response", "auto response"],
+    answer: "From any inbound email, click 'Generate AI Response' to create an intelligent reply. The AI uses the email context, linked invoice details, and appropriate persona tone. You can review, edit, send immediately, or save as draft. Unsent responses create pending tasks so nothing is missed.",
+    confidence: 0.95,
+    links: [
+      { label: "Inbound Command Center", path: "/inbound" }
+    ]
+  },
+  {
+    keywords: ["extracted action", "action type", "w9", "payment plan request", "dispute", "promise to pay"],
+    answer: "AI extracts specific action types from emails: W9_REQUEST (tax form needed), PAYMENT_PLAN_REQUEST (wants to set up payments), DISPUTE_CHARGES (questioning charges), PROMISE_TO_PAY (commitment to pay by date), INVOICE_COPY_REQUEST (needs invoice copy), and more. Each becomes a trackable task.",
+    confidence: 0.9,
+    links: [
+      { label: "View Tasks", path: "/tasks" },
+      { label: "Inbound Command Center", path: "/inbound" }
+    ]
+  },
+  {
+    keywords: ["task status", "open task", "close task", "complete task", "in progress"],
+    answer: "Tasks have statuses: Open (new/needs attention), In Progress (being worked on), Done (completed). Update task status from the task detail modal. You can also add notes and see the full history of the task including source email and related communications.",
+    confidence: 0.9,
+    links: [
+      { label: "View Tasks", path: "/tasks" }
+    ]
+  },
+  {
+    keywords: ["task priority", "high priority", "urgent task"],
+    answer: "Tasks are assigned priority levels: High (urgent action needed), Medium (standard follow-up), Low (non-urgent). AI automatically sets priority based on email content, customer sentiment, and invoice aging. You can manually adjust priority in the task detail modal.",
+    confidence: 0.9,
+    links: [
+      { label: "View Tasks", path: "/tasks" }
+    ]
+  },
+  {
+    keywords: ["internal task", "team communication", "internal email"],
+    answer: "Emails from team members (defined in your Team Members settings) are flagged as internal communications. AI processes these differently and creates tasks with an [Internal] prefix. This distinguishes team discussions from customer communications.",
+    confidence: 0.85,
+    links: [
+      { label: "Team Members", path: "/settings/team-members" },
+      { label: "View Tasks", path: "/tasks" }
+    ]
+  },
+  {
+    keywords: ["view source email", "email link", "task email"],
+    answer: "Every task created from an inbound email has a 'View Source Email' link. Click it to navigate directly to that email in the Inbound Command Center. Similarly, from emails you can click linked tasks to open the task detail modal.",
+    confidence: 0.85,
+    links: [
+      { label: "Inbound Command Center", path: "/inbound" },
+      { label: "View Tasks", path: "/tasks" }
+    ]
+  },
   // ===== ORIGINAL KNOWLEDGE BASE ENTRIES =====
   {
     keywords: ["invoice", "create invoice", "add invoice", "new invoice"],
