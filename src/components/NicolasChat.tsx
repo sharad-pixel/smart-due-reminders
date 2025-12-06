@@ -11,12 +11,15 @@ import {
   Loader2, 
   AlertTriangle,
   ThumbsDown,
-  ExternalLink
+  ExternalLink,
+  Calendar,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
+import { founderConfig } from "@/lib/founderConfig";
 
 interface Message {
   id: string;
@@ -377,9 +380,28 @@ const KNOWLEDGE_BASE = [
   },
   {
     keywords: ["help", "support", "contact"],
-    answer: "I'm Nicolas, your knowledge base assistant! If I can't answer your question, I can escalate it to our support team at support@recouply.ai.",
+    answer: "I'm Nicolas, your knowledge base assistant! If I can't answer your question, I can help you schedule a meeting with our founder or send a message to our support team.",
     confidence: 0.9,
-    links: []
+    links: [
+      { label: "Schedule Meeting", path: "__CALENDLY__" },
+      { label: "Contact Us", path: "/contact" }
+    ]
+  },
+  {
+    keywords: ["meeting", "schedule", "call", "demo", "talk", "speak"],
+    answer: "I'd be happy to help you schedule a meeting with Sharad, our founder! Click the link below to book a time that works for you.",
+    confidence: 0.95,
+    links: [
+      { label: "Schedule Meeting", path: "__CALENDLY__" }
+    ]
+  },
+  {
+    keywords: ["calendly", "book", "appointment"],
+    answer: "You can book a meeting directly with our founder using the link below. He'd love to chat about how Recouply.ai can help your business!",
+    confidence: 0.95,
+    links: [
+      { label: "Book with Sharad", path: "__CALENDLY__" }
+    ]
   }
 ];
 
@@ -463,12 +485,15 @@ export default function NicolasChat() {
       }
     }
 
-    // If confidence is too low, escalate
+    // If confidence is too low, show friendly escalation with contact options
     if (bestMatch.confidence < 0.3) {
       return { 
-        answer: "I'm not confident I can answer that question accurately. Would you like me to escalate this to our support team?", 
+        answer: `I'm still very new here and learning. Let me get you to the founder who can help. Sharad will get back to you as soon as possible once you fill out the form. Thanks — Nicolas`, 
         confidence: 0.2,
-        links: []
+        links: [
+          { label: "Schedule Meeting", path: "__CALENDLY__" },
+          { label: "Contact Form", path: "/contact" }
+        ]
       };
     }
 
@@ -496,7 +521,7 @@ export default function NicolasChat() {
 
       toast.success("Your question has been sent to Recouply.ai Support.");
       
-      return "Thanks for your patience — I've emailed our support specialists at Recouply.ai. They'll take it from here and follow up with you shortly!";
+      return `I'm still very new here and learning. Let me get you to the founder who can help. Sharad will get back to you as soon as possible once you fill out the form. Thanks — Nicolas`;
     } catch (err) {
       console.error('Escalation error:', err);
       return "I'm having trouble processing this right now — but you can reach our support team directly at support@recouply.ai.";
@@ -533,7 +558,11 @@ export default function NicolasChat() {
         
         responseContent = await escalateToSupport(userMessage.content, transcript);
         isEscalated = true;
-        responseLinks = [];
+        // Provide contact options after escalation
+        responseLinks = [
+          { label: "Schedule Meeting", path: "__CALENDLY__" },
+          { label: "Contact Form", path: "/contact" }
+        ];
       } else {
         responseContent = answer;
       }
@@ -580,7 +609,11 @@ export default function NicolasChat() {
       role: "assistant",
       content: response,
       timestamp: new Date(),
-      isEscalated: true
+      isEscalated: true,
+      links: [
+        { label: "Schedule Meeting", path: "__CALENDLY__" },
+        { label: "Contact Form", path: "/contact" }
+      ]
     }]);
   };
 
@@ -661,17 +694,36 @@ export default function NicolasChat() {
                 {/* Clickable Links */}
                 {message.role === "assistant" && message.links && message.links.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {message.links.map((link, idx) => (
-                      <Link
-                        key={idx}
-                        to={link.path}
-                        onClick={handleLinkClick}
-                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                      >
-                        {link.label}
-                        <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    ))}
+                    {message.links.map((link, idx) => {
+                      // Handle Calendly link specially
+                      if (link.path === "__CALENDLY__") {
+                        return (
+                          <a
+                            key={idx}
+                            href={founderConfig.calendly}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-accent/20 text-accent-foreground hover:bg-accent/30 transition-colors"
+                          >
+                            <Calendar className="h-3 w-3" />
+                            {link.label}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={idx}
+                          to={link.path}
+                          onClick={handleLinkClick}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        >
+                          {link.label.includes("Contact") && <Mail className="h-3 w-3" />}
+                          {link.label}
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
                 {message.isEscalated && (
