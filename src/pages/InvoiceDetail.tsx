@@ -853,7 +853,7 @@ const InvoiceDetail = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Debtor Info</CardTitle>
+              <CardTitle>Account Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -869,7 +869,7 @@ const InvoiceDetail = () => {
                 className="w-full"
                 onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
               >
-                View Debtor Details
+                View Account Details
               </Button>
             </CardContent>
           </Card>
