@@ -12,7 +12,9 @@ import {
   Trash2,
   FileSpreadsheet,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Users,
+  DollarSign
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -92,6 +94,46 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const downloadGenericTemplate = (fileType: "invoice_aging" | "payments" | "accounts") => {
+    if (!fieldDefinitions || fieldDefinitions.length === 0) {
+      toast({ 
+        title: "Error", 
+        description: "Field definitions not loaded.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Filter by file type groupings
+    let relevantGroupings: string[];
+    let templateName: string;
+    
+    if (fileType === "accounts") {
+      relevantGroupings = ["customer", "account"];
+      templateName = "accounts_template";
+    } else if (fileType === "invoice_aging") {
+      relevantGroupings = ["customer", "invoice", "account"];
+      templateName = "invoices_template";
+    } else {
+      relevantGroupings = ["customer", "payment", "account"];
+      templateName = "payments_template";
+    }
+
+    const relevantFields = fieldDefinitions.filter(f => relevantGroupings.includes(f.grouping));
+    const headers = relevantFields.map(f => f.label);
+    const csvContent = [headers.join(","), ""].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${templateName}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Template downloaded", description: `${fileType === "accounts" ? "Accounts" : fileType === "invoice_aging" ? "Invoices" : "Payments"} template ready for use.` });
+  };
 
   const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments" | "accounts") => {
     // Fetch source mappings
@@ -308,79 +350,178 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
         </CardContent>
       </Card>
 
-      {/* Fields Reference per Source */}
+      {/* Templates Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Download className="h-5 w-5 text-primary" />
+            Download Templates
+          </CardTitle>
+          <CardDescription>
+            Download blank CSV templates for importing data into Recouply
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Accounts Template */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="font-medium">Accounts</h4>
+                  <p className="text-xs text-muted-foreground">Customer/company records</p>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Includes:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Account Name, Email, Phone</li>
+                  <li>Contact Name, Company Name</li>
+                  <li>External Customer ID</li>
+                  <li>Industry, Account Type</li>
+                  <li>Billing Address fields</li>
+                </ul>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => downloadGenericTemplate("accounts")}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Accounts Template
+              </Button>
+            </div>
+
+            {/* Invoices Template */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <FileSpreadsheet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="font-medium">Invoices</h4>
+                  <p className="text-xs text-muted-foreground">AR aging data</p>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Includes:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Recouply Account ID <span className="text-destructive">*</span></li>
+                  <li>Invoice Number, Amount, Due Date</li>
+                  <li>Invoice Date, Outstanding Amount</li>
+                  <li>Payment Terms, Status</li>
+                  <li>External Invoice ID</li>
+                </ul>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => downloadGenericTemplate("invoice_aging")}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Invoices Template
+              </Button>
+            </div>
+
+            {/* Payments Template */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h4 className="font-medium">Payments</h4>
+                  <p className="text-xs text-muted-foreground">Payment reconciliation</p>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Includes:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Recouply Account ID <span className="text-destructive">*</span></li>
+                  <li>Recouply Invoice ID <span className="text-destructive">*</span></li>
+                  <li>Payment Amount, Payment Date</li>
+                  <li>Payment Method, Reference #</li>
+                  <li>SS Invoice # (fallback)</li>
+                </ul>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => downloadGenericTemplate("payments")}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Payments Template
+              </Button>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+            <span className="text-destructive">*</span> = Required field for import
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fields Reference */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Fields Reference</CardTitle>
           <CardDescription>
-            Available fields for each data source (including custom fields)
+            All available fields organized by category
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {sources && sources.length > 0 ? (
-            <div className="space-y-6">
-              {sources.map((source: any) => {
-                const customFields = source.custom_fields || [];
-                const allSourceFields = [
-                  ...(fieldDefinitions?.filter(f => ["customer", "invoice", "payment", "meta"].includes(f.grouping)) || []),
-                  ...customFields.map((cf: any) => ({ ...cf, isCustom: true })),
-                ];
-                
-                return (
-                  <div key={source.id} className="border-b pb-4 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2 mb-3">
-                      <h4 className="font-medium">{source.source_name}</h4>
-                      <Badge variant="secondary" className="text-xs">
-                        {customFields.length} custom field{customFields.length !== 1 ? "s" : ""}
-                      </Badge>
-                    </div>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">Customer</p>
-                        <div className="flex flex-wrap gap-1">
-                          {fieldDefinitions?.filter(f => f.grouping === "customer").map(f => (
-                            <Badge key={f.key} variant="outline" className="text-xs">
-                              {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">Invoice / Payment</p>
-                        <div className="flex flex-wrap gap-1">
-                          {fieldDefinitions?.filter(f => ["invoice", "payment"].includes(f.grouping)).map(f => (
-                            <Badge key={f.key} variant="outline" className="text-xs">
-                              {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">Custom Fields</p>
-                        {customFields.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {customFields.map((cf: any) => (
-                              <Badge key={cf.id} variant="default" className="text-xs">
-                                {cf.label}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">No custom fields</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          <div className="space-y-6">
+            {/* Accounts Fields */}
+            <div className="border-b pb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="h-4 w-4 text-blue-500" />
+                <h4 className="font-medium">Accounts Fields</h4>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {fieldDefinitions?.filter(f => f.grouping === "customer" || f.grouping === "account").map(f => (
+                  <Badge key={f.key} variant="outline" className="text-xs">
+                    {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-4 text-muted-foreground text-sm">
-              <p>Create a data source to see available fields</p>
+
+            {/* Invoice Fields */}
+            <div className="border-b pb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileSpreadsheet className="h-4 w-4 text-amber-500" />
+                <h4 className="font-medium">Invoice Fields</h4>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {fieldDefinitions?.filter(f => f.grouping === "invoice").map(f => (
+                  <Badge key={f.key} variant="outline" className="text-xs">
+                    {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          )}
+
+            {/* Payment Fields */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="h-4 w-4 text-green-500" />
+                <h4 className="font-medium">Payment Fields</h4>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {fieldDefinitions?.filter(f => f.grouping === "payment").map(f => (
+                  <Badge key={f.key} variant="outline" className="text-xs">
+                    {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
           
-          {/* Required fields legend */}
           <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
             <span className="text-destructive">*</span> = Required for import
           </div>
