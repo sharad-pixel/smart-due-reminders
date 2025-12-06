@@ -8,7 +8,7 @@ interface Template {
   id: string;
   name: string;
   category: "scenario" | "value" | "industry";
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   description: string;
   bestFor: string[];
   steps: {

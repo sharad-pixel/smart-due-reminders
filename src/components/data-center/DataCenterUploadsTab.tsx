@@ -66,7 +66,7 @@ interface DataCenterUploadsTabProps {
   onStartUpload: (fileType: "invoice_aging" | "payments") => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; icon: any; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   uploaded: { label: "Uploaded", icon: Clock, variant: "secondary" },
   mapping: { label: "Mapping", icon: RefreshCw, variant: "secondary" },
   mapped: { label: "Mapped", icon: CheckCircle, variant: "outline" },
