@@ -216,40 +216,101 @@ serve(async (req) => {
             sum + Number(inv.outstanding_amount || inv.amount || 0), 0) || 0;
         }
 
-        // HEALTH SCORE CALCULATION
-        let healthScore = 100;
+        // HEALTH SCORE CALCULATION - Enterprise Risk Scoring System
+        // Uses weighted factors aligned with risk-engine scoring:
+        // - 40% Outstanding Balance & Aging Concentration
+        // - 30% Days Past Due Distribution
+        // - 20% Collection Trend Performance
+        // - 10% High-Risk Account Exposure
 
-        // If portion of AR in 60+ > 0.5: -20
-        const ar60Plus = ar61_90 + ar91_120 + ar120Plus;
-        if (totalArOutstanding > 0 && (ar60Plus / totalArOutstanding) > 0.5) {
-          healthScore -= 20;
+        // 1. Outstanding Balance & Aging Concentration Score (0-100)
+        // Higher concentration in older buckets = lower score
+        let agingScore = 100;
+        if (totalArOutstanding > 0) {
+          const ar60Plus = ar61_90 + ar91_120 + ar120Plus;
+          const ar90Plus = ar91_120 + ar120Plus;
+          const ar120PlusRatio = ar120Plus / totalArOutstanding;
+          const ar90PlusRatio = ar90Plus / totalArOutstanding;
+          const ar60PlusRatio = ar60Plus / totalArOutstanding;
+
+          // Penalty based on aging concentration (max -60 points)
+          agingScore -= Math.min(20, ar120PlusRatio * 100 * 0.4); // 120+ days: up to -20
+          agingScore -= Math.min(20, ar90PlusRatio * 100 * 0.3);  // 90+ days: up to -20
+          agingScore -= Math.min(20, ar60PlusRatio * 100 * 0.2);  // 60+ days: up to -20
+        }
+        agingScore = Math.max(0, agingScore);
+
+        // 2. Days Past Due Distribution Score (0-100)
+        // Based on weighted average DPD across all invoices
+        let dpdScore = 100;
+        if (totalArOutstanding > 0) {
+          // Calculate weighted average days past due
+          const bucketWeights = {
+            current: 0,
+            dpd_1_30: 15,    // avg 15 days
+            dpd_31_60: 45,   // avg 45 days
+            dpd_61_90: 75,   // avg 75 days
+            dpd_91_120: 105, // avg 105 days
+            dpd_120_plus: 150 // avg 150+ days
+          };
+          
+          const weightedDPD = (
+            (arCurrent * 0) +
+            (ar1_30 * 15) +
+            (ar31_60 * 45) +
+            (ar61_90 * 75) +
+            (ar91_120 * 105) +
+            (ar120Plus * 150)
+          ) / totalArOutstanding;
+
+          // Score decreases as weighted DPD increases (max 150 = 0 score)
+          dpdScore = Math.max(0, 100 - (weightedDPD / 150 * 100));
         }
 
-        // If portion of AR in 90+ > 0.3: -20
-        const ar90Plus = ar91_120 + ar120Plus;
-        if (totalArOutstanding > 0 && (ar90Plus / totalArOutstanding) > 0.3) {
-          healthScore -= 20;
+        // 3. Collection Trend Score (0-100)
+        let trendScore = 70; // Base score
+        if (paymentsCollectedPrev7Days > 0) {
+          const trendRatio = paymentsCollectedLast7Days / paymentsCollectedPrev7Days;
+          if (trendRatio >= 1.2) {
+            trendScore = 100; // Strong upward trend
+          } else if (trendRatio >= 1.0) {
+            trendScore = 85; // Stable/slight improvement
+          } else if (trendRatio >= 0.8) {
+            trendScore = 60; // Slight decline
+          } else if (trendRatio >= 0.5) {
+            trendScore = 40; // Moderate decline
+          } else {
+            trendScore = 20; // Significant decline
+          }
+        } else if (paymentsCollectedLast7Days > 0) {
+          trendScore = 100; // New collections where none before
         }
 
-        // If collection_trend = "down": -10
-        if (collectionTrend === 'down') {
-          healthScore -= 10;
+        // 4. High-Risk Exposure Score (0-100)
+        let riskExposureScore = 100;
+        if (totalArOutstanding > 0) {
+          const highRiskRatio = highRiskArOutstanding / totalArOutstanding;
+          // Score decreases as high-risk ratio increases
+          riskExposureScore = Math.max(0, 100 - (highRiskRatio * 100));
         }
 
-        // If high_risk_ar_outstanding / total_ar_outstanding > 0.3: -20
-        if (totalArOutstanding > 0 && (highRiskArOutstanding / totalArOutstanding) > 0.3) {
-          healthScore -= 20;
-        }
+        // Combine weighted scores
+        const healthScore = Math.round(
+          (agingScore * 0.40) +      // 40% weight
+          (dpdScore * 0.30) +         // 30% weight
+          (trendScore * 0.20) +       // 20% weight
+          (riskExposureScore * 0.10)  // 10% weight
+        );
 
-        healthScore = Math.max(0, Math.min(100, healthScore));
-
-        // Health label
+        // Health tier labels (aligned with enterprise scoring)
         let healthLabel = 'Healthy';
         if (healthScore < 40) {
+          healthLabel = 'Critical';
+        } else if (healthScore < 55) {
           healthLabel = 'At Risk';
-        } else if (healthScore < 60) {
-          healthLabel = 'Stressed';
-        } else if (healthScore < 80) {
+        } else if (healthScore < 70) {
+          healthLabel = 'Needs Attention';
+        } else if (healthScore < 85) {
           healthLabel = 'Caution';
         }
 
@@ -378,7 +439,8 @@ function generateEmailHtml(data: {
 
   const healthColor = data.healthLabel === 'Healthy' ? '#22c55e' :
     data.healthLabel === 'Caution' ? '#eab308' :
-    data.healthLabel === 'Stressed' ? '#f97316' : '#ef4444';
+    data.healthLabel === 'Needs Attention' ? '#f97316' :
+    data.healthLabel === 'At Risk' ? '#ea580c' : '#ef4444'; // Critical
 
   return `
 <!DOCTYPE html>
