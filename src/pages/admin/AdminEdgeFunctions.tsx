@@ -122,11 +122,16 @@ const AdminEdgeFunctions = () => {
       const isValidationError = response.error?.message?.includes("400") || 
         response.error?.message?.includes("Missing") || 
         response.error?.message?.includes("required") ||
-        response.error?.message?.includes("is required");
+        response.error?.message?.includes("is required") ||
+        response.error?.message?.includes("signature") ||
+        response.error?.message?.includes("No signature");
       
       // Expected errors: auth errors for auth-required endpoints, OR validation errors for payload-required endpoints
+      // Webhook endpoints (like stripe-webhook, resend-inbound-tasks) return validation errors without proper payloads
+      const isWebhookValidationError = config.category === "webhook" && (isValidationError || response.error?.message?.includes("400"));
       const isExpectedError = (config.requiresAuth && isAuthError) || 
         (config.requiresPayload && isValidationError) ||
+        isWebhookValidationError ||
         (response.error?.message?.includes("500") && config.requiresPayload); // Some validation returns 500
 
       if (response.error) {
