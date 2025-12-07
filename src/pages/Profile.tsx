@@ -37,7 +37,8 @@ import {
   Upload,
   Camera,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  UserX
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
 
@@ -97,6 +98,7 @@ const Profile = () => {
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [teamMemberCount, setTeamMemberCount] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [requestingDeletion, setRequestingDeletion] = useState(false);
 
   useEffect(() => {
     loadProfileData();
@@ -439,6 +441,50 @@ const Profile = () => {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (!profile) return;
+    
+    setRequestingDeletion(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: ['support@recouply.ai'],
+          from: 'Recouply.ai <notifications@send.inbound.services.recouply.ai>',
+          subject: `Account Deletion Request - ${profile.email}`,
+          html: `
+            <h2>Account Deletion Request</h2>
+            <p>A user has requested to delete their account.</p>
+            <hr />
+            <p><strong>User ID:</strong> ${profile.id}</p>
+            <p><strong>Email:</strong> ${profile.email}</p>
+            <p><strong>Name:</strong> ${profile.name || 'Not provided'}</p>
+            <p><strong>Organization:</strong> ${organization?.name || 'Not available'}</p>
+            <p><strong>Request Time:</strong> ${new Date().toISOString()}</p>
+            <hr />
+            <p>Please process this deletion request according to your data retention policies.</p>
+          `,
+          reply_to: profile.email || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Submitted",
+        description: "Your account deletion request has been sent to our support team. We'll process it within 48 hours.",
+      });
+    } catch (error: any) {
+      console.error("Error requesting deletion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit deletion request. Please email support@recouply.ai directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setRequestingDeletion(false);
     }
   };
 
@@ -837,6 +883,58 @@ const Profile = () => {
                 </AlertDescription>
               </Alert>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Account Deletion Request */}
+        <Card className="border-destructive/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <UserX className="h-5 w-5" />
+              Delete Account
+            </CardTitle>
+            <CardDescription>
+              Permanently delete your account and all associated data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Once your account is deleted, all of your data will be permanently removed. 
+              This action cannot be undone. Our team will process your request within 48 hours.
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <UserX className="h-4 w-4" />
+                  Request Account Deletion
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Delete Your Account?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>Are you sure you want to delete your account?</p>
+                    <p className="text-sm">
+                      This will send a deletion request to our support team. All your data, 
+                      including invoices, accounts, and AI drafts will be permanently deleted.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleRequestDeletion}
+                    disabled={requestingDeletion}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {requestingDeletion ? "Submitting..." : "Yes, Delete My Account"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>
