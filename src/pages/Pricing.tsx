@@ -117,6 +117,8 @@ const Pricing = () => {
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Recouply.ai Pricing – AI-Powered CashOps for SMB + SaaS";
@@ -124,7 +126,30 @@ const Pricing = () => {
     if (metaDescription) {
       metaDescription.setAttribute('content', 'Simple, transparent pricing based on active invoice volume. All plans include full platform access with six AI agents recovering revenue 24/7.');
     }
+    
+    // Check if user has an active subscription
+    checkSubscription();
   }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status, plan_type')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      
+      if (profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing') {
+        setHasActiveSubscription(true);
+        setCurrentPlan(profile?.plan_type);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
 
   const handlePlanClick = async (planType: string) => {
     if (planType === "enterprise") {
@@ -142,6 +167,19 @@ const Pricing = () => {
         return;
       }
 
+      // If user has an active subscription, redirect to customer portal to manage/change plan
+      if (hasActiveSubscription) {
+        const { data, error } = await supabase.functions.invoke('customer-portal');
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+        return;
+      }
+
+      // New subscription checkout
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           planId: planType,
@@ -288,6 +326,8 @@ const Pricing = () => {
                       <Mail className="h-4 w-4 mr-2" />
                       {plan.cta}
                     </>
+                  ) : hasActiveSubscription ? (
+                    currentPlan === plan.planType ? 'Current Plan' : 'Change Plan'
                   ) : (
                     plan.cta
                   )}
