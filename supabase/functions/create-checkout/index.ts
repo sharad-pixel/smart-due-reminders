@@ -115,6 +115,10 @@ serve(async (req) => {
         price: priceId,
         quantity: 1,
       },
+      // Add overage price for metered billing (usage-based for invoices over allotment)
+      {
+        price: OVERAGE_PRICE_ID,
+      },
     ];
 
     // Add seat line item if additional seats requested
@@ -126,6 +130,8 @@ serve(async (req) => {
       });
       logStep('Adding seats to subscription', { additionalSeats, seatPriceId });
     }
+    
+    logStep('Line items prepared', { lineItemsCount: lineItems.length, hasOverage: true });
 
     // Create checkout session with trial
     const session = await stripe.checkout.sessions.create({

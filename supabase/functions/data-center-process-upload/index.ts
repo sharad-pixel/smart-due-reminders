@@ -612,6 +612,21 @@ serve(async (req) => {
       })
       .eq("id", uploadId);
 
+    // Track invoice usage for each new invoice
+    if (fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
+      console.log(`Tracking usage for ${createdInvoiceIds.length} new invoices`);
+      
+      for (const invoiceId of createdInvoiceIds) {
+        try {
+          await supabase.functions.invoke('track-invoice-usage', {
+            body: { invoice_id: invoiceId }
+          });
+        } catch (usageError: any) {
+          console.log(`Usage tracking error for ${invoiceId} (non-blocking):`, usageError?.message);
+        }
+      }
+    }
+
     // Trigger AI workflow assignment and draft generation for new invoices
     let draftsGenerated = 0;
     let workflowErrors: string[] = [];

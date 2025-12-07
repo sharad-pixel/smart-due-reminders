@@ -136,6 +136,9 @@ Deno.serve(async (req) => {
             reference_id: `INV-${Math.random().toString(36).substring(7).toUpperCase()}`,
           };
 
+          let createdInvoiceId: string | null = null;
+          let isNewInvoice = false;
+
           if (mode === 'UPSERT_BY_EXTERNAL_INVOICE_ID') {
             // Try to find existing invoice
             const { data: existing } = await supabase
@@ -155,23 +158,42 @@ Deno.serve(async (req) => {
               if (updateError) throw updateError;
             } else {
               // Insert new
-              const { error: insertError } = await supabase
+              const { data: newInvoice, error: insertError } = await supabase
                 .from('invoices')
-                .insert(invoiceData);
+                .insert(invoiceData)
+                .select('id')
+                .single();
 
               if (insertError) throw insertError;
+              createdInvoiceId = newInvoice?.id;
+              isNewInvoice = true;
             }
           } else {
             // INSERT_ONLY mode
-            const { error: insertError } = await supabase
+            const { data: newInvoice, error: insertError } = await supabase
               .from('invoices')
-              .insert(invoiceData);
+              .insert(invoiceData)
+              .select('id')
+              .single();
 
             if (insertError) {
               if (insertError.code === '23505') { // Unique constraint violation
                 throw new Error(`Duplicate invoice ID: ${row.external_invoice_id}`);
               }
               throw insertError;
+            }
+            createdInvoiceId = newInvoice?.id;
+            isNewInvoice = true;
+          }
+
+          // Track invoice usage for new invoices
+          if (isNewInvoice && createdInvoiceId) {
+            try {
+              await supabase.functions.invoke('track-invoice-usage', {
+                body: { invoice_id: createdInvoiceId }
+              });
+            } catch (usageError: any) {
+              console.log(`Usage tracking error (non-blocking):`, usageError?.message);
             }
           }
 
