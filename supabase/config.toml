@@ -206,3 +206,6 @@ verify_jwt = true
 
 [functions.nicolas-escalate-support]
 verify_jwt = false
+
+[functions.sync-seat-billing]
+verify_jwt = true
