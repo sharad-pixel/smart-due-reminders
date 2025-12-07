@@ -453,6 +453,33 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Team Members</CardTitle>
+            </div>
+            <CardDescription>
+              Manage your team and purchase additional user seats
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Add team members to collaborate on collections. Each additional active user is billed at $75.00 per month.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate("/team")} className="gap-2">
+                <Users className="h-4 w-4" />
+                Manage Team & Roles
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/billing")}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Billing
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-2">
