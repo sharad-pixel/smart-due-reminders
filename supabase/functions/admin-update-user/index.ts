@@ -174,6 +174,43 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'suspend_user': {
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .update({
+            is_suspended: true,
+            suspended_at: new Date().toISOString(),
+            suspended_reason: updates?.reason || 'Suspended by admin',
+            suspended_by: adminUser.id,
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        actionDetails.reason = updates?.reason;
+        break;
+      }
+
+      case 'unsuspend_user': {
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .update({
+            is_suspended: false,
+            suspended_at: null,
+            suspended_reason: null,
+            suspended_by: null,
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
