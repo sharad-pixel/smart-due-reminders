@@ -124,7 +124,8 @@ serve(async (req) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        logStep("Checkout completed", { sessionId: session.id, customerId: session.customer });
+        const userId = session.metadata?.user_id;
+        logStep("Checkout completed", { sessionId: session.id, customerId: session.customer, userId });
 
         if (session.mode === 'subscription' && session.customer) {
           const customerId = session.customer as string;
@@ -135,30 +136,46 @@ serve(async (req) => {
           const planType = getPlanFromSubscription(subscription);
           const billingInterval = getBillingInterval(subscription);
 
-          logStep("Subscription details", { planType, billingInterval });
+          logStep("Subscription details", { planType, billingInterval, subscriptionId });
 
-          // Update user profile with subscription info
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
-              plan_type: planType,
-              billing_interval: billingInterval,
-              current_period_end: subscription.current_period_end 
-                ? new Date(subscription.current_period_end * 1000).toISOString() 
-                : null,
-              trial_ends_at: subscription.trial_end 
-                ? new Date(subscription.trial_end * 1000).toISOString() 
-                : null,
-              cancel_at_period_end: subscription.cancel_at_period_end,
-            })
-            .eq('stripe_customer_id', customerId);
+          // Build update payload
+          const updatePayload = {
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            plan_type: planType,
+            billing_interval: billingInterval,
+            subscription_status: subscription.status,
+            current_period_end: subscription.current_period_end 
+              ? new Date(subscription.current_period_end * 1000).toISOString() 
+              : null,
+            trial_ends_at: subscription.trial_end 
+              ? new Date(subscription.trial_end * 1000).toISOString() 
+              : null,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+          };
+
+          // Try to update by user_id first (from session metadata), then by customer_id
+          let updateError = null;
+          if (userId) {
+            const result = await supabase
+              .from('profiles')
+              .update(updatePayload)
+              .eq('id', userId);
+            updateError = result.error;
+            logStep("Updated profile by user_id", { userId, error: updateError });
+          } else {
+            const result = await supabase
+              .from('profiles')
+              .update(updatePayload)
+              .eq('stripe_customer_id', customerId);
+            updateError = result.error;
+            logStep("Updated profile by customer_id", { customerId, error: updateError });
+          }
 
           if (updateError) {
             logStep("Error updating profile after checkout", { error: updateError });
           } else {
-            logStep("Profile updated after checkout", { customerId, planType, billingInterval });
+            logStep("Profile updated after checkout", { customerId, userId, planType, billingInterval });
           }
         }
         break;
