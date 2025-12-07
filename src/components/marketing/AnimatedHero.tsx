@@ -27,16 +27,33 @@ const headlines = [
   "Build a Resilient Business With Proactive Collections",
 ];
 
+const subheadlines = [
+  "Six AI Agents working 24/7 to recover payments, reduce DSO, and keep your cashflow healthy—without needing a big AR team.",
+  "Stop chasing invoices manually. Our AI agents handle collections so you can focus on growing your business.",
+  "From friendly reminders to firm follow-ups—six specialized agents adapt their tone to every aging bucket.",
+  "Turn overdue invoices into cash faster with AI-powered outreach that learns from every interaction.",
+  "Replace expensive headcount with tireless AI agents that work around the clock to protect your revenue.",
+  "Smart collections that preserve customer relationships while accelerating your cash conversion cycle.",
+  "AI agents that get smarter with every invoice—improving recovery rates while you sleep.",
+  "Automate the uncomfortable payment conversations your team dreads. Let AI handle the follow-ups.",
+  "Enterprise-grade collections intelligence at a fraction of the cost of traditional AR teams.",
+  "Context-aware outreach that knows when to be gentle and when to escalate—powered by AI.",
+];
+
 const AnimatedHero = () => {
   const navigate = useNavigate();
   const [displayText, setDisplayText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
+  const [currentSubheadline, setCurrentSubheadline] = useState(() => 
+    Math.floor(Math.random() * subheadlines.length)
+  );
 
   // Rotate headlines every 5 seconds
   useEffect(() => {
     const rotationInterval = setInterval(() => {
       setHeadlineIndex((prev) => (prev + 1) % headlines.length);
+      setCurrentSubheadline(Math.floor(Math.random() * subheadlines.length));
       setDisplayText("");
       setIsTypingComplete(false);
     }, 5000);
@@ -115,9 +132,9 @@ const AnimatedHero = () => {
           {/* Glow effect behind headline */}
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-primary/20 blur-[80px] -z-10"></div>
 
-          {/* Subheadline */}
+          {/* Subheadline - Randomized */}
           <p className={`text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto transition-all duration-700 ${isTypingComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            Six AI Agents working 24/7 to recover payments, reduce DSO, and keep your cashflow healthy—without needing a big AR team.
+            {subheadlines[currentSubheadline]}
           </p>
 
           {/* AI Agent Avatars */}
