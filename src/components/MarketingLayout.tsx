@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import RecouplyLogo from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
 
 interface MarketingLayoutProps {
@@ -14,14 +14,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-8 flex items-center justify-between">
-          <div 
-            className="cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              Recouply.ai
-            </h1>
-          </div>
+          <RecouplyLogo variant="header" />
           <nav className="hidden lg:flex items-center gap-5">
             <button 
               onClick={() => navigate("/home")}
@@ -87,9 +80,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-4">
-                Recouply.ai
-              </h3>
+              <RecouplyLogo variant="footer" className="mb-4" />
               <p className="text-sm text-muted-foreground">
                 AI-powered AR & Collections software. Not a collection agency.
               </p>
