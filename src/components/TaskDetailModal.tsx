@@ -299,7 +299,7 @@ export const TaskDetailModal = ({
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-sm">
                     No team members available. Add users via{" "}
-                    <a href="/settings/team-members" className="text-primary hover:underline font-medium">
+                    <a href="/team" className="text-primary hover:underline font-medium">
                       Teams & Roles
                     </a>{" "}
                     to enable task assignments.
