@@ -120,7 +120,7 @@ serve(async (req) => {
         // AR METRICS
         const { data: invoices } = await supabase
           .from('invoices')
-          .select('amount, outstanding_amount, aging_bucket, debtor_id, status')
+          .select('amount, amount_outstanding, aging_bucket, debtor_id, status')
           .eq('user_id', user.id)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
 
@@ -133,7 +133,7 @@ serve(async (req) => {
         let ar120Plus = 0;
 
         for (const inv of invoices || []) {
-          const amount = Number(inv.outstanding_amount || inv.amount || 0);
+          const amount = Number(inv.amount_outstanding || inv.amount || 0);
           totalArOutstanding += amount;
 
           switch (inv.aging_bucket) {
@@ -207,13 +207,13 @@ serve(async (req) => {
         if (highRiskDebtorIds.length > 0) {
           const { data: highRiskInvoices } = await supabase
             .from('invoices')
-            .select('outstanding_amount, amount')
+            .select('amount_outstanding, amount')
             .eq('user_id', user.id)
             .in('debtor_id', highRiskDebtorIds)
             .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
 
           highRiskArOutstanding = highRiskInvoices?.reduce((sum, inv) => 
-            sum + Number(inv.outstanding_amount || inv.amount || 0), 0) || 0;
+            sum + Number(inv.amount_outstanding || inv.amount || 0), 0) || 0;
         }
 
         // HEALTH SCORE CALCULATION - Enterprise Risk Scoring System
