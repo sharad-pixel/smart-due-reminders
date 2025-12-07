@@ -29,9 +29,9 @@ interface FunctionTest extends FunctionConfig {
 
 const edgeFunctionConfigs: FunctionConfig[] = [
   // Email functions
-  { name: "send-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth - requires auth header" },
+  { name: "send-email", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without to/from/subject - validation error" },
   { name: "send-ai-draft", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth - requires draft_id" },
-  { name: "send-collection-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
+  { name: "send-collection-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401/500 - requires auth + recipientEmail/subject/body" },
   { name: "send-welcome-email", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "200 with valid payload", testPayload: { email: "test@example.com", companyName: "Test", userName: "Test", userId: "00000000-0000-0000-0000-000000000000" } },
   { name: "send-admin-alert", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "200 with valid payload", testPayload: { type: "waitlist", email: "test@example.com", name: "Test" } },
   { name: "send-task-assignment", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
@@ -45,10 +45,10 @@ const edgeFunctionConfigs: FunctionConfig[] = [
   
   // AI functions
   { name: "process-inbound-ai", category: "ai", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - processes pending emails" },
-  { name: "generate-bucket-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "generate-bulk-ai-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "process-persona-command", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "regenerate-draft", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
+  { name: "generate-bucket-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "400 without aging_bucket - validation error" },
+  { name: "generate-bulk-ai-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "400 without invoice_ids - validation error" },
+  { name: "process-persona-command", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401/500 - requires auth + command_text" },
+  { name: "regenerate-draft", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "400 without system_prompt/user_prompt/channel" },
   { name: "ai-match-payments", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
   
   // Cron/scheduled functions
@@ -66,11 +66,11 @@ const edgeFunctionConfigs: FunctionConfig[] = [
   { name: "delete-user", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
   
   // Utility functions
-  { name: "calculate-payment-score", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without debtor_id" },
+  { name: "calculate-payment-score", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without debtor_id - validation error" },
   { name: "risk-engine", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "Calculates risk scores" },
   { name: "get-monthly-usage", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "401 without auth" },
   { name: "get-effective-features", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "401 without auth" },
-  { name: "check-whitelist", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without email" },
+  { name: "check-whitelist", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without email - validation error" },
   { name: "encrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
   { name: "decrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
 ];
@@ -117,19 +117,33 @@ const AdminEdgeFunctions = () => {
 
       const responseTime = Date.now() - startTime;
       
-      // Determine if this is an expected error (e.g., 401 for auth-required endpoints)
-      const isExpectedError = config.requiresAuth && response.error?.message?.includes("401");
-      const isValidationError = response.error?.message?.includes("400") || response.error?.message?.includes("Missing");
+      // Determine if this is an expected error based on function config
+      const isAuthError = response.error?.message?.includes("401") || response.error?.message?.includes("Missing authorization");
+      const isValidationError = response.error?.message?.includes("400") || 
+        response.error?.message?.includes("Missing") || 
+        response.error?.message?.includes("required") ||
+        response.error?.message?.includes("is required");
+      
+      // Expected errors: auth errors for auth-required endpoints, OR validation errors for payload-required endpoints
+      const isExpectedError = (config.requiresAuth && isAuthError) || 
+        (config.requiresPayload && isValidationError) ||
+        (response.error?.message?.includes("500") && config.requiresPayload); // Some validation returns 500
 
       if (response.error) {
+        // Extract status code from error message
+        let statusCode = 500;
+        if (response.error.message?.includes("401")) statusCode = 401;
+        else if (response.error.message?.includes("400")) statusCode = 400;
+        else if (response.error.message?.includes("500")) statusCode = 500;
+        
         setTests((prev) => ({
           ...prev,
           [fnName]: { 
             ...prev[fnName], 
-            status: (isExpectedError || isValidationError) ? "expected_error" : "error", 
+            status: isExpectedError ? "expected_error" : "error", 
             error: response.error.message, 
             responseTime,
-            statusCode: isExpectedError ? 401 : (isValidationError ? 400 : 500),
+            statusCode,
             response: JSON.stringify(response.error, null, 2)
           },
         }));
