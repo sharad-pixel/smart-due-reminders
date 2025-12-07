@@ -1,9 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, AlertTriangle, Info, User } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Info, User, CalendarClock } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+
+const getDaysOpen = (createdAt: string): number => {
+  return differenceInDays(new Date(), new Date(createdAt));
+};
 
 interface TaskCardProps {
   task: CollectionTask;
@@ -41,6 +45,7 @@ const getTaskTypeLabel = (type: string) => {
 
 export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps) => {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+  const daysOpen = getDaysOpen(task.created_at);
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -52,9 +57,15 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
             {isOverdue && <AlertTriangle className="h-4 w-4 text-red-500" />}
             {getTaskTypeLabel(task.task_type)}
           </CardTitle>
-          <Badge variant={getPriorityColor(task.priority)} className="text-xs">
-            {task.priority}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              {daysOpen === 0 ? 'Today' : `${daysOpen}d`}
+            </Badge>
+            <Badge variant={getPriorityColor(task.priority)} className="text-xs">
+              {task.priority}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
