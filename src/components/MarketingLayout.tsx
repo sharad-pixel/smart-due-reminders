@@ -12,8 +12,8 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-8 flex items-center justify-between">
+      <header className="h-16 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="h-full container mx-auto px-6 flex items-center justify-between">
           <RecouplyLogo variant="header" />
           <nav className="hidden lg:flex items-center gap-5">
             <button 
