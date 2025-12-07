@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Newspaper, Lightbulb, ExternalLink, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Newspaper, Lightbulb, ExternalLink, Sparkles, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { useDailyDigest } from '@/hooks/useDailyDigest';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import Layout from '@/components/Layout';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
@@ -67,19 +68,22 @@ const DailyDigest = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-48" />
-          <Skeleton className="h-48" />
+      <Layout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-6">
+    <Layout>
+      <div className="space-y-6">
       {/* Header with Date Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -525,7 +529,8 @@ const DailyDigest = () => {
           </Card>
         </>
       )}
-    </div>
+      </div>
+    </Layout>
   );
 };
 
