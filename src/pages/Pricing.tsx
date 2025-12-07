@@ -233,9 +233,10 @@ const Pricing = () => {
                 </div>
 
                 {plan.planType !== "enterprise" && (
-                  <p className="text-xs text-muted-foreground mb-4 bg-muted/50 p-2 rounded">
-                    +$1.50 per additional active invoice beyond plan limits
-                  </p>
+                  <div className="text-xs text-muted-foreground mb-4 bg-muted/50 p-2 rounded space-y-1">
+                    <p>+$1.50 per additional active invoice beyond plan limits</p>
+                    <p>+$75.00 per additional team member/month</p>
+                  </div>
                 )}
 
                 <Button
@@ -382,6 +383,12 @@ const Pricing = () => {
               <h3 className="font-semibold mb-2">What happens if I exceed my invoice limit?</h3>
               <p className="text-muted-foreground">
                 You'll be charged $1.50 per additional active invoice beyond your plan limit. Overage charges are calculated monthly based on actual usage—no surprise bills.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">How much do additional team members cost?</h3>
+              <p className="text-muted-foreground">
+                Each additional active user is billed at <strong>$75.00 per month</strong>. The primary account owner is included free in your base plan. Additional team members (admins, members, viewers) are billable seats.
               </p>
             </div>
             <div>

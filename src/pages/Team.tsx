@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SEAT_PRICING } from "@/lib/subscriptionConfig";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 
@@ -255,6 +257,14 @@ const Team = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                {/* Pricing Note */}
+                <Alert className="bg-primary/5 border-primary/20">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-sm">
+                    This will add <strong>1 paid seat</strong> at <strong>${SEAT_PRICING.pricePerMonth.toFixed(2)}/month</strong> if accepted.
+                  </AlertDescription>
+                </Alert>
+                
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input
@@ -320,25 +330,58 @@ const Team = () => {
           </Dialog>
         </div>
 
-        {/* Team Seats Usage */}
-        <Card className="bg-muted/50">
+        {/* Team Seats & Billing Summary */}
+        <Card className="bg-muted/50 border-primary/20">
           <CardContent className="pt-6">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Team Seats</p>
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    Team Members & Seats
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} seats used
+                    Each additional active user is billed at <strong>${SEAT_PRICING.pricePerMonth.toFixed(2)} per month</strong>
                   </p>
                 </div>
                 <Badge variant="outline" className="text-sm">
                   {features?.plan_type.charAt(0).toUpperCase()}{features?.plan_type.slice(1)} Plan
                 </Badge>
               </div>
+              
+              {/* Seat Count Summary */}
+              {(() => {
+                const activeMembers = teamMembers.filter(m => m.status === 'active');
+                const ownerCount = activeMembers.filter(m => m.role === 'owner').length;
+                const billableSeats = Math.max(0, activeMembers.length - ownerCount);
+                const monthlyTotal = billableSeats * SEAT_PRICING.pricePerMonth;
+                
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-background rounded-lg border">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-primary">{activeMembers.length}</p>
+                      <p className="text-xs text-muted-foreground">Active Users</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">{billableSeats}</p>
+                      <p className="text-xs text-muted-foreground">Billable Seats</p>
+                      <p className="text-xs text-muted-foreground">(Owner is free)</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-success">${monthlyTotal.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">Est. Monthly</p>
+                    </div>
+                  </div>
+                );
+              })()}
+              
               <Progress 
                 value={(teamMembers.filter(m => m.role !== 'owner').length / ((features?.features as any)?.max_invited_users || 1)) * 100} 
                 className="h-2"
               />
+              <p className="text-xs text-muted-foreground">
+                {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} seats used
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -352,39 +395,40 @@ const Team = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Table Header */}
+              <div className="hidden md:grid grid-cols-[1fr,120px,120px,150px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground border-b">
+                <div>Member</div>
+                <div>Role</div>
+                <div>Status</div>
+                <div>Added</div>
+              </div>
+              
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex flex-col md:grid md:grid-cols-[1fr,120px,120px,150px] gap-4 items-start md:items-center p-4 border rounded-lg"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
                       {getRoleIcon(member.role)}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">
-                          {member.profiles?.name || member.profiles?.email || "Unknown"}
-                        </p>
-                        <Badge variant={getRoleBadgeVariant(member.role)}>
-                          {member.role}
-                        </Badge>
-                        {member.status === "disabled" && (
-                          <Badge variant="destructive">Disabled</Badge>
-                        )}
-                      </div>
+                      <p className="font-medium">
+                        {member.profiles?.name || member.profiles?.email || "Unknown"}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {member.profiles?.email}
                       </p>
                     </div>
                   </div>
+                  
                   <div className="flex items-center gap-2">
-                    {member.role !== "owner" && features?.features.can_manage_roles && (
+                    {member.role !== "owner" && features?.features.can_manage_roles ? (
                       <Select
                         value={member.role}
                         onValueChange={(value) => handleChangeRole(member.user_id, value as AppRole)}
                       >
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-28">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -393,19 +437,47 @@ const Team = () => {
                           <SelectItem value="viewer">Viewer</SelectItem>
                         </SelectContent>
                       </Select>
+                    ) : (
+                      <Badge variant={getRoleBadgeVariant(member.role)}>
+                        {member.role}
+                      </Badge>
                     )}
-                    {member.role !== "owner" && (
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {member.role !== "owner" ? (
                       <Button
-                        variant="outline"
+                        variant={member.status === "active" ? "outline" : "default"}
                         size="sm"
                         onClick={() => handleToggleStatus(member.user_id, member.status)}
                       >
                         {member.status === "active" ? "Disable" : "Enable"}
                       </Button>
+                    ) : (
+                      <Badge variant="default">Active</Badge>
                     )}
+                    {member.status === "disabled" && (
+                      <Badge variant="destructive">Disabled</Badge>
+                    )}
+                    {member.status === "pending" && (
+                      <Badge variant="secondary">Invited</Badge>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    {new Date(member.invited_at).toLocaleDateString()}
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* Billing Info Footer */}
+            <div className="mt-6 pt-4 border-t">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Active users: {teamMembers.filter(m => m.status === 'active' && m.role !== 'owner').length} — 
+                Additional seats billed at ${SEAT_PRICING.pricePerMonth.toFixed(2)}/user/month
+              </p>
             </div>
           </CardContent>
         </Card>

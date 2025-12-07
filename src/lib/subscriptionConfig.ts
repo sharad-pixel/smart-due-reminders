@@ -11,6 +11,18 @@ export const STRIPE_PRICES = {
     professional: 'price_1SaNXGFaeMMSBqcl08sXmTEm',
   },
   overage: 'price_1SaNZ7FaeMMSBqcleUXkrzWl',
+  // Team seat pricing - $75/month per additional user (owner is free)
+  // NOTE: Set this price ID after creating the product in Stripe when site goes live
+  seat: null as string | null, // e.g., 'price_xxxxx' - will be set when Stripe is configured
+} as const;
+
+// Seat pricing configuration
+export const SEAT_PRICING = {
+  pricePerMonth: 75.00,
+  currency: 'USD',
+  // Owner is included free in the base plan
+  // Additional active users are billed at $75/month each
+  ownerIncludedFree: true,
 } as const;
 
 export const STRIPE_PRODUCTS = {
@@ -18,6 +30,8 @@ export const STRIPE_PRODUCTS = {
   growth: 'prod_TXSLdpR7XTZZQx',
   professional: 'prod_TXSQ7XHGszt03J',
   overage: 'prod_TXSUJBuobgJuOq',
+  // Team seat product - will be set when Stripe is configured
+  seat: null as string | null,
 } as const;
 
 export type PlanType = 'free' | 'starter' | 'growth' | 'professional' | 'enterprise';
@@ -142,4 +156,23 @@ export function getInvoiceLimit(plan: PlanType): number {
 export function getMaxAgents(plan: PlanType): number {
   // All users get access to all 6 agents (Stripe disconnected)
   return 6;
+}
+
+/**
+ * Calculate billable seats for an account
+ * Owner is free, additional active users are $75/month each
+ */
+export function calculateBillableSeats(activeUsers: number, ownerCount: number = 1): number {
+  // Owner is included free
+  if (SEAT_PRICING.ownerIncludedFree) {
+    return Math.max(0, activeUsers - ownerCount);
+  }
+  return activeUsers;
+}
+
+/**
+ * Calculate estimated monthly seat cost
+ */
+export function calculateSeatCost(billableSeats: number): number {
+  return billableSeats * SEAT_PRICING.pricePerMonth;
 }
