@@ -55,6 +55,7 @@ import DataCenter from "./pages/DataCenter";
 import DataCenterReview from "./pages/DataCenterReview";
 import DailyDigest from "./pages/DailyDigest";
 import About from "./pages/About";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,7 @@ const App = () => (
         <Route path="/data-center" element={<DataCenter />} />
         <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
         <Route path="/daily-digest" element={<DailyDigest />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
