@@ -109,15 +109,11 @@ serve(async (req) => {
     const priceId = PRICE_IDS[billingInterval][planId];
     logStep('Using price ID', { priceId, billingInterval });
 
-    // Build line items
+    // Build line items (overage is metered and reported separately via track-invoice-usage)
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         price: priceId,
         quantity: 1,
-      },
-      // Add overage price for metered billing (usage-based for invoices over allotment)
-      {
-        price: OVERAGE_PRICE_ID,
       },
     ];
 
@@ -131,7 +127,7 @@ serve(async (req) => {
       logStep('Adding seats to subscription', { additionalSeats, seatPriceId });
     }
     
-    logStep('Line items prepared', { lineItemsCount: lineItems.length, hasOverage: true });
+    logStep('Line items prepared', { lineItemsCount: lineItems.length });
 
     // Create checkout session with trial
     const session = await stripe.checkout.sessions.create({
