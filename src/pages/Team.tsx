@@ -220,7 +220,10 @@ const Team = () => {
                 Contact Recouply.ai or upgrade to enable this feature.
               </p>
               <div className="flex gap-2 justify-center">
-                <Button onClick={() => navigate("/pricing")}>View Pricing</Button>
+                <Button onClick={() => navigate("/billing")}>
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Add User
+                </Button>
                 <Button variant="outline" onClick={() => navigate("/contact")}>
                   Contact Sales
                 </Button>
