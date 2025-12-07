@@ -21,6 +21,7 @@ import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { TaskCard } from "@/components/TaskCard";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 
 interface Invoice {
@@ -60,6 +61,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pendingTasks, setPendingTasks] = useState<DashboardTask[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
@@ -224,7 +226,7 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [invoicesRes, tasksRes] = await Promise.all([
+      const [invoicesRes, tasksRes, accountUsersRes] = await Promise.all([
         supabase.from("invoices").select("*, debtors(name)"),
         supabase
           .from("collection_tasks")
@@ -232,6 +234,10 @@ const Dashboard = () => {
           .in("status", ["open", "in_progress"])
           .order("created_at", { ascending: false })
           .limit(10),
+        supabase
+          .from("account_users")
+          .select("user_id, profiles(id, name, email)")
+          .eq("status", "active"),
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
@@ -240,6 +246,18 @@ const Dashboard = () => {
 
       if (!tasksRes.error) {
         setPendingTasks(tasksRes.data || []);
+      }
+
+      // Set team members for task assignment
+      if (!accountUsersRes.error && accountUsersRes.data) {
+        const members = accountUsersRes.data
+          .filter((au: any) => au.profiles)
+          .map((au: any) => ({
+            id: au.user_id,
+            name: au.profiles.name || au.profiles.email || 'Team Member',
+            email: au.profiles.email || '',
+          }));
+        setTeamMembers(members);
       }
 
       // Calculate Total Outstanding
@@ -413,6 +431,22 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error deleting task:", error);
       toast.error("Failed to delete task");
+    }
+  };
+
+  const handleTaskAssign = async (taskId: string, userId: string) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ assigned_to: userId || null })
+        .eq("id", taskId);
+
+      if (error) throw error;
+      toast.success("Task assigned");
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error assigning task:", error);
+      toast.error("Failed to assign task");
     }
   };
 
@@ -724,30 +758,42 @@ const Dashboard = () => {
                   <p className="text-muted-foreground">No open tasks</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {pendingTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
-                      onClick={() => handleTaskClick(task)}
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium line-clamp-1">
-                          {task.summary}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {task.debtors?.company_name || task.debtors?.name}
-                          {task.invoices?.invoice_number && ` • ${task.invoices.invoice_number}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
-                          {task.priority}
-                        </Badge>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                  ))}
+                <div className="grid gap-3 md:grid-cols-2">
+                  {pendingTasks.map((task) => {
+                    const collectionTask: CollectionTask = {
+                      id: task.id,
+                      user_id: '',
+                      debtor_id: task.debtor_id,
+                      invoice_id: task.invoice_id || undefined,
+                      task_type: task.task_type,
+                      priority: task.priority as 'low' | 'normal' | 'high' | 'urgent',
+                      status: task.status as 'open' | 'in_progress' | 'done' | 'cancelled',
+                      summary: task.summary,
+                      details: task.details || undefined,
+                      ai_reasoning: task.ai_reasoning || undefined,
+                      recommended_action: task.recommended_action || undefined,
+                      assigned_to: task.assigned_to || undefined,
+                      assigned_persona: task.assigned_persona || undefined,
+                      due_date: task.due_date || undefined,
+                      completed_at: task.completed_at || undefined,
+                      created_at: task.created_at,
+                      updated_at: task.updated_at,
+                    };
+                    return (
+                      <TaskCard
+                        key={task.id}
+                        task={collectionTask}
+                        onStatusChange={handleTaskStatusChange}
+                        onViewDetails={(t) => {
+                          setSelectedTask(t);
+                          setTaskModalOpen(true);
+                        }}
+                        onAssign={handleTaskAssign}
+                        teamMembers={teamMembers}
+                        showAssignment={true}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
