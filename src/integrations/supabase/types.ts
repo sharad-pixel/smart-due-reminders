@@ -4047,7 +4047,7 @@ export type Database = {
         | "PartiallyPaid"
       outreach_log_status: "sent" | "failed" | "queued"
       outreach_status: "draft" | "scheduled" | "sent" | "failed"
-      plan_type: "free" | "starter" | "growth" | "pro"
+      plan_type: "free" | "starter" | "growth" | "pro" | "professional"
       tone_type: "friendly" | "firm" | "neutral"
     }
     CompositeTypes: {
@@ -4210,7 +4210,7 @@ export const Constants = {
       ],
       outreach_log_status: ["sent", "failed", "queued"],
       outreach_status: ["draft", "scheduled", "sent", "failed"],
-      plan_type: ["free", "starter", "growth", "pro"],
+      plan_type: ["free", "starter", "growth", "pro", "professional"],
       tone_type: ["friendly", "firm", "neutral"],
     },
   },
