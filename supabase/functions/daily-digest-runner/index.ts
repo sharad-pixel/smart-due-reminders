@@ -95,12 +95,9 @@ serve(async (req) => {
           .select('id')
           .eq('user_id', user.id)
           .eq('digest_date', today)
-          .single();
+          .maybeSingle();
 
-        if (existingDigest) {
-          logStep('Digest already exists for user', { userId: user.id });
-          continue;
-        }
+        const existingDigestId = existingDigest?.id;
 
         // TASKS METRICS
         const { data: openTasks } = await supabase
@@ -118,11 +115,17 @@ serve(async (req) => {
         ).length || 0;
 
         // AR METRICS
-        const { data: invoices } = await supabase
+        const { data: invoices, error: invoicesError } = await supabase
           .from('invoices')
           .select('amount, amount_outstanding, aging_bucket, debtor_id, status')
           .eq('user_id', user.id)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
+
+        logStep('Fetched invoices for user', { 
+          userId: user.id, 
+          invoiceCount: invoices?.length || 0,
+          error: invoicesError?.message 
+        });
 
         let totalArOutstanding = 0;
         let arCurrent = 0;
@@ -314,39 +317,66 @@ serve(async (req) => {
           healthLabel = 'Caution';
         }
 
-        // Insert digest
-        const { error: insertError } = await supabase
-          .from('daily_digests')
-          .insert({
-            user_id: user.id,
-            digest_date: today,
-            open_tasks_count: openTasksCount,
-            overdue_tasks_count: overdueTasksCount,
-            tasks_created_today: tasksCreatedToday,
-            total_ar_outstanding: totalArOutstanding,
-            ar_current: arCurrent,
-            ar_1_30: ar1_30,
-            ar_31_60: ar31_60,
-            ar_61_90: ar61_90,
-            ar_91_120: ar91_120,
-            ar_120_plus: ar120Plus,
-            payments_collected_today: paymentsCollectedToday,
-            payments_collected_last_7_days: paymentsCollectedLast7Days,
-            payments_collected_prev_7_days: paymentsCollectedPrev7Days,
-            collection_trend: collectionTrend,
-            high_risk_customers_count: highRiskCustomersCount,
-            high_risk_ar_outstanding: highRiskArOutstanding,
-            health_score: healthScore,
-            health_label: healthLabel,
-          });
+        // Upsert digest (insert or update if exists)
+        const digestData = {
+          user_id: user.id,
+          digest_date: today,
+          open_tasks_count: openTasksCount,
+          overdue_tasks_count: overdueTasksCount,
+          tasks_created_today: tasksCreatedToday,
+          total_ar_outstanding: totalArOutstanding,
+          ar_current: arCurrent,
+          ar_1_30: ar1_30,
+          ar_31_60: ar31_60,
+          ar_61_90: ar61_90,
+          ar_91_120: ar91_120,
+          ar_120_plus: ar120Plus,
+          payments_collected_today: paymentsCollectedToday,
+          payments_collected_last_7_days: paymentsCollectedLast7Days,
+          payments_collected_prev_7_days: paymentsCollectedPrev7Days,
+          collection_trend: collectionTrend,
+          high_risk_customers_count: highRiskCustomersCount,
+          high_risk_ar_outstanding: highRiskArOutstanding,
+          health_score: healthScore,
+          health_label: healthLabel,
+          updated_at: new Date().toISOString(),
+        };
 
-        if (insertError) {
-          logStep('Error inserting digest', { error: insertError.message });
-          continue;
+        logStep('Digest data prepared', { 
+          userId: user.id, 
+          totalAr: totalArOutstanding,
+          arCurrent,
+          ar1_30,
+          ar61_90,
+          ar120Plus
+        });
+
+        if (existingDigestId) {
+          // Update existing digest
+          const { error: updateError } = await supabase
+            .from('daily_digests')
+            .update(digestData)
+            .eq('id', existingDigestId);
+
+          if (updateError) {
+            logStep('Error updating digest', { error: updateError.message });
+            continue;
+          }
+          logStep('Digest updated for user', { userId: user.id });
+        } else {
+          // Insert new digest
+          const { error: insertError } = await supabase
+            .from('daily_digests')
+            .insert(digestData);
+
+          if (insertError) {
+            logStep('Error inserting digest', { error: insertError.message });
+            continue;
+          }
+          logStep('Digest created for user', { userId: user.id });
         }
 
         digestsCreated.push(user.id);
-        logStep('Digest created for user', { userId: user.id });
 
         // SEND EMAIL (if user has email)
         if (user.email) {
