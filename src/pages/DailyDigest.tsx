@@ -52,8 +52,9 @@ const DailyDigest = () => {
     switch (label) {
       case 'Healthy': return 'bg-green-500';
       case 'Caution': return 'bg-yellow-500';
-      case 'Stressed': return 'bg-orange-500';
-      case 'At Risk': return 'bg-red-500';
+      case 'Needs Attention': return 'bg-orange-500';
+      case 'At Risk': return 'bg-orange-600';
+      case 'Critical': return 'bg-red-500';
       default: return 'bg-muted';
     }
   };
