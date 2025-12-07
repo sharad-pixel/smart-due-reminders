@@ -57,6 +57,7 @@ import DailyDigest from "./pages/DailyDigest";
 import About from "./pages/About";
 import AdminUsers from "./pages/AdminUsers";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminWaitlist from "./pages/admin/AdminWaitlist";
@@ -132,6 +133,7 @@ const App = () => (
         <Route path="/daily-digest" element={<DailyDigest />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/user-management" element={<AdminUserManagement />} />
         <Route path="/admin/activity" element={<AdminActivityLogs />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/admin/waitlist" element={<AdminWaitlist />} />
