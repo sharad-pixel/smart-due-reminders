@@ -114,7 +114,7 @@ export const useRiskEngine = (debtorId?: string) => {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        score_components: d.score_components as ScoreComponents | null
+        score_components: d.score_components as unknown as ScoreComponents | null
       })) as RiskHistory[];
     },
     enabled: !!debtorId,
@@ -144,7 +144,7 @@ export const useRiskEngine = (debtorId?: string) => {
       if (error) throw error;
       return {
         ...data,
-        score_components: data.score_components as ScoreComponents | null
+        score_components: data.score_components as unknown as ScoreComponents | null
       } as EnterpriseScoreResult;
     },
     enabled: !!debtorId,
