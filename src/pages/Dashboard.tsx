@@ -416,6 +416,24 @@ const Dashboard = () => {
     }
   };
 
+  const handleTaskAssign = async (taskId: string, assignedTo: string | null, assignedPersona: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ 
+          assigned_to: assignedTo, 
+          assigned_persona: assignedPersona 
+        })
+        .eq("id", taskId);
+
+      if (error) throw error;
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error assigning task:", error);
+      toast.error("Failed to assign task");
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchDashboardData();
@@ -1040,6 +1058,7 @@ const Dashboard = () => {
           onOpenChange={setTaskModalOpen}
           onStatusChange={handleTaskStatusChange}
           onDelete={handleTaskDelete}
+          onAssign={handleTaskAssign}
         />
       </div>
     </Layout>
