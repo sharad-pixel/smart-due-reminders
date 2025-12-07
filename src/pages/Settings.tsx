@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette, UserPlus } from "lucide-react";
 import { LogoUpload } from "@/components/LogoUpload";
 
 
@@ -467,14 +467,14 @@ const Settings = () => {
             <p className="text-sm text-muted-foreground">
               Add team members to collaborate on collections. Each additional active user is billed at $75.00 per month.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button onClick={() => navigate("/team")} className="gap-2">
-                <Users className="h-4 w-4" />
-                Manage Team & Roles
+                <UserPlus className="h-4 w-4" />
+                Add Team Members
               </Button>
-              <Button variant="outline" onClick={() => navigate("/billing")}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Billing
+              <Button variant="outline" onClick={() => navigate("/billing")} className="gap-2">
+                <CreditCard className="h-4 w-4" />
+                Manage Billing
               </Button>
             </div>
           </CardContent>
