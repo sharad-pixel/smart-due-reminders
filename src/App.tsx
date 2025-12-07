@@ -9,14 +9,12 @@ import Solutions from "./pages/Solutions";
 import SmallBusinesses from "./pages/solutions/SmallBusinesses";
 import SaaS from "./pages/solutions/SaaS";
 import ProfessionalServices from "./pages/solutions/ProfessionalServices";
-import FinalInternalCollections from "./pages/solutions/FinalInternalCollections";
 import Terms from "./pages/legal/Terms";
 import Privacy from "./pages/legal/Privacy";
 import Security from "./pages/Security";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
-import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Debtors from "./pages/Debtors";
 import DebtorDetail from "./pages/DebtorDetail";
@@ -33,15 +31,12 @@ import SecurityDashboard from "./pages/SecurityDashboard";
 import SecuritySettings from "./pages/SecuritySettings";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionTasks from "./pages/CollectionTasks";
-import AddressAutocompleteSettings from "./pages/AddressAutocompleteSettings";
 import Personas from "./pages/Personas";
 import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
-import DebtorDashboard from "./pages/DebtorDashboard";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
-import BringYourOwnEmail from "./pages/BringYourOwnEmail";
 import Startups from "./pages/Startups";
 import SMB from "./pages/SMB";
 import Enterprise from "./pages/Enterprise";
@@ -55,7 +50,6 @@ import DataCenter from "./pages/DataCenter";
 import DataCenterReview from "./pages/DataCenterReview";
 import DailyDigest from "./pages/DailyDigest";
 import About from "./pages/About";
-import AdminUsers from "./pages/AdminUsers";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
@@ -89,7 +83,6 @@ const App = () => (
         <Route path="/solutions/small-businesses" element={<SmallBusinesses />} />
         <Route path="/solutions/saas" element={<SaaS />} />
         <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
-        <Route path="/solutions/final-internal-collections" element={<FinalInternalCollections />} />
         <Route path="/startups" element={<Startups />} />
         <Route path="/smb" element={<SMB />} />
         <Route path="/enterprise" element={<Enterprise />} />
@@ -100,14 +93,12 @@ const App = () => (
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
-        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/contact-us" element={<ContactUs />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/upgrade" element={<Upgrade />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/debtors" element={<DebtorDashboard />} />
         <Route path="/debtors" element={<Debtors />} />
         <Route path="/debtors/:id" element={<DebtorDetail />} />
         <Route path="/invoices" element={<Invoices />} />
@@ -115,9 +106,6 @@ const App = () => (
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/team-members" element={<TeamMembersSettings />} />
         <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
-        <Route path="/settings/integrations/address-autocomplete" element={<AddressAutocompleteSettings />} />
-        <Route path="/settings/email-accounts" element={<BringYourOwnEmail />} />
-        <Route path="/collections/tasks" element={<CollectionTasks />} />
         <Route path="/tasks" element={<CollectionTasks />} />
         <Route path="/inbound" element={<InboundCommandCenter />} />
         <Route path="/team" element={<Team />} />
@@ -132,7 +120,7 @@ const App = () => (
         <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
         <Route path="/daily-digest" element={<DailyDigest />} />
         <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/user-management" element={<AdminUserManagement />} />
         <Route path="/admin/user-management" element={<AdminUserManagement />} />
         <Route path="/admin/activity" element={<AdminActivityLogs />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
