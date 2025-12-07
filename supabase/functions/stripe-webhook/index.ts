@@ -3,6 +3,19 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 
+/**
+ * Stripe Webhook Handler
+ * 
+ * Handles subscription lifecycle events and syncs billing data to Supabase.
+ * Supports both monthly and annual billing intervals.
+ * 
+ * Key Events:
+ * - checkout.session.completed: Initial subscription setup
+ * - customer.subscription.created/updated: Subscription changes
+ * - customer.subscription.deleted: Cancellation
+ * - invoice.payment_succeeded/failed: Payment events
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
@@ -13,12 +26,54 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
-// Map Stripe price IDs to plan types
+// ============================================================================
+// STRIPE PRICE ID TO PLAN MAPPING
+// Maps both monthly and annual price IDs to plan types
+// ============================================================================
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
+  // Monthly prices
+  'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
+  'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
+  'price_1SaNVyFaeMMSBqclrcAXjUmm': 'professional',
+  // Annual prices (20% discount)
+  'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
+  'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
+  'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
+  // Legacy prices (for backwards compatibility)
   'price_1SX2cyFaeMMSBqclAGkxSliI': 'starter',
   'price_1SX2dkFaeMMSBqclPIjUA6N2': 'growth',
-  'price_1SX2duFaeMMSBqclrYq4rikr': 'pro',
+  'price_1SX2duFaeMMSBqclrYq4rikr': 'professional',
 };
+
+// Seat price IDs (not mapped to plans, used for identification)
+const SEAT_PRICE_IDS = [
+  'price_1SbWueFaeMMSBqclnDqJkOQW', // Monthly seat
+  'price_1SbWuuFaeMMSBqclX6xqgX9E', // Annual seat
+];
+
+/**
+ * Extract billing interval from subscription
+ */
+function getBillingInterval(subscription: Stripe.Subscription): 'month' | 'year' {
+  const interval = subscription.items.data[0]?.price?.recurring?.interval;
+  return interval === 'year' ? 'year' : 'month';
+}
+
+/**
+ * Get plan type from subscription (excluding seat items)
+ */
+function getPlanFromSubscription(subscription: Stripe.Subscription): string {
+  for (const item of subscription.items.data) {
+    const priceId = item.price.id;
+    // Skip seat prices
+    if (SEAT_PRICE_IDS.includes(priceId)) continue;
+    
+    if (PRICE_TO_PLAN_MAP[priceId]) {
+      return PRICE_TO_PLAN_MAP[priceId];
+    }
+  }
+  return 'free';
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -75,10 +130,12 @@ serve(async (req) => {
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
 
-          // Get subscription details to determine plan
+          // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          const priceId = subscription.items.data[0]?.price.id;
-          const planType = PRICE_TO_PLAN_MAP[priceId] || 'free';
+          const planType = getPlanFromSubscription(subscription);
+          const billingInterval = getBillingInterval(subscription);
+
+          logStep("Subscription details", { planType, billingInterval });
 
           // Update user profile with subscription info
           const { error: updateError } = await supabase
@@ -87,14 +144,21 @@ serve(async (req) => {
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
               plan_type: planType,
-              trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+              billing_interval: billingInterval,
+              current_period_end: subscription.current_period_end 
+                ? new Date(subscription.current_period_end * 1000).toISOString() 
+                : null,
+              trial_ends_at: subscription.trial_end 
+                ? new Date(subscription.trial_end * 1000).toISOString() 
+                : null,
+              cancel_at_period_end: subscription.cancel_at_period_end,
             })
             .eq('stripe_customer_id', customerId);
 
           if (updateError) {
             logStep("Error updating profile after checkout", { error: updateError });
           } else {
-            logStep("Profile updated after checkout", { customerId, planType });
+            logStep("Profile updated after checkout", { customerId, planType, billingInterval });
           }
         }
         break;
@@ -110,8 +174,8 @@ serve(async (req) => {
         });
 
         const customerId = subscription.customer as string;
-        const priceId = subscription.items.data[0]?.price.id;
-        const planType = PRICE_TO_PLAN_MAP[priceId] || 'free';
+        const planType = getPlanFromSubscription(subscription);
+        const billingInterval = getBillingInterval(subscription);
 
         // Update profile with latest subscription status
         const { error: updateError } = await supabase
@@ -119,14 +183,27 @@ serve(async (req) => {
           .update({
             stripe_subscription_id: subscription.id,
             plan_type: planType,
-            trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+            billing_interval: billingInterval,
+            current_period_end: subscription.current_period_end 
+              ? new Date(subscription.current_period_end * 1000).toISOString() 
+              : null,
+            trial_ends_at: subscription.trial_end 
+              ? new Date(subscription.trial_end * 1000).toISOString() 
+              : null,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            subscription_status: subscription.status,
           })
           .eq('stripe_customer_id', customerId);
 
         if (updateError) {
           logStep("Error updating profile on subscription change", { error: updateError });
         } else {
-          logStep("Profile updated on subscription change", { customerId, planType, status: subscription.status });
+          logStep("Profile updated on subscription change", { 
+            customerId, 
+            planType, 
+            billingInterval,
+            status: subscription.status 
+          });
         }
         break;
       }
@@ -143,7 +220,11 @@ serve(async (req) => {
           .update({
             stripe_subscription_id: null,
             plan_type: 'free',
+            billing_interval: 'month',
+            current_period_end: null,
             trial_ends_at: null,
+            cancel_at_period_end: false,
+            subscription_status: 'canceled',
           })
           .eq('stripe_customer_id', customerId);
 
@@ -169,21 +250,23 @@ serve(async (req) => {
 
           if (subscriptionId) {
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-            const priceId = subscription.items.data[0]?.price.id;
-            const planType = PRICE_TO_PLAN_MAP[priceId] || 'free';
+            const planType = getPlanFromSubscription(subscription);
+            const billingInterval = getBillingInterval(subscription);
 
             const { error: updateError } = await supabase
               .from('profiles')
               .update({
                 stripe_subscription_id: subscriptionId,
                 plan_type: planType,
+                billing_interval: billingInterval,
+                subscription_status: 'active',
               })
               .eq('stripe_customer_id', customerId);
 
             if (updateError) {
               logStep("Error activating subscription after payment", { error: updateError });
             } else {
-              logStep("Subscription activated after successful payment", { customerId, planType });
+              logStep("Subscription activated after successful payment", { customerId, planType, billingInterval });
             }
           }
         }
@@ -197,8 +280,14 @@ serve(async (req) => {
           customerId: invoice.customer 
         });
 
-        // Optionally handle payment failures (send notification, grace period, etc.)
-        // For now, Stripe will retry automatically
+        // Update subscription status to past_due
+        const customerId = invoice.customer as string;
+        await supabase
+          .from('profiles')
+          .update({ subscription_status: 'past_due' })
+          .eq('stripe_customer_id', customerId);
+        
+        // TODO: Optionally send notification email about failed payment
         break;
       }
 

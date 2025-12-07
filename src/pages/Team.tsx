@@ -269,7 +269,7 @@ const Team = () => {
                 <Alert className="bg-primary/5 border-primary/20">
                   <DollarSign className="h-4 w-4 text-primary" />
                   <AlertDescription className="text-sm">
-                    This will add <strong>1 paid seat</strong> at <strong>${SEAT_PRICING.pricePerMonth.toFixed(2)}/month</strong> if accepted.
+                    This will add <strong>1 paid seat</strong> at <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> if accepted.
                   </AlertDescription>
                 </Alert>
                 
@@ -350,7 +350,7 @@ const Team = () => {
                     Team Members & Seats
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Each additional active user is billed at <strong>${SEAT_PRICING.pricePerMonth.toFixed(2)} per month</strong>
+                    Each additional active user is billed at <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)} per month</strong>
                   </p>
                 </div>
                 <Badge variant="outline" className="text-sm">
@@ -363,7 +363,7 @@ const Team = () => {
                 const activeMembers = teamMembers.filter(m => m.status === 'active');
                 const ownerCount = activeMembers.filter(m => m.role === 'owner').length;
                 const billableSeats = Math.max(0, activeMembers.length - ownerCount);
-                const monthlyTotal = billableSeats * SEAT_PRICING.pricePerMonth;
+                const monthlyTotal = billableSeats * SEAT_PRICING.monthlyPrice;
                 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-background rounded-lg border">
@@ -485,7 +485,7 @@ const Team = () => {
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 Active users: {teamMembers.filter(m => m.status === 'active' && m.role !== 'owner').length} — 
-                Additional seats billed at ${SEAT_PRICING.pricePerMonth.toFixed(2)}/user/month
+                Additional seats billed at ${SEAT_PRICING.monthlyPrice.toFixed(2)}/user/month
               </p>
             </div>
           </CardContent>

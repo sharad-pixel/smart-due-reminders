@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PLAN_CONFIGS, type PlanType } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice, type PlanType } from "@/lib/subscriptionConfig";
 
 interface UsageData {
   plan: string;
@@ -182,21 +182,52 @@ const Billing = () => {
                     {planConfig?.displayName || 'Free'}
                   </h3>
                   {planConfig && (
-                    <p className="text-muted-foreground mb-4">
-                      ${profile?.billing_interval === 'year' 
-                        ? Math.round(planConfig.annualPrice / 12) 
-                        : planConfig.monthlyPrice}/month
-                      {profile?.billing_interval === 'year' && (
-                        <span className="text-green-600 ml-2">(billed annually)</span>
+                    <div className="mb-4">
+                      {profile?.billing_interval === 'year' ? (
+                        <>
+                          <p className="text-2xl font-semibold text-primary">
+                            {formatPrice(planConfig.annualPrice)}/year
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Equivalent to {formatPrice(planConfig.equivalentMonthly)}/month
+                          </p>
+                          <Badge className="mt-1 bg-green-100 text-green-800">
+                            {Math.round(ANNUAL_DISCOUNT_RATE * 100)}% annual discount applied
+                          </Badge>
+                        </>
+                      ) : (
+                        <p className="text-2xl font-semibold text-primary">
+                          {formatPrice(planConfig.monthlyPrice)}/month
+                        </p>
                       )}
-                    </p>
+                    </div>
                   )}
                   <div className="space-y-2 text-sm">
-                    <p><strong>Invoice Limit:</strong> {profile?.invoice_limit === -1 ? 'Unlimited' : `${profile?.invoice_limit || 5} invoices/month`}</p>
-                    <p><strong>Billing Cycle:</strong> {profile?.billing_interval === 'year' ? 'Annual' : 'Monthly'}</p>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        <strong>Billing Cycle:</strong>{' '}
+                        {profile?.billing_interval === 'year' ? 'Annual' : 'Monthly'}
+                      </span>
+                    </div>
+                    <p>
+                      <strong>Invoice Limit:</strong>{' '}
+                      {profile?.invoice_limit === -1 ? 'Unlimited' : `${profile?.invoice_limit || 5} invoices/month`}
+                    </p>
                     {profile?.current_period_end && (
-                      <p><strong>Next Billing Date:</strong> {formatDate(profile.current_period_end)}</p>
+                      <p>
+                        <strong>Next Billing Date:</strong> {formatDate(profile.current_period_end)}
+                      </p>
                     )}
+                    <div className="pt-2 border-t mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        <strong>Team Seat Pricing:</strong>{' '}
+                        {profile?.billing_interval === 'year' 
+                          ? `${formatPrice(SEAT_PRICING.annualPrice)}/user/year (${Math.round(ANNUAL_DISCOUNT_RATE * 100)}% off)`
+                          : `${formatPrice(SEAT_PRICING.monthlyPrice)}/user/month`
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-col justify-center">

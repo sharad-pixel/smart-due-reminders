@@ -13,12 +13,19 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@/lib/subscriptionConfig";
+
+/**
+ * Pricing page with monthly/annual billing toggle
+ * Annual billing = 20% discount on monthly pricing
+ */
 
 const plans = [
   {
     name: "Starter",
-    price: "$99",
-    annualPrice: "$84",
+    monthlyPrice: PLAN_CONFIGS.starter.monthlyPrice,
+    annualPrice: PLAN_CONFIGS.starter.annualPrice,
+    equivalentMonthly: PLAN_CONFIGS.starter.equivalentMonthly,
     period: "/month",
     invoiceLimit: "Up to 100 active invoices/month",
     description: "Perfect for small businesses with light AR volume.",
@@ -28,8 +35,9 @@ const plans = [
   },
   {
     name: "Growth",
-    price: "$199",
-    annualPrice: "$169",
+    monthlyPrice: PLAN_CONFIGS.growth.monthlyPrice,
+    annualPrice: PLAN_CONFIGS.growth.annualPrice,
+    equivalentMonthly: PLAN_CONFIGS.growth.equivalentMonthly,
     period: "/month",
     invoiceLimit: "Up to 300 active invoices/month",
     description: "Ideal for scaling teams needing automated AR workflows.",
@@ -39,8 +47,9 @@ const plans = [
   },
   {
     name: "Professional",
-    price: "$499",
-    annualPrice: "$424",
+    monthlyPrice: PLAN_CONFIGS.professional.monthlyPrice,
+    annualPrice: PLAN_CONFIGS.professional.annualPrice,
+    equivalentMonthly: PLAN_CONFIGS.professional.equivalentMonthly,
     period: "/month",
     invoiceLimit: "Up to 500 active invoices/month",
     description: "Built for high-volume AR operations ready for advanced automation.",
@@ -50,8 +59,9 @@ const plans = [
   },
   {
     name: "Enterprise / Custom",
-    price: "Custom",
-    annualPrice: "Custom",
+    monthlyPrice: 0,
+    annualPrice: 0,
+    equivalentMonthly: 0,
     period: "",
     invoiceLimit: "500+ active invoices/month",
     description: "Everything in Professional, plus: Custom RCA integrations, CS case intelligence, multi-system sync, and advanced agent personalization using customer relationship data.",
@@ -152,6 +162,9 @@ const Pricing = () => {
     }
   };
 
+  // Calculate discount percentage for display
+  const discountPercent = Math.round(ANNUAL_DISCOUNT_RATE * 100);
+
   return (
     <MarketingLayout>
       <section className="py-20 px-4">
@@ -187,7 +200,7 @@ const Pricing = () => {
             </Label>
             {isAnnual && (
               <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                Save 15%
+                Save {discountPercent}%
               </Badge>
             )}
           </div>
@@ -209,11 +222,32 @@ const Pricing = () => {
                 )}
                 <h3 className="text-2xl font-bold mb-2 mt-2">{plan.name}</h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold">{isAnnual ? plan.annualPrice : plan.price}</span>
-                  <span className="text-muted-foreground">{plan.period}</span>
+                  {plan.planType === "enterprise" ? (
+                    <span className="text-4xl font-bold">Custom</span>
+                  ) : isAnnual ? (
+                    <>
+                      <span className="text-4xl font-bold">{formatPrice(plan.annualPrice)}</span>
+                      <span className="text-muted-foreground">/year</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-bold">{formatPrice(plan.monthlyPrice)}</span>
+                      <span className="text-muted-foreground">{plan.period}</span>
+                    </>
+                  )}
                 </div>
-                {isAnnual && plan.price !== "Custom" && (
-                  <p className="text-xs text-green-600 mb-1">Billed annually (15% savings)</p>
+                {isAnnual && plan.planType !== "enterprise" && (
+                  <div className="mb-2">
+                    <p className="text-xs text-green-600 font-medium">
+                      Billed annually ({discountPercent}% off)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Equivalent to {formatPrice(plan.equivalentMonthly)}/month
+                    </p>
+                  </div>
+                )}
+                {!isAnnual && plan.planType !== "enterprise" && (
+                  <p className="text-xs text-muted-foreground mb-2">Billed monthly</p>
                 )}
                 <p className="text-sm font-medium text-primary mb-2">{plan.invoiceLimit}</p>
                 <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
@@ -235,7 +269,10 @@ const Pricing = () => {
                 {plan.planType !== "enterprise" && (
                   <div className="text-xs text-muted-foreground mb-4 bg-muted/50 p-2 rounded space-y-1">
                     <p>+$1.50 per additional active invoice beyond plan limits</p>
-                    <p>+$75.00 per additional team member/month</p>
+                    <p>
+                      +{formatPrice(isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice)} per additional team member/{isAnnual ? 'year' : 'month'}
+                      {isAnnual && <span className="text-green-600 ml-1">({discountPercent}% off)</span>}
+                    </p>
                   </div>
                 )}
 
@@ -388,13 +425,19 @@ const Pricing = () => {
             <div>
               <h3 className="font-semibold mb-2">How much do additional team members cost?</h3>
               <p className="text-muted-foreground">
-                Each additional active user is billed at <strong>$75.00 per month</strong>. The primary account owner is included free in your base plan. Additional team members (admins, members, viewers) are billable seats.
+                Each additional active user is billed at <strong>${SEAT_PRICING.monthlyPrice} per month</strong> (or <strong>${SEAT_PRICING.annualPrice} per year</strong> with annual billing—{Math.round(ANNUAL_DISCOUNT_RATE * 100)}% savings). The primary account owner is included free in your base plan. Additional team members (admins, members, viewers) are billable seats.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">What's the difference between monthly and annual billing?</h3>
+              <p className="text-muted-foreground">
+                Annual billing gives you a <strong>{Math.round(ANNUAL_DISCOUNT_RATE * 100)}% discount</strong> on both your base plan and team seats. You're billed once per year instead of monthly. For example, the Starter plan is ${PLAN_CONFIGS.starter.monthlyPrice}/month or ${PLAN_CONFIGS.starter.annualPrice}/year (equivalent to ${PLAN_CONFIGS.starter.equivalentMonthly}/month).
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Can I upgrade or downgrade anytime?</h3>
               <p className="text-muted-foreground">
-                Yes, all plans are month-to-month with no long-term commitment. Upgrade or downgrade anytime from your account settings.
+                Yes, all plans are flexible. You can upgrade or downgrade anytime from your account settings. Changes take effect at the next billing cycle with prorated adjustments.
               </p>
             </div>
             <div>
@@ -420,30 +463,17 @@ const Pricing = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-primary text-primary-foreground">
-        <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Ready to Put Six AI Agents to Work?</h2>
-          <p className="text-lg mb-4 opacity-90">
-            Start your free trial today. Full platform access with AI agents recovering your revenue 24/7.
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Collections?</h2>
+          <p className="text-xl text-muted-foreground mb-8">
+            Start your free trial today and let our AI agents handle your collections.
           </p>
-          <p className="text-md mb-8 opacity-80">
-            "AI-powered CashOps means predictable payments, automated follow-up, and intelligence that compounds over time."
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Button
-              size="lg"
-              variant="secondary"
-              onClick={() => navigate("/signup")}
-              className="text-lg px-8"
-            >
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={() => handlePlanClick("growth")}>
               Start Free Trial
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
-              className="text-lg px-8 bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
-            >
+            <Button size="lg" variant="outline" onClick={() => navigate("/contact-us")}>
               Book a Demo
             </Button>
           </div>
