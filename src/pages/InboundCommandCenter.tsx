@@ -1530,9 +1530,9 @@ const InboundCommandCenter = () => {
                       const { error: sendError } = await supabase.functions.invoke("send-email", {
                         body: {
                           to: selectedEmail.from_email,
+                          from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
                           subject: generatedResponse.subject,
-                          body: generatedResponse.body,
-                          replyToInvoiceId: selectedEmail.invoice_id || contextInvoiceId,
+                          html: generatedResponse.body.replace(/\n/g, "<br>"),
                         },
                       });
                       
@@ -1712,9 +1712,9 @@ const InboundCommandCenter = () => {
                       const { error: sendError } = await supabase.functions.invoke("send-email", {
                         body: {
                           to: selectedEmail.from_email,
+                          from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
                           subject: generatedResponse.subject,
-                          body: generatedResponse.body,
-                          replyToInvoiceId: selectedEmail.invoice_id || contextInvoiceId,
+                          html: generatedResponse.body.replace(/\n/g, "<br>"),
                         },
                       });
                       
