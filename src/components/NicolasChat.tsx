@@ -163,7 +163,7 @@ const KNOWLEDGE_BASE = [
     confidence: 0.95,
     links: [
       { label: "View Tasks", path: "/tasks" },
-      { label: "Team Members", path: "/settings/team-members" }
+      { label: "Team Members", path: "/team" }
     ]
   },
   {
@@ -229,7 +229,7 @@ const KNOWLEDGE_BASE = [
     answer: "Emails from team members (defined in your Team Members settings) are flagged as internal communications. AI processes these differently and creates tasks with an [Internal] prefix. This distinguishes team discussions from customer communications.",
     confidence: 0.85,
     links: [
-      { label: "Team Members", path: "/settings/team-members" },
+      { label: "Team Members", path: "/team" },
       { label: "View Tasks", path: "/tasks" }
     ]
   },
@@ -343,7 +343,7 @@ const KNOWLEDGE_BASE = [
     answer: "Add team members from the Team Members settings. Team members can be assigned to tasks and receive email notifications about their assignments.",
     confidence: 0.8,
     links: [
-      { label: "Team Members", path: "/settings/team-members" }
+      { label: "Team Members", path: "/team" }
     ]
   },
   {
