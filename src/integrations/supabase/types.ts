@@ -1468,44 +1468,59 @@ export type Database = {
       }
       debtor_risk_history: {
         Row: {
+          ai_sentiment_score: number | null
           basis_days_observed: number | null
           basis_invoices_count: number | null
           basis_payments_count: number | null
           calculation_details: Json | null
+          collections_health_score: number | null
+          collections_risk_score: number | null
           created_at: string
           debtor_id: string
+          health_tier: string | null
           id: string
           risk_payment_score: number | null
           risk_status_note: string | null
           risk_tier: string | null
+          score_components: Json | null
           snapshot_at: string
           user_id: string
         }
         Insert: {
+          ai_sentiment_score?: number | null
           basis_days_observed?: number | null
           basis_invoices_count?: number | null
           basis_payments_count?: number | null
           calculation_details?: Json | null
+          collections_health_score?: number | null
+          collections_risk_score?: number | null
           created_at?: string
           debtor_id: string
+          health_tier?: string | null
           id?: string
           risk_payment_score?: number | null
           risk_status_note?: string | null
           risk_tier?: string | null
+          score_components?: Json | null
           snapshot_at?: string
           user_id: string
         }
         Update: {
+          ai_sentiment_score?: number | null
           basis_days_observed?: number | null
           basis_invoices_count?: number | null
           basis_payments_count?: number | null
           calculation_details?: Json | null
+          collections_health_score?: number | null
+          collections_risk_score?: number | null
           created_at?: string
           debtor_id?: string
+          health_tier?: string | null
           id?: string
           risk_payment_score?: number | null
           risk_status_note?: string | null
           risk_tier?: string | null
+          score_components?: Json | null
           snapshot_at?: string
           user_id?: string
         }
@@ -1530,6 +1545,8 @@ export type Database = {
           aging_mix_61_90_pct: number | null
           aging_mix_91_120_pct: number | null
           aging_mix_current_pct: number | null
+          ai_sentiment_category: string | null
+          ai_sentiment_score: number | null
           ar_contact_email: string | null
           ar_contact_name: string | null
           ar_contact_phone: string | null
@@ -1542,6 +1559,8 @@ export type Database = {
           billing_postal_code: string | null
           billing_state: string | null
           city: string | null
+          collections_health_score: number | null
+          collections_risk_score: number | null
           company_name: string
           contact_name: string
           country: string | null
@@ -1555,12 +1574,14 @@ export type Database = {
           email: string
           external_customer_id: string | null
           external_system: string | null
+          health_tier: string | null
           high_risk_invoice_count: number | null
           id: string
           in_payment_plan_invoices_count: number | null
           industry: string | null
           is_active: boolean | null
           is_archived: boolean | null
+          last_score_change_reason: string | null
           latitude: number | null
           longitude: number | null
           max_days_past_due: number | null
@@ -1581,6 +1602,8 @@ export type Database = {
           risk_last_calculated_at: string | null
           risk_status_note: string | null
           risk_tier: string | null
+          risk_tier_detailed: string | null
+          score_components: Json | null
           state: string | null
           tags: Json | null
           total_open_balance: number | null
@@ -1599,6 +1622,8 @@ export type Database = {
           aging_mix_61_90_pct?: number | null
           aging_mix_91_120_pct?: number | null
           aging_mix_current_pct?: number | null
+          ai_sentiment_category?: string | null
+          ai_sentiment_score?: number | null
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
@@ -1611,6 +1636,8 @@ export type Database = {
           billing_postal_code?: string | null
           billing_state?: string | null
           city?: string | null
+          collections_health_score?: number | null
+          collections_risk_score?: number | null
           company_name: string
           contact_name: string
           country?: string | null
@@ -1624,12 +1651,14 @@ export type Database = {
           email: string
           external_customer_id?: string | null
           external_system?: string | null
+          health_tier?: string | null
           high_risk_invoice_count?: number | null
           id?: string
           in_payment_plan_invoices_count?: number | null
           industry?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          last_score_change_reason?: string | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
@@ -1650,6 +1679,8 @@ export type Database = {
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
           risk_tier?: string | null
+          risk_tier_detailed?: string | null
+          score_components?: Json | null
           state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
@@ -1668,6 +1699,8 @@ export type Database = {
           aging_mix_61_90_pct?: number | null
           aging_mix_91_120_pct?: number | null
           aging_mix_current_pct?: number | null
+          ai_sentiment_category?: string | null
+          ai_sentiment_score?: number | null
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
@@ -1680,6 +1713,8 @@ export type Database = {
           billing_postal_code?: string | null
           billing_state?: string | null
           city?: string | null
+          collections_health_score?: number | null
+          collections_risk_score?: number | null
           company_name?: string
           contact_name?: string
           country?: string | null
@@ -1693,12 +1728,14 @@ export type Database = {
           email?: string
           external_customer_id?: string | null
           external_system?: string | null
+          health_tier?: string | null
           high_risk_invoice_count?: number | null
           id?: string
           in_payment_plan_invoices_count?: number | null
           industry?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          last_score_change_reason?: string | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
@@ -1719,6 +1756,8 @@ export type Database = {
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
           risk_tier?: string | null
+          risk_tier_detailed?: string | null
+          score_components?: Json | null
           state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
@@ -2328,6 +2367,8 @@ export type Database = {
           ai_priority: string | null
           ai_processed_at: string | null
           ai_sentiment: string | null
+          ai_sentiment_category: string | null
+          ai_sentiment_score: number | null
           ai_summary: string | null
           bcc_emails: Json | null
           cc_emails: Json | null
@@ -2345,6 +2386,7 @@ export type Database = {
           invoice_id: string | null
           message_id: string
           raw_payload: Json
+          sentiment_analyzed_at: string | null
           status: string
           subject: string
           text_body: string | null
@@ -2362,6 +2404,8 @@ export type Database = {
           ai_priority?: string | null
           ai_processed_at?: string | null
           ai_sentiment?: string | null
+          ai_sentiment_category?: string | null
+          ai_sentiment_score?: number | null
           ai_summary?: string | null
           bcc_emails?: Json | null
           cc_emails?: Json | null
@@ -2379,6 +2423,7 @@ export type Database = {
           invoice_id?: string | null
           message_id: string
           raw_payload: Json
+          sentiment_analyzed_at?: string | null
           status?: string
           subject: string
           text_body?: string | null
@@ -2396,6 +2441,8 @@ export type Database = {
           ai_priority?: string | null
           ai_processed_at?: string | null
           ai_sentiment?: string | null
+          ai_sentiment_category?: string | null
+          ai_sentiment_score?: number | null
           ai_summary?: string | null
           bcc_emails?: Json | null
           cc_emails?: Json | null
@@ -2413,6 +2460,7 @@ export type Database = {
           invoice_id?: string | null
           message_id?: string
           raw_payload?: Json
+          sentiment_analyzed_at?: string | null
           status?: string
           subject?: string
           text_body?: string | null
@@ -3501,6 +3549,62 @@ export type Database = {
         }
         Relationships: []
       }
+      score_change_logs: {
+        Row: {
+          change_reason: string
+          change_type: string
+          created_at: string | null
+          debtor_id: string
+          id: string
+          new_health_score: number | null
+          new_health_tier: string | null
+          new_risk_score: number | null
+          old_health_score: number | null
+          old_health_tier: string | null
+          old_risk_score: number | null
+          score_components: Json | null
+          user_id: string
+        }
+        Insert: {
+          change_reason: string
+          change_type: string
+          created_at?: string | null
+          debtor_id: string
+          id?: string
+          new_health_score?: number | null
+          new_health_tier?: string | null
+          new_risk_score?: number | null
+          old_health_score?: number | null
+          old_health_tier?: string | null
+          old_risk_score?: number | null
+          score_components?: Json | null
+          user_id: string
+        }
+        Update: {
+          change_reason?: string
+          change_type?: string
+          created_at?: string | null
+          debtor_id?: string
+          id?: string
+          new_health_score?: number | null
+          new_health_tier?: string | null
+          new_risk_score?: number | null
+          old_health_score?: number | null
+          old_health_tier?: string | null
+          old_risk_score?: number | null
+          score_components?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_change_logs_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_events: {
         Row: {
           created_at: string
@@ -3603,6 +3707,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sentiment_score_config: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          health_score_value: number
+          id: string
+          risk_score_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          health_score_value?: number
+          id?: string
+          risk_score_value?: number
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          health_score_value?: number
+          id?: string
+          risk_score_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       team_members: {
         Row: {
