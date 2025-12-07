@@ -562,7 +562,7 @@ const Settings = () => {
               <p className="text-sm text-muted-foreground">
                 Add team members to assign tasks and receive email notifications with task and invoice details.
               </p>
-              <Button variant="outline" size="sm" onClick={() => navigate("/settings/team-members")}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/team")}>
                 <Users className="h-4 w-4 mr-2" />
                 Manage Team Members
               </Button>
