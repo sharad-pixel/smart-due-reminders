@@ -6,13 +6,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 /**
  * Create Checkout Session Edge Function
  * 
- * Supports both monthly and annual billing with 20% annual discount.
- * Also handles seat-based billing for team members.
- * 
- * PRICING STRUCTURE:
- * - Monthly: Standard pricing
- * - Annual: 20% discount (price * 12 * 0.8)
- * - Seats: $75/month or $720/year (20% discount)
+ * SaaS Subscription Model:
+ * - Trial is ONE-TIME per email address (tracked via trial_used_at)
+ * - Subscription is account-level (owner's subscription covers team members)
+ * - Team members don't get trials - they're part of account subscription
+ * - Supports monthly and annual billing with 20% annual discount
  */
 
 const corsHeaders = {
@@ -20,31 +18,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ============================================================================
-// STRIPE PRICE IDs - Centralized configuration
-// NOTE: Update these when switching between Test and Live modes
-// ============================================================================
 const PRICE_IDS: Record<string, Record<string, string>> = {
   month: {
-    starter: 'price_1SaNQ5FaeMMSBqcli04PsmKX',      // $99/month
-    growth: 'price_1SaNQKFaeMMSBqclWKbyVTSv',       // $199/month
-    professional: 'price_1SaNVyFaeMMSBqclrcAXjUmm', // $499/month
+    starter: 'price_1SaNQ5FaeMMSBqcli04PsmKX',
+    growth: 'price_1SaNQKFaeMMSBqclWKbyVTSv',
+    professional: 'price_1SaNVyFaeMMSBqclrcAXjUmm',
   },
   year: {
-    starter: 'price_1SaNWBFaeMMSBqcl6EK9frSv',      // $950.40/year (20% off)
-    growth: 'price_1SaNWTFaeMMSBqclXYovl2Hj',       // $1,910.40/year (20% off)
-    professional: 'price_1SaNXGFaeMMSBqcl08sXmTEm', // $4,790.40/year (20% off)
+    starter: 'price_1SaNWBFaeMMSBqcl6EK9frSv',
+    growth: 'price_1SaNWTFaeMMSBqclXYovl2Hj',
+    professional: 'price_1SaNXGFaeMMSBqcl08sXmTEm',
   }
 };
 
-// Seat add-on prices (20% annual discount)
 const SEAT_PRICE_IDS: Record<string, string> = {
-  month: 'price_1SbWueFaeMMSBqclnDqJkOQW',  // $75/user/month
-  year: 'price_1SbWuuFaeMMSBqclX6xqgX9E',   // $720/user/year (20% off)
+  month: 'price_1SbWueFaeMMSBqclnDqJkOQW',
+  year: 'price_1SbWuuFaeMMSBqclX6xqgX9E',
 };
-
-// Overage price for metered billing
-const OVERAGE_PRICE_ID = 'price_1SaNZ7FaeMMSBqcleUXkrzWl';
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -62,7 +52,6 @@ serve(async (req) => {
     const { planId, billingInterval = 'month', additionalSeats = 0 } = await req.json();
     logStep('Request params', { planId, billingInterval, additionalSeats });
     
-    // Validate billing interval
     if (!['month', 'year'].includes(billingInterval)) {
       return new Response(
         JSON.stringify({ error: 'Invalid billing interval. Must be "month" or "year"' }),
@@ -70,7 +59,6 @@ serve(async (req) => {
       );
     }
     
-    // Validate plan
     if (!planId || !PRICE_IDS[billingInterval]?.[planId]) {
       return new Response(
         JSON.stringify({ error: 'Invalid plan ID' }),
@@ -82,7 +70,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get authenticated user
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
@@ -91,25 +78,61 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    logStep('User authenticated', { email: user.email });
+    logStep('User authenticated', { email: user.email, userId: user.id });
+
+    // Get admin client for profile updates
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Check if user is a team member (not an owner)
+    const { data: membership } = await supabaseAdmin
+      .from('account_users')
+      .select('account_id, role')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    // If user is a team member (not owner), they can't start their own subscription
+    if (membership && membership.role !== 'owner') {
+      logStep('User is team member, cannot start own subscription', { role: membership.role });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Team members cannot start subscriptions. Please contact your account owner to upgrade.' 
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check user's profile for existing subscription and trial usage
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('trial_used_at, subscription_status, stripe_customer_id')
+      .eq('id', user.id)
+      .single();
+
+    const hasUsedTrial = !!profile?.trial_used_at;
+    const hasActiveSubscription = profile?.subscription_status === 'active';
+    
+    logStep('Profile check', { hasUsedTrial, hasActiveSubscription, trialUsedAt: profile?.trial_used_at });
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });
 
-    // Check if customer exists
+    // Check if customer exists in Stripe
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
     
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      logStep('Existing customer found', { customerId });
+      logStep('Existing Stripe customer found', { customerId });
     }
 
     const priceId = PRICE_IDS[billingInterval][planId];
     logStep('Using price ID', { priceId, billingInterval });
 
-    // Build line items (overage is metered and reported separately via track-invoice-usage)
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         price: priceId,
@@ -117,7 +140,6 @@ serve(async (req) => {
       },
     ];
 
-    // Add seat line item if additional seats requested
     if (additionalSeats > 0) {
       const seatPriceId = SEAT_PRICE_IDS[billingInterval];
       lineItems.push({
@@ -126,23 +148,34 @@ serve(async (req) => {
       });
       logStep('Adding seats to subscription', { additionalSeats, seatPriceId });
     }
-    
-    logStep('Line items prepared', { lineItemsCount: lineItems.length });
 
-    // Create checkout session with trial
+    // Determine if user is eligible for trial (first-time only)
+    const isEligibleForTrial = !hasUsedTrial && !hasActiveSubscription;
+    logStep('Trial eligibility', { isEligibleForTrial, hasUsedTrial, hasActiveSubscription });
+
+    // Build subscription data
+    const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {
+      metadata: {
+        plan: planId,
+        user_id: user.id,
+        billing_interval: billingInterval,
+      },
+    };
+
+    // Only add trial if user has never had one
+    if (isEligibleForTrial) {
+      subscriptionData.trial_period_days = 14;
+      logStep('Adding 14-day trial to subscription');
+    } else {
+      logStep('No trial - user has already used their trial or has active subscription');
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: lineItems,
       mode: 'subscription',
-      subscription_data: {
-        trial_period_days: 14,
-        metadata: {
-          plan: planId,
-          user_id: user.id,
-          billing_interval: billingInterval,
-        },
-      },
+      subscription_data: subscriptionData,
       success_url: `${req.headers.get('origin')}/dashboard?checkout=success`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
       metadata: {
@@ -150,18 +183,31 @@ serve(async (req) => {
         plan: planId,
         billing_interval: billingInterval,
         additional_seats: String(additionalSeats),
+        is_first_trial: isEligibleForTrial ? 'true' : 'false',
       },
     });
 
-    logStep('Checkout session created', { sessionId: session.id, billingInterval });
+    logStep('Checkout session created', { 
+      sessionId: session.id, 
+      billingInterval,
+      hasTrial: isEligibleForTrial 
+    });
 
-    // Update profile with Stripe customer ID if new
-    if (!customerId && session.customer) {
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      );
+    // Mark trial as used if this is their first subscription attempt
+    // (We mark it now to prevent race conditions with multiple checkout attempts)
+    if (isEligibleForTrial && !profile?.trial_used_at) {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ 
+          trial_used_at: new Date().toISOString(),
+          stripe_customer_id: session.customer as string || profile?.stripe_customer_id,
+          billing_interval: billingInterval,
+        })
+        .eq('id', user.id);
       
+      logStep('Marked trial as used for user');
+    } else if (!customerId && session.customer) {
+      // Just update customer ID if new customer
       await supabaseAdmin
         .from('profiles')
         .update({ 
@@ -169,12 +215,15 @@ serve(async (req) => {
           billing_interval: billingInterval,
         })
         .eq('id', user.id);
-        
-      logStep('Profile updated with customer ID and billing interval');
+      
+      logStep('Profile updated with customer ID');
     }
 
     return new Response(
-      JSON.stringify({ url: session.url }),
+      JSON.stringify({ 
+        url: session.url,
+        hasTrial: isEligibleForTrial 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

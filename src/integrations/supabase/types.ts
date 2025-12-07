@@ -3331,6 +3331,7 @@ export type Database = {
           suspended_by: string | null
           suspended_reason: string | null
           trial_ends_at: string | null
+          trial_used_at: string | null
           twilio_account_sid: string | null
           twilio_auth_token: string | null
           twilio_from_number: string | null
@@ -3377,6 +3378,7 @@ export type Database = {
           suspended_by?: string | null
           suspended_reason?: string | null
           trial_ends_at?: string | null
+          trial_used_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_from_number?: string | null
@@ -3423,6 +3425,7 @@ export type Database = {
           suspended_by?: string | null
           suspended_reason?: string | null
           trial_ends_at?: string | null
+          trial_used_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
           twilio_from_number?: string | null

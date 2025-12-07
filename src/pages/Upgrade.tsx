@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, Loader2, Lock, Zap, Crown, Sparkles } from "lucide-react";
+import { Check, ExternalLink, Loader2, Lock, Zap, Crown, Sparkles, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -16,46 +17,27 @@ import { PLAN_CONFIGS, ANNUAL_DISCOUNT_RATE, formatPrice, SEAT_PRICING } from "@
 
 const Upgrade = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<string>("free");
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const { role, loading: roleLoading, canManageBilling } = useUserRole();
+  const { 
+    plan: currentPlan, 
+    subscriptionStatus, 
+    hasUsedTrial,
+    isTrial,
+    trialEndsAt,
+    isAccountOwner,
+    canUpgrade,
+    isLoading: subscriptionLoading,
+    billingInterval,
+    refresh: refreshSubscription
+  } = useSubscription();
 
   useEffect(() => {
-    loadCurrentSubscription();
-  }, []);
-
-  const loadCurrentSubscription = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/login");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan_type, subscription_status, billing_interval')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        setCurrentPlan(profile.plan_type || 'free');
-        setSubscriptionStatus(profile.subscription_status);
-        if (profile.billing_interval === 'year') {
-          setIsAnnual(true);
-        }
-      }
-    } catch (error: any) {
-      console.error('Error loading subscription:', error);
-      toast.error("Failed to load subscription info");
-    } finally {
-      setLoading(false);
+    if (billingInterval === 'year') {
+      setIsAnnual(true);
     }
-  };
+  }, [billingInterval]);
 
   const handleUpgrade = async (planType: string) => {
     if (planType === 'enterprise') {
@@ -90,13 +72,21 @@ const Upgrade = () => {
       
       if (data?.url) {
         window.open(data.url, '_blank');
-        toast.success("Checkout opened in new tab");
+        
+        // Show appropriate message based on trial eligibility
+        if (data.hasTrial) {
+          toast.success("Checkout opened - Start your 14-day free trial!");
+        } else {
+          toast.success("Checkout opened in new tab");
+        }
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast.error(error.message || 'Failed to start checkout');
     } finally {
       setProcessingPlan(null);
+      // Refresh subscription status after checkout attempt
+      setTimeout(() => refreshSubscription(), 2000);
     }
   };
 
@@ -121,7 +111,7 @@ const Upgrade = () => {
     }
   };
 
-  if (loading || roleLoading) {
+  if (subscriptionLoading || roleLoading) {
     return (
       <Layout>
         <div className="container mx-auto max-w-6xl py-8">
@@ -131,6 +121,45 @@ const Upgrade = () => {
               <Skeleton key={i} className="h-96" />
             ))}
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Team members can't upgrade - only account owners
+  if (!isAccountOwner || !canUpgrade) {
+    return (
+      <Layout>
+        <div className="container mx-auto max-w-4xl py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Subscription Management
+              </CardTitle>
+              <CardDescription>
+                Manage your team's subscription
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Team Member Account</AlertTitle>
+                <AlertDescription>
+                  You're part of a team account. Subscription management is handled by your account owner.
+                  Please contact your account administrator to upgrade or change the plan.
+                </AlertDescription>
+              </Alert>
+              <div className="flex gap-2">
+                <Button onClick={() => navigate("/dashboard")}>
+                  Go to Dashboard
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/team")}>
+                  View Team
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -147,9 +176,6 @@ const Upgrade = () => {
                 <Lock className="h-5 w-5" />
                 Billing & Plan Management
               </CardTitle>
-              <CardDescription>
-                Upgrade plans and manage your billing
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Alert>
@@ -157,7 +183,6 @@ const Upgrade = () => {
                 <AlertTitle>Access Restricted</AlertTitle>
                 <AlertDescription>
                   Only account owners and administrators can manage billing and plans.
-                  Please contact your account owner or admin to upgrade the plan.
                 </AlertDescription>
               </Alert>
               <Button onClick={() => navigate("/dashboard")}>
@@ -177,32 +202,64 @@ const Upgrade = () => {
   ];
 
   const discountPercent = Math.round(ANNUAL_DISCOUNT_RATE * 100);
+  const isOnFreePlan = currentPlan === 'free';
+  const hasActiveSubscription = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
+
+  // Calculate trial end date for display
+  const trialEndDate = trialEndsAt ? new Date(trialEndsAt).toLocaleDateString() : null;
 
   return (
     <Layout>
       <div className="container mx-auto max-w-6xl py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Upgrade Your Plan</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {isOnFreePlan ? "Upgrade Your Plan" : "Manage Your Plan"}
+          </h1>
           <p className="text-muted-foreground">
-            {currentPlan === 'free' 
-              ? "You're on the Free plan with 15 invoices. Upgrade to unlock more."
+            {isOnFreePlan 
+              ? `You're on the Free plan with ${15} invoices. Upgrade to unlock more.`
               : `You're on the ${currentPlan} plan`}
           </p>
         </div>
 
+        {/* Trial eligibility notice */}
+        {isOnFreePlan && !hasUsedTrial && (
+          <Alert className="mb-6 border-green-500/50 bg-green-50 dark:bg-green-950/20">
+            <Sparkles className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-700 dark:text-green-400">14-Day Free Trial Available!</AlertTitle>
+            <AlertDescription className="text-green-600 dark:text-green-300">
+              Start any paid plan with a 14-day free trial. No charge until your trial ends.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Trial already used notice */}
+        {isOnFreePlan && hasUsedTrial && (
+          <Alert className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Trial Previously Used</AlertTitle>
+            <AlertDescription>
+              You've already used your free trial. Upgrading will start billing immediately.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Current Subscription Card */}
-        {(subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && (
+        {hasActiveSubscription && (
           <Card className="mb-8 border-primary/50 bg-primary/5">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Crown className="h-5 w-5 text-primary" />
                     Current Plan: <span className="capitalize">{currentPlan}</span>
                   </CardTitle>
-                  <CardDescription className="mt-1">
-                    {subscriptionStatus === 'trialing' ? (
-                      <Badge variant="secondary">Trial Active</Badge>
+                  <CardDescription className="mt-1 flex items-center gap-2">
+                    {isTrial ? (
+                      <>
+                        <Badge variant="secondary">Trial Active</Badge>
+                        {trialEndDate && <span className="text-sm">Ends {trialEndDate}</span>}
+                      </>
                     ) : (
                       <Badge variant="default" className="bg-green-600">Active</Badge>
                     )}
@@ -328,8 +385,10 @@ const Upgrade = () => {
                       </>
                     ) : isCurrentPlan ? (
                       "Current Plan"
-                    ) : subscriptionStatus === 'active' ? (
+                    ) : hasActiveSubscription ? (
                       "Switch Plan"
+                    ) : hasUsedTrial ? (
+                      "Subscribe Now"
                     ) : (
                       "Start 14-Day Trial"
                     )}
