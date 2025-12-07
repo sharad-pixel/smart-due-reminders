@@ -20,6 +20,8 @@ import { PaymentActivityCard } from "@/components/PaymentActivityCard";
 import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { CollectionTask } from "@/hooks/useCollectionTasks";
 
 interface Invoice {
   id: string;
@@ -31,13 +33,23 @@ interface Invoice {
   debtors?: { name: string };
 }
 
-interface CollectionTask {
+interface DashboardTask {
   id: string;
   summary: string;
   task_type: string;
   priority: string;
   status: string;
   due_date: string | null;
+  created_at: string;
+  updated_at: string;
+  debtor_id: string;
+  invoice_id?: string | null;
+  details?: string | null;
+  ai_reasoning?: string | null;
+  recommended_action?: string | null;
+  assigned_to?: string | null;
+  assigned_persona?: string | null;
+  completed_at?: string | null;
   debtors?: { name: string; company_name: string };
   invoices?: { invoice_number: string };
 }
@@ -47,7 +59,9 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [pendingTasks, setPendingTasks] = useState<CollectionTask[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<DashboardTask[]>([]);
+  const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
   const [stats, setStats] = useState({
     totalOutstanding: 0,
@@ -347,6 +361,61 @@ const Dashboard = () => {
     }
   };
 
+  const handleTaskClick = (task: DashboardTask) => {
+    setSelectedTask({
+      id: task.id,
+      user_id: '',
+      debtor_id: task.debtor_id,
+      invoice_id: task.invoice_id || undefined,
+      task_type: task.task_type,
+      priority: task.priority as 'low' | 'normal' | 'high' | 'urgent',
+      status: task.status as 'open' | 'in_progress' | 'done' | 'cancelled',
+      summary: task.summary,
+      details: task.details || undefined,
+      ai_reasoning: task.ai_reasoning || undefined,
+      recommended_action: task.recommended_action || undefined,
+      assigned_to: task.assigned_to || undefined,
+      assigned_persona: task.assigned_persona || undefined,
+      due_date: task.due_date || undefined,
+      completed_at: task.completed_at || undefined,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    });
+    setTaskModalOpen(true);
+  };
+
+  const handleTaskStatusChange = async (taskId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ status, completed_at: status === 'done' ? new Date().toISOString() : null })
+        .eq("id", taskId);
+
+      if (error) throw error;
+      toast.success("Task updated");
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .delete()
+        .eq("id", taskId);
+
+      if (error) throw error;
+      toast.success("Task deleted");
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Failed to delete task");
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchDashboardData();
@@ -614,7 +683,11 @@ const Dashboard = () => {
                   </TableHeader>
                   <TableBody>
                     {sortedOverdues.map((invoice: any) => (
-                      <TableRow key={invoice.id}>
+                      <TableRow 
+                        key={invoice.id} 
+                        className="cursor-pointer hover:bg-accent/50"
+                        onClick={() => navigate(`/invoices/${invoice.id}`)}
+                      >
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{invoice.debtors?.name}</TableCell>
                         <TableCell className="text-right">
@@ -626,13 +699,7 @@ const Dashboard = () => {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/invoices/${invoice.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -644,7 +711,12 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Open Tasks</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Open Tasks</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
+                  View All
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {pendingTasks.length === 0 ? (
@@ -657,7 +729,7 @@ const Dashboard = () => {
                     <div
                       key={task.id}
                       className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
-                      onClick={() => navigate(`/tasks`)}
+                      onClick={() => handleTaskClick(task)}
                     >
                       <div className="flex-1">
                         <p className="font-medium line-clamp-1">
@@ -672,9 +744,7 @@ const Dashboard = () => {
                         <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
                           {task.priority}
                         </Badge>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Eye className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
                   ))}
@@ -963,6 +1033,14 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Task Detail Modal */}
+        <TaskDetailModal
+          task={selectedTask}
+          open={taskModalOpen}
+          onOpenChange={setTaskModalOpen}
+          onStatusChange={handleTaskStatusChange}
+          onDelete={handleTaskDelete}
+        />
       </div>
     </Layout>
   );
