@@ -22,8 +22,8 @@ serve(async (req) => {
     logStep('Function started');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization')!;
@@ -34,53 +34,70 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    logStep('User authenticated', { email: user.email });
+    logStep('User authenticated', { email: user.email, userId: user.id });
+
+    // First check if user already has a stripe_customer_id in their profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      logStep('Error fetching profile', { error: profileError });
+    }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });
 
-    // Find or create customer by email
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
     let customerId: string;
-    
-    if (customers.data.length === 0) {
-      logStep('No customer found, creating new Stripe customer');
+
+    // Use existing customer ID from profile if available
+    if (profile?.stripe_customer_id) {
+      customerId = profile.stripe_customer_id;
+      logStep('Using existing customer from profile', { customerId });
+    } else {
+      // Search for customer by email in Stripe
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
       
-      // Create new Stripe customer
-      const newCustomer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabase_user_id: user.id,
-        },
-      });
-      
-      customerId = newCustomer.id;
-      logStep('New customer created', { customerId });
-      
-      // Update profile with Stripe customer ID
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      );
-      
-      await supabaseAdmin
+      if (customers.data.length === 0) {
+        logStep('No customer found, creating new Stripe customer');
+        
+        // Create new Stripe customer
+        const newCustomer = await stripe.customers.create({
+          email: user.email,
+          name: user.user_metadata?.name || user.user_metadata?.full_name || undefined,
+          metadata: {
+            supabase_user_id: user.id,
+          },
+        });
+        
+        customerId = newCustomer.id;
+        logStep('New customer created', { customerId });
+      } else {
+        customerId = customers.data[0].id;
+        logStep('Existing customer found in Stripe', { customerId });
+      }
+
+      // Always update profile with stripe_customer_id for future webhook matching
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id);
-        
-      logStep('Profile updated with Stripe customer ID');
-    } else {
-      customerId = customers.data[0].id;
-      logStep('Existing customer found', { customerId });
+      
+      if (updateError) {
+        logStep('Error updating profile with customer ID', { error: updateError });
+      } else {
+        logStep('Profile updated with Stripe customer ID', { customerId });
+      }
     }
 
     // Create portal session
     const origin = req.headers.get('origin') || 'https://recouply.ai';
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/billing`,
+      return_url: `${origin}/profile`,
     });
 
     logStep('Portal session created', { sessionId: portalSession.id });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,23 +24,20 @@ import {
 import { 
   User, 
   Shield, 
-  CreditCard, 
   CheckCircle2, 
   XCircle, 
-  Eye, 
-  ExternalLink,
   Users,
   Settings as SettingsIcon,
   FileText,
   Zap,
   Info,
-  Upload,
   Camera,
   Trash2,
-  AlertTriangle,
-  UserX
+  UserX,
+  AlertTriangle
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
+import BillingSection from "@/components/BillingSection";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro";
@@ -88,10 +85,9 @@ interface PlanInfo {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [canceling, setCanceling] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -102,7 +98,25 @@ const Profile = () => {
 
   useEffect(() => {
     loadProfileData();
-  }, []);
+    
+    // Handle checkout success/cancel
+    const checkoutStatus = searchParams.get('checkout');
+    if (checkoutStatus === 'success') {
+      toast({
+        title: "Subscription Updated",
+        description: "Your subscription has been updated successfully. It may take a moment to reflect.",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/profile');
+    } else if (checkoutStatus === 'canceled') {
+      toast({
+        title: "Checkout Canceled",
+        description: "You can upgrade your plan anytime.",
+        variant: "default",
+      });
+      window.history.replaceState({}, '', '/profile');
+    }
+  }, [searchParams]);
 
   const loadProfileData = async () => {
     try {
@@ -270,85 +284,7 @@ const Profile = () => {
     return PLAN_FEATURES[planType as keyof typeof PLAN_FEATURES];
   };
 
-  const handleManageBilling = async () => {
-    setProcessing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to manage billing",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke("customer-portal", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error: any) {
-      console.error("Error opening billing portal:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to open billing portal",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    setCanceling(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to cancel subscription",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: { cancel_at_period_end: true },
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        toast({
-          title: "Subscription Canceled",
-          description: data.current_period_end 
-            ? `Your subscription will remain active until ${new Date(data.current_period_end).toLocaleDateString()}`
-            : "Your subscription has been canceled",
-        });
-        // Reload profile data
-        loadProfileData();
-      }
-    } catch (error: any) {
-      console.error("Error canceling subscription:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to cancel subscription",
-        variant: "destructive",
-      });
-    } finally {
-      setCanceling(false);
-    }
-  };
+  // handleManageBilling and handleCancelSubscription moved to BillingSection component
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) return;
@@ -699,192 +635,20 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Plan & Billing Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Plan & Billing
-            </CardTitle>
-            <CardDescription>
-              You are on the <strong>{getPlanName()}</strong> plan for this workspace
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Plan Summary */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg font-semibold">{getPlanName()} Plan</p>
-                  {planInfo?.monthly_price !== null && (
-                    <p className="text-2xl font-bold text-primary">
-                      ${planInfo?.monthly_price || 0}
-                      <span className="text-sm font-normal text-muted-foreground">/month</span>
-                    </p>
-                  )}
-                  {planInfo?.monthly_price === null && (
-                    <p className="text-lg text-muted-foreground">Custom Pricing</p>
-                  )}
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.open("/pricing", "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View All Plans
-                </Button>
-              </div>
-
-              {/* Subscription Status */}
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Subscription Status</p>
-                  {profile.stripe_subscription_id ? (
-                    <p className="text-sm text-green-600 font-semibold">Active Subscription</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No active subscription</p>
-                  )}
-                </div>
-                {profile.stripe_subscription_id && (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Key Features */}
-              <div>
-                <p className="text-sm font-medium mb-3">Plan Features:</p>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      Monthly Invoice Allowance
-                    </span>
-                    <span className="font-medium">
-                      {planFeatures.invoice_limit === null
-                        ? "Unlimited"
-                        : `${planFeatures.invoice_limit} invoices`}
-                    </span>
-                  </div>
-                  {planInfo?.feature_flags?.overage_amount && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Overage Rate</span>
-                      <span className="font-medium">${planInfo.feature_flags.overage_amount} per invoice</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      Team Access
-                    </span>
-                    <span className="font-medium">
-                      {planFeatures.can_have_team_users
-                        ? `Up to ${maxUsers} users`
-                        : "Single user only"}
-                    </span>
-                  </div>
-                  {planFeatures.can_have_team_users && (
-                    <div className="pl-6">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                        <span>Current Usage</span>
-                        <span>{teamMemberCount} of {maxUsers} seats</span>
-                      </div>
-                      <Progress 
-                        value={(teamMemberCount / maxUsers) * 100} 
-                        className="h-2"
-                      />
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-muted-foreground" />
-                      Line Items Support
-                    </span>
-                    <span className="font-medium">
-                      {planFeatures.can_use_invoice_line_items ? "Enabled" : "Not available"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <SettingsIcon className="h-4 w-4 text-muted-foreground" />
-                      Role Management
-                    </span>
-                    <span className="font-medium">
-                      {planFeatures.can_manage_roles ? "Enabled" : "Not available"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Billing Actions */}
-            {canManageBilling && (
-              <div className="space-y-3">
-                <Button 
-                  onClick={handleManageBilling}
-                  disabled={processing}
-                  className="w-full"
-                >
-                  {processing ? "Loading..." : "Manage Plan"}
-                </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Change your plan, update payment method, or view billing history
-                </p>
-                
-                {profile.stripe_subscription_id && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                        disabled={canceling}
-                      >
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        {canceling ? "Canceling..." : "Cancel Subscription"}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-destructive" />
-                          Cancel Subscription
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-2">
-                          <p>Are you sure you want to cancel your subscription?</p>
-                          <p className="text-sm">
-                            Your subscription will remain active until the end of your current billing period. 
-                            After that, you'll be downgraded to the Free plan.
-                          </p>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleCancelSubscription}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Yes, Cancel Subscription
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
-            )}
-
-            {!canManageBilling && (
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Only Owners and Admins can change the plan for this workspace. Contact your workspace owner to upgrade or manage billing.
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+        {/* Billing Section - Using new component */}
+        {profile && (
+          <BillingSection 
+            profile={{
+              id: profile.id,
+              email: profile.email,
+              plan_type: profile.plan_type,
+              stripe_customer_id: profile.stripe_customer_id,
+              stripe_subscription_id: profile.stripe_subscription_id,
+            }}
+            canManageBilling={canManageBilling}
+            onRefresh={loadProfileData}
+          />
+        )}
 
         {/* Account Deletion Request */}
         <Card className="border-destructive/20">
