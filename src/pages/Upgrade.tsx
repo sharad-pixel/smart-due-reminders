@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, Loader2, Lock, Zap, Crown, Sparkles, AlertTriangle } from "lucide-react";
+import { Check, ExternalLink, Loader2, Lock, Zap, Crown, Sparkles, AlertTriangle, Users, Plus, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
@@ -13,17 +13,19 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { PLAN_CONFIGS, ANNUAL_DISCOUNT_RATE, formatPrice, SEAT_PRICING } from "@/lib/subscriptionConfig";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { PLAN_CONFIGS, ANNUAL_DISCOUNT_RATE, formatPrice, SEAT_PRICING, calculateSeatCost } from "@/lib/subscriptionConfig";
 
 const Upgrade = () => {
   const navigate = useNavigate();
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
+  const [additionalSeats, setAdditionalSeats] = useState(0);
   const { role, loading: roleLoading, canManageBilling } = useUserRole();
   const { 
     plan: currentPlan, 
     subscriptionStatus, 
-    hasUsedTrial,
     isTrial,
     trialEndsAt,
     isAccountOwner,
@@ -60,11 +62,12 @@ const Upgrade = () => {
         return;
       }
 
-      // New subscription checkout
+      // New subscription checkout - no trial for existing users accessing upgrade page
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           planId: planType,
-          billingInterval: isAnnual ? 'year' : 'month'
+          billingInterval: isAnnual ? 'year' : 'month',
+          additionalSeats: additionalSeats > 0 ? additionalSeats : undefined
         }
       });
 
@@ -72,13 +75,7 @@ const Upgrade = () => {
       
       if (data?.url) {
         window.open(data.url, '_blank');
-        
-        // Show appropriate message based on trial eligibility
-        if (data.hasTrial) {
-          toast.success("Checkout opened - Start your 14-day free trial!");
-        } else {
-          toast.success("Checkout opened in new tab");
-        }
+        toast.success("Checkout opened in new tab");
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
@@ -208,6 +205,10 @@ const Upgrade = () => {
   // Calculate trial end date for display
   const trialEndDate = trialEndsAt ? new Date(trialEndsAt).toLocaleDateString() : null;
 
+  // Calculate seat cost
+  const seatPrice = isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice;
+  const totalSeatCost = additionalSeats * seatPrice;
+
   return (
     <Layout>
       <div className="container mx-auto max-w-6xl py-8">
@@ -217,32 +218,10 @@ const Upgrade = () => {
           </h1>
           <p className="text-muted-foreground">
             {isOnFreePlan 
-              ? `You're on the Free plan with ${15} invoices. Upgrade to unlock more.`
+              ? "Unlock more invoices and features with a paid plan."
               : `You're on the ${currentPlan} plan`}
           </p>
         </div>
-
-        {/* Trial eligibility notice */}
-        {isOnFreePlan && !hasUsedTrial && (
-          <Alert className="mb-6 border-green-500/50 bg-green-50 dark:bg-green-950/20">
-            <Sparkles className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-700 dark:text-green-400">14-Day Free Trial Available!</AlertTitle>
-            <AlertDescription className="text-green-600 dark:text-green-300">
-              Start any paid plan with a 14-day free trial. No charge until your trial ends.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Trial already used notice */}
-        {isOnFreePlan && hasUsedTrial && (
-          <Alert className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Trial Previously Used</AlertTitle>
-            <AlertDescription>
-              You've already used your free trial. Upgrading will start billing immediately.
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Current Subscription Card */}
         {hasActiveSubscription && (
@@ -369,7 +348,7 @@ const Upgrade = () => {
                   
                   <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/50 rounded">
                     <p>+$1.50 per invoice over limit</p>
-                    <p>+{formatPrice(isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice)}/seat{isAnnual ? '/year' : '/month'}</p>
+                    <p>+{formatPrice(seatPrice)}/seat{isAnnual ? '/year' : '/month'}</p>
                   </div>
                   
                   <Button
@@ -387,10 +366,8 @@ const Upgrade = () => {
                       "Current Plan"
                     ) : hasActiveSubscription ? (
                       "Switch Plan"
-                    ) : hasUsedTrial ? (
-                      "Subscribe Now"
                     ) : (
-                      "Start 14-Day Trial"
+                      "Subscribe Now"
                     )}
                   </Button>
                 </CardContent>
@@ -398,6 +375,73 @@ const Upgrade = () => {
             );
           })}
         </div>
+
+        {/* Add Team Seats Section - Only show for new subscriptions */}
+        {isOnFreePlan && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Add Team Members
+              </CardTitle>
+              <CardDescription>
+                Add additional team seats to your plan. You can invite team members after subscribing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setAdditionalSeats(Math.max(0, additionalSeats - 1))}
+                      disabled={additionalSeats === 0}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={additionalSeats}
+                      onChange={(e) => setAdditionalSeats(Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
+                      className="w-20 text-center"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setAdditionalSeats(Math.min(50, additionalSeats + 1))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <span className="text-sm text-muted-foreground">additional seats</span>
+                </div>
+                
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">
+                    {formatPrice(seatPrice)}/seat{isAnnual ? '/year' : '/month'}
+                  </p>
+                  {additionalSeats > 0 && (
+                    <p className="text-lg font-semibold">
+                      +{formatPrice(totalSeatCost)}{isAnnual ? '/year' : '/month'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              {additionalSeats > 0 && (
+                <Alert className="mt-4">
+                  <Users className="h-4 w-4" />
+                  <AlertDescription>
+                    After subscribing, you can invite {additionalSeats} team member{additionalSeats > 1 ? 's' : ''} from the Team & Roles page.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Enterprise Card */}
         <Card className="bg-gradient-to-r from-primary/5 to-accent/5">
