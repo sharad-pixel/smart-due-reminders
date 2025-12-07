@@ -1,18 +1,31 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, AlertTriangle, Info, User, CalendarClock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle2, Clock, AlertTriangle, Info, User, CalendarClock, UserPlus } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const getDaysOpen = (createdAt: string): number => {
   return differenceInDays(new Date(), new Date(createdAt));
 };
 
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface TaskCardProps {
   task: CollectionTask;
   onStatusChange: (taskId: string, status: string) => void;
   onViewDetails: (task: CollectionTask) => void;
+  onAssign?: (taskId: string, userId: string) => void;
+  teamMembers?: TeamMember[];
+  showAssignment?: boolean;
 }
 
 const getPriorityColor = (priority: string) => {
@@ -43,9 +56,44 @@ const getTaskTypeLabel = (type: string) => {
   return labels[type] || type;
 };
 
-export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps) => {
+export const TaskCard = ({ 
+  task, 
+  onStatusChange, 
+  onViewDetails, 
+  onAssign,
+  teamMembers = [],
+  showAssignment = true
+}: TaskCardProps) => {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
   const daysOpen = getDaysOpen(task.created_at);
+  const [assignedName, setAssignedName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAssignedName = async () => {
+      if (task.assigned_to) {
+        const member = teamMembers.find(m => m.id === task.assigned_to);
+        if (member) {
+          setAssignedName(member.name);
+        } else {
+          const { data } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', task.assigned_to)
+            .single();
+          if (data) {
+            setAssignedName(data.name || data.email || 'Team member');
+          }
+        }
+      }
+    };
+    fetchAssignedName();
+  }, [task.assigned_to, teamMembers]);
+
+  const handleAssignChange = (userId: string) => {
+    if (onAssign) {
+      onAssign(task.id, userId);
+    }
+  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -80,10 +128,31 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
           </div>
         )}
 
-        {task.assigned_to && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <User className="h-3 w-3" />
-            <span>Assigned to team member</span>
+        {showAssignment && (
+          <div className="flex items-center gap-2">
+            <User className="h-3 w-3 text-muted-foreground" />
+            {teamMembers.length > 0 && onAssign ? (
+              <Select
+                value={task.assigned_to || "unassigned"}
+                onValueChange={(value) => handleAssignChange(value === "unassigned" ? "" : value)}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue placeholder="Assign to..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {assignedName || 'Unassigned'}
+              </span>
+            )}
           </div>
         )}
 
@@ -99,7 +168,10 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onStatusChange(task.id, 'in_progress')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusChange(task.id, 'in_progress');
+              }}
               className="flex-1"
             >
               Start
@@ -108,7 +180,10 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
           {task.status === 'in_progress' && (
             <Button
               size="sm"
-              onClick={() => onStatusChange(task.id, 'done')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusChange(task.id, 'done');
+              }}
               className="flex-1"
             >
               Complete
@@ -117,7 +192,10 @@ export const TaskCard = ({ task, onStatusChange, onViewDetails }: TaskCardProps)
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onViewDetails(task)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(task);
+            }}
             className="flex-1"
           >
             Details
