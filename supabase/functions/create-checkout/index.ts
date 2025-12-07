@@ -49,8 +49,17 @@ serve(async (req) => {
   try {
     logStep('Function started');
     
-    const { planId, billingInterval = 'month', additionalSeats = 0 } = await req.json();
-    logStep('Request params', { planId, billingInterval, additionalSeats });
+    const body = await req.json();
+    const { 
+      planId, 
+      priceId: directPriceId,
+      billingInterval = 'month', 
+      additionalSeats = 0,
+      successUrl,
+      cancelUrl 
+    } = body;
+    
+    logStep('Request params', { planId, directPriceId, billingInterval, additionalSeats });
     
     if (!['month', 'year'].includes(billingInterval)) {
       return new Response(
@@ -59,9 +68,15 @@ serve(async (req) => {
       );
     }
     
-    if (!planId || !PRICE_IDS[billingInterval]?.[planId]) {
+    // Allow either planId or direct priceId
+    let selectedPriceId: string;
+    if (directPriceId) {
+      selectedPriceId = directPriceId;
+    } else if (planId && PRICE_IDS[billingInterval]?.[planId]) {
+      selectedPriceId = PRICE_IDS[billingInterval][planId];
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Invalid plan ID' }),
+        JSON.stringify({ error: 'Invalid plan ID or price ID' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -130,12 +145,11 @@ serve(async (req) => {
       logStep('Existing Stripe customer found', { customerId });
     }
 
-    const priceId = PRICE_IDS[billingInterval][planId];
-    logStep('Using price ID', { priceId, billingInterval });
+    logStep('Using price ID', { selectedPriceId, billingInterval });
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
-        price: priceId,
+        price: selectedPriceId,
         quantity: 1,
       },
     ];
