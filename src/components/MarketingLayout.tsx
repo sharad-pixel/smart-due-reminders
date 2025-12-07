@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import RecouplyLogo from "@/components/RecouplyLogo";
+import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
 
 interface MarketingLayoutProps {
@@ -12,9 +12,16 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="h-16 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="h-full container mx-auto px-6 flex items-center justify-between">
-          <RecouplyLogo variant="header" />
+      <header className="border-b bg-card sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-8 flex items-center justify-between">
+          <div 
+            className="cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+              Recouply.ai
+            </h1>
+          </div>
           <nav className="hidden lg:flex items-center gap-5">
             <button 
               onClick={() => navigate("/home")}
@@ -80,7 +87,9 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <RecouplyLogo variant="footer" className="mb-4" />
+              <h3 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-4">
+                Recouply.ai
+              </h3>
               <p className="text-sm text-muted-foreground">
                 AI-powered AR & Collections software. Not a collection agency.
               </p>
