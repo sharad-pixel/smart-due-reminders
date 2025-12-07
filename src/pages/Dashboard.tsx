@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, ExternalLink, Play } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, ExternalLink, Play, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate, Link } from "react-router-dom";
@@ -390,39 +390,65 @@ const Dashboard = () => {
         <UsageIndicator />
 
         {/* Quick Actions */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold">AI Collection Workflows</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  Set up automated collection sequences for your invoices
-                </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold">AI Collection Workflows</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    Set up automated collection sequences for your invoices
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Button 
+                    variant="outline"
+                    onClick={runOutreach}
+                    disabled={runningOutreach}
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    {runningOutreach ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4 mr-2" />
+                    )}
+                    Run Outreach Now
+                  </Button>
+                  <Button 
+                    onClick={() => navigate("/settings/ai-workflows")}
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    Configure Workflows
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                    <HeartPulse className="h-5 w-5 text-green-500" />
+                    Daily Health Digest
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    View your daily collections health summary and AR metrics
+                  </p>
+                </div>
                 <Button 
                   variant="outline"
-                  onClick={runOutreach}
-                  disabled={runningOutreach}
-                  className="w-full sm:w-auto shrink-0"
+                  onClick={() => navigate("/daily-digest")}
+                  className="w-full sm:w-auto shrink-0 border-green-500/30 hover:bg-green-500/10"
                 >
-                  {runningOutreach ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4 mr-2" />
-                  )}
-                  Run Outreach Now
-                </Button>
-                <Button 
-                  onClick={() => navigate("/settings/ai-workflows")}
-                  className="w-full sm:w-auto shrink-0"
-                >
-                  Configure Workflows
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Digest
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
