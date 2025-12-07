@@ -3,26 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, Loader2, Lock } from "lucide-react";
+import { Check, ExternalLink, Loader2, Lock, Zap, Crown, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { PLAN_CONFIGS, ANNUAL_DISCOUNT_RATE, formatPrice, SEAT_PRICING } from "@/lib/subscriptionConfig";
 
 const Upgrade = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [processingPortal, setProcessingPortal] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<any>(null);
-  const [allPlans, setAllPlans] = useState<any[]>([]);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string>("free");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [isAnnual, setIsAnnual] = useState(false);
   const { role, loading: roleLoading, canManageBilling } = useUserRole();
 
   useEffect(() => {
-    loadPlansAndCurrentSubscription();
+    loadCurrentSubscription();
   }, []);
 
-  const loadPlansAndCurrentSubscription = async () => {
+  const loadCurrentSubscription = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -31,34 +36,72 @@ const Upgrade = () => {
         return;
       }
 
-      // Load all plans
-      const { data: plans } = await supabase
-        .from('plans')
-        .select('*')
-        .order('monthly_price', { ascending: true });
-
-      setAllPlans(plans || []);
-
-      // Load user's current plan
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan_id, plans(*), trial_ends_at, stripe_subscription_id')
+        .select('plan_type, subscription_status, billing_interval')
         .eq('id', user.id)
         .single();
 
-      if (profile?.plans) {
-        setCurrentPlan(profile.plans);
+      if (profile) {
+        setCurrentPlan(profile.plan_type || 'free');
+        setSubscriptionStatus(profile.subscription_status);
+        if (profile.billing_interval === 'year') {
+          setIsAnnual(true);
+        }
       }
     } catch (error: any) {
-      console.error('Error loading plans:', error);
-      toast.error("Failed to load plans");
+      console.error('Error loading subscription:', error);
+      toast.error("Failed to load subscription info");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUpgrade = async (planType: string) => {
+    if (planType === 'enterprise') {
+      navigate('/contact-us');
+      return;
+    }
+
+    setProcessingPlan(planType);
+    try {
+      // If user has active subscription, open customer portal to change plan
+      if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+        const { data, error } = await supabase.functions.invoke('customer-portal');
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          window.open(data.url, '_blank');
+          toast.success("Stripe portal opened - you can change your plan there");
+        }
+        return;
+      }
+
+      // New subscription checkout
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          planId: planType,
+          billingInterval: isAnnual ? 'year' : 'month'
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast.success("Checkout opened in new tab");
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast.error(error.message || 'Failed to start checkout');
+    } finally {
+      setProcessingPlan(null);
+    }
+  };
+
   const handleManageSubscription = async () => {
-    setProcessingPortal(true);
+    setProcessingPlan('manage');
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
 
@@ -74,14 +117,14 @@ const Upgrade = () => {
       console.error('Portal error:', error);
       toast.error(error.message || "Failed to open billing portal");
     } finally {
-      setProcessingPortal(false);
+      setProcessingPlan(null);
     }
   };
 
   if (loading || roleLoading) {
     return (
       <Layout>
-        <div className="container mx-auto max-w-6xl py-12">
+        <div className="container mx-auto max-w-6xl py-8">
           <Skeleton className="h-12 w-64 mb-8" />
           <div className="grid md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
@@ -97,7 +140,7 @@ const Upgrade = () => {
   if (!canManageBilling) {
     return (
       <Layout>
-        <div className="container mx-auto max-w-4xl py-12">
+        <div className="container mx-auto max-w-4xl py-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -114,26 +157,12 @@ const Upgrade = () => {
                 <AlertTitle>Access Restricted</AlertTitle>
                 <AlertDescription>
                   Only account owners and administrators can manage billing and plans.
-                  {role === 'member' && " Please contact your account owner or admin to upgrade the plan."}
-                  {role === 'viewer' && " You have view-only access. Please contact your account owner or admin for plan changes."}
+                  Please contact your account owner or admin to upgrade the plan.
                 </AlertDescription>
               </Alert>
-
-              <div className="rounded-lg border border-border bg-muted/50 p-6">
-                <h3 className="text-lg font-semibold mb-2">Your Current Role: {role}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {role === 'member' && "Members can create and manage invoices, debtors, and workflows, but cannot manage billing."}
-                  {role === 'viewer' && "Viewers have read-only access to view data but cannot make changes or manage billing."}
-                </p>
-                <div className="flex gap-2">
-                  <Button onClick={() => navigate("/dashboard")}>
-                    Go to Dashboard
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/team")}>
-                    View Team Settings
-                  </Button>
-                </div>
-              </div>
+              <Button onClick={() => navigate("/dashboard")}>
+                Go to Dashboard
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -141,136 +170,205 @@ const Upgrade = () => {
     );
   }
 
-  const selfServePlans = allPlans.filter(p => p.name !== 'bespoke');
+  const plans = [
+    { key: 'starter', ...PLAN_CONFIGS.starter, icon: Sparkles, popular: false },
+    { key: 'growth', ...PLAN_CONFIGS.growth, icon: Zap, popular: true },
+    { key: 'professional', ...PLAN_CONFIGS.professional, icon: Crown, popular: false },
+  ];
+
+  const discountPercent = Math.round(ANNUAL_DISCOUNT_RATE * 100);
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-6xl py-12">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold mb-4">Manage Your Plan</h1>
-          <p className="text-xl text-muted-foreground">
-            {currentPlan 
-              ? `You're currently on the ${currentPlan.name} plan`
-              : "Choose a plan to get started"}
+      <div className="container mx-auto max-w-6xl py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Upgrade Your Plan</h1>
+          <p className="text-muted-foreground">
+            {currentPlan === 'free' 
+              ? "You're on the Free plan with 15 invoices. Upgrade to unlock more."
+              : `You're on the ${currentPlan} plan`}
           </p>
         </div>
 
-        {currentPlan && (
-          <Card className="mb-8 border-primary">
-            <CardHeader>
-              <CardTitle>Current Plan: {currentPlan.name}</CardTitle>
-              <CardDescription>
-                Manage your plan, update payment method, or upgrade
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={handleManageSubscription}
-                disabled={processingPortal}
-                size="lg"
-              >
-                {processingPortal ? (
-                  <>
+        {/* Current Subscription Card */}
+        {(subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && (
+          <Card className="mb-8 border-primary/50 bg-primary/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Crown className="h-5 w-5 text-primary" />
+                    Current Plan: <span className="capitalize">{currentPlan}</span>
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    {subscriptionStatus === 'trialing' ? (
+                      <Badge variant="secondary">Trial Active</Badge>
+                    ) : (
+                      <Badge variant="default" className="bg-green-600">Active</Badge>
+                    )}
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={handleManageSubscription}
+                  disabled={processingPlan === 'manage'}
+                  variant="outline"
+                >
+                  {processingPlan === 'manage' ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Opening Portal...
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Manage Plan
-                  </>
-                )}
-              </Button>
-            </CardContent>
+                  )}
+                  Manage Subscription
+                </Button>
+              </div>
+            </CardHeader>
           </Card>
         )}
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {selfServePlans.map((plan) => {
-            const isCurrentPlan = currentPlan?.id === plan.id;
-            const featureFlags = plan.feature_flags as any;
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <Label htmlFor="billing-toggle" className={!isAnnual ? "font-semibold" : "text-muted-foreground"}>
+            Monthly
+          </Label>
+          <Switch
+            id="billing-toggle"
+            checked={isAnnual}
+            onCheckedChange={setIsAnnual}
+          />
+          <Label htmlFor="billing-toggle" className={isAnnual ? "font-semibold" : "text-muted-foreground"}>
+            Annual
+          </Label>
+          {isAnnual && (
+            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+              Save {discountPercent}%
+            </Badge>
+          )}
+        </div>
+
+        {/* Plans Grid */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {plans.map((plan) => {
+            const isCurrentPlan = currentPlan === plan.key;
+            const Icon = plan.icon;
+            const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
+            const period = isAnnual ? '/year' : '/month';
 
             return (
               <Card 
-                key={plan.id}
-                className={isCurrentPlan ? "border-primary ring-2 ring-primary" : ""}
+                key={plan.key}
+                className={`relative flex flex-col ${
+                  isCurrentPlan 
+                    ? "border-primary ring-2 ring-primary" 
+                    : plan.popular 
+                      ? "border-primary/50 shadow-lg" 
+                      : ""
+                }`}
               >
-                <CardHeader>
-                  {isCurrentPlan && (
-                    <div className="bg-primary text-primary-foreground text-sm font-medium px-3 py-1 rounded-full w-fit mb-2">
+                {plan.popular && !isCurrentPlan && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-primary text-primary-foreground">
+                      <Zap className="h-3 w-3 mr-1" /> Most Popular
+                    </Badge>
+                  </div>
+                )}
+                {isCurrentPlan && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-green-600 text-white">
                       Your Plan
+                    </Badge>
+                  </div>
+                )}
+                
+                <CardHeader className="pt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-xl">{plan.displayName}</CardTitle>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold">{formatPrice(price)}</span>
+                      <span className="text-muted-foreground">{period}</span>
                     </div>
-                  )}
-                  <CardTitle className="text-2xl capitalize">{plan.name}</CardTitle>
-                  <CardDescription>
-                    <span className="text-3xl font-bold">${plan.monthly_price}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">
-                        {plan.invoice_limit ? `Up to ${plan.invoice_limit} invoices/month` : "Unlimited invoices"}
-                      </span>
-                    </div>
-                    {featureFlags.sms_auto && (
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">Automated SMS</span>
-                      </div>
-                    )}
-                    {featureFlags.cadence_automation && (
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">AI Cadence Automation</span>
-                      </div>
-                    )}
-                    {featureFlags.crm && (
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">CRM Integration</span>
-                      </div>
-                    )}
-                    {featureFlags.team_users && (
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">Multi-user Support</span>
-                      </div>
+                    {isAnnual && (
+                      <p className="text-xs text-green-600">
+                        {formatPrice(plan.equivalentMonthly)}/mo equivalent
+                      </p>
                     )}
                   </div>
+                  <CardDescription className="mt-2">
+                    Up to {plan.invoiceLimit} invoices/month
+                  </CardDescription>
+                </CardHeader>
+                
+                <CardContent className="flex-1 flex flex-col">
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {plan.features.slice(0, 6).map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                   
-                  {!isCurrentPlan && (
-                    <Button
-                      variant={isCurrentPlan ? "outline" : "default"}
-                      className="w-full"
-                      onClick={handleManageSubscription}
-                      disabled={!currentPlan}
-                    >
-                      {currentPlan ? "Switch to this plan" : "Get Started"}
-                    </Button>
-                  )}
+                  <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/50 rounded">
+                    <p>+$1.50 per invoice over limit</p>
+                    <p>+{formatPrice(isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice)}/seat{isAnnual ? '/year' : '/month'}</p>
+                  </div>
+                  
+                  <Button
+                    className="w-full"
+                    variant={isCurrentPlan ? "outline" : plan.popular ? "default" : "outline"}
+                    disabled={isCurrentPlan || processingPlan === plan.key}
+                    onClick={() => handleUpgrade(plan.key)}
+                  >
+                    {processingPlan === plan.key ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : isCurrentPlan ? (
+                      "Current Plan"
+                    ) : subscriptionStatus === 'active' ? (
+                      "Switch Plan"
+                    ) : (
+                      "Start 14-Day Trial"
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             );
           })}
         </div>
 
-        <Card className="mt-8">
+        {/* Enterprise Card */}
+        <Card className="bg-gradient-to-r from-primary/5 to-accent/5">
           <CardHeader>
-            <CardTitle>Need a Custom Solution?</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              Enterprise / Custom
+            </CardTitle>
             <CardDescription>
-              Our Bespoke plan is perfect for high-volume SaaS companies
+              For high-volume operations with custom integration needs
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/contact-us")}
-            >
-              Contact Us for Bespoke Plan
-            </Button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <ul className="grid sm:grid-cols-2 gap-2">
+                {PLAN_CONFIGS.enterprise.features.slice(0, 4).map((feature, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm">
+                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/contact-us")}
+                className="shrink-0"
+              >
+                Contact Sales
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

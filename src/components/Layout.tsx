@@ -356,11 +356,20 @@ const Layout = ({ children }: LayoutProps) => {
                         {subscriptionStatus ? (
                           <span className="text-green-600 font-medium">{subscriptionStatus}</span>
                         ) : (
-                          <span className="text-muted-foreground">No Subscription</span>
+                          <span className="text-muted-foreground">Free Plan</span>
                         )}
                       </div>
                     </div>
                     <UsageIndicator />
+                    {planType === 'free' && (
+                      <Button 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => navigate("/upgrade")}
+                      >
+                        Upgrade Plan
+                      </Button>
+                    )}
                   </div>
                   
                   <DropdownMenuSeparator />
