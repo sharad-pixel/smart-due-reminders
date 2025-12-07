@@ -9,13 +9,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus } from "lucide-react";
+import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { ExternalLink } from "lucide-react";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,6 +67,7 @@ interface TaskWithRelations {
 export default function CollectionTasks() {
   const [searchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
+  const { permissions, loading: roleLoading } = useRoleAccess();
   
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,11 +87,11 @@ export default function CollectionTasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hideClosed, setHideClosed] = useState(false);
 
-  // Team members for filter
-  const [teamMembers, setTeamMembers] = useState<{id: string; name: string; email: string}[]>([]);
+  // Account users for assignment (paid seats from Teams & Roles)
+  const [accountUsers, setAccountUsers] = useState<{id: string; user_id: string; name: string; email: string; role: string}[]>([]);
 
   useEffect(() => {
-    fetchTeamMembers();
+    fetchAccountUsers();
   }, []);
 
   useEffect(() => {
@@ -101,23 +103,43 @@ export default function CollectionTasks() {
     setSelectedTaskIds(new Set());
   }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, searchQuery]);
 
-  const fetchTeamMembers = async () => {
-    const { data } = await supabase
-      .from('team_members')
-      .select('id, name, email')
-      .eq('is_active', true)
-      .order('name');
-    
-    if (data) {
-      setTeamMembers(
-        data
-          .filter(m => m.id && m.id.trim() !== '')
-          .map(m => ({
-            id: m.id,
-            name: m.name,
-            email: m.email
-          }))
-      );
+  const fetchAccountUsers = async () => {
+    try {
+      // Fetch from account_users table (paid team members with roles)
+      const { data, error } = await supabase
+        .from('account_users')
+        .select('id, user_id, role, status')
+        .eq('status', 'active')
+        .order('role');
+      
+      if (error) {
+        console.error('Error fetching account users:', error);
+        return;
+      }
+
+      if (data) {
+        // Fetch profile info for each user
+        const usersWithProfiles = await Promise.all(
+          data.map(async (au) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name, email')
+              .eq('id', au.user_id)
+              .single();
+            
+            return {
+              id: au.id,
+              user_id: au.user_id,
+              name: profile?.name || profile?.email || 'Unknown',
+              email: profile?.email || '',
+              role: au.role
+            };
+          })
+        );
+        setAccountUsers(usersWithProfiles.filter(u => u.id && u.id.trim() !== ''));
+      }
+    } catch (error) {
+      console.error('Error fetching account users:', error);
     }
   };
 
@@ -158,14 +180,15 @@ export default function CollectionTasks() {
       const tasksWithUserNames = await Promise.all(
         (data || []).map(async (task: any) => {
           if (task.assigned_to) {
-            const { data: teamMember } = await supabase
-              .from('team_members')
+            // assigned_to now stores user_id from account_users
+            const { data: profile } = await supabase
+              .from('profiles')
               .select('name, email')
               .eq('id', task.assigned_to)
               .single();
             return {
               ...task,
-              assigned_user_name: teamMember?.name || teamMember?.email || null
+              assigned_user_name: profile?.name || profile?.email || null
             } as TaskWithRelations;
           }
           return { ...task, assigned_user_name: null } as TaskWithRelations;
@@ -479,7 +502,7 @@ export default function CollectionTasks() {
         </div>
 
         {/* Bulk Actions Bar */}
-        {selectedTaskIds.size > 0 && (
+        {selectedTaskIds.size > 0 && permissions.canEditTasks && (
           <Card className="border-primary">
             <CardContent className="py-3">
               <div className="flex flex-wrap items-center gap-3">
@@ -498,41 +521,45 @@ export default function CollectionTasks() {
                     </SelectContent>
                   </Select>
 
-                  <Select 
-                    onValueChange={(value) => {
-                      if (value === 'unassigned') {
-                        handleBulkAssign(null, null);
-                      } else {
-                        handleBulkAssign(value, null);
-                      }
-                    }} 
-                    disabled={isBulkProcessing}
-                  >
-                    <SelectTrigger className="w-[160px] h-8">
-                      <SelectValue placeholder="Assign To" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassign</SelectItem>
-                      {teamMembers.map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          <div className="flex items-center gap-2">
-                            <UserPlus className="h-4 w-4" />
-                            {member.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {permissions.canAssignTasks && (
+                    <Select 
+                      onValueChange={(value) => {
+                        if (value === 'unassigned') {
+                          handleBulkAssign(null, null);
+                        } else {
+                          handleBulkAssign(value, null);
+                        }
+                      }} 
+                      disabled={isBulkProcessing}
+                    >
+                      <SelectTrigger className="w-[160px] h-8">
+                        <SelectValue placeholder="Assign To" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassign</SelectItem>
+                        {accountUsers.map(user => (
+                          <SelectItem key={user.id} value={user.user_id}>
+                            <div className="flex items-center gap-2">
+                              <UserPlus className="h-4 w-4" />
+                              {user.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
 
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => setShowDeleteDialog(true)}
-                    disabled={isBulkProcessing}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
+                  {permissions.canDeleteTasks && (
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => setShowDeleteDialog(true)}
+                      disabled={isBulkProcessing}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
 
                   <Button 
                     variant="ghost" 
@@ -612,9 +639,9 @@ export default function CollectionTasks() {
                 <SelectContent>
                   <SelectItem value="all">All Assignments</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {teamMembers.map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name}
+                  {accountUsers.map(user => (
+                    <SelectItem key={user.id} value={user.user_id}>
+                      {user.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
