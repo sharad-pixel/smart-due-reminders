@@ -3258,6 +3258,7 @@ export type Database = {
           business_phone: string | null
           business_postal_code: string | null
           business_state: string | null
+          cancel_at_period_end: boolean | null
           company_name: string | null
           created_at: string | null
           current_period_end: string | null
@@ -3299,6 +3300,7 @@ export type Database = {
           business_phone?: string | null
           business_postal_code?: string | null
           business_state?: string | null
+          cancel_at_period_end?: boolean | null
           company_name?: string | null
           created_at?: string | null
           current_period_end?: string | null
@@ -3340,6 +3342,7 @@ export type Database = {
           business_phone?: string | null
           business_postal_code?: string | null
           business_state?: string | null
+          cancel_at_period_end?: boolean | null
           company_name?: string | null
           created_at?: string | null
           current_period_end?: string | null
