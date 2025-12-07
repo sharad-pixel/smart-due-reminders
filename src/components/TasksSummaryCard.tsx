@@ -175,7 +175,7 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }
           variant="outline"
           size="sm"
           className="w-full mt-4"
-          onClick={() => navigate('/collections/tasks')}
+          onClick={() => navigate('/tasks')}
         >
           View All Tasks
         </Button>

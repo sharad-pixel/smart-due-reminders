@@ -183,7 +183,7 @@ const DailyDigest = () => {
                   </div>
                 </div>
                 <Button asChild variant="outline" className="w-full">
-                  <Link to="/collections/tasks?status=open">View Tasks</Link>
+                  <Link to="/tasks?status=open">View Tasks</Link>
                 </Button>
               </CardContent>
             </Card>
