@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wrapEmailContent, generateEmailSignature } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
@@ -10,6 +11,7 @@ interface WelcomeEmailRequest {
   email: string;
   companyName?: string;
   userName?: string;
+  userId?: string;
 }
 
 serve(async (req) => {
@@ -18,7 +20,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
   if (!resendApiKey) {
     console.error("RESEND_API_KEY is not configured");
     return new Response(
@@ -28,9 +33,29 @@ serve(async (req) => {
   }
 
   try {
-    const { email, companyName, userName }: WelcomeEmailRequest = await req.json();
+    const { email, companyName, userName, userId }: WelcomeEmailRequest = await req.json();
     
-    console.log("Sending welcome email to:", email, "Company:", companyName);
+    console.log("Sending welcome email to:", email, "Company:", companyName, "userId:", userId);
+
+    // Check if welcome email was already sent (prevent duplicates)
+    if (supabaseUrl && supabaseServiceKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Try to find the user by email to check if welcome email was already sent
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, welcome_email_sent_at')
+        .eq('email', email)
+        .single();
+
+      if (profile?.welcome_email_sent_at) {
+        console.log("Welcome email already sent to this user, skipping:", email);
+        return new Response(
+          JSON.stringify({ success: true, skipped: true, message: "Welcome email already sent" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const displayName = userName || companyName || "there";
 
@@ -151,6 +176,22 @@ serve(async (req) => {
     }
 
     console.log("Welcome email sent successfully:", resendData);
+
+    // Mark welcome_email_sent_at in the profile to prevent duplicates
+    if (supabaseUrl && supabaseServiceKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ welcome_email_sent_at: new Date().toISOString() })
+        .eq('email', email);
+
+      if (updateError) {
+        console.error("Failed to update welcome_email_sent_at:", updateError);
+      } else {
+        console.log("Marked welcome_email_sent_at for:", email);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, message_id: resendData.id }),
