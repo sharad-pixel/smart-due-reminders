@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { differenceInDays } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus, Lock } from "lucide-react";
+import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus, Lock, CalendarClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useSearchParams, Link } from "react-router-dom";
@@ -686,7 +687,8 @@ export default function CollectionTasks() {
                           className={isSomeSelected && !isAllSelected ? "opacity-50" : ""}
                         />
                       </TableHead>
-                      <TableHead className="w-36">Created</TableHead>
+                      <TableHead className="w-24">Days Open</TableHead>
+                      <TableHead className="w-32">Created</TableHead>
                       <TableHead>Priority</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="min-w-[200px]">Summary</TableHead>
@@ -698,22 +700,30 @@ export default function CollectionTasks() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTasks.map((task) => (
-                      <TableRow
-                        key={task.id}
-                        className={`cursor-pointer hover:bg-muted/50 ${selectedTaskIds.has(task.id) ? 'bg-muted/30' : ''}`}
-                        onClick={() => handleViewDetails(task)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox 
-                            checked={selectedTaskIds.has(task.id)}
-                            onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
-                            aria-label={`Select task ${task.summary}`}
-                          />
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(task.created_at || '').toLocaleDateString()}
-                        </TableCell>
+                    {filteredTasks.map((task) => {
+                      const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
+                      return (
+                        <TableRow
+                          key={task.id}
+                          className={`cursor-pointer hover:bg-muted/50 ${selectedTaskIds.has(task.id) ? 'bg-muted/30' : ''}`}
+                          onClick={() => handleViewDetails(task)}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox 
+                              checked={selectedTaskIds.has(task.id)}
+                              onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
+                              aria-label={`Select task ${task.summary}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                              <CalendarClock className="h-3 w-3" />
+                              {daysOpen === 0 ? 'Today' : `${daysOpen}d`}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(task.created_at || '').toLocaleDateString()}
+                          </TableCell>
                         <TableCell>{getPriorityBadge(task.priority)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -755,8 +765,9 @@ export default function CollectionTasks() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

@@ -2,12 +2,17 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, AlertTriangle, Clock } from "lucide-react";
+import { CheckSquare, AlertTriangle, Clock, CalendarClock } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useNavigate } from "react-router-dom";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { differenceInDays } from "date-fns";
+
+const getDaysOpen = (createdAt: string): number => {
+  return differenceInDays(new Date(), new Date(createdAt));
+};
 
 interface TasksSummaryCardProps {
   tasks: CollectionTask[];
@@ -117,41 +122,48 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {tasks.slice(0, 5).map(task => (
-          <div
-            key={task.id}
-            className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
-            onClick={() => {
-              setSelectedTask(task);
-              setModalOpen(true);
-            }}
-          >
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                {task.priority === 'urgent' && (
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                )}
-                {task.status === 'in_progress' && (
-                  <Clock className="h-4 w-4 text-blue-500" />
-                )}
-                <span className="font-medium text-sm">
-                  {getTaskTypeLabel(task.task_type)}
-                </span>
-                <Badge variant="outline" className="text-xs">
-                  {task.status}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {task.summary}
-              </p>
-              {task.recommended_action && (
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  → {task.recommended_action}
+        {tasks.slice(0, 5).map(task => {
+          const daysOpen = getDaysOpen(task.created_at);
+          return (
+            <div
+              key={task.id}
+              className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+              onClick={() => {
+                setSelectedTask(task);
+                setModalOpen(true);
+              }}
+            >
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {task.priority === 'urgent' && (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
+                  {task.status === 'in_progress' && (
+                    <Clock className="h-4 w-4 text-blue-500" />
+                  )}
+                  <span className="font-medium text-sm">
+                    {getTaskTypeLabel(task.task_type)}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {task.status}
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                    <CalendarClock className="h-3 w-3" />
+                    {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {task.summary}
                 </p>
-              )}
+                {task.recommended_action && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    → {task.recommended_action}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         
         {tasks.length > 5 && (
           <p className="text-xs text-muted-foreground text-center">

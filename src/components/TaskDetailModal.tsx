@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { format } from "date-fns";
-import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -225,6 +225,8 @@ export const TaskDetailModal = ({
     }
   };
 
+  const daysOpen = differenceInDays(new Date(), new Date(task.created_at));
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,7 +241,11 @@ export const TaskDetailModal = ({
                 {task.summary}
               </DialogDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1">
+                <CalendarClock className="h-3 w-3" />
+                {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
+              </Badge>
               <Badge variant={task.status === 'done' ? 'default' : 'secondary'}>
                 {task.status}
               </Badge>
