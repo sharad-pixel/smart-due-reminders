@@ -31,7 +31,16 @@ export const UsageIndicator = () => {
       const { data, error } = await supabase.functions.invoke('get-monthly-usage');
       
       if (error) throw error;
-      setUsage(data);
+      setUsage({
+        plan: data.plan_name || 'free',
+        invoiceAllowance: data.included_allowance,
+        includedUsed: data.included_invoices_used,
+        overageCount: data.overage_invoices,
+        totalUsed: data.total_invoices_used,
+        remaining: data.remaining_quota,
+        isOverLimit: data.is_over_limit,
+        overageRate: data.overage_rate || 1.5
+      });
     } catch (error) {
       console.error('Error fetching usage:', error);
     } finally {
