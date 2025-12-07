@@ -23,7 +23,8 @@ import {
   ChevronDown,
   Bot,
   Database,
-  CalendarDays
+  CalendarDays,
+  ServerCog
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -53,6 +54,9 @@ const Layout = ({ children }: LayoutProps) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isFounder, setIsFounder] = useState(false);
+
+  const FOUNDER_EMAIL = "sharad@recouply.ai";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -97,7 +101,7 @@ const Layout = ({ children }: LayoutProps) => {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, email, avatar_url, stripe_subscription_id, plan_type")
+          .select("name, email, avatar_url, stripe_subscription_id, plan_type, is_admin")
           .eq("id", user.id)
           .single();
 
@@ -121,6 +125,11 @@ const Layout = ({ children }: LayoutProps) => {
 
         if (profile?.plan_type) {
           setPlanType(profile.plan_type);
+        }
+
+        // Check if user is founder (email match + is_admin flag)
+        if (user.email?.toLowerCase() === FOUNDER_EMAIL.toLowerCase() && profile?.is_admin) {
+          setIsFounder(true);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -372,6 +381,19 @@ const Layout = ({ children }: LayoutProps) => {
                     <Shield className="mr-2 h-4 w-4" />
                     Security Settings
                   </DropdownMenuItem>
+                  
+                  {isFounder && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => navigate("/admin")}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <ServerCog className="mr-2 h-4 w-4" />
+                        Admin Center
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   
                   <DropdownMenuSeparator />
                   
