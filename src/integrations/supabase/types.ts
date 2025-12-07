@@ -3266,6 +3266,7 @@ export type Database = {
           id: string
           invoice_limit: number | null
           is_admin: boolean | null
+          is_suspended: boolean | null
           name: string | null
           overage_rate: number | null
           password_hash: string | null
@@ -3278,6 +3279,9 @@ export type Database = {
           stripe_payment_link_url: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
           trial_ends_at: string | null
           twilio_account_sid: string | null
           twilio_auth_token: string | null
@@ -3308,6 +3312,7 @@ export type Database = {
           id: string
           invoice_limit?: number | null
           is_admin?: boolean | null
+          is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
           password_hash?: string | null
@@ -3320,6 +3325,9 @@ export type Database = {
           stripe_payment_link_url?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           trial_ends_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
@@ -3350,6 +3358,7 @@ export type Database = {
           id?: string
           invoice_limit?: number | null
           is_admin?: boolean | null
+          is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
           password_hash?: string | null
@@ -3362,6 +3371,9 @@ export type Database = {
           stripe_payment_link_url?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           trial_ends_at?: string | null
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
@@ -3848,6 +3860,7 @@ export type Database = {
       }
       is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           p_action_type: string
