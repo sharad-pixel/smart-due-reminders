@@ -224,15 +224,9 @@ const AdminUserManagement = () => {
 
   const fetchUserDetails = async (userId: string) => {
     try {
-      const response = await supabase.functions.invoke("admin-get-user-details", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const { data, error } = await supabase.functions.invoke("admin-get-user-details", {
+        body: { userId },
       });
-
-      // Use query params workaround
-      const { data, error } = await supabase.functions.invoke(`admin-get-user-details?userId=${userId}`);
 
       if (error) throw error;
       setUserDetailData(data);
