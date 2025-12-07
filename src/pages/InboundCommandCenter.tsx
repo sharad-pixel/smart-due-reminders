@@ -92,6 +92,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { generateBrandedEmail, BrandingSettings } from "@/lib/emailSignature";
 
 interface InvoiceGroup {
   invoiceNumber: string | null;
@@ -1527,12 +1528,36 @@ const InboundCommandCenter = () => {
                       const { data: { user } } = await supabase.auth.getUser();
                       if (!user) throw new Error("Not authenticated");
                       
+                      // Fetch branding settings
+                      const { data: brandingData } = await supabase
+                        .from("branding_settings")
+                        .select("*")
+                        .eq("user_id", user.id)
+                        .single();
+                      
+                      const branding: BrandingSettings = brandingData || {};
+                      
+                      // Get recipient name from debtor or email
+                      const recipientName = selectedEmail.debtors?.name || 
+                        selectedEmail.from_name || 
+                        selectedEmail.from_email.split("@")[0];
+                      
+                      // Format body with proper greeting
+                      const formattedBody = `
+                        <p>Hi ${recipientName},</p>
+                        ${generatedResponse.body.split("\n").map(line => 
+                          line.trim() ? `<p>${line}</p>` : ""
+                        ).join("")}
+                      `;
+                      
+                      const brandedHtml = generateBrandedEmail(formattedBody, branding);
+                      
                       const { error: sendError } = await supabase.functions.invoke("send-email", {
                         body: {
                           to: selectedEmail.from_email,
                           from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
                           subject: generatedResponse.subject,
-                          html: generatedResponse.body.replace(/\n/g, "<br>"),
+                          html: brandedHtml,
                         },
                       });
                       
@@ -1709,12 +1734,36 @@ const InboundCommandCenter = () => {
                       const { data: { user } } = await supabase.auth.getUser();
                       if (!user) throw new Error("Not authenticated");
                       
+                      // Fetch branding settings
+                      const { data: brandingData } = await supabase
+                        .from("branding_settings")
+                        .select("*")
+                        .eq("user_id", user.id)
+                        .single();
+                      
+                      const branding: BrandingSettings = brandingData || {};
+                      
+                      // Get recipient name from debtor or email
+                      const recipientName = selectedEmail.debtors?.name || 
+                        selectedEmail.from_name || 
+                        selectedEmail.from_email.split("@")[0];
+                      
+                      // Format body with proper greeting
+                      const formattedBody = `
+                        <p>Hi ${recipientName},</p>
+                        ${generatedResponse.body.split("\n").map(line => 
+                          line.trim() ? `<p>${line}</p>` : ""
+                        ).join("")}
+                      `;
+                      
+                      const brandedHtml = generateBrandedEmail(formattedBody, branding);
+                      
                       const { error: sendError } = await supabase.functions.invoke("send-email", {
                         body: {
                           to: selectedEmail.from_email,
                           from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
                           subject: generatedResponse.subject,
-                          html: generatedResponse.body.replace(/\n/g, "<br>"),
+                          html: brandedHtml,
                         },
                       });
                       
