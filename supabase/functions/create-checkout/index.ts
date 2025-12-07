@@ -143,7 +143,7 @@ serve(async (req) => {
           billing_interval: billingInterval,
         },
       },
-      success_url: `${req.headers.get('origin')}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get('origin')}/dashboard?checkout=success`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
       metadata: {
         user_id: user.id,
