@@ -230,13 +230,13 @@ const Billing = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col justify-center">
+              <div className="flex flex-col justify-center">
                   {!profile?.stripe_subscription_id ? (
-                    <Button onClick={() => navigate('/pricing')} className="w-full">
+                    <Button onClick={() => navigate('/upgrade')} className="w-full">
                       Upgrade to Paid Plan
                     </Button>
                   ) : (
-                    <Button variant="outline" onClick={() => navigate('/pricing')} className="w-full">
+                    <Button variant="outline" onClick={() => navigate('/upgrade')} className="w-full">
                       View Other Plans
                     </Button>
                   )}
