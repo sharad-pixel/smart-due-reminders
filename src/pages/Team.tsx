@@ -569,6 +569,20 @@ const Team = () => {
                   <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
                 </TableRow>
                 <TableRow>
+                  <TableCell className="font-medium">Assign & Manage Tasks</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><X className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Be Assigned to Tasks</TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                  <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
+                </TableRow>
+                <TableRow>
                   <TableCell className="font-medium">View Reports & Analytics</TableCell>
                   <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>
                   <TableCell className="text-center"><Check className="h-4 w-4 mx-auto text-success" /></TableCell>

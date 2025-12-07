@@ -14,9 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { format } from "date-fns";
-import { CheckCircle2, XCircle, Mail, Loader2, UserPlus } from "lucide-react";
+import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TaskDetailModalProps {
   task: CollectionTask | null;
@@ -27,11 +28,13 @@ interface TaskDetailModalProps {
   onAssign?: (taskId: string, assignedTo: string | null, assignedPersona: string | null) => void;
 }
 
-interface TeamMember {
+interface AccountUser {
   id: string;
-  name: string;
-  title: string | null;
-  email: string;
+  user_id: string;
+  role: string;
+  status: string;
+  profile_name: string | null;
+  profile_email: string | null;
 }
 
 // AI Personas removed - tasks are only assigned to team members
@@ -65,42 +68,65 @@ export const TaskDetailModal = ({
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [selectedTeamMember, setSelectedTeamMember] = useState<string>("");
+  const [accountUsers, setAccountUsers] = useState<AccountUser[]>([]);
+  const [selectedAccountUser, setSelectedAccountUser] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
     if (open) {
-      fetchTeamMembers();
+      fetchAccountUsers();
       // Set initial values from task
-      setSelectedTeamMember(task?.assigned_to || "");
+      setSelectedAccountUser(task?.assigned_to || "");
     }
   }, [open, task]);
 
-  const fetchTeamMembers = async () => {
+  const fetchAccountUsers = async () => {
     try {
-      // Fetch from team_members table
+      // Fetch from account_users table (paid team members with roles)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get account_users for the current account (account_id = owner's user_id)
       const { data, error } = await supabase
-        .from('team_members')
-        .select('id, name, title, email')
-        .eq('is_active', true)
-        .order('name');
+        .from('account_users')
+        .select(`
+          id,
+          user_id,
+          role,
+          status
+        `)
+        .eq('status', 'active')
+        .order('role');
 
       if (error) {
-        console.error('Error fetching team members:', error);
+        console.error('Error fetching account users:', error);
         return;
       }
 
       if (data) {
-        setTeamMembers(data.map(m => ({
-          id: m.id,
-          name: m.name,
-          title: m.title,
-          email: m.email
-        })));
+        // Fetch profile info for each user
+        const usersWithProfiles = await Promise.all(
+          data.map(async (au) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name, email')
+              .eq('id', au.user_id)
+              .single();
+            
+            return {
+              id: au.id,
+              user_id: au.user_id,
+              role: au.role,
+              status: au.status,
+              profile_name: profile?.name || null,
+              profile_email: profile?.email || null
+            };
+          })
+        );
+        setAccountUsers(usersWithProfiles);
       }
     } catch (error) {
-      console.error('Error fetching team members:', error);
+      console.error('Error fetching account users:', error);
     }
   };
 
@@ -109,19 +135,24 @@ export const TaskDetailModal = ({
     
     setIsAssigning(true);
     try {
+      // Use user_id from account_users for assignment
+      const selectedUser = accountUsers.find(u => u.id === selectedAccountUser);
+      const assignedUserId = selectedUser?.user_id || null;
+      
       await onAssign(
         task.id, 
-        selectedTeamMember || null, 
+        assignedUserId, 
         null // No persona assignment for tasks
       );
       
-      // Send email notification if a team member is assigned
-      if (selectedTeamMember) {
+      // Send email notification if an account user is assigned
+      if (assignedUserId && selectedUser?.profile_email) {
         try {
           const { error: emailError } = await supabase.functions.invoke("send-task-assignment", {
             body: {
               taskId: task.id,
-              teamMemberId: selectedTeamMember
+              accountUserId: selectedAccountUser,
+              userId: assignedUserId
             }
           });
           
@@ -256,38 +287,60 @@ export const TaskDetailModal = ({
                 <UserPlus className="h-4 w-4" />
                 Assignment
               </h4>
-              <div className="space-y-2">
-                <Label className="text-xs">Team Member</Label>
-                <Select value={selectedTeamMember || "unassigned"} onValueChange={(val) => setSelectedTeamMember(val === "unassigned" ? "" : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Unassigned" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {teamMembers.filter(m => m.id && m.id.trim() !== '').map(member => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleAssign}
-                disabled={isAssigning}
-                className="w-full"
-              >
-                {isAssigning ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Assignment'
-                )}
-              </Button>
+              
+              {accountUsers.length === 0 ? (
+                <Alert className="bg-muted/50">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    No team members available. Add users via{" "}
+                    <a href="/settings/team" className="text-primary hover:underline font-medium">
+                      Teams & Roles
+                    </a>{" "}
+                    to enable task assignments.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Team Member (Paid Seats)</Label>
+                    <Select value={selectedAccountUser || "unassigned"} onValueChange={(val) => setSelectedAccountUser(val === "unassigned" ? "" : val)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Unassigned" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {accountUsers.filter(u => u.id && u.id.trim() !== '').map(user => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <span className="flex items-center gap-2">
+                              {user.profile_name || user.profile_email || 'Unknown'}
+                              <Badge variant="outline" className="text-xs ml-1">{user.role}</Badge>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Only users added via Teams & Roles can be assigned tasks
+                    </p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleAssign}
+                    disabled={isAssigning}
+                    className="w-full"
+                  >
+                    {isAssigning ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Assignment'
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           )}
 
@@ -298,7 +351,9 @@ export const TaskDetailModal = ({
               <div>
                 <span className="text-xs text-muted-foreground">Assigned To</span>
                 <p className="text-sm font-medium">
-                  {teamMembers.find(m => m.id === task.assigned_to)?.name || 'Unknown'}
+                  {accountUsers.find(u => u.user_id === task.assigned_to)?.profile_name || 
+                   accountUsers.find(u => u.user_id === task.assigned_to)?.profile_email || 
+                   'Unknown'}
                 </p>
               </div>
               {(task as any).assignment_email_sent_at && (
