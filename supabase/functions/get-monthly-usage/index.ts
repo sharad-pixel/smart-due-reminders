@@ -82,18 +82,20 @@ serve(async (req) => {
 
     // Fallback to hardcoded plan limits if no database plan found
     if (!plan) {
-      const planTypeLimits: Record<string, number | null> = {
-        'free': 5,
-        'starter': 50,
-        'growth': 200,
-        'pro': null // unlimited
+      const planTypeLimits: Record<string, number> = {
+        'free': 15,
+        'starter': 100,
+        'growth': 300,
+        'professional': 500,
+        'pro': 500, // alias for professional
+        'enterprise': 10000 // effectively unlimited
       };
       
       const planType = profile?.plan_type || 'free';
       plan = {
         name: planType,
-        invoice_limit: planTypeLimits[planType] ?? 5,
-        overage_amount: 0
+        invoice_limit: planTypeLimits[planType] ?? 15,
+        overage_amount: 1.50
       };
       
       logStep("Using fallback plan limits", { planName: plan.name, limit: plan.invoice_limit });

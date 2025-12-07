@@ -29,8 +29,10 @@ import {
   RefreshCw,
   Zap,
   Crown,
-  ArrowRight
+  ArrowRight,
+  TrendingUp
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { PLAN_CONFIGS, STRIPE_PRICES, formatPrice, SEAT_PRICING, type PlanType } from "@/lib/subscriptionConfig";
 
 interface BillingSectionProps {
@@ -58,13 +60,20 @@ const BillingSection = ({ profile, canManageBilling, onRefresh }: BillingSection
     cancelAtPeriodEnd?: boolean;
     billingInterval?: 'month' | 'year';
   } | null>(null);
+  const [usageData, setUsageData] = useState<{
+    includedUsed: number;
+    allowance: number;
+    overageCount: number;
+    remaining: number;
+  } | null>(null);
 
   const currentPlan = (profile.plan_type || 'free') as PlanType;
   const hasActiveSubscription = !!profile.stripe_subscription_id;
 
-  // Sync subscription on mount
+  // Sync subscription and usage on mount
   useEffect(() => {
     syncSubscription();
+    fetchUsage();
   }, []);
 
   const syncSubscription = async () => {
@@ -100,6 +109,25 @@ const BillingSection = ({ profile, canManageBilling, onRefresh }: BillingSection
       console.error("Error syncing subscription:", error);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const fetchUsage = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke('get-monthly-usage');
+      if (!error && data) {
+        setUsageData({
+          includedUsed: data.included_invoices_used || 0,
+          allowance: data.included_allowance || 0,
+          overageCount: data.overage_invoices || 0,
+          remaining: data.remaining_quota || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching usage:', error);
     }
   };
 
@@ -295,6 +323,46 @@ const BillingSection = ({ profile, canManageBilling, onRefresh }: BillingSection
             </p>
           )}
         </div>
+
+        {/* Invoice Usage Section */}
+        {usageData && (
+          <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Monthly Invoice Usage</span>
+              </div>
+              <Badge variant="outline" className="capitalize">
+                {currentPlan}
+              </Badge>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">
+                  {usageData.includedUsed} / {usageData.allowance} invoices
+                </span>
+                <span className="text-muted-foreground">
+                  {usageData.remaining} remaining
+                </span>
+              </div>
+              
+              <Progress 
+                value={usageData.allowance > 0 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0} 
+                className="h-2"
+              />
+
+              {usageData.overageCount > 0 && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>
+                    {usageData.overageCount} overage invoices (${(usageData.overageCount * 1.50).toFixed(2)})
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Upgrade Options - Show only if not on highest plan */}
         {currentPlan !== 'professional' && currentPlan !== 'enterprise' && canManageBilling && (

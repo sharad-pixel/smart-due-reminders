@@ -40,7 +40,7 @@ import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/BillingSection";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
-type PlanType = "free" | "starter" | "growth" | "pro";
+type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
 
 interface UserProfile {
   id: string;
