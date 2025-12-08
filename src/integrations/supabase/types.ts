@@ -3990,6 +3990,10 @@ export type Database = {
         Args: { due_date: string; payment_date?: string }
         Returns: string
       }
+      can_access_account_data: {
+        Args: { p_data_owner_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: { p_email: string; p_ip_address: string }
         Returns: {
@@ -4008,6 +4012,7 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: number
       }
+      get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

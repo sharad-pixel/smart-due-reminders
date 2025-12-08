@@ -24,7 +24,8 @@ import {
   Bot,
   Database,
   CalendarDays,
-  ServerCog
+  ServerCog,
+  Building2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ import { DigestNotificationBanner } from "@/components/DigestNotificationBanner"
 import { logAuditEvent } from "@/lib/auditLog";
 import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface LayoutProps {
   children: ReactNode;
@@ -55,6 +57,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
+  const { isTeamMember, ownerName, ownerEmail, loading: accountLoading } = useEffectiveAccount();
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
 
@@ -204,6 +207,19 @@ const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background">
       <SecurityAlert />
       <DigestNotificationBanner />
+      
+      {/* Team Member Banner */}
+      {isTeamMember && !accountLoading && (
+        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-sm">
+            <Building2 className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">
+              Viewing account of <span className="font-medium text-foreground">{ownerName || ownerEmail}</span>
+            </span>
+          </div>
+        </div>
+      )}
+      
       <nav className="fixed top-0 left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
