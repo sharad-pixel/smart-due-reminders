@@ -298,8 +298,13 @@ Deno.serve(async (req) => {
       membershipCheck.status === 'active';
     
     const isStandaloneOwner = !membershipCheck;
+    
+    // Team members (including non-admins) can use 'list' action for task assignment
+    const isActiveMember = membershipCheck && membershipCheck.status === 'active';
+    const isReadOnlyAction = action === 'list' || action === 'getAssignedTasksCount';
 
-    if (!isOwnerOrAdmin && !isStandaloneOwner) {
+    // Allow read-only actions for any active team member
+    if (!isOwnerOrAdmin && !isStandaloneOwner && !(isActiveMember && isReadOnlyAction)) {
       return new Response(
         JSON.stringify({ error: 'Only account owners and admins can manage team members' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
