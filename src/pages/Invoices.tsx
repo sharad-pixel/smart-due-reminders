@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { InvoiceImportModal } from "@/components/InvoiceImportModal";
 import { InvoiceExportModal } from "@/components/InvoiceExportModal";
 import { BulkStatusUpdateModal } from "@/components/BulkStatusUpdateModal";
 import { ImportJobHistory } from "@/components/ImportJobHistory";
+import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
 interface Invoice {
   id: string;
@@ -281,6 +282,17 @@ const Invoices = () => {
 
     setFilteredInvoices(filtered);
   };
+
+  // Add computed fields for sorting
+  const invoicesWithComputedFields = useMemo(() => {
+    return filteredInvoices.map(inv => ({
+      ...inv,
+      days_past_due: getDaysPastDue(inv.due_date),
+      debtor_name: inv.debtors?.name || '',
+    }));
+  }, [filteredInvoices]);
+
+  const { sortedData: sortedInvoices, sortKey, sortDirection, handleSort } = useSorting(invoicesWithComputedFields);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -692,31 +704,95 @@ const Invoices = () => {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
+                        checked={sortedInvoices.length > 0 && selectedInvoices.length === sortedInvoices.length}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setSelectedInvoices(filteredInvoices.map(inv => inv.id));
+                            setSelectedInvoices(sortedInvoices.map(inv => inv.id));
                           } else {
                             setSelectedInvoices([]);
                           }
                         }}
                       />
                     </TableHead>
-                    <TableHead className="w-32 font-semibold">Recouply ID</TableHead>
-                    <TableHead className="w-32 font-semibold">Invoice #</TableHead>
-                    <TableHead className="min-w-[150px] font-semibold">Debtor</TableHead>
-                    <TableHead className="w-28 text-right font-semibold">Amount</TableHead>
-                    <TableHead className="w-28 font-semibold">Invoice Date</TableHead>
+                    <SortableTableHead
+                      sortKey="reference_id"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-32 font-semibold"
+                    >
+                      Recouply ID
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="invoice_number"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-32 font-semibold"
+                    >
+                      Invoice #
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="debtor_name"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="min-w-[150px] font-semibold"
+                    >
+                      Account
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="amount"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-28 text-right font-semibold"
+                    >
+                      Amount
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="issue_date"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-28 font-semibold"
+                    >
+                      Invoice Date
+                    </SortableTableHead>
                     <TableHead className="w-28 font-semibold">Payment Terms</TableHead>
-                    <TableHead className="w-32 font-semibold">Days Past Due</TableHead>
-                    <TableHead className="w-28 font-semibold">Status</TableHead>
+                    <SortableTableHead
+                      sortKey="days_past_due"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-32 font-semibold"
+                    >
+                      Days Past Due
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="status"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-28 font-semibold"
+                    >
+                      Status
+                    </SortableTableHead>
                     <TableHead className="w-32 font-semibold">AI Workflow</TableHead>
-                    <TableHead className="w-28 font-semibold">Last Contact</TableHead>
+                    <SortableTableHead
+                      sortKey="last_contact_date"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                      className="w-28 font-semibold"
+                    >
+                      Last Contact
+                    </SortableTableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInvoices.map((invoice) => {
-                    const daysPastDue = getDaysPastDue(invoice.due_date);
+                  {sortedInvoices.map((invoice) => {
+                    const daysPastDue = invoice.days_past_due;
                     const ageBucket = getAgeBucket(daysPastDue);
                     const activeWorkflow = invoice.ai_workflows?.find(w => w.is_active);
                     
