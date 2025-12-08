@@ -11,13 +11,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
-import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock } from "lucide-react";
+import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface TaskNote {
+  id: string;
+  content: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  created_at: string;
+}
 
 interface TaskDetailModalProps {
   task: CollectionTask | null;
@@ -71,14 +82,47 @@ export const TaskDetailModal = ({
   const [accountUsers, setAccountUsers] = useState<AccountUser[]>([]);
   const [selectedAccountUser, setSelectedAccountUser] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
+  
+  // Notes state
+  const [notes, setNotes] = useState<TaskNote[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null);
 
   useEffect(() => {
     if (open) {
       fetchAccountUsers();
+      fetchCurrentUser();
       // Set initial values from task
       setSelectedAccountUser(task?.assigned_to || "");
+      // Load notes from task
+      if (task) {
+        const taskNotes = (task as any).notes;
+        if (Array.isArray(taskNotes)) {
+          setNotes(taskNotes);
+        } else {
+          setNotes([]);
+        }
+      }
     }
   }, [open, task]);
+
+  const fetchCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', user.id)
+        .single();
+      
+      setCurrentUser({
+        id: user.id,
+        name: profile?.name || profile?.email || 'Unknown',
+        email: profile?.email || user.email || ''
+      });
+    }
+  };
 
   const fetchAccountUsers = async () => {
     try {
@@ -190,6 +234,40 @@ export const TaskDetailModal = ({
       toast.error("Failed to update assignment");
     } finally {
       setIsAssigning(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!task || !newNote.trim() || !currentUser) return;
+    
+    setIsAddingNote(true);
+    try {
+      const noteEntry: TaskNote = {
+        id: crypto.randomUUID(),
+        content: newNote.trim(),
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        user_email: currentUser.email,
+        created_at: new Date().toISOString()
+      };
+      
+      const updatedNotes = [...notes, noteEntry];
+      
+      const { error } = await supabase
+        .from('collection_tasks')
+        .update({ notes: updatedNotes as unknown as any })
+        .eq('id', task.id);
+      
+      if (error) throw error;
+      
+      setNotes(updatedNotes);
+      setNewNote("");
+      toast.success("Note added");
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast.error("Failed to add note");
+    } finally {
+      setIsAddingNote(false);
     }
   };
 
@@ -397,6 +475,61 @@ export const TaskDetailModal = ({
               </a>
             </div>
           )}
+
+          {/* Notes Section */}
+          <div className="space-y-3 pt-2 border-t">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <StickyNote className="h-4 w-4" />
+              Notes
+            </h4>
+            
+            {/* Existing Notes */}
+            {notes.length > 0 && (
+              <ScrollArea className="max-h-40">
+                <div className="space-y-2">
+                  {notes.map((note) => (
+                    <div key={note.id} className="bg-muted/50 p-3 rounded-lg text-sm">
+                      <p className="whitespace-pre-wrap">{note.content}</p>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span className="font-medium">{note.user_name}</span>
+                        <span>•</span>
+                        <span>{format(new Date(note.created_at), 'MMM d, yyyy h:mm a')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+            
+            {/* Add Note Input */}
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Add a note..."
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+              <Button 
+                size="sm" 
+                onClick={handleAddNote}
+                disabled={!newNote.trim() || isAddingNote}
+                className="w-full"
+              >
+                {isAddingNote ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquarePlus className="h-4 w-4 mr-2" />
+                    Add Note
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2 border-t">
             {task.due_date && (

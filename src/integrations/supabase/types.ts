@@ -780,6 +780,7 @@ export type Database = {
           inbound_email_id: string | null
           invoice_id: string | null
           level: string | null
+          notes: Json | null
           organization_id: string | null
           priority: string
           raw_email: string | null
@@ -809,6 +810,7 @@ export type Database = {
           inbound_email_id?: string | null
           invoice_id?: string | null
           level?: string | null
+          notes?: Json | null
           organization_id?: string | null
           priority?: string
           raw_email?: string | null
@@ -838,6 +840,7 @@ export type Database = {
           inbound_email_id?: string | null
           invoice_id?: string | null
           level?: string | null
+          notes?: Json | null
           organization_id?: string | null
           priority?: string
           raw_email?: string | null
