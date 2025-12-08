@@ -4041,6 +4041,10 @@ export type Database = {
       }
       is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_team_member_of_account: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
