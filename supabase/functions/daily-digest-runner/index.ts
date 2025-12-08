@@ -35,7 +35,7 @@ serve(async (req) => {
     // Get all active users (users with profiles)
     const { data: users, error: usersError } = await supabase
       .from('profiles')
-      .select('id, email, name, welcome_email_sent_at')
+      .select('id, email, name, welcome_email_sent_at, daily_digest_email_enabled')
       .not('email', 'is', null);
 
     if (usersError) throw usersError;
@@ -406,8 +406,24 @@ serve(async (req) => {
 
         digestsCreated.push(user.id);
 
-        // SEND EMAIL (if user has email)
-        if (user.email) {
+        // SEND EMAIL only if:
+        // 1. User has email
+        // 2. User has daily_digest_email_enabled = true (default is true)
+        // 3. Email hasn't been sent for today's digest yet
+        const digestEmailEnabled = user.daily_digest_email_enabled !== false; // Default to true
+        
+        // Check if email was already sent for today
+        const { data: existingDigestWithEmail } = await supabase
+          .from('daily_digests')
+          .select('email_sent_at')
+          .eq('user_id', user.id)
+          .eq('digest_date', today)
+          .not('email_sent_at', 'is', null)
+          .maybeSingle();
+        
+        const emailAlreadySent = !!existingDigestWithEmail?.email_sent_at;
+        
+        if (user.email && digestEmailEnabled && !emailAlreadySent) {
           try {
             const emailBody = generateEmailHtml({
               name: user.name || 'there',
@@ -450,6 +466,11 @@ serve(async (req) => {
           } catch (emailError) {
             logStep('Error sending email', { error: String(emailError) });
           }
+        } else {
+          logStep('Skipping email', { 
+            userId: user.id, 
+            reason: !digestEmailEnabled ? 'disabled by user' : emailAlreadySent ? 'already sent today' : 'no email'
+          });
         }
 
       } catch (userError) {

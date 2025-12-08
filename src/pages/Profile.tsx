@@ -49,8 +49,10 @@ import {
   Crown,
   Building2,
   Pencil,
-  Copy
+  Copy,
+  Bell
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/BillingSection";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -68,6 +70,7 @@ interface UserProfile {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   avatar_url: string | null;
+  daily_digest_email_enabled: boolean | null;
 }
 
 interface Membership {
@@ -115,6 +118,8 @@ const Profile = () => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [savingWorkspaceName, setSavingWorkspaceName] = useState(false);
+  const [dailyDigestEmailEnabled, setDailyDigestEmailEnabled] = useState(true);
+  const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
   
   // Get effective account info for parent/child display
   const { 
@@ -167,6 +172,7 @@ const Profile = () => {
 
       if (profileError) throw profileError;
       setProfile(profileData);
+      setDailyDigestEmailEnabled(profileData.daily_digest_email_enabled !== false);
 
       // Get membership (check if user is part of an organization)
       const { data: membershipData } = await supabase
@@ -458,6 +464,38 @@ const Profile = () => {
         title: "Copied",
         description: "Organization ID copied to clipboard",
       });
+    }
+  };
+
+  const handleDailyDigestToggle = async (enabled: boolean) => {
+    if (!profile) return;
+    
+    setSavingEmailPrefs(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ daily_digest_email_enabled: enabled })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      setDailyDigestEmailEnabled(enabled);
+      setProfile({ ...profile, daily_digest_email_enabled: enabled });
+      toast({
+        title: enabled ? "Daily Digest Enabled" : "Daily Digest Disabled",
+        description: enabled 
+          ? "You will receive daily health summary emails." 
+          : "You will no longer receive daily health summary emails.",
+      });
+    } catch (error: any) {
+      console.error("Error updating email preferences:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update email preferences",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEmailPrefs(false);
     }
   };
 
@@ -853,6 +891,37 @@ const Profile = () => {
             onRefresh={loadProfileData}
           />
         )}
+
+        {/* Email Alerts Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Email Alerts
+            </CardTitle>
+            <CardDescription>
+              Configure which email notifications you want to receive
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="daily-digest-toggle" className="text-base font-medium">
+                  Daily Health Summary
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive a daily email with your collections health score, AR summary, and key metrics
+                </p>
+              </div>
+              <Switch
+                id="daily-digest-toggle"
+                checked={dailyDigestEmailEnabled}
+                onCheckedChange={handleDailyDigestToggle}
+                disabled={savingEmailPrefs}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Account Deletion Request */}
         <Card className="border-destructive/20">
