@@ -134,6 +134,7 @@ interface TeamMember {
 
 const Billing = () => {
   const navigate = useNavigate();
+  const effectiveAccount = useEffectiveAccount();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [reconciling, setReconciling] = useState(false);
@@ -148,9 +149,13 @@ const Billing = () => {
     discrepancy: number;
     needsReconciliation: boolean;
   } | null>(null);
+
   useEffect(() => {
-    loadBillingData();
-  }, []);
+    // Wait for effective account to load before loading billing data
+    if (!effectiveAccount.loading) {
+      loadBillingData();
+    }
+  }, [effectiveAccount.loading, effectiveAccount.effectiveAccountId]);
 
   // Check for billing discrepancy on load
   const checkBillingDiscrepancy = async () => {
@@ -329,12 +334,16 @@ const Billing = () => {
   const isUnlimited = invoiceLimit === -1 || invoiceLimit === 'Unlimited';
   const invoicesUsed = usage?.included_invoices_used ?? 0;
 
+  // Display effective account info for team members
+  const isTeamMember = effectiveAccount.isTeamMember;
+  const canManageBilling = !isTeamMember; // Only account owners can manage billing
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Billing & Subscription</h1>
-          {profile?.stripe_subscription_id && (
+          {profile?.stripe_subscription_id && canManageBilling && (
             <Button onClick={openCustomerPortal} disabled={portalLoading}>
               <CreditCard className="w-4 h-4 mr-2" />
               {portalLoading ? 'Opening...' : 'Manage Subscription'}
@@ -342,6 +351,49 @@ const Billing = () => {
             </Button>
           )}
         </div>
+
+        {/* Team Member Notice */}
+        {isTeamMember && (
+          <Card className="mb-6 border-primary/30 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="h-5 w-5 text-primary" />
+                Connected to Parent Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                    {(effectiveAccount.ownerName || effectiveAccount.ownerEmail || 'O')[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{effectiveAccount.ownerName || 'Account Owner'}</p>
+                  <p className="text-sm text-muted-foreground">{effectiveAccount.ownerCompanyName || effectiveAccount.ownerEmail}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="capitalize">
+                      {effectiveAccount.ownerPlanType || 'free'} plan
+                    </Badge>
+                    {effectiveAccount.ownerSubscriptionStatus === 'active' ? (
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" /> Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">{effectiveAccount.ownerSubscriptionStatus || 'inactive'}</Badge>
+                    )}
+                    <Badge variant="outline" className="capitalize">
+                      Your role: {effectiveAccount.memberRole || 'member'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-3">
+                You're viewing billing information for the parent account. Only the account owner can manage billing and subscriptions.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Account Locked Alert */}
         {profile?.is_account_locked && (
@@ -499,14 +551,22 @@ const Billing = () => {
                   </div>
                 </div>
               <div className="flex flex-col justify-center">
-                  {!profile?.stripe_subscription_id ? (
-                    <Button onClick={() => navigate('/upgrade')} className="w-full">
-                      Upgrade to Paid Plan
-                    </Button>
+                  {canManageBilling ? (
+                    <>
+                      {!profile?.stripe_subscription_id ? (
+                        <Button onClick={() => navigate('/upgrade')} className="w-full">
+                          Upgrade to Paid Plan
+                        </Button>
+                      ) : (
+                        <Button variant="outline" onClick={() => navigate('/upgrade')} className="w-full">
+                          View Other Plans
+                        </Button>
+                      )}
+                    </>
                   ) : (
-                    <Button variant="outline" onClick={() => navigate('/upgrade')} className="w-full">
-                      View Other Plans
-                    </Button>
+                    <div className="text-center text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
+                      Only the account owner can manage subscription plans.
+                    </div>
                   )}
                 </div>
               </div>
@@ -585,22 +645,43 @@ const Billing = () => {
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
+              {isTeamMember && (
+                <CardDescription>
+                  Some actions are only available to the account owner.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button variant="outline" onClick={openCustomerPortal} disabled={!profile?.stripe_subscription_id || portalLoading}>
+                <Button 
+                  variant="outline" 
+                  onClick={openCustomerPortal} 
+                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                  title={!canManageBilling ? "Only the account owner can update payment methods" : undefined}
+                >
                   Update Payment Method
                 </Button>
-                <Button variant="outline" onClick={openCustomerPortal} disabled={!profile?.stripe_subscription_id || portalLoading}>
+                <Button 
+                  variant="outline" 
+                  onClick={openCustomerPortal} 
+                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                  title={!canManageBilling ? "Only the account owner can view billing history" : undefined}
+                >
                   View Billing History
                 </Button>
-                <Button variant="outline" onClick={openCustomerPortal} disabled={!profile?.stripe_subscription_id || portalLoading}>
+                <Button 
+                  variant="outline" 
+                  onClick={openCustomerPortal} 
+                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                  title={!canManageBilling ? "Only the account owner can download invoices" : undefined}
+                >
                   Download Invoices
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={handleReconcileBilling}
-                  disabled={reconciling || !profile?.stripe_subscription_id}
+                  disabled={reconciling || !profile?.stripe_subscription_id || !canManageBilling}
+                  title={!canManageBilling ? "Only the account owner can sync billing" : undefined}
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
                   {reconciling ? 'Syncing...' : 'Sync Billing'}
