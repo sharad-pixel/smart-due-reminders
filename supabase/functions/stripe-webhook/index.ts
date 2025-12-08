@@ -306,14 +306,66 @@ serve(async (req) => {
           customerId: invoice.customer 
         });
 
-        // Update subscription status to past_due
+        // Update subscription status to past_due and record failure
         const customerId = invoice.customer as string;
         await supabase
           .from('profiles')
-          .update({ subscription_status: 'past_due' })
+          .update({ 
+            subscription_status: 'past_due',
+            payment_failure_notice_sent_at: null, // Reset to trigger new warning flow
+            payment_failure_count: 0,
+          })
           .eq('stripe_customer_id', customerId);
         
-        // TODO: Optionally send notification email about failed payment
+        logStep("Profile marked as past_due, payment failure flow initiated", { customerId });
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        logStep("Invoice payment succeeded", { 
+          invoiceId: invoice.id,
+          customerId: invoice.customer 
+        });
+
+        // Clear any payment failure state and unlock account
+        const paidCustomerId = invoice.customer as string;
+        
+        // Get the subscription details if this was a subscription payment
+        if (invoice.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          const planType = getPlanFromSubscription(subscription);
+          const billingInterval = getBillingInterval(subscription);
+
+          await supabase
+            .from('profiles')
+            .update({
+              subscription_status: 'active',
+              is_account_locked: false,
+              account_locked_at: null,
+              payment_failure_notice_sent_at: null,
+              payment_failure_count: 0,
+              plan_type: planType,
+              billing_interval: billingInterval,
+              current_period_end: subscription.current_period_end 
+                ? new Date(subscription.current_period_end * 1000).toISOString() 
+                : null,
+            })
+            .eq('stripe_customer_id', paidCustomerId);
+
+          logStep("Account unlocked after successful payment", { customerId: paidCustomerId, planType });
+        } else {
+          // One-time payment, just clear failure state
+          await supabase
+            .from('profiles')
+            .update({
+              is_account_locked: false,
+              account_locked_at: null,
+              payment_failure_notice_sent_at: null,
+              payment_failure_count: 0,
+            })
+            .eq('stripe_customer_id', paidCustomerId);
+        }
         break;
       }
 

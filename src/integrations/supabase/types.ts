@@ -3310,6 +3310,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_locked_at: string | null
           address_autocomplete_api_key: string | null
           address_autocomplete_enabled: boolean | null
           address_autocomplete_provider: string | null
@@ -3331,11 +3332,14 @@ export type Database = {
           email: string | null
           id: string
           invoice_limit: number | null
+          is_account_locked: boolean | null
           is_admin: boolean | null
           is_suspended: boolean | null
           name: string | null
           overage_rate: number | null
           password_hash: string | null
+          payment_failure_count: number | null
+          payment_failure_notice_sent_at: string | null
           phone: string | null
           plan_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"] | null
@@ -3357,6 +3361,7 @@ export type Database = {
           welcome_email_sent_at: string | null
         }
         Insert: {
+          account_locked_at?: string | null
           address_autocomplete_api_key?: string | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
@@ -3378,11 +3383,14 @@ export type Database = {
           email?: string | null
           id: string
           invoice_limit?: number | null
+          is_account_locked?: boolean | null
           is_admin?: boolean | null
           is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
           password_hash?: string | null
+          payment_failure_count?: number | null
+          payment_failure_notice_sent_at?: string | null
           phone?: string | null
           plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
@@ -3404,6 +3412,7 @@ export type Database = {
           welcome_email_sent_at?: string | null
         }
         Update: {
+          account_locked_at?: string | null
           address_autocomplete_api_key?: string | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
@@ -3425,11 +3434,14 @@ export type Database = {
           email?: string | null
           id?: string
           invoice_limit?: number | null
+          is_account_locked?: boolean | null
           is_admin?: boolean | null
           is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
           password_hash?: string | null
+          payment_failure_count?: number | null
+          payment_failure_notice_sent_at?: string | null
           phone?: string | null
           plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null

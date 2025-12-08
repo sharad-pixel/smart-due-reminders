@@ -212,3 +212,9 @@ verify_jwt = true
 
 [functions.process-expired-seat-billing]
 verify_jwt = false
+
+[functions.sync-billing-reconcile]
+verify_jwt = true
+
+[functions.handle-payment-failure]
+verify_jwt = false
