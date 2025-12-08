@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask, TaskNote } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
-import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote } from "lucide-react";
+import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -342,10 +342,10 @@ export const TaskDetailModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:hidden">
+        <DialogHeader className="pr-0">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="flex-1 min-w-0">
               <DialogTitle className="text-xl">
                 {getTaskTypeLabel(task.task_type)}
               </DialogTitle>
@@ -353,16 +353,25 @@ export const TaskDetailModal = ({
                 {task.summary}
               </DialogDescription>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1">
-                <CalendarClock className="h-3 w-3" />
-                {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
-              </Badge>
-              <Badge variant={task.status === 'done' ? 'default' : 'secondary'}>
-                {task.status}
-              </Badge>
-              <Badge>{task.priority}</Badge>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+          <div className="flex gap-2 flex-wrap mt-3">
+            <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
+            </Badge>
+            <Badge variant={task.status === 'done' ? 'default' : 'secondary'}>
+              {task.status}
+            </Badge>
+            <Badge>{task.priority}</Badge>
           </div>
         </DialogHeader>
 
