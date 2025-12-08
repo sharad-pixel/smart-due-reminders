@@ -48,19 +48,85 @@ interface TeamAction {
 }
 
 // Helper: Get billable seat count for an account
+// Includes active users AND disabled users still within their billing period
 async function getBillableSeatCount(supabase: any, accountId: string): Promise<number> {
-  const { data, error } = await supabase
+  const now = new Date().toISOString();
+  
+  // Count active users
+  const { data: activeData, error: activeError } = await supabase
     .from('account_users')
-    .select('id', { count: 'exact' })
+    .select('id')
     .eq('account_id', accountId)
     .eq('is_owner', false)
     .eq('status', 'active');
 
-  if (error) {
-    logStep('Error getting seat count', { error });
+  if (activeError) {
+    logStep('Error getting active seat count', { error: activeError });
     return 0;
   }
-  return data?.length || 0;
+
+  // Count disabled users still in billing period
+  const { data: billingData, error: billingError } = await supabase
+    .from('account_users')
+    .select('id')
+    .eq('account_id', accountId)
+    .eq('is_owner', false)
+    .eq('status', 'disabled')
+    .not('seat_billing_ends_at', 'is', null)
+    .gt('seat_billing_ends_at', now);
+
+  if (billingError) {
+    logStep('Error getting billing period seats', { error: billingError });
+  }
+
+  const activeCount = activeData?.length || 0;
+  const billingPeriodCount = billingData?.length || 0;
+  
+  logStep('Billable seat calculation', { activeCount, billingPeriodCount, total: activeCount + billingPeriodCount });
+  return activeCount + billingPeriodCount;
+}
+
+// Helper: Get subscription period end date from Stripe
+async function getSubscriptionPeriodEnd(supabase: any, accountId: string): Promise<Date | null> {
+  const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+  if (!stripeKey) {
+    logStep('STRIPE_SECRET_KEY not configured for period end lookup');
+    return null;
+  }
+
+  const { data: ownerProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('stripe_subscription_id, billing_interval, current_period_end')
+    .eq('id', accountId)
+    .single();
+
+  if (profileError || !ownerProfile) {
+    logStep('No profile found for period end', { accountId });
+    return null;
+  }
+
+  // First try to use cached current_period_end from profiles
+  if (ownerProfile.current_period_end) {
+    return new Date(ownerProfile.current_period_end);
+  }
+
+  // Fall back to fetching from Stripe
+  if (!ownerProfile.stripe_subscription_id) {
+    logStep('No subscription ID for period end lookup', { accountId });
+    return null;
+  }
+
+  try {
+    const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
+    const subscription = await stripe.subscriptions.retrieve(ownerProfile.stripe_subscription_id);
+    
+    const periodEnd = new Date(subscription.current_period_end * 1000);
+    logStep('Retrieved subscription period end', { periodEnd: periodEnd.toISOString() });
+    return periodEnd;
+  } catch (error) {
+    logStep('Error fetching subscription period end', { error: error instanceof Error ? error.message : error });
+    return null;
+  }
 }
 
 // Helper: Update Stripe seat quantity
@@ -506,12 +572,23 @@ Deno.serve(async (req) => {
             .in('status', ['open', 'in_progress']);
         }
 
-        // Deactivate the member
+        // Get subscription period end - user remains billable until end of current term
+        const periodEnd = await getSubscriptionPeriodEnd(supabaseClient, managingAccountId);
+        const seatBillingEndsAt = periodEnd?.toISOString() || null;
+        
+        logStep('Setting seat billing end date', { 
+          userId: targetUserId, 
+          periodEnd: seatBillingEndsAt,
+          message: periodEnd ? 'User will remain billable until period end' : 'No subscription - immediate removal'
+        });
+
+        // Deactivate the member with billing end date
         const { data, error } = await supabaseClient
           .from('account_users')
           .update({ 
             status: 'disabled', 
             disabled_at: new Date().toISOString(),
+            seat_billing_ends_at: seatBillingEndsAt,
             updated_at: new Date().toISOString() 
           })
           .eq('account_id', managingAccountId)
@@ -521,11 +598,21 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
-        // Sync billing - seat removed
+        // Sync billing - includes disabled users still in billing period
         const seatCount = await getBillableSeatCount(supabaseClient, managingAccountId);
         await updateStripeSeatQuantity(supabaseClient, managingAccountId, seatCount, user.id);
 
-        result = { success: true, data, message: 'Team member deactivated successfully', seatCount };
+        const billingMessage = periodEnd 
+          ? `Team member deactivated. Billing continues until ${periodEnd.toLocaleDateString()}.`
+          : 'Team member deactivated successfully.';
+
+        result = { 
+          success: true, 
+          data, 
+          message: billingMessage, 
+          seatCount,
+          seatBillingEndsAt 
+        };
         break;
       }
 

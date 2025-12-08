@@ -27,6 +27,7 @@ interface TeamMember {
   status: string;
   invited_at: string;
   accepted_at: string | null;
+  seat_billing_ends_at: string | null; // When billing ends for deactivated users
   profiles: {
     name: string | null;
     email: string | null;
@@ -705,7 +706,14 @@ const Team = () => {
                           <Badge variant="default" className="bg-success/20 text-success border-success/30">Active</Badge>
                         )}
                         {member.status === "disabled" && (
-                          <Badge variant="secondary">Inactive</Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="secondary">Inactive</Badge>
+                            {member.seat_billing_ends_at && new Date(member.seat_billing_ends_at) > new Date() && (
+                              <span className="text-xs text-muted-foreground">
+                                Billed until {new Date(member.seat_billing_ends_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
                         )}
                         {member.status === "pending" && (
                           <Badge variant="outline" className="border-warning text-warning">Pending</Badge>
@@ -826,19 +834,19 @@ const Team = () => {
                   <ul className="text-sm text-muted-foreground space-y-2">
                     <li className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-success" />
-                      Remove their access to your account
+                      Remove their access to your account immediately
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-success" />
-                      Reduce your billable seats by 1
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-success" />
-                      Prorate your next invoice automatically
+                      <DollarSign className="h-4 w-4 text-warning" />
+                      <span>
+                        <strong>Billing continues until end of current billing period</strong>
+                        <br />
+                        <span className="text-xs">Seat will be removed from billing at period end</span>
+                      </span>
                     </li>
                     <li className="flex items-center gap-2">
                       <RefreshCw className="h-4 w-4 text-primary" />
-                      Can be reactivated anytime
+                      Can be reactivated anytime (no additional charge during paid period)
                     </li>
                   </ul>
                   
