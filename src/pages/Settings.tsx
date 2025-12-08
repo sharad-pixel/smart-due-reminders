@@ -363,7 +363,7 @@ const Settings = () => {
   };
 
 
-  if (loading) {
+  if (loading || effectiveAccount.loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
