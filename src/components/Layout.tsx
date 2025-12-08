@@ -57,7 +57,21 @@ const Layout = ({ children }: LayoutProps) => {
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
-  const { isTeamMember, ownerName, ownerEmail, loading: accountLoading } = useEffectiveAccount();
+  const { 
+    isTeamMember, 
+    ownerName, 
+    ownerEmail, 
+    ownerCompanyName,
+    ownerPlanType, 
+    ownerSubscriptionStatus,
+    memberRole,
+    loading: accountLoading 
+  } = useEffectiveAccount();
+  
+  // Use owner's plan for team members
+  const displayPlanType = isTeamMember && ownerPlanType ? ownerPlanType : planType;
+  const displaySubscriptionStatus = isTeamMember && ownerSubscriptionStatus ? ownerSubscriptionStatus : subscriptionStatus;
+  const canUpgrade = !isTeamMember; // Only account owners can upgrade
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
 
@@ -316,22 +330,39 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuSeparator />
                   
                   <div className="px-2 py-3 space-y-3">
+                    {isTeamMember && ownerCompanyName && (
+                      <div className="pb-2 border-b">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Building2 className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{ownerCompanyName}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Connected via {ownerName || ownerEmail}
+                        </p>
+                      </div>
+                    )}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Plan:</span>
-                        <span className="font-medium capitalize">{planType}</span>
+                        <span className="font-medium capitalize">{displayPlanType}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Status:</span>
-                        {subscriptionStatus ? (
-                          <span className="text-green-600 font-medium">{subscriptionStatus}</span>
+                        {displaySubscriptionStatus && displaySubscriptionStatus !== 'inactive' ? (
+                          <span className="text-green-600 font-medium capitalize">{displaySubscriptionStatus}</span>
                         ) : (
                           <span className="text-muted-foreground">Free Plan</span>
                         )}
                       </div>
+                      {isTeamMember && memberRole && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Your Role:</span>
+                          <span className="font-medium capitalize">{memberRole}</span>
+                        </div>
+                      )}
                     </div>
                     <UsageIndicator />
-                    {planType === 'free' && (
+                    {canUpgrade && displayPlanType === 'free' && (
                       <Button 
                         size="sm" 
                         className="w-full"

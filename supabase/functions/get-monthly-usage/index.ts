@@ -36,20 +36,33 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
+    // Get effective account ID for team members
+    const { data: effectiveAccountId, error: effectiveError } = await supabaseClient
+      .rpc('get_effective_account_id', { p_user_id: user.id });
+    
+    if (effectiveError) {
+      logStep("Error getting effective account, using user ID", { error: effectiveError.message });
+    }
+    
+    const accountId = effectiveAccountId || user.id;
+    const isTeamMember = accountId !== user.id;
+    
+    logStep("Effective account determined", { accountId, isTeamMember });
+
     // Get current month in YYYY-MM format
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     logStep("Checking usage for month", { month: currentMonth });
 
-    // Get user's profile and plan
+    // Get account owner's profile and plan (use effective account ID)
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('plan_id, plan_type')
-      .eq('id', user.id)
+      .eq('id', accountId)
       .single();
 
     if (profileError) {
-      throw new Error("User profile not found");
+      throw new Error("Account profile not found");
     }
 
     let plan;
@@ -103,11 +116,11 @@ serve(async (req) => {
       logStep("Plan loaded from database", { planName: plan.name, limit: plan.invoice_limit });
     }
 
-    // Get or create usage record for current month
+    // Get or create usage record for current month (use effective account ID)
     let { data: usage, error: usageError } = await supabaseClient
       .from('invoice_usage')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', accountId)
       .eq('month', currentMonth)
       .single();
 
@@ -116,11 +129,11 @@ serve(async (req) => {
     }
 
     if (!usage) {
-      // Create usage record if it doesn't exist
+      // Create usage record if it doesn't exist (only for account owner)
       const { data: newUsage, error: createError } = await supabaseClient
         .from('invoice_usage')
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           month: currentMonth,
           included_invoices_used: 0,
           overage_invoices: 0,
@@ -136,7 +149,7 @@ serve(async (req) => {
       logStep("Created new usage record");
     }
 
-    // Count actual Open and InPaymentPlan invoices created this month
+    // Count actual Open and InPaymentPlan invoices created this month (use effective account ID)
     const monthStart = `${currentMonth}-01`;
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const monthEnd = nextMonth.toISOString().split('T')[0];
@@ -144,7 +157,7 @@ serve(async (req) => {
     const { data: countableInvoices, error: countError } = await supabaseClient
       .from('invoices')
       .select('id, is_overage')
-      .eq('user_id', user.id)
+      .eq('user_id', accountId)
       .in('status', ['Open', 'InPaymentPlan'])
       .gte('created_at', monthStart)
       .lt('created_at', monthEnd);
@@ -177,7 +190,8 @@ serve(async (req) => {
       remaining_quota: remaining,
       is_over_limit: isOverLimit,
       plan_name: plan.name,
-      overage_rate: plan.overage_amount || 0
+      overage_rate: plan.overage_amount || 0,
+      is_team_member: isTeamMember
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
