@@ -698,28 +698,30 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-primary" />
-              <CardTitle>Team Members</CardTitle>
-            </div>
-            <CardDescription>
-              Manage team members who can be assigned to collection tasks
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Add team members to assign tasks and receive email notifications with task and invoice details.
-              </p>
-              <Button variant="outline" size="sm" onClick={() => navigate("/team")}>
-                <Users className="h-4 w-4 mr-2" />
-                Manage Team Members
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {!isChildAccount && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle>Team Members</CardTitle>
+              </div>
+              <CardDescription>
+                Manage team members who can be assigned to collection tasks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Add team members to assign tasks and receive email notifications with task and invoice details.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => navigate("/team")}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Team Members
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -750,7 +752,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {subscriptionInfo && subscriptionInfo.stripe_subscription_id && (
+        {!isChildAccount && subscriptionInfo && subscriptionInfo.stripe_subscription_id && (
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-2">
