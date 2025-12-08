@@ -17,6 +17,7 @@ export const useRoleAccess = () => {
   const permissions = useMemo(() => {
     const isOwnerOrAdmin = role === 'owner' || role === 'admin';
     const canEdit = role === 'owner' || role === 'admin' || role === 'member';
+    const isViewer = role === 'viewer';
     
     return {
       // Team & Role Management
@@ -29,8 +30,9 @@ export const useRoleAccess = () => {
       canManageBilling,
       canViewBilling: isOwnerOrAdmin,
       
-      // Tasks
+      // Tasks - Viewers can view but not be assigned or create
       canAssignTasks: canEdit,
+      canBeAssignedTasks: !isViewer, // Viewers cannot be assigned tasks
       canCreateTasks: canEdit,
       canEditTasks: canEdit,
       canDeleteTasks: isOwnerOrAdmin,
@@ -52,6 +54,12 @@ export const useRoleAccess = () => {
       // Settings
       canEditSettings: isOwnerOrAdmin,
       canEditBranding: isOwnerOrAdmin,
+      
+      // Documents - Only admins can overwrite existing documents
+      canUploadDocuments: canEdit,
+      canOverwriteDocuments: isOwnerOrAdmin, // Only owner/admin can replace existing
+      canDeleteDocuments: isOwnerOrAdmin,
+      canViewDocuments: true,
       
       // Data Center
       canImportData: canEdit,
