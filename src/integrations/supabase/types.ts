@@ -1307,6 +1307,42 @@ export type Database = {
           },
         ]
       }
+      daily_usage_limits: {
+        Row: {
+          ai_commands_count: number | null
+          api_calls_count: number | null
+          created_at: string | null
+          email_sends_count: number | null
+          file_uploads_count: number | null
+          id: string
+          updated_at: string | null
+          usage_date: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_commands_count?: number | null
+          api_calls_count?: number | null
+          created_at?: string | null
+          email_sends_count?: number | null
+          file_uploads_count?: number | null
+          id?: string
+          updated_at?: string | null
+          usage_date?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_commands_count?: number | null
+          api_calls_count?: number | null
+          created_at?: string | null
+          email_sends_count?: number | null
+          file_uploads_count?: number | null
+          id?: string
+          updated_at?: string | null
+          usage_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_center_custom_fields: {
         Row: {
           created_at: string
@@ -3647,6 +3683,39 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          action_type: string
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          identifier: string
+          request_count: number | null
+          updated_at: string | null
+          window_start: string | null
+        }
+        Insert: {
+          action_type: string
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier: string
+          request_count?: number | null
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          action_type?: string
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          request_count?: number | null
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       rca_records: {
         Row: {
           account_owner: string | null
@@ -3946,6 +4015,42 @@ export type Database = {
         }
         Relationships: []
       }
+      suspicious_activity_log: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string | null
@@ -4188,6 +4293,20 @@ export type Database = {
         Args: { p_org_id: string; p_user_id: string }
         Returns: boolean
       }
+      check_action_rate_limit: {
+        Args: {
+          p_action_type: string
+          p_block_duration_minutes?: number
+          p_identifier: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
+      check_daily_usage: {
+        Args: { p_limit?: number; p_usage_type: string; p_user_id: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: { p_email: string; p_ip_address: string }
         Returns: {
@@ -4197,6 +4316,7 @@ export type Database = {
         }[]
       }
       clean_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_invite_token: { Args: never; Returns: string }
       generate_reference_id: {
         Args: { prefix: string; target_table: string }
