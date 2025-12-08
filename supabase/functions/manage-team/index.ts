@@ -351,13 +351,12 @@ Deno.serve(async (req) => {
             accountUserEntry = data;
           } else {
             // Create pending account_users entry with invite token
-            // user_id is set to a generated UUID placeholder (will be updated on acceptance)
-            const placeholderUserId = crypto.randomUUID();
+            // user_id is NULL for pending invites (will be set on acceptance)
             const { data, error } = await supabaseClient
               .from('account_users')
               .insert({
                 account_id: managingAccountId,
-                user_id: placeholderUserId, // Placeholder UUID, will be updated on acceptance
+                user_id: null, // NULL for pending invites, will be set on acceptance
                 email: email,
                 role: role || 'member',
                 status: 'pending',
