@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, UserPlus, RefreshCw } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice, type PlanType } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@/lib/subscriptionConfig";
 import { AccountHierarchy } from "@/components/AccountHierarchy";
-import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { useAccountHierarchy } from "@/hooks/useAccountHierarchy";
 
 // Colorful gauge component
 const UsageGauge = ({ 
@@ -119,30 +119,18 @@ interface StripeSubscriptionData {
   cancel_at_period_end?: boolean;
 }
 
-interface TeamMember {
-  id: string;
-  user_id: string;
-  role: string;
-  status: string;
-  is_owner: boolean;
-  profile?: {
-    display_name: string | null;
-    email: string;
-    avatar_url: string | null;
-  };
-}
-
 const Billing = () => {
   const navigate = useNavigate();
-  const effectiveAccount = useEffectiveAccount();
+  
+  // Use the comprehensive account hierarchy hook
+  const accountHierarchy = useAccountHierarchy();
+  
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [reconciling, setReconciling] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [stripeData, setStripeData] = useState<StripeSubscriptionData | null>(null);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [billingDiscrepancy, setBillingDiscrepancy] = useState<{
     dbSeats: number;
     stripeSeats: number;
@@ -151,11 +139,11 @@ const Billing = () => {
   } | null>(null);
 
   useEffect(() => {
-    // Wait for effective account to load before loading billing data
-    if (!effectiveAccount.loading) {
+    // Wait for account hierarchy to load before loading billing data
+    if (!accountHierarchy.loading && accountHierarchy.effectiveAccountId) {
       loadBillingData();
     }
-  }, [effectiveAccount.loading, effectiveAccount.effectiveAccountId]);
+  }, [accountHierarchy.loading, accountHierarchy.effectiveAccountId]);
 
   // Check for billing discrepancy on load
   const checkBillingDiscrepancy = async () => {
@@ -218,35 +206,7 @@ const Billing = () => {
         setProfile(profileData as ProfileData);
       }
 
-      // Fetch team members for this account (filter by account_id)
-      const { data: accountUserData } = await supabase
-        .from('account_users')
-        .select(`
-          id,
-          user_id,
-          role,
-          status,
-          is_owner,
-          profiles:user_id (
-            display_name,
-            email,
-            avatar_url
-          )
-        `)
-        .eq('account_id', accountId)
-        .in('status', ['active', 'pending']);
-
-      if (accountUserData) {
-        const members = accountUserData.map((au: any) => ({
-          id: au.id,
-          user_id: au.user_id,
-          role: au.role,
-          status: au.status,
-          is_owner: au.is_owner,
-          profile: au.profiles
-        }));
-        setTeamMembers(members);
-      }
+      // Team member data is now fetched via useAccountHierarchy hook
 
       // Fetch usage
       const { data: usageData, error: usageError } = await supabase.functions.invoke('get-monthly-usage');
@@ -334,9 +294,11 @@ const Billing = () => {
   const isUnlimited = invoiceLimit === -1 || invoiceLimit === 'Unlimited';
   const invoicesUsed = usage?.included_invoices_used ?? 0;
 
-  // Display effective account info for team members
-  const isTeamMember = effectiveAccount.isTeamMember;
-  const canManageBilling = !isTeamMember; // Only account owners can manage billing
+  // Use hierarchy data for permissions and display
+  const isTeamMember = !accountHierarchy.isAccountOwner;
+  const canManageBilling = accountHierarchy.permissions.canManageBilling;
+  const parentAccount = accountHierarchy.parentAccount;
+  const billableSeats = billingDiscrepancy?.dbSeats ?? accountHierarchy.billing.billableSeats;
 
   return (
     <Layout>
@@ -352,8 +314,8 @@ const Billing = () => {
           )}
         </div>
 
-        {/* Team Member Notice */}
-        {isTeamMember && (
+        {/* Team Member Notice - Using Account Hierarchy Data */}
+        {isTeamMember && parentAccount && (
           <Card className="mb-6 border-primary/30 bg-primary/5">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -364,29 +326,37 @@ const Billing = () => {
             <CardContent className="pt-0">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  {parentAccount.avatarUrl && (
+                    <AvatarImage src={parentAccount.avatarUrl} />
+                  )}
                   <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                    {(effectiveAccount.ownerName || effectiveAccount.ownerEmail || 'O')[0].toUpperCase()}
+                    {(parentAccount.name || parentAccount.email || 'O')[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold">{effectiveAccount.ownerName || 'Account Owner'}</p>
-                  <p className="text-sm text-muted-foreground">{effectiveAccount.ownerCompanyName || effectiveAccount.ownerEmail}</p>
+                  <p className="font-semibold">{parentAccount.name || 'Account Owner'}</p>
+                  <p className="text-sm text-muted-foreground">{parentAccount.companyName || parentAccount.email}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="capitalize">
-                      {effectiveAccount.ownerPlanType || 'free'} plan
+                      {parentAccount.planType || 'free'} plan
                     </Badge>
-                    {effectiveAccount.ownerSubscriptionStatus === 'active' ? (
+                    {parentAccount.subscriptionStatus === 'active' ? (
                       <Badge className="bg-green-100 text-green-800">
                         <CheckCircle className="w-3 h-3 mr-1" /> Active
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">{effectiveAccount.ownerSubscriptionStatus || 'inactive'}</Badge>
+                      <Badge variant="secondary">{parentAccount.subscriptionStatus || 'inactive'}</Badge>
                     )}
                     <Badge variant="outline" className="capitalize">
-                      Your role: {effectiveAccount.memberRole || 'member'}
+                      Your role: {accountHierarchy.memberRole || 'member'}
                     </Badge>
                   </div>
                 </div>
+              </div>
+              <div className="mt-4 p-3 rounded-lg bg-background/50 text-sm space-y-1">
+                <p><strong>Billable Seats:</strong> {accountHierarchy.billing.billableSeats}</p>
+                <p><strong>Active Members:</strong> {accountHierarchy.billing.activeMembers}</p>
+                <p><strong>Pending Invites:</strong> {accountHierarchy.billing.pendingInvites}</p>
               </div>
               <p className="text-sm text-muted-foreground mt-3">
                 You're viewing billing information for the parent account. Only the account owner can manage billing and subscriptions.
@@ -495,7 +465,7 @@ const Billing = () => {
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span>
                         <strong>Team Seats:</strong>{' '}
-                        {billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length} seat(s)
+                        {billableSeats} seat(s)
                         {billingDiscrepancy && billingDiscrepancy.stripeSeats !== billingDiscrepancy.dbSeats && (
                           <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-600">
                             Stripe: {billingDiscrepancy.stripeSeats}
@@ -525,10 +495,10 @@ const Billing = () => {
                         <span>{planConfig ? formatPrice(profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : '$0'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Team Seats ({billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length})</span>
+                        <span className="text-muted-foreground">Team Seats ({billableSeats})</span>
                         <span>
                           {formatPrice(
-                            (billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length) * 
+                            billableSeats * 
                             (profile?.billing_interval === 'year' 
                               ? Math.round(SEAT_PRICING.annualPrice / 12) 
                               : SEAT_PRICING.monthlyPrice)
@@ -540,7 +510,7 @@ const Billing = () => {
                         <span className="text-primary">
                           {formatPrice(
                             (planConfig ? (profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : 0) +
-                            ((billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length) * 
+                            (billableSeats * 
                               (profile?.billing_interval === 'year' 
                                 ? Math.round(SEAT_PRICING.annualPrice / 12) 
                                 : SEAT_PRICING.monthlyPrice))
@@ -550,7 +520,7 @@ const Billing = () => {
                     </div>
                   </div>
                 </div>
-              <div className="flex flex-col justify-center">
+                <div className="flex flex-col justify-center">
                   {canManageBilling ? (
                     <>
                       {!profile?.stripe_subscription_id ? (
