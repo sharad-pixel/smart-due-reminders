@@ -1,4 +1,5 @@
 import { Resend } from 'https://esm.sh/resend@2.0.0';
+import { wrapEmailContent } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,52 +39,75 @@ Deno.serve(async (req) => {
     const siteUrl = Deno.env.get('SITE_URL') || 'https://recouply.ai';
     const inviteLink = `${siteUrl}/accept-invite?token=${inviteToken}`;
 
+    const bodyContent = `
+      <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
+        🎉 You're Invited to Join a Team!
+      </h2>
+      
+      <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+        <strong>${inviterName || 'A team admin'}</strong> has invited you to join <strong>${accountOwnerName || 'their organization'}</strong> on Recouply.ai, the AI-powered CashOps platform.
+      </p>
+
+      <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+        <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
+          Your Role: ${role.charAt(0).toUpperCase() + role.slice(1)}
+        </p>
+        <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
+          You'll have access to the team's collections data and AI agents
+        </p>
+      </div>
+
+      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 24px; margin: 24px 0;">
+        <h3 style="margin: 0 0 16px; color: #1e3a5f; font-size: 18px; font-weight: 600;">
+          📋 Invitation Details
+        </h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 120px;">Email:</td>
+            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 500;">${email}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Role:</td>
+            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 500;">${role.charAt(0).toUpperCase() + role.slice(1)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Invited By:</td>
+            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 500;">${inviterName || 'Team Admin'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${inviteLink}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
+          Accept Invitation →
+        </a>
+      </div>
+
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+          <strong>⏰ Important:</strong> This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+        </p>
+      </div>
+
+      <p style="margin: 24px 0 0; color: #64748b; font-size: 14px; text-align: center;">
+        Questions? Contact us at <a href="mailto:support@recouply.ai" style="color: #1e3a5f;">support@recouply.ai</a>
+      </p>
+    `;
+
+    const branding = {
+      business_name: "RecouplyAI Inc.",
+      from_name: "Recouply.ai",
+      primary_color: "#1e3a5f"
+    };
+
+    const htmlContent = wrapEmailContent(bodyContent, branding);
+
     const emailResponse = await resend.emails.send({
-      from: 'Recouply.ai <notifications@send.inbound.services.recouply.ai>',
+      from: 'RecouplyAI Inc. <notifications@send.inbound.services.recouply.ai>',
       to: [email],
+      reply_to: 'support@recouply.ai',
       subject: `You're invited to join ${accountOwnerName || 'a team'} on Recouply.ai`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #7C3AED; margin: 0;">Recouply.ai</h1>
-          </div>
-          
-          <div style="background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); border-radius: 12px; padding: 30px; text-align: center; margin-bottom: 30px;">
-            <h2 style="color: white; margin: 0 0 10px 0;">You're Invited!</h2>
-            <p style="color: rgba(255,255,255,0.9); margin: 0;">
-              ${inviterName || 'A team admin'} has invited you to join their team on Recouply.ai
-            </p>
-          </div>
-          
-          <div style="background: #F9FAFB; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-            <p style="margin: 0 0 10px 0;"><strong>Role:</strong> ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
-            <p style="margin: 0;"><strong>Email:</strong> ${email}</p>
-          </div>
-          
-          <div style="text-align: center; margin-bottom: 30px;">
-            <a href="${inviteLink}" style="display: inline-block; background: #7C3AED; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-              Accept Invitation
-            </a>
-          </div>
-          
-          <p style="color: #666; font-size: 14px; text-align: center;">
-            This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.
-          </p>
-          
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
-          
-          <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">
-            Recouply.ai - AI-Powered Collections Management
-          </p>
-        </body>
-        </html>
-      `,
+      html: htmlContent,
     });
 
     logStep('Email sent successfully', { data: emailResponse.data });
