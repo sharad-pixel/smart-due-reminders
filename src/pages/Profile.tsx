@@ -178,16 +178,22 @@ const Profile = () => {
 
       setMembership(membershipData);
 
-      // Get organization details
-      const { data: orgData } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("owner_user_id", user.id)
-        .single();
+      // Get organization details - use RPC to get org for both owners and team members
+      const { data: orgId } = await supabase.rpc('get_user_organization_id', {
+        p_user_id: user.id
+      });
 
-      setOrganization(orgData);
-      if (orgData?.name) {
-        setNewWorkspaceName(orgData.name);
+      if (orgId) {
+        const { data: orgData } = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", orgId)
+          .single();
+
+        setOrganization(orgData);
+        if (orgData?.name) {
+          setNewWorkspaceName(orgData.name);
+        }
       }
 
       // Get plan details from database
