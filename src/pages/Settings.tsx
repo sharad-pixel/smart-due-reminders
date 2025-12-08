@@ -8,10 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette, UserPlus } from "lucide-react";
+import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette, UserPlus, Lock, Crown, Building2 } from "lucide-react";
 import { LogoUpload } from "@/components/LogoUpload";
 import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface ProfileData {
   business_name: string;
@@ -86,11 +89,42 @@ const Settings = () => {
     logo_url: null,
   });
 
+  // Get effective account info to determine if child account
+  const effectiveAccount = useEffectiveAccount();
+  const isChildAccount = effectiveAccount.isTeamMember;
+
   useEffect(() => {
-    fetchProfile();
+    // Wait for effective account to load
+    if (effectiveAccount.loading) return;
+    
+    if (isChildAccount) {
+      // For child accounts, populate with parent's business profile
+      setProfile({
+        business_name: effectiveAccount.ownerBusinessName || "",
+        business_address: "",
+        business_address_line1: effectiveAccount.ownerBusinessAddressLine1 || "",
+        business_address_line2: effectiveAccount.ownerBusinessAddressLine2 || "",
+        business_city: effectiveAccount.ownerBusinessCity || "",
+        business_state: effectiveAccount.ownerBusinessState || "",
+        business_postal_code: effectiveAccount.ownerBusinessPostalCode || "",
+        business_country: effectiveAccount.ownerBusinessCountry || "",
+        business_phone: effectiveAccount.ownerBusinessPhone || "",
+        from_name: effectiveAccount.ownerFromName || "",
+        from_email: effectiveAccount.ownerFromEmail || "",
+        reply_to_email: effectiveAccount.ownerReplyToEmail || "",
+        email_signature: effectiveAccount.ownerEmailSignature || "",
+        email_footer: effectiveAccount.ownerEmailFooter || "",
+        stripe_payment_link_url: effectiveAccount.ownerStripePaymentLinkUrl || "",
+        email: effectiveAccount.ownerEmail || "",
+        logo_url: effectiveAccount.ownerLogoUrl || null,
+      });
+      setLoading(false);
+    } else {
+      fetchProfile();
+    }
     fetchSubscriptionInfo();
     fetchCredentialsStatus();
-  }, []);
+  }, [effectiveAccount.loading, isChildAccount]);
 
   const fetchCredentialsStatus = async () => {
     try {
@@ -349,14 +383,71 @@ const Settings = () => {
           </p>
         </div>
 
+        {/* Parent Account Banner for Child Accounts */}
+        {isChildAccount && (
+          <Card className="border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-0">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Parent Account
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                    {(effectiveAccount.ownerName || effectiveAccount.ownerEmail || 'O')[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{effectiveAccount.ownerName || 'Account Owner'}</p>
+                  {effectiveAccount.ownerCompanyName && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Building2 className="h-3 w-3" />
+                      {effectiveAccount.ownerCompanyName}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {effectiveAccount.ownerPlanType || 'free'} Plan
+                    </Badge>
+                    {effectiveAccount.ownerSubscriptionStatus === 'active' && (
+                      <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Alert className="mt-4 bg-amber-50 border-amber-200">
+                <Lock className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 text-sm">
+                  Business profile settings are managed by the parent account owner. Contact them to make changes.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-primary" />
-              <CardTitle>Business Profile</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Building className="h-5 w-5 text-primary" />
+                <CardTitle>Business Profile</CardTitle>
+              </div>
+              {isChildAccount && (
+                <Badge variant="secondary" className="text-xs">
+                  <Lock className="h-3 w-3 mr-1" />
+                  Read Only
+                </Badge>
+              )}
             </div>
             <CardDescription>
-              Update your business information displayed on invoices and messages
+              {isChildAccount 
+                ? "Business information inherited from parent account"
+                : "Update your business information displayed on invoices and messages"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -367,6 +458,8 @@ const Settings = () => {
                 value={profile.business_name}
                 onChange={(e) => setProfile({ ...profile, business_name: e.target.value })}
                 placeholder="Acme Inc."
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -376,6 +469,8 @@ const Settings = () => {
                 value={profile.business_address_line1}
                 onChange={(e) => setProfile({ ...profile, business_address_line1: e.target.value })}
                 placeholder="Street address"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -386,6 +481,8 @@ const Settings = () => {
                   value={profile.business_address_line2}
                   onChange={(e) => setProfile({ ...profile, business_address_line2: e.target.value })}
                   placeholder="Apt, Suite, etc."
+                  disabled={isChildAccount}
+                  className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -394,6 +491,8 @@ const Settings = () => {
                   id="business_city"
                   value={profile.business_city}
                   onChange={(e) => setProfile({ ...profile, business_city: e.target.value })}
+                  disabled={isChildAccount}
+                  className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -402,6 +501,8 @@ const Settings = () => {
                   id="business_state"
                   value={profile.business_state}
                   onChange={(e) => setProfile({ ...profile, business_state: e.target.value })}
+                  disabled={isChildAccount}
+                  className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -410,6 +511,8 @@ const Settings = () => {
                   id="business_postal_code"
                   value={profile.business_postal_code}
                   onChange={(e) => setProfile({ ...profile, business_postal_code: e.target.value })}
+                  disabled={isChildAccount}
+                  className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -418,6 +521,8 @@ const Settings = () => {
                   id="business_country"
                   value={profile.business_country}
                   onChange={(e) => setProfile({ ...profile, business_country: e.target.value })}
+                  disabled={isChildAccount}
+                  className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
                 />
               </div>
             </div>
@@ -429,6 +534,8 @@ const Settings = () => {
                 value={profile.business_phone}
                 onChange={(e) => setProfile({ ...profile, business_phone: e.target.value })}
                 placeholder="+1 (555) 123-4567"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
             </div>
           </CardContent>
@@ -436,19 +543,42 @@ const Settings = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Palette className="h-5 w-5 text-primary" />
-              <CardTitle>Company Logo</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Palette className="h-5 w-5 text-primary" />
+                <CardTitle>Company Logo</CardTitle>
+              </div>
+              {isChildAccount && (
+                <Badge variant="secondary" className="text-xs">
+                  <Lock className="h-3 w-3 mr-1" />
+                  Read Only
+                </Badge>
+              )}
             </div>
             <CardDescription>
-              Upload your company logo to appear in the signature of all outbound messages
+              {isChildAccount 
+                ? "Logo inherited from parent account"
+                : "Upload your company logo to appear in the signature of all outbound messages"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LogoUpload
-              currentLogoUrl={profile.logo_url}
-              onLogoChange={(url) => setProfile({ ...profile, logo_url: url })}
-            />
+            {isChildAccount ? (
+              <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                {profile.logo_url ? (
+                  <img src={profile.logo_url} alt="Company Logo" className="h-16 w-auto max-w-[200px] object-contain" />
+                ) : (
+                  <div className="h-16 w-32 bg-muted-foreground/10 rounded flex items-center justify-center text-sm text-muted-foreground">
+                    No logo set
+                  </div>
+                )}
+              </div>
+            ) : (
+              <LogoUpload
+                currentLogoUrl={profile.logo_url}
+                onLogoChange={(url) => setProfile({ ...profile, logo_url: url })}
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -481,12 +611,23 @@ const Settings = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Branding & White-Label Settings</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Mail className="h-5 w-5 text-primary" />
+                <CardTitle>Branding & White-Label Settings</CardTitle>
+              </div>
+              {isChildAccount && (
+                <Badge variant="secondary" className="text-xs">
+                  <Lock className="h-3 w-3 mr-1" />
+                  Read Only
+                </Badge>
+              )}
             </div>
             <CardDescription>
-              Configure how your business appears in all outreach messages
+              {isChildAccount 
+                ? "Branding settings inherited from parent account"
+                : "Configure how your business appears in all outreach messages"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -497,6 +638,8 @@ const Settings = () => {
                 value={profile.from_name}
                 onChange={(e) => setProfile({ ...profile, from_name: e.target.value })}
                 placeholder="Acme AR Team"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
               <p className="text-sm text-muted-foreground">
                 This name appears as the sender in emails
@@ -510,6 +653,8 @@ const Settings = () => {
                 value={profile.from_email}
                 onChange={(e) => setProfile({ ...profile, from_email: e.target.value })}
                 placeholder="collections@acme.com"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -520,6 +665,8 @@ const Settings = () => {
                 value={profile.reply_to_email}
                 onChange={(e) => setProfile({ ...profile, reply_to_email: e.target.value })}
                 placeholder="support@acme.com"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -529,6 +676,8 @@ const Settings = () => {
                 value={profile.email_signature}
                 onChange={(e) => setProfile({ ...profile, email_signature: e.target.value })}
                 placeholder="Best regards,\nThe Acme Team"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -538,6 +687,8 @@ const Settings = () => {
                 value={profile.email_footer}
                 onChange={(e) => setProfile({ ...profile, email_footer: e.target.value })}
                 placeholder="Acme Inc. | 123 Main St | contact@acme.com"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
               />
               <p className="text-sm text-muted-foreground">
                 Legal text or company information at the bottom of emails
@@ -854,12 +1005,14 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSaveProfile} disabled={saving} size="lg">
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save All Settings"}
-          </Button>
-        </div>
+        {!isChildAccount && (
+          <div className="flex justify-end">
+            <Button onClick={handleSaveProfile} disabled={saving} size="lg">
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Saving..." : "Save All Settings"}
+            </Button>
+          </div>
+        )}
       </div>
     </Layout>
   );

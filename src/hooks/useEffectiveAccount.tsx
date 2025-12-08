@@ -11,6 +11,22 @@ interface EffectiveAccountInfo {
   ownerSubscriptionStatus: string | null;
   memberRole: string | null;
   loading: boolean;
+  // Business profile fields from parent account
+  ownerBusinessName: string | null;
+  ownerBusinessPhone: string | null;
+  ownerBusinessAddressLine1: string | null;
+  ownerBusinessAddressLine2: string | null;
+  ownerBusinessCity: string | null;
+  ownerBusinessState: string | null;
+  ownerBusinessPostalCode: string | null;
+  ownerBusinessCountry: string | null;
+  ownerStripePaymentLinkUrl: string | null;
+  ownerLogoUrl: string | null;
+  ownerFromName: string | null;
+  ownerFromEmail: string | null;
+  ownerReplyToEmail: string | null;
+  ownerEmailSignature: string | null;
+  ownerEmailFooter: string | null;
 }
 
 export const useEffectiveAccount = () => {
@@ -24,6 +40,21 @@ export const useEffectiveAccount = () => {
     ownerSubscriptionStatus: null,
     memberRole: null,
     loading: true,
+    ownerBusinessName: null,
+    ownerBusinessPhone: null,
+    ownerBusinessAddressLine1: null,
+    ownerBusinessAddressLine2: null,
+    ownerBusinessCity: null,
+    ownerBusinessState: null,
+    ownerBusinessPostalCode: null,
+    ownerBusinessCountry: null,
+    ownerStripePaymentLinkUrl: null,
+    ownerLogoUrl: null,
+    ownerFromName: null,
+    ownerFromEmail: null,
+    ownerReplyToEmail: null,
+    ownerEmailSignature: null,
+    ownerEmailFooter: null,
   });
 
   useEffect(() => {
@@ -42,17 +73,12 @@ export const useEffectiveAccount = () => {
         if (effectiveError) {
           console.error("Error getting effective account:", effectiveError);
           // Fallback to user's own ID
-          setAccountInfo({
+          setAccountInfo(prev => ({
+            ...prev,
             effectiveAccountId: user.id,
             isTeamMember: false,
-            ownerName: null,
-            ownerEmail: null,
-            ownerCompanyName: null,
-            ownerPlanType: null,
-            ownerSubscriptionStatus: null,
-            memberRole: null,
             loading: false,
-          });
+          }));
           return;
         }
 
@@ -60,11 +86,23 @@ export const useEffectiveAccount = () => {
         const isTeamMember = effectiveAccountId !== user.id;
 
         if (isTeamMember) {
-          // Get owner's profile info including company and plan
+          // Get owner's profile info including company, plan, and business profile
           const { data: ownerProfile } = await supabase
             .from('profiles')
-            .select('name, email, company_name, plan_type, subscription_status')
+            .select(`
+              name, email, company_name, plan_type, subscription_status,
+              business_name, business_phone, business_address_line1, business_address_line2,
+              business_city, business_state, business_postal_code, business_country,
+              stripe_payment_link_url
+            `)
             .eq('id', effectiveAccountId)
+            .single();
+          
+          // Get owner's branding settings
+          const { data: brandingSettings } = await supabase
+            .from('branding_settings')
+            .select('logo_url, from_name, from_email, reply_to_email, email_signature, email_footer')
+            .eq('user_id', effectiveAccountId)
             .single();
           
           // Get user's role in the team
@@ -86,19 +124,30 @@ export const useEffectiveAccount = () => {
             ownerSubscriptionStatus: ownerProfile?.subscription_status || null,
             memberRole: memberData?.role || null,
             loading: false,
+            // Business profile from parent
+            ownerBusinessName: ownerProfile?.business_name || null,
+            ownerBusinessPhone: ownerProfile?.business_phone || null,
+            ownerBusinessAddressLine1: ownerProfile?.business_address_line1 || null,
+            ownerBusinessAddressLine2: ownerProfile?.business_address_line2 || null,
+            ownerBusinessCity: ownerProfile?.business_city || null,
+            ownerBusinessState: ownerProfile?.business_state || null,
+            ownerBusinessPostalCode: ownerProfile?.business_postal_code || null,
+            ownerBusinessCountry: ownerProfile?.business_country || null,
+            ownerStripePaymentLinkUrl: ownerProfile?.stripe_payment_link_url || null,
+            ownerLogoUrl: brandingSettings?.logo_url || null,
+            ownerFromName: brandingSettings?.from_name || null,
+            ownerFromEmail: brandingSettings?.from_email || null,
+            ownerReplyToEmail: brandingSettings?.reply_to_email || null,
+            ownerEmailSignature: brandingSettings?.email_signature || null,
+            ownerEmailFooter: brandingSettings?.email_footer || null,
           });
         } else {
-          setAccountInfo({
+          setAccountInfo(prev => ({
+            ...prev,
             effectiveAccountId,
             isTeamMember: false,
-            ownerName: null,
-            ownerEmail: null,
-            ownerCompanyName: null,
-            ownerPlanType: null,
-            ownerSubscriptionStatus: null,
-            memberRole: null,
             loading: false,
-          });
+          }));
         }
       } catch (error) {
         console.error("Error in useEffectiveAccount:", error);
