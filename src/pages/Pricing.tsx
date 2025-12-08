@@ -223,9 +223,24 @@ const Pricing = () => {
           <p className="text-sm text-muted-foreground mb-8">
             Pricing is based on active invoices per month. All plans include full access to AI agents, automation, dashboards, and support.
           </p>
+        </div>
+      </section>
+
+      {/* Cost Comparison: Human Collectors vs AI Agents */}
+      <CostComparisonSection onCTAClick={() => handlePlanClick("growth")} />
+
+      {/* Pricing Cards Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto text-center max-w-4xl mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Choose Your Plan
+          </h2>
+          <p className="text-lg text-muted-foreground mb-8">
+            Select the plan that matches your invoice volume. Scale up anytime.
+          </p>
           
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
+          <div className="flex items-center justify-center gap-4">
             <Label htmlFor="billing-toggle" className={!isAnnual ? "font-semibold" : "text-muted-foreground"}>
               Monthly
             </Label>
@@ -338,15 +353,12 @@ const Pricing = () => {
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-sm text-muted-foreground bg-muted/30 inline-block px-6 py-3 rounded-lg">
+            <p className="text-sm text-muted-foreground bg-background/50 inline-block px-6 py-3 rounded-lg">
               Overage charges are calculated monthly based on actual active invoice usage.
             </p>
           </div>
         </div>
       </section>
-
-      {/* Cost Comparison: Human Collectors vs AI Agents */}
-      <CostComparisonSection onCTAClick={() => handlePlanClick("growth")} />
 
       {/* ICP-Relevant Benefits */}
       <section className="py-16 px-4 bg-muted/30">
