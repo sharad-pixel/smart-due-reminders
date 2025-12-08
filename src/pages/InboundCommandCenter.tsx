@@ -1822,17 +1822,21 @@ const InboundCommandCenter = () => {
           }
           toast.success("Task updated");
         }}
-        onDelete={async (taskId) => {
-          await supabase.from("collection_tasks").delete().eq("id", taskId);
+        onArchive={async (taskId) => {
+          await supabase
+            .from("collection_tasks")
+            .update({ is_archived: true, archived_at: new Date().toISOString() })
+            .eq("id", taskId);
           if (selectedEmail) {
             const { data } = await supabase
               .from("collection_tasks")
               .select("*")
               .eq("inbound_email_id", selectedEmail.id)
+              .eq("is_archived", false)
               .order("created_at", { ascending: false });
             setEmailTasks(data || []);
           }
-          toast.success("Task deleted");
+          toast.success("Task archived");
         }}
         onAssign={async (taskId, assignedTo, assignedPersona) => {
           await supabase

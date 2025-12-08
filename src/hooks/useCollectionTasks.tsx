@@ -140,24 +140,54 @@ export const useCollectionTasks = () => {
     }
   };
 
-  const deleteTask = async (taskId: string) => {
+  const archiveTask = async (taskId: string) => {
     try {
       const { error } = await supabase
         .from('collection_tasks')
-        .delete()
+        .update({ 
+          is_archived: true, 
+          archived_at: new Date().toISOString() 
+        })
         .eq('id', taskId);
 
       if (error) throw error;
 
       toast({
-        title: "Task Deleted",
-        description: "Task deleted successfully",
+        title: "Task Archived",
+        description: "Task archived successfully",
       });
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error('Error archiving task:', error);
       toast({
         title: "Error",
-        description: "Failed to delete task",
+        description: "Failed to archive task",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const unarchiveTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('collection_tasks')
+        .update({ 
+          is_archived: false, 
+          archived_at: null 
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task Restored",
+        description: "Task restored successfully",
+      });
+    } catch (error) {
+      console.error('Error restoring task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore task",
         variant: "destructive",
       });
       throw error;
@@ -168,7 +198,8 @@ export const useCollectionTasks = () => {
     fetchTasks,
     updateTaskStatus,
     updateTask,
-    deleteTask,
+    archiveTask,
+    unarchiveTask,
     isLoading
   };
 };

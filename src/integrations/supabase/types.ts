@@ -767,6 +767,7 @@ export type Database = {
         Row: {
           activity_id: string | null
           ai_reasoning: string | null
+          archived_at: string | null
           assigned_persona: string | null
           assigned_to: string | null
           assignment_email_sent_at: string | null
@@ -779,6 +780,7 @@ export type Database = {
           id: string
           inbound_email_id: string | null
           invoice_id: string | null
+          is_archived: boolean | null
           level: string | null
           notes: Json | null
           organization_id: string | null
@@ -797,6 +799,7 @@ export type Database = {
         Insert: {
           activity_id?: string | null
           ai_reasoning?: string | null
+          archived_at?: string | null
           assigned_persona?: string | null
           assigned_to?: string | null
           assignment_email_sent_at?: string | null
@@ -809,6 +812,7 @@ export type Database = {
           id?: string
           inbound_email_id?: string | null
           invoice_id?: string | null
+          is_archived?: boolean | null
           level?: string | null
           notes?: Json | null
           organization_id?: string | null
@@ -827,6 +831,7 @@ export type Database = {
         Update: {
           activity_id?: string | null
           ai_reasoning?: string | null
+          archived_at?: string | null
           assigned_persona?: string | null
           assigned_to?: string | null
           assignment_email_sent_at?: string | null
@@ -839,6 +844,7 @@ export type Database = {
           id?: string
           inbound_email_id?: string | null
           invoice_id?: string | null
+          is_archived?: boolean | null
           level?: string | null
           notes?: Json | null
           organization_id?: string | null
