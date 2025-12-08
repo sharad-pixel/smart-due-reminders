@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,23 @@ interface TasksSummaryCardProps {
   tasks: CollectionTask[];
   title?: string;
   onTaskUpdate?: () => void;
+  showAssignedToMeFilter?: boolean;
 }
 
-export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }: TasksSummaryCardProps) => {
+export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, showAssignedToMeFilter = false }: TasksSummaryCardProps) => {
   const navigate = useNavigate();
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    fetchUser();
+  }, []);
 
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
@@ -60,9 +71,14 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }
     }
   };
 
-  const openTasks = tasks.filter(t => t.status === 'open');
-  const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
-  const urgentTasks = tasks.filter(t => t.priority === 'urgent' && t.status !== 'done');
+  // Filter tasks based on "Assigned to Me" toggle
+  const filteredTasks = assignedToMeOnly && currentUserId
+    ? tasks.filter(t => t.assigned_to === currentUserId)
+    : tasks;
+
+  const openTasks = filteredTasks.filter(t => t.status === 'open');
+  const inProgressTasks = filteredTasks.filter(t => t.status === 'in_progress');
+  const urgentTasks = filteredTasks.filter(t => t.priority === 'urgent' && t.status !== 'done');
 
   const getTaskTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -104,12 +120,21 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }
     <>
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <CheckSquare className="h-5 w-5" />
             {title}
           </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap items-center">
+            {showAssignedToMeFilter && (
+              <Button
+                variant={assignedToMeOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAssignedToMeOnly(!assignedToMeOnly)}
+              >
+                Assigned to Me
+              </Button>
+            )}
             {urgentTasks.length > 0 && (
               <Badge variant="destructive" className="text-xs">
                 {urgentTasks.length} Urgent
@@ -122,53 +147,61 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate }
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {tasks.slice(0, 5).map(task => {
-          const daysOpen = getDaysOpen(task.created_at);
-          return (
-            <div
-              key={task.id}
-              className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
-              onClick={() => {
-                setSelectedTask(task);
-                setModalOpen(true);
-              }}
-            >
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {task.priority === 'urgent' && (
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                  )}
-                  {task.status === 'in_progress' && (
-                    <Clock className="h-4 w-4 text-blue-500" />
-                  )}
-                  <span className="font-medium text-sm">
-                    {getTaskTypeLabel(task.task_type)}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {task.status}
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                    <CalendarClock className="h-3 w-3" />
-                    {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {task.summary}
-                </p>
-                {task.recommended_action && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    → {task.recommended_action}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        
-        {tasks.length > 5 && (
-          <p className="text-xs text-muted-foreground text-center">
-            +{tasks.length - 5} more tasks
+        {filteredTasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            {assignedToMeOnly ? "No tasks assigned to you" : "No tasks to display"}
           </p>
+        ) : (
+          <>
+            {filteredTasks.slice(0, 5).map(task => {
+              const daysOpen = getDaysOpen(task.created_at);
+              return (
+                <div
+                  key={task.id}
+                  className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedTask(task);
+                    setModalOpen(true);
+                  }}
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {task.priority === 'urgent' && (
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      )}
+                      {task.status === 'in_progress' && (
+                        <Clock className="h-4 w-4 text-blue-500" />
+                      )}
+                      <span className="font-medium text-sm">
+                        {getTaskTypeLabel(task.task_type)}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {task.status}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <CalendarClock className="h-3 w-3" />
+                        {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {task.summary}
+                    </p>
+                    {task.recommended_action && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        → {task.recommended_action}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {filteredTasks.length > 5 && (
+              <p className="text-xs text-muted-foreground text-center">
+                +{filteredTasks.length - 5} more tasks
+              </p>
+            )}
+          </>
         )}
 
         <Button
