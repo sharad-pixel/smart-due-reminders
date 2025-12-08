@@ -4,6 +4,7 @@ import { Rocket, DollarSign, Clock, TrendingUp, CheckCircle, ArrowRight, Zap, Ta
 import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
 
 const Startups = () => {
   const navigate = useNavigate();
@@ -164,7 +165,7 @@ const Startups = () => {
         <div className="container mx-auto max-w-4xl">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">$99</div>
+              <div className="text-4xl font-bold text-primary mb-2">{formatPrice(PLAN_CONFIGS.starter.monthlyPrice)}</div>
               <p className="text-muted-foreground">Starting monthly price</p>
             </div>
             <div>
