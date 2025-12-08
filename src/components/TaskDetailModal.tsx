@@ -82,20 +82,22 @@ export const TaskDetailModal = ({
 
   const fetchAccountUsers = async () => {
     try {
-      // Fetch from account_users table (paid team members with roles)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get account_users for the current account (account_id = owner's user_id)
+      // Get effective account ID (owner's ID for team members)
+      const { data: effectiveAccountId } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+
+      if (!effectiveAccountId) return;
+
+      // Get account_users for the effective account only (no duplicates)
       const { data, error } = await supabase
         .from('account_users')
-        .select(`
-          id,
-          user_id,
-          role,
-          status
-        `)
+        .select(`id, user_id, role, status`)
+        .eq('account_id', effectiveAccountId)
         .eq('status', 'active')
+        .order('is_owner', { ascending: false })
         .order('role');
 
       if (error) {
@@ -104,9 +106,17 @@ export const TaskDetailModal = ({
       }
 
       if (data) {
-        // Fetch profile info for each user
+        // Deduplicate by user_id - keep only one entry per user
+        const uniqueByUserId = new Map<string, typeof data[0]>();
+        data.forEach(au => {
+          if (au.user_id && !uniqueByUserId.has(au.user_id)) {
+            uniqueByUserId.set(au.user_id, au);
+          }
+        });
+
+        // Fetch profile info for each unique user
         const usersWithProfiles = await Promise.all(
-          data.map(async (au) => {
+          Array.from(uniqueByUserId.values()).map(async (au) => {
             const { data: profile } = await supabase
               .from('profiles')
               .select('name, email')
