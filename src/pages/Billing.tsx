@@ -193,11 +193,10 @@ const Billing = () => {
       }
 
       // Sync subscription data from Stripe to get accurate term dates
-      if (profileData?.stripe_subscription_id) {
-        const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-subscription');
-        if (!syncError && syncData) {
-          setStripeData(syncData);
-        }
+      const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-subscription');
+      console.log('sync-subscription response:', { syncData, syncError });
+      if (!syncError && syncData) {
+        setStripeData(syncData);
       }
     } catch (error) {
       console.error('Error loading billing data:', error);

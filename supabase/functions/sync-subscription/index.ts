@@ -113,12 +113,15 @@ serve(async (req) => {
       .update({ stripe_customer_id: customerId })
       .eq('id', user.id);
 
-    // Get active subscriptions
+    // Get active subscriptions with expanded data
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: 'active',
       limit: 1,
+      expand: ['data.default_payment_method'],
     });
+
+    logStep('Fetched subscriptions', { count: subscriptions.data.length });
 
     if (subscriptions.data.length === 0) {
       // Check for trialing subscriptions
@@ -163,7 +166,9 @@ serve(async (req) => {
       subscriptionId: subscription.id, 
       planType, 
       billingInterval,
-      status: subscription.status 
+      status: subscription.status,
+      current_period_start: subscription.current_period_start,
+      current_period_end: subscription.current_period_end,
     });
 
     // Update profile with subscription data
