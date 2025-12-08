@@ -216,20 +216,21 @@ export function AccountHierarchy({ compact = false }: AccountHierarchyProps) {
         <CardContent className="pt-6">
           {/* Visual Hierarchy Tree */}
           <div className="relative">
-            {/* Owner Node - Root */}
+            {/* Owner Node - Root (Parent Account) */}
             <div className="flex flex-col items-center">
               <div className={cn(
                 "relative flex flex-col items-center p-4 rounded-xl border-2 bg-gradient-to-b from-primary/5 to-primary/10",
                 owner.user_id === currentUserId ? "border-primary ring-2 ring-primary/20" : "border-primary/30"
               )}>
-                {/* Crown indicator */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full p-1.5">
-                    <Crown className="h-4 w-4 text-white" />
-                  </div>
+                {/* Parent Account Label */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1">
+                  <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-0 text-xs px-2 py-0.5">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Parent Account
+                  </Badge>
                 </div>
                 
-                <Avatar className="h-16 w-16 border-2 border-primary/20 mt-2">
+                <Avatar className="h-16 w-16 border-2 border-primary/20 mt-3">
                   <AvatarImage src={owner.profile?.avatar_url || undefined} />
                   <AvatarFallback className="bg-primary/20 text-primary text-lg font-bold">
                     {(owner.profile?.display_name || owner.profile?.email || owner.email || 'O')[0].toUpperCase()}
@@ -267,23 +268,36 @@ export function AccountHierarchy({ compact = false }: AccountHierarchyProps) {
               )}
             </div>
 
-            {/* Team Members */}
+            {/* Team Members (Child Accounts) */}
             {members.length > 0 && (
               <div className="relative">
-                {/* Horizontal connector */}
-                <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-2xl h-0.5 bg-border" style={{ top: 0 }} />
+                {/* Child Accounts Label */}
+                <div className="flex justify-center mb-2">
+                  <Badge variant="outline" className="text-xs bg-muted/50">
+                    <Users className="h-3 w-3 mr-1" />
+                    Child Accounts
+                  </Badge>
+                </div>
                 
-                <div className="flex flex-wrap justify-center gap-4 pt-4">
+                {/* Horizontal connector */}
+                <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-2xl h-0.5 bg-border" style={{ top: 24 }} />
+                
+                <div className="flex flex-wrap justify-center gap-4 pt-6">
                   {members.map((member, index) => (
                     <div key={member.id} className="relative flex flex-col items-center">
                       {/* Vertical connector from horizontal line */}
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-border -mt-4" />
                       
                       <div className={cn(
-                        "flex flex-col items-center p-3 rounded-lg border bg-card",
+                        "relative flex flex-col items-center p-3 rounded-lg border bg-card",
                         member.user_id === currentUserId ? "border-primary ring-2 ring-primary/20" : "border-border"
                       )}>
-                        <Avatar className="h-12 w-12 border border-border">
+                        {/* Child badge */}
+                        <Badge variant="secondary" className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] px-1.5 py-0">
+                          Child
+                        </Badge>
+                        
+                        <Avatar className="h-12 w-12 border border-border mt-1">
                           <AvatarImage src={member.profile?.avatar_url || undefined} />
                           <AvatarFallback className="bg-muted text-muted-foreground">
                             {(member.profile?.display_name || member.profile?.email || member.email || 'U')[0].toUpperCase()}
