@@ -250,193 +250,189 @@ const Debtors = () => {
                   New Account
                 </Button>
               </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <div className="flex items-center justify-between">
+                    <DialogTitle>Create New Account</DialogTitle>
+                    <Button
+                      onClick={handleAutoCompleteDebtor}
+                      disabled={autoCompleting || (!formData.name && !formData.company_name)}
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                    >
+                      {autoCompleting ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
+                      {autoCompleting ? "Loading..." : "Auto Complete"}
+                    </Button>
+                  </div>
+                </DialogHeader>
+                <form onSubmit={handleCreate} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter name/company and click Auto Complete
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="company_name">Company Name *</Label>
+                      <Input
+                        id="company_name"
+                        value={formData.company_name}
+                        onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contact_name">Contact Name *</Label>
+                      <Input
+                        id="contact_name"
+                        value={formData.contact_name}
+                        onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Type *</Label>
+                      <Select
+                        value={formData.type}
+                        onValueChange={(value: "B2B" | "B2C") =>
+                          setFormData({ ...formData, type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="B2B">B2B</SelectItem>
+                          <SelectItem value="B2C">B2C</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address_line1">Address Line 1</Label>
+                    <Input
+                      id="address_line1"
+                      value={formData.address_line1}
+                      onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
+                      placeholder="Street address"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="address_line2">Address Line 2</Label>
+                      <Input
+                        id="address_line2"
+                        value={formData.address_line2}
+                        onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
+                        placeholder="Apt, Suite, etc."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        value={formData.state}
+                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="postal_code">Postal Code</Label>
+                      <Input
+                        id="postal_code"
+                        value={formData.postal_code}
+                        onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Country</Label>
+                      <Input
+                        id="country"
+                        value={formData.country}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="external_customer_id">Account ID (Billing System)</Label>
+                      <Input
+                        id="external_customer_id"
+                        value={formData.external_customer_id}
+                        onChange={(e) => setFormData({ ...formData, external_customer_id: e.target.value })}
+                        placeholder="e.g., QB_123456"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="crm_account_id_external">CRM ID</Label>
+                      <Input
+                        id="crm_account_id_external"
+                        value={formData.crm_account_id_external}
+                        onChange={(e) => setFormData({ ...formData, crm_account_id_external: e.target.value })}
+                        placeholder="e.g., SF_001234"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Create Account</Button>
+                  </div>
+                </form>
+              </DialogContent>
             </Dialog>
           </div>
         </div>
 
         <AIInsightsCard scope="accounts" compact className="mb-4" />
-
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle>Create New Account</DialogTitle>
-                  <Button
-                    onClick={handleAutoCompleteDebtor}
-                    disabled={autoCompleting || (!formData.name && !formData.company_name)}
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                  >
-                    {autoCompleting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    {autoCompleting ? "Loading..." : "Auto Complete"}
-                  </Button>
-                </div>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enter name/company and click Auto Complete
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company_name">Company Name *</Label>
-                    <Input
-                      id="company_name"
-                      value={formData.company_name}
-                      onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contact_name">Contact Name *</Label>
-                    <Input
-                      id="contact_name"
-                      value={formData.contact_name}
-                      onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Type *</Label>
-                    <Select
-                      value={formData.type}
-                      onValueChange={(value: "B2B" | "B2C") =>
-                        setFormData({ ...formData, type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="B2B">B2B</SelectItem>
-                        <SelectItem value="B2C">B2C</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address_line1">Address Line 1</Label>
-                  <Input
-                    id="address_line1"
-                    value={formData.address_line1}
-                    onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
-                    placeholder="Street address"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line2">Address Line 2</Label>
-                    <Input
-                      id="address_line2"
-                      value={formData.address_line2}
-                      onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
-                      placeholder="Apt, Suite, etc."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postal_code">Postal Code</Label>
-                    <Input
-                      id="postal_code"
-                      value={formData.postal_code}
-                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="external_customer_id">Account ID (Billing System)</Label>
-                    <Input
-                      id="external_customer_id"
-                      value={formData.external_customer_id}
-                      onChange={(e) => setFormData({ ...formData, external_customer_id: e.target.value })}
-                      placeholder="e.g., QB_123456"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="crm_account_id_external">CRM ID</Label>
-                    <Input
-                      id="crm_account_id_external"
-                      value={formData.crm_account_id_external}
-                      onChange={(e) => setFormData({ ...formData, crm_account_id_external: e.target.value })}
-                      placeholder="e.g., SF_001234"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Account</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-          </div>
-        </div>
 
 
         <Card>

@@ -379,11 +379,6 @@ const Invoices = () => {
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">Import</span>
             </Button>
-          </div>
-        </div>
-
-        <AIInsightsCard scope="invoices" compact className="mb-4" />
-
             <Button
               variant="outline"
               onClick={() => setIsExportOpen(true)}
@@ -594,6 +589,8 @@ const Invoices = () => {
             </Dialog>
           </div>
         </div>
+
+        <AIInsightsCard scope="invoices" compact className="mb-4" />
 
         <Card>
           <CardHeader>
