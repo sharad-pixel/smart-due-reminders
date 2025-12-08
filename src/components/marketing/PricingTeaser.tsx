@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
+import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
 
+// Use centralized pricing config
 const plans = [
-  { name: "Starter", price: 99, invoices: "100", highlight: false },
-  { name: "Growth", price: 199, invoices: "300", highlight: true },
-  { name: "Professional", price: 499, invoices: "500", highlight: false },
+  { name: "Starter", price: PLAN_CONFIGS.starter.monthlyPrice, invoices: "100", highlight: false },
+  { name: "Growth", price: PLAN_CONFIGS.growth.monthlyPrice, invoices: "300", highlight: true },
+  { name: "Professional", price: PLAN_CONFIGS.professional.monthlyPrice, invoices: "500", highlight: false },
 ];
 
 const PricingTeaser = () => {
@@ -48,7 +50,7 @@ const PricingTeaser = () => {
             Automate Collections for Less Than One Employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Starts at $99/mo. Scales to Enterprise. 6 AI agents included.
+            Starts at ${PLAN_CONFIGS.starter.monthlyPrice}/mo. Scales to Enterprise. 6 AI agents included.
           </p>
         </div>
 
@@ -114,7 +116,7 @@ const PricingTeaser = () => {
 
         <div className="text-center mt-8">
           <p className="text-sm text-muted-foreground mb-4">
-            Need more? Overage rate: <span className="font-semibold">$1.50</span> per additional invoice
+            Per invoice: <span className="font-semibold">${INVOICE_PRICING.perInvoice}</span> | Additional users: <span className="font-semibold">$75/user/month</span>
           </p>
           <Button variant="ghost" onClick={() => navigate("/pricing")} className="group">
             View Full Pricing Details

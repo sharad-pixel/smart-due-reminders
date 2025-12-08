@@ -20,25 +20,31 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SYNC-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Price ID to plan mapping
+// Price ID to plan mapping - Updated December 2024
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  // Monthly prices
+  // New monthly prices ($199 / $499 / $799)
+  'price_1SbvygBqszPdRiQvnV7E6rMr': 'starter',
+  'price_1SbvzEBqszPdRiQv5C0Vj5JJ': 'growth',
+  'price_1SbvzJBqszPdRiQvGtEB1XQx': 'professional',
+  // Legacy monthly prices (old pricing)
   'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
   'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
   'price_1SaNVyFaeMMSBqclrcAXjUmm': 'professional',
-  // Annual prices
+  // Legacy annual prices
   'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
   'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
   'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
-  // Legacy prices
+  // Very old legacy prices
   'price_1SX2cyFaeMMSBqclAGkxSliI': 'starter',
   'price_1SX2dkFaeMMSBqclPIjUA6N2': 'growth',
   'price_1SX2duFaeMMSBqclrYq4rikr': 'professional',
 };
 
+// Seat price IDs - $75/user/month
 const SEAT_PRICE_IDS = [
-  'price_1SbWueFaeMMSBqclnDqJkOQW',
-  'price_1SbWuuFaeMMSBqclX6xqgX9E',
+  'price_1SbvzLBqszPdRiQvI5Dl6LkA',  // New $75/month
+  'price_1SbWueFaeMMSBqclnDqJkOQW',  // Legacy monthly
+  'price_1SbWuuFaeMMSBqclX6xqgX9E',  // Legacy annual
 ];
 
 function getBillingInterval(subscription: Stripe.Subscription): 'month' | 'year' {

@@ -27,29 +27,38 @@ const logStep = (step: string, details?: any) => {
 };
 
 // ============================================================================
-// STRIPE PRICE ID TO PLAN MAPPING
+// STRIPE PRICE ID TO PLAN MAPPING - Updated December 2024
 // Maps both monthly and annual price IDs to plan types
+// New pricing: Starter $199, Growth $499, Professional $799
 // ============================================================================
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  // Monthly prices
+  // New monthly prices (December 2024)
+  'price_1SbvygBqszPdRiQvnV7E6rMr': 'starter',      // $199/month
+  'price_1SbvzEBqszPdRiQv5C0Vj5JJ': 'growth',       // $499/month
+  'price_1SbvzJBqszPdRiQvGtEB1XQx': 'professional', // $799/month
+  // Legacy monthly prices (old pricing)
   'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
   'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
   'price_1SaNVyFaeMMSBqclrcAXjUmm': 'professional',
-  // Annual prices (20% discount)
+  // Legacy annual prices (20% discount)
   'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
   'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
   'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
-  // Legacy prices (for backwards compatibility)
+  // Very old legacy prices (for backwards compatibility)
   'price_1SX2cyFaeMMSBqclAGkxSliI': 'starter',
   'price_1SX2dkFaeMMSBqclPIjUA6N2': 'growth',
   'price_1SX2duFaeMMSBqclrYq4rikr': 'professional',
 };
 
-// Seat price IDs (not mapped to plans, used for identification)
+// Seat price IDs (not mapped to plans, used for identification) - $75/seat/month
 const SEAT_PRICE_IDS = [
-  'price_1SbWueFaeMMSBqclnDqJkOQW', // Monthly seat
-  'price_1SbWuuFaeMMSBqclX6xqgX9E', // Annual seat
+  'price_1SbvzLBqszPdRiQvI5Dl6LkA', // New $75/month seat
+  'price_1SbWueFaeMMSBqclnDqJkOQW', // Legacy monthly seat
+  'price_1SbWuuFaeMMSBqclX6xqgX9E', // Legacy annual seat
 ];
+
+// Invoice price ID - $1.99/invoice
+const INVOICE_PRICE_ID = 'price_1SbvzMBqszPdRiQv0AM0GDrv';
 
 /**
  * Extract billing interval from subscription
