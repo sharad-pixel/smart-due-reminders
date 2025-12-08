@@ -209,12 +209,7 @@ serve(async (req) => {
           collectionTrend = 'down';
         }
 
-        // RISK METRICS - High-risk accounts are those that:
-        // 1. Have invoices 60+ days past due
-        // 2. No AI health summary (null collections_health_score or health_tier)
-        // 3. Unanswered emails (sent but no response)
-        
-        // Step 1: Find all debtors with 60+ day invoices
+        // RISK METRICS - High-risk accounts = ALL delinquent accounts with AR 60+ days past due
         const sixtyPlusBuckets = ['dpd_61_90', 'dpd_91_120', 'dpd_121_150', 'dpd_150_plus'];
         const { data: sixtyPlusInvoices } = await supabase
           .from('invoices')
@@ -223,53 +218,19 @@ serve(async (req) => {
           .in('aging_bucket', sixtyPlusBuckets)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
         
-        const sixtyPlusDebtorIds = [...new Set(sixtyPlusInvoices?.map(inv => inv.debtor_id).filter(Boolean) || [])];
+        // Get unique debtor IDs with 60+ day invoices
+        const highRiskDebtorIds = [...new Set(sixtyPlusInvoices?.map(inv => inv.debtor_id).filter(Boolean) || [])];
+        const highRiskCustomersCount = highRiskDebtorIds.length;
         
-        // Step 2: Get debtors without AI health summary
-        let highRiskDebtorIds: string[] = [];
-        let highRiskCustomersCount = 0;
-        let highRiskArOutstanding = 0;
+        // Calculate total AR outstanding for these high-risk/delinquent accounts (60+ days)
+        const highRiskArOutstanding = sixtyPlusInvoices?.reduce((sum, inv) => 
+          sum + Number(inv.amount_outstanding || inv.amount || 0), 0) || 0;
         
-        if (sixtyPlusDebtorIds.length > 0) {
-          // Find debtors without health score OR with unanswered emails
-          const { data: debtorsWithoutHealth } = await supabase
-            .from('debtors')
-            .select('id')
-            .eq('user_id', accountId)
-            .in('id', sixtyPlusDebtorIds)
-            .or('collections_health_score.is.null,health_tier.is.null');
-          
-          const debtorsWithoutHealthIds = debtorsWithoutHealth?.map(d => d.id) || [];
-          
-          // Step 3: Find debtors with unanswered emails (sent but no response)
-          const { data: unansweredActivities } = await supabase
-            .from('collection_activities')
-            .select('debtor_id')
-            .eq('user_id', accountId)
-            .in('debtor_id', sixtyPlusDebtorIds)
-            .eq('direction', 'outbound')
-            .not('sent_at', 'is', null)
-            .is('responded_at', null);
-          
-          const unansweredDebtorIds = [...new Set(unansweredActivities?.map(a => a.debtor_id).filter(Boolean) || [])];
-          
-          // Combine: debtors without health OR with unanswered emails
-          highRiskDebtorIds = [...new Set([...debtorsWithoutHealthIds, ...unansweredDebtorIds])];
-          highRiskCustomersCount = highRiskDebtorIds.length;
-          
-          // Calculate AR outstanding for these high-risk accounts
-          if (highRiskDebtorIds.length > 0) {
-            const { data: highRiskInvoices } = await supabase
-              .from('invoices')
-              .select('amount_outstanding, amount')
-              .eq('user_id', accountId)
-              .in('debtor_id', highRiskDebtorIds)
-              .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
-
-            highRiskArOutstanding = highRiskInvoices?.reduce((sum, inv) => 
-              sum + Number(inv.amount_outstanding || inv.amount || 0), 0) || 0;
-          }
-        }
+        logStep('High-risk metrics calculated', { 
+          highRiskCustomersCount, 
+          highRiskArOutstanding,
+          sixtyPlusInvoicesCount: sixtyPlusInvoices?.length || 0 
+        });
 
         // HEALTH SCORE CALCULATION - Enterprise Risk Scoring System
         // Uses weighted factors aligned with risk-engine scoring:
