@@ -14,7 +14,6 @@ import { Separator } from "@/components/ui/separator";
 import { LogoUpload } from "@/components/LogoUpload";
 import { 
   Copy, 
-  RefreshCw, 
   ExternalLink, 
   Palette, 
   Globe, 
@@ -113,25 +112,6 @@ export default function Branding() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to save: ${error.message}`);
-    },
-  });
-
-  const rotateTokenMutation = useMutation({
-    mutationFn: async () => {
-      if (!effectiveAccountId) throw new Error("No account");
-      
-      const { data, error } = await supabase
-        .rpc("rotate_ar_page_token", { p_user_id: effectiveAccountId });
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
-      toast.success("Public link rotated. Previous link is now invalid.");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to rotate token: ${error.message}`);
     },
   });
 
@@ -369,16 +349,9 @@ export default function Branding() {
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => rotateTokenMutation.mutate()}
-                    disabled={rotateTokenMutation.isPending}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Rotate the link to invalidate the current URL
+                  This link is permanent and included in all email communications
                 </p>
               </div>
             )}
