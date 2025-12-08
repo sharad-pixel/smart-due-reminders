@@ -51,9 +51,7 @@ const Team = () => {
   const [inviteRole, setInviteRole] = useState<AppRole>("member");
   const [isInviting, setIsInviting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAddingSeat, setIsAddingSeat] = useState(false);
-  const [showAddSeatDialog, setShowAddSeatDialog] = useState(false);
-  const [seatQuantity, setSeatQuantity] = useState(1);
+  
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [memberToDeactivate, setMemberToDeactivate] = useState<TeamMember | null>(null);
   const [assignedTasksCount, setAssignedTasksCount] = useState(0);
@@ -348,35 +346,6 @@ const Team = () => {
     }
   };
 
-  const handleAddSeat = async () => {
-    setIsAddingSeat(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("add-seat-checkout", {
-        body: { quantity: seatQuantity },
-      });
-
-      if (error) throw error;
-
-      if (data.redirect) {
-        // Seats were added directly to existing subscription
-        toast.success(data.message);
-        setShowAddSeatDialog(false);
-        setSeatQuantity(1);
-        await loadTeamMembers();
-        // Navigate to trigger the invite dialog
-        setIsDialogOpen(true);
-      } else if (data.url) {
-        // Need to go through Stripe checkout
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      console.error("Error adding seat:", error);
-      toast.error(error.message || "Failed to add seat");
-    } finally {
-      setIsAddingSeat(false);
-    }
-  };
-
   const getRoleIcon = (role: AppRole) => {
     switch (role) {
       case "owner":
@@ -459,71 +428,6 @@ const Team = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            {/* Add Seat Dialog */}
-            <Dialog open={showAddSeatDialog} onOpenChange={setShowAddSeatDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Add Seat
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Team Seat</DialogTitle>
-                  <DialogDescription>
-                    Purchase additional seats to invite more team members
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <Alert className="bg-primary/5 border-primary/20">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    <AlertDescription className="text-sm">
-                      Each seat costs <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> or <strong>${SEAT_PRICING.annualPrice.toFixed(2)}/year</strong> (20% discount)
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="seatQuantity">Number of Seats</Label>
-                    <Select value={String(seatQuantity)} onValueChange={(value) => setSeatQuantity(Number(value))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5, 10].map((num) => (
-                          <SelectItem key={num} value={String(num)}>{num} seat{num > 1 ? 's' : ''}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Monthly cost:</span>
-                      <span className="font-bold">${(seatQuantity * SEAT_PRICING.monthlyPrice).toFixed(2)}/mo</span>
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddSeatDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddSeat} disabled={isAddingSeat}>
-                    {isAddingSeat ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Purchase {seatQuantity} Seat{seatQuantity > 1 ? 's' : ''}
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
             {/* Invite Member Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -541,10 +445,10 @@ const Team = () => {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 {/* Pricing Note */}
-                <Alert className="bg-primary/5 border-primary/20">
-                  <DollarSign className="h-4 w-4 text-primary" />
+                <Alert className="bg-amber-500/10 border-amber-500/30">
+                  <DollarSign className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="text-sm">
-                    This will add <strong>1 paid seat</strong> at <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> if accepted.
+                    Your card will be charged <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> immediately for this seat.
                   </AlertDescription>
                 </Alert>
                 
