@@ -41,6 +41,7 @@ import {
 import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/BillingSection";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { AccountHierarchy } from "@/components/AccountHierarchy";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
@@ -708,6 +709,9 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Account Hierarchy - Shows for all users (both owners and team members) */}
+        <AccountHierarchy />
 
         {/* Billing Section - Using new component */}
         {profile && (
