@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import MarketingLayout from "@/components/MarketingLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import { HoneypotField, isHoneypotTriggered } from "@/components/HoneypotField";
+import { checkClientRateLimit } from "@/lib/rateLimiting";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -18,13 +20,16 @@ const contactSchema = z.object({
   billingSystem: z.string().optional(),
   monthlyInvoices: z.string().optional(),
   teamSize: z.string().optional(),
-  message: z.string().trim().min(10, "Message must be at least 10 characters").max(1000)
+  message: z.string().trim().min(10, "Message must be at least 10 characters").max(1000),
+  // Honeypot field - must be empty
+  website: z.string().max(0, "Invalid submission").optional(),
 });
 
 const ContactUs = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   
   const [formData, setFormData] = useState({
     name: "",
@@ -46,11 +51,26 @@ const ContactUs = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check honeypot - bot detection
+    if (isHoneypotTriggered(honeypot)) {
+      // Silently reject bot submissions
+      setSubmitted(true);
+      return;
+    }
+    
+    // Client-side rate limiting
+    const rateLimit = checkClientRateLimit('contact_form');
+    if (!rateLimit.allowed) {
+      toast.error("Too many submissions. Please try again later.");
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      // Validate input
-      const validatedData = contactSchema.parse(formData);
+      // Validate input including honeypot
+      const validatedData = contactSchema.parse({ ...formData, website: honeypot });
 
       const { error } = await supabase
         .from('contact_requests')
@@ -132,6 +152,8 @@ const ContactUs = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Honeypot field for bot detection */}
+                <HoneypotField name="website" />
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Name *</Label>

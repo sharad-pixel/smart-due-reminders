@@ -7,6 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting configuration
+const RATE_LIMIT = {
+  maxRequests: 50,
+  windowMinutes: 60,
+  blockDurationMinutes: 30,
+};
+
 // Persona definitions matching your system
 const PERSONAS = {
   sam: { name: "Sam", bucketMin: 1, bucketMax: 30, tone: "friendly and gentle" },
@@ -98,7 +105,39 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
     
+    // Rate limiting check
+    const { data: rateLimitResult } = await supabaseAdmin.rpc('check_action_rate_limit', {
+      p_identifier: user.id,
+      p_action_type: 'ai_command',
+      p_max_requests: RATE_LIMIT.maxRequests,
+      p_window_minutes: RATE_LIMIT.windowMinutes,
+      p_block_duration_minutes: RATE_LIMIT.blockDurationMinutes,
+    });
+    
+    if (rateLimitResult && !rateLimitResult.allowed) {
+      console.log('Rate limit exceeded for user:', user.id);
+      return new Response(
+        JSON.stringify({
+          error: rateLimitResult.message || 'Rate limit exceeded. Please try again later.',
+          blocked_until: rateLimitResult.blocked_until,
+        }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '1800' } 
+        }
+      );
+    }
+    
     const { command, contextInvoiceId, contextDebtorId, contextType, senderEmail, emailSubject } = await req.json();
+    
+    // Basic input validation
+    if (!command || typeof command !== 'string') {
+      throw new Error('Command is required');
+    }
+    
+    if (command.length > 2000) {
+      throw new Error('Command too long (max 2000 characters)');
+    }
     
     console.log('Processing command:', command);
     console.log('Context - invoiceId:', contextInvoiceId, 'debtorId:', contextDebtorId);
