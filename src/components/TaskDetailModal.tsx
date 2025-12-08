@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CollectionTask } from "@/hooks/useCollectionTasks";
+import { CollectionTask, TaskNote } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
 import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,16 +22,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/MentionInput";
 import { createMentionNotification } from "@/hooks/useNotifications";
 
-interface TaskNote {
-  id: string;
-  content: string;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  created_at: string;
-  mentions?: string[]; // Array of mentioned user_ids
-}
-
 interface TaskDetailModalProps {
   task: CollectionTask | null;
   open: boolean;
@@ -39,6 +29,7 @@ interface TaskDetailModalProps {
   onStatusChange: (taskId: string, status: string) => void;
   onDelete: (taskId: string) => void;
   onAssign?: (taskId: string, assignedTo: string | null, assignedPersona: string | null) => void;
+  onNoteAdded?: () => void;
 }
 
 interface AccountUser {
@@ -76,7 +67,8 @@ export const TaskDetailModal = ({
   onOpenChange,
   onStatusChange,
   onDelete,
-  onAssign
+  onAssign,
+  onNoteAdded
 }: TaskDetailModalProps) => {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -292,6 +284,7 @@ export const TaskDetailModal = ({
       setNewNote("");
       setNoteMentions([]);
       toast.success("Note added");
+      onNoteAdded?.();
     } catch (error) {
       console.error('Error adding note:', error);
       toast.error("Failed to add note");

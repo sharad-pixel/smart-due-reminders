@@ -2,6 +2,16 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface TaskNote {
+  id: string;
+  content: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  created_at: string;
+  mentions?: string[];
+}
+
 export interface CollectionTask {
   id: string;
   user_id: string;
@@ -22,6 +32,8 @@ export interface CollectionTask {
   created_at: string;
   updated_at: string;
   assignment_email_sent_at?: string;
+  inbound_email_id?: string;
+  notes?: TaskNote[] | unknown[];
 }
 
 export const useCollectionTasks = () => {
@@ -108,7 +120,7 @@ export const useCollectionTasks = () => {
     try {
       const { error } = await supabase
         .from('collection_tasks')
-        .update(updates)
+        .update(updates as any)
         .eq('id', taskId);
 
       if (error) throw error;

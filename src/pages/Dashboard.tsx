@@ -1117,6 +1117,7 @@ const Dashboard = () => {
           onStatusChange={handleTaskStatusChange}
           onDelete={handleTaskDelete}
           onAssign={handleTaskAssign}
+          onNoteAdded={fetchDashboardData}
         />
       </div>
     </Layout>

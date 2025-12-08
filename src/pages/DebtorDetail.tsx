@@ -961,6 +961,7 @@ const DebtorDetail = () => {
               .eq("id", taskId);
             fetchAllTasks();
           }}
+          onNoteAdded={fetchAllTasks}
         />
       </div>
     </Layout>
