@@ -88,10 +88,18 @@ export default function CollectionTasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hideClosed, setHideClosed] = useState(false);
 
+  // Current user ID for "Assigned to Me" filter
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   // Account users for assignment (paid seats from Teams & Roles)
   const [accountUsers, setAccountUsers] = useState<{id: string; user_id: string; name: string; email: string; role: string}[]>([]);
 
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    fetchCurrentUser();
     fetchAccountUsers();
   }, []);
 
@@ -191,6 +199,8 @@ export default function CollectionTasks() {
       }
       if (assignedFilter === 'unassigned') {
         query = query.is('assigned_to', null);
+      } else if (assignedFilter === 'me' && currentUserId) {
+        query = query.eq('assigned_to', currentUserId);
       } else if (assignedFilter !== 'all') {
         query = query.eq('assigned_to', assignedFilter);
       }
@@ -660,6 +670,7 @@ export default function CollectionTasks() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Assignments</SelectItem>
+                  <SelectItem value="me">Assigned to Me</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {accountUsers.map(user => (
                     <SelectItem key={user.id} value={user.user_id}>
