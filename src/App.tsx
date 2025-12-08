@@ -68,9 +68,9 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
     <BrowserRouter>
+      <Toaster />
+      <Sonner />
       <Routes>
         {/* HOMEPAGE: Coming Soon page for public visitors */}
         <Route path="/" element={<ComingSoon />} />
@@ -126,7 +126,6 @@ const App = () => (
         <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
         <Route path="/daily-digest" element={<DailyDigest />} />
         <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/user-management" element={<AdminUserManagement />} />
         <Route path="/admin/user-management" element={<AdminUserManagement />} />
         <Route path="/admin/activity" element={<AdminActivityLogs />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
