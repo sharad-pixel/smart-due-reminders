@@ -77,8 +77,9 @@ interface TaskWithRelations {
 }
 
 export default function CollectionTasks() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
+  const taskIdFromUrl = searchParams.get('taskId');
   const { permissions, loading: roleLoading } = useRoleAccess();
   
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
@@ -117,6 +118,22 @@ export default function CollectionTasks() {
   useEffect(() => {
     loadTasks();
   }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl]);
+
+  // Open task modal if taskId is in URL (from notification click)
+  useEffect(() => {
+    if (taskIdFromUrl && tasks.length > 0 && !isLoading) {
+      const task = tasks.find(t => t.id === taskIdFromUrl);
+      if (task) {
+        handleViewDetails(task);
+        // Clear the taskId from URL after opening
+        setSearchParams(prev => {
+          const newParams = new URLSearchParams(prev);
+          newParams.delete('taskId');
+          return newParams;
+        });
+      }
+    }
+  }, [taskIdFromUrl, tasks, isLoading]);
 
   // Clear selection when filters change
   useEffect(() => {
