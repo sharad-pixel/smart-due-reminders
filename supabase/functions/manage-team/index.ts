@@ -137,6 +137,24 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingUser) {
+          // Check if already a team member
+          const { data: existingMember } = await supabaseClient
+            .from('account_users')
+            .select('id, status')
+            .eq('account_id', managingAccountId)
+            .eq('user_id', existingUser.id)
+            .maybeSingle();
+
+          if (existingMember) {
+            return new Response(
+              JSON.stringify({ error: 'This user is already a team member' }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            );
+          }
+
           // Add existing user to team
           const { data, error } = await supabaseClient
             .from('account_users')
@@ -154,18 +172,43 @@ Deno.serve(async (req) => {
             throw error;
           }
 
-          result = { success: true, data };
+          result = { success: true, data, message: 'Team member added successfully' };
         } else {
-          // For now, return error - in future, implement invitation flow
-          return new Response(
-            JSON.stringify({
-              error: 'User not found. Email invitation flow coming soon.',
-            }),
-            {
-              status: 404,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          // Invite new user via Supabase Auth
+          console.log('Inviting new user via email:', email);
+          
+          const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email, {
+            redirectTo: `${Deno.env.get('SITE_URL') || 'https://recouply.ai'}/team?invited=true`,
+            data: {
+              invited_by: user.id,
+              invited_to_account: managingAccountId,
+              invited_role: role || 'member',
             }
-          );
+          });
+
+          if (inviteError) {
+            console.error('Error inviting user:', inviteError);
+            throw new Error(`Failed to send invitation: ${inviteError.message}`);
+          }
+
+          // Create pending account_users entry
+          const { data, error } = await supabaseClient
+            .from('account_users')
+            .insert({
+              account_id: managingAccountId,
+              user_id: inviteData.user.id,
+              role: role || 'member',
+              status: 'invited',
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error creating account_users entry:', error);
+            throw error;
+          }
+
+          result = { success: true, data, message: 'Invitation sent successfully' };
         }
         break;
       }

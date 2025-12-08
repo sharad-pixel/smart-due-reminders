@@ -133,7 +133,7 @@ const Team = () => {
 
       if (error) throw error;
 
-      toast.success("Team member invited successfully");
+      toast.success(data.message || "Team member invited successfully");
       setInviteEmail("");
       setInviteRole("member");
       setIsDialogOpen(false);
