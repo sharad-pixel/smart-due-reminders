@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2 } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SEAT_PRICING } from "@/lib/subscriptionConfig";
 
@@ -52,6 +53,11 @@ const Team = () => {
   const [isAddingSeat, setIsAddingSeat] = useState(false);
   const [showAddSeatDialog, setShowAddSeatDialog] = useState(false);
   const [seatQuantity, setSeatQuantity] = useState(1);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
+  const [assignedTasksCount, setAssignedTasksCount] = useState(0);
+  const [reassignToUserId, setReassignToUserId] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Handle checkout success/failure from URL params
   useEffect(() => {
@@ -184,6 +190,60 @@ const Team = () => {
     } catch (error: any) {
       console.error("Error toggling status:", error);
       toast.error(error.message || "Failed to update status");
+    }
+  };
+
+  const handleOpenDeleteDialog = async (member: TeamMember) => {
+    setMemberToDelete(member);
+    setReassignToUserId("");
+    
+    // Check if user has assigned tasks
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "getAssignedTasksCount",
+          userId: member.user_id,
+        },
+      });
+      
+      if (!error && data) {
+        setAssignedTasksCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error("Error checking assigned tasks:", error);
+      setAssignedTasksCount(0);
+    }
+    
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteMember = async () => {
+    if (!memberToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "remove",
+          userId: memberToDelete.user_id,
+          reassignTo: reassignToUserId || null,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Team member removed successfully");
+      if (data.tasksReassigned > 0) {
+        toast.info(`${data.tasksReassigned} task(s) were ${reassignToUserId ? 'reassigned' : 'unassigned'}`);
+      }
+      setShowDeleteDialog(false);
+      setMemberToDelete(null);
+      await loadTeamMembers();
+    } catch (error: any) {
+      console.error("Error removing team member:", error);
+      toast.error(error.message || "Failed to remove team member");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -519,7 +579,7 @@ const Team = () => {
           <CardContent>
             <div className="space-y-4">
               {/* Table Header */}
-              <div className="hidden md:grid grid-cols-[1fr,120px,120px,150px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground border-b">
+              <div className="hidden md:grid grid-cols-[1fr,120px,120px,180px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground border-b">
                 <div>Member</div>
                 <div>Role</div>
                 <div>Status</div>
@@ -529,7 +589,7 @@ const Team = () => {
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex flex-col md:grid md:grid-cols-[1fr,120px,120px,150px] gap-4 items-start md:items-center p-4 border rounded-lg"
+                  className="flex flex-col md:grid md:grid-cols-[1fr,120px,120px,180px] gap-4 items-start md:items-center p-4 border rounded-lg"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
@@ -587,12 +647,85 @@ const Team = () => {
                     )}
                   </div>
                   
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(member.invited_at).toLocaleDateString()}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(member.invited_at).toLocaleDateString()}
+                    </span>
+                    {member.role !== "owner" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleOpenDeleteDialog(member)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to remove <strong>{memberToDelete?.profiles?.name || memberToDelete?.profiles?.email}</strong> from your team? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                {assignedTasksCount > 0 && (
+                  <div className="space-y-3 py-2">
+                    <Alert className="bg-warning/10 border-warning/30">
+                      <AlertCircle className="h-4 w-4 text-warning" />
+                      <AlertDescription>
+                        This member has <strong>{assignedTasksCount}</strong> assigned task(s). Choose what to do with them:
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="space-y-2">
+                      <Label>Reassign tasks to</Label>
+                      <Select value={reassignToUserId} onValueChange={setReassignToUserId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Leave unassigned" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Leave unassigned</SelectItem>
+                          {teamMembers
+                            .filter(m => m.user_id !== memberToDelete?.user_id && m.status === 'active')
+                            .map((m) => (
+                              <SelectItem key={m.user_id} value={m.user_id}>
+                                {m.profiles?.name || m.profiles?.email}
+                              </SelectItem>
+                            ))
+                          }
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+                
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteMember}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Removing...
+                      </>
+                    ) : (
+                      "Remove Member"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             
             {/* Billing Info Footer */}
             <div className="mt-6 pt-4 border-t">
