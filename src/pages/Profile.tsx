@@ -42,8 +42,6 @@ import {
   FileText,
   Zap,
   Info,
-  Camera,
-  Trash2,
   UserX,
   AlertTriangle,
   Crown,
@@ -57,6 +55,7 @@ import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/BillingSection";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { AccountHierarchy } from "@/components/AccountHierarchy";
+import { ProfileAvatarEditor } from "@/components/ProfileAvatarEditor";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
@@ -649,41 +648,15 @@ const Profile = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-start gap-4">
-              <div className="relative group">
-                <Avatar className="h-24 w-24 rounded-xl">
-                  {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} className="rounded-xl" />}
-                  <AvatarFallback className="text-2xl rounded-xl">
-                    {getInitials(profile.name, profile.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 flex gap-1">
-                  <label 
-                    htmlFor="avatar-upload"
-                    className="bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
-                    title="Change profile picture"
-                  >
-                    <Camera className="h-3 w-3" />
-                  </label>
-                  {profile.avatar_url && (
-                    <button
-                      onClick={handleAvatarDelete}
-                      disabled={uploading}
-                      className="bg-destructive text-destructive-foreground rounded-full p-1.5 cursor-pointer hover:bg-destructive/90 transition-colors shadow-lg disabled:opacity-50"
-                      title="Delete profile picture"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  onChange={handleAvatarUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </div>
+              <ProfileAvatarEditor
+                avatarUrl={profile.avatar_url}
+                name={profile.name}
+                email={profile.email}
+                uploading={uploading}
+                onUpload={handleAvatarUpload}
+                onDelete={handleAvatarDelete}
+                size="lg"
+              />
               <div className="flex-1 space-y-3">
                 <div>
                   <p className="text-lg font-semibold">{profile.name || "User"}</p>
