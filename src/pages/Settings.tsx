@@ -583,32 +583,34 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-primary" />
-              <CardTitle>Team Members</CardTitle>
-            </div>
-            <CardDescription>
-              Manage your team and purchase additional user seats
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Add team members to collaborate on collections. Each additional active user is billed at {formatPrice(SEAT_PRICING.monthlyPrice)} per month.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => navigate("/team?invite=true")} className="gap-2">
-                <UserPlus className="h-4 w-4" />
-                Add Team Members
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/billing")} className="gap-2">
-                <CreditCard className="h-4 w-4" />
-                Manage Billing
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {!isChildAccount && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle>Team Members</CardTitle>
+              </div>
+              <CardDescription>
+                Manage your team and purchase additional user seats
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Add team members to collaborate on collections. Each additional active user is billed at {formatPrice(SEAT_PRICING.monthlyPrice)} per month.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => navigate("/team?invite=true")} className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Add Team Members
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/billing")} className="gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Manage Billing
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -698,30 +700,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {!isChildAccount && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-primary" />
-                <CardTitle>Team Members</CardTitle>
-              </div>
-              <CardDescription>
-                Manage team members who can be assigned to collection tasks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Add team members to assign tasks and receive email notifications with task and invoice details.
-                </p>
-                <Button variant="outline" size="sm" onClick={() => navigate("/team")}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Team Members
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <Card>
           <CardHeader>
