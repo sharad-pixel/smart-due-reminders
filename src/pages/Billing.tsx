@@ -104,6 +104,9 @@ interface ProfileData {
   subscription_status: string;
   current_period_end: string;
   stripe_subscription_id: string;
+  is_account_locked?: boolean;
+  account_locked_at?: string;
+  payment_failure_notice_sent_at?: string;
 }
 
 interface StripeSubscriptionData {
@@ -133,15 +136,57 @@ const Billing = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [stripeData, setStripeData] = useState<StripeSubscriptionData | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-
+  const [billingDiscrepancy, setBillingDiscrepancy] = useState<{
+    dbSeats: number;
+    stripeSeats: number;
+    discrepancy: number;
+    needsReconciliation: boolean;
+  } | null>(null);
   useEffect(() => {
     loadBillingData();
   }, []);
+
+  // Check for billing discrepancy on load
+  const checkBillingDiscrepancy = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-billing-reconcile', {
+        body: { action: 'preview' }
+      });
+      if (!error && data) {
+        setBillingDiscrepancy(data);
+      }
+    } catch (error) {
+      console.error('Error checking billing discrepancy:', error);
+    }
+  };
+
+  const handleReconcileBilling = async () => {
+    setReconciling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-billing-reconcile', {
+        body: { action: 'reconcile' }
+      });
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast.success(data.message || 'Billing synced successfully');
+        setBillingDiscrepancy(null);
+        loadBillingData();
+      } else {
+        toast.error(data?.error || 'Failed to sync billing');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sync billing');
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   const loadBillingData = async () => {
     try {
@@ -160,12 +205,12 @@ const Billing = () => {
       // Fetch profile data
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('plan_type, invoice_limit, billing_interval, subscription_status, current_period_end, stripe_subscription_id')
+        .select('plan_type, invoice_limit, billing_interval, subscription_status, current_period_end, stripe_subscription_id, is_account_locked, account_locked_at, payment_failure_notice_sent_at')
         .eq('id', accountId)
         .single();
 
       if (profileData) {
-        setProfile(profileData);
+        setProfile(profileData as ProfileData);
       }
 
       // Fetch team members for this account (filter by account_id)
@@ -210,6 +255,9 @@ const Billing = () => {
       if (!syncError && syncData) {
         setStripeData(syncData);
       }
+
+      // Check for billing discrepancy after loading data
+      await checkBillingDiscrepancy();
     } catch (error) {
       console.error('Error loading billing data:', error);
       toast.error('Failed to load billing information');
@@ -295,13 +343,50 @@ const Billing = () => {
           )}
         </div>
 
-        {profile?.subscription_status === 'past_due' && (
+        {/* Account Locked Alert */}
+        {profile?.is_account_locked && (
+          <Alert variant="destructive" className="mb-6 border-2 border-red-600">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Your account has been locked</strong> due to failed payment. 
+              Please update your payment method immediately to restore access.
+              <Button variant="link" className="p-0 ml-2 text-red-100" onClick={openCustomerPortal}>
+                Restore Access Now
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Past Due Warning */}
+        {profile?.subscription_status === 'past_due' && !profile?.is_account_locked && (
           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Your payment is past due. Please update your payment method to continue using all features.
+              Your payment is past due. Please update your payment method within 3 days to avoid account lockout.
               <Button variant="link" className="p-0 ml-2" onClick={openCustomerPortal}>
                 Update Payment Method
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Billing Discrepancy Warning */}
+        {billingDiscrepancy?.needsReconciliation && (
+          <Alert className="mb-6 border-amber-500/50 bg-amber-500/5">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-amber-700">
+                Billing discrepancy detected: {billingDiscrepancy.dbSeats} seats in database but {billingDiscrepancy.stripeSeats} in Stripe.
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleReconcileBilling}
+                disabled={reconciling}
+                className="ml-4 border-amber-500 text-amber-700 hover:bg-amber-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
+                {reconciling ? 'Syncing...' : 'Sync Billing'}
               </Button>
             </AlertDescription>
           </Alert>
@@ -497,7 +582,7 @@ const Billing = () => {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Button variant="outline" onClick={openCustomerPortal} disabled={!profile?.stripe_subscription_id || portalLoading}>
                   Update Payment Method
                 </Button>
@@ -506,6 +591,14 @@ const Billing = () => {
                 </Button>
                 <Button variant="outline" onClick={openCustomerPortal} disabled={!profile?.stripe_subscription_id || portalLoading}>
                   Download Invoices
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleReconcileBilling}
+                  disabled={reconciling || !profile?.stripe_subscription_id}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
+                  {reconciling ? 'Syncing...' : 'Sync Billing'}
                 </Button>
               </div>
             </CardContent>
