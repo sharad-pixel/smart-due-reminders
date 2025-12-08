@@ -27,6 +27,9 @@ export function useDocuments(organizationId?: string, debtorId?: string) {
   return useQuery({
     queryKey: ["documents", organizationId, debtorId],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       let query = supabase
         .from("documents")
         .select("*")
@@ -34,9 +37,11 @@ export function useDocuments(organizationId?: string, debtorId?: string) {
 
       if (organizationId) {
         query = query.eq("organization_id", organizationId);
-      }
-      if (debtorId) {
+      } else if (debtorId) {
         query = query.eq("debtor_id", debtorId);
+      } else {
+        // Fetch user's own documents when no org/debtor specified
+        query = query.eq("uploaded_by_user_id", user.id);
       }
 
       const { data, error } = await query;
@@ -44,7 +49,6 @@ export function useDocuments(organizationId?: string, debtorId?: string) {
       if (error) throw error;
       return data as Document[];
     },
-    enabled: !!(organizationId || debtorId),
   });
 }
 
