@@ -120,7 +120,7 @@ export const UsageIndicator = () => {
               variant="outline" 
               size="sm"
               className="h-7 text-xs"
-              onClick={() => navigate('/pricing')}
+              onClick={() => navigate('/upgrade')}
             >
               Upgrade
             </Button>
