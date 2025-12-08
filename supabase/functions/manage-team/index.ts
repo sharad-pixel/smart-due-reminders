@@ -384,20 +384,34 @@ Deno.serve(async (req) => {
             .eq('id', managingAccountId)
             .single();
           
-          // Send invite email via send-team-invite function
+          // Send invite email via send-team-invite function (direct fetch call)
           try {
-            await supabaseClient.functions.invoke('send-team-invite', {
-              body: {
+            const supabaseUrl = Deno.env.get('SUPABASE_URL');
+            const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+            
+            const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-team-invite`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${serviceRoleKey}`,
+              },
+              body: JSON.stringify({
                 email: email,
                 role: role || 'member',
                 inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
                 accountOwnerName: ownerProfile?.name || 'your team',
                 inviteToken: inviteToken,
-              },
+              }),
             });
-            logStep('Invite email sent', { email });
+            
+            const emailResult = await emailResponse.json();
+            if (emailResult.success) {
+              logStep('Invite email sent successfully', { email });
+            } else {
+              logStep('Invite email failed', { error: emailResult.error });
+            }
           } catch (emailError) {
-            logStep('Failed to send invite email', { error: emailError });
+            logStep('Failed to send invite email', { error: emailError instanceof Error ? emailError.message : emailError });
             // Don't fail the whole operation if email fails
           }
 
