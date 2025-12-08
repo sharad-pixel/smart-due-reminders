@@ -218,3 +218,27 @@ verify_jwt = true
 
 [functions.handle-payment-failure]
 verify_jwt = false
+
+[functions.send-mention-notification]
+verify_jwt = false
+
+[functions.send-team-invite]
+verify_jwt = true
+
+[functions.accept-team-invite]
+verify_jwt = false
+
+[functions.check-whitelist]
+verify_jwt = false
+
+[functions.mark-whitelist-used]
+verify_jwt = false
+
+[functions.sync-subscription]
+verify_jwt = false
+
+[functions.add-seat-checkout]
+verify_jwt = true
+
+[functions.ai-analytics]
+verify_jwt = true
