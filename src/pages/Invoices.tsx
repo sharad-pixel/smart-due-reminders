@@ -59,7 +59,10 @@ const Invoices = () => {
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const saved = localStorage.getItem("invoiceStatusFilter");
+    return saved || "all";
+  });
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
   const [hideCancelled, setHideCancelled] = useState<boolean>(() => {
@@ -95,6 +98,10 @@ const Invoices = () => {
   useEffect(() => {
     localStorage.setItem("hideCancelledInvoices", hideCancelled.toString());
   }, [hideCancelled]);
+
+  useEffect(() => {
+    localStorage.setItem("invoiceStatusFilter", statusFilter);
+  }, [statusFilter]);
 
   useEffect(() => {
     filterInvoices();
