@@ -192,32 +192,54 @@ export const MentionInput = ({
 
 // Utility to render note content with styled mentions
 export const renderNoteWithMentions = (content: string): React.ReactNode => {
+  // Split content by mention pattern and rebuild with styled mentions
   const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g;
-  const parts: React.ReactNode[] = [];
+  const result: React.ReactNode[] = [];
   let lastIndex = 0;
-  let match;
+  let keyIndex = 0;
 
-  while ((match = mentionPattern.exec(content)) !== null) {
-    // Add text before mention
-    if (match.index > lastIndex) {
-      parts.push(content.slice(lastIndex, match.index));
+  // Use matchAll for safer iteration
+  const matches = Array.from(content.matchAll(mentionPattern));
+  
+  if (matches.length === 0) {
+    return content;
+  }
+
+  for (const match of matches) {
+    const matchIndex = match.index!;
+    const fullMatch = match[0];
+    const userName = match[1];
+
+    // Add text before this mention
+    if (matchIndex > lastIndex) {
+      result.push(
+        <span key={`text-${keyIndex++}`}>
+          {content.slice(lastIndex, matchIndex)}
+        </span>
+      );
     }
-    // Add styled mention
-    parts.push(
+
+    // Add styled mention (only the name, not the ID)
+    result.push(
       <span 
-        key={match.index} 
+        key={`mention-${keyIndex++}`}
         className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium"
       >
-        @{match[1]}
+        @{userName}
       </span>
     );
-    lastIndex = match.index + match[0].length;
+
+    lastIndex = matchIndex + fullMatch.length;
   }
 
-  // Add remaining text
+  // Add remaining text after last mention
   if (lastIndex < content.length) {
-    parts.push(content.slice(lastIndex));
+    result.push(
+      <span key={`text-${keyIndex++}`}>
+        {content.slice(lastIndex)}
+      </span>
+    );
   }
 
-  return parts.length > 0 ? parts : content;
+  return result;
 };
