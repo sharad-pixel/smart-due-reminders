@@ -6,11 +6,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 /**
  * Create Checkout Session Edge Function
  * 
- * SaaS Subscription Model:
- * - Trial is ONE-TIME per email address (tracked via trial_used_at)
- * - Subscription is account-level (owner's subscription covers team members)
- * - Team members don't get trials - they're part of account subscription
- * - Supports monthly and annual billing with 20% annual discount
+ * PRICING (December 2024):
+ * - Starter: $199/month
+ * - Growth: $499/month
+ * - Professional: $799/month
+ * - Per Seat: $75/user/month
+ * - Per Invoice: $1.99/invoice
+ * 
+ * Trial is ONE-TIME per email address (tracked via trial_used_at)
+ * Subscription is account-level (owner's subscription covers team members)
  */
 
 const corsHeaders = {
@@ -18,23 +22,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Updated price IDs - December 2024
 const PRICE_IDS: Record<string, Record<string, string>> = {
   month: {
-    starter: 'price_1SaNQ5FaeMMSBqcli04PsmKX',
-    growth: 'price_1SaNQKFaeMMSBqclWKbyVTSv',
-    professional: 'price_1SaNVyFaeMMSBqclrcAXjUmm',
+    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',      // $199/month
+    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',       // $499/month
+    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx', // $799/month
   },
   year: {
-    starter: 'price_1SaNWBFaeMMSBqcl6EK9frSv',
-    growth: 'price_1SaNWTFaeMMSBqclXYovl2Hj',
-    professional: 'price_1SaNXGFaeMMSBqcl08sXmTEm',
+    // Placeholder - using monthly for now until annual prices created
+    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',
+    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',
+    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx',
   }
 };
 
+// Seat pricing: $75/user/month
 const SEAT_PRICE_IDS: Record<string, string> = {
-  month: 'price_1SbWueFaeMMSBqclnDqJkOQW',
-  year: 'price_1SbWuuFaeMMSBqclX6xqgX9E',
+  month: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',
+  year: 'price_1SbvzLBqszPdRiQvI5Dl6LkA', // Placeholder
 };
+
+// Invoice pricing: $1.99/invoice
+const INVOICE_PRICE_ID = 'price_1SbvzMBqszPdRiQv0AM0GDrv';
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';

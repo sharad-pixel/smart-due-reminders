@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 
 /**
  * Pricing page with monthly/annual billing toggle
@@ -306,9 +306,9 @@ const Pricing = () => {
 
                 {plan.planType !== "enterprise" && (
                   <div className="text-xs text-muted-foreground mb-4 bg-muted/50 p-2 rounded space-y-1">
-                    <p>+$1.50 per additional active invoice beyond plan limits</p>
+                    <p>+{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })} per invoice</p>
                     <p>
-                      +{formatPrice(isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice)} per additional team member/{isAnnual ? 'year' : 'month'}
+                      +{formatPrice(isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice)} per additional user/{isAnnual ? 'year' : 'month'}
                       {isAnnual && <span className="text-green-600 ml-1">({discountPercent}% off)</span>}
                     </p>
                   </div>

@@ -1,52 +1,52 @@
 /**
  * Stripe Subscription Configuration
  * 
- * PRICING STRUCTURE:
- * - Annual billing = 20% discount on monthly price
- * - Formula: annual_price = monthly_price * 12 * 0.8
+ * PRICING STRUCTURE (Updated December 2024):
+ * - Starter: $199/month
+ * - Growth: $499/month
+ * - Professional: $799/month
+ * - Per Seat: $75/user/month
+ * - Per Invoice: $1.99/invoice
  * 
- * SEAT BILLING:
- * - Owner is included FREE in base plan
- * - Additional users: $75/month or $720/year (20% discount)
+ * Annual billing = 20% discount on monthly price
+ * Formula: annual_price = monthly_price * 12 * 0.8
  */
 
 // ============================================================================
-// STRIPE PRICE IDs - Update these when switching between Test and Live modes
+// STRIPE PRICE IDs - These are the LIVE mode price IDs
 // ============================================================================
-// NOTE: These IDs are for LIVE mode. For TEST mode, create corresponding prices
-// in your Stripe test dashboard and update accordingly.
 
 export const STRIPE_PRICES = {
   monthly: {
-    starter: 'price_1SaNQ5FaeMMSBqcli04PsmKX',      // $99/month - 100 invoices
-    growth: 'price_1SaNQKFaeMMSBqclWKbyVTSv',       // $199/month - 300 invoices
-    professional: 'price_1SaNVyFaeMMSBqclrcAXjUmm', // $499/month - 500 invoices
+    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',      // $199/month - 100 invoices
+    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',       // $499/month - 300 invoices
+    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx', // $799/month - 500 invoices
   },
   annual: {
-    starter: 'price_1SaNWBFaeMMSBqcl6EK9frSv',      // $950.40/year (20% off) - 100 invoices
-    growth: 'price_1SaNWTFaeMMSBqclXYovl2Hj',       // $1,910.40/year (20% off) - 300 invoices
-    professional: 'price_1SaNXGFaeMMSBqcl08sXmTEm', // $4,790.40/year (20% off) - 500 invoices
+    // Annual prices with 20% discount - to be created in Stripe
+    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',      // Placeholder - update with annual price
+    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',       // Placeholder - update with annual price
+    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx', // Placeholder - update with annual price
   },
-  overage: 'price_1SaNZ7FaeMMSBqcleUXkrzWl',        // $1.50 per additional invoice
+  invoice: 'price_1SbvzMBqszPdRiQv0AM0GDrv',        // $1.99 per invoice
   
   // Team seat add-on pricing
   seat: {
-    monthly: 'price_1SbWueFaeMMSBqclnDqJkOQW',      // $75/user/month
-    annual: 'price_1SbWuuFaeMMSBqclX6xqgX9E',       // $720/user/year (20% off: $75 * 12 * 0.8)
+    monthly: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',      // $75/user/month
+    annual: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',       // Placeholder - update with annual price
   },
 } as const;
 
 export const STRIPE_PRODUCTS = {
-  starter: 'prod_TXSKnoJFoHzsKc',
-  growth: 'prod_TXSLdpR7XTZZQx',
-  professional: 'prod_TXSQ7XHGszt03J',
-  overage: 'prod_TXSUJBuobgJuOq',
-  seatMonthly: 'prod_TYeDiyYwctpxde',
-  seatAnnual: 'prod_TYeDoh2yfFpbdg',
+  starter: 'prod_TZ46AeXdRCONZ3',
+  growth: 'prod_TZ474fjPrZYG15',
+  professional: 'prod_TZ47GQm8Pmer7R',
+  seat: 'prod_TZ47bCfLPMXbBh',
+  invoice: 'prod_TZ47dBqm7afkzi',
 } as const;
 
 // ============================================================================
-// PRICING CONFIGURATION
+// PRICING CONFIGURATION - SINGLE SOURCE OF TRUTH
 // ============================================================================
 
 /**
@@ -56,9 +56,26 @@ export const STRIPE_PRODUCTS = {
 export const ANNUAL_DISCOUNT_RATE = 0.20; // 20% discount
 
 /**
+ * Per-invoice pricing (standardized across all plans)
+ */
+export const INVOICE_PRICING = {
+  perInvoice: 1.99,
+  currency: 'USD',
+} as const;
+
+/**
+ * Per-seat pricing (standardized across all plans)
+ */
+export const SEAT_PRICING = {
+  monthlyPrice: 75.00,
+  annualPrice: 720.00, // $75 * 12 * 0.8 = $720/year (20% discount)
+  currency: 'USD',
+  ownerIncludedFree: true,
+} as const;
+
+/**
  * Calculate annual price from monthly price
  * Formula: monthly * 12 * 0.8 (20% discount)
- * Rounds to 2 decimal places for consistency
  */
 export function calculateAnnualPrice(monthlyPrice: number): number {
   return Math.round(monthlyPrice * 12 * (1 - ANNUAL_DISCOUNT_RATE) * 100) / 100;
@@ -71,16 +88,6 @@ export function calculateEquivalentMonthly(annualPrice: number): number {
   return Math.round((annualPrice / 12) * 100) / 100;
 }
 
-// Seat pricing configuration
-export const SEAT_PRICING = {
-  monthlyPrice: 75.00,
-  annualPrice: 720.00, // $75 * 12 * 0.8 = $720/year (20% discount)
-  currency: 'USD',
-  // Owner is included free in the base plan
-  // Additional active users are billed per seat
-  ownerIncludedFree: true,
-} as const;
-
 export type PlanType = 'free' | 'starter' | 'growth' | 'professional' | 'enterprise';
 export type BillingInterval = 'month' | 'year';
 
@@ -88,25 +95,25 @@ export interface PlanConfig {
   name: string;
   displayName: string;
   monthlyPrice: number;
-  annualPrice: number;        // Calculated: monthlyPrice * 12 * 0.8
-  equivalentMonthly: number;  // Annual price divided by 12
+  annualPrice: number;
+  equivalentMonthly: number;
   invoiceLimit: number;
-  overageRate: number;
+  perInvoiceRate: number;
   maxAgents: number;
   features: string[];
   highlighted?: boolean;
 }
 
-// Plan configurations with 20% annual discount
+// Plan configurations with updated pricing
 export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
   starter: {
     name: 'starter',
     displayName: 'Starter',
-    monthlyPrice: 99,
-    annualPrice: 950.40,        // $99 * 12 * 0.8 = $950.40
-    equivalentMonthly: 79.20,   // $950.40 / 12 = $79.20
+    monthlyPrice: 199,
+    annualPrice: calculateAnnualPrice(199),         // $1,910.40/year
+    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(199)), // $159.20/month
     invoiceLimit: 100,
-    overageRate: 1.50,
+    perInvoiceRate: INVOICE_PRICING.perInvoice,
     maxAgents: 2,
     features: [
       'Up to 100 invoices/month',
@@ -120,11 +127,11 @@ export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
   growth: {
     name: 'growth',
     displayName: 'Growth',
-    monthlyPrice: 199,
-    annualPrice: 1910.40,       // $199 * 12 * 0.8 = $1,910.40
-    equivalentMonthly: 159.20,  // $1,910.40 / 12 = $159.20
+    monthlyPrice: 499,
+    annualPrice: calculateAnnualPrice(499),         // $4,790.40/year
+    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(499)), // $399.20/month
     invoiceLimit: 300,
-    overageRate: 1.50,
+    perInvoiceRate: INVOICE_PRICING.perInvoice,
     maxAgents: 5,
     highlighted: true,
     features: [
@@ -140,11 +147,11 @@ export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
   professional: {
     name: 'professional',
     displayName: 'Professional',
-    monthlyPrice: 499,
-    annualPrice: 4790.40,       // $499 * 12 * 0.8 = $4,790.40
-    equivalentMonthly: 399.20,  // $4,790.40 / 12 = $399.20
+    monthlyPrice: 799,
+    annualPrice: calculateAnnualPrice(799),         // $7,670.40/year
+    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(799)), // $639.20/month
     invoiceLimit: 500,
-    overageRate: 1.50,
+    perInvoiceRate: INVOICE_PRICING.perInvoice,
     maxAgents: 6,
     features: [
       'Up to 500 invoices/month',
@@ -164,7 +171,7 @@ export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
     annualPrice: 0,
     equivalentMonthly: 0,
     invoiceLimit: -1, // Unlimited
-    overageRate: 0,
+    perInvoiceRate: 0,
     maxAgents: 6,
     features: [
       'Unlimited invoices',
@@ -212,6 +219,13 @@ export function getSeatPriceId(interval: BillingInterval): string {
     : STRIPE_PRICES.seat.monthly;
 }
 
+/**
+ * Get invoice price ID (same for all plans)
+ */
+export function getInvoicePriceId(): string {
+  return STRIPE_PRICES.invoice;
+}
+
 export function getPlanConfig(plan: PlanType): PlanConfig | null {
   if (plan === 'free') return null;
   return PLAN_CONFIGS[plan] || null;
@@ -240,7 +254,6 @@ export function getMaxAgents(plan: PlanType): number {
 
 /**
  * Calculate billable seats for an account
- * Owner is free, additional active users are billed per seat
  */
 export function calculateBillableSeats(activeUsers: number, ownerCount: number = 1): number {
   if (SEAT_PRICING.ownerIncludedFree) {
