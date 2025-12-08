@@ -19,8 +19,11 @@ export type Database = {
           accepted_at: string | null
           account_id: string
           created_at: string
+          disabled_at: string | null
+          email: string | null
           id: string
           invited_at: string
+          is_owner: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           status: string
           updated_at: string
@@ -30,8 +33,11 @@ export type Database = {
           accepted_at?: string | null
           account_id: string
           created_at?: string
+          disabled_at?: string | null
+          email?: string | null
           id?: string
           invited_at?: string
+          is_owner?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           updated_at?: string
@@ -41,8 +47,11 @@ export type Database = {
           accepted_at?: string | null
           account_id?: string
           created_at?: string
+          disabled_at?: string | null
+          email?: string | null
           id?: string
           invited_at?: string
+          is_owner?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           updated_at?: string
@@ -3983,6 +3992,10 @@ export type Database = {
       generate_reference_id: {
         Args: { prefix: string; target_table: string }
         Returns: string
+      }
+      get_billable_seat_count: {
+        Args: { p_account_id: string }
+        Returns: number
       }
       has_role: {
         Args: {
