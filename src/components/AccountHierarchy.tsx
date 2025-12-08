@@ -35,6 +35,7 @@ export function AccountHierarchy({ compact = false }: AccountHierarchyProps) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(!compact);
+  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
 
   useEffect(() => {
     loadHierarchy();
@@ -52,6 +53,23 @@ export function AccountHierarchy({ compact = false }: AccountHierarchyProps) {
         .rpc('get_effective_account_id', { p_user_id: user.id });
 
       const accountId = effectiveAccountId || user.id;
+
+      // Get organization/workspace name
+      const { data: orgId } = await supabase.rpc('get_user_organization_id', {
+        p_user_id: user.id
+      });
+
+      if (orgId) {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', orgId)
+          .single();
+        
+        if (orgData?.name) {
+          setWorkspaceName(orgData.name);
+        }
+      }
 
       // Fetch all account users for this account
       const { data: accountUsers, error } = await supabase
@@ -208,6 +226,12 @@ export function AccountHierarchy({ compact = false }: AccountHierarchyProps) {
           )}
         </div>
         <CardDescription>
+          {workspaceName && (
+            <span className="flex items-center gap-1 mb-1">
+              <Building2 className="h-3.5 w-3.5" />
+              <span className="font-medium text-foreground">{workspaceName}</span>
+            </span>
+          )}
           Organization structure and team members ({members.length + 1} total)
         </CardDescription>
       </CardHeader>
