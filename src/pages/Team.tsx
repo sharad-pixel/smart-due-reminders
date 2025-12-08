@@ -272,9 +272,9 @@ const Team = () => {
                 Upgrade your subscription to enable this feature.
               </p>
               <div className="flex gap-2 justify-center">
-                <Button onClick={() => navigate("/pricing")}>
+                <Button onClick={() => navigate("/upgrade")}>
                   <DollarSign className="h-4 w-4 mr-2" />
-                  View Plans
+                  Upgrade Plan
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/contact")}>
                   Contact Sales
