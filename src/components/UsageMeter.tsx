@@ -127,7 +127,7 @@ const UsageMeter = ({ compact = false }: UsageMeterProps) => {
           <Button 
             variant="link" 
             className="p-0 h-auto text-sm"
-            onClick={() => navigate('/pricing')}
+            onClick={() => navigate('/upgrade')}
           >
             Upgrade for more invoices →
           </Button>

@@ -67,8 +67,8 @@ export function SubscriptionGate({
         <p className="text-muted-foreground mb-4">
           This feature requires the {requiredPlan.charAt(0).toUpperCase() + requiredPlan.slice(1)} plan or higher.
         </p>
-        <Button onClick={() => navigate('/pricing')}>
-          View Plans
+        <Button onClick={() => navigate('/upgrade')}>
+          Upgrade Plan
         </Button>
       </div>
     );

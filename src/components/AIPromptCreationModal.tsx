@@ -501,7 +501,7 @@ export const AIPromptCreationModal = ({ open, onOpenChange, onSuccess }: AIPromp
                             <Lock className="h-4 w-4" />
                             <AlertDescription>
                               <strong>Line items detected</strong> but are only available on the Professional plan.
-                              <Button variant="link" className="p-0 h-auto ml-1" onClick={() => window.open("/pricing", "_blank")}>
+                              <Button variant="link" className="p-0 h-auto ml-1" onClick={() => window.open("/upgrade", "_blank")}>
                                 Upgrade to Professional
                               </Button>
                             </AlertDescription>

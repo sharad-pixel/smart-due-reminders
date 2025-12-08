@@ -45,7 +45,7 @@ export function InvoiceLimitModal({ open, onOpenChange, onContinue }: InvoiceLim
 
   const handleUpgrade = () => {
     onOpenChange(false);
-    navigate('/pricing');
+    navigate('/upgrade');
   };
 
   const handleContinue = () => {
