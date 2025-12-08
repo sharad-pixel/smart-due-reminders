@@ -9,6 +9,7 @@ interface EffectiveAccountInfo {
   ownerCompanyName: string | null;
   ownerPlanType: string | null;
   ownerSubscriptionStatus: string | null;
+  ownerAvatarUrl: string | null;
   memberRole: string | null;
   loading: boolean;
   // Business profile fields from parent account
@@ -38,6 +39,7 @@ export const useEffectiveAccount = () => {
     ownerCompanyName: null,
     ownerPlanType: null,
     ownerSubscriptionStatus: null,
+    ownerAvatarUrl: null,
     memberRole: null,
     loading: true,
     ownerBusinessName: null,
@@ -86,11 +88,11 @@ export const useEffectiveAccount = () => {
         const isTeamMember = effectiveAccountId !== user.id;
 
         if (isTeamMember) {
-          // Get owner's profile info including company, plan, and business profile
+          // Get owner's profile info including company, plan, business profile, and avatar
           const { data: ownerProfile } = await supabase
             .from('profiles')
             .select(`
-              name, email, company_name, plan_type, subscription_status,
+              name, email, company_name, plan_type, subscription_status, avatar_url,
               business_name, business_phone, business_address_line1, business_address_line2,
               business_city, business_state, business_postal_code, business_country,
               stripe_payment_link_url
@@ -122,6 +124,7 @@ export const useEffectiveAccount = () => {
             ownerCompanyName: ownerProfile?.company_name || null,
             ownerPlanType: ownerProfile?.plan_type || null,
             ownerSubscriptionStatus: ownerProfile?.subscription_status || null,
+            ownerAvatarUrl: ownerProfile?.avatar_url || null,
             memberRole: memberData?.role || null,
             loading: false,
             // Business profile from parent
@@ -146,6 +149,7 @@ export const useEffectiveAccount = () => {
             ...prev,
             effectiveAccountId,
             isTeamMember: false,
+            ownerAvatarUrl: null,
             loading: false,
           }));
         }
