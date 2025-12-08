@@ -443,7 +443,12 @@ const Billing = () => {
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span>
                         <strong>Team Seats:</strong>{' '}
-                        {teamMembers.filter(m => !m.is_owner && m.status === 'active').length} seat(s)
+                        {billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length} seat(s)
+                        {billingDiscrepancy && billingDiscrepancy.stripeSeats !== billingDiscrepancy.dbSeats && (
+                          <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-600">
+                            Stripe: {billingDiscrepancy.stripeSeats}
+                          </Badge>
+                        )}
                       </span>
                     </div>
                     <p>
@@ -468,10 +473,10 @@ const Billing = () => {
                         <span>{planConfig ? formatPrice(profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : '$0'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Team Seats ({teamMembers.filter(m => !m.is_owner && m.status === 'active').length})</span>
+                        <span className="text-muted-foreground">Team Seats ({billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length})</span>
                         <span>
                           {formatPrice(
-                            teamMembers.filter(m => !m.is_owner && m.status === 'active').length * 
+                            (billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length) * 
                             (profile?.billing_interval === 'year' 
                               ? Math.round(SEAT_PRICING.annualPrice / 12) 
                               : SEAT_PRICING.monthlyPrice)
@@ -483,7 +488,7 @@ const Billing = () => {
                         <span className="text-primary">
                           {formatPrice(
                             (planConfig ? (profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : 0) +
-                            (teamMembers.filter(m => !m.is_owner && m.status === 'active').length * 
+                            ((billingDiscrepancy?.dbSeats ?? teamMembers.filter(m => !m.is_owner && m.status === 'active').length) * 
                               (profile?.billing_interval === 'year' 
                                 ? Math.round(SEAT_PRICING.annualPrice / 12) 
                                 : SEAT_PRICING.monthlyPrice))
