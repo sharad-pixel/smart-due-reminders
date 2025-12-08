@@ -30,8 +30,12 @@ export const NotificationBell = () => {
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
-    if (notification.link) {
-      setOpen(false);
+    setOpen(false);
+    
+    // If this is a task-related notification, navigate with taskId param to open modal
+    if (notification.source_type === 'task' && notification.source_id) {
+      navigate(`/tasks?taskId=${notification.source_id}`);
+    } else if (notification.link) {
       navigate(notification.link);
     }
   };
