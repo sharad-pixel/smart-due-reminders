@@ -273,7 +273,7 @@ const Billing = () => {
     });
   };
 
-  if (loading) {
+  if (loading || accountHierarchy.loading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -294,9 +294,17 @@ const Billing = () => {
   const billableSeats = billingDiscrepancy?.dbSeats ?? accountHierarchy.billing.billableSeats;
 
   // Always use hierarchy billing data - it contains owner's plan for both owners and team members
-  const effectivePlanType = accountHierarchy.billing.planType || profile?.plan_type || 'free';
-  const effectiveSubscriptionStatus = accountHierarchy.billing.subscriptionStatus || profile?.subscription_status || 'inactive';
-  const effectiveBillingInterval = accountHierarchy.billing.billingInterval || profile?.billing_interval || 'month';
+  // For team members, hierarchy.billing contains the parent account's billing info
+  // Priority: 1) hierarchy billing (most reliable for team members), 2) stripeData (synced from Stripe), 3) profile (db fallback)
+  const effectivePlanType = isTeamMember 
+    ? (accountHierarchy.billing.planType || parentAccount?.planType || 'free')
+    : (stripeData?.plan_type || accountHierarchy.billing.planType || profile?.plan_type || 'free');
+  const effectiveSubscriptionStatus = isTeamMember
+    ? (accountHierarchy.billing.subscriptionStatus || parentAccount?.subscriptionStatus || 'inactive')
+    : (stripeData?.subscription_status || accountHierarchy.billing.subscriptionStatus || profile?.subscription_status || 'inactive');
+  const effectiveBillingInterval = isTeamMember
+    ? (accountHierarchy.billing.billingInterval || parentAccount?.billingInterval || 'month')
+    : (stripeData?.billing_interval || accountHierarchy.billing.billingInterval || profile?.billing_interval || 'month');
 
   const planConfig = getPlanConfig(effectivePlanType);
   
