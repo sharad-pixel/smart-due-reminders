@@ -4,24 +4,94 @@ import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice, type PlanType } from "@/lib/subscriptionConfig";
 
+// Colorful gauge component
+const UsageGauge = ({ 
+  used, 
+  limit, 
+  isUnlimited = false 
+}: { 
+  used: number; 
+  limit: number; 
+  isUnlimited?: boolean;
+}) => {
+  const percentage = isUnlimited ? 0 : Math.min(100, (used / limit) * 100);
+  const circumference = 2 * Math.PI * 45;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  
+  // Color based on usage level
+  const getColor = () => {
+    if (isUnlimited) return { stroke: 'hsl(var(--primary))', text: 'text-primary', bg: 'bg-primary/10' };
+    if (percentage >= 90) return { stroke: 'hsl(0, 84%, 60%)', text: 'text-red-500', bg: 'bg-red-500/10' };
+    if (percentage >= 75) return { stroke: 'hsl(38, 92%, 50%)', text: 'text-amber-500', bg: 'bg-amber-500/10' };
+    if (percentage >= 50) return { stroke: 'hsl(48, 96%, 53%)', text: 'text-yellow-500', bg: 'bg-yellow-500/10' };
+    return { stroke: 'hsl(142, 76%, 36%)', text: 'text-green-500', bg: 'bg-green-500/10' };
+  };
+  
+  const colors = getColor();
+  
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-32 h-32">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            fill="none"
+            stroke="hsl(var(--muted))"
+            strokeWidth="8"
+          />
+          {/* Progress circle with gradient effect */}
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            fill="none"
+            stroke={colors.stroke}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={isUnlimited ? 0 : strokeDashoffset}
+            className="transition-all duration-700 ease-out"
+            style={{
+              filter: 'drop-shadow(0 0 6px currentColor)',
+            }}
+          />
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className={`text-3xl font-bold ${colors.text}`}>
+            {isUnlimited ? '∞' : `${Math.round(percentage)}%`}
+          </span>
+          <span className="text-xs text-muted-foreground">used</span>
+        </div>
+      </div>
+      <div className={`mt-4 px-4 py-2 rounded-full ${colors.bg}`}>
+        <span className={`text-sm font-medium ${colors.text}`}>
+          {isUnlimited ? 'Unlimited' : `${used} / ${limit} invoices`}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 interface UsageData {
-  plan: string;
-  invoiceAllowance: number | string;
-  includedUsed: number;
-  overageCount: number;
-  totalUsed: number;
-  remaining: number | string;
-  isOverLimit: boolean;
-  overageRate: number;
-  subscriptionStatus: string;
+  plan_name: string;
+  included_allowance: number | string;
+  included_invoices_used: number;
+  overage_invoices: number;
+  total_invoices_used: number;
+  remaining_quota: number | string;
+  is_over_limit: boolean;
+  overage_rate: number;
 }
 
 interface ProfileData {
@@ -133,9 +203,11 @@ const Billing = () => {
   }
 
   const planConfig = profile ? getPlanConfig(profile.plan_type) : null;
-  const usagePercent = usage && typeof usage.invoiceAllowance === 'number' 
-    ? Math.min(100, (usage.includedUsed / usage.invoiceAllowance) * 100)
-    : 0;
+  
+  // Derive invoice limit from usage data (source of truth) or plan config
+  const invoiceLimit = usage?.included_allowance ?? planConfig?.invoiceLimit ?? 15;
+  const isUnlimited = invoiceLimit === -1 || invoiceLimit === 'Unlimited';
+  const invoicesUsed = usage?.included_invoices_used ?? 0;
 
   return (
     <Layout>
@@ -212,7 +284,7 @@ const Billing = () => {
                     </div>
                     <p>
                       <strong>Invoice Limit:</strong>{' '}
-                      {profile?.invoice_limit === -1 ? 'Unlimited' : `${profile?.invoice_limit || 5} invoices/month`}
+                      {isUnlimited ? 'Unlimited' : `${invoiceLimit} invoices/month`}
                     </p>
                     {profile?.current_period_end && (
                       <p>
@@ -246,56 +318,65 @@ const Billing = () => {
           </Card>
 
           {/* Usage */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Usage</CardTitle>
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Monthly Usage
+              </CardTitle>
               <CardDescription>
                 Track your invoice usage for the current billing period
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {usage ? (
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium">
-                        Invoices Used: {usage.includedUsed} / {usage.invoiceAllowance}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {typeof usage.remaining === 'number' ? `${usage.remaining} remaining` : usage.remaining}
-                      </span>
-                    </div>
-                    <Progress value={usagePercent} className="h-3" />
-                  </div>
-
-                  {usage.overageCount > 0 && (
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        You have {usage.overageCount} overage invoice(s) this period. 
-                        These will be billed at ${usage.overageRate.toFixed(2)} each (${(usage.overageCount * usage.overageRate).toFixed(2)} total).
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">{usage.includedUsed}</p>
+            <CardContent className="pt-8">
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                {/* Colorful Gauge */}
+                <UsageGauge 
+                  used={invoicesUsed}
+                  limit={typeof invoiceLimit === 'number' ? invoiceLimit : 0}
+                  isUnlimited={isUnlimited}
+                />
+                
+                {/* Stats */}
+                <div className="flex-1 w-full">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <p className="text-2xl font-bold text-green-600">{invoicesUsed}</p>
                       <p className="text-sm text-muted-foreground">Included</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">{usage.overageCount}</p>
+                    <div className="text-center p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <p className="text-2xl font-bold text-amber-600">{usage?.overage_invoices ?? 0}</p>
                       <p className="text-sm text-muted-foreground">Overage</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">{usage.totalUsed}</p>
+                    <div className="text-center p-4 rounded-lg bg-primary/10 border border-primary/20">
+                      <p className="text-2xl font-bold text-primary">{usage?.total_invoices_used ?? 0}</p>
                       <p className="text-sm text-muted-foreground">Total</p>
                     </div>
                   </div>
+                  
+                  {!isUnlimited && (
+                    <div className="mt-4 p-3 rounded-lg bg-muted/50">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Remaining this period</span>
+                        <span className="font-medium">
+                          {usage?.remaining_quota ?? (typeof invoiceLimit === 'number' ? invoiceLimit - invoicesUsed : 0)} invoices
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {(usage?.overage_invoices ?? 0) > 0 && (
+                    <Alert className="mt-4 border-amber-500/50 bg-amber-500/5">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <AlertDescription className="text-amber-700">
+                        You have {usage?.overage_invoices} overage invoice(s) this period. 
+                        These will be billed at ${(usage?.overage_rate ?? 1.5).toFixed(2)} each 
+                        (${((usage?.overage_invoices ?? 0) * (usage?.overage_rate ?? 1.5)).toFixed(2)} total).
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-              ) : (
-                <p className="text-muted-foreground">No usage data available</p>
-              )}
+              </div>
             </CardContent>
           </Card>
 
