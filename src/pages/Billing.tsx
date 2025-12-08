@@ -121,6 +121,7 @@ interface TeamMember {
   user_id: string;
   role: string;
   status: string;
+  is_owner: boolean;
   profile?: {
     display_name: string | null;
     email: string;
@@ -150,18 +151,24 @@ const Billing = () => {
         return;
       }
 
+      // Get effective account ID for team members
+      const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { 
+        p_user_id: session.user.id 
+      });
+      const accountId = effectiveAccountId || session.user.id;
+
       // Fetch profile data
       const { data: profileData } = await supabase
         .from('profiles')
         .select('plan_type, invoice_limit, billing_interval, subscription_status, current_period_end, stripe_subscription_id')
-        .eq('id', session.user.id)
+        .eq('id', accountId)
         .single();
 
       if (profileData) {
         setProfile(profileData);
       }
 
-      // Fetch team members for this account
+      // Fetch team members for this account (filter by account_id)
       const { data: accountUserData } = await supabase
         .from('account_users')
         .select(`
@@ -169,13 +176,15 @@ const Billing = () => {
           user_id,
           role,
           status,
+          is_owner,
           profiles:user_id (
             display_name,
             email,
             avatar_url
           )
         `)
-        .eq('status', 'active');
+        .eq('account_id', accountId)
+        .in('status', ['active', 'pending']);
 
       if (accountUserData) {
         const members = accountUserData.map((au: any) => ({
@@ -183,6 +192,7 @@ const Billing = () => {
           user_id: au.user_id,
           role: au.role,
           status: au.status,
+          is_owner: au.is_owner,
           profile: au.profiles
         }));
         setTeamMembers(members);
@@ -348,7 +358,7 @@ const Billing = () => {
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span>
                         <strong>Team Seats:</strong>{' '}
-                        {teamMembers.filter(m => m.role !== 'owner').length} seat(s)
+                        {teamMembers.filter(m => !m.is_owner && m.status === 'active').length} seat(s)
                       </span>
                     </div>
                     <p>
@@ -373,10 +383,10 @@ const Billing = () => {
                         <span>{planConfig ? formatPrice(profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : '$0'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Team Seats ({teamMembers.filter(m => m.role !== 'owner').length})</span>
+                        <span className="text-muted-foreground">Team Seats ({teamMembers.filter(m => !m.is_owner && m.status === 'active').length})</span>
                         <span>
                           {formatPrice(
-                            teamMembers.filter(m => m.role !== 'owner').length * 
+                            teamMembers.filter(m => !m.is_owner && m.status === 'active').length * 
                             (profile?.billing_interval === 'year' 
                               ? Math.round(SEAT_PRICING.annualPrice / 12) 
                               : SEAT_PRICING.monthlyPrice)
@@ -388,7 +398,7 @@ const Billing = () => {
                         <span className="text-primary">
                           {formatPrice(
                             (planConfig ? (profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : 0) +
-                            (teamMembers.filter(m => m.role !== 'owner').length * 
+                            (teamMembers.filter(m => !m.is_owner && m.status === 'active').length * 
                               (profile?.billing_interval === 'year' 
                                 ? Math.round(SEAT_PRICING.annualPrice / 12) 
                                 : SEAT_PRICING.monthlyPrice))
