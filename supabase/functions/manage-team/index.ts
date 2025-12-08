@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
               account_id: managingAccountId,
               user_id: inviteData.user.id,
               role: role || 'member',
-              status: 'invited',
+              status: 'pending',
             })
             .select()
             .single();
