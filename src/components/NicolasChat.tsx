@@ -290,7 +290,7 @@ const KNOWLEDGE_BASE = [
   },
   {
     keywords: ["billing", "subscription", "plan", "pricing", "upgrade"],
-    answer: "Manage your subscription from the Billing page. We offer Starter ($99/mo), Growth ($199/mo), and Professional ($499/mo) plans based on invoice volume.",
+    answer: "Manage your subscription from the Billing page. We offer Starter ($199/mo), Growth ($499/mo), and Professional ($799/mo) plans based on invoice volume.",
     confidence: 0.8,
     links: [
       { label: "Manage Billing", path: "/billing" },

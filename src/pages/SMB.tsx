@@ -4,6 +4,7 @@ import { Building2, Mail, Clock, TrendingDown, CheckCircle, ArrowRight, Users, B
 import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
 
 const SMB = () => {
   const navigate = useNavigate();
@@ -206,7 +207,7 @@ const SMB = () => {
               <p className="text-muted-foreground">DSO Reduction</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">$199</div>
+              <div className="text-4xl font-bold text-primary mb-2">{formatPrice(PLAN_CONFIGS.starter.monthlyPrice)}</div>
               <p className="text-muted-foreground">Starting Price</p>
             </div>
           </div>
