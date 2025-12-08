@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -35,16 +35,24 @@ export const MentionInput = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Extract current mentions from value
-  useEffect(() => {
-    const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g;
-    const mentions: string[] = [];
-    let match;
-    while ((match = mentionPattern.exec(value)) !== null) {
-      mentions.push(match[2]); // user_id
+  // Track mentions by matching @Name patterns against known users
+  const extractMentions = useCallback((text: string): string[] => {
+    const mentionedUserIds: string[] = [];
+    for (const user of users) {
+      // Check if @Name appears in text (case-insensitive)
+      const pattern = new RegExp(`@${user.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (pattern.test(text)) {
+        mentionedUserIds.push(user.user_id);
+      }
     }
+    return mentionedUserIds;
+  }, [users]);
+
+  // Update mentions whenever value changes
+  useEffect(() => {
+    const mentions = extractMentions(value);
     onMentionsChange?.(mentions);
-  }, [value, onMentionsChange]);
+  }, [value, extractMentions, onMentionsChange]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -84,8 +92,9 @@ export const MentionInput = ({
     const beforeMention = value.slice(0, mentionStart);
     const afterMention = value.slice(cursorPos);
     
-    // Format: @[Name](user_id)
-    const mentionText = `@[${user.name}](${user.user_id}) `;
+    // Display format: @Name (clean for user visibility)
+    // Store the user_id in mentions array for backend processing
+    const mentionText = `@${user.name} `;
     const newValue = beforeMention + mentionText + afterMention;
     
     onChange(newValue);
@@ -191,25 +200,70 @@ export const MentionInput = ({
 };
 
 // Utility to render note content with styled mentions
+// Handles both legacy format @[Name](uuid) and new format @Name
 export const renderNoteWithMentions = (content: string): React.ReactNode => {
   if (!content) return content;
   
-  // Pattern matches @[Name](uuid) format
-  const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g;
+  // First try legacy pattern @[Name](uuid)
+  const legacyPattern = /@\[([^\]]+)\]\(([^)]+)\)/g;
+  let hasLegacyMatches = legacyPattern.test(content);
+  legacyPattern.lastIndex = 0;
+  
+  if (hasLegacyMatches) {
+    const result: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let keyIndex = 0;
+    let match;
+
+    while ((match = legacyPattern.exec(content)) !== null) {
+      const matchIndex = match.index;
+      const fullMatch = match[0];
+      const userName = match[1];
+
+      if (matchIndex > lastIndex) {
+        result.push(
+          <span key={`text-${keyIndex++}`}>
+            {content.slice(lastIndex, matchIndex)}
+          </span>
+        );
+      }
+
+      result.push(
+        <span 
+          key={`mention-${keyIndex++}`}
+          className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium"
+        >
+          @{userName}
+        </span>
+      );
+
+      lastIndex = matchIndex + fullMatch.length;
+    }
+
+    if (lastIndex < content.length) {
+      result.push(
+        <span key={`text-${keyIndex++}`}>
+          {content.slice(lastIndex)}
+        </span>
+      );
+    }
+
+    return result;
+  }
+  
+  // For new format, just style @Name patterns
+  // Match @Word (handles names like "Sharad Chanana")
+  const simplePattern = /@([A-Za-z]+(?:\s+[A-Za-z]+)*)/g;
   const result: React.ReactNode[] = [];
   let lastIndex = 0;
   let keyIndex = 0;
   let match;
 
-  // Reset regex state
-  mentionPattern.lastIndex = 0;
-
-  while ((match = mentionPattern.exec(content)) !== null) {
+  while ((match = simplePattern.exec(content)) !== null) {
     const matchIndex = match.index;
     const fullMatch = match[0];
     const userName = match[1];
 
-    // Add text before this mention
     if (matchIndex > lastIndex) {
       result.push(
         <span key={`text-${keyIndex++}`}>
@@ -218,7 +272,6 @@ export const renderNoteWithMentions = (content: string): React.ReactNode => {
       );
     }
 
-    // Add styled mention - display only the name, not the ID
     result.push(
       <span 
         key={`mention-${keyIndex++}`}
@@ -231,12 +284,10 @@ export const renderNoteWithMentions = (content: string): React.ReactNode => {
     lastIndex = matchIndex + fullMatch.length;
   }
 
-  // If no matches found, return original content
   if (result.length === 0) {
     return content;
   }
 
-  // Add remaining text after last mention
   if (lastIndex < content.length) {
     result.push(
       <span key={`text-${keyIndex++}`}>
