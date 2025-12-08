@@ -51,20 +51,27 @@ serve(async (req) => {
       apiVersion: '2025-08-27.basil',
     });
 
-    let customerId: string;
+    let customerId: string = '';
 
-    // Use existing customer ID from profile if available
+    // Use existing customer ID from profile if available, but verify it exists in Stripe
     if (profile?.stripe_customer_id) {
-      customerId = profile.stripe_customer_id;
-      logStep('Using existing customer from profile', { customerId });
-    } else {
-      // Search for customer by email in Stripe
+      try {
+        await stripe.customers.retrieve(profile.stripe_customer_id);
+        customerId = profile.stripe_customer_id;
+        logStep('Verified existing customer from profile', { customerId });
+      } catch (retrieveError) {
+        logStep('Stored customer ID invalid, will search/create', { storedId: profile.stripe_customer_id });
+        // Customer doesn't exist in Stripe, will fall through to search/create
+      }
+    }
+
+    // If no valid customer ID, search or create
+    if (!customerId) {
       const customers = await stripe.customers.list({ email: user.email, limit: 1 });
       
       if (customers.data.length === 0) {
         logStep('No customer found, creating new Stripe customer');
         
-        // Create new Stripe customer
         const newCustomer = await stripe.customers.create({
           email: user.email,
           name: user.user_metadata?.name || user.user_metadata?.full_name || undefined,
@@ -80,7 +87,7 @@ serve(async (req) => {
         logStep('Existing customer found in Stripe', { customerId });
       }
 
-      // Always update profile with stripe_customer_id for future webhook matching
+      // Update profile with valid stripe_customer_id
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ stripe_customer_id: customerId })
