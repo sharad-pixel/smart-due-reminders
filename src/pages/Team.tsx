@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft, Send } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft, Send, Building2, Link2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SEAT_PRICING } from "@/lib/subscriptionConfig";
-
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 type AppRole = "owner" | "admin" | "member" | "viewer";
 
 interface TeamMember {
@@ -63,8 +63,9 @@ const Team = () => {
   const [reassignEmail, setReassignEmail] = useState("");
   const [isReassigning, setIsReassigning] = useState(false);
   const [isResendingInvite, setIsResendingInvite] = useState<string | null>(null);
-
-  // Handle checkout success/failure and invite param from URL
+  
+  // Get effective account info for team members
+  const { isTeamMember, ownerName, ownerEmail, ownerCompanyName, ownerPlanType, ownerSubscriptionStatus, memberRole, loading: accountLoading } = useEffectiveAccount();
   useEffect(() => {
     const checkout = searchParams.get('checkout');
     const seatsAdded = searchParams.get('seats_added');
@@ -422,159 +423,214 @@ const Team = () => {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Parent Account Card for Team Members */}
+        {isTeamMember && !accountLoading && (
+          <Card className="bg-primary/5 border-primary/30">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Connected Account</CardTitle>
+              </div>
+              <CardDescription>
+                You are a team member with access to this account's data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Account Owner</p>
+                  <p className="font-medium">{ownerName || ownerEmail || 'Unknown'}</p>
+                  {ownerName && ownerEmail && (
+                    <p className="text-xs text-muted-foreground">{ownerEmail}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Company</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    {ownerCompanyName || 'Not specified'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Plan</p>
+                  <Badge variant="secondary" className="capitalize">
+                    {ownerPlanType || 'Free'}
+                  </Badge>
+                  {ownerSubscriptionStatus && (
+                    <Badge variant="outline" className="ml-2 capitalize text-xs">
+                      {ownerSubscriptionStatus}
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Your Role</p>
+                  <Badge className="capitalize">
+                    {memberRole || 'Member'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Team & Roles</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your team members and their access levels
+              {isTeamMember ? 'View your team members' : 'Manage your team members and their access levels'}
             </p>
           </div>
-          <div className="flex gap-2">
-            {/* Invite Member Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Invite Member
-                </Button>
-              </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite Team Member</DialogTitle>
-                <DialogDescription>
-                  Add a new member to your team and assign their role
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                {/* Pricing Note */}
-                <Alert className="bg-amber-500/10 border-amber-500/30">
-                  <DollarSign className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-sm">
-                    Your card will be charged <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> immediately for this seat.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="member@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as AppRole)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="mt-2 p-3 bg-muted/50 rounded-md">
-                    <p className="text-xs font-medium mb-2">This role can:</p>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      {inviteRole === "admin" && (
-                        <>
-                          <li>• Manage team members and roles</li>
-                          <li>• Configure settings and integrations</li>
-                          <li>• Full access to billing and plans</li>
-                          <li>• Create and edit all data</li>
-                        </>
-                      )}
-                      {inviteRole === "member" && (
-                        <>
-                          <li>• Create and edit invoices</li>
-                          <li>• Manage debtors and contacts</li>
-                          <li>• Create and manage AI workflows</li>
-                          <li>• View reports and analytics</li>
-                        </>
-                      )}
-                      {inviteRole === "viewer" && (
-                        <>
-                          <li>• View all invoices and debtors</li>
-                          <li>• Access reports and analytics</li>
-                          <li>• View AI workflows and drafts</li>
-                          <li>• No ability to create or modify data</li>
-                        </>
-                      )}
-                    </ul>
+          {/* Only show invite button for owners/admins, not team members */}
+          {!isTeamMember && (
+            <div className="flex gap-2">
+              {/* Invite Member Dialog */}
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Invite Member
+                  </Button>
+                </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite Team Member</DialogTitle>
+                  <DialogDescription>
+                    Add a new member to your team and assign their role
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  {/* Pricing Note */}
+                  <Alert className="bg-amber-500/10 border-amber-500/30">
+                    <DollarSign className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-sm">
+                      Your card will be charged <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> immediately for this seat.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="member@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as AppRole)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                      <p className="text-xs font-medium mb-2">This role can:</p>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        {inviteRole === "admin" && (
+                          <>
+                            <li>• Manage team members and roles</li>
+                            <li>• Configure settings and integrations</li>
+                            <li>• Full access to billing and plans</li>
+                            <li>• Create and edit all data</li>
+                          </>
+                        )}
+                        {inviteRole === "member" && (
+                          <>
+                            <li>• Create and edit invoices</li>
+                            <li>• Manage debtors and contacts</li>
+                            <li>• Create and manage AI workflows</li>
+                            <li>• View reports and analytics</li>
+                          </>
+                        )}
+                        {inviteRole === "viewer" && (
+                          <>
+                            <li>• View all invoices and debtors</li>
+                            <li>• Access reports and analytics</li>
+                            <li>• View AI workflows and drafts</li>
+                            <li>• No ability to create or modify data</li>
+                          </>
+                        )}
+                      </ul>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleInvite} disabled={isInviting}>
-                  {isInviting ? "Inviting..." : "Send Invite"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleInvite} disabled={isInviting}>
+                    {isInviting ? "Inviting..." : "Send Invite"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            </div>
+          )}
         </div>
 
-        {/* Team Seats & Billing Summary */}
-        <Card className="bg-muted/50 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    Team Members & Seats
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Each additional active user is billed at <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)} per month</strong>
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-sm">
-                  {features?.plan_type.charAt(0).toUpperCase()}{features?.plan_type.slice(1)} Plan
-                </Badge>
-              </div>
-              
-              {/* Seat Count Summary */}
-              {(() => {
-                const activeMembers = teamMembers.filter(m => m.status === 'active');
-                const ownerCount = activeMembers.filter(m => m.role === 'owner').length;
-                const billableSeats = Math.max(0, activeMembers.length - ownerCount);
-                const monthlyTotal = billableSeats * SEAT_PRICING.monthlyPrice;
-                
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-background rounded-lg border">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary">{activeMembers.length}</p>
-                      <p className="text-xs text-muted-foreground">Active Users</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">{billableSeats}</p>
-                      <p className="text-xs text-muted-foreground">Billable Seats</p>
-                      <p className="text-xs text-muted-foreground">(Owner is free)</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-success">${monthlyTotal.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">Est. Monthly</p>
-                    </div>
+        {/* Team Seats & Billing Summary - Only for account owners, not team members */}
+        {!isTeamMember && (
+          <Card className="bg-muted/50 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      Team Members & Seats
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Each additional active user is billed at <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)} per month</strong>
+                    </p>
                   </div>
-                );
-              })()}
-              
-              <Progress 
-                value={(teamMembers.filter(m => m.role !== 'owner').length / ((features?.features as any)?.max_invited_users || 1)) * 100} 
-                className="h-2"
-              />
-              <p className="text-xs text-muted-foreground">
-                {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} seats used
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                  <Badge variant="outline" className="text-sm">
+                    {features?.plan_type.charAt(0).toUpperCase()}{features?.plan_type.slice(1)} Plan
+                  </Badge>
+                </div>
+                
+                {/* Seat Count Summary */}
+                {(() => {
+                  const activeMembers = teamMembers.filter(m => m.status === 'active');
+                  const ownerCount = activeMembers.filter(m => m.role === 'owner').length;
+                  const billableSeats = Math.max(0, activeMembers.length - ownerCount);
+                  const monthlyTotal = billableSeats * SEAT_PRICING.monthlyPrice;
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-background rounded-lg border">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-primary">{activeMembers.length}</p>
+                        <p className="text-xs text-muted-foreground">Active Users</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{billableSeats}</p>
+                        <p className="text-xs text-muted-foreground">Billable Seats</p>
+                        <p className="text-xs text-muted-foreground">(Owner is free)</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-success">${monthlyTotal.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Est. Monthly</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                <Progress 
+                  value={(teamMembers.filter(m => m.role !== 'owner').length / ((features?.features as any)?.max_invited_users || 1)) * 100} 
+                  className="h-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} seats used
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
