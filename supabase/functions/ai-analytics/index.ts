@@ -213,6 +213,7 @@ serve(async (req) => {
                         priority: { type: "string", enum: ["high", "medium", "low"] },
                         action: { type: "string" },
                         impact: { type: "string" },
+                        accountId: { type: "string", description: "The debtor/account ID if this recommendation is account-specific" },
                         accountName: { type: "string" }
                       },
                       required: ["priority", "action", "impact"]
@@ -238,6 +239,7 @@ serve(async (req) => {
                       properties: {
                         severity: { type: "string", enum: ["critical", "warning", "info"] },
                         message: { type: "string" },
+                        accountId: { type: "string", description: "The debtor/account ID if this alert is account-specific" },
                         accountName: { type: "string" },
                         amount: { type: "number" }
                       },
@@ -345,11 +347,11 @@ Daily Digest Trends:
 `;
   }
 
-  // Top accounts by outstanding
+  // Top accounts by outstanding - include IDs for linking
   const topAccounts = [...data.debtors]
     .sort((a, b) => (b.total_open_balance || 0) - (a.total_open_balance || 0))
     .slice(0, 10)
-    .map(d => `  - ${d.company_name || d.name}: $${(d.total_open_balance || 0).toLocaleString()} outstanding, ${d.health_tier || 'Unknown'} health, ${d.risk_tier || 'Unknown'} risk`);
+    .map(d => `  - [ID:${d.id}] ${d.company_name || d.name}: $${(d.total_open_balance || 0).toLocaleString()} outstanding, ${d.health_tier || 'Unknown'} health, ${d.risk_tier || 'Unknown'} risk`);
 
   return `
 Analyze the following accounts receivable data and provide actionable insights:
@@ -375,7 +377,7 @@ TOP ACCOUNTS BY OUTSTANDING:
 ${topAccounts.join('\n')}
 
 HIGH-RISK ACCOUNTS:
-${highRiskDebtors.slice(0, 5).map(d => `  - ${d.company_name || d.name}: Risk Score ${d.collections_risk_score || 'N/A'}, $${(d.total_open_balance || 0).toLocaleString()}`).join('\n')}
+${highRiskDebtors.slice(0, 5).map(d => `  - [ID:${d.id}] ${d.company_name || d.name}: Risk Score ${d.collections_risk_score || 'N/A'}, $${(d.total_open_balance || 0).toLocaleString()}`).join('\n')}
 
 RECENT ACTIVITY:
 - Collection activities last 7 days: ${data.activities.filter(a => new Date(a.created_at) >= sevenDaysAgo).length}
@@ -387,9 +389,9 @@ ${context ? `ADDITIONAL CONTEXT: ${JSON.stringify(context)}` : ''}
 Provide analysis with:
 1. Summary: 2-3 sentence executive overview
 2. Trends: Key metric changes with direction and insights
-3. Recommendations: Prioritized actions with specific account names where applicable
+3. Recommendations: Prioritized actions with specific account names and accountId (from [ID:xxx]) where applicable
 4. Predictions: Forecasted outcomes with confidence levels
-5. Risk Alerts: Critical issues requiring immediate attention
+5. Risk Alerts: Critical issues requiring immediate attention, include accountId where applicable
 `;
 }
 
