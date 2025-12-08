@@ -1848,6 +1848,16 @@ const InboundCommandCenter = () => {
             setEmailTasks(data || []);
           }
         }}
+        onNoteAdded={async () => {
+          if (selectedEmail) {
+            const { data } = await supabase
+              .from("collection_tasks")
+              .select("*")
+              .eq("inbound_email_id", selectedEmail.id)
+              .order("created_at", { ascending: false });
+            setEmailTasks(data || []);
+          }
+        }}
       />
     </Layout>
   );

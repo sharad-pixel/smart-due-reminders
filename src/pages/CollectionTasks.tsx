@@ -29,6 +29,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface TaskNote {
+  id: string;
+  content: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  created_at: string;
+  mentions?: string[];
+}
+
 interface TaskWithRelations {
   id: string;
   user_id: string;
@@ -55,6 +65,7 @@ interface TaskWithRelations {
   to_email?: string | null;
   raw_email?: string | null;
   level?: string | null;
+  notes?: TaskNote[] | unknown[];
   debtors?: {
     name: string;
     company_name: string;
@@ -815,6 +826,7 @@ export default function CollectionTasks() {
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}
           onAssign={handleAssign}
+          onNoteAdded={loadTasks}
         />
 
         {/* Bulk Delete Confirmation */}
