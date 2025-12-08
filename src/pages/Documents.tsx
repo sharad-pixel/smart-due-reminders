@@ -7,56 +7,30 @@ import DocumentsList from "@/components/DocumentsList";
 import { FileText, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 
 export default function Documents() {
   const [activeTab, setActiveTab] = useState("all");
-
-  // Get current user's organizations
-  const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: organizations } = useQuery({
-    queryKey: ["user-organizations"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("owner_user_id", user.id);
-
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: organization, isLoading: orgLoading } = useOrganization();
 
   // Get document statistics
   const { data: stats } = useQuery({
-    queryKey: ["document-stats"],
+    queryKey: ["document-stats", organization?.id],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("documents")
-        .select("status, category")
-        .or(`organization_id.in.(${organizations?.map(o => o.id).join(",")}),debtor_id.in.(select id from debtors where user_id = '${user.id}')`);
+        .select("status, category");
 
+      if (organization?.id) {
+        query = query.eq("organization_id", organization.id);
+      } else {
+        query = query.eq("uploaded_by_user_id", user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const total = data.length;
@@ -66,10 +40,8 @@ export default function Documents() {
 
       return { total, pendingReview, verified, expired };
     },
-    enabled: !!organizations,
+    enabled: !orgLoading,
   });
-
-  const mainOrganization = organizations?.[0];
 
   return (
     <Layout>
@@ -144,7 +116,7 @@ export default function Documents() {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Upload Section */}
           <div>
-            <DocumentUpload organizationId={mainOrganization?.id} />
+            <DocumentUpload organizationId={organization?.id} />
           </div>
 
           {/* Documents List */}
@@ -166,19 +138,19 @@ export default function Documents() {
                     <TabsTrigger value="rejected">Rejected</TabsTrigger>
                   </TabsList>
                   <TabsContent value="all" className="mt-6">
-                    <DocumentsList organizationId={mainOrganization?.id} />
+                    <DocumentsList organizationId={organization?.id} />
                   </TabsContent>
                   <TabsContent value="pending" className="mt-6">
-                    <DocumentsList organizationId={mainOrganization?.id} />
+                    <DocumentsList organizationId={organization?.id} />
                   </TabsContent>
                   <TabsContent value="verified" className="mt-6">
-                    <DocumentsList organizationId={mainOrganization?.id} />
+                    <DocumentsList organizationId={organization?.id} />
                   </TabsContent>
                   <TabsContent value="expired" className="mt-6">
-                    <DocumentsList organizationId={mainOrganization?.id} />
+                    <DocumentsList organizationId={organization?.id} />
                   </TabsContent>
                   <TabsContent value="rejected" className="mt-6">
-                    <DocumentsList organizationId={mainOrganization?.id} />
+                    <DocumentsList organizationId={organization?.id} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
