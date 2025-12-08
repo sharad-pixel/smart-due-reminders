@@ -37,51 +37,74 @@ Deno.serve(async (req) => {
     
     const user = userData.user;
 
-    // Get user's profile to determine plan
-    const { data: profile } = await supabaseClient
+    // Get user's profile first
+    const { data: userProfile } = await supabaseClient
       .from('profiles')
-      .select('plan_type')
+      .select('plan_type, subscription_status')
       .eq('id', user.id)
       .single();
 
-    const planType = profile?.plan_type || 'free';
+    let planType = userProfile?.plan_type || 'free';
+    let subscriptionStatus = userProfile?.subscription_status;
 
-    // Default plan features - synced with pricing page
+    // If user is not the account owner, check if they belong to an account and get owner's plan
+    const { data: accountUser } = await supabaseClient
+      .from('account_users')
+      .select('account_id, is_owner')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (accountUser && !accountUser.is_owner) {
+      // User is a team member - get the account owner's plan
+      const { data: ownerProfile } = await supabaseClient
+        .from('profiles')
+        .select('plan_type, subscription_status')
+        .eq('id', accountUser.account_id)
+        .single();
+
+      if (ownerProfile) {
+        planType = ownerProfile.plan_type || 'free';
+        subscriptionStatus = ownerProfile.subscription_status;
+      }
+    }
+
+    // Default plan features - all paid plans can have team users
     const planFeatures: Record<string, any> = {
       free: {
         can_use_invoice_line_items: false,
-        invoice_limit: 5,
+        invoice_limit: 15,
         can_have_team_users: false,
         can_manage_roles: false,
         max_invited_users: 0,
       },
       starter: {
         can_use_invoice_line_items: false,
-        invoice_limit: 50,
-        can_have_team_users: false,
-        can_manage_roles: false,
-        max_invited_users: 0,
+        invoice_limit: 100,
+        can_have_team_users: true,
+        can_manage_roles: true,
+        max_invited_users: 10,
       },
       growth: {
-        can_use_invoice_line_items: false,
-        invoice_limit: 200,
-        can_have_team_users: false,
-        can_manage_roles: false,
-        max_invited_users: 0,
+        can_use_invoice_line_items: true,
+        invoice_limit: 300,
+        can_have_team_users: true,
+        can_manage_roles: true,
+        max_invited_users: 25,
       },
       pro: {
         can_use_invoice_line_items: true,
         invoice_limit: 500,
         can_have_team_users: true,
         can_manage_roles: true,
-        max_invited_users: 5,
+        max_invited_users: 50,
       },
       professional: {
         can_use_invoice_line_items: true,
         invoice_limit: 500,
         can_have_team_users: true,
         can_manage_roles: true,
-        max_invited_users: 10,
+        max_invited_users: 50,
       },
       enterprise: {
         can_use_invoice_line_items: true,
@@ -92,7 +115,20 @@ Deno.serve(async (req) => {
       },
     };
 
-    const basePlanFeatures = planFeatures[planType] || planFeatures.free;
+    // Use base features for the plan, default to free if unknown
+    let basePlanFeatures = planFeatures[planType] || planFeatures.free;
+
+    // If user has an active subscription, ensure team features are enabled
+    if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+      // Override to ensure paid users have team access
+      if (planType !== 'free') {
+        basePlanFeatures = {
+          ...basePlanFeatures,
+          can_have_team_users: true,
+          can_manage_roles: true,
+        };
+      }
+    }
 
     // Get feature overrides
     const { data: overrides } = await supabaseClient
@@ -111,6 +147,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         plan_type: planType,
+        subscription_status: subscriptionStatus,
         features: effectiveFeatures,
       }),
       {
