@@ -50,6 +50,7 @@ const Invoices = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
+  const agingFromUrl = searchParams.get('aging');
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
@@ -57,7 +58,7 @@ const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [ageBucketFilter, setAgeBucketFilter] = useState<string>("all");
+  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
   const [hideCancelled, setHideCancelled] = useState<boolean>(() => {
     const saved = localStorage.getItem("hideCancelledInvoices");
@@ -262,7 +263,11 @@ const Invoices = () => {
     if (ageBucketFilter !== "all") {
       filtered = filtered.filter((inv) => {
         const daysPastDue = getDaysPastDue(inv.due_date);
-        return getAgeBucket(daysPastDue) === ageBucketFilter;
+        const bucket = getAgeBucket(daysPastDue);
+        if (ageBucketFilter === '60plus') {
+          return ['61-90', '91-120', '121+'].includes(bucket);
+        }
+        return bucket === ageBucketFilter;
       });
     }
 
@@ -608,6 +613,7 @@ const Invoices = () => {
                   <SelectItem value="current">Current</SelectItem>
                   <SelectItem value="0-30">0-30 Days</SelectItem>
                   <SelectItem value="31-60">31-60 Days</SelectItem>
+                  <SelectItem value="60plus">60+ Days</SelectItem>
                   <SelectItem value="61-90">61-90 Days</SelectItem>
                   <SelectItem value="91-120">91-120 Days</SelectItem>
                   <SelectItem value="121+">121+ Days</SelectItem>

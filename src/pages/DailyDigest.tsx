@@ -250,7 +250,7 @@ const DailyDigest = () => {
                   </div>
                 </div>
                 <Button asChild variant="outline" className="w-full">
-                  <Link to="/debtors?risk=high">View High-Risk Accounts</Link>
+                  <Link to="/invoices?aging=60plus">View Delinquent Invoices</Link>
                 </Button>
               </CardContent>
             </Card>
