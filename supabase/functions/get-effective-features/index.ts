@@ -76,6 +76,20 @@ Deno.serve(async (req) => {
         can_manage_roles: true,
         max_invited_users: 5,
       },
+      professional: {
+        can_use_invoice_line_items: true,
+        invoice_limit: 500,
+        can_have_team_users: true,
+        can_manage_roles: true,
+        max_invited_users: 10,
+      },
+      enterprise: {
+        can_use_invoice_line_items: true,
+        invoice_limit: 10000,
+        can_have_team_users: true,
+        can_manage_roles: true,
+        max_invited_users: 100,
+      },
     };
 
     const basePlanFeatures = planFeatures[planType] || planFeatures.free;
