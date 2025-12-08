@@ -154,6 +154,7 @@ export const useAccountHierarchy = (): UseAccountHierarchyReturn => {
         ? 'owner' 
         : (currentMember?.role as AccountMember['role'] || null);
 
+      // Always use owner profile for billing info (whether viewing as owner or team member)
       const hierarchyData: AccountHierarchyData = {
         effectiveAccountId: accountId,
         currentUserId: user.id,
@@ -162,9 +163,9 @@ export const useAccountHierarchy = (): UseAccountHierarchyReturn => {
         parentAccount: isOwner ? null : parentAccount,
         members,
         billing: {
-          planType: parentAccount?.planType || null,
-          subscriptionStatus: parentAccount?.subscriptionStatus || null,
-          billingInterval: parentAccount?.billingInterval || null,
+          planType: ownerProfile?.plan_type || null,
+          subscriptionStatus: ownerProfile?.subscription_status || null,
+          billingInterval: ownerProfile?.billing_interval || null,
           billableSeats,
           totalMembers: members.length,
           activeMembers,
