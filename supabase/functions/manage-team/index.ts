@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     
     const user = userData.user;
 
-    const { action, email, userId, role } = await req.json();
+    const { action, email, userId, role, reassignTo } = await req.json();
 
     // Check if user has team features enabled
     const { data: effectiveFeatures } = await supabaseClient.functions.invoke(
@@ -246,6 +246,36 @@ Deno.serve(async (req) => {
       }
 
       case 'disable': {
+        // Handle task reassignment if needed
+        if (reassignTo) {
+          const { error: reassignError } = await supabaseClient
+            .from('collection_tasks')
+            .update({ 
+              assigned_to: reassignTo,
+              updated_at: new Date().toISOString()
+            })
+            .eq('assigned_to', userId)
+            .in('status', ['open', 'in_progress']);
+          
+          if (reassignError) {
+            console.error('Error reassigning tasks:', reassignError);
+          }
+        } else {
+          // Unassign all tasks from this user when disabling
+          const { error: unassignError } = await supabaseClient
+            .from('collection_tasks')
+            .update({ 
+              assigned_to: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('assigned_to', userId)
+            .in('status', ['open', 'in_progress']);
+          
+          if (unassignError) {
+            console.error('Error unassigning tasks:', unassignError);
+          }
+        }
+
         const { data, error } = await supabaseClient
           .from('account_users')
           .update({ status: 'disabled', updated_at: new Date().toISOString() })
@@ -258,7 +288,7 @@ Deno.serve(async (req) => {
           throw error;
         }
 
-        result = { success: true, data };
+        result = { success: true, data, message: 'Team member deactivated successfully' };
         break;
       }
 
@@ -279,66 +309,8 @@ Deno.serve(async (req) => {
         break;
       }
 
-      case 'remove': {
-        const { reassignTo } = await req.json().catch(() => ({}));
-        
-        // Check if user has assigned tasks
-        const { data: assignedTasks, error: tasksError } = await supabaseClient
-          .from('collection_tasks')
-          .select('id')
-          .eq('assigned_to', userId);
-        
-        if (tasksError) {
-          console.error('Error checking assigned tasks:', tasksError);
-        }
-        
-        // If user has assigned tasks and reassignTo is provided, reassign them
-        if (assignedTasks && assignedTasks.length > 0 && reassignTo) {
-          const { error: reassignError } = await supabaseClient
-            .from('collection_tasks')
-            .update({ 
-              assigned_to: reassignTo,
-              updated_at: new Date().toISOString()
-            })
-            .eq('assigned_to', userId);
-          
-          if (reassignError) {
-            console.error('Error reassigning tasks:', reassignError);
-            throw new Error('Failed to reassign tasks before removal');
-          }
-        } else if (assignedTasks && assignedTasks.length > 0 && !reassignTo) {
-          // Unassign tasks if no reassignTo provided
-          const { error: unassignError } = await supabaseClient
-            .from('collection_tasks')
-            .update({ 
-              assigned_to: null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('assigned_to', userId);
-          
-          if (unassignError) {
-            console.error('Error unassigning tasks:', unassignError);
-          }
-        }
-        
-        // Remove from account_users
-        const { error: removeError } = await supabaseClient
-          .from('account_users')
-          .delete()
-          .eq('account_id', managingAccountId)
-          .eq('user_id', userId);
-
-        if (removeError) {
-          throw removeError;
-        }
-
-        result = { 
-          success: true, 
-          message: 'Team member removed successfully',
-          tasksReassigned: assignedTasks?.length || 0
-        };
-        break;
-      }
+      // Note: 'remove' action has been deprecated in favor of 'disable' for proper billing management
+      // Deactivated users can be reactivated anytime without losing their history
 
       case 'getAssignedTasksCount': {
         const { data: tasks, error } = await supabaseClient
