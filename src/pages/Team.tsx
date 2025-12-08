@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -41,6 +41,7 @@ interface EffectiveFeatures {
 
 const Team = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [features, setFeatures] = useState<EffectiveFeatures | null>(null);
@@ -48,6 +49,28 @@ const Team = () => {
   const [inviteRole, setInviteRole] = useState<AppRole>("member");
   const [isInviting, setIsInviting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddingSeat, setIsAddingSeat] = useState(false);
+  const [showAddSeatDialog, setShowAddSeatDialog] = useState(false);
+  const [seatQuantity, setSeatQuantity] = useState(1);
+
+  // Handle checkout success/failure from URL params
+  useEffect(() => {
+    const checkout = searchParams.get('checkout');
+    const seatsAdded = searchParams.get('seats_added');
+    
+    if (checkout === 'success') {
+      if (seatsAdded) {
+        toast.success(`Successfully added ${seatsAdded} seat(s) to your account!`);
+      } else {
+        toast.success('Payment successful! You can now invite team members.');
+      }
+      // Clean up URL params
+      setSearchParams({});
+    } else if (checkout === 'cancelled') {
+      toast.info('Checkout was cancelled');
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     checkFeatureAccess();
@@ -164,6 +187,35 @@ const Team = () => {
     }
   };
 
+  const handleAddSeat = async () => {
+    setIsAddingSeat(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("add-seat-checkout", {
+        body: { quantity: seatQuantity },
+      });
+
+      if (error) throw error;
+
+      if (data.redirect) {
+        // Seats were added directly to existing subscription
+        toast.success(data.message);
+        setShowAddSeatDialog(false);
+        setSeatQuantity(1);
+        await loadTeamMembers();
+        // Navigate to trigger the invite dialog
+        setIsDialogOpen(true);
+      } else if (data.url) {
+        // Need to go through Stripe checkout
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error("Error adding seat:", error);
+      toast.error(error.message || "Failed to add seat");
+    } finally {
+      setIsAddingSeat(false);
+    }
+  };
+
   const getRoleIcon = (role: AppRole) => {
     switch (role) {
       case "owner":
@@ -217,12 +269,12 @@ const Team = () => {
               <h3 className="text-lg font-semibold">Upgrade to Access Team Features</h3>
               <p className="text-sm text-muted-foreground">
                 Team and role management is available on Professional and Custom plans.
-                Contact Recouply.ai or upgrade to enable this feature.
+                Upgrade your subscription to enable this feature.
               </p>
               <div className="flex gap-2 justify-center">
-                <Button onClick={() => navigate("/billing")}>
+                <Button onClick={() => navigate("/pricing")}>
                   <DollarSign className="h-4 w-4 mr-2" />
-                  Add User
+                  View Plans
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/contact")}>
                   Contact Sales
@@ -246,10 +298,72 @@ const Team = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate("/billing")} variant="outline">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+            {/* Add Seat Dialog */}
+            <Dialog open={showAddSeatDialog} onOpenChange={setShowAddSeatDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Add Seat
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Team Seat</DialogTitle>
+                  <DialogDescription>
+                    Purchase additional seats to invite more team members
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <Alert className="bg-primary/5 border-primary/20">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-sm">
+                      Each seat costs <strong>${SEAT_PRICING.monthlyPrice.toFixed(2)}/month</strong> or <strong>${SEAT_PRICING.annualPrice.toFixed(2)}/year</strong> (20% discount)
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="seatQuantity">Number of Seats</Label>
+                    <Select value={String(seatQuantity)} onValueChange={(value) => setSeatQuantity(Number(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 10].map((num) => (
+                          <SelectItem key={num} value={String(num)}>{num} seat{num > 1 ? 's' : ''}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Monthly cost:</span>
+                      <span className="font-bold">${(seatQuantity * SEAT_PRICING.monthlyPrice).toFixed(2)}/mo</span>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowAddSeatDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddSeat} disabled={isAddingSeat}>
+                    {isAddingSeat ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Purchase {seatQuantity} Seat{seatQuantity > 1 ? 's' : ''}
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            {/* Invite Member Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
