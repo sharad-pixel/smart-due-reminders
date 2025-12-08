@@ -293,16 +293,10 @@ const Billing = () => {
   const parentAccount = accountHierarchy.parentAccount;
   const billableSeats = billingDiscrepancy?.dbSeats ?? accountHierarchy.billing.billableSeats;
 
-  // For team members, use parent account's plan; for owners, use their own profile
-  const effectivePlanType = isTeamMember 
-    ? (parentAccount?.planType || accountHierarchy.billing.planType || 'free')
-    : (profile?.plan_type || 'free');
-  const effectiveSubscriptionStatus = isTeamMember 
-    ? (parentAccount?.subscriptionStatus || accountHierarchy.billing.subscriptionStatus || 'inactive')
-    : (profile?.subscription_status || 'inactive');
-  const effectiveBillingInterval = isTeamMember
-    ? (parentAccount?.billingInterval || accountHierarchy.billing.billingInterval || 'month')
-    : (profile?.billing_interval || 'month');
+  // Always use hierarchy billing data - it contains owner's plan for both owners and team members
+  const effectivePlanType = accountHierarchy.billing.planType || profile?.plan_type || 'free';
+  const effectiveSubscriptionStatus = accountHierarchy.billing.subscriptionStatus || profile?.subscription_status || 'inactive';
+  const effectiveBillingInterval = accountHierarchy.billing.billingInterval || profile?.billing_interval || 'month';
 
   const planConfig = getPlanConfig(effectivePlanType);
   

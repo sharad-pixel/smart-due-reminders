@@ -68,9 +68,9 @@ const Layout = ({ children }: LayoutProps) => {
     loading: accountLoading 
   } = useEffectiveAccount();
   
-  // Use owner's plan for team members
-  const displayPlanType = isTeamMember && ownerPlanType ? ownerPlanType : planType;
-  const displaySubscriptionStatus = isTeamMember && ownerSubscriptionStatus ? ownerSubscriptionStatus : subscriptionStatus;
+  // Use owner's plan for team members, with proper fallback
+  const displayPlanType = isTeamMember ? (ownerPlanType || 'free') : planType;
+  const displaySubscriptionStatus = isTeamMember ? (ownerSubscriptionStatus || 'inactive') : subscriptionStatus;
   const canUpgrade = !isTeamMember; // Only account owners can upgrade
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
