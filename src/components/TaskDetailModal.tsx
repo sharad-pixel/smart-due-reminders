@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
@@ -20,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/MentionInput";
 
 interface TaskNote {
   id: string;
@@ -28,6 +28,7 @@ interface TaskNote {
   user_name: string;
   user_email: string;
   created_at: string;
+  mentions?: string[]; // Array of mentioned user_ids
 }
 
 interface TaskDetailModalProps {
@@ -88,6 +89,8 @@ export const TaskDetailModal = ({
   const [newNote, setNewNote] = useState("");
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [noteMentions, setNoteMentions] = useState<string[]>([]);
+  const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -180,6 +183,15 @@ export const TaskDetailModal = ({
           })
         );
         setAccountUsers(usersWithProfiles);
+        
+        // Build mention users list from account users
+        const mentionableUsers: MentionUser[] = usersWithProfiles.map(u => ({
+          id: u.id,
+          user_id: u.user_id,
+          name: u.profile_name || u.profile_email || 'Unknown',
+          email: u.profile_email || ''
+        }));
+        setMentionUsers(mentionableUsers);
       }
     } catch (error) {
       console.error('Error fetching account users:', error);
@@ -248,7 +260,8 @@ export const TaskDetailModal = ({
         user_id: currentUser.id,
         user_name: currentUser.name,
         user_email: currentUser.email,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        mentions: noteMentions
       };
       
       const updatedNotes = [...notes, noteEntry];
@@ -262,6 +275,7 @@ export const TaskDetailModal = ({
       
       setNotes(updatedNotes);
       setNewNote("");
+      setNoteMentions([]);
       toast.success("Note added");
     } catch (error) {
       console.error('Error adding note:', error);
@@ -489,7 +503,7 @@ export const TaskDetailModal = ({
                 <div className="space-y-2">
                   {notes.map((note) => (
                     <div key={note.id} className="bg-muted/50 p-3 rounded-lg text-sm">
-                      <p className="whitespace-pre-wrap">{note.content}</p>
+                      <div className="whitespace-pre-wrap">{renderNoteWithMentions(note.content)}</div>
                       <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                         <span className="font-medium">{note.user_name}</span>
                         <span>•</span>
@@ -503,12 +517,13 @@ export const TaskDetailModal = ({
             
             {/* Add Note Input */}
             <div className="space-y-2">
-              <Textarea
-                placeholder="Add a note..."
+              <MentionInput
                 value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
+                onChange={setNewNote}
+                users={mentionUsers}
+                placeholder="Add a note... Use @ to mention team members"
                 rows={2}
-                className="resize-none"
+                onMentionsChange={setNoteMentions}
               />
               <Button 
                 size="sm" 
