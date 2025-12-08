@@ -287,18 +287,29 @@ const Billing = () => {
     );
   }
 
-  const planConfig = profile ? getPlanConfig(profile.plan_type) : null;
-  
-  // Derive invoice limit from usage data (source of truth) or plan config
-  const invoiceLimit = usage?.included_allowance ?? planConfig?.invoiceLimit ?? 15;
-  const isUnlimited = invoiceLimit === -1 || invoiceLimit === 'Unlimited';
-  const invoicesUsed = usage?.included_invoices_used ?? 0;
-
   // Use hierarchy data for permissions and display
   const isTeamMember = !accountHierarchy.isAccountOwner;
   const canManageBilling = accountHierarchy.permissions.canManageBilling;
   const parentAccount = accountHierarchy.parentAccount;
   const billableSeats = billingDiscrepancy?.dbSeats ?? accountHierarchy.billing.billableSeats;
+
+  // For team members, use parent account's plan; for owners, use their own profile
+  const effectivePlanType = isTeamMember 
+    ? (parentAccount?.planType || accountHierarchy.billing.planType || 'free')
+    : (profile?.plan_type || 'free');
+  const effectiveSubscriptionStatus = isTeamMember 
+    ? (parentAccount?.subscriptionStatus || accountHierarchy.billing.subscriptionStatus || 'inactive')
+    : (profile?.subscription_status || 'inactive');
+  const effectiveBillingInterval = isTeamMember
+    ? (parentAccount?.billingInterval || accountHierarchy.billing.billingInterval || 'month')
+    : (profile?.billing_interval || 'month');
+
+  const planConfig = getPlanConfig(effectivePlanType);
+  
+  // Derive invoice limit from usage data (source of truth) or plan config
+  const invoiceLimit = usage?.included_allowance ?? planConfig?.invoiceLimit ?? 15;
+  const isUnlimited = invoiceLimit === -1 || invoiceLimit === 'Unlimited';
+  const invoicesUsed = usage?.included_invoices_used ?? 0;
 
   return (
     <Layout>
@@ -420,7 +431,7 @@ const Billing = () => {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Current Plan
-                {profile && getStatusBadge(profile.subscription_status)}
+                {getStatusBadge(effectiveSubscriptionStatus)}
               </CardTitle>
               <CardDescription>
                 Your subscription details and billing information
@@ -434,7 +445,7 @@ const Billing = () => {
                   </h3>
                   {planConfig && (
                     <div className="mb-4">
-                      {profile?.billing_interval === 'year' ? (
+                      {effectiveBillingInterval === 'year' ? (
                         <>
                           <p className="text-2xl font-semibold text-primary">
                             {formatPrice(planConfig.annualPrice)}/year
@@ -458,7 +469,7 @@ const Billing = () => {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span>
                         <strong>Billing Cycle:</strong>{' '}
-                        {profile?.billing_interval === 'year' ? 'Annual' : 'Monthly'}
+                        {effectiveBillingInterval === 'year' ? 'Annual' : 'Monthly'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -492,14 +503,14 @@ const Billing = () => {
                       <p className="font-semibold text-foreground">Monthly Charges</p>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Base Plan ({planConfig?.displayName || 'Free'})</span>
-                        <span>{planConfig ? formatPrice(profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : '$0'}</span>
+                        <span>{planConfig ? formatPrice(effectiveBillingInterval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : '$0'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Team Seats ({billableSeats})</span>
                         <span>
                           {formatPrice(
                             billableSeats * 
-                            (profile?.billing_interval === 'year' 
+                            (effectiveBillingInterval === 'year' 
                               ? Math.round(SEAT_PRICING.annualPrice / 12) 
                               : SEAT_PRICING.monthlyPrice)
                           )}
@@ -509,9 +520,9 @@ const Billing = () => {
                         <span>Total</span>
                         <span className="text-primary">
                           {formatPrice(
-                            (planConfig ? (profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : 0) +
+                            (planConfig ? (effectiveBillingInterval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : 0) +
                             (billableSeats * 
-                              (profile?.billing_interval === 'year' 
+                              (effectiveBillingInterval === 'year' 
                                 ? Math.round(SEAT_PRICING.annualPrice / 12) 
                                 : SEAT_PRICING.monthlyPrice))
                           )}/mo
