@@ -21,7 +21,16 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    logStep('Starting daily digest generation');
+    // Parse request body to check for force flag
+    let forceRegenerate = false;
+    try {
+      const body = await req.json();
+      forceRegenerate = body?.force === true;
+    } catch {
+      // No body or invalid JSON, use defaults
+    }
+
+    logStep('Starting daily digest generation', { forceRegenerate });
 
     // Get all active users (users with profiles)
     const { data: users, error: usersError } = await supabase
@@ -111,6 +120,12 @@ serve(async (req) => {
           .maybeSingle();
 
         const existingDigestId = existingDigest?.id;
+
+        // Skip this user if digest already exists and not forcing regeneration
+        if (existingDigestId && !forceRegenerate) {
+          logStep('Digest already exists for today, skipping', { userId: user.id });
+          continue;
+        }
 
         // TASKS METRICS - Use effective account ID for data queries
         const { data: openTasks } = await supabase

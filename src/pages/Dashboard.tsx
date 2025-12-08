@@ -367,7 +367,9 @@ const Dashboard = () => {
   const syncDigest = async () => {
     setSyncingDigest(true);
     try {
-      const { error } = await supabase.functions.invoke('daily-digest-runner');
+      const { error } = await supabase.functions.invoke('daily-digest-runner', {
+        body: { force: true }
+      });
       if (error) throw error;
       toast.success('Digest synced with latest data');
       refetchDigest();
