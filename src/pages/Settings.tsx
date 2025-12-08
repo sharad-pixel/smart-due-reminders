@@ -11,8 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette, UserPlus } from "lucide-react";
 import { LogoUpload } from "@/components/LogoUpload";
-
-
+import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 
 interface ProfileData {
   business_name: string;
@@ -465,7 +464,7 @@ const Settings = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Add team members to collaborate on collections. Each additional active user is billed at $75.00 per month.
+              Add team members to collaborate on collections. Each additional active user is billed at {formatPrice(SEAT_PRICING.monthlyPrice)} per month.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => navigate("/team?invite=true")} className="gap-2">

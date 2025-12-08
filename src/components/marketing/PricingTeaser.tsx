@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
-import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, INVOICE_PRICING, SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 
 // Use centralized pricing config
 const plans = [
@@ -116,7 +116,7 @@ const PricingTeaser = () => {
 
         <div className="text-center mt-8">
           <p className="text-sm text-muted-foreground mb-4">
-            Per invoice: <span className="font-semibold">${INVOICE_PRICING.perInvoice}</span> | Additional users: <span className="font-semibold">$75/user/month</span>
+            Per invoice: <span className="font-semibold">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}</span> | Additional users: <span className="font-semibold">{formatPrice(SEAT_PRICING.monthlyPrice)}/user/month</span>
           </p>
           <Button variant="ghost" onClick={() => navigate("/pricing")} className="group">
             View Full Pricing Details
