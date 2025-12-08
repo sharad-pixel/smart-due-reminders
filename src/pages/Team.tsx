@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -59,6 +59,10 @@ const Team = () => {
   const [reassignToUserId, setReassignToUserId] = useState<string>("");
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [isSyncingBilling, setIsSyncingBilling] = useState(false);
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
+  const [memberToReassign, setMemberToReassign] = useState<TeamMember | null>(null);
+  const [reassignEmail, setReassignEmail] = useState("");
+  const [isReassigning, setIsReassigning] = useState(false);
 
   // Handle checkout success/failure from URL params
   useEffect(() => {
@@ -250,6 +254,43 @@ const Team = () => {
       toast.error(error.message || "Failed to reactivate team member");
     } finally {
       setIsTogglingStatus(false);
+    }
+  };
+
+  const handleOpenReassignDialog = (member: TeamMember) => {
+    setMemberToReassign(member);
+    setReassignEmail("");
+    setShowReassignDialog(true);
+  };
+
+  const handleReassignSeat = async () => {
+    if (!memberToReassign || !reassignEmail) {
+      toast.error("Please enter the new email address");
+      return;
+    }
+
+    setIsReassigning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "reassign",
+          userId: memberToReassign.user_id,
+          email: reassignEmail,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Seat reassigned successfully");
+      setShowReassignDialog(false);
+      setMemberToReassign(null);
+      setReassignEmail("");
+      await loadTeamMembers();
+    } catch (error: any) {
+      console.error("Error reassigning seat:", error);
+      toast.error(error.message || "Failed to reassign seat");
+    } finally {
+      setIsReassigning(false);
     }
   };
 
@@ -659,30 +700,60 @@ const Team = () => {
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {member.role !== "owner" ? (
-                      member.status === "active" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDeactivateDialog(member)}
-                          disabled={isTogglingStatus}
-                          className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                        >
-                          <UserX className="h-3 w-3 mr-1" />
-                          Deactivate
-                        </Button>
-                      ) : member.status === "disabled" ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleReactivateMember(member.user_id)}
-                          disabled={isTogglingStatus}
-                        >
-                          <UserCheck className="h-3 w-3 mr-1" />
-                          Reactivate
-                        </Button>
-                      ) : null
+                      <>
+                        {member.status === "active" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenReassignDialog(member)}
+                              disabled={isReassigning}
+                              className="text-primary border-primary/30 hover:bg-primary/10"
+                            >
+                              <ArrowRightLeft className="h-3 w-3 mr-1" />
+                              Reassign
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenDeactivateDialog(member)}
+                              disabled={isTogglingStatus}
+                              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                            >
+                              <UserX className="h-3 w-3 mr-1" />
+                              Deactivate
+                            </Button>
+                          </>
+                        )}
+                        {member.status === "disabled" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleReactivateMember(member.user_id)}
+                            disabled={isTogglingStatus}
+                          >
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Reactivate
+                          </Button>
+                        )}
+                        {member.status === "pending" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenReassignDialog(member)}
+                            disabled={isReassigning}
+                            className="text-primary border-primary/30 hover:bg-primary/10"
+                          >
+                            <ArrowRightLeft className="h-3 w-3 mr-1" />
+                            Reassign
+                          </Button>
+                        )}
+                        {member.status === "reassigned" && (
+                          <Badge variant="outline" className="text-muted-foreground">Reassigned</Badge>
+                        )}
+                      </>
                     ) : (
                       <Badge variant="default">Active</Badge>
                     )}
@@ -787,6 +858,77 @@ const Team = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            {/* Reassign Seat Dialog */}
+            <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <ArrowRightLeft className="h-5 w-5 text-primary" />
+                    Reassign Seat
+                  </DialogTitle>
+                  <DialogDescription>
+                    Transfer this seat to a new email address. Billing remains active.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <Alert className="bg-primary/5 border-primary/20">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-sm">
+                      <strong>No billing changes.</strong> The seat will remain active and transfer to the new user.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                    <p className="text-xs text-muted-foreground">Current user:</p>
+                    <p className="font-medium">
+                      {memberToReassign?.profiles?.name || memberToReassign?.profiles?.email || "Unknown"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{memberToReassign?.profiles?.email}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="reassignEmail">New Email Address</Label>
+                    <Input
+                      id="reassignEmail"
+                      type="email"
+                      placeholder="newuser@example.com"
+                      value={reassignEmail}
+                      onChange={(e) => setReassignEmail(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      An invitation will be sent if this user doesn't have an account.
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                    <p className="text-sm text-warning-foreground">
+                      <strong>Note:</strong> The current user will lose access immediately. Any assigned tasks will be unassigned.
+                    </p>
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowReassignDialog(false)} disabled={isReassigning}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleReassignSeat} disabled={isReassigning || !reassignEmail}>
+                    {isReassigning ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Reassigning...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                        Reassign Seat
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             
             {/* Billing Info Footer */}
             <div className="mt-6 pt-4 border-t">

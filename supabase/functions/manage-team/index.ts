@@ -312,6 +312,143 @@ Deno.serve(async (req) => {
       // Note: 'remove' action has been deprecated in favor of 'disable' for proper billing management
       // Deactivated users can be reactivated anytime without losing their history
 
+      case 'reassign': {
+        // Reassign a seat to a new email address while keeping billing active
+        if (!email) {
+          return new Response(
+            JSON.stringify({ error: 'New email address is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get the current member details
+        const { data: currentMember, error: memberError } = await supabaseClient
+          .from('account_users')
+          .select('*, profiles!account_users_user_id_fkey (name, email)')
+          .eq('account_id', managingAccountId)
+          .eq('user_id', userId)
+          .single();
+
+        if (memberError || !currentMember) {
+          return new Response(
+            JSON.stringify({ error: 'Team member not found' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (currentMember.role === 'owner') {
+          return new Response(
+            JSON.stringify({ error: 'Cannot reassign the owner seat' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if new email already exists in the team
+        const { data: existingMemberCheck } = await supabaseClient
+          .from('account_users')
+          .select('id, user_id, profiles!account_users_user_id_fkey (email)')
+          .eq('account_id', managingAccountId);
+
+        const existingWithEmail = existingMemberCheck?.find(
+          (m: any) => m.profiles?.email?.toLowerCase() === email.toLowerCase() && m.user_id !== userId
+        );
+
+        if (existingWithEmail) {
+          return new Response(
+            JSON.stringify({ error: 'This email is already a team member' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Handle task reassignment - unassign all tasks from the old user
+        const { error: unassignError } = await supabaseClient
+          .from('collection_tasks')
+          .update({ 
+            assigned_to: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('assigned_to', userId)
+          .in('status', ['open', 'in_progress']);
+        
+        if (unassignError) {
+          console.error('Error unassigning tasks:', unassignError);
+        }
+
+        // Disable the old member entry
+        await supabaseClient
+          .from('account_users')
+          .update({ status: 'reassigned', updated_at: new Date().toISOString() })
+          .eq('id', currentMember.id);
+
+        // Check if new user exists
+        const { data: existingUser } = await supabaseClient
+          .from('profiles')
+          .select('id, email')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (existingUser) {
+          // Add existing user to team with same role
+          const { data, error } = await supabaseClient
+            .from('account_users')
+            .insert({
+              account_id: managingAccountId,
+              user_id: existingUser.id,
+              role: currentMember.role,
+              status: 'active',
+              accepted_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          result = { 
+            success: true, 
+            data, 
+            message: `Seat reassigned to ${email} successfully`,
+            previousUser: currentMember.profiles?.email
+          };
+        } else {
+          // Invite new user via Supabase Auth
+          const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email, {
+            redirectTo: `${Deno.env.get('SITE_URL') || 'https://recouply.ai'}/team?invited=true`,
+            data: {
+              invited_by: user.id,
+              invited_to_account: managingAccountId,
+              invited_role: currentMember.role,
+            }
+          });
+
+          if (inviteError) {
+            console.error('Error inviting new user:', inviteError);
+            throw new Error(`Failed to send invitation: ${inviteError.message}`);
+          }
+
+          // Create pending account_users entry with same role
+          const { data, error } = await supabaseClient
+            .from('account_users')
+            .insert({
+              account_id: managingAccountId,
+              user_id: inviteData.user.id,
+              role: currentMember.role,
+              status: 'pending',
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          result = { 
+            success: true, 
+            data, 
+            message: `Invitation sent to ${email}. Seat will transfer when accepted.`,
+            previousUser: currentMember.profiles?.email
+          };
+        }
+        break;
+      }
+
       case 'getAssignedTasksCount': {
         const { data: tasks, error } = await supabaseClient
           .from('collection_tasks')
