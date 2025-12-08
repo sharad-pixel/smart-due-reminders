@@ -65,10 +65,11 @@ const Team = () => {
   const [isReassigning, setIsReassigning] = useState(false);
   const [isResendingInvite, setIsResendingInvite] = useState<string | null>(null);
 
-  // Handle checkout success/failure from URL params
+  // Handle checkout success/failure and invite param from URL
   useEffect(() => {
     const checkout = searchParams.get('checkout');
     const seatsAdded = searchParams.get('seats_added');
+    const openInvite = searchParams.get('invite');
     
     if (checkout === 'success') {
       if (seatsAdded) {
@@ -80,6 +81,10 @@ const Team = () => {
       setSearchParams({});
     } else if (checkout === 'cancelled') {
       toast.info('Checkout was cancelled');
+      setSearchParams({});
+    } else if (openInvite === 'true') {
+      // Open invite dialog when ?invite=true is in URL
+      setIsDialogOpen(true);
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);

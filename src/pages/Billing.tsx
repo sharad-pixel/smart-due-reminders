@@ -488,7 +488,7 @@ const Billing = () => {
                 <Button 
                   variant="default" 
                   className="flex-1"
-                  onClick={() => navigate('/settings?tab=team')}
+                  onClick={() => navigate('/team?invite=true')}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Team Member
@@ -496,7 +496,7 @@ const Billing = () => {
                 <Button 
                   variant="outline" 
                   className="flex-1"
-                  onClick={() => navigate('/settings?tab=team')}
+                  onClick={() => navigate('/team')}
                 >
                   Manage Team
                 </Button>

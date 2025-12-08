@@ -468,7 +468,7 @@ const Settings = () => {
               Add team members to collaborate on collections. Each additional active user is billed at $75.00 per month.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => navigate("/team")} className="gap-2">
+              <Button onClick={() => navigate("/team?invite=true")} className="gap-2">
                 <UserPlus className="h-4 w-4" />
                 Add Team Members
               </Button>
