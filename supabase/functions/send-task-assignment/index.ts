@@ -9,13 +9,278 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Enterprise Company Info
+const COMPANY_INFO = {
+  legalName: "RecouplyAI Inc.",
+  displayName: "Recouply.ai",
+  tagline: "AI-Powered CashOps Platform",
+  website: "https://recouply.ai",
+  emails: {
+    notifications: "notifications@recouply.ai",
+    support: "support@recouply.ai",
+    collections: "collections@recouply.ai",
+  },
+  address: "Delaware, USA",
+};
+
 interface TaskAssignmentRequest {
   taskId: string;
-  teamMemberId?: string;  // Legacy - maps to account_users.id or profiles.id
-  accountUserId?: string; // account_users.id
-  userId?: string;        // profiles.id (user_id in account_users)
-  debtorId?: string;      // Optional context
-  invoiceId?: string;     // Optional context
+  teamMemberId?: string;
+  accountUserId?: string;
+  userId?: string;
+  debtorId?: string;
+  invoiceId?: string;
+}
+
+function generateEnterpriseTaskEmail(params: {
+  teamMemberName: string;
+  businessName: string;
+  primaryColor: string;
+  logoUrl?: string;
+  task: any;
+  invoiceSection: string;
+  debtorSection: string;
+  signatureSection: string;
+  footerSection: string;
+}): string {
+  const { teamMemberName, businessName, primaryColor, logoUrl, task, invoiceSection, debtorSection, signatureSection, footerSection } = params;
+  
+  const taskTypeLabel = task.task_type.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+  const priorityBadge = task.priority === 'high' 
+    ? '<span style="background: #dc2626; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">High Priority</span>'
+    : task.priority === 'normal'
+    ? '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Normal</span>'
+    : '<span style="background: #6b7280; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Low</span>';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Task Assignment - ${businessName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f1f5f9; line-height: 1.6;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <!-- Main Container -->
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          
+          <!-- Header with Branding -->
+          <tr>
+            <td style="background: linear-gradient(135deg, ${primaryColor} 0%, #1e40af 100%); border-radius: 16px 16px 0 0; padding: 32px 40px; text-align: center;">
+              ${logoUrl 
+                ? `<img src="${logoUrl}" alt="${businessName}" style="max-height: 48px; max-width: 180px; height: auto; margin-bottom: 16px;" />`
+                : `<h1 style="color: #ffffff; margin: 0 0 8px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">${businessName}</h1>`
+              }
+              <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 14px; font-weight: 500;">
+                📋 New Task Assigned to You
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="background-color: #ffffff; padding: 40px;">
+              <!-- Greeting -->
+              <p style="margin: 0 0 24px; color: #1e293b; font-size: 16px;">
+                Hi <strong>${teamMemberName}</strong>,
+              </p>
+              <p style="margin: 0 0 28px; color: #475569; font-size: 15px;">
+                A new collection task has been assigned to you. Please review the details below and take appropriate action.
+              </p>
+              
+              <!-- Task Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td>
+                          <p style="margin: 0 0 8px; color: #92400e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Task Type
+                          </p>
+                          <h2 style="margin: 0 0 12px; color: #78350f; font-size: 20px; font-weight: 700;">
+                            ${taskTypeLabel}
+                          </h2>
+                          <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.5;">
+                            ${task.summary}
+                          </p>
+                        </td>
+                        <td style="vertical-align: top; text-align: right; width: 100px;">
+                          ${priorityBadge}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              ${task.details ? `
+              <!-- Task Details -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border-radius: 12px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Details
+                    </p>
+                    <p style="margin: 0; color: #334155; font-size: 14px;">
+                      ${task.details}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              ` : ""}
+              
+              ${task.recommended_action ? `
+              <!-- Recommended Action -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-left: 4px solid #22c55e; border-radius: 0 12px 12px 0; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <p style="margin: 0 0 8px; color: #166534; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      💡 Recommended Action
+                    </p>
+                    <p style="margin: 0; color: #15803d; font-size: 14px; font-weight: 500;">
+                      ${task.recommended_action}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              ` : ""}
+              
+              ${debtorSection}
+              ${invoiceSection}
+              
+              <!-- Task Metadata -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
+                <tr>
+                  <td style="padding-top: 20px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      ${task.due_date ? `
+                      <tr>
+                        <td style="padding: 4px 16px 4px 0; color: #64748b; font-size: 13px;">Due Date:</td>
+                        <td style="padding: 4px 0; color: #1e293b; font-size: 13px; font-weight: 600;">${new Date(task.due_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                      </tr>
+                      ` : ""}
+                      <tr>
+                        <td style="padding: 4px 16px 4px 0; color: #64748b; font-size: 13px;">Created:</td>
+                        <td style="padding: 4px 0; color: #1e293b; font-size: 13px;">${new Date(task.created_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 32px;">
+                <tr>
+                  <td align="center">
+                    <a href="https://recouply.ai/tasks" style="display: inline-block; background: linear-gradient(135deg, ${primaryColor} 0%, #1e40af 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                      View Task in Recouply
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- AI Response Tip -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #eff6ff; border-radius: 12px; margin-top: 28px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="vertical-align: top; padding-right: 12px;">
+                          <span style="font-size: 20px;">🤖</span>
+                        </td>
+                        <td>
+                          <p style="margin: 0 0 4px; color: #1e40af; font-size: 13px; font-weight: 600;">
+                            AI-Powered Response Tracking
+                          </p>
+                          <p style="margin: 0; color: #3b82f6; font-size: 13px;">
+                            Reply to this email to log your communication. Your response will be processed by our AI for automatic task extraction and follow-up tracking.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              ${signatureSection}
+            </td>
+          </tr>
+          
+          <!-- Enterprise Footer -->
+          <tr>
+            <td style="background-color: #0f172a; border-radius: 0 0 16px 16px; padding: 32px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center">
+                    <!-- Recouply Badge -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
+                      <tr>
+                        <td style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); width: 40px; height: 40px; border-radius: 10px; text-align: center; vertical-align: middle;">
+                          <span style="color: #ffffff; font-weight: bold; font-size: 18px;">R</span>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 600;">${COMPANY_INFO.displayName}</p>
+                          <p style="margin: 2px 0 0; color: #94a3b8; font-size: 12px;">${COMPANY_INFO.tagline}</p>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- Feature Badges -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
+                      <tr>
+                        <td style="padding: 0 8px;">
+                          <span style="background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
+                            🤖 6 AI Agents
+                          </span>
+                        </td>
+                        <td style="padding: 0 8px;">
+                          <span style="background-color: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
+                            ⏰ 24/7 Automation
+                          </span>
+                        </td>
+                        <td style="padding: 0 8px;">
+                          <span style="background-color: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
+                            📊 Smart Analytics
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- Contact Links -->
+                    <p style="margin: 0 0 16px; color: #94a3b8; font-size: 12px;">
+                      <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #60a5fa; text-decoration: none;">Support</a>
+                      &nbsp;•&nbsp;
+                      <a href="mailto:${COMPANY_INFO.emails.collections}" style="color: #60a5fa; text-decoration: none;">Collections</a>
+                      &nbsp;•&nbsp;
+                      <a href="${COMPANY_INFO.website}" style="color: #60a5fa; text-decoration: none;">Website</a>
+                    </p>
+                    
+                    ${footerSection}
+                    
+                    <!-- Legal -->
+                    <p style="margin: 16px 0 0; color: #64748b; font-size: 11px;">
+                      © ${new Date().getFullYear()} ${COMPANY_INFO.legalName}. All rights reserved.
+                    </p>
+                    <p style="margin: 4px 0 0; color: #475569; font-size: 10px;">
+                      This email was sent on behalf of <strong>${businessName}</strong> via ${COMPANY_INFO.displayName}.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -40,7 +305,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Determine which ID to use for finding the team member
     const memberUserId = userId || teamMemberId || accountUserId;
     
     if (!memberUserId) {
@@ -71,21 +335,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("[SEND-TASK-ASSIGNMENT] Task fetched:", task.id);
 
-    // Fetch team member from profiles table (the user_id from account_users links to profiles.id)
+    // Fetch team member from profiles table
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, name, email")
       .eq("id", memberUserId)
       .maybeSingle();
 
-    // If no profile found directly, try to look up via account_users
     let teamMemberEmail = profile?.email;
     let teamMemberName = profile?.name || "Team Member";
 
     if (!profile) {
       console.log("[SEND-TASK-ASSIGNMENT] No profile found for ID, checking account_users...");
       
-      // Try to find in account_users and get the linked email
       const { data: accountUser, error: auError } = await supabase
         .from("account_users")
         .select("id, user_id, email, role")
@@ -93,10 +355,8 @@ const handler = async (req: Request): Promise<Response> => {
         .maybeSingle();
 
       if (accountUser) {
-        // If account_users entry has an email directly, use it
         teamMemberEmail = accountUser.email;
         
-        // If there's a user_id, fetch the profile for the name
         if (accountUser.user_id) {
           const { data: linkedProfile } = await supabase
             .from("profiles")
@@ -110,7 +370,6 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
       } else {
-        // Also try looking up by user_id in account_users
         const { data: accountUserByUserId } = await supabase
           .from("account_users")
           .select("id, user_id, email")
@@ -120,7 +379,6 @@ const handler = async (req: Request): Promise<Response> => {
         if (accountUserByUserId) {
           teamMemberEmail = accountUserByUserId.email;
           
-          // Get profile for name
           const { data: userProfile } = await supabase
             .from("profiles")
             .select("name, email")
@@ -145,7 +403,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("[SEND-TASK-ASSIGNMENT] Sending to:", teamMemberEmail, "Name:", teamMemberName);
 
-    // Fetch branding settings for the task owner
+    // Fetch branding settings
     const { data: branding } = await supabase
       .from("branding_settings")
       .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
@@ -155,176 +413,117 @@ const handler = async (req: Request): Promise<Response> => {
     const businessName = branding?.business_name || branding?.from_name || "Your Organization";
     const primaryColor = branding?.primary_color || "#1e3a5f";
 
-    // Build reply-to address for AI processing
+    // Build reply-to address
     const replyTo = task.invoice_id 
       ? `invoice+${task.invoice_id}@inbound.services.recouply.ai`
       : `debtor+${task.debtor_id}@inbound.services.recouply.ai`;
 
-    // Format task type
     const taskTypeLabel = task.task_type.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
 
-    // Build invoice details section
+    // Build invoice section
     let invoiceSection = "";
     if (task.invoices) {
       const dueDate = task.invoices.due_date 
-        ? new Date(task.invoices.due_date).toLocaleDateString()
+        ? new Date(task.invoices.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : "N/A";
       invoiceSection = `
-        <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <h3 style="margin: 0 0 12px 0; color: #333;">Invoice Details</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Invoice #:</td>
-              <td style="padding: 4px 8px; font-weight: 600;">${task.invoices.invoice_number || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Amount:</td>
-              <td style="padding: 4px 8px; font-weight: 600;">$${task.invoices.amount?.toLocaleString() || "0"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Due Date:</td>
-              <td style="padding: 4px 8px;">${dueDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Status:</td>
-              <td style="padding: 4px 8px;">${task.invoices.status || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Aging Bucket:</td>
-              <td style="padding: 4px 8px;">${task.invoices.aging_bucket?.replace(/_/g, " ") || "N/A"}</td>
-            </tr>
-          </table>
-        </div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border-radius: 12px; margin-bottom: 16px;">
+          <tr>
+            <td style="padding: 20px 24px;">
+              <p style="margin: 0 0 12px; color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                📄 Invoice Details
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td width="50%" style="padding: 6px 0;">
+                    <span style="color: #64748b; font-size: 13px;">Invoice #:</span>
+                    <span style="color: #1e293b; font-size: 13px; font-weight: 600; margin-left: 8px;">${task.invoices.invoice_number || "N/A"}</span>
+                  </td>
+                  <td width="50%" style="padding: 6px 0;">
+                    <span style="color: #64748b; font-size: 13px;">Amount:</span>
+                    <span style="color: #1e293b; font-size: 13px; font-weight: 600; margin-left: 8px;">$${task.invoices.amount?.toLocaleString() || "0"}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="50%" style="padding: 6px 0;">
+                    <span style="color: #64748b; font-size: 13px;">Due:</span>
+                    <span style="color: #1e293b; font-size: 13px; margin-left: 8px;">${dueDate}</span>
+                  </td>
+                  <td width="50%" style="padding: 6px 0;">
+                    <span style="color: #64748b; font-size: 13px;">Status:</span>
+                    <span style="color: #1e293b; font-size: 13px; margin-left: 8px;">${task.invoices.status || "N/A"}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       `;
     }
 
-    // Build debtor details section
+    // Build debtor section
     let debtorSection = "";
     if (task.debtors) {
       debtorSection = `
-        <div style="background-color: #f0f4f8; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <h3 style="margin: 0 0 12px 0; color: #333;">Customer Details</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Name:</td>
-              <td style="padding: 4px 8px; font-weight: 600;">${task.debtors.name}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Company:</td>
-              <td style="padding: 4px 8px;">${task.debtors.company_name}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 8px; color: #666;">Email:</td>
-              <td style="padding: 4px 8px;">${task.debtors.email || "N/A"}</td>
-            </tr>
-          </table>
-        </div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f0f9ff; border-radius: 12px; margin-bottom: 16px;">
+          <tr>
+            <td style="padding: 20px 24px;">
+              <p style="margin: 0 0 12px; color: #0369a1; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                🏢 Account Details
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding: 4px 0;">
+                    <span style="color: #0c4a6e; font-size: 15px; font-weight: 600;">${task.debtors.name}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 4px 0;">
+                    <span style="color: #0369a1; font-size: 13px;">${task.debtors.company_name}</span>
+                  </td>
+                </tr>
+                ${task.debtors.email ? `
+                <tr>
+                  <td style="padding: 4px 0;">
+                    <span style="color: #0284c7; font-size: 13px;">${task.debtors.email}</span>
+                  </td>
+                </tr>
+                ` : ""}
+              </table>
+            </td>
+          </tr>
+        </table>
       `;
     }
 
     // Custom signature section
     const signatureSection = branding?.email_signature 
-      ? `<p style="font-size: 14px; color: #374151; margin: 16px 0; white-space: pre-line;">${branding.email_signature}</p>`
-      : "";
-
-    // Logo section
-    const logoSection = branding?.logo_url
-      ? `<img src="${branding.logo_url}" alt="${businessName}" style="max-width: 140px; height: auto; margin-bottom: 12px;" />`
+      ? `<div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+           <p style="font-size: 14px; color: #374151; margin: 0; white-space: pre-line;">${branding.email_signature}</p>
+         </div>`
       : "";
 
     // Footer section
     const footerSection = branding?.email_footer
-      ? `<p style="font-size: 12px; color: #64748b; margin-top: 12px;">${branding.email_footer}</p>`
+      ? `<p style="margin: 12px 0 0; color: #94a3b8; font-size: 11px;">${branding.email_footer}</p>`
       : "";
 
-    // Build email HTML
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-        <div style="background: linear-gradient(135deg, ${primaryColor} 0%, #2d5a87 100%); padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
-          ${branding?.logo_url 
-            ? `<img src="${branding.logo_url}" alt="${businessName}" style="max-height: 48px; max-width: 180px; height: auto; margin-bottom: 12px;" />`
-            : `<h1 style="color: white; margin: 0; font-size: 24px;">${businessName}</h1>`
-          }
-          <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 14px;">Task Assigned to You</p>
-        </div>
-        
-        <div style="background-color: white; padding: 24px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px 0;">Hi ${teamMemberName},</p>
-          <p style="margin: 0 0 20px 0;">A new collection task has been assigned to you:</p>
-          
-          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 16px 0;">
-            <h2 style="margin: 0 0 8px 0; color: #856404; font-size: 18px;">${taskTypeLabel}</h2>
-            <p style="margin: 0; color: #856404;">${task.summary}</p>
-          </div>
-          
-          ${task.details ? `
-            <div style="margin: 16px 0;">
-              <h3 style="margin: 0 0 8px 0; color: #333;">Details</h3>
-              <p style="margin: 0; color: #666;">${task.details}</p>
-            </div>
-          ` : ""}
-          
-          ${task.recommended_action ? `
-            <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 16px; margin: 16px 0;">
-              <h3 style="margin: 0 0 8px 0; color: #155724;">Recommended Action</h3>
-              <p style="margin: 0; color: #155724;">${task.recommended_action}</p>
-            </div>
-          ` : ""}
-          
-          ${debtorSection}
-          ${invoiceSection}
-          
-          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
-            <p style="margin: 0; font-size: 14px; color: #666;">
-              <strong>Priority:</strong> ${task.priority}<br>
-              ${task.due_date ? `<strong>Due Date:</strong> ${new Date(task.due_date).toLocaleDateString()}<br>` : ""}
-              <strong>Created:</strong> ${new Date(task.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          
-          <div style="margin-top: 24px; padding: 16px; background-color: #e7f3ff; border-radius: 8px;">
-            <p style="margin: 0; font-size: 14px; color: #0066cc;">
-              <strong>💡 Tip:</strong> Reply to this email to log your communication. Responses will be processed by AI for further task extraction.
-            </p>
-          </div>
-
-          <!-- Signature Section -->
-          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-            ${signatureSection}
-            ${logoSection}
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px;">
-              <tr>
-                <td style="vertical-align: top; padding-right: 12px;">
-                  <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 8px; text-align: center; line-height: 40px;">
-                    <span style="color: #ffffff; font-weight: bold; font-size: 16px;">R</span>
-                  </div>
-                </td>
-                <td style="vertical-align: top;">
-                  <p style="margin: 0; font-size: 13px; color: #64748b;">
-                    Sent on behalf of <strong style="color: #1e293b;">${businessName}</strong>
-                  </p>
-                  <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8;">
-                    Powered by <a href="https://recouply.ai" style="color: #2563eb; text-decoration: none;">Recouply.ai</a> • AI-Powered CashOps
-                  </p>
-                </td>
-              </tr>
-            </table>
-            ${footerSection}
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    // Generate enterprise email HTML
+    const html = generateEnterpriseTaskEmail({
+      teamMemberName,
+      businessName,
+      primaryColor,
+      logoUrl: branding?.logo_url,
+      task,
+      invoiceSection,
+      debtorSection,
+      signatureSection,
+      footerSection,
+    });
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+      from: `${COMPANY_INFO.displayName} <notifications@send.inbound.services.recouply.ai>`,
       to: [teamMemberEmail],
       subject: `[Task Assigned] ${taskTypeLabel} - ${task.debtors?.company_name || "Collection Task"}`,
       html,
@@ -332,6 +531,12 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("[SEND-TASK-ASSIGNMENT] Email sent successfully:", emailResponse);
+
+    // Update task to mark assignment email sent
+    await supabase
+      .from("collection_tasks")
+      .update({ assignment_email_sent_at: new Date().toISOString() })
+      .eq("id", taskId);
 
     return new Response(
       JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
