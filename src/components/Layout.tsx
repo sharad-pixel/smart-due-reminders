@@ -195,8 +195,8 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
   ];
 
-  // Mobile nav items - excludes admin items since they're in user dropdown
-  const mobileNavItems = [...coreNavItems, ...aiToolsItems, { path: "/settings", label: "Settings", icon: Settings }];
+  // Mobile nav items - excludes admin/settings items since they're in user dropdown
+  const mobileNavItems = [...coreNavItems, ...aiToolsItems];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
@@ -278,20 +278,7 @@ const Layout = ({ children }: LayoutProps) => {
                       );
                     })}
                   </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Settings Link */}
-                <Link
-                  to="/settings"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                    isActive("/settings")
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
-                >
-                  <Settings className="h-4 w-4 shrink-0" />
-                  <span>Settings</span>
-                </Link>
+              </DropdownMenu>
               </div>
             </div>
             
@@ -348,6 +335,10 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuItem onClick={() => navigate("/documents")}>
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Documents
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/settings")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/security-settings")}>
                     <Shield className="mr-2 h-4 w-4" />
