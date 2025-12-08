@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Trash2, UserPlus, Lock, CalendarClock } from "lucide-react";
+import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Archive, ArchiveRestore, UserPlus, Lock, CalendarClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useSearchParams, Link } from "react-router-dom";
@@ -89,7 +89,8 @@ export default function CollectionTasks() {
 
   // Bulk selection
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   // Filters
@@ -117,7 +118,7 @@ export default function CollectionTasks() {
 
   useEffect(() => {
     loadTasks();
-  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl]);
+  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl, showArchived]);
 
   // Open task modal if taskId is in URL (from notification click)
   useEffect(() => {
@@ -211,6 +212,7 @@ export default function CollectionTasks() {
           debtors!inner(name, company_name),
           invoices(invoice_number)
         `)
+        .eq('is_archived', showArchived)
         .order("created_at", { ascending: false });
 
       if (statusFilter !== 'all') {
@@ -280,19 +282,41 @@ export default function CollectionTasks() {
     }
   };
 
-  const handleDelete = async (taskId: string) => {
+  const handleArchive = async (taskId: string) => {
     try {
       const { error } = await supabase
         .from("collection_tasks")
-        .delete()
+        .update({ 
+          is_archived: true, 
+          archived_at: new Date().toISOString() 
+        })
         .eq("id", taskId);
 
       if (error) throw error;
-      toast.success("Task deleted");
+      toast.success("Task archived");
       loadTasks();
     } catch (error) {
-      console.error("Error deleting task:", error);
-      toast.error("Failed to delete task");
+      console.error("Error archiving task:", error);
+      toast.error("Failed to archive task");
+    }
+  };
+
+  const handleUnarchive = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from("collection_tasks")
+        .update({ 
+          is_archived: false, 
+          archived_at: null 
+        })
+        .eq("id", taskId);
+
+      if (error) throw error;
+      toast.success("Task restored");
+      loadTasks();
+    } catch (error) {
+      console.error("Error restoring task:", error);
+      toast.error("Failed to restore task");
     }
   };
 
@@ -407,24 +431,27 @@ export default function CollectionTasks() {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkArchive = async () => {
     if (selectedTaskIds.size === 0) return;
     
     setIsBulkProcessing(true);
     try {
       const { error } = await supabase
         .from("collection_tasks")
-        .delete()
+        .update({ 
+          is_archived: !showArchived, 
+          archived_at: !showArchived ? new Date().toISOString() : null 
+        })
         .in("id", Array.from(selectedTaskIds));
 
       if (error) throw error;
-      toast.success(`${selectedTaskIds.size} task(s) deleted`);
+      toast.success(`${selectedTaskIds.size} task(s) ${showArchived ? 'restored' : 'archived'}`);
       setSelectedTaskIds(new Set());
-      setShowDeleteDialog(false);
+      setShowArchiveDialog(false);
       loadTasks();
     } catch (error) {
-      console.error("Error bulk deleting tasks:", error);
-      toast.error("Failed to delete tasks");
+      console.error("Error bulk archiving tasks:", error);
+      toast.error(`Failed to ${showArchived ? 'restore' : 'archive'} tasks`);
     } finally {
       setIsBulkProcessing(false);
     }
@@ -611,13 +638,13 @@ export default function CollectionTasks() {
 
                   {permissions.canDeleteTasks && (
                     <Button 
-                      variant="destructive" 
+                      variant="outline" 
                       size="sm"
-                      onClick={() => setShowDeleteDialog(true)}
+                      onClick={() => setShowArchiveDialog(true)}
                       disabled={isBulkProcessing}
                     >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
+                      {showArchived ? <ArchiveRestore className="h-4 w-4 mr-1" /> : <Archive className="h-4 w-4 mr-1" />}
+                      {showArchived ? 'Restore' : 'Archive'}
                     </Button>
                   )}
 
@@ -709,16 +736,29 @@ export default function CollectionTasks() {
               </Select>
             </div>
             
-            {/* Hide closed toggle */}
-            <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-              <Switch
-                id="hide-closed"
-                checked={hideClosed}
-                onCheckedChange={setHideClosed}
-              />
-              <Label htmlFor="hide-closed" className="text-sm cursor-pointer">
-                Hide closed tasks
-              </Label>
+            {/* Toggle filters */}
+            <div className="flex flex-wrap items-center gap-6 mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="hide-closed"
+                  checked={hideClosed}
+                  onCheckedChange={setHideClosed}
+                />
+                <Label htmlFor="hide-closed" className="text-sm cursor-pointer">
+                  Hide closed tasks
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-archived"
+                  checked={showArchived}
+                  onCheckedChange={setShowArchived}
+                />
+                <Label htmlFor="show-archived" className="text-sm cursor-pointer flex items-center gap-1">
+                  <Archive className="h-4 w-4" />
+                  Show archived
+                </Label>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -841,30 +881,31 @@ export default function CollectionTasks() {
           open={showDetailModal}
           onOpenChange={setShowDetailModal}
           onStatusChange={handleStatusChange}
-          onDelete={handleDelete}
+          onArchive={showArchived ? handleUnarchive : handleArchive}
           onAssign={handleAssign}
           onNoteAdded={loadTasks}
         />
 
-        {/* Bulk Delete Confirmation */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        {/* Bulk Archive Confirmation */}
+        <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete {selectedTaskIds.size} task(s)?</AlertDialogTitle>
+              <AlertDialogTitle>{showArchived ? 'Restore' : 'Archive'} {selectedTaskIds.size} task(s)?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. These tasks will be permanently deleted.
+                {showArchived 
+                  ? 'These tasks will be restored to your active task list.'
+                  : 'Archived tasks can be restored later from the archived view.'}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleBulkDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleBulkArchive}
               >
                 {isBulkProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
-                Delete
+                {showArchived ? 'Restore' : 'Archive'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

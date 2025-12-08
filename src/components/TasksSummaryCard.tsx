@@ -55,15 +55,15 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
     }
   };
 
-  const handleDelete = async (taskId: string) => {
+  const handleArchive = async (taskId: string) => {
     try {
       const { error } = await supabase
         .from("collection_tasks")
-        .delete()
+        .update({ is_archived: true, archived_at: new Date().toISOString() })
         .eq("id", taskId);
 
       if (error) throw error;
-      toast.success("Task deleted");
+      toast.success("Task archived");
       onTaskUpdate?.();
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -220,7 +220,7 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
       open={modalOpen}
       onOpenChange={setModalOpen}
       onStatusChange={handleStatusChange}
-      onDelete={handleDelete}
+      onArchive={handleArchive}
     />
     </>
   );

@@ -949,10 +949,13 @@ const DebtorDetail = () => {
             fetchAllTasks();
             toast.success("Task updated");
           }}
-          onDelete={async (taskId) => {
-            await supabase.from("collection_tasks").delete().eq("id", taskId);
+          onArchive={async (taskId) => {
+            await supabase
+              .from("collection_tasks")
+              .update({ is_archived: true, archived_at: new Date().toISOString() })
+              .eq("id", taskId);
             fetchAllTasks();
-            toast.success("Task deleted");
+            toast.success("Task archived");
           }}
           onAssign={async (taskId, assignedTo, assignedPersona) => {
             await supabase

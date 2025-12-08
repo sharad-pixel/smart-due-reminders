@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask, TaskNote } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
-import { CheckCircle2, XCircle, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote, X } from "lucide-react";
+import { CheckCircle2, Archive, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,7 +27,7 @@ interface TaskDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStatusChange: (taskId: string, status: string) => void;
-  onDelete: (taskId: string) => void;
+  onArchive: (taskId: string) => void;
   onAssign?: (taskId: string, assignedTo: string | null, assignedPersona: string | null) => void;
   onNoteAdded?: () => void;
 }
@@ -66,7 +66,7 @@ export const TaskDetailModal = ({
   open,
   onOpenChange,
   onStatusChange,
-  onDelete,
+  onArchive,
   onAssign,
   onNoteAdded
 }: TaskDetailModalProps) => {
@@ -610,15 +610,15 @@ export const TaskDetailModal = ({
               </Button>
             )}
             <Button
-              variant="destructive"
+              variant="outline"
               onClick={() => {
-                onDelete(task.id);
+                onArchive(task.id);
                 onOpenChange(false);
               }}
               className="flex-1"
             >
-              <XCircle className="h-4 w-4 mr-2" />
-              Delete Task
+              <Archive className="h-4 w-4 mr-2" />
+              Archive Task
             </Button>
           </div>
         </div>
