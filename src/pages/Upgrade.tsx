@@ -233,16 +233,16 @@ const Upgrade = () => {
                     <Crown className="h-5 w-5 text-primary" />
                     Current Plan: <span className="capitalize">{currentPlan}</span>
                   </CardTitle>
-                  <CardDescription className="mt-1 flex items-center gap-2">
+                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                     {isTrial ? (
                       <>
                         <Badge variant="secondary">Trial Active</Badge>
-                        {trialEndDate && <span className="text-sm">Ends {trialEndDate}</span>}
+                        {trialEndDate && <span>Ends {trialEndDate}</span>}
                       </>
                     ) : (
                       <Badge variant="default" className="bg-green-600">Active</Badge>
                     )}
-                  </CardDescription>
+                  </div>
                 </div>
                 <Button
                   onClick={handleManageSubscription}
