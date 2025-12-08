@@ -23,6 +23,7 @@ import { InvoiceExportModal } from "@/components/InvoiceExportModal";
 import { BulkStatusUpdateModal } from "@/components/BulkStatusUpdateModal";
 import { ImportJobHistory } from "@/components/ImportJobHistory";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
+import { AIInsightsCard } from "@/components/AIInsightsCard";
 
 interface Invoice {
   id: string;
@@ -378,6 +379,11 @@ const Invoices = () => {
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">Import</span>
             </Button>
+          </div>
+        </div>
+
+        <AIInsightsCard scope="invoices" compact className="mb-4" />
+
             <Button
               variant="outline"
               onClick={() => setIsExportOpen(true)}
