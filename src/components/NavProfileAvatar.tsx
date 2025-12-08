@@ -11,14 +11,8 @@ interface NavProfileAvatarProps {
 
 const sizeClasses = {
   sm: "h-8 w-8",
-  md: "h-10 w-10",
-  lg: "h-12 w-12",
-};
-
-const iconSizeClasses = {
-  sm: "h-3 w-3",
-  md: "h-4 w-4",
-  lg: "h-5 w-5",
+  md: "h-9 w-9",
+  lg: "h-10 w-10",
 };
 
 export const NavProfileAvatar = ({
@@ -30,17 +24,17 @@ export const NavProfileAvatar = ({
 
   return (
     <div 
-      className="relative"
+      className={cn("relative flex-shrink-0", sizeClasses[size])}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Avatar className={cn(sizeClasses[size], "ring-2 ring-transparent transition-all duration-200", isHovered && "ring-primary/30")}>
+      <Avatar className={cn("h-full w-full transition-all duration-200", isHovered && "ring-2 ring-primary/30")}>
         <AvatarImage 
           src={avatarUrl || undefined} 
           alt={userName} 
           className="object-cover"
         />
-        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-xs">
           {userName.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
@@ -52,7 +46,7 @@ export const NavProfileAvatar = ({
           isHovered ? "opacity-100" : "opacity-0"
         )}
       >
-        <Camera className={cn(iconSizeClasses[size], "text-white")} />
+        <Camera className="h-4 w-4 text-white" />
       </div>
     </div>
   );
