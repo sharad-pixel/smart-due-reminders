@@ -34,10 +34,13 @@ import {
   Camera,
   Trash2,
   UserX,
-  AlertTriangle
+  AlertTriangle,
+  Crown,
+  Building2
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/BillingSection";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
@@ -95,6 +98,17 @@ const Profile = () => {
   const [teamMemberCount, setTeamMemberCount] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [requestingDeletion, setRequestingDeletion] = useState(false);
+  
+  // Get effective account info for parent/child display
+  const { 
+    isTeamMember, 
+    ownerName, 
+    ownerEmail, 
+    ownerCompanyName,
+    ownerPlanType, 
+    ownerSubscriptionStatus,
+    memberRole 
+  } = useEffectiveAccount();
 
   useEffect(() => {
     loadProfileData();
@@ -461,12 +475,66 @@ const Profile = () => {
           </p>
         </div>
 
+        {/* Parent Account Banner for Child Accounts */}
+        {isTeamMember && (
+          <Card className="border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-0">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Parent Account
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                    {(ownerName || ownerEmail || 'O')[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{ownerName || 'Account Owner'}</p>
+                  {ownerCompanyName && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Building2 className="h-3 w-3" />
+                      {ownerCompanyName}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {ownerPlanType || 'free'} Plan
+                    </Badge>
+                    {ownerSubscriptionStatus === 'active' && (
+                      <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* User Info Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              User Information
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                User Information
+              </div>
+              {/* Account Type Badge */}
+              {isTeamMember ? (
+                <Badge variant="secondary" className="text-xs">
+                  <Users className="h-3 w-3 mr-1" />
+                  Child Account
+                </Badge>
+              ) : (
+                <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-0 text-xs">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Parent Account
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
