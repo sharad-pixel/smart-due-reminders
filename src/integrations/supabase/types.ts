@@ -27,6 +27,7 @@ export type Database = {
           invited_at: string
           is_owner: boolean | null
           role: Database["public"]["Enums"]["app_role"]
+          seat_billing_ends_at: string | null
           status: string
           updated_at: string
           user_id: string | null
@@ -43,6 +44,7 @@ export type Database = {
           invited_at?: string
           is_owner?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
+          seat_billing_ends_at?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           invited_at?: string
           is_owner?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
+          seat_billing_ends_at?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
