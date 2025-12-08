@@ -108,6 +108,7 @@ const Profile = () => {
     ownerCompanyName,
     ownerPlanType, 
     ownerSubscriptionStatus,
+    ownerAvatarUrl,
     memberRole 
   } = useEffectiveAccount();
 
@@ -490,12 +491,17 @@ const Profile = () => {
             <CardContent className="pt-0">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  {ownerAvatarUrl && <AvatarImage src={ownerAvatarUrl} alt={ownerName || "Owner"} />}
                   <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                    {(ownerName || ownerEmail || 'O')[0].toUpperCase()}
+                    {ownerName ? ownerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 
+                     ownerEmail ? ownerEmail.slice(0, 2).toUpperCase() : 'O'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold">{ownerName || 'Account Owner'}</p>
+                  <p className="font-semibold">{ownerName || ownerEmail || 'Account Owner'}</p>
+                  {ownerEmail && ownerName && (
+                    <p className="text-sm text-muted-foreground">{ownerEmail}</p>
+                  )}
                   {ownerCompanyName && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Building2 className="h-3 w-3" />
