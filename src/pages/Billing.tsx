@@ -344,6 +344,13 @@ const Billing = () => {
                         {profile?.billing_interval === 'year' ? 'Annual' : 'Monthly'}
                       </span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        <strong>Team Seats:</strong>{' '}
+                        {teamMembers.filter(m => m.role !== 'owner').length} seat(s)
+                      </span>
+                    </div>
                     <p>
                       <strong>Invoice Limit:</strong>{' '}
                       {isUnlimited ? 'Unlimited' : `${invoiceLimit} invoices/month`}
@@ -358,14 +365,36 @@ const Billing = () => {
                         <strong>Term End:</strong> {formatDate(stripeData?.current_period_end || profile?.current_period_end || '')}
                       </p>
                     )}
-                    <div className="pt-2 border-t mt-2">
-                      <p className="text-xs text-muted-foreground">
-                        <strong>Team Seat Pricing:</strong>{' '}
-                        {profile?.billing_interval === 'year' 
-                          ? `${formatPrice(SEAT_PRICING.annualPrice)}/user/year (${Math.round(ANNUAL_DISCOUNT_RATE * 100)}% off)`
-                          : `${formatPrice(SEAT_PRICING.monthlyPrice)}/user/month`
-                        }
-                      </p>
+                    {/* Monthly Charges Breakdown */}
+                    <div className="pt-3 mt-3 border-t space-y-1">
+                      <p className="font-semibold text-foreground">Monthly Charges</p>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Base Plan ({planConfig?.displayName || 'Free'})</span>
+                        <span>{planConfig ? formatPrice(profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : '$0'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Team Seats ({teamMembers.filter(m => m.role !== 'owner').length})</span>
+                        <span>
+                          {formatPrice(
+                            teamMembers.filter(m => m.role !== 'owner').length * 
+                            (profile?.billing_interval === 'year' 
+                              ? Math.round(SEAT_PRICING.annualPrice / 12) 
+                              : SEAT_PRICING.monthlyPrice)
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold pt-1 border-t border-dashed">
+                        <span>Total</span>
+                        <span className="text-primary">
+                          {formatPrice(
+                            (planConfig ? (profile?.billing_interval === 'year' ? planConfig.equivalentMonthly : planConfig.monthlyPrice) : 0) +
+                            (teamMembers.filter(m => m.role !== 'owner').length * 
+                              (profile?.billing_interval === 'year' 
+                                ? Math.round(SEAT_PRICING.annualPrice / 12) 
+                                : SEAT_PRICING.monthlyPrice))
+                          )}/mo
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
