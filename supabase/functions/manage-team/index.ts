@@ -331,6 +331,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           
           let accountUserEntry;
+          let isNewInvite = false;
           
           if (existingPending) {
             // Update existing pending invite with new token
@@ -349,6 +350,7 @@ Deno.serve(async (req) => {
             
             if (error) throw error;
             accountUserEntry = data;
+            // Not a new invite, don't charge again
           } else {
             // Create pending account_users entry with invite token
             // user_id is NULL for pending invites (will be set on acceptance)
@@ -369,6 +371,43 @@ Deno.serve(async (req) => {
 
             if (error) throw error;
             accountUserEntry = data;
+            isNewInvite = true;
+          }
+          
+          // CHARGE IMMEDIATELY for new invites - sync billing now
+          // Pending invites count as billable seats (charged upfront)
+          if (isNewInvite) {
+            logStep('Charging for new seat immediately', { email });
+            
+            // Get current billable count INCLUDING pending invites
+            const { data: allActiveOrPending } = await supabaseClient
+              .from('account_users')
+              .select('id')
+              .eq('account_id', managingAccountId)
+              .eq('is_owner', false)
+              .in('status', ['active', 'pending']);
+            
+            const seatCount = allActiveOrPending?.length || 0;
+            const billingResult = await updateStripeSeatQuantity(supabaseClient, managingAccountId, seatCount, user.id);
+            
+            if (!billingResult.success && billingResult.error) {
+              // If billing fails, we should rollback the invite
+              await supabaseClient
+                .from('account_users')
+                .delete()
+                .eq('id', accountUserEntry.id);
+              
+              return new Response(
+                JSON.stringify({ 
+                  error: true, 
+                  message: 'Failed to charge for seat. Please check your payment method.',
+                  details: billingResult.error 
+                }),
+                { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+            
+            logStep('Seat charged successfully', { seatCount, email });
           }
           
           // Get inviter's profile for the email
@@ -416,7 +455,12 @@ Deno.serve(async (req) => {
             // Don't fail the whole operation if email fails
           }
 
-          result = { success: true, data: accountUserEntry, message: 'Invitation sent successfully' };
+          result = { 
+            success: true, 
+            data: accountUserEntry, 
+            message: isNewInvite ? 'Invitation sent and seat charged to your account' : 'Invitation resent successfully',
+            charged: isNewInvite
+          };
         }
         break;
       }
