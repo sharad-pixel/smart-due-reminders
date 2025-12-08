@@ -43,6 +43,7 @@ import { logAuditEvent } from "@/lib/auditLog";
 import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface LayoutProps {
   children: ReactNode;
@@ -299,6 +300,7 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-2 shrink-0">
+              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-2">

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/MentionInput";
+import { createMentionNotification } from "@/hooks/useNotifications";
 
 interface TaskNote {
   id: string;
@@ -272,6 +273,20 @@ export const TaskDetailModal = ({
         .eq('id', task.id);
       
       if (error) throw error;
+      
+      // Create notifications for mentioned users
+      for (const mentionedUserId of noteMentions) {
+        // Don't notify yourself
+        if (mentionedUserId !== currentUser.id) {
+          await createMentionNotification(
+            mentionedUserId,
+            currentUser.name,
+            currentUser.id,
+            task.id,
+            task.summary
+          );
+        }
+      }
       
       setNotes(updatedNotes);
       setNewNote("");
