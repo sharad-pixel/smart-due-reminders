@@ -40,8 +40,17 @@ export function useDocuments(organizationId?: string, debtorId?: string) {
       } else if (debtorId) {
         query = query.eq("debtor_id", debtorId);
       } else {
-        // Fetch user's own documents when no org/debtor specified
-        query = query.eq("uploaded_by_user_id", user.id);
+        // Get user's organization and fetch org documents
+        const { data: orgId } = await supabase.rpc('get_user_organization_id', {
+          p_user_id: user.id
+        });
+        
+        if (orgId) {
+          query = query.eq("organization_id", orgId);
+        } else {
+          // Fallback to user's own documents
+          query = query.eq("uploaded_by_user_id", user.id);
+        }
       }
 
       const { data, error } = await query;
@@ -118,6 +127,15 @@ export function useUploadDocument() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
 
+      // Get user's organization ID if not provided
+      let effectiveOrgId = organizationId;
+      if (!effectiveOrgId && !debtorId) {
+        const { data: orgId } = await supabase.rpc('get_user_organization_id', {
+          p_user_id: user.user.id
+        });
+        effectiveOrgId = orgId;
+      }
+
       const insertData: any = {
         uploaded_by_user_id: user.user.id,
         file_url: uploadPath,
@@ -126,14 +144,9 @@ export function useUploadDocument() {
         file_size: file.size,
         category,
         notes,
+        organization_id: effectiveOrgId || null,
+        debtor_id: debtorId || null,
       };
-
-      if (organizationId) {
-        insertData.organization_id = organizationId;
-      }
-      if (debtorId) {
-        insertData.debtor_id = debtorId;
-      }
 
       const { data: document, error: docError } = await supabase
         .from("documents")
