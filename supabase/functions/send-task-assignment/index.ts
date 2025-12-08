@@ -11,7 +11,11 @@ const corsHeaders = {
 
 interface TaskAssignmentRequest {
   taskId: string;
-  teamMemberId: string;
+  teamMemberId?: string;  // Legacy - maps to account_users.id or profiles.id
+  accountUserId?: string; // account_users.id
+  userId?: string;        // profiles.id (user_id in account_users)
+  debtorId?: string;      // Optional context
+  invoiceId?: string;     // Optional context
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,11 +28,24 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { taskId, teamMemberId }: TaskAssignmentRequest = await req.json();
+    const body: TaskAssignmentRequest = await req.json();
+    const { taskId, teamMemberId, accountUserId, userId, debtorId, invoiceId } = body;
 
-    if (!taskId || !teamMemberId) {
+    console.log("[SEND-TASK-ASSIGNMENT] Received request:", JSON.stringify(body));
+
+    if (!taskId) {
       return new Response(
-        JSON.stringify({ error: "Missing taskId or teamMemberId" }),
+        JSON.stringify({ error: "Missing taskId" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Determine which ID to use for finding the team member
+    const memberUserId = userId || teamMemberId || accountUserId;
+    
+    if (!memberUserId) {
+      return new Response(
+        JSON.stringify({ error: "Missing teamMemberId, userId, or accountUserId" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -45,34 +62,95 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (taskError || !task) {
-      console.error("Task fetch error:", taskError);
+      console.error("[SEND-TASK-ASSIGNMENT] Task fetch error:", taskError);
       return new Response(
         JSON.stringify({ error: "Task not found" }),
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Fetch team member
-    const { data: teamMember, error: memberError } = await supabase
-      .from("team_members")
-      .select("*")
-      .eq("id", teamMemberId)
-      .single();
+    console.log("[SEND-TASK-ASSIGNMENT] Task fetched:", task.id);
 
-    if (memberError || !teamMember) {
-      console.error("Team member fetch error:", memberError);
+    // Fetch team member from profiles table (the user_id from account_users links to profiles.id)
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .eq("id", memberUserId)
+      .maybeSingle();
+
+    // If no profile found directly, try to look up via account_users
+    let teamMemberEmail = profile?.email;
+    let teamMemberName = profile?.name || "Team Member";
+
+    if (!profile) {
+      console.log("[SEND-TASK-ASSIGNMENT] No profile found for ID, checking account_users...");
+      
+      // Try to find in account_users and get the linked email
+      const { data: accountUser, error: auError } = await supabase
+        .from("account_users")
+        .select("id, user_id, email, role")
+        .eq("id", memberUserId)
+        .maybeSingle();
+
+      if (accountUser) {
+        // If account_users entry has an email directly, use it
+        teamMemberEmail = accountUser.email;
+        
+        // If there's a user_id, fetch the profile for the name
+        if (accountUser.user_id) {
+          const { data: linkedProfile } = await supabase
+            .from("profiles")
+            .select("name, email")
+            .eq("id", accountUser.user_id)
+            .maybeSingle();
+          
+          if (linkedProfile) {
+            teamMemberName = linkedProfile.name || "Team Member";
+            teamMemberEmail = linkedProfile.email || teamMemberEmail;
+          }
+        }
+      } else {
+        // Also try looking up by user_id in account_users
+        const { data: accountUserByUserId } = await supabase
+          .from("account_users")
+          .select("id, user_id, email")
+          .eq("user_id", memberUserId)
+          .maybeSingle();
+
+        if (accountUserByUserId) {
+          teamMemberEmail = accountUserByUserId.email;
+          
+          // Get profile for name
+          const { data: userProfile } = await supabase
+            .from("profiles")
+            .select("name, email")
+            .eq("id", memberUserId)
+            .maybeSingle();
+
+          if (userProfile) {
+            teamMemberName = userProfile.name || "Team Member";
+            teamMemberEmail = userProfile.email || teamMemberEmail;
+          }
+        }
+      }
+    }
+
+    if (!teamMemberEmail) {
+      console.error("[SEND-TASK-ASSIGNMENT] No email found for team member:", memberUserId);
       return new Response(
-        JSON.stringify({ error: "Team member not found" }),
+        JSON.stringify({ error: "Team member email not found" }),
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
+    console.log("[SEND-TASK-ASSIGNMENT] Sending to:", teamMemberEmail, "Name:", teamMemberName);
 
     // Fetch branding settings for the task owner
     const { data: branding } = await supabase
       .from("branding_settings")
       .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
       .eq("user_id", task.user_id)
-      .single();
+      .maybeSingle();
 
     const businessName = branding?.business_name || branding?.from_name || "Your Organization";
     const primaryColor = branding?.primary_color || "#1e3a5f";
@@ -177,7 +255,7 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
         
         <div style="background-color: white; padding: 24px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px 0;">Hi ${teamMember.name},</p>
+          <p style="margin: 0 0 16px 0;">Hi ${teamMemberName},</p>
           <p style="margin: 0 0 20px 0;">A new collection task has been assigned to you:</p>
           
           <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 16px 0;">
@@ -247,20 +325,20 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email
     const emailResponse = await resend.emails.send({
       from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
-      to: [teamMember.email],
+      to: [teamMemberEmail],
       subject: `[Task Assigned] ${taskTypeLabel} - ${task.debtors?.company_name || "Collection Task"}`,
       html,
       reply_to: replyTo,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("[SEND-TASK-ASSIGNMENT] Email sent successfully:", emailResponse);
 
     return new Response(
       JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
-    console.error("Error in send-task-assignment:", error);
+    console.error("[SEND-TASK-ASSIGNMENT] Error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
