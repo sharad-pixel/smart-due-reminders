@@ -585,40 +585,44 @@ const Team = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Table Header */}
-              <div className="hidden md:grid grid-cols-[1fr,120px,120px,180px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground border-b">
+              {/* Table Header - Desktop */}
+              <div className="hidden lg:grid grid-cols-[1fr,120px,100px,120px,1fr] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground border-b">
                 <div>Member</div>
                 <div>Role</div>
                 <div>Status</div>
-                <div>Added</div>
+                <div>Joined</div>
+                <div className="text-right">Actions</div>
               </div>
               
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex flex-col md:grid md:grid-cols-[1fr,120px,120px,180px] gap-4 items-start md:items-center p-4 border rounded-lg"
+                  className="flex flex-col gap-3 p-4 border rounded-lg lg:grid lg:grid-cols-[1fr,120px,100px,120px,1fr] lg:gap-4 lg:items-center"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                  {/* Member Info */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 shrink-0">
                       {getRoleIcon(member.role)}
                     </div>
-                    <div>
-                      <p className="font-medium">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
                         {member.profiles?.name || member.profiles?.email || member.email || "Unknown"}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground truncate">
                         {member.profiles?.email || member.email}
                       </p>
                     </div>
                   </div>
                   
+                  {/* Role */}
                   <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground lg:hidden">Role:</span>
                     {member.role !== "owner" && features?.features.can_manage_roles ? (
                       <Select
                         value={member.role}
                         onValueChange={(value) => handleChangeRole(member.user_id, value as AppRole)}
                       >
-                        <SelectTrigger className="w-28">
+                        <SelectTrigger className="w-24 h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -634,8 +638,40 @@ const Team = () => {
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {member.role !== "owner" ? (
+                  {/* Status */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground lg:hidden">Status:</span>
+                    {member.role === "owner" ? (
+                      <Badge variant="default" className="bg-success text-success-foreground">Owner</Badge>
+                    ) : (
+                      <>
+                        {member.status === "active" && (
+                          <Badge variant="default" className="bg-success/20 text-success border-success/30">Active</Badge>
+                        )}
+                        {member.status === "disabled" && (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                        {member.status === "pending" && (
+                          <Badge variant="outline" className="border-warning text-warning">Pending</Badge>
+                        )}
+                        {member.status === "reassigned" && (
+                          <Badge variant="outline" className="text-muted-foreground">Reassigned</Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Joined Date */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground lg:hidden">Joined:</span>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(member.invited_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-wrap lg:justify-end pt-2 lg:pt-0 border-t lg:border-t-0">
+                    {member.role !== "owner" && (
                       <>
                         {member.status === "active" && (
                           <>
@@ -644,7 +680,7 @@ const Team = () => {
                               size="sm"
                               onClick={() => handleOpenReassignDialog(member)}
                               disabled={isReassigning}
-                              className="text-primary border-primary/30 hover:bg-primary/10"
+                              className="h-8 text-xs"
                             >
                               <ArrowRightLeft className="h-3 w-3 mr-1" />
                               Reassign
@@ -654,7 +690,7 @@ const Team = () => {
                               size="sm"
                               onClick={() => handleOpenDeactivateDialog(member)}
                               disabled={isTogglingStatus}
-                              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                              className="h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
                             >
                               <UserX className="h-3 w-3 mr-1" />
                               Deactivate
@@ -668,6 +704,7 @@ const Team = () => {
                               size="sm"
                               onClick={() => handleReactivateMember(member.user_id)}
                               disabled={isTogglingStatus}
+                              className="h-8 text-xs"
                             >
                               <UserCheck className="h-3 w-3 mr-1" />
                               Reactivate
@@ -677,7 +714,7 @@ const Team = () => {
                               size="sm"
                               onClick={() => handleOpenReassignDialog(member)}
                               disabled={isReassigning}
-                              className="text-primary border-primary/30 hover:bg-primary/10"
+                              className="h-8 text-xs"
                             >
                               <ArrowRightLeft className="h-3 w-3 mr-1" />
                               Reassign
@@ -690,57 +727,30 @@ const Team = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleResendInvite(member)}
-                              disabled={isResendingInvite === member.user_id}
+                              disabled={isResendingInvite === member.id}
+                              className="h-8 text-xs"
                             >
-                              {isResendingInvite === member.user_id ? (
+                              {isResendingInvite === member.id ? (
                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                               ) : (
                                 <Send className="h-3 w-3 mr-1" />
                               )}
-                              Resend
+                              Resend Invite
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleOpenReassignDialog(member)}
                               disabled={isReassigning}
-                              className="text-primary border-primary/30 hover:bg-primary/10"
+                              className="h-8 text-xs"
                             >
                               <ArrowRightLeft className="h-3 w-3 mr-1" />
                               Reassign
                             </Button>
                           </>
                         )}
-                        {member.status === "reassigned" && (
-                          <Badge variant="outline" className="text-muted-foreground">Reassigned</Badge>
-                        )}
-                      </>
-                    ) : (
-                      <Badge variant="default" className="bg-success text-success-foreground">Owner</Badge>
-                    )}
-                  </div>
-                  
-                  {/* Status Badge Column */}
-                  <div className="flex items-center gap-2">
-                    {member.role !== "owner" && (
-                      <>
-                        {member.status === "active" && (
-                          <Badge variant="default" className="bg-success/20 text-success border-success/30">Active</Badge>
-                        )}
-                        {member.status === "disabled" && (
-                          <Badge variant="secondary">Inactive</Badge>
-                        )}
-                        {member.status === "pending" && (
-                          <Badge variant="outline" className="border-warning text-warning">Pending</Badge>
-                        )}
                       </>
                     )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(member.invited_at).toLocaleDateString()}
-                    </span>
                   </div>
                 </div>
               ))}
