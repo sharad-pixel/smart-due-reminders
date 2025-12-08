@@ -624,14 +624,20 @@ const Profile = () => {
               </AlertDescription>
             </Alert>
 
-            {permissions.manage_users && (
-              <div className="pt-2">
+            <div className="pt-2 flex flex-wrap gap-2">
+              {permissions.manage_users && (
                 <Button variant="outline" onClick={() => navigate("/team")}>
                   <Users className="h-4 w-4 mr-2" />
                   Manage Team
                 </Button>
-              </div>
-            )}
+              )}
+              {permissions.manage_billing && (
+                <Button variant="outline" onClick={() => navigate("/billing")}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Billing & Subscription
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
