@@ -27,10 +27,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Seat pricing configuration
+// Seat pricing configuration - must match src/lib/subscriptionConfig.ts STRIPE_PRICES.seat
 const SEAT_PRICE_IDS = {
-  month: 'price_1SbWueFaeMMSBqclnDqJkOQW',
-  year: 'price_1SbWuuFaeMMSBqclX6xqgX9E',
+  month: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',  // $75/user/month
+  year: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',   // Same price for now (placeholder for annual)
 };
 
 const logStep = (step: string, details?: any) => {
