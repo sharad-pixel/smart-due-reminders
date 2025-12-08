@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAppUrl } from "@/lib/appConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +64,28 @@ export default function PublicARPage() {
   const [data, setData] = useState<ARPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Set meta robots tag based on environment
+  useEffect(() => {
+    const appUrl = getAppUrl();
+    const isProduction = appUrl.includes('recouply.ai');
+    
+    // Remove any existing robots meta tag
+    const existingRobots = document.querySelector('meta[name="robots"]');
+    if (existingRobots) {
+      existingRobots.remove();
+    }
+    
+    // Add robots meta tag - index only on production
+    const robotsMeta = document.createElement('meta');
+    robotsMeta.name = 'robots';
+    robotsMeta.content = isProduction ? 'index, follow' : 'noindex, nofollow';
+    document.head.appendChild(robotsMeta);
+    
+    return () => {
+      robotsMeta.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
