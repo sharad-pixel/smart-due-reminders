@@ -279,6 +279,82 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'remove': {
+        const { reassignTo } = await req.json().catch(() => ({}));
+        
+        // Check if user has assigned tasks
+        const { data: assignedTasks, error: tasksError } = await supabaseClient
+          .from('collection_tasks')
+          .select('id')
+          .eq('assigned_to', userId);
+        
+        if (tasksError) {
+          console.error('Error checking assigned tasks:', tasksError);
+        }
+        
+        // If user has assigned tasks and reassignTo is provided, reassign them
+        if (assignedTasks && assignedTasks.length > 0 && reassignTo) {
+          const { error: reassignError } = await supabaseClient
+            .from('collection_tasks')
+            .update({ 
+              assigned_to: reassignTo,
+              updated_at: new Date().toISOString()
+            })
+            .eq('assigned_to', userId);
+          
+          if (reassignError) {
+            console.error('Error reassigning tasks:', reassignError);
+            throw new Error('Failed to reassign tasks before removal');
+          }
+        } else if (assignedTasks && assignedTasks.length > 0 && !reassignTo) {
+          // Unassign tasks if no reassignTo provided
+          const { error: unassignError } = await supabaseClient
+            .from('collection_tasks')
+            .update({ 
+              assigned_to: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('assigned_to', userId);
+          
+          if (unassignError) {
+            console.error('Error unassigning tasks:', unassignError);
+          }
+        }
+        
+        // Remove from account_users
+        const { error: removeError } = await supabaseClient
+          .from('account_users')
+          .delete()
+          .eq('account_id', managingAccountId)
+          .eq('user_id', userId);
+
+        if (removeError) {
+          throw removeError;
+        }
+
+        result = { 
+          success: true, 
+          message: 'Team member removed successfully',
+          tasksReassigned: assignedTasks?.length || 0
+        };
+        break;
+      }
+
+      case 'getAssignedTasksCount': {
+        const { data: tasks, error } = await supabaseClient
+          .from('collection_tasks')
+          .select('id', { count: 'exact' })
+          .eq('assigned_to', userId)
+          .in('status', ['open', 'in_progress']);
+        
+        if (error) {
+          throw error;
+        }
+        
+        result = { success: true, count: tasks?.length || 0 };
+        break;
+      }
+
       case 'list': {
         const { data, error } = await supabaseClient
           .from('account_users')
