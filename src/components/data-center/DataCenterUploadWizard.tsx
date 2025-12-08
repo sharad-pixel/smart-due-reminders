@@ -450,6 +450,13 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
             )}
             {fileType === "accounts" ? "Import Accounts" : fileType === "invoice_aging" ? "Import Invoices" : "Import Payments"}
           </DialogTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            {fileType === "invoice_aging" 
+              ? "Invoices count toward your monthly allotment. Max 10,000 rows per upload. Overages billed at $1.50/invoice."
+              : fileType === "payments"
+              ? "Payments are matched to invoices using Recouply Invoice ID. Max 10,000 rows per upload."
+              : "Accounts are matched using Recouply Account ID. Max 10,000 rows per upload."}
+          </p>
         </DialogHeader>
 
         {/* Progress */}

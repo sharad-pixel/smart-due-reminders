@@ -337,6 +337,7 @@ const Login = () => {
               <DialogTitle>Reset Password</DialogTitle>
               <DialogDescription>
                 Enter your email address and we'll send you a link to reset your password.
+                Password reset requests are limited to 3 per hour for security.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleForgotPassword} className="space-y-4">
@@ -374,6 +375,7 @@ const Login = () => {
               <DialogTitle>Request Early Access</DialogTitle>
               <DialogDescription>
                 Enter your details and we'll review your request for early access to Recouply.ai.
+                We respond to requests within 24-48 hours.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleRequestAccess} className="space-y-4">

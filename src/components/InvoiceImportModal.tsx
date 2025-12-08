@@ -343,6 +343,10 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
                 <strong>Required fields:</strong> Invoice ID, Amount, Currency (3 letters), Due Date, Status
                 <br />
                 <strong>Optional fields:</strong> Internal Invoice #, Customer Name, Customer Email, Issue Date, Invoicing System, Product Description, Notes
+                <br />
+                <span className="text-xs mt-1 block">
+                  <strong>Limits:</strong> Max 10,000 rows per import. Imports exceeding your plan's invoice limit will incur overage charges ($1.50/invoice).
+                </span>
               </AlertDescription>
             </Alert>
 

@@ -151,6 +151,9 @@ const CreateTaskModal = ({
           <DialogTitle>
             Create {level === "invoice" ? "Invoice-Level" : "Account-Level"} Task
           </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Tasks help you track follow-ups and actions. Assigned tasks notify team members via email.
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">

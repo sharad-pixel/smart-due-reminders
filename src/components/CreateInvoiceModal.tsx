@@ -113,6 +113,9 @@ export const CreateInvoiceModal = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Invoice for {debtorName}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            New invoices count toward your monthly allotment. Only Open and InPaymentPlan invoices are tracked for collection activities.
+          </p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
