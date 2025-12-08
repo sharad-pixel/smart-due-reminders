@@ -114,15 +114,6 @@ export function useUploadDocument() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
 
-      // Get effective account ID for organization_id if not provided
-      let effectiveOrgId = organizationId;
-      if (!effectiveOrgId && !debtorId) {
-        const { data: effectiveData } = await supabase.rpc('get_effective_account_id', {
-          p_user_id: user.user.id
-        });
-        effectiveOrgId = effectiveData || user.user.id;
-      }
-
       const insertData: any = {
         uploaded_by_user_id: user.user.id,
         file_url: uploadPath,
@@ -131,9 +122,14 @@ export function useUploadDocument() {
         file_size: file.size,
         category,
         notes,
-        organization_id: effectiveOrgId || null,
-        debtor_id: debtorId || null,
       };
+
+      if (organizationId) {
+        insertData.organization_id = organizationId;
+      }
+      if (debtorId) {
+        insertData.debtor_id = debtorId;
+      }
 
       const { data: document, error: docError } = await supabase
         .from("documents")
