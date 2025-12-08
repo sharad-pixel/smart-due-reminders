@@ -34,6 +34,12 @@ export function PaymentActivityCard({ debtorId, limit = 5, showHeader = true }: 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get effective account ID for team member support
+      const { data: effectiveAccountId } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      
+      const accountId = effectiveAccountId || user.id;
+
       let query = supabase
         .from("payments")
         .select(`
@@ -45,7 +51,7 @@ export function PaymentActivityCard({ debtorId, limit = 5, showHeader = true }: 
           reconciliation_status,
           debtors (company_name, name)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("payment_date", { ascending: false })
         .limit(limit);
 
@@ -65,10 +71,16 @@ export function PaymentActivityCard({ debtorId, limit = 5, showHeader = true }: 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get effective account ID for team member support
+      const { data: effectiveAccountId } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      
+      const accountId = effectiveAccountId || user.id;
+
       let query = supabase
         .from("payments")
         .select("reconciliation_status, amount")
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
 
       if (debtorId) {
         query = query.eq("debtor_id", debtorId);
