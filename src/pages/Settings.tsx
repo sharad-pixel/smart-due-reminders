@@ -397,6 +397,7 @@ const Settings = () => {
             <CardContent className="pt-0">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  <AvatarImage src={effectiveAccount.ownerAvatarUrl || undefined} alt={effectiveAccount.ownerName || 'Account Owner'} />
                   <AvatarFallback className="bg-primary/20 text-primary font-bold">
                     {(effectiveAccount.ownerName || effectiveAccount.ownerEmail || 'O')[0].toUpperCase()}
                   </AvatarFallback>
