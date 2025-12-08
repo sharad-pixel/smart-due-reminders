@@ -316,9 +316,9 @@ const Layout = ({ children }: LayoutProps) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={avatarUrl || undefined} alt={userName} />
-                      <AvatarFallback>
+                    <Avatar className="h-10 w-10 rounded-lg">
+                      <AvatarImage src={avatarUrl || undefined} alt={userName} className="rounded-lg" />
+                      <AvatarFallback className="rounded-lg">
                         {userName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
