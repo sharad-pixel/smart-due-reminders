@@ -8,6 +8,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
  * 
  * Fetches the latest subscription data from Stripe and updates the user's profile.
  * Called after returning from Stripe Checkout or Customer Portal to ensure sync.
+ * 
+ * For team members, this returns the parent account's subscription data.
  */
 
 const corsHeaders = {
@@ -91,12 +93,63 @@ serve(async (req) => {
 
     logStep('User authenticated', { email: user.email, userId: user.id });
 
+    // Get effective account ID for team members
+    const { data: effectiveAccountId, error: effectiveError } = await supabase
+      .rpc('get_effective_account_id', { p_user_id: user.id });
+    
+    if (effectiveError) {
+      logStep('Error getting effective account', { error: effectiveError.message });
+    }
+    
+    const accountId = effectiveAccountId || user.id;
+    const isTeamMember = accountId !== user.id;
+    
+    logStep('Effective account determined', { accountId, isTeamMember });
+
+    // Get account owner's profile to find their email for Stripe lookup
+    const { data: ownerProfile, error: ownerError } = await supabase
+      .from('profiles')
+      .select('id, email, stripe_customer_id, stripe_subscription_id, plan_type, billing_interval, subscription_status, current_period_end')
+      .eq('id', accountId)
+      .single();
+
+    if (ownerError || !ownerProfile) {
+      throw new Error('Account owner profile not found');
+    }
+
+    logStep('Owner profile loaded', { 
+      ownerId: ownerProfile.id, 
+      ownerEmail: ownerProfile.email,
+      existingPlan: ownerProfile.plan_type 
+    });
+
+    // If this is a team member, just return the owner's existing subscription data
+    // without querying Stripe (only owners should sync their own subscription)
+    if (isTeamMember) {
+      logStep('Team member requesting subscription data, returning owner data');
+      
+      // Return owner's subscription data
+      return new Response(
+        JSON.stringify({
+          subscribed: ownerProfile.subscription_status === 'active',
+          plan_type: ownerProfile.plan_type || 'free',
+          billing_interval: ownerProfile.billing_interval || 'month',
+          subscription_status: ownerProfile.subscription_status || 'inactive',
+          current_period_end: ownerProfile.current_period_end,
+          is_team_member: true,
+          owner_email: ownerProfile.email,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For account owners, proceed with Stripe sync
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });
 
-    // Find customer by email
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Find customer by owner's email
+    const customers = await stripe.customers.list({ email: ownerProfile.email, limit: 1 });
     
     if (customers.data.length === 0) {
       logStep('No Stripe customer found');
@@ -117,7 +170,7 @@ serve(async (req) => {
     await supabase
       .from('profiles')
       .update({ stripe_customer_id: customerId })
-      .eq('id', user.id);
+      .eq('id', accountId);
 
     // Get active subscriptions
     const subscriptions = await stripe.subscriptions.list({
@@ -148,7 +201,7 @@ serve(async (req) => {
             subscription_status: null,
             current_period_end: null,
           })
-          .eq('id', user.id);
+          .eq('id', accountId);
 
         return new Response(
           JSON.stringify({ 
@@ -183,7 +236,7 @@ serve(async (req) => {
       current_period_end: periodEnd,
     });
 
-    // Update profile with subscription data
+    // Update profile with subscription data (using accountId, not user.id)
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -200,7 +253,7 @@ serve(async (req) => {
           : null,
         cancel_at_period_end: subscription.cancel_at_period_end,
       })
-      .eq('id', user.id);
+      .eq('id', accountId);
 
     if (updateError) {
       logStep('Error updating profile', { error: updateError });
