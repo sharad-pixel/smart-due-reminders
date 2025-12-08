@@ -279,6 +279,7 @@ const Team = () => {
       const { data, error } = await supabase.functions.invoke("manage-team", {
         body: {
           action: "reassign",
+          memberId: memberToReassign.id, // Use account_users row ID for pending invites
           userId: memberToReassign.user_id,
           email: reassignEmail,
         },
@@ -300,11 +301,12 @@ const Team = () => {
   };
 
   const handleResendInvite = async (member: TeamMember) => {
-    setIsResendingInvite(member.user_id);
+    setIsResendingInvite(member.id);
     try {
       const { data, error } = await supabase.functions.invoke("manage-team", {
         body: {
           action: "resend_invite",
+          memberId: member.id, // Use account_users row ID for pending invites
           userId: member.user_id,
         },
       });
