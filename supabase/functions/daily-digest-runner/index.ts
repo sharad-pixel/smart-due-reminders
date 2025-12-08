@@ -530,7 +530,7 @@ function generateEmailHtml(data: {
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
   <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 32px; text-align: center;">
+    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); padding: 32px; text-align: center;">
       <h1 style="color: white; margin: 0; font-size: 24px;">Daily Collections Health Summary</h1>
       <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Your Recouply.ai digest for today</p>
     </div>
@@ -602,15 +602,25 @@ function generateEmailHtml(data: {
       </div>
       
       <div style="text-align: center;">
-        <a href="https://recouply.ai/daily-digest" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
-          Open Recouply.ai Dashboard
+        <a href="https://recouply.ai/daily-digest" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+          Open Recouply.ai Dashboard →
         </a>
       </div>
     </div>
     
-    <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-      <p style="color: #9ca3af; margin: 0; font-size: 14px;">
-        © Recouply.ai – AI-Powered Collections
+    <div style="background: #1e293b; padding: 24px; text-align: center;">
+      <p style="color: #94a3b8; margin: 0 0 8px; font-size: 14px;">
+        <strong style="color: #ffffff;">RecouplyAI Inc.</strong>
+      </p>
+      <p style="color: #64748b; margin: 0 0 12px; font-size: 13px;">
+        AI-Powered CashOps Platform
+      </p>
+      <p style="color: #64748b; margin: 0; font-size: 12px;">
+        <a href="mailto:collections@recouply.ai" style="color: #94a3b8;">collections@recouply.ai</a> · 
+        <a href="mailto:support@recouply.ai" style="color: #94a3b8;">support@recouply.ai</a>
+      </p>
+      <p style="color: #475569; margin: 12px 0 0; font-size: 11px;">
+        © ${new Date().getFullYear()} RecouplyAI Inc. All rights reserved.
       </p>
     </div>
   </div>
