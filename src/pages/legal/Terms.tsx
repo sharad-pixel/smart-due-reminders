@@ -1,17 +1,20 @@
 import MarketingLayout from "@/components/MarketingLayout";
+import { COMPANY_INFO } from "@/lib/companyConfig";
 
 const Terms = () => {
+  const currentYear = new Date().getFullYear();
+  
   return (
     <MarketingLayout>
       <div className="container mx-auto max-w-4xl px-4 py-16">
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground mb-8">Last updated: January 2024</p>
+        <p className="text-sm text-muted-foreground mb-8">Last updated: December 2024</p>
 
         <div className="space-y-8 text-muted-foreground">
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">1. Nature of Service</h2>
             <p className="mb-4">
-              Recouply.ai is <strong>software only</strong>. We provide tools that help you manage and automate your own accounts receivable and collection activities. We do not act as a collection agency, and we do not collect debts on your behalf.
+              {COMPANY_INFO.displayName}, operated by {COMPANY_INFO.legalName}, is <strong>software only</strong>. We provide tools that help you manage and automate your own accounts receivable and collection activities. We do not act as a collection agency, and we do not collect debts on your behalf.
             </p>
             <p>
               <strong>You, the customer, remain responsible for all collection activities</strong> conducted through our platform, including compliance with applicable federal, state, and local laws such as the Fair Debt Collection Practices Act (FDCPA), Telephone Consumer Protection Act (TCPA), and any other relevant regulations.
@@ -20,20 +23,20 @@ const Terms = () => {
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">2. User Responsibilities</h2>
-            <p className="mb-4">By using Recouply.ai, you agree that:</p>
+            <p className="mb-4">By using {COMPANY_INFO.displayName}, you agree that:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>You are responsible for the accuracy of all data you upload or input into the platform.</li>
               <li>You will comply with all applicable laws and regulations when communicating with debtors.</li>
               <li>You will not use the platform to harass, threaten, or engage in deceptive practices.</li>
               <li>You will review and approve all AI-generated messages before sending them.</li>
-              <li>You understand that Recouply.ai is not providing legal advice or acting as a collection agency.</li>
+              <li>You understand that {COMPANY_INFO.legalName} is not providing legal advice or acting as a collection agency.</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">3. Limitation of Liability</h2>
             <p className="mb-4">
-              Recouply.ai provides software "as is" without warranties of any kind. We are not liable for:
+              {COMPANY_INFO.displayName} provides software "as is" without warranties of any kind. We are not liable for:
             </p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Any legal claims arising from your use of the platform</li>
@@ -57,28 +60,28 @@ const Terms = () => {
               <li>Privacy and data protection laws (GDPR, CCPA, etc.)</li>
             </ul>
             <p className="mt-4">
-              Recouply.ai does not provide legal advice. Consult with legal counsel to ensure your collection practices comply with all applicable regulations.
+              {COMPANY_INFO.legalName} does not provide legal advice. Consult with legal counsel to ensure your collection practices comply with all applicable regulations.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">5. Payment Processing</h2>
             <p>
-              All payments from debtors are processed directly through your own payment processors (e.g., Stripe). Recouply.ai never holds, processes, or takes a percentage of collected funds. We charge only a flat monthly fee for use of the software.
+              All payments from debtors are processed directly through your own payment processors (e.g., Stripe). {COMPANY_INFO.displayName} never holds, processes, or takes a percentage of collected funds. We charge only a flat monthly fee for use of the software.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">6. Data and Privacy</h2>
             <p className="mb-4">
-              You retain ownership of all data you input into Recouply.ai. We process data only to provide our services. See our <a href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</a> for details on how we handle and protect your information.
+              You retain ownership of all data you input into {COMPANY_INFO.displayName}. We process data only to provide our services. See our <a href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</a> for details on how we handle and protect your information.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">7. Content Safety & Acceptable Use</h2>
             <p className="mb-4">
-              Recouply.ai maintains a safe and professional environment for all users. All uploaded content, including images (logos, attachments, avatars, and documents), is automatically scanned for inappropriate material.
+              {COMPANY_INFO.displayName} maintains a safe and professional environment for all users. All uploaded content, including images (logos, attachments, avatars, and documents), is automatically scanned for inappropriate material.
             </p>
             <p className="mb-4 font-semibold text-foreground">Prohibited Content:</p>
             <ul className="list-disc pl-6 space-y-2 mb-4">
@@ -117,22 +120,41 @@ const Terms = () => {
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">10. Governing Law</h2>
             <p>
-              These terms are governed by the laws of [Your Jurisdiction]. Any disputes shall be resolved in the courts of [Your Jurisdiction].
+              These terms are governed by the laws of the State of Delaware, United States of America. Any disputes shall be resolved in the courts of Delaware.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">11. Contact</h2>
-            <p>
-              For questions about these terms, contact us at <a href="mailto:legal@recouply.ai" className="text-primary hover:underline">legal@recouply.ai</a>.
+            <p className="mb-4">
+              For questions about these terms, contact us at:
             </p>
+            <ul className="list-none space-y-2">
+              <li>
+                <strong>Legal Inquiries:</strong>{" "}
+                <a href={`mailto:${COMPANY_INFO.emails.support}`} className="text-primary hover:underline">
+                  {COMPANY_INFO.emails.support}
+                </a>
+              </li>
+              <li>
+                <strong>Collections Support:</strong>{" "}
+                <a href={`mailto:${COMPANY_INFO.emails.collections}`} className="text-primary hover:underline">
+                  {COMPANY_INFO.emails.collections}
+                </a>
+              </li>
+            </ul>
           </section>
 
           <div className="mt-12 p-6 bg-muted/50 rounded-lg border">
             <p className="font-semibold mb-2">Important Reminder:</p>
             <p>
-              Recouply.ai is software designed to help you manage your own collection activities. It is not a collection agency and does not collect debts on your behalf. You remain responsible for all communications sent through the platform and must ensure compliance with all applicable laws and regulations.
+              {COMPANY_INFO.displayName} is software designed to help you manage your own collection activities. {COMPANY_INFO.legalName} is not a collection agency and does not collect debts on your behalf. You remain responsible for all communications sent through the platform and must ensure compliance with all applicable laws and regulations.
             </p>
+          </div>
+
+          <div className="mt-8 text-center text-sm text-muted-foreground">
+            <p>© {currentYear} {COMPANY_INFO.legalName}. All rights reserved.</p>
+            <p className="mt-1">{COMPANY_INFO.address.full}</p>
           </div>
         </div>
       </div>

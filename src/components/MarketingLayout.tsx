@@ -7,6 +7,18 @@ interface MarketingLayoutProps {
   children: React.ReactNode;
 }
 
+// Company Information
+const COMPANY_INFO = {
+  legalName: "RecouplyAI Inc.",
+  displayName: "Recouply.ai",
+  tagline: "AI-Powered CashOps Platform",
+  emails: {
+    collections: "collections@recouply.ai",
+    support: "support@recouply.ai",
+    notifications: "notifications@recouply.ai",
+  },
+} as const;
+
 const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const navigate = useNavigate();
 
@@ -19,7 +31,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             onClick={() => navigate("/")}
           >
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              Recouply.ai
+              {COMPANY_INFO.displayName}
             </h1>
           </div>
           <nav className="hidden lg:flex items-center gap-5">
@@ -70,7 +82,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Login
             </Button>
             <Button onClick={() => navigate("/signup")}>
-              Try Recouply.ai
+              Try {COMPANY_INFO.displayName}
             </Button>
           </nav>
           <div className="lg:hidden">
@@ -83,15 +95,18 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         {children}
       </main>
 
-      <footer className="border-t py-8 px-4 bg-card mt-auto">
+      <footer className="border-t py-12 px-4 bg-card mt-auto">
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <h3 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-4">
-                Recouply.ai
+                {COMPANY_INFO.displayName}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                AI-powered AR & Collections software. Not a collection agency.
+              <p className="text-sm text-muted-foreground mb-4">
+                {COMPANY_INFO.tagline}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                AI-powered software. Not a collection agency.
               </p>
             </div>
             <div>
@@ -161,7 +176,25 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Get Started</h4>
+              <h4 className="font-semibold mb-4">Contact</h4>
+              <ul className="space-y-2 text-sm mb-4">
+                <li>
+                  <a 
+                    href={`mailto:${COMPANY_INFO.emails.support}`}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    {COMPANY_INFO.emails.support}
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href={`mailto:${COMPANY_INFO.emails.collections}`}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    {COMPANY_INFO.emails.collections}
+                  </a>
+                </li>
+              </ul>
               <Button 
                 onClick={() => navigate("/signup")}
                 className="w-full"
@@ -172,7 +205,10 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           </div>
           <div className="text-center pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              &copy; 2024 Recouply.ai. Not a collection agency - Software as a Service.
+              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName}. All rights reserved.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              AI-powered software as a service. Not a collection agency.
             </p>
           </div>
         </div>

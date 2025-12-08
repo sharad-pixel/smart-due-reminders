@@ -1,17 +1,20 @@
 import MarketingLayout from "@/components/MarketingLayout";
+import { COMPANY_INFO } from "@/lib/companyConfig";
 
 const Privacy = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <MarketingLayout>
       <div className="container mx-auto max-w-4xl px-4 py-16">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground mb-8">Last updated: January 2024</p>
+        <p className="text-sm text-muted-foreground mb-8">Last updated: December 2024</p>
 
         <div className="space-y-8 text-muted-foreground">
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">1. Introduction</h2>
             <p>
-              Recouply.ai ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our accounts receivable and collections management software.
+              {COMPANY_INFO.legalName} ("we," "our," or "us"), operating as {COMPANY_INFO.displayName}, is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our accounts receivable and collections management software.
             </p>
           </section>
 
@@ -112,7 +115,7 @@ const Privacy = () => {
               <li><strong>No Rejected Content Storage:</strong> Images that fail moderation are not stored on our platform</li>
             </ul>
             <p>
-              This moderation applies uniformly across all organizations using Recouply.ai to ensure a safe, professional environment for all users.
+              This moderation applies uniformly across all organizations using {COMPANY_INFO.displayName} to ensure a safe, professional environment for all users.
             </p>
           </section>
 
@@ -134,7 +137,10 @@ const Privacy = () => {
               <li><strong>Opt-out:</strong> Unsubscribe from marketing communications</li>
             </ul>
             <p className="mt-4">
-              To exercise these rights, contact us at <a href="mailto:privacy@recouply.ai" className="text-primary hover:underline">privacy@recouply.ai</a>.
+              To exercise these rights, contact us at{" "}
+              <a href={`mailto:${COMPANY_INFO.emails.support}`} className="text-primary hover:underline">
+                {COMPANY_INFO.emails.support}
+              </a>.
             </p>
           </section>
 
@@ -176,19 +182,35 @@ const Privacy = () => {
 
           <section>
             <h2 className="text-2xl font-bold text-foreground mb-4">13. Contact Us</h2>
-            <p>
+            <p className="mb-4">
               For questions or concerns about this Privacy Policy or our data practices, contact us at:
             </p>
-            <p className="mt-4">
-              Email: <a href="mailto:privacy@recouply.ai" className="text-primary hover:underline">privacy@recouply.ai</a>
-            </p>
+            <ul className="list-none space-y-2">
+              <li>
+                <strong>Privacy & Data Requests:</strong>{" "}
+                <a href={`mailto:${COMPANY_INFO.emails.support}`} className="text-primary hover:underline">
+                  {COMPANY_INFO.emails.support}
+                </a>
+              </li>
+              <li>
+                <strong>General Inquiries:</strong>{" "}
+                <a href={`mailto:${COMPANY_INFO.emails.support}`} className="text-primary hover:underline">
+                  {COMPANY_INFO.emails.support}
+                </a>
+              </li>
+            </ul>
           </section>
 
           <div className="mt-12 p-6 bg-muted/50 rounded-lg border">
             <p className="font-semibold mb-2">Important Notice:</p>
             <p>
-              Recouply.ai is software only and does not act as a collection agency. Any data you input about debtors is your responsibility to manage in compliance with applicable privacy and consumer protection laws. We process this data solely to provide our software services as instructed by you.
+              {COMPANY_INFO.displayName} is software only and does not act as a collection agency. Any data you input about debtors is your responsibility to manage in compliance with applicable privacy and consumer protection laws. We process this data solely to provide our software services as instructed by you.
             </p>
+          </div>
+
+          <div className="mt-8 text-center text-sm text-muted-foreground">
+            <p>© {currentYear} {COMPANY_INFO.legalName}. All rights reserved.</p>
+            <p className="mt-1">{COMPANY_INFO.address.full}</p>
           </div>
         </div>
       </div>
