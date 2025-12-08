@@ -186,14 +186,10 @@ export function AIInsightsCard({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{rec.action}</p>
                     <p className="text-xs text-muted-foreground mt-1">{rec.impact}</p>
-                    {rec.accountName && (
-                      <Link 
-                        to={`/debtors/${rec.accountId}`}
-                        className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1"
-                      >
-                        {rec.accountName}
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
+                    {rec.accountName && rec.accountName !== "N/A" && (
+                      <span className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                        Account: {rec.accountName}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -259,15 +255,12 @@ export function AIInsightsCard({
                       <p className="text-sm font-medium">{alert.message}</p>
                       {(alert.accountName || alert.amount) && (
                         <div className="flex items-center gap-2 mt-1">
-                          {alert.accountName && (
-                            <Link 
-                              to={`/debtors/${alert.accountId}`}
-                              className="text-xs text-primary hover:underline"
-                            >
-                              {alert.accountName}
-                            </Link>
+                        {alert.accountName && alert.accountName !== "N/A" && (
+                            <span className="text-xs text-muted-foreground">
+                              Account: {alert.accountName}
+                            </span>
                           )}
-                          {alert.amount && (
+                          {alert.amount !== undefined && alert.amount > 0 && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <DollarSign className="h-3 w-3" />
                               {alert.amount.toLocaleString()}
