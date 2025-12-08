@@ -25,7 +25,8 @@ import {
   Database,
   CalendarDays,
   ServerCog,
-  Building2
+  Building2,
+  Palette
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -386,6 +387,10 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/settings/branding")}>
+                    <Palette className="mr-2 h-4 w-4" />
+                    Branding
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/security-settings")}>
                     <Shield className="mr-2 h-4 w-4" />
