@@ -21,6 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   User, 
   Shield, 
@@ -36,7 +47,9 @@ import {
   UserX,
   AlertTriangle,
   Crown,
-  Building2
+  Building2,
+  Pencil,
+  Copy
 } from "lucide-react";
 import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/BillingSection";
@@ -99,6 +112,9 @@ const Profile = () => {
   const [teamMemberCount, setTeamMemberCount] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [requestingDeletion, setRequestingDeletion] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [savingWorkspaceName, setSavingWorkspaceName] = useState(false);
   
   // Get effective account info for parent/child display
   const { 
@@ -170,6 +186,9 @@ const Profile = () => {
         .single();
 
       setOrganization(orgData);
+      if (orgData?.name) {
+        setNewWorkspaceName(orgData.name);
+      }
 
       // Get plan details from database
       if (profileData?.plan_id) {
@@ -396,6 +415,46 @@ const Profile = () => {
     }
   };
 
+  const handleRenameWorkspace = async () => {
+    if (!organization || !newWorkspaceName.trim()) return;
+    
+    setSavingWorkspaceName(true);
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .update({ name: newWorkspaceName.trim() })
+        .eq('id', organization.id);
+
+      if (error) throw error;
+
+      setOrganization({ ...organization, name: newWorkspaceName.trim() });
+      setRenameDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Workspace name updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error renaming workspace:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to rename workspace",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingWorkspaceName(false);
+    }
+  };
+
+  const copyOrgId = () => {
+    if (organization?.id) {
+      navigator.clipboard.writeText(organization.id);
+      toast({
+        title: "Copied",
+        description: "Organization ID copied to clipboard",
+      });
+    }
+  };
+
   const handleRequestDeletion = async () => {
     if (!profile) return;
     
@@ -594,7 +653,62 @@ const Profile = () => {
                   <span className="font-medium">
                     {organization?.name || profile.name || "Personal Workspace"}
                   </span>
+                  {!isTeamMember && organization && (
+                    <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Rename Workspace</DialogTitle>
+                          <DialogDescription>
+                            Enter a new name for your workspace.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="workspace-name">Workspace Name</Label>
+                            <Input
+                              id="workspace-name"
+                              value={newWorkspaceName}
+                              onChange={(e) => setNewWorkspaceName(e.target.value)}
+                              placeholder="My Workspace"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleRenameWorkspace}
+                            disabled={savingWorkspaceName || !newWorkspaceName.trim()}
+                          >
+                            {savingWorkspaceName ? "Saving..." : "Save"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
+                {organization && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Org ID:</span>
+                    <code className="bg-muted px-2 py-0.5 rounded text-xs font-mono">
+                      {organization.id}
+                    </code>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={copyOrgId}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Role:</span>
                   <Badge variant={getRoleBadgeVariant(role)}>
