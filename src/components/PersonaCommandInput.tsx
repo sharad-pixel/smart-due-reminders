@@ -60,6 +60,9 @@ export const PersonaCommandInput = ({
 
   return (
     <div className="relative w-full">
+      <div className="text-xs text-muted-foreground mb-2">
+        AI commands are rate-limited to 50/hour to ensure fair usage. Commands generate drafts for your review.
+      </div>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1">
           <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
@@ -70,6 +73,7 @@ export const PersonaCommandInput = ({
             placeholder={placeholder}
             disabled={isProcessing}
             className="pl-10 pr-20"
+            maxLength={500}
           />
           {activeTaskCount > 0 && (
             <TooltipProvider>

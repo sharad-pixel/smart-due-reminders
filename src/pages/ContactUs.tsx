@@ -147,7 +147,8 @@ const ContactUs = () => {
             <CardHeader>
               <CardTitle>Request Custom Pricing</CardTitle>
               <CardDescription>
-                Designed for SaaS companies with 50-500 employees and high-volume invoicing needs
+                Designed for SaaS companies with 50-500 employees and high-volume invoicing needs.
+                Form submissions are limited to 3 per hour to prevent abuse.
               </CardDescription>
             </CardHeader>
             <CardContent>
