@@ -484,6 +484,10 @@ const Team = () => {
           {/* Only show invite button for owners/admins, not team members */}
           {!isTeamMember && (
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/billing")}>
+                <DollarSign className="h-4 w-4 mr-2" />
+                View Billing
+              </Button>
               {/* Invite Member Dialog */}
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
