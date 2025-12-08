@@ -56,54 +56,36 @@ export function useSubscription(): SubscriptionState {
 
       const userId = session.user.id;
 
-      // Check if user is a team member (not owner)
-      const { data: membership } = await supabase
-        .from('account_users')
-        .select('account_id, role, user_id')
-        .eq('user_id', userId)
-        .eq('status', 'active')
+      // Use the database function to get effective account ID
+      // This properly handles team member → parent account relationships
+      const { data: effectiveAccountId, error: effectiveError } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: userId });
+
+      if (effectiveError) {
+        console.error('Error getting effective account:', effectiveError);
+        setIsLoading(false);
+        return;
+      }
+
+      const accountId = effectiveAccountId as string;
+      const isOwner = accountId === userId;
+
+      setIsAccountOwner(isOwner);
+      setCanUpgrade(isOwner);
+
+      // Always fetch the effective account owner's profile for subscription info
+      // This ensures team members inherit parent's subscription
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at')
+        .eq('id', accountId)
         .maybeSingle();
 
-      // If user is a team member, get the owner's subscription
-      if (membership && membership.role !== 'owner') {
-        setIsAccountOwner(false);
-        setCanUpgrade(false);
-
-        // Find the account owner
-        const { data: ownerMembership } = await supabase
-          .from('account_users')
-          .select('user_id')
-          .eq('account_id', membership.account_id)
-          .eq('role', 'owner')
-          .eq('status', 'active')
-          .maybeSingle();
-
-        if (ownerMembership) {
-          // Get owner's profile for subscription info
-          const { data: ownerProfile } = await supabase
-            .from('profiles')
-            .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval')
-            .eq('id', ownerMembership.user_id)
-            .maybeSingle();
-
-          if (ownerProfile) {
-            applySubscriptionData(ownerProfile);
-          }
-        }
-      } else {
-        // User is owner or standalone - get their own subscription
-        setIsAccountOwner(true);
-        setCanUpgrade(true);
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at')
-          .eq('id', userId)
-          .maybeSingle();
-
-        if (profile) {
-          applySubscriptionData(profile);
-          setHasUsedTrial(!!profile.trial_used_at);
+      if (ownerProfile) {
+        applySubscriptionData(ownerProfile);
+        // Only set hasUsedTrial for the owner's own trial status
+        if (isOwner) {
+          setHasUsedTrial(!!ownerProfile.trial_used_at);
         }
       }
     } catch (error) {

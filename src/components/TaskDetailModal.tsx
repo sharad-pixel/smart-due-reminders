@@ -92,11 +92,13 @@ export const TaskDetailModal = ({
       if (!effectiveAccountId) return;
 
       // Get account_users for the effective account only (no duplicates)
+      // Exclude viewers - they cannot be assigned tasks
       const { data, error } = await supabase
         .from('account_users')
         .select(`id, user_id, role, status`)
         .eq('account_id', effectiveAccountId)
         .eq('status', 'active')
+        .neq('role', 'viewer')
         .order('is_owner', { ascending: false })
         .order('role');
 
