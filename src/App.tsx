@@ -117,7 +117,7 @@ const App = () => (
         <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/documents" element={<Documents />} />
-        <Route path="/settings/branding" element={<Branding />} />
+        <Route path="/branding" element={<Branding />} />
         <Route path="/ar/:token" element={<PublicARPage />} />
         <Route path="/ar-upload" element={<ARDataUpload />} />
         <Route path="/reconciliation" element={<Reconciliation />} />
