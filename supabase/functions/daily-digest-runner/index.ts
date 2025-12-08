@@ -50,6 +50,19 @@ serve(async (req) => {
       try {
         logStep('Processing user', { userId: user.id, email: user.email });
 
+        // Get effective account ID for this user (team members should use owner's data)
+        const { data: effectiveAccountId } = await supabase
+          .rpc('get_effective_account_id', { p_user_id: user.id });
+        
+        const accountId = effectiveAccountId || user.id;
+        const isTeamMember = accountId !== user.id;
+        
+        logStep('Effective account resolved', { 
+          userId: user.id, 
+          effectiveAccountId: accountId,
+          isTeamMember 
+        });
+
         // Check if user needs welcome email (welcome_email_sent_at is null)
         if (user.email && !user.welcome_email_sent_at) {
           try {
@@ -99,11 +112,11 @@ serve(async (req) => {
 
         const existingDigestId = existingDigest?.id;
 
-        // TASKS METRICS
+        // TASKS METRICS - Use effective account ID for data queries
         const { data: openTasks } = await supabase
           .from('collection_tasks')
           .select('id, due_date, created_at')
-          .eq('user_id', user.id)
+          .eq('user_id', accountId)
           .in('status', ['open', 'in_progress']);
 
         const openTasksCount = openTasks?.length || 0;
@@ -114,11 +127,11 @@ serve(async (req) => {
           t.created_at && new Date(t.created_at) >= todayStart
         ).length || 0;
 
-        // AR METRICS
+        // AR METRICS - Use effective account ID
         const { data: invoices, error: invoicesError } = await supabase
           .from('invoices')
           .select('amount, amount_outstanding, aging_bucket, debtor_id, status')
-          .eq('user_id', user.id)
+          .eq('user_id', accountId)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
 
         logStep('Fetched invoices for user', { 
@@ -162,11 +175,11 @@ serve(async (req) => {
           }
         }
 
-        // PAYMENTS METRICS
+        // PAYMENTS METRICS - Use effective account ID
         const { data: paymentsToday } = await supabase
           .from('payments')
           .select('amount')
-          .eq('user_id', user.id)
+          .eq('user_id', accountId)
           .gte('payment_date', today);
 
         const paymentsCollectedToday = paymentsToday?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
@@ -174,7 +187,7 @@ serve(async (req) => {
         const { data: paymentsLast7 } = await supabase
           .from('payments')
           .select('amount')
-          .eq('user_id', user.id)
+          .eq('user_id', accountId)
           .gte('payment_date', last7DaysStart.toISOString());
 
         const paymentsCollectedLast7Days = paymentsLast7?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
@@ -182,7 +195,7 @@ serve(async (req) => {
         const { data: paymentsPrev7 } = await supabase
           .from('payments')
           .select('amount')
-          .eq('user_id', user.id)
+          .eq('user_id', accountId)
           .gte('payment_date', prev7DaysStart.toISOString())
           .lt('payment_date', last7DaysStart.toISOString());
 
@@ -196,11 +209,11 @@ serve(async (req) => {
           collectionTrend = 'down';
         }
 
-        // RISK METRICS
+        // RISK METRICS - Use effective account ID
         const { data: highRiskDebtors } = await supabase
           .from('debtors')
           .select('id, total_open_balance')
-          .eq('user_id', user.id)
+          .eq('user_id', accountId)
           .in('risk_tier', ['High', 'Critical']);
 
         const highRiskCustomersCount = highRiskDebtors?.length || 0;
@@ -211,7 +224,7 @@ serve(async (req) => {
           const { data: highRiskInvoices } = await supabase
             .from('invoices')
             .select('amount_outstanding, amount')
-            .eq('user_id', user.id)
+            .eq('user_id', accountId)
             .in('debtor_id', highRiskDebtorIds)
             .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
 

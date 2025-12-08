@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice, type PlanType } from "@/lib/subscriptionConfig";
+import { AccountHierarchy } from "@/components/AccountHierarchy";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 // Colorful gauge component
 const UsageGauge = ({ 
@@ -447,62 +449,8 @@ const Billing = () => {
             </CardContent>
           </Card>
 
-          {/* Team Members on Account */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Team Members
-              </CardTitle>
-              <CardDescription>
-                Users on your account ({teamMembers.length} active seat{teamMembers.length !== 1 ? 's' : ''})
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {teamMembers.length > 0 ? (
-                <div className="space-y-3">
-                  {teamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={member.profile?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {(member.profile?.display_name || member.profile?.email || 'U')[0].toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{member.profile?.display_name || 'Team Member'}</p>
-                          <p className="text-sm text-muted-foreground">{member.profile?.email}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="capitalize">{member.role}</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-4">
-                  No additional team members on this account
-                </p>
-              )}
-              <div className="flex gap-3 mt-4">
-                <Button 
-                  variant="default" 
-                  className="flex-1"
-                  onClick={() => navigate('/team?invite=true')}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Team Member
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => navigate('/team')}
-                >
-                  Manage Team
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Account Hierarchy - Visual Tree */}
+          <AccountHierarchy />
 
           {/* Quick Actions */}
           <Card>
