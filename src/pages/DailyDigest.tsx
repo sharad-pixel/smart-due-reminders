@@ -102,6 +102,17 @@ const DailyDigest = () => {
           <Button variant="outline" size="icon" onClick={handleNextDay} disabled={!canGoNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          {selectedDate === today && (
+            <Button 
+              variant="outline" 
+              onClick={handleGenerateDigest} 
+              disabled={isGenerating}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? 'Syncing...' : 'Sync Now'}
+            </Button>
+          )}
         </div>
       </div>
 
