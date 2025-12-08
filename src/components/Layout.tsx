@@ -44,6 +44,7 @@ import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NavProfileAvatar } from "@/components/NavProfileAvatar";
 
 interface LayoutProps {
   children: ReactNode;
@@ -303,14 +304,13 @@ const Layout = ({ children }: LayoutProps) => {
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-2">
-                    <Avatar className="h-10 w-10 rounded-lg">
-                      <AvatarImage src={avatarUrl || undefined} alt={userName} className="rounded-lg" />
-                      <AvatarFallback className="rounded-lg">
-                        {userName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="hidden md:inline-block text-sm">{userName}</span>
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-accent/50">
+                    <NavProfileAvatar 
+                      avatarUrl={avatarUrl} 
+                      userName={userName}
+                      size="md"
+                    />
+                    <span className="hidden md:inline-block text-sm pr-1">{userName}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-card border shadow-lg z-[100]">
