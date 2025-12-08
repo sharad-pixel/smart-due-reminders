@@ -23,6 +23,7 @@ import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useLatestDigest } from "@/hooks/useDailyDigest";
+import { AIInsightsCard } from "@/components/AIInsightsCard";
 
 interface Invoice {
   id: string;
@@ -614,6 +615,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Insights */}
+        <AIInsightsCard scope="dashboard" compact />
 
         <Card>
           <CardHeader className="p-4 sm:p-6">

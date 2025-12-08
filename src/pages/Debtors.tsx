@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, Search, Upload, Sparkles, Loader2, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
+import { AIInsightsCard } from "@/components/AIInsightsCard";
 
 
 
@@ -249,6 +250,12 @@ const Debtors = () => {
                   New Account
                 </Button>
               </DialogTrigger>
+            </Dialog>
+          </div>
+        </div>
+
+        <AIInsightsCard scope="accounts" compact className="mb-4" />
+
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <div className="flex items-center justify-between">
