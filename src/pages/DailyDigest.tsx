@@ -37,7 +37,9 @@ const DailyDigest = () => {
   const handleGenerateDigest = async () => {
     setIsGenerating(true);
     try {
-      const { error } = await supabase.functions.invoke('daily-digest-runner');
+      const { error } = await supabase.functions.invoke('daily-digest-runner', {
+        body: { force: true }
+      });
       if (error) throw error;
       toast({ title: 'Digest Generated', description: 'Your daily digest has been created.' });
       refetch();
