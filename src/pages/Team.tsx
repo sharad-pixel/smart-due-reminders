@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft, Send } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -63,6 +63,7 @@ const Team = () => {
   const [memberToReassign, setMemberToReassign] = useState<TeamMember | null>(null);
   const [reassignEmail, setReassignEmail] = useState("");
   const [isReassigning, setIsReassigning] = useState(false);
+  const [isResendingInvite, setIsResendingInvite] = useState<string | null>(null);
 
   // Handle checkout success/failure from URL params
   useEffect(() => {
@@ -291,6 +292,27 @@ const Team = () => {
       toast.error(error.message || "Failed to reassign seat");
     } finally {
       setIsReassigning(false);
+    }
+  };
+
+  const handleResendInvite = async (member: TeamMember) => {
+    setIsResendingInvite(member.user_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "resend_invite",
+          userId: member.user_id,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Invitation resent successfully");
+    } catch (error: any) {
+      console.error("Error resending invite:", error);
+      toast.error(error.message || "Failed to resend invitation");
+    } finally {
+      setIsResendingInvite(null);
     }
   };
 
@@ -728,40 +750,78 @@ const Team = () => {
                           </>
                         )}
                         {member.status === "disabled" && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleReactivateMember(member.user_id)}
-                            disabled={isTogglingStatus}
-                          >
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Reactivate
-                          </Button>
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleReactivateMember(member.user_id)}
+                              disabled={isTogglingStatus}
+                            >
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              Reactivate
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenReassignDialog(member)}
+                              disabled={isReassigning}
+                              className="text-primary border-primary/30 hover:bg-primary/10"
+                            >
+                              <ArrowRightLeft className="h-3 w-3 mr-1" />
+                              Reassign
+                            </Button>
+                          </>
                         )}
                         {member.status === "pending" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenReassignDialog(member)}
-                            disabled={isReassigning}
-                            className="text-primary border-primary/30 hover:bg-primary/10"
-                          >
-                            <ArrowRightLeft className="h-3 w-3 mr-1" />
-                            Reassign
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResendInvite(member)}
+                              disabled={isResendingInvite === member.user_id}
+                            >
+                              {isResendingInvite === member.user_id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3 mr-1" />
+                              )}
+                              Resend
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenReassignDialog(member)}
+                              disabled={isReassigning}
+                              className="text-primary border-primary/30 hover:bg-primary/10"
+                            >
+                              <ArrowRightLeft className="h-3 w-3 mr-1" />
+                              Reassign
+                            </Button>
+                          </>
                         )}
                         {member.status === "reassigned" && (
                           <Badge variant="outline" className="text-muted-foreground">Reassigned</Badge>
                         )}
                       </>
                     ) : (
-                      <Badge variant="default">Active</Badge>
+                      <Badge variant="default" className="bg-success text-success-foreground">Owner</Badge>
                     )}
-                    {member.status === "disabled" && (
-                      <Badge variant="secondary">Inactive</Badge>
-                    )}
-                    {member.status === "pending" && (
-                      <Badge variant="secondary">Invited</Badge>
+                  </div>
+                  
+                  {/* Status Badge Column */}
+                  <div className="flex items-center gap-2">
+                    {member.role !== "owner" && (
+                      <>
+                        {member.status === "active" && (
+                          <Badge variant="default" className="bg-success/20 text-success border-success/30">Active</Badge>
+                        )}
+                        {member.status === "disabled" && (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                        {member.status === "pending" && (
+                          <Badge variant="outline" className="border-warning text-warning">Pending</Badge>
+                        )}
+                      </>
                     )}
                   </div>
                   
