@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice, type PlanType } from "@/lib/subscriptionConfig";
@@ -100,7 +101,20 @@ interface ProfileData {
   billing_interval: string;
   subscription_status: string;
   current_period_end: string;
+  current_period_start: string;
   stripe_subscription_id: string;
+}
+
+interface TeamMember {
+  id: string;
+  user_id: string;
+  role: string;
+  status: string;
+  profile?: {
+    display_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
 }
 
 const Billing = () => {
@@ -109,6 +123,7 @@ const Billing = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
     loadBillingData();
@@ -125,12 +140,39 @@ const Billing = () => {
       // Fetch profile - cast through unknown for dynamic columns not yet in types
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('plan_type, invoice_limit, billing_interval, subscription_status, current_period_end, stripe_subscription_id')
+        .select('plan_type, invoice_limit, billing_interval, subscription_status, current_period_end, current_period_start, stripe_subscription_id')
         .eq('id', session.user.id)
         .single() as unknown as { data: ProfileData | null; error: unknown };
 
       if (profileData) {
         setProfile(profileData);
+      }
+
+      // Fetch team members for this account
+      const { data: accountUserData } = await supabase
+        .from('account_users')
+        .select(`
+          id,
+          user_id,
+          role,
+          status,
+          profiles:user_id (
+            display_name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq('status', 'active');
+
+      if (accountUserData) {
+        const members = accountUserData.map((au: any) => ({
+          id: au.id,
+          user_id: au.user_id,
+          role: au.role,
+          status: au.status,
+          profile: au.profiles
+        }));
+        setTeamMembers(members);
       }
 
       // Fetch usage
@@ -286,9 +328,14 @@ const Billing = () => {
                       <strong>Invoice Limit:</strong>{' '}
                       {isUnlimited ? 'Unlimited' : `${invoiceLimit} invoices/month`}
                     </p>
+                    {profile?.current_period_start && (
+                      <p>
+                        <strong>Term Start:</strong> {formatDate(profile.current_period_start)}
+                      </p>
+                    )}
                     {profile?.current_period_end && (
                       <p>
-                        <strong>Next Billing Date:</strong> {formatDate(profile.current_period_end)}
+                        <strong>Term End:</strong> {formatDate(profile.current_period_end)}
                       </p>
                     )}
                     <div className="pt-2 border-t mt-2">
@@ -340,17 +387,19 @@ const Billing = () => {
                 {/* Stats */}
                 <div className="flex-1 w-full">
                   <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-2xl font-bold text-blue-600">
+                        {isUnlimited ? '∞' : invoiceLimit}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Plan Limit</p>
+                    </div>
                     <div className="text-center p-4 rounded-lg bg-green-500/10 border border-green-500/20">
                       <p className="text-2xl font-bold text-green-600">{invoicesUsed}</p>
-                      <p className="text-sm text-muted-foreground">Included</p>
+                      <p className="text-sm text-muted-foreground">Used</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
                       <p className="text-2xl font-bold text-amber-600">{usage?.overage_invoices ?? 0}</p>
                       <p className="text-sm text-muted-foreground">Overage</p>
-                    </div>
-                    <div className="text-center p-4 rounded-lg bg-primary/10 border border-primary/20">
-                      <p className="text-2xl font-bold text-primary">{usage?.total_invoices_used ?? 0}</p>
-                      <p className="text-sm text-muted-foreground">Total</p>
                     </div>
                   </div>
                   
@@ -377,6 +426,53 @@ const Billing = () => {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Members on Account */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Team Members
+              </CardTitle>
+              <CardDescription>
+                Users on your account ({teamMembers.length} active seat{teamMembers.length !== 1 ? 's' : ''})
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {teamMembers.length > 0 ? (
+                <div className="space-y-3">
+                  {teamMembers.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={member.profile?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {(member.profile?.display_name || member.profile?.email || 'U')[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{member.profile?.display_name || 'Team Member'}</p>
+                          <p className="text-sm text-muted-foreground">{member.profile?.email}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="capitalize">{member.role}</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  No additional team members on this account
+                </p>
+              )}
+              <Button 
+                variant="outline" 
+                className="w-full mt-4"
+                onClick={() => navigate('/settings')}
+              >
+                Manage Team
+              </Button>
             </CardContent>
           </Card>
 
