@@ -42,6 +42,8 @@ import Startups from "./pages/Startups";
 import SMB from "./pages/SMB";
 import Enterprise from "./pages/Enterprise";
 import Billing from "./pages/Billing";
+import Branding from "./pages/Branding";
+import PublicARPage from "./pages/PublicARPage";
 
 import InboundCommandCenter from "./pages/InboundCommandCenter";
 import ARDataUpload from "./pages/ARDataUpload";
@@ -115,6 +117,8 @@ const App = () => (
         <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/documents" element={<Documents />} />
+        <Route path="/settings/branding" element={<Branding />} />
+        <Route path="/ar/:token" element={<PublicARPage />} />
         <Route path="/ar-upload" element={<ARDataUpload />} />
         <Route path="/reconciliation" element={<Reconciliation />} />
         <Route path="/ar-aging" element={<ARAging />} />

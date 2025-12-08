@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +26,12 @@ import {
   Clock,
   AlertCircle,
   Trash2,
+  Globe,
 } from "lucide-react";
 import { useDocuments, useUpdateDocumentStatus, useDeleteDocument, useDocumentUrl } from "@/hooks/useDocuments";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 
 interface DocumentsListProps {
@@ -51,10 +56,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   CONTRACT: "Contract",
   BANKING_INFO: "Banking Info",
   TAX_DOCUMENT: "Tax Document",
+  w9: "W-9 Form",
+  ach_authorization: "ACH Authorization",
+  wire_instructions: "Wire Instructions",
+  compliance: "Compliance Document",
+  contract: "Contract",
+  insurance: "Insurance Certificate",
+  other: "Other Document",
   OTHER: "Other",
 };
 
 export default function DocumentsList({ organizationId, debtorId }: DocumentsListProps) {
+  const queryClient = useQueryClient();
   const { data: documents, isLoading } = useDocuments(organizationId, debtorId);
   const updateStatusMutation = useUpdateDocumentStatus();
   const deleteMutation = useDeleteDocument();
@@ -64,6 +77,25 @@ export default function DocumentsList({ organizationId, debtorId }: DocumentsLis
   const [statusNotes, setStatusNotes] = useState("");
 
   const { data: previewUrl } = useDocumentUrl(selectedDocument?.file_url);
+
+  // Toggle public visibility mutation
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async ({ documentId, visible }: { documentId: string; visible: boolean }) => {
+      const { error } = await supabase
+        .from("documents")
+        .update({ public_visible: visible })
+        .eq("id", documentId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      toast.success("Document visibility updated");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update visibility: ${error.message}`);
+    },
+  });
 
   const handleStatusChange = async () => {
     if (!selectedDocument || !newStatus) return;
@@ -108,7 +140,7 @@ export default function DocumentsList({ organizationId, debtorId }: DocumentsLis
   return (
     <>
       <div className="space-y-3">
-        {documents.map((doc) => {
+        {documents.map((doc: any) => {
           const StatusIcon = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG]?.icon || Clock;
           const statusColor = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG]?.color || "bg-gray-100 text-gray-800";
 
@@ -119,11 +151,17 @@ export default function DocumentsList({ organizationId, debtorId }: DocumentsLis
                   <div className="flex items-start gap-3 flex-1">
                     <FileText className="w-8 h-8 text-primary mt-1" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-medium truncate">{doc.file_name}</h4>
                         <Badge variant="outline" className="text-xs">
                           {CATEGORY_LABELS[doc.category] || doc.category}
                         </Badge>
+                        {doc.public_visible && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Globe className="w-3 h-3 mr-1" />
+                            Public
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
                         <span>v{doc.version}</span>
@@ -136,7 +174,7 @@ export default function DocumentsList({ organizationId, debtorId }: DocumentsLis
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge className={`${statusColor} flex items-center gap-1`}>
                           <StatusIcon className="w-3 h-3" />
                           {STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG]?.label || doc.status}
@@ -152,6 +190,20 @@ export default function DocumentsList({ organizationId, debtorId }: DocumentsLis
                           {doc.notes}
                         </p>
                       )}
+                      
+                      {/* Public Visibility Toggle */}
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                        <Switch
+                          checked={doc.public_visible || false}
+                          onCheckedChange={(checked) => 
+                            toggleVisibilityMutation.mutate({ documentId: doc.id, visible: checked })
+                          }
+                          disabled={toggleVisibilityMutation.isPending}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          Visible on Public AR Page
+                        </span>
+                      </div>
                     </div>
                   </div>
 

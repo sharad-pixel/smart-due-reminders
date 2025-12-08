@@ -336,6 +336,38 @@ export type Database = {
           },
         ]
       }
+      ar_page_access_logs: {
+        Row: {
+          accessed_at: string | null
+          branding_settings_id: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          branding_settings_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          branding_settings_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_page_access_logs_branding_settings_id_fkey"
+            columns: ["branding_settings_id"]
+            isOneToOne: false
+            referencedRelation: "branding_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ar_summary: {
         Row: {
           as_of_date: string
@@ -440,44 +472,77 @@ export type Database = {
       }
       branding_settings: {
         Row: {
+          accent_color: string | null
+          ar_contact_email: string | null
+          ar_page_enabled: boolean | null
+          ar_page_last_updated_at: string | null
+          ar_page_public_token: string | null
           business_name: string
           created_at: string | null
           email_footer: string | null
           email_signature: string | null
+          escalation_contact_email: string | null
+          escalation_contact_name: string | null
+          escalation_contact_phone: string | null
+          footer_disclaimer: string | null
           from_email: string | null
           from_name: string | null
           id: string
           logo_url: string | null
           primary_color: string | null
           reply_to_email: string | null
+          stripe_payment_link: string | null
+          supported_payment_methods: Json | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          accent_color?: string | null
+          ar_contact_email?: string | null
+          ar_page_enabled?: boolean | null
+          ar_page_last_updated_at?: string | null
+          ar_page_public_token?: string | null
           business_name: string
           created_at?: string | null
           email_footer?: string | null
           email_signature?: string | null
+          escalation_contact_email?: string | null
+          escalation_contact_name?: string | null
+          escalation_contact_phone?: string | null
+          footer_disclaimer?: string | null
           from_email?: string | null
           from_name?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
           reply_to_email?: string | null
+          stripe_payment_link?: string | null
+          supported_payment_methods?: Json | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          accent_color?: string | null
+          ar_contact_email?: string | null
+          ar_page_enabled?: boolean | null
+          ar_page_last_updated_at?: string | null
+          ar_page_public_token?: string | null
           business_name?: string
           created_at?: string | null
           email_footer?: string | null
           email_signature?: string | null
+          escalation_contact_email?: string | null
+          escalation_contact_name?: string | null
+          escalation_contact_phone?: string | null
+          footer_disclaimer?: string | null
           from_email?: string | null
           from_name?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
           reply_to_email?: string | null
+          stripe_payment_link?: string | null
+          supported_payment_methods?: Json | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1925,6 +1990,7 @@ export type Database = {
           metadata: Json | null
           notes: string | null
           organization_id: string | null
+          public_visible: boolean | null
           status: Database["public"]["Enums"]["document_status"]
           updated_at: string
           uploaded_by_user_id: string
@@ -1945,6 +2011,7 @@ export type Database = {
           metadata?: Json | null
           notes?: string | null
           organization_id?: string | null
+          public_visible?: boolean | null
           status?: Database["public"]["Enums"]["document_status"]
           updated_at?: string
           uploaded_by_user_id: string
@@ -1965,6 +2032,7 @@ export type Database = {
           metadata?: Json | null
           notes?: string | null
           organization_id?: string | null
+          public_visible?: boolean | null
           status?: Database["public"]["Enums"]["document_status"]
           updated_at?: string
           uploaded_by_user_id?: string
@@ -4028,6 +4096,7 @@ export type Database = {
         Returns: number
       }
       get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
+      get_public_ar_page: { Args: { p_token: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4062,6 +4131,7 @@ export type Database = {
         Args: { p_action: string; p_document_id: string; p_metadata?: Json }
         Returns: string
       }
+      rotate_ar_page_token: { Args: { p_user_id: string }; Returns: string }
       validate_invite_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
