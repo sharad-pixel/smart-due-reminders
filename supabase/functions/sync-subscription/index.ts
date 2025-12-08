@@ -113,12 +113,11 @@ serve(async (req) => {
       .update({ stripe_customer_id: customerId })
       .eq('id', user.id);
 
-    // Get active subscriptions with expanded data
+    // Get active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: 'active',
       limit: 1,
-      expand: ['data.default_payment_method'],
     });
 
     logStep('Fetched subscriptions', { count: subscriptions.data.length });
@@ -158,17 +157,24 @@ serve(async (req) => {
       subscriptions.data = trialingSubscriptions.data;
     }
 
-    const subscription = subscriptions.data[0];
+    // Retrieve full subscription details to get period dates
+    const subscriptionId = subscriptions.data[0].id;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    
     const planType = getPlanFromSubscription(subscription);
     const billingInterval = getBillingInterval(subscription);
 
-    logStep('Subscription found', { 
+    // Get period dates from subscription or fallback to first item
+    const periodStart = subscription.current_period_start || subscription.items.data[0]?.current_period_start;
+    const periodEnd = subscription.current_period_end || subscription.items.data[0]?.current_period_end;
+
+    logStep('Subscription retrieved', { 
       subscriptionId: subscription.id, 
       planType, 
       billingInterval,
       status: subscription.status,
-      current_period_start: subscription.current_period_start,
-      current_period_end: subscription.current_period_end,
+      current_period_start: periodStart,
+      current_period_end: periodEnd,
     });
 
     // Update profile with subscription data
@@ -180,8 +186,8 @@ serve(async (req) => {
         plan_type: planType,
         billing_interval: billingInterval,
         subscription_status: subscription.status,
-        current_period_end: subscription.current_period_end 
-          ? new Date(subscription.current_period_end * 1000).toISOString() 
+        current_period_end: periodEnd 
+          ? new Date(periodEnd * 1000).toISOString() 
           : null,
         trial_ends_at: subscription.trial_end 
           ? new Date(subscription.trial_end * 1000).toISOString() 
@@ -203,11 +209,11 @@ serve(async (req) => {
         plan_type: planType,
         billing_interval: billingInterval,
         subscription_status: subscription.status,
-        current_period_start: subscription.current_period_start 
-          ? new Date(subscription.current_period_start * 1000).toISOString() 
+        current_period_start: periodStart 
+          ? new Date(periodStart * 1000).toISOString() 
           : null,
-        current_period_end: subscription.current_period_end 
-          ? new Date(subscription.current_period_end * 1000).toISOString() 
+        current_period_end: periodEnd 
+          ? new Date(periodEnd * 1000).toISOString() 
           : null,
         cancel_at_period_end: subscription.cancel_at_period_end,
       }),
