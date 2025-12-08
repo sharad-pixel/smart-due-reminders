@@ -195,17 +195,10 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
   ];
 
-  const adminItems = [
-    ...(showTeam ? [
-      { path: "/team", label: "Team & Roles", icon: Users },
-      { path: "/security", label: "Security Dashboard", icon: Shield }
-    ] : []),
-  ];
-
-  const mainNavItems = [...coreNavItems, ...aiToolsItems, ...adminItems];
+  // Mobile nav items - excludes admin items since they're in user dropdown
+  const mobileNavItems = [...coreNavItems, ...aiToolsItems, { path: "/settings", label: "Settings", icon: Settings }];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
-  const isAnyAdminActive = adminItems.some(item => isActive(item.path));
 
   return (
     <div className="min-h-screen bg-background">
@@ -287,44 +280,18 @@ const Layout = ({ children }: LayoutProps) => {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Admin Dropdown */}
-                {adminItems.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
-                          isAnyAdminActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        }`}
-                      >
-                        <Settings className="h-4 w-4 shrink-0" />
-                        <span>Admin</span>
-                        <ChevronDown className="h-3 w-3 shrink-0" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 z-[110] bg-card border shadow-lg">
-                      {adminItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <DropdownMenuItem key={item.path} asChild>
-                            <Link
-                              to={item.path}
-                              className={`flex items-center gap-2 cursor-pointer ${
-                                isActive(item.path) ? "bg-accent" : ""
-                              }`}
-                            >
-                              <Icon className="h-4 w-4" />
-                              <span>{item.label}</span>
-                            </Link>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                {/* Settings Link */}
+                <Link
+                  to="/settings"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    isActive("/settings")
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                  <span>Settings</span>
+                </Link>
               </div>
             </div>
             
@@ -382,25 +349,37 @@ const Layout = ({ children }: LayoutProps) => {
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Documents
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/security-settings")}>
                     <Shield className="mr-2 h-4 w-4" />
                     Security Settings
                   </DropdownMenuItem>
                   
-                  {isFounder && (
+                  {/* Admin Section */}
+                  {(showTeam || isFounder) && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => navigate("/admin")}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <ServerCog className="mr-2 h-4 w-4" />
-                        Admin Center
-                      </DropdownMenuItem>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Administration</DropdownMenuLabel>
+                      {showTeam && (
+                        <>
+                          <DropdownMenuItem onClick={() => navigate("/team")}>
+                            <Users className="mr-2 h-4 w-4" />
+                            Team & Roles
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate("/security")}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            Security Dashboard
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {isFounder && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate("/admin")}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <ServerCog className="mr-2 h-4 w-4" />
+                          Admin Center
+                        </DropdownMenuItem>
+                      )}
                     </>
                   )}
                   
@@ -418,7 +397,7 @@ const Layout = ({ children }: LayoutProps) => {
           {/* Mobile Navigation Menu */}
           {mobileMenuOpen && (
             <div className="lg:hidden py-4 space-y-1 border-t bg-card">
-              {mainNavItems.map((item) => {
+              {mobileNavItems.map((item) => {
                 const Icon = item.icon;
                 
                 return (
