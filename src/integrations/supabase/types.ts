@@ -22,6 +22,8 @@ export type Database = {
           disabled_at: string | null
           email: string | null
           id: string
+          invite_expires_at: string | null
+          invite_token: string | null
           invited_at: string
           is_owner: boolean | null
           role: Database["public"]["Enums"]["app_role"]
@@ -36,6 +38,8 @@ export type Database = {
           disabled_at?: string | null
           email?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           invited_at?: string
           is_owner?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -50,6 +54,8 @@ export type Database = {
           disabled_at?: string | null
           email?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           invited_at?: string
           is_owner?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -3976,6 +3982,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_team_invite: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: Json
+      }
       calculate_aging_bucket: {
         Args: { due_date: string; payment_date?: string }
         Returns: string
@@ -3989,6 +3999,7 @@ export type Database = {
         }[]
       }
       clean_old_login_attempts: { Args: never; Returns: undefined }
+      generate_invite_token: { Args: never; Returns: string }
       generate_reference_id: {
         Args: { prefix: string; target_table: string }
         Returns: string
@@ -4027,6 +4038,7 @@ export type Database = {
         Args: { p_action: string; p_document_id: string; p_metadata?: Json }
         Returns: string
       }
+      validate_invite_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"

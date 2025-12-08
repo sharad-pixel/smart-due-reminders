@@ -26,6 +26,7 @@ import Checkout from "./pages/Checkout";
 import ContactUs from "./pages/ContactUs";
 import Upgrade from "./pages/Upgrade";
 import Team from "./pages/Team";
+import AcceptInvite from "./pages/AcceptInvite";
 import Profile from "./pages/Profile";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import SecuritySettings from "./pages/SecuritySettings";
@@ -109,6 +110,7 @@ const App = () => (
         <Route path="/tasks" element={<CollectionTasks />} />
         <Route path="/inbound" element={<InboundCommandCenter />} />
         <Route path="/team" element={<Team />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/security" element={<SecurityDashboard />} />
         <Route path="/security-settings" element={<SecuritySettings />} />
         <Route path="/profile" element={<Profile />} />

@@ -314,40 +314,94 @@ Deno.serve(async (req) => {
 
           result = { success: true, data, message: 'Team member added successfully' };
         } else {
-          // Invite new user via Supabase Auth
-          logStep('Inviting new user', { email });
+          // Generate secure invite token
+          logStep('Generating invite token for new user', { email });
           
-          const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email!, {
-            redirectTo: `${Deno.env.get('SITE_URL') || 'https://recouply.ai'}/team?invited=true`,
-            data: {
-              invited_by: user.id,
-              invited_to_account: managingAccountId,
-              invited_role: role || 'member',
-            }
-          });
+          const { data: tokenData } = await supabaseClient.rpc('generate_invite_token');
+          const inviteToken = tokenData as string;
+          const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+          
+          // Check for existing pending invite for this email
+          const { data: existingPending } = await supabaseClient
+            .from('account_users')
+            .select('id')
+            .eq('account_id', managingAccountId)
+            .eq('email', email)
+            .eq('status', 'pending')
+            .maybeSingle();
+          
+          let accountUserEntry;
+          
+          if (existingPending) {
+            // Update existing pending invite with new token
+            const { data, error } = await supabaseClient
+              .from('account_users')
+              .update({
+                invite_token: inviteToken,
+                invite_expires_at: inviteExpiresAt,
+                role: role || 'member',
+                invited_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingPending.id)
+              .select()
+              .single();
+            
+            if (error) throw error;
+            accountUserEntry = data;
+          } else {
+            // Create pending account_users entry with invite token
+            const { data, error } = await supabaseClient
+              .from('account_users')
+              .insert({
+                account_id: managingAccountId,
+                user_id: user.id, // Temporarily set to inviter, will be updated on acceptance
+                email: email,
+                role: role || 'member',
+                status: 'pending',
+                is_owner: false,
+                invite_token: inviteToken,
+                invite_expires_at: inviteExpiresAt,
+              })
+              .select()
+              .single();
 
-          if (inviteError) {
-            logStep('Invite error', { error: inviteError });
-            throw new Error(`Failed to send invitation: ${inviteError.message}`);
+            if (error) throw error;
+            accountUserEntry = data;
+          }
+          
+          // Get inviter's profile for the email
+          const { data: inviterProfile } = await supabaseClient
+            .from('profiles')
+            .select('name, email')
+            .eq('id', user.id)
+            .single();
+          
+          // Get account owner's name
+          const { data: ownerProfile } = await supabaseClient
+            .from('profiles')
+            .select('name')
+            .eq('id', managingAccountId)
+            .single();
+          
+          // Send invite email via send-team-invite function
+          try {
+            await supabaseClient.functions.invoke('send-team-invite', {
+              body: {
+                email: email,
+                role: role || 'member',
+                inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
+                accountOwnerName: ownerProfile?.name || 'your team',
+                inviteToken: inviteToken,
+              },
+            });
+            logStep('Invite email sent', { email });
+          } catch (emailError) {
+            logStep('Failed to send invite email', { error: emailError });
+            // Don't fail the whole operation if email fails
           }
 
-          // Create pending account_users entry (not billable until accepted)
-          const { data, error } = await supabaseClient
-            .from('account_users')
-            .insert({
-              account_id: managingAccountId,
-              user_id: inviteData.user.id,
-              email: email,
-              role: role || 'member',
-              status: 'pending',
-              is_owner: false,
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          result = { success: true, data, message: 'Invitation sent successfully' };
+          result = { success: true, data: accountUserEntry, message: 'Invitation sent successfully' };
         }
         break;
       }
@@ -511,26 +565,50 @@ Deno.serve(async (req) => {
           );
         }
 
-        // For pending invites, just update the email and resend
+        // For pending invites, just update the email and resend with new token
         if (currentMember.status === 'pending') {
-          // Update email on the pending record
+          // Generate new invite token
+          const { data: tokenData } = await supabaseClient.rpc('generate_invite_token');
+          const inviteToken = tokenData as string;
+          const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+          // Update email and token on the pending record
           await supabaseClient
             .from('account_users')
-            .update({ email: email, updated_at: new Date().toISOString() })
+            .update({ 
+              email: email, 
+              invite_token: inviteToken,
+              invite_expires_at: inviteExpiresAt,
+              updated_at: new Date().toISOString() 
+            })
             .eq('id', currentMember.id);
 
-          // Resend invitation to new email
-          const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email!, {
-            redirectTo: `${Deno.env.get('SITE_URL') || 'https://recouply.ai'}/team?invited=true`,
-            data: {
-              invited_by: user.id,
-              invited_to_account: managingAccountId,
-              invited_role: currentMember.role,
-            }
-          });
+          // Get profiles for email
+          const { data: inviterProfile } = await supabaseClient
+            .from('profiles')
+            .select('name, email')
+            .eq('id', user.id)
+            .single();
+          
+          const { data: ownerProfile } = await supabaseClient
+            .from('profiles')
+            .select('name')
+            .eq('id', managingAccountId)
+            .single();
 
-          if (inviteError) {
-            logStep('Resend invite error', { error: inviteError });
+          // Send invite email
+          try {
+            await supabaseClient.functions.invoke('send-team-invite', {
+              body: {
+                email: email,
+                role: currentMember.role,
+                inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
+                accountOwnerName: ownerProfile?.name || 'your team',
+                inviteToken: inviteToken,
+              },
+            });
+          } catch (emailError) {
+            logStep('Failed to send reassign invite email', { error: emailError });
           }
 
           result = { 
@@ -555,6 +633,8 @@ Deno.serve(async (req) => {
           .update({ 
             status: 'reassigned', 
             disabled_at: new Date().toISOString(),
+            invite_token: null,
+            invite_expires_at: null,
             updated_at: new Date().toISOString() 
           })
           .eq('id', currentMember.id);
@@ -592,36 +672,56 @@ Deno.serve(async (req) => {
             previousUser: currentMember.profiles?.email
           };
         } else {
-          // Invite new user
-          const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email!, {
-            redirectTo: `${Deno.env.get('SITE_URL') || 'https://recouply.ai'}/team?invited=true`,
-            data: {
-              invited_by: user.id,
-              invited_to_account: managingAccountId,
-              invited_role: currentMember.role,
-            }
-          });
+          // Generate invite token for new user
+          const { data: tokenData } = await supabaseClient.rpc('generate_invite_token');
+          const inviteToken = tokenData as string;
+          const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-          if (inviteError) {
-            logStep('Invite error', { error: inviteError });
-            throw new Error(`Failed to send invitation: ${inviteError.message}`);
-          }
-
-          // Create pending entry
+          // Create pending entry with invite token
           const { data, error } = await supabaseClient
             .from('account_users')
             .insert({
               account_id: managingAccountId,
-              user_id: inviteData.user.id,
+              user_id: user.id, // Temporarily set to inviter
               email: email,
               role: currentMember.role,
               status: 'pending',
               is_owner: false,
+              invite_token: inviteToken,
+              invite_expires_at: inviteExpiresAt,
             })
             .select()
             .single();
 
           if (error) throw error;
+
+          // Get profiles for email
+          const { data: inviterProfile } = await supabaseClient
+            .from('profiles')
+            .select('name, email')
+            .eq('id', user.id)
+            .single();
+          
+          const { data: ownerProfile } = await supabaseClient
+            .from('profiles')
+            .select('name')
+            .eq('id', managingAccountId)
+            .single();
+
+          // Send invite email
+          try {
+            await supabaseClient.functions.invoke('send-team-invite', {
+              body: {
+                email: email,
+                role: currentMember.role,
+                inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
+                accountOwnerName: ownerProfile?.name || 'your team',
+                inviteToken: inviteToken,
+              },
+            });
+          } catch (emailError) {
+            logStep('Failed to send reassign invite email', { error: emailError });
+          }
 
           result = { 
             success: true, 
@@ -636,13 +736,29 @@ Deno.serve(async (req) => {
       case 'resend_invite': {
         const targetUserId = userId || memberId;
 
-        // Get the pending member
-        const { data: pendingMember } = await supabaseClient
+        // Get the pending member - try by user_id first, then by id
+        let pendingMember;
+        const { data: memberByUserId } = await supabaseClient
           .from('account_users')
           .select('id, email, role, status')
           .eq('account_id', managingAccountId)
           .eq('user_id', targetUserId)
-          .single();
+          .eq('status', 'pending')
+          .maybeSingle();
+        
+        if (memberByUserId) {
+          pendingMember = memberByUserId;
+        } else {
+          // Try by id
+          const { data: memberById } = await supabaseClient
+            .from('account_users')
+            .select('id, email, role, status')
+            .eq('account_id', managingAccountId)
+            .eq('id', targetUserId)
+            .eq('status', 'pending')
+            .maybeSingle();
+          pendingMember = memberById;
+        }
 
         if (!pendingMember) {
           return new Response(
@@ -658,26 +774,51 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Resend invitation
-        const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(pendingMember.email, {
-          redirectTo: `${Deno.env.get('SITE_URL') || 'https://recouply.ai'}/team?invited=true`,
-          data: {
-            invited_by: user.id,
-            invited_to_account: managingAccountId,
-            invited_role: pendingMember.role,
-          }
-        });
+        // Generate new invite token
+        const { data: tokenData } = await supabaseClient.rpc('generate_invite_token');
+        const inviteToken = tokenData as string;
+        const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        if (inviteError) {
-          logStep('Resend invite error', { error: inviteError });
-          throw new Error(`Failed to resend invitation: ${inviteError.message}`);
-        }
-
-        // Update invited_at timestamp
+        // Update with new token
         await supabaseClient
           .from('account_users')
-          .update({ invited_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .update({ 
+            invite_token: inviteToken,
+            invite_expires_at: inviteExpiresAt,
+            invited_at: new Date().toISOString(), 
+            updated_at: new Date().toISOString() 
+          })
           .eq('id', pendingMember.id);
+
+        // Get inviter's profile
+        const { data: inviterProfile } = await supabaseClient
+          .from('profiles')
+          .select('name, email')
+          .eq('id', user.id)
+          .single();
+        
+        // Get account owner's name
+        const { data: ownerProfile } = await supabaseClient
+          .from('profiles')
+          .select('name')
+          .eq('id', managingAccountId)
+          .single();
+
+        // Send invite email
+        try {
+          await supabaseClient.functions.invoke('send-team-invite', {
+            body: {
+              email: pendingMember.email,
+              role: pendingMember.role,
+              inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
+              accountOwnerName: ownerProfile?.name || 'your team',
+              inviteToken: inviteToken,
+            },
+          });
+          logStep('Resend invite email sent', { email: pendingMember.email });
+        } catch (emailError) {
+          logStep('Failed to resend invite email', { error: emailError });
+        }
 
         result = { success: true, message: 'Invitation resent successfully' };
         break;
