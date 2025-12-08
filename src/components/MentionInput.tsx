@@ -192,21 +192,20 @@ export const MentionInput = ({
 
 // Utility to render note content with styled mentions
 export const renderNoteWithMentions = (content: string): React.ReactNode => {
-  // Split content by mention pattern and rebuild with styled mentions
+  if (!content) return content;
+  
+  // Pattern matches @[Name](uuid) format
   const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g;
   const result: React.ReactNode[] = [];
   let lastIndex = 0;
   let keyIndex = 0;
+  let match;
 
-  // Use matchAll for safer iteration
-  const matches = Array.from(content.matchAll(mentionPattern));
-  
-  if (matches.length === 0) {
-    return content;
-  }
+  // Reset regex state
+  mentionPattern.lastIndex = 0;
 
-  for (const match of matches) {
-    const matchIndex = match.index!;
+  while ((match = mentionPattern.exec(content)) !== null) {
+    const matchIndex = match.index;
     const fullMatch = match[0];
     const userName = match[1];
 
@@ -219,7 +218,7 @@ export const renderNoteWithMentions = (content: string): React.ReactNode => {
       );
     }
 
-    // Add styled mention (only the name, not the ID)
+    // Add styled mention - display only the name, not the ID
     result.push(
       <span 
         key={`mention-${keyIndex++}`}
@@ -230,6 +229,11 @@ export const renderNoteWithMentions = (content: string): React.ReactNode => {
     );
 
     lastIndex = matchIndex + fullMatch.length;
+  }
+
+  // If no matches found, return original content
+  if (result.length === 0) {
+    return content;
   }
 
   // Add remaining text after last mention
