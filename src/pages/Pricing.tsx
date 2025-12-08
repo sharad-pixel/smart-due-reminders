@@ -445,6 +445,100 @@ const Pricing = () => {
         </div>
       </section>
 
+      {/* Pricing Philosophy & Credibility Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4">Why We Price This Way</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Recouply.ai follows proven SaaS pricing models used by leading software platforms.
+              We combine transparent base plans with seat-based and usage-based pricing so customers 
+              only pay for what they use — and can scale without surprises.
+            </p>
+          </div>
+          
+          <div className="bg-card border rounded-xl p-6 md:p-8">
+            <h3 className="text-lg font-semibold mb-4 text-center">Industry Research & Best Practices</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <a 
+                href="https://www.togai.com/blog/price-transparency-customer-loyalty/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+              >
+                <div className="w-2 h-2 mt-2 bg-primary rounded-full flex-shrink-0"></div>
+                <div>
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    Transparent SaaS pricing builds trust and loyalty
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">togai.com</p>
+                </div>
+              </a>
+              
+              <a 
+                href="https://stripe.com/resources/more/usage-based-pricing-for-saas-how-to-make-the-most-of-this-pricing-model" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+              >
+                <div className="w-2 h-2 mt-2 bg-primary rounded-full flex-shrink-0"></div>
+                <div>
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    Why usage-based pricing works for SaaS businesses
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">stripe.com</p>
+                </div>
+              </a>
+              
+              <a 
+                href="https://tomtunguz.com/seat-vs-usage-based-pricing/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+              >
+                <div className="w-2 h-2 mt-2 bg-primary rounded-full flex-shrink-0"></div>
+                <div>
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    Per-seat vs. usage-based pricing frameworks for SaaS
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">tomtunguz.com</p>
+                </div>
+              </a>
+              
+              <a 
+                href="https://userpilot.com/blog/pricing-page-best-practices/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+              >
+                <div className="w-2 h-2 mt-2 bg-primary rounded-full flex-shrink-0"></div>
+                <div>
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    SaaS pricing page best practices that improve conversion
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">userpilot.com</p>
+                </div>
+              </a>
+              
+              <a 
+                href="https://www.vendr.com/blog/usage-based-pricing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors group md:col-span-2 md:max-w-md md:mx-auto"
+              >
+                <div className="w-2 h-2 mt-2 bg-primary rounded-full flex-shrink-0"></div>
+                <div>
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    Why SaaS companies adopt hybrid pricing models
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">vendr.com</p>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
@@ -459,7 +553,7 @@ const Pricing = () => {
             <div>
               <h3 className="font-semibold mb-2">What happens if I exceed my invoice limit?</h3>
               <p className="text-muted-foreground">
-                You'll be charged $1.50 per additional active invoice beyond your plan limit. Overage charges are calculated monthly based on actual usage—no surprise bills.
+                You'll be charged {formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })} per additional active invoice beyond your plan limit. Overage charges are calculated monthly based on actual usage—no surprise bills.
               </p>
             </div>
             <div>
