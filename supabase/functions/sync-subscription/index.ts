@@ -198,6 +198,9 @@ serve(async (req) => {
         plan_type: planType,
         billing_interval: billingInterval,
         subscription_status: subscription.status,
+        current_period_start: subscription.current_period_start 
+          ? new Date(subscription.current_period_start * 1000).toISOString() 
+          : null,
         current_period_end: subscription.current_period_end 
           ? new Date(subscription.current_period_end * 1000).toISOString() 
           : null,

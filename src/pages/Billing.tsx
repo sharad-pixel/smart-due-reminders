@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, UserPlus, RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -104,6 +104,16 @@ interface ProfileData {
   stripe_subscription_id: string;
 }
 
+interface StripeSubscriptionData {
+  subscribed: boolean;
+  plan_type: string;
+  billing_interval: string;
+  subscription_status: string;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+}
+
 interface TeamMember {
   id: string;
   user_id: string;
@@ -119,9 +129,11 @@ interface TeamMember {
 const Billing = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [stripeData, setStripeData] = useState<StripeSubscriptionData | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
@@ -178,6 +190,14 @@ const Billing = () => {
       const { data: usageData, error: usageError } = await supabase.functions.invoke('get-monthly-usage');
       if (!usageError && usageData) {
         setUsage(usageData);
+      }
+
+      // Sync subscription data from Stripe to get accurate term dates
+      if (profileData?.stripe_subscription_id) {
+        const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-subscription');
+        if (!syncError && syncData) {
+          setStripeData(syncData);
+        }
       }
     } catch (error) {
       console.error('Error loading billing data:', error);
@@ -327,9 +347,14 @@ const Billing = () => {
                       <strong>Invoice Limit:</strong>{' '}
                       {isUnlimited ? 'Unlimited' : `${invoiceLimit} invoices/month`}
                     </p>
-                    {profile?.current_period_end && (
+                    {stripeData?.current_period_start && (
                       <p>
-                        <strong>Term End:</strong> {formatDate(profile.current_period_end)}
+                        <strong>Term Start:</strong> {formatDate(stripeData.current_period_start)}
+                      </p>
+                    )}
+                    {(stripeData?.current_period_end || profile?.current_period_end) && (
+                      <p>
+                        <strong>Term End:</strong> {formatDate(stripeData?.current_period_end || profile?.current_period_end || '')}
                       </p>
                     )}
                     <div className="pt-2 border-t mt-2">
@@ -460,13 +485,23 @@ const Billing = () => {
                   No additional team members on this account
                 </p>
               )}
-              <Button 
-                variant="outline" 
-                className="w-full mt-4"
-                onClick={() => navigate('/settings')}
-              >
-                Manage Team
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <Button 
+                  variant="default" 
+                  className="flex-1"
+                  onClick={() => navigate('/settings?tab=team')}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Team Member
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => navigate('/settings?tab=team')}
+                >
+                  Manage Team
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
