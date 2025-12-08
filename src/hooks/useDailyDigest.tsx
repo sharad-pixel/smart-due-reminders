@@ -36,10 +36,16 @@ export const useDailyDigest = (date?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get effective account ID for team member support
+      const { data: effectiveAccountId } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      
+      const accountId = effectiveAccountId || user.id;
+
       const { data, error } = await supabase
         .from('daily_digests')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .eq('digest_date', targetDate)
         .maybeSingle();
 
@@ -56,10 +62,16 @@ export const useLatestDigest = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      // Get effective account ID for team member support
+      const { data: effectiveAccountId } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      
+      const accountId = effectiveAccountId || user.id;
+
       const { data, error } = await supabase
         .from('daily_digests')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .order('digest_date', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -77,10 +89,16 @@ export const useDigestHistory = (limit = 30) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get effective account ID for team member support
+      const { data: effectiveAccountId } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      
+      const accountId = effectiveAccountId || user.id;
+
       const { data, error } = await supabase
         .from('daily_digests')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .order('digest_date', { ascending: false })
         .limit(limit);
 

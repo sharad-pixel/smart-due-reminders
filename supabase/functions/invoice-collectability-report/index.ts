@@ -56,6 +56,13 @@ serve(async (req) => {
 
     const { limit = 50, status_filter, generate_ai_summary = false } = await req.json().catch(() => ({}));
 
+    // Get effective account ID for team member support
+    const { data: effectiveAccountId } = await supabase
+      .rpc('get_effective_account_id', { p_user_id: user.id });
+    
+    const accountId = effectiveAccountId || user.id;
+    console.log(`[COLLECTABILITY] User ${user.id} using effective account ${accountId}`);
+
     // Fetch open/in-payment-plan invoices with debtor info
     let query = supabase
       .from("invoices")
@@ -80,7 +87,7 @@ serve(async (req) => {
           total_open_balance
         )
       `)
-      .eq("user_id", user.id)
+      .eq("user_id", accountId)
       .order("due_date", { ascending: true })
       .limit(limit);
 
