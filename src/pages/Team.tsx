@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -53,11 +53,12 @@ const Team = () => {
   const [isAddingSeat, setIsAddingSeat] = useState(false);
   const [showAddSeatDialog, setShowAddSeatDialog] = useState(false);
   const [seatQuantity, setSeatQuantity] = useState(1);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [memberToDeactivate, setMemberToDeactivate] = useState<TeamMember | null>(null);
   const [assignedTasksCount, setAssignedTasksCount] = useState(0);
   const [reassignToUserId, setReassignToUserId] = useState<string>("");
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [isSyncingBilling, setIsSyncingBilling] = useState(false);
 
   // Handle checkout success/failure from URL params
   useEffect(() => {
@@ -172,29 +173,8 @@ const Team = () => {
     }
   };
 
-  const handleToggleStatus = async (userId: string, currentStatus: string) => {
-    const action = currentStatus === "active" ? "disable" : "enable";
-
-    try {
-      const { error } = await supabase.functions.invoke("manage-team", {
-        body: {
-          action,
-          userId,
-        },
-      });
-
-      if (error) throw error;
-
-      toast.success(`User ${action === "disable" ? "disabled" : "enabled"} successfully`);
-      await loadTeamMembers();
-    } catch (error: any) {
-      console.error("Error toggling status:", error);
-      toast.error(error.message || "Failed to update status");
-    }
-  };
-
-  const handleOpenDeleteDialog = async (member: TeamMember) => {
-    setMemberToDelete(member);
+  const handleOpenDeactivateDialog = async (member: TeamMember) => {
+    setMemberToDeactivate(member);
     setReassignToUserId("");
     
     // Check if user has assigned tasks
@@ -214,36 +194,88 @@ const Team = () => {
       setAssignedTasksCount(0);
     }
     
-    setShowDeleteDialog(true);
+    setShowDeactivateDialog(true);
   };
 
-  const handleDeleteMember = async () => {
-    if (!memberToDelete) return;
+  const handleDeactivateMember = async () => {
+    if (!memberToDeactivate) return;
     
-    setIsDeleting(true);
+    setIsTogglingStatus(true);
     try {
-      const { data, error } = await supabase.functions.invoke("manage-team", {
+      // First disable the user
+      const { error } = await supabase.functions.invoke("manage-team", {
         body: {
-          action: "remove",
-          userId: memberToDelete.user_id,
+          action: "disable",
+          userId: memberToDeactivate.user_id,
           reassignTo: reassignToUserId || null,
         },
       });
 
       if (error) throw error;
 
-      toast.success(data.message || "Team member removed successfully");
-      if (data.tasksReassigned > 0) {
-        toast.info(`${data.tasksReassigned} task(s) were ${reassignToUserId ? 'reassigned' : 'unassigned'}`);
-      }
-      setShowDeleteDialog(false);
-      setMemberToDelete(null);
+      // Sync billing to adjust Stripe seat count
+      await syncBilling();
+
+      toast.success("Team member deactivated and billing updated");
+      setShowDeactivateDialog(false);
+      setMemberToDeactivate(null);
       await loadTeamMembers();
     } catch (error: any) {
-      console.error("Error removing team member:", error);
-      toast.error(error.message || "Failed to remove team member");
+      console.error("Error deactivating team member:", error);
+      toast.error(error.message || "Failed to deactivate team member");
     } finally {
-      setIsDeleting(false);
+      setIsTogglingStatus(false);
+    }
+  };
+
+  const handleReactivateMember = async (userId: string) => {
+    setIsTogglingStatus(true);
+    try {
+      const { error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "enable",
+          userId,
+        },
+      });
+
+      if (error) throw error;
+
+      // Sync billing to adjust Stripe seat count
+      await syncBilling();
+
+      toast.success("Team member reactivated and billing updated");
+      await loadTeamMembers();
+    } catch (error: any) {
+      console.error("Error reactivating team member:", error);
+      toast.error(error.message || "Failed to reactivate team member");
+    } finally {
+      setIsTogglingStatus(false);
+    }
+  };
+
+  const syncBilling = async () => {
+    setIsSyncingBilling(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase.functions.invoke("sync-seat-billing", {
+        body: {
+          accountId: user.id,
+          action: "recalculate",
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.stripeUpdated) {
+        console.log("Billing synced:", data);
+      }
+    } catch (error) {
+      console.error("Error syncing billing:", error);
+      // Don't show error toast - billing sync is background operation
+    } finally {
+      setIsSyncingBilling(false);
     }
   };
 
@@ -629,18 +661,33 @@ const Team = () => {
                   
                   <div className="flex items-center gap-2">
                     {member.role !== "owner" ? (
-                      <Button
-                        variant={member.status === "active" ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => handleToggleStatus(member.user_id, member.status)}
-                      >
-                        {member.status === "active" ? "Disable" : "Enable"}
-                      </Button>
+                      member.status === "active" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDeactivateDialog(member)}
+                          disabled={isTogglingStatus}
+                          className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                        >
+                          <UserX className="h-3 w-3 mr-1" />
+                          Deactivate
+                        </Button>
+                      ) : member.status === "disabled" ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleReactivateMember(member.user_id)}
+                          disabled={isTogglingStatus}
+                        >
+                          <UserCheck className="h-3 w-3 mr-1" />
+                          Reactivate
+                        </Button>
+                      ) : null
                     ) : (
                       <Badge variant="default">Active</Badge>
                     )}
                     {member.status === "disabled" && (
-                      <Badge variant="destructive">Disabled</Badge>
+                      <Badge variant="secondary">Inactive</Badge>
                     )}
                     {member.status === "pending" && (
                       <Badge variant="secondary">Invited</Badge>
@@ -651,76 +698,90 @@ const Team = () => {
                     <span className="text-sm text-muted-foreground">
                       {new Date(member.invited_at).toLocaleDateString()}
                     </span>
-                    {member.role !== "owner" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleOpenDeleteDialog(member)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Delete Confirmation Dialog */}
-            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            {/* Deactivate Confirmation Dialog */}
+            <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                  <AlertDialogTitle>Deactivate Team Member</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to remove <strong>{memberToDelete?.profiles?.name || memberToDelete?.profiles?.email}</strong> from your team? This action cannot be undone.
+                    Deactivating <strong>{memberToDeactivate?.profiles?.name || memberToDeactivate?.profiles?.email}</strong> will:
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 
-                {assignedTasksCount > 0 && (
-                  <div className="space-y-3 py-2">
-                    <Alert className="bg-warning/10 border-warning/30">
-                      <AlertCircle className="h-4 w-4 text-warning" />
-                      <AlertDescription>
-                        This member has <strong>{assignedTasksCount}</strong> assigned task(s). Choose what to do with them:
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="space-y-2">
-                      <Label>Reassign tasks to</Label>
-                      <Select value={reassignToUserId} onValueChange={setReassignToUserId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Leave unassigned" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Leave unassigned</SelectItem>
-                          {teamMembers
-                            .filter(m => m.user_id !== memberToDelete?.user_id && m.status === 'active')
-                            .map((m) => (
-                              <SelectItem key={m.user_id} value={m.user_id}>
-                                {m.profiles?.name || m.profiles?.email}
-                              </SelectItem>
-                            ))
-                          }
-                        </SelectContent>
-                      </Select>
+                <div className="space-y-3 py-2">
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-success" />
+                      Remove their access to your account
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-success" />
+                      Reduce your billable seats by 1
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-success" />
+                      Prorate your next invoice automatically
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4 text-primary" />
+                      Can be reactivated anytime
+                    </li>
+                  </ul>
+                  
+                  {assignedTasksCount > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <Alert className="bg-warning/10 border-warning/30">
+                        <AlertCircle className="h-4 w-4 text-warning" />
+                        <AlertDescription>
+                          This member has <strong>{assignedTasksCount}</strong> assigned task(s). Choose what to do with them:
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="space-y-2">
+                        <Label>Reassign tasks to</Label>
+                        <Select value={reassignToUserId} onValueChange={setReassignToUserId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Leave unassigned" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Leave unassigned</SelectItem>
+                            {teamMembers
+                              .filter(m => m.user_id !== memberToDeactivate?.user_id && m.status === 'active')
+                              .map((m) => (
+                                <SelectItem key={m.user_id} value={m.user_id}>
+                                  {m.profiles?.name || m.profiles?.email}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
                 
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel disabled={isTogglingStatus}>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={handleDeleteMember}
-                    disabled={isDeleting}
+                    onClick={handleDeactivateMember}
+                    disabled={isTogglingStatus}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    {isDeleting ? (
+                    {isTogglingStatus ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Removing...
+                        Deactivating...
                       </>
                     ) : (
-                      "Remove Member"
+                      <>
+                        <UserX className="h-4 w-4 mr-2" />
+                        Deactivate Member
+                      </>
                     )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -729,10 +790,25 @@ const Team = () => {
             
             {/* Billing Info Footer */}
             <div className="mt-6 pt-4 border-t">
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Active users: {teamMembers.filter(m => m.status === 'active' && m.role !== 'owner').length} — 
-                Additional seats billed at ${SEAT_PRICING.monthlyPrice.toFixed(2)}/user/month
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Active users: {teamMembers.filter(m => m.status === 'active' && m.role !== 'owner').length} — 
+                  Billed at ${SEAT_PRICING.monthlyPrice.toFixed(2)}/user/month
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={syncBilling}
+                  disabled={isSyncingBilling}
+                  className="text-xs"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${isSyncingBilling ? 'animate-spin' : ''}`} />
+                  Sync Billing
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Deactivated members don't count toward billing. Reactivate them anytime.
               </p>
             </div>
           </CardContent>
