@@ -22,6 +22,7 @@ type AppRole = "owner" | "admin" | "member" | "viewer";
 interface TeamMember {
   id: string;
   user_id: string;
+  email: string | null; // Direct email from account_users (for pending invites)
   role: AppRole;
   status: string;
   invited_at: string;
@@ -29,7 +30,7 @@ interface TeamMember {
   profiles: {
     name: string | null;
     email: string | null;
-  };
+  } | null;
 }
 
 interface EffectiveFeatures {
@@ -697,10 +698,10 @@ const Team = () => {
                     </div>
                     <div>
                       <p className="font-medium">
-                        {member.profiles?.name || member.profiles?.email || "Unknown"}
+                        {member.profiles?.name || member.profiles?.email || member.email || "Unknown"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {member.profiles?.email}
+                        {member.profiles?.email || member.email}
                       </p>
                     </div>
                   </div>
