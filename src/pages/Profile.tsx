@@ -540,9 +540,9 @@ const Profile = () => {
           <CardContent>
             <div className="flex items-start gap-4">
               <div className="relative group">
-                <Avatar className="h-16 w-16">
-                  {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} />}
-                  <AvatarFallback className="text-lg">
+                <Avatar className="h-20 w-20 rounded-xl">
+                  {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} className="rounded-xl" />}
+                  <AvatarFallback className="text-xl rounded-xl">
                     {getInitials(profile.name, profile.email)}
                   </AvatarFallback>
                 </Avatar>
