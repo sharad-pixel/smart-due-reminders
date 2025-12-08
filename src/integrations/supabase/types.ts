@@ -3501,6 +3501,7 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           current_period_end: string | null
+          daily_digest_email_enabled: boolean | null
           email: string | null
           id: string
           invoice_limit: number | null
@@ -3552,6 +3553,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           current_period_end?: string | null
+          daily_digest_email_enabled?: boolean | null
           email?: string | null
           id: string
           invoice_limit?: number | null
@@ -3603,6 +3605,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           current_period_end?: string | null
+          daily_digest_email_enabled?: boolean | null
           email?: string | null
           id?: string
           invoice_limit?: number | null
