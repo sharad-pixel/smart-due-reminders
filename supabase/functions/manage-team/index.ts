@@ -572,8 +572,6 @@ Deno.serve(async (req) => {
       }
 
       case 'reassign': {
-        const targetUserId = userId || memberId;
-
         if (!email) {
           return new Response(
             JSON.stringify({ error: 'New email address is required' }),
@@ -581,15 +579,36 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Get current member
-        const { data: currentMember, error: memberError } = await supabaseClient
-          .from('account_users')
-          .select('*, profiles!account_users_user_id_fkey (name, email)')
-          .eq('account_id', managingAccountId)
-          .eq('user_id', targetUserId)
-          .single();
+        // Get current member - try by memberId (account_users.id) first, then by user_id
+        let currentMember: any = null;
+        let memberError: any = null;
+
+        if (memberId) {
+          // Look up by account_users row ID (works for pending invites with null user_id)
+          const result = await supabaseClient
+            .from('account_users')
+            .select('*, profiles!account_users_user_id_fkey (name, email)')
+            .eq('account_id', managingAccountId)
+            .eq('id', memberId)
+            .single();
+          currentMember = result.data;
+          memberError = result.error;
+        }
+        
+        if (!currentMember && userId) {
+          // Fallback to user_id lookup
+          const result = await supabaseClient
+            .from('account_users')
+            .select('*, profiles!account_users_user_id_fkey (name, email)')
+            .eq('account_id', managingAccountId)
+            .eq('user_id', userId)
+            .single();
+          currentMember = result.data;
+          memberError = result.error;
+        }
 
         if (memberError || !currentMember) {
+          logStep('Member not found for reassign', { memberId, userId, managingAccountId });
           return new Response(
             JSON.stringify({ error: 'Team member not found' }),
             { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -614,7 +633,7 @@ Deno.serve(async (req) => {
           (m: any) => 
             (m.email?.toLowerCase() === email.toLowerCase() || 
              m.profiles?.email?.toLowerCase() === email.toLowerCase()) && 
-            m.user_id !== targetUserId
+            m.id !== currentMember.id
         );
 
         if (emailExists) {
@@ -678,13 +697,14 @@ Deno.serve(async (req) => {
           break;
         }
 
-        // For active/disabled members, mark old as reassigned and create new
-        // Unassign tasks from old user
-        await supabaseClient
-          .from('collection_tasks')
-          .update({ assigned_to: null, updated_at: new Date().toISOString() })
-          .eq('assigned_to', targetUserId)
-          .in('status', ['open', 'in_progress']);
+        // For active/disabled members, unassign tasks from old user if they have a user_id
+        if (currentMember.user_id) {
+          await supabaseClient
+            .from('collection_tasks')
+            .update({ assigned_to: null, updated_at: new Date().toISOString() })
+            .eq('assigned_to', currentMember.user_id)
+            .in('status', ['open', 'in_progress']);
+        }
 
         // Mark current entry as reassigned
         await supabaseClient
