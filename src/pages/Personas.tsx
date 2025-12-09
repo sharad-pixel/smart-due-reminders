@@ -27,7 +27,7 @@ const sampleMessages: Record<string, string[]> = {
     "[Customer Name], Invoice #[NUMBER] remains unpaid after multiple attempts. This is your final opportunity to settle before we pursue legal remedies. Immediate response required.",
     "FINAL NOTICE: Invoice #[NUMBER] ($[AMOUNT]) – Payment or contact required TODAY. Failure to respond will result in escalation to legal proceedings and additional fees."
   ],
-  gotti: [
+  jimmy: [
     "LEGAL NOTICE: Invoice #[NUMBER] for $[AMOUNT] is [X] days overdue. This matter will be referred to our legal team and collections attorneys within 48 hours unless full payment is received. Additional fees and legal costs will apply. Contact immediately: [PHONE]",
     "DEMAND FOR PAYMENT: Invoice #[NUMBER] ($[AMOUNT]) – Final notice before legal action. We are prepared to file suit and pursue all available remedies including liens, wage garnishment, and asset seizure. Pay in full within 24 hours or provide certified funds arrangement.",
     "[Customer Name] – FINAL LEGAL NOTICE: Invoice #[NUMBER] unpaid for [X] days. Legal proceedings commence [DATE]. All collection costs, attorney fees, court costs, and interest will be added to your obligation. This is your last opportunity to resolve without litigation."
@@ -84,7 +84,7 @@ const strategies: Record<string, { approach: string; tactics: string[]; goal: st
     ],
     goal: "Secure payment through formal pressure before legal action"
   },
-  gotti: {
+  jimmy: {
     approach: "Legal and uncompromising",
     tactics: [
       "Legal notice format and language",
