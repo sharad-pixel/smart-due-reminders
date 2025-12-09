@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Search, Upload, Sparkles, Loader2, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
+
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 
 
@@ -51,7 +51,7 @@ const Debtors = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
+  
   const [autoCompleting, setAutoCompleting] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [formData, setFormData] = useState({
@@ -231,14 +231,6 @@ const Debtors = () => {
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Manage your customer accounts</p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsAIPromptOpen(true)}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Create with AI
-            </Button>
             <Button variant="outline" onClick={() => navigate('/data-center')}>
               <Upload className="h-4 w-4 mr-2" />
               Data Center
@@ -695,11 +687,6 @@ const Debtors = () => {
           </CardContent>
         </Card>
 
-        <AIPromptCreationModal
-          open={isAIPromptOpen}
-          onOpenChange={setIsAIPromptOpen}
-          onSuccess={fetchDebtors}
-        />
       </div>
     </Layout>
   );
