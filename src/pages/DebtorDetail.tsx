@@ -806,19 +806,10 @@ const DebtorDetail = () => {
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Debtor</DialogTitle>
+              <DialogTitle>Edit Account</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Name *</Label>
-                  <Input
-                    id="edit-name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-company_name">Company Name *</Label>
                   <Input
