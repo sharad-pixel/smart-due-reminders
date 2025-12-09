@@ -136,7 +136,12 @@ export function AIInsightsCard({
                 {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </div>
             </div>
-            <CardDescription className="line-clamp-2">{data.summary}</CardDescription>
+            <CardDescription className="line-clamp-2">
+              {data.summary}
+              <span className="block text-xs text-muted-foreground/70 mt-1 italic">
+                More interactions = more accurate insights
+              </span>
+            </CardDescription>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -351,7 +356,12 @@ export function AIInsightsCard({
             <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
           </Button>
         </div>
-        <CardDescription>{data.summary}</CardDescription>
+        <CardDescription>
+          {data.summary}
+          <span className="block text-xs text-muted-foreground/70 mt-1 italic">
+            More interactions = more accurate insights
+          </span>
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {renderContent()}

@@ -143,6 +143,9 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
             <p className="text-sm text-muted-foreground mt-1">
               AI-powered risk analysis based on payment history, tasks, and communication patterns
             </p>
+            <p className="text-xs text-muted-foreground/70 mt-2 italic">
+              More interactions = more accurate insights
+            </p>
           </div>
           <Button onClick={generateIntelligence} className="gap-2">
             <Brain className="h-4 w-4" />
@@ -358,6 +361,13 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
             </div>
           </div>
         )}
+
+        {/* Credibility Note */}
+        <div className="text-center pt-2 border-t">
+          <p className="text-xs text-muted-foreground/70 italic">
+            Intelligence improves with more account activity and interactions
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
