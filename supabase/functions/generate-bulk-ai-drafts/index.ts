@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getPersonaToneByDaysPastDue } from '../_shared/personaTones.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -135,21 +136,25 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Build AI prompt
+        // Build AI prompt with persona-specific tone
         const businessName = branding?.business_name || 'Your Company';
         const fromName = branding?.from_name || businessName;
         const debtorName = invoice.debtors.contact_name || invoice.debtors.name || invoice.debtors.company_name;
         
+        // Get persona-specific tone
+        const persona = getPersonaToneByDaysPastDue(daysPastDue);
+        const personaGuidelines = persona?.systemPromptGuidelines || '';
+        
         const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
-CRITICAL RULES:
-- Be firm, clear, and professional
+${personaGuidelines}
+
+CRITICAL COMPLIANCE RULES:
 - Be respectful and non-threatening
 - NEVER claim to be or act as a "collection agency" or legal authority
 - NEVER use harassment or intimidation
 - Write as if you are ${businessName}, NOT a third party
-- Encourage the customer to pay or reply if there is a dispute or issue
-- Use a ${getToneForBucket(agingBucket)} tone appropriate for ${daysPastDue} days past due`;
+- Encourage the customer to pay or reply if there is a dispute or issue`;
 
         const userPrompt = workflowStep?.body_template || getDefaultTemplate(agingBucket);
         
@@ -313,24 +318,13 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
   }
 });
 
-function getToneForBucket(bucket: string): string {
-  switch (bucket) {
-    case 'current': return 'friendly reminder';
-    case 'dpd_1_30': return 'firm but friendly';
-    case 'dpd_31_60': return 'firm and direct';
-    case 'dpd_61_90': return 'urgent and direct but respectful';
-    case 'dpd_91_120': return 'very firm, urgent, and compliant';
-    default: return 'professional';
-  }
-}
-
 function getDefaultTemplate(bucket: string): string {
   const templates: Record<string, string> = {
     current: 'Generate a friendly reminder that payment is coming due soon. Keep tone positive and helpful.',
-    dpd_1_30: 'Generate a firm but friendly follow-up about the overdue invoice. Mention the invoice details and request prompt payment.',
-    dpd_31_60: 'Generate a firm and direct message about the seriously overdue invoice. Express concern and request immediate payment or communication about any issues.',
-    dpd_61_90: 'Generate an urgent message about the significantly overdue invoice. Be direct about the seriousness while remaining professional. Request immediate action.',
-    dpd_91_120: 'Generate a very firm, urgent message about the long-overdue invoice. Be clear about the serious nature while remaining compliant and professional. Request immediate payment or contact.',
+    dpd_1_30: 'Generate a warm, friendly follow-up about the outstanding invoice. Use soft language and offer help.',
+    dpd_31_60: 'Generate a professional, direct message about the overdue invoice. Be clear about expectations.',
+    dpd_61_90: 'Generate a serious, assertive message about the significantly overdue invoice.',
+    dpd_91_120: 'Generate a very firm, formal message about the long-overdue invoice.',
   };
   return templates[bucket] || templates.current;
 }
