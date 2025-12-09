@@ -21,25 +21,34 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request body to check for force flag
+    // Parse request body to check for force flag and userId
     let forceRegenerate = false;
+    let targetUserId: string | null = null;
     try {
       const body = await req.json();
       forceRegenerate = body?.force === true;
+      targetUserId = body?.userId || null;
     } catch {
       // No body or invalid JSON, use defaults
     }
 
-    logStep('Starting daily digest generation', { forceRegenerate });
+    logStep('Starting daily digest generation', { forceRegenerate, targetUserId });
 
-    // Get all active users (users with profiles)
-    const { data: users, error: usersError } = await supabase
+    // If userId is provided, only process that specific user (customer-level sync)
+    // Otherwise, process all users (platform-level cron job only)
+    let usersQuery = supabase
       .from('profiles')
       .select('id, email, name, welcome_email_sent_at, daily_digest_email_enabled')
       .not('email', 'is', null);
+    
+    if (targetUserId) {
+      usersQuery = usersQuery.eq('id', targetUserId);
+    }
+
+    const { data: users, error: usersError } = await usersQuery;
 
     if (usersError) throw usersError;
-    logStep('Found users', { count: users?.length });
+    logStep('Found users', { count: users?.length, targetUserId });
 
     const today = new Date().toISOString().split('T')[0];
     const todayStart = new Date();
