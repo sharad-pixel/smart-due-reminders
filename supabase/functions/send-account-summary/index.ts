@@ -11,11 +11,20 @@ const corsHeaders = {
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 interface Invoice {
+  id?: string;
   invoice_number: string;
   amount: number;
   due_date: string;
   issue_date: string;
   status: string;
+}
+
+interface Task {
+  id: string;
+  summary: string;
+  task_type: string;
+  status: string;
+  priority: string;
 }
 
 interface AttachedLink {
@@ -25,13 +34,19 @@ interface AttachedLink {
 
 interface RequestBody {
   debtorId: string;
-  subject: string;
-  message: string;
+  generateOnly?: boolean;
+  subject?: string;
+  message?: string;
   invoices: Invoice[];
-  attachedLinks: AttachedLink[];
-  attachedDocs: any[];
+  openTasks?: Task[];
+  attachedLinks?: AttachedLink[];
+  attachedDocs?: any[];
   paymentUrl?: string;
 }
+
+const logStep = (step: string, details?: any) => {
+  console.log(`[AI-OUTREACH] ${step}`, details ? JSON.stringify(details) : "");
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,9 +76,30 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { debtorId, subject, message, invoices, attachedLinks, attachedDocs, paymentUrl }: RequestBody = await req.json();
+    const { 
+      debtorId, 
+      generateOnly, 
+      subject, 
+      message, 
+      invoices, 
+      openTasks,
+      attachedLinks = [], 
+      attachedDocs = [], 
+      paymentUrl 
+    }: RequestBody = await req.json();
 
-    console.log("Sending account summary to debtor:", debtorId);
+    logStep("Request received", { debtorId, generateOnly, invoiceCount: invoices?.length, taskCount: openTasks?.length });
+
+    // Fetch debtor details
+    const { data: debtor, error: debtorError } = await supabase
+      .from("debtors")
+      .select("*")
+      .eq("id", debtorId)
+      .single();
+
+    if (debtorError || !debtor) {
+      throw new Error("Debtor not found");
+    }
 
     // Fetch user's branding settings
     const { data: branding, error: brandingError } = await supabase
@@ -73,7 +109,7 @@ serve(async (req) => {
       .single();
 
     if (brandingError && brandingError.code !== "PGRST116") {
-      console.error("Error fetching branding settings:", brandingError);
+      logStep("Error fetching branding settings", brandingError);
     }
 
     const brandingSettings = branding || {
@@ -87,22 +123,166 @@ serve(async (req) => {
       primary_color: "#1e3a5f",
     };
 
-    console.log("Using branding settings:", brandingSettings);
+    // If generateOnly, use AI to create the outreach content
+    if (generateOnly) {
+      logStep("Generating AI outreach content");
+      
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        throw new Error("LOVABLE_API_KEY is not configured");
+      }
 
-    // Fetch debtor details
-    const { data: debtor, error: debtorError } = await supabase
-      .from("debtors")
-      .select("*")
-      .eq("id", debtorId)
-      .single();
+      // Fetch additional context - payment history
+      const { data: payments } = await supabase
+        .from("payments")
+        .select("amount, payment_date, payment_method")
+        .eq("debtor_id", debtorId)
+        .order("payment_date", { ascending: false })
+        .limit(5);
 
-    if (debtorError || !debtor) {
-      throw new Error("Debtor not found");
+      // Fetch inbound communication history
+      const { data: inboundEmails } = await supabase
+        .from("inbound_emails")
+        .select("subject, ai_summary, category, sentiment, created_at")
+        .eq("debtor_id", debtorId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const totalOutstanding = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
+      const highPriorityTasks = openTasks?.filter(t => t.priority === "high") || [];
+      
+      // Build context for AI
+      const contextSummary = {
+        accountName: debtor.company_name,
+        contactName: debtor.name,
+        totalOutstanding,
+        invoiceCount: invoices?.length || 0,
+        oldestInvoiceDue: invoices?.length > 0 ? invoices[invoices.length - 1]?.due_date : null,
+        openTaskCount: openTasks?.length || 0,
+        highPriorityTaskCount: highPriorityTasks.length,
+        taskTypes: [...new Set(openTasks?.map(t => t.task_type) || [])],
+        recentPayments: payments?.slice(0, 3) || [],
+        recentCommunications: inboundEmails?.slice(0, 3) || [],
+        riskTier: debtor.risk_tier || "unknown",
+        paymentScore: debtor.payment_score || null,
+        avgDaysToPay: debtor.avg_days_to_pay || null,
+      };
+
+      logStep("Context for AI", contextSummary);
+
+      const systemPrompt = `You are a professional collections specialist crafting personalized outreach for accounts receivable. 
+Your tone should be professional, firm but courteous, and focused on resolution.
+
+Guidelines:
+- Reference specific open invoices and their amounts
+- If there are open tasks (like disputes, payment plan requests, document requests), acknowledge them
+- If payment history exists, acknowledge their past payments positively
+- If there are high-priority tasks, address them directly
+- Adapt tone based on risk tier: Low risk = friendly reminder, High/Critical = more urgent
+- Always include a clear call to action
+- Keep the message concise but comprehensive
+- Do not include placeholder text - use the actual data provided
+- Sign off professionally
+
+Company name for signature: ${brandingSettings.business_name || "Collections Team"}`;
+
+      const userPrompt = `Generate a professional collection outreach email for this account:
+
+ACCOUNT DETAILS:
+- Company: ${contextSummary.accountName}
+- Contact: ${contextSummary.contactName}
+- Total Outstanding: $${contextSummary.totalOutstanding.toLocaleString()}
+- Open Invoices: ${contextSummary.invoiceCount}
+- Risk Tier: ${contextSummary.riskTier}
+- Payment Score: ${contextSummary.paymentScore || "Not calculated"}
+- Avg Days to Pay: ${contextSummary.avgDaysToPay || "Unknown"}
+
+OPEN INVOICES:
+${invoices?.map(inv => `- Invoice #${inv.invoice_number}: $${inv.amount.toLocaleString()} (Due: ${inv.due_date}, Status: ${inv.status})`).join('\n') || "None"}
+
+OPEN TASKS/ISSUES:
+${openTasks?.map(t => `- [${t.priority.toUpperCase()}] ${t.task_type}: ${t.summary}`).join('\n') || "None"}
+
+RECENT PAYMENTS:
+${payments?.map(p => `- $${p.amount.toLocaleString()} on ${p.payment_date}`).join('\n') || "No recent payments"}
+
+RECENT COMMUNICATIONS:
+${inboundEmails?.map(e => `- ${e.subject}: ${e.ai_summary || "No summary"} (Sentiment: ${e.sentiment || "neutral"})`).join('\n') || "No recent communications"}
+
+Generate a JSON response with:
+{
+  "subject": "Email subject line",
+  "message": "Full email body (no HTML, use line breaks)"
+}`;
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const status = aiResponse.status;
+        if (status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw new Error(`AI API error: ${status}`);
+      }
+
+      const aiData = await aiResponse.json();
+      const content = aiData.choices?.[0]?.message?.content;
+      
+      logStep("AI response received", { contentLength: content?.length });
+
+      // Parse the AI response
+      let generatedSubject = `Account Outreach - ${debtor.company_name}`;
+      let generatedMessage = "";
+
+      try {
+        // Try to parse as JSON first
+        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(cleanedContent);
+        generatedSubject = parsed.subject || generatedSubject;
+        generatedMessage = parsed.message || content;
+      } catch {
+        // If not JSON, use the raw content
+        generatedMessage = content;
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          subject: generatedSubject, 
+          message: generatedMessage,
+          context: contextSummary
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
+    // If not generateOnly, proceed with sending the email
     if (!debtor.email || debtor.email.trim() === "") {
-      throw new Error("Debtor does not have an email address configured. Please add an email address to send the account summary.");
+      throw new Error("Debtor does not have an email address configured. Please add an email address to send the outreach.");
     }
+
+    logStep("Sending outreach email", { to: debtor.email });
 
     // Determine from address
     const fromName = brandingSettings.from_name || brandingSettings.business_name || "Recouply.ai";
@@ -112,11 +292,11 @@ serve(async (req) => {
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
     const primaryColor = brandingSettings.primary_color || "#1e3a5f";
-    const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+    const totalAmount = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
 
     // Build invoice table HTML
     let invoiceTableHtml = "";
-    if (invoices.length > 0) {
+    if (invoices && invoices.length > 0) {
       invoiceTableHtml = `
         <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 600; color: #1e293b;">Open Invoices</h3>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border-radius: 8px; overflow: hidden;">
@@ -155,7 +335,7 @@ serve(async (req) => {
 
     // Build links HTML
     let linksHtml = "";
-    if (attachedLinks.length > 0) {
+    if (attachedLinks && attachedLinks.length > 0) {
       linksHtml = `
         <div style="margin-top: 24px; padding: 16px; background-color: #f8fafc; border-radius: 8px;">
           <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1e293b;">Helpful Links</h3>
@@ -184,7 +364,7 @@ serve(async (req) => {
     // Build email content body
     const emailContent = `
       <div style="white-space: pre-wrap; line-height: 1.6; color: #374151;">
-        ${message.replace(/\n/g, '<br>')}
+        ${(message || "").replace(/\n/g, '<br>')}
       </div>
       ${invoiceTableHtml}
       ${linksHtml}
@@ -211,11 +391,11 @@ serve(async (req) => {
                   <td>
                     ${brandingSettings.logo_url 
                       ? `<img src="${brandingSettings.logo_url}" alt="${brandingSettings.business_name}" style="max-height: 48px; max-width: 180px; height: auto;" />`
-                      : `<span style="color: #ffffff; font-size: 20px; font-weight: 700;">${brandingSettings.business_name || 'Account Summary'}</span>`
+                      : `<span style="color: #ffffff; font-size: 20px; font-weight: 700;">${brandingSettings.business_name || 'Account Outreach'}</span>`
                     }
                   </td>
                   <td style="text-align: right;">
-                    <span style="color: rgba(255,255,255,0.9); font-size: 14px;">Account Summary</span>
+                    <span style="color: rgba(255,255,255,0.9); font-size: 14px;">AI-Powered Outreach</span>
                   </td>
                 </tr>
               </table>
@@ -236,7 +416,7 @@ serve(async (req) => {
 </body>
 </html>`.trim();
 
-    console.log(`Sending email via platform from ${fromEmail} to ${debtor.email}`);
+    logStep(`Sending email via platform from ${fromEmail} to ${debtor.email}`);
 
     // Send via platform send-email function
     const sendEmailResponse = await fetch(
@@ -263,36 +443,38 @@ serve(async (req) => {
       throw new Error(`Failed to send email: ${emailResult.error || "Unknown error"}`);
     }
 
-    console.log("Email sent via platform:", emailResult);
+    logStep("Email sent via platform", emailResult);
 
     // Log to collection_activities for audit trail
     const { data: activity, error: logError } = await supabase.from("collection_activities").insert({
       user_id: user.id,
       debtor_id: debtorId,
-      activity_type: "account_summary",
+      activity_type: "ai_outreach",
       channel: "email",
       direction: "outbound",
       subject: subject,
       message_body: message,
       sent_at: new Date().toISOString(),
       metadata: {
-        invoice_count: invoices.length,
+        invoice_count: invoices?.length || 0,
         total_amount: totalAmount,
-        attached_links: attachedLinks.length,
+        task_count: openTasks?.length || 0,
+        attached_links: attachedLinks?.length || 0,
         reply_to: replyToAddress,
         platform_send: true,
         branding_applied: !!branding,
         from_name: fromName,
         payment_url: paymentUrl || null,
+        ai_generated: true,
       },
     }).select().single();
 
     if (logError) {
-      console.error("Failed to log activity:", logError);
+      logStep("Failed to log activity", logError);
     }
 
     // Log to outreach_logs so responses can be linked
-    if (invoices.length > 0) {
+    if (invoices && invoices.length > 0 && invoices[0].invoice_number) {
       const { data: invoice } = await supabase
         .from("invoices")
         .select("id")
@@ -314,27 +496,29 @@ serve(async (req) => {
           status: "sent",
           delivery_metadata: {
             activity_id: activity?.id,
-            type: "account_summary",
-            invoice_count: invoices.length,
+            type: "ai_outreach",
+            invoice_count: invoices?.length || 0,
+            task_count: openTasks?.length || 0,
             reply_to: replyToAddress,
             platform_send: true,
             branding_applied: !!branding,
             payment_url: paymentUrl || null,
+            ai_generated: true,
           },
         });
 
         if (outreachError) {
-          console.error("Failed to log outreach:", outreachError);
+          logStep("Failed to log outreach", outreachError);
         }
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Account summary sent successfully" }),
+      JSON.stringify({ success: true, message: "AI outreach sent successfully" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error sending account summary:", error);
+    console.error("Error in send-account-summary:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
