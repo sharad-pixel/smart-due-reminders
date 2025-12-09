@@ -26,6 +26,7 @@ import { ResponseActivityCard } from "@/components/ResponseActivityCard";
 import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/CustomerCaseFeed";
+import { AccountIntelligenceCard } from "@/components/AccountIntelligenceCard";
 
 interface Debtor {
   id: string;
@@ -498,6 +499,9 @@ const DebtorDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Collection Intelligence Report */}
+        <AccountIntelligenceCard debtorId={debtor.id} />
 
         {/* Risk Assessment Card */}
         <RiskEngineCard
