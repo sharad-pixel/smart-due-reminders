@@ -15,7 +15,7 @@ const WhyDifferent = () => {
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            Why We're Different
+            Collect Your Money. Intelligently.
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             Why Recouply.ai is Different

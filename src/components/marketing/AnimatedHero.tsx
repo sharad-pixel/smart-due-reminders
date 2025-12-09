@@ -7,6 +7,7 @@ import { personaConfig } from "@/lib/personaConfig";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const headlines = [
+  "Collect Your Money. Intelligently.",
   "Accelerate Cash Flow With Intelligent AR Automation",
   "Improve Revenue Recognition Through Timely Collections",
   "Strengthen Cash Position With AI-Powered Outreach",

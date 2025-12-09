@@ -39,11 +39,15 @@ const FinalCTA = () => {
               Start Today
             </div>
 
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-              Ready to Automate Your Collections?
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+              Collect Your Money. Intelligently.
             </h2>
             
-            <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
+              Ready to Automate Your Collections?
+            </p>
+            
+            <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
               Start saving time and recovering revenue today. Join hundreds of finance teams already using Recouply.ai.
             </p>
 
