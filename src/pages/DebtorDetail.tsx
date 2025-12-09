@@ -185,9 +185,14 @@ const DebtorDetail = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get effective account ID for team member support
+      const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', {
+        p_user_id: user.id
+      });
+
       const { error } = await supabase.from("debtor_contacts").insert({
         debtor_id: id,
-        user_id: user.id,
+        user_id: effectiveAccountId || user.id,
         name: newContact.name,
         title: newContact.title || null,
         email: newContact.email,
