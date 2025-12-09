@@ -174,14 +174,70 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">12. Changes to This Policy</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">12. Customer-Managed Content Disclaimer</h2>
+            
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+              <p className="font-semibold text-foreground mb-2">✅ Recouply.ai — Customer-Managed Content Disclaimer</p>
+            </div>
+
+            <h3 className="text-lg font-semibold text-foreground mt-4 mb-2">Customer-Provided Information Disclaimer</h3>
+            <p className="mb-4">
+              The Accounts Receivable ("AR") Information Pages and any related content displayed through the {COMPANY_INFO.displayName} platform are created, managed, and maintained solely by the customer.
+            </p>
+            <p className="mb-4">
+              {COMPANY_INFO.displayName} acts only as a technology platform that enables customers to publish and share their own AR-related information, including but not limited to payment instructions, banking details (ACH/Wire), tax documents (such as W-9 forms), contact information, and business policies.
+            </p>
+            <p className="mb-4">
+              {COMPANY_INFO.displayName} does not review, verify, validate, endorse, or guarantee the accuracy, completeness, legality, or compliance of any customer-provided content. All information presented on customer AR Information Pages is provided "as is" and at the customer's sole discretion.
+            </p>
+
+            <h3 className="text-lg font-semibold text-foreground mt-6 mb-2">Customer Responsibility</h3>
+            <p className="mb-4">
+              By using {COMPANY_INFO.displayName} to create or distribute AR Information Pages, the customer acknowledges and agrees that:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>The customer is solely responsible for the accuracy, validity, and completeness of all information displayed.</li>
+              <li>The customer is responsible for ensuring all content complies with applicable laws, regulations, and contractual obligations, including tax, banking, privacy, and financial disclosure requirements.</li>
+              <li>The customer is responsible for maintaining, updating, and correcting any information made available through their AR Information Page.</li>
+              <li>Any reliance on customer-provided information by third parties, including debtors or payers, is at the customer's own risk.</li>
+            </ul>
+
+            <h3 className="text-lg font-semibold text-foreground mt-6 mb-2">Limitation of Liability</h3>
+            <p className="mb-4">
+              {COMPANY_INFO.displayName} shall not be liable for any damages, losses, disputes, payment errors, misdirected funds, compliance issues, or claims arising out of or related to:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>Incorrect or outdated customer-provided information</li>
+              <li>Unauthorized changes made by the customer or their authorized users</li>
+              <li>Use or misuse of banking, tax, or payment details displayed on customer pages</li>
+              <li>Any transaction or interaction between the customer and third parties facilitated by customer-provided content</li>
+            </ul>
+            <p className="mb-4">
+              {COMPANY_INFO.displayName} expressly disclaims all liability arising from the publication or use of customer-managed AR Information.
+            </p>
+
+            <h3 className="text-lg font-semibold text-foreground mt-6 mb-2">Platform Role Clarification</h3>
+            <p className="mb-4">{COMPANY_INFO.displayName} does not act as:</p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>A payment processor</li>
+              <li>A financial institution</li>
+              <li>A collection agency</li>
+              <li>A legal, tax, or accounting advisor</li>
+            </ul>
+            <p>
+              All financial decisions, payment arrangements, and compliance obligations remain solely between the customer and their counterparties.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-foreground mb-4">13. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of material changes via email or through the platform. Continued use after changes constitutes acceptance of the updated policy.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-foreground mb-4">13. Contact Us</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">14. Contact Us</h2>
             <p className="mb-4">
               For questions or concerns about this Privacy Policy or our data practices, contact us at:
             </p>
