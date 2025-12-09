@@ -45,7 +45,7 @@ import NicolasChat from "@/components/NicolasChat";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
-import LanguageSelector from "@/components/LanguageSelector";
+
 
 interface LayoutProps {
   children: ReactNode;
@@ -505,7 +505,6 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </footer>
       
-      <LanguageSelector />
       <NicolasChat />
     </div>
   );
