@@ -362,8 +362,7 @@ const DebtorDetail = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-4xl font-bold text-primary">{debtor.name}</h1>
-              <p className="text-muted-foreground mt-1">{debtor.company_name}</p>
+              <h1 className="text-4xl font-bold text-primary">{debtor.company_name}</h1>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm font-mono text-muted-foreground">{debtor.reference_id}</span>
                 <Button

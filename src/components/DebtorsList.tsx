@@ -216,7 +216,6 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead>Company</TableHead>
-                <TableHead>Contact</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Account ID</TableHead>
@@ -228,7 +227,6 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
               {debtors.map((debtor) => (
                 <TableRow key={debtor.id}>
                   <TableCell className="font-medium">{debtor.company_name}</TableCell>
-                  <TableCell>{debtor.primary_contact_name || debtor.contact_name}</TableCell>
                   <TableCell>{debtor.primary_email || debtor.email}</TableCell>
                   <TableCell>{debtor.primary_phone || debtor.phone || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{debtor.external_customer_id || "—"}</TableCell>
