@@ -1,5 +1,11 @@
 import { Globe } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 declare global {
   interface Window {
@@ -45,7 +51,6 @@ const LanguageSelector = () => {
       }
     };
 
-    // Poll for Google Translate to be ready
     const checkInterval = setInterval(() => {
       if (window.google?.translate?.TranslateElement) {
         clearInterval(checkInterval);
@@ -53,7 +58,6 @@ const LanguageSelector = () => {
       }
     }, 100);
 
-    // Cleanup after 10 seconds
     const timeout = setTimeout(() => clearInterval(checkInterval), 10000);
 
     return () => {
@@ -63,9 +67,26 @@ const LanguageSelector = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-      <Globe className="h-4 w-4" />
-      <div id="google_translate_element" className="min-w-[60px]" />
+    <div className="fixed bottom-4 left-4 z-[90]">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <Globe className="h-5 w-5" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent 
+          side="top" 
+          align="start" 
+          className="w-auto p-3"
+        >
+          <p className="text-xs text-muted-foreground mb-2">Translate page</p>
+          <div id="google_translate_element" className="min-w-[120px]" />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 };
