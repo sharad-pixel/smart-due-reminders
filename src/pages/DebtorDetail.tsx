@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus } from "lucide-react";
+import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, Trash2, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RiskEngineCard } from "@/components/RiskEngineCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
@@ -58,6 +59,16 @@ interface Debtor {
   payment_score_last_calculated: string | null;
   risk_status_note: string | null;
   risk_last_calculated_at: string | null;
+}
+
+interface DebtorContact {
+  id: string;
+  name: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  is_primary: boolean;
+  outreach_enabled: boolean;
 }
 
 interface CRMAccount {
@@ -118,6 +129,9 @@ const DebtorDetail = () => {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<DebtorContact[]>([]);
+  const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+  const [newContact, setNewContact] = useState({ name: "", title: "", email: "", phone: "", outreach_enabled: true });
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -138,8 +152,92 @@ const DebtorDetail = () => {
       fetchDebtorTasks();
       fetchAllTasks();
       fetchDebtorActivities();
+      fetchContacts();
     }
   }, [id]);
+
+  const fetchContacts = async () => {
+    if (!id) return;
+    try {
+      const { data, error } = await supabase
+        .from("debtor_contacts")
+        .select("*")
+        .eq("debtor_id", id)
+        .order("is_primary", { ascending: false });
+      
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
+
+  const handleAddContact = async () => {
+    if (!newContact.name || !newContact.email) {
+      toast.error("Name and email are required");
+      return;
+    }
+    if (contacts.length >= 3) {
+      toast.error("Maximum 3 contacts allowed per account");
+      return;
+    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase.from("debtor_contacts").insert({
+        debtor_id: id,
+        user_id: user.id,
+        name: newContact.name,
+        title: newContact.title || null,
+        email: newContact.email,
+        phone: newContact.phone || null,
+        outreach_enabled: newContact.outreach_enabled,
+        is_primary: false,
+      });
+
+      if (error) throw error;
+      toast.success("Contact added successfully");
+      setIsAddContactOpen(false);
+      setNewContact({ name: "", title: "", email: "", phone: "", outreach_enabled: true });
+      fetchContacts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add contact");
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string, isPrimary: boolean) => {
+    if (isPrimary) {
+      toast.error("Cannot delete primary contact");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("debtor_contacts")
+        .delete()
+        .eq("id", contactId);
+
+      if (error) throw error;
+      toast.success("Contact deleted");
+      fetchContacts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete contact");
+    }
+  };
+
+  const handleToggleOutreach = async (contactId: string, enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("debtor_contacts")
+        .update({ outreach_enabled: enabled })
+        .eq("id", contactId);
+
+      if (error) throw error;
+      fetchContacts();
+    } catch (error: any) {
+      toast.error("Failed to update outreach setting");
+    }
+  };
 
   const fetchDebtorActivities = async () => {
     if (!id) return;
@@ -403,34 +501,100 @@ const DebtorDetail = () => {
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Contacts</CardTitle>
+                {contacts.length < 3 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsAddContactOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Add Contact
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{debtor.email}</p>
-                </div>
-              </div>
-              {debtor.phone && (
-                <div className="flex items-center space-x-3">
-                  <PhoneIcon className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{debtor.phone}</p>
+              {contacts.length > 0 ? (
+                contacts.map((contact) => (
+                  <div key={contact.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{contact.name}</span>
+                        {contact.is_primary && (
+                          <Badge variant="secondary" className="text-xs">Primary</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground">Outreach</span>
+                          <Switch
+                            checked={contact.outreach_enabled}
+                            onCheckedChange={(checked) => handleToggleOutreach(contact.id, checked)}
+                          />
+                        </div>
+                        {!contact.is_primary && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => handleDeleteContact(contact.id, contact.is_primary)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {contact.title && (
+                      <p className="text-sm text-muted-foreground">{contact.title}</p>
+                    )}
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      {contact.email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span>{contact.email}</span>
+                        </div>
+                      )}
+                      {contact.phone && (
+                        <div className="flex items-center gap-1">
+                          <PhoneIcon className="h-3 w-3 text-muted-foreground" />
+                          <span>{contact.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{debtor.email}</p>
+                    </div>
+                  </div>
+                  {debtor.phone && (
+                    <div className="flex items-center space-x-3">
+                      <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <p className="font-medium">{debtor.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-3">
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Contact Name</p>
+                      <p className="font-medium">{debtor.contact_name}</p>
+                    </div>
                   </div>
                 </div>
               )}
-              <div className="flex items-center space-x-3">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Contact Name</p>
-                  <p className="font-medium">{debtor.contact_name}</p>
-                </div>
-              </div>
               {debtor.address && (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 pt-2 border-t">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Address</p>
@@ -960,6 +1124,75 @@ const DebtorDetail = () => {
           }}
           onNoteAdded={fetchAllTasks}
         />
+
+        {/* Add Contact Dialog */}
+        <Dialog open={isAddContactOpen} onOpenChange={setIsAddContactOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Contact</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-contact-name">Name *</Label>
+                  <Input
+                    id="new-contact-name"
+                    value={newContact.name}
+                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                    placeholder="Full name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-contact-title">Title</Label>
+                  <Input
+                    id="new-contact-title"
+                    value={newContact.title}
+                    onChange={(e) => setNewContact({ ...newContact, title: e.target.value })}
+                    placeholder="e.g., CFO, AP Manager"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-contact-email">Email *</Label>
+                  <Input
+                    id="new-contact-email"
+                    type="email"
+                    value={newContact.email}
+                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                    placeholder="email@company.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-contact-phone">Phone</Label>
+                  <Input
+                    id="new-contact-phone"
+                    type="tel"
+                    value={newContact.phone}
+                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="new-contact-outreach"
+                  checked={newContact.outreach_enabled}
+                  onCheckedChange={(checked) => setNewContact({ ...newContact, outreach_enabled: checked })}
+                />
+                <Label htmlFor="new-contact-outreach">Enable outreach for this contact</Label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsAddContactOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddContact}>
+                  Add Contact
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
