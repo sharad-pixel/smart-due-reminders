@@ -4444,7 +4444,19 @@ export type Database = {
         Returns: number
       }
       get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
-      get_public_ar_page: { Args: { p_token: string }; Returns: Json }
+      get_public_ar_page:
+        | {
+            Args: { p_token: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.get_public_ar_page(p_token => text), public.get_public_ar_page(p_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { p_token: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.get_public_ar_page(p_token => text), public.get_public_ar_page(p_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       get_user_organization_id: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
