@@ -183,8 +183,13 @@ export default function PublicARPage() {
   const accentColor = branding.accent_color || "#3b82f6";
 
   const getDocumentUrl = (fileUrl: string) => {
-    const { data } = supabase.storage.from("documents").getPublicUrl(fileUrl);
-    return data.publicUrl;
+    // If it's already a full URL, return as-is
+    if (fileUrl.startsWith('http')) {
+      return fileUrl;
+    }
+    // Otherwise, construct the public URL from the documents bucket
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    return `${supabaseUrl}/storage/v1/object/public/documents/${fileUrl}`;
   };
 
   const isExpired = (expiresAt: string | null) => {
