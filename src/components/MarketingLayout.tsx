@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
-import LanguageSelector from "@/components/LanguageSelector";
+
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -95,8 +95,6 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
       <main className="flex-1">
         {children}
       </main>
-      
-      <LanguageSelector />
 
       <footer className="border-t py-12 px-4 bg-card mt-auto">
         <div className="container mx-auto">
