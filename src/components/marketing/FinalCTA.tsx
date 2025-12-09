@@ -36,7 +36,7 @@ const FinalCTA = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
               <Sparkles className="h-4 w-4 animate-pulse" />
-              Start Today
+              Collection Intelligence Platform
             </div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
@@ -44,11 +44,11 @@ const FinalCTA = () => {
             </h2>
             
             <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-              Ready to Automate Your Collections?
+              AI That Analyzes Every Touchpoint
             </p>
             
             <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Start saving time and recovering revenue today. Join hundreds of finance teams already using Recouply.ai.
+              Accounts, communications, payments, tasks, and notes—all analyzed by AI to maximize your receivables recovery.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

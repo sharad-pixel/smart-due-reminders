@@ -13,16 +13,16 @@ const Features = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-            The Future of Receivables Management
+            Collection Intelligence Platform
           </div>
           <h1 className="text-5xl font-bold mb-6">
-            Six AI Agents Powering Your <span className="text-primary">CashOps</span>
+            Six AI Agents Powering Your <span className="text-primary">Collection Intelligence</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-4">
-            Everything you need to recover revenue efficiently while maintaining customer relationships. Our AI agents work 24/7 and get smarter with every interaction.
+            AI that analyzes every touchpoint—accounts, communications, payments, tasks, and notes—to maximize your receivables recovery.
           </p>
           <p className="text-lg text-primary font-medium">
-            "CashOps intelligence that improves every day."
+            "Collection intelligence that improves with every interaction."
           </p>
         </div>
       </section>
@@ -143,9 +143,9 @@ const Features = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <BarChart3 className="h-7 w-7 text-primary" />
               </div>
-              <h2 className="text-3xl font-bold mb-4">Full CashOps Dashboard</h2>
+              <h2 className="text-3xl font-bold mb-4">Collection Intelligence Dashboard</h2>
               <p className="text-muted-foreground mb-4">
-                Centralized command center to track all invoices, customers, and AI agent activities. Monitor DSO, payment status, outreach history, and upcoming follow-ups in one place with real-time visibility.
+                Centralized command center with AI-powered insights across all accounts, invoices, and communications. Monitor risk scores, payment patterns, communication sentiment, and task resolution in one place.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
@@ -254,30 +254,30 @@ const Features = () => {
             <CardContent className="p-8">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <h2 className="text-3xl font-bold mb-4">Intelligence That Compounds</h2>
+                  <h2 className="text-3xl font-bold mb-4">Collection Intelligence That Compounds</h2>
                   <p className="text-muted-foreground mb-6">
-                    Recouply.ai becomes more accurate, more predictive, and more effective as time goes on—driving higher recovery rates with less manual work.
+                    AI analyzes every touchpoint—account data, inbound communications, payment history, task resolutions, and notes—to continuously improve recovery strategies.
                   </p>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">Learns from customer responses and payment outcomes</span>
+                      <span className="text-muted-foreground">Account intelligence: payment patterns, risk factors, and collection history</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">Adapts messaging based on engagement patterns</span>
+                      <span className="text-muted-foreground">Communication intelligence: sentiment analysis, response patterns, and engagement</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">Optimizes based on best-performing templates</span>
+                      <span className="text-muted-foreground">Task intelligence: resolution effectiveness, team performance, and follow-up optimization</span>
                     </li>
                   </ul>
                 </div>
                 <div className="text-center">
                   <div className="inline-block p-6 bg-card rounded-2xl border">
                     <Brain className="w-16 h-16 text-primary mx-auto mb-4" />
-                    <p className="text-xl font-bold mb-2">AI That Learns Your Customers</p>
-                    <p className="text-sm text-muted-foreground">Every interaction improves the system</p>
+                    <p className="text-xl font-bold mb-2">Collection Intelligence Platform</p>
+                    <p className="text-sm text-muted-foreground">Every touchpoint analyzed to maximize recovery</p>
                   </div>
                 </div>
               </div>
@@ -288,12 +288,12 @@ const Features = () => {
 
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Start Using These Features Today</h2>
+          <h2 className="text-4xl font-bold mb-4">Experience Collection Intelligence Today</h2>
           <p className="text-lg mb-4 opacity-90">
-            Six AI agents recovering your revenue 24/7—getting smarter with every invoice.
+            AI that analyzes every touchpoint—accounts, communications, payments, tasks, and notes.
           </p>
           <p className="text-md mb-8 opacity-80">
-            "Predictable cash flow powered by AI. Stop paying for expensive headcount—our agents work nonstop."
+            "Collection intelligence that improves with every interaction. Maximize recovery with AI-powered insights."
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button

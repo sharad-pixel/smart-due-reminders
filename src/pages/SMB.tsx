@@ -50,7 +50,7 @@ const SMB = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
                 <Building2 className="h-4 w-4" />
-                For Small & Medium Businesses
+                Collection Intelligence for SMBs
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 Your New AR Collections Team—Powered by AI
@@ -140,10 +140,10 @@ const SMB = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Real-Time Cash Operations Dashboard
+                Collection Intelligence Dashboard
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Monitor DSO, track outreach effectiveness, and see payment status all in one place. Know exactly where your money is at any moment.
+                AI-powered insights across accounts, communications, payments, and tasks. Know exactly where your money is and what actions will recover it fastest.
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
