@@ -302,7 +302,6 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-2 shrink-0">
-              <LanguageSelector />
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -506,6 +505,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </footer>
       
+      <LanguageSelector />
       <NicolasChat />
     </div>
   );

@@ -79,7 +79,6 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               About
             </button>
-            <LanguageSelector />
             <Button onClick={() => navigate("/login")} variant="ghost">
               Login
             </Button>
@@ -96,6 +95,8 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
       <main className="flex-1">
         {children}
       </main>
+      
+      <LanguageSelector />
 
       <footer className="border-t py-12 px-4 bg-card mt-auto">
         <div className="container mx-auto">
