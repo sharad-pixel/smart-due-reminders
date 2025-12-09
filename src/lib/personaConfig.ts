@@ -2,7 +2,7 @@ import samAvatar from "@/assets/personas/sam.png";
 import jamesAvatar from "@/assets/personas/james.png";
 import katyAvatar from "@/assets/personas/katy.png";
 import troyAvatar from "@/assets/personas/troy.png";
-import gottiAvatar from "@/assets/personas/gotti.png";
+import jimmyAvatar from "@/assets/personas/jimmy.png";
 import roccoAvatar from "@/assets/personas/rocco.png";
 
 export interface PersonaConfig {
@@ -57,11 +57,11 @@ export const personaConfig: Record<string, PersonaConfig> = {
     description: "Firm 91-120 Day Agent",
     tone: "Very firm but professional",
   },
-  gotti: {
-    name: "Gotti",
+  jimmy: {
+    name: "Jimmy",
     color: "#9A0000",
     bgColor: "bg-purple-500",
-    avatar: gottiAvatar,
+    avatar: jimmyAvatar,
     bucketMin: 121,
     bucketMax: 150,
     description: "Very Firm 121-150 Day Agent",
