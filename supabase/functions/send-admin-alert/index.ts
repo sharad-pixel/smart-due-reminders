@@ -7,10 +7,14 @@ const corsHeaders = {
 };
 
 interface AdminAlertRequest {
-  type: "waitlist" | "signup";
+  type: "waitlist" | "signup" | "contact_request";
   email: string;
   name?: string;
   company?: string;
+  message?: string;
+  billingSystem?: string;
+  monthlyInvoices?: string;
+  teamSize?: string;
 }
 
 serve(async (req) => {
@@ -38,7 +42,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, email, name, company }: AdminAlertRequest = await req.json();
+    const { type, email, name, company, message, billingSystem, monthlyInvoices, teamSize }: AdminAlertRequest = await req.json();
     console.log(`Processing admin alert for ${type}: ${email}`);
 
     const adminEmail = "sharad@recouply.ai";
@@ -149,6 +153,85 @@ serve(async (req) => {
         <div style="text-align: center; margin: 32px 0;">
           <a href="https://recouply.ai/admin/users" style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">
             View in User Management →
+          </a>
+        </div>
+      `;
+    } else if (type === "contact_request") {
+      subject = "📋 New Custom Pricing Request - RecouplyAI Inc.";
+      bodyContent = `
+        <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
+          📋 New Custom Pricing Request!
+        </h2>
+        
+        <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+          Someone has submitted a request for custom/bespoke pricing!
+        </p>
+
+        <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); border-radius: 12px; padding: 28px; margin: 28px 0;">
+          <p style="margin: 0 0 8px; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
+            Contact Request Details
+          </p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Name:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${name || 'Not provided'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Email:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Company:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${company || 'Not provided'}</td>
+            </tr>
+            ${billingSystem ? `
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Billing System:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${billingSystem}</td>
+            </tr>
+            ` : ''}
+            ${monthlyInvoices ? `
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Monthly Invoices:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${monthlyInvoices}</td>
+            </tr>
+            ` : ''}
+            ${teamSize ? `
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Team Size:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${teamSize}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px;">Submitted:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500;">${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${message ? `
+        <div style="background-color: #faf5ff; border-left: 4px solid #7c3aed; border-radius: 0 8px 8px 0; padding: 20px; margin: 24px 0;">
+          <h3 style="margin: 0 0 12px; color: #5b21b6; font-size: 16px; font-weight: 600;">
+            💬 Their Message
+          </h3>
+          <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.7; white-space: pre-wrap;">${message}</p>
+        </div>
+        ` : ''}
+
+        <div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <h3 style="margin: 0 0 12px; color: #1e3a5f; font-size: 16px; font-weight: 600;">
+            📋 Recommended Actions
+          </h3>
+          <ul style="margin: 0; padding: 0 0 0 20px; color: #475569; font-size: 14px; line-height: 2;">
+            <li>Review the request details above</li>
+            <li>Schedule a discovery call within 24 hours</li>
+            <li>Prepare a custom pricing proposal</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="mailto:${email}?subject=Re: Your Recouply.ai Custom Pricing Request" style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">
+            Reply to ${name || 'Prospect'} →
           </a>
         </div>
       `;
