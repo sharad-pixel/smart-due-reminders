@@ -539,12 +539,6 @@ const Debtors = () => {
 
                     {/* Contact Info */}
                     <div className="space-y-1.5 mb-3 text-sm">
-                      {debtor.primary_contact_name && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <User className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{debtor.primary_contact_name}</span>
-                        </div>
-                      )}
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Mail className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{debtor.email}</span>
@@ -638,7 +632,6 @@ const Debtors = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Account</TableHead>
-                      <TableHead>Contact</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Balance</TableHead>
                       <TableHead className="text-center">Invoices</TableHead>
@@ -662,15 +655,9 @@ const Debtors = () => {
                               {debtor.type === "B2B" ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-medium truncate">{debtor.company_name || debtor.name}</p>
+                              <p className="font-medium truncate">{debtor.company_name}</p>
                               <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="truncate max-w-[180px]">{debtor.email}</p>
-                            {debtor.phone && <p className="text-xs text-muted-foreground">{debtor.phone}</p>}
                           </div>
                         </TableCell>
                         <TableCell>
