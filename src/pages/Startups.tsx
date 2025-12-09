@@ -48,7 +48,7 @@ const Startups = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
                 <Rocket className="h-4 w-4" />
-                For Startups
+                Collection Intelligence for Startups
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 Grow Faster Without Hiring a Finance Team
@@ -84,10 +84,10 @@ const Startups = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Why Startups Choose Recouply.ai
+            Why Startups Choose Collection Intelligence
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Perfect for teams with &lt;10 employees who can't afford dedicated AR staff
+            AI that analyzes every touchpoint to maximize recovery—perfect for teams with &lt;10 employees
           </p>
           
           <div className="grid md:grid-cols-2 gap-8">

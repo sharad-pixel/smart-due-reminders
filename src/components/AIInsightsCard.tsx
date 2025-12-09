@@ -117,7 +117,7 @@ export function AIInsightsCard({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">AI Insights</CardTitle>
+                <CardTitle className="text-lg">Collection Intelligence</CardTitle>
               </div>
               <div className="flex items-center gap-2">
                 {data.riskAlerts.filter(a => a.severity === "critical").length > 0 && (
@@ -340,7 +340,7 @@ export function AIInsightsCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">AI Analytics</CardTitle>
+            <CardTitle className="text-lg">Collection Intelligence</CardTitle>
           </div>
           <Button 
             variant="ghost" 

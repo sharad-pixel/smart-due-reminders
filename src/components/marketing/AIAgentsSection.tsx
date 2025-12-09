@@ -6,8 +6,8 @@ import { personaConfig } from "@/lib/personaConfig";
 
 const watchdogAgent = {
   name: "Watchdog",
-  description: "Proactive Risk Monitoring & Early Detection",
-  tone: "Monitors payment patterns and flags at-risk accounts before they become delinquent",
+  description: "Proactive Risk Intelligence & Early Detection",
+  tone: "Analyzes payment patterns, communication sentiment, and account behavior to flag at-risk accounts before they become delinquent",
   dayRange: "Always Active",
 };
 
@@ -22,13 +22,13 @@ const AIAgentsSection = () => {
       <div className="container mx-auto max-w-6xl relative z-10">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Meet Your AI Team
+            Collection Intelligence Agents
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Six Specialized Collection Agents
+            Six AI Agents Powering Your Intelligence
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Each agent adapts their tone and approach based on invoice age and customer context
+            Each agent analyzes accounts, communications, payments, and tasks to maximize recovery
           </p>
         </div>
         
