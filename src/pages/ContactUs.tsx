@@ -86,6 +86,20 @@ const ContactUs = () => {
 
       if (error) throw error;
 
+      // Send admin alert email
+      await supabase.functions.invoke('send-admin-alert', {
+        body: {
+          type: 'contact_request',
+          email: validatedData.email,
+          name: validatedData.name,
+          company: validatedData.company,
+          message: validatedData.message,
+          billingSystem: validatedData.billingSystem,
+          monthlyInvoices: validatedData.monthlyInvoices,
+          teamSize: validatedData.teamSize
+        }
+      });
+
       setSubmitted(true);
       toast.success("Request submitted! We'll reach out within 24 hours.");
     } catch (error: any) {
