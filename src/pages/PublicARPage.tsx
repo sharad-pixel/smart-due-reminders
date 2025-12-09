@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getAppUrl } from "@/lib/appConfig";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -17,9 +17,12 @@ import {
   Shield,
   Clock,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
+import recouplyLogo from "@/assets/recouply-logo.png";
 
 interface ARPageData {
   branding: {
@@ -59,24 +62,31 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other Document",
 };
 
+const CATEGORY_ICONS: Record<string, string> = {
+  w9: "📋",
+  ach_authorization: "🏦",
+  wire_instructions: "💳",
+  compliance: "✅",
+  contract: "📝",
+  insurance: "🛡️",
+  other: "📄",
+};
+
 export default function PublicARPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<ARPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Set meta robots tag based on environment
   useEffect(() => {
     const appUrl = getAppUrl();
     const isProduction = appUrl.includes('recouply.ai');
     
-    // Remove any existing robots meta tag
     const existingRobots = document.querySelector('meta[name="robots"]');
     if (existingRobots) {
       existingRobots.remove();
     }
     
-    // Add robots meta tag - index only on production
     const robotsMeta = document.createElement('meta');
     robotsMeta.name = 'robots';
     robotsMeta.content = isProduction ? 'index, follow' : 'noindex, nofollow';
@@ -96,7 +106,6 @@ export default function PublicARPage() {
       }
 
       try {
-        // Call the database function to get public AR page data
         const { data: result, error: fetchError } = await supabase
           .rpc("get_public_ar_page", { p_token: token });
 
@@ -117,7 +126,6 @@ export default function PublicARPage() {
 
         setData(resultData);
 
-        // Log access (fire and forget)
         if (resultData?.branding?.id) {
           supabase
             .from("ar_page_access_logs")
@@ -140,19 +148,27 @@ export default function PublicARPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-primary/20 rounded-full animate-pulse" />
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-primary rounded-full animate-spin" />
+          </div>
+          <p className="text-muted-foreground font-medium">Loading AR Portal...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Page Not Available</h1>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="max-w-md w-full shadow-xl border-0">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <h1 className="text-2xl font-bold mb-3">Page Not Available</h1>
             <p className="text-muted-foreground">
               {error || "This AR information page is not available or has been disabled."}
             </p>
@@ -163,8 +179,8 @@ export default function PublicARPage() {
   }
 
   const { branding, documents } = data;
-  const primaryColor = branding.primary_color || "#000000";
-  const accentColor = branding.accent_color || "#6366f1";
+  const primaryColor = branding.primary_color || "#1e293b";
+  const accentColor = branding.accent_color || "#3b82f6";
 
   const getDocumentUrl = (fileUrl: string) => {
     const { data } = supabase.storage.from("documents").getPublicUrl(fileUrl);
@@ -177,224 +193,381 @@ export default function PublicARPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      {/* Header */}
-      <header 
-        className="border-b bg-card"
-        style={{ borderBottomColor: primaryColor }}
-      >
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            {branding.logo_url ? (
-              <img 
-                src={branding.logo_url} 
-                alt={branding.business_name} 
-                className="h-12 w-auto object-contain"
-              />
-            ) : (
-              <Building2 className="h-12 w-12 text-muted-foreground" />
-            )}
-            <div>
-              <h1 className="text-2xl font-bold">{branding.business_name}</h1>
-              <p className="text-sm text-muted-foreground">
-                Accounts Receivable Information Portal
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      {/* Enterprise Header with Company Branding */}
+      <header className="relative overflow-hidden">
+        {/* Background Pattern */}
+        <div 
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: `radial-gradient(circle at 20% 50%, ${primaryColor} 0%, transparent 50%), radial-gradient(circle at 80% 50%, ${accentColor} 0%, transparent 50%)`,
+          }}
+        />
+        
+        {/* Main Header Content */}
+        <div 
+          className="relative border-b-4"
+          style={{ borderBottomColor: primaryColor }}
+        >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Top Bar */}
+            <div className="flex items-center justify-between py-3 border-b border-slate-200">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Shield className="h-3.5 w-3.5" />
+                <span>Secure AR Information Portal</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>
+                  Updated: {branding.ar_page_last_updated_at 
+                    ? format(new Date(branding.ar_page_last_updated_at), "MMM d, yyyy")
+                    : "N/A"
+                  }
+                </span>
+              </div>
+            </div>
+            
+            {/* Company Branding */}
+            <div className="py-8 sm:py-12">
+              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+                {/* Company Logo */}
+                <div className="flex-shrink-0">
+                  {branding.logo_url ? (
+                    <div className="relative">
+                      <div 
+                        className="absolute inset-0 rounded-2xl blur-xl opacity-20"
+                        style={{ backgroundColor: primaryColor }}
+                      />
+                      <img 
+                        src={branding.logo_url} 
+                        alt={branding.business_name} 
+                        className="relative h-20 sm:h-24 w-auto object-contain rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      className="h-20 sm:h-24 w-20 sm:w-24 rounded-2xl flex items-center justify-center"
+                      style={{ backgroundColor: `${primaryColor}15` }}
+                    >
+                      <Building2 className="h-10 sm:h-12 w-10 sm:w-12" style={{ color: primaryColor }} />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Company Info */}
+                <div className="text-center sm:text-left">
+                  <h1 
+                    className="text-3xl sm:text-4xl font-bold tracking-tight"
+                    style={{ color: primaryColor }}
+                  >
+                    {branding.business_name}
+                  </h1>
+                  <p className="mt-2 text-lg text-muted-foreground">
+                    Accounts Receivable Information Portal
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Verified Business
+                    </Badge>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Shield className="h-3 w-3 mr-1" />
+                      Secure Portal
+                    </Badge>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        {/* Contact Information */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {branding.ar_contact_email && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">AR Contact</p>
-                      <a 
-                        href={`mailto:${branding.ar_contact_email}`}
-                        className="font-medium hover:underline"
-                        style={{ color: accentColor }}
-                      >
-                        {branding.ar_contact_email}
-                      </a>
-                    </div>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main Content - 2 columns */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Payment Options Card */}
+            <Card className="shadow-lg border-0 overflow-hidden">
+              <div 
+                className="h-1.5"
+                style={{ background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})` }}
+              />
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div 
+                    className="p-3 rounded-xl"
+                    style={{ backgroundColor: `${accentColor}15` }}
+                  >
+                    <CreditCard className="h-6 w-6" style={{ color: accentColor }} />
                   </div>
-                )}
-
-                {branding.escalation_contact_name && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Escalation Contact</p>
-                      <p className="font-medium">{branding.escalation_contact_name}</p>
-                      {branding.escalation_contact_email && (
-                        <a 
-                          href={`mailto:${branding.escalation_contact_email}`}
-                          className="text-sm hover:underline"
-                          style={{ color: accentColor }}
-                        >
-                          {branding.escalation_contact_email}
-                        </a>
-                      )}
-                      {branding.escalation_contact_phone && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {branding.escalation_contact_phone}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Payment Methods */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Payment Options
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {branding.supported_payment_methods && branding.supported_payment_methods.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Accepted Payment Methods</p>
-                  <div className="flex flex-wrap gap-2">
-                    {branding.supported_payment_methods.map((method: string) => (
-                      <Badge key={method} variant="secondary">
-                        {method}
-                      </Badge>
-                    ))}
+                  <div>
+                    <h2 className="text-xl font-semibold">Payment Options</h2>
+                    <p className="text-sm text-muted-foreground">Secure payment methods available</p>
                   </div>
                 </div>
-              )}
+                
+                {branding.supported_payment_methods && branding.supported_payment_methods.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-sm font-medium text-muted-foreground mb-3">Accepted Payment Methods</p>
+                    <div className="flex flex-wrap gap-2">
+                      {branding.supported_payment_methods.map((method: string) => (
+                        <Badge 
+                          key={method} 
+                          variant="secondary"
+                          className="px-4 py-2 text-sm font-medium"
+                        >
+                          {method}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {branding.stripe_payment_link && (
-                <div className="pt-2">
+                {branding.stripe_payment_link && (
                   <Button 
                     asChild
-                    className="w-full sm:w-auto"
-                    style={{ backgroundColor: accentColor }}
+                    size="lg"
+                    className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all duration-300"
+                    style={{ 
+                      backgroundColor: accentColor,
+                      boxShadow: `0 4px 14px 0 ${accentColor}40`
+                    }}
                   >
                     <a 
                       href={branding.stripe_payment_link} 
                       target="_blank" 
                       rel="noopener noreferrer"
                     >
-                      <CreditCard className="h-4 w-4 mr-2" />
+                      <CreditCard className="h-5 w-5 mr-2" />
                       Make a Payment
                       <ExternalLink className="h-4 w-4 ml-2" />
                     </a>
                   </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Documents */}
-        {documents.length > 0 && (
-          <section>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Documents
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="divide-y">
-                  {documents.map((doc) => {
-                    const expired = isExpired(doc.expires_at);
-                    return (
-                      <div 
-                        key={doc.id} 
-                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-muted">
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {CATEGORY_LABELS[doc.category] || doc.file_name}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{doc.file_name}</span>
-                              {doc.status === "verified" && (
-                                <Badge variant="outline" className="text-green-600 border-green-600">
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  Verified
-                                </Badge>
-                              )}
-                              {expired && (
-                                <Badge variant="destructive">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  Expired
-                                </Badge>
-                              )}
+            {/* Documents Card */}
+            {documents.length > 0 && (
+              <Card className="shadow-lg border-0 overflow-hidden">
+                <div 
+                  className="h-1.5"
+                  style={{ background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})` }}
+                />
+                <CardContent className="p-6 sm:p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div 
+                      className="p-3 rounded-xl"
+                      style={{ backgroundColor: `${primaryColor}15` }}
+                    >
+                      <FileText className="h-6 w-6" style={{ color: primaryColor }} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Documents</h2>
+                      <p className="text-sm text-muted-foreground">{documents.length} document{documents.length !== 1 ? 's' : ''} available</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {documents.map((doc) => {
+                      const expired = isExpired(doc.expires_at);
+                      return (
+                        <div 
+                          key={doc.id} 
+                          className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="text-2xl">
+                              {CATEGORY_ICONS[doc.category] || "📄"}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {CATEGORY_LABELS[doc.category] || doc.file_name}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                <span className="truncate max-w-[200px]">{doc.file_name}</span>
+                                {doc.status === "verified" && (
+                                  <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Verified
+                                  </Badge>
+                                )}
+                                {expired && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Expired
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          disabled={expired}
-                        >
-                          <a 
-                            href={getDocumentUrl(doc.file_url)} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            download
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            disabled={expired}
+                            className="opacity-70 group-hover:opacity-100 transition-opacity"
                           >
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    );
-                  })}
+                            <a 
+                              href={getDocumentUrl(doc.file_url)} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              download
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </a>
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar - 1 column */}
+          <div className="space-y-6">
+            {/* Contact Information Card */}
+            <Card className="shadow-lg border-0 overflow-hidden">
+              <div 
+                className="h-1.5"
+                style={{ background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})` }}
+              />
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div 
+                    className="p-3 rounded-xl"
+                    style={{ backgroundColor: `${primaryColor}15` }}
+                  >
+                    <User className="h-6 w-6" style={{ color: primaryColor }} />
+                  </div>
+                  <h2 className="text-lg font-semibold">Contact Us</h2>
+                </div>
+                
+                <div className="space-y-4">
+                  {branding.ar_contact_email && (
+                    <div className="p-4 rounded-xl bg-slate-50">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">AR Contact</p>
+                      <a 
+                        href={`mailto:${branding.ar_contact_email}`}
+                        className="flex items-center gap-2 font-medium hover:underline"
+                        style={{ color: accentColor }}
+                      >
+                        <Mail className="h-4 w-4" />
+                        {branding.ar_contact_email}
+                      </a>
+                    </div>
+                  )}
+
+                  {branding.escalation_contact_name && (
+                    <div className="p-4 rounded-xl bg-slate-50">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Escalation Contact</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {branding.escalation_contact_name}
+                      </p>
+                      {branding.escalation_contact_email && (
+                        <a 
+                          href={`mailto:${branding.escalation_contact_email}`}
+                          className="flex items-center gap-2 text-sm mt-2 hover:underline"
+                          style={{ color: accentColor }}
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                          {branding.escalation_contact_email}
+                        </a>
+                      )}
+                      {branding.escalation_contact_phone && (
+                        <a 
+                          href={`tel:${branding.escalation_contact_phone}`}
+                          className="flex items-center gap-2 text-sm text-muted-foreground mt-1 hover:underline"
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                          {branding.escalation_contact_phone}
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </section>
-        )}
+
+            {/* Quick Actions Card */}
+            {branding.stripe_payment_link && (
+              <Card className="shadow-lg border-0 overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="h-5 w-5 text-yellow-400" />
+                    <h3 className="font-semibold">Quick Pay</h3>
+                  </div>
+                  <p className="text-sm text-slate-300 mb-4">
+                    Pay your invoice instantly with our secure payment portal.
+                  </p>
+                  <Button 
+                    asChild
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    <a 
+                      href={branding.stripe_payment_link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      Pay Now
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t mt-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center text-sm text-muted-foreground space-y-2">
-            {branding.footer_disclaimer && (
-              <p>{branding.footer_disclaimer}</p>
-            )}
-            <Separator className="my-4" />
-            <div className="flex items-center justify-center gap-2">
-              <p>
-                Last updated: {branding.ar_page_last_updated_at 
-                  ? format(new Date(branding.ar_page_last_updated_at), "MMM d, yyyy")
-                  : "N/A"
-                }
-              </p>
+      {/* Enterprise Footer */}
+      <footer className="mt-12 border-t bg-slate-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {branding.footer_disclaimer && (
+            <div className="mb-6 p-4 rounded-xl bg-white border text-sm text-muted-foreground">
+              {branding.footer_disclaimer}
             </div>
-            <p className="text-xs">
-              Powered by <span className="font-semibold">Recouply.ai</span>
-            </p>
+          )}
+          
+          <Separator className="my-6" />
+          
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {branding.logo_url && (
+                <img 
+                  src={branding.logo_url} 
+                  alt={branding.business_name} 
+                  className="h-8 w-auto object-contain opacity-60"
+                />
+              )}
+              <span className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} {branding.business_name}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Powered by</span>
+              <a 
+                href="https://recouply.ai" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <img 
+                  src={recouplyLogo} 
+                  alt="Recouply.ai" 
+                  className="h-6 w-auto"
+                />
+                <span className="font-semibold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Recouply.ai
+                </span>
+              </a>
+            </div>
           </div>
         </div>
       </footer>
