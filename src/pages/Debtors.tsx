@@ -24,7 +24,15 @@ interface Contact {
   outreach_enabled: boolean;
 }
 
-
+interface DebtorContact {
+  id: string;
+  name: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  is_primary: boolean;
+  outreach_enabled: boolean;
+}
 
 interface Debtor {
   id: string;
@@ -50,6 +58,7 @@ interface Debtor {
   credit_limit: number | null;
   payment_terms_default: string | null;
   created_at: string | null;
+  contacts?: DebtorContact[];
 }
 
 const Debtors = () => {
@@ -97,13 +106,21 @@ const Debtors = () => {
           crm_account_id_external, open_invoices_count, max_days_past_due,
           payment_score, avg_days_to_pay, primary_contact_name,
           ar_contact_name, ar_contact_email, city, state,
-          credit_limit, payment_terms_default, created_at
+          credit_limit, payment_terms_default, created_at,
+          debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
         `)
         .eq("is_archived", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setDebtors(data || []);
+      
+      // Map contacts to debtors
+      const debtorsWithContacts = (data || []).map((d: any) => ({
+        ...d,
+        contacts: d.debtor_contacts || []
+      }));
+      
+      setDebtors(debtorsWithContacts);
     } catch (error: any) {
       toast.error("Failed to load accounts");
     } finally {
@@ -537,20 +554,43 @@ const Debtors = () => {
                       </span>
                     </div>
 
-                    {/* Contact Info */}
-                    <div className="space-y-1.5 mb-3 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{debtor.email}</span>
+                    {/* Contacts */}
+                    <div className="space-y-2 mb-3">
+                      <p className="text-xs font-medium text-muted-foreground">Contacts</p>
+                      <div className="space-y-1.5">
+                        {debtor.contacts && debtor.contacts.length > 0 ? (
+                          debtor.contacts.slice(0, 3).map((contact) => (
+                            <div key={contact.id} className="flex items-center gap-2 text-sm bg-muted/30 rounded px-2 py-1">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                                contact.is_primary ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                              }`}>
+                                <User className="h-3 w-3" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium truncate">{contact.name}</span>
+                                  {contact.is_primary && (
+                                    <span className="text-[10px] bg-primary/10 text-primary px-1 rounded">Primary</span>
+                                  )}
+                                </div>
+                                {contact.email && (
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Mail className="h-2.5 w-2.5" />
+                                    <span className="truncate">{contact.email}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{debtor.email}</span>
+                          </div>
+                        )}
                       </div>
-                      {debtor.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          <span>{debtor.phone}</span>
-                        </div>
-                      )}
                       {(debtor.city || debtor.state) && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm pt-1">
                           <MapPin className="h-3.5 w-3.5 shrink-0" />
                           <span>{[debtor.city, debtor.state].filter(Boolean).join(", ")}</span>
                         </div>
@@ -632,12 +672,12 @@ const Debtors = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Account</TableHead>
+                      <TableHead>Contacts</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Balance</TableHead>
                       <TableHead className="text-center">Invoices</TableHead>
                       <TableHead className="text-center">Max DPD</TableHead>
                       <TableHead className="text-center">Score</TableHead>
-                      <TableHead>External ID</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -658,6 +698,36 @@ const Debtors = () => {
                               <p className="font-medium truncate">{debtor.company_name}</p>
                               <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
                             </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1 max-w-xs">
+                            {debtor.contacts && debtor.contacts.length > 0 ? (
+                              debtor.contacts.slice(0, 3).map((contact, idx) => (
+                                <div key={contact.id} className="flex items-center gap-2 text-xs">
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                                    contact.is_primary ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                  }`}>
+                                    <User className="h-3 w-3" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <span className="font-medium truncate block">{contact.name}</span>
+                                    {contact.email && (
+                                      <span className="text-muted-foreground truncate block">{contact.email}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted text-muted-foreground">
+                                  <User className="h-3 w-3" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-muted-foreground truncate block">{debtor.email}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -687,11 +757,6 @@ const Debtors = () => {
                             (debtor.payment_score || 50) >= 40 ? "text-orange-500" : "text-destructive"
                           }`}>
                             {debtor.payment_score || 50}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-mono text-muted-foreground">
-                            {debtor.external_customer_id || "-"}
                           </span>
                         </TableCell>
                       </TableRow>
