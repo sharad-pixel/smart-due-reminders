@@ -410,9 +410,11 @@ serve(async (req) => {
         // 1. User has email
         // 2. User has daily_digest_email_enabled = true (default is true)
         // 3. Email hasn't been sent for today's digest yet
+        // IMPORTANT: Email is sent ONLY ONCE per day - force regeneration does NOT resend email
         const digestEmailEnabled = user.daily_digest_email_enabled !== false; // Default to true
         
-        // Check if email was already sent for today
+        // Check if email was already sent for today - this is a STRICT check
+        // Even if forceRegenerate is true, we do NOT resend the email
         const { data: existingDigestWithEmail } = await supabase
           .from('daily_digests')
           .select('email_sent_at')
@@ -422,6 +424,11 @@ serve(async (req) => {
           .maybeSingle();
         
         const emailAlreadySent = !!existingDigestWithEmail?.email_sent_at;
+        
+        // Log if we're skipping email due to already sent
+        if (emailAlreadySent) {
+          logStep('Email already sent today, skipping email send', { userId: user.id, date: today });
+        }
         
         if (user.email && digestEmailEnabled && !emailAlreadySent) {
           try {
