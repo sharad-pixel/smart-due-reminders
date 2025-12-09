@@ -202,7 +202,7 @@ const Enterprise = () => {
             <Card className="bg-card p-6">
               <h3 className="font-bold mb-4">Automated Dunning Flow</h3>
               <div className="space-y-3">
-                {["sam", "james", "katy", "troy", "gotti", "rocco"].map((persona, idx) => (
+                {["sam", "james", "katy", "troy", "jimmy", "rocco"].map((persona, idx) => (
                   <div key={persona} className="flex items-center gap-3 p-2 bg-muted/30 rounded">
                     <PersonaAvatar persona={persona} size="sm" />
                     <div className="flex-1">
