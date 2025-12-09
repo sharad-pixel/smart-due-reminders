@@ -65,8 +65,8 @@ const Invoices = () => {
   });
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
-  const [hideCancelled, setHideCancelled] = useState<boolean>(() => {
-    const saved = localStorage.getItem("hideCancelledInvoices");
+  const [hideInactive, setHideInactive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hideInactiveInvoices");
     return saved === "true";
   });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -96,8 +96,8 @@ const Invoices = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("hideCancelledInvoices", hideCancelled.toString());
-  }, [hideCancelled]);
+    localStorage.setItem("hideInactiveInvoices", hideInactive.toString());
+  }, [hideInactive]);
 
   useEffect(() => {
     localStorage.setItem("invoiceStatusFilter", statusFilter);
@@ -105,7 +105,7 @@ const Invoices = () => {
 
   useEffect(() => {
     filterInvoices();
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, hideCancelled]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, hideInactive]);
 
   const fetchData = async () => {
     try {
@@ -284,8 +284,9 @@ const Invoices = () => {
       filtered = filtered.filter((inv) => inv.debtor_id === debtorFilter);
     }
 
-    if (hideCancelled) {
-      filtered = filtered.filter((inv) => inv.status !== "Canceled");
+    if (hideInactive) {
+      const inactiveStatuses = ["Paid", "Settled", "Canceled"];
+      filtered = filtered.filter((inv) => !inactiveStatuses.includes(inv.status));
     }
 
     setFilteredInvoices(filtered);
@@ -657,12 +658,12 @@ const Invoices = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Switch
-                  id="hide-cancelled"
-                  checked={hideCancelled}
-                  onCheckedChange={setHideCancelled}
+                  id="hide-inactive"
+                  checked={hideInactive}
+                  onCheckedChange={setHideInactive}
                 />
-                <Label htmlFor="hide-cancelled" className="text-sm font-normal cursor-pointer">
-                  Hide cancelled invoices
+                <Label htmlFor="hide-inactive" className="text-sm font-normal cursor-pointer">
+                  Hide inactive (Paid, Settled, Canceled)
                 </Label>
               </div>
             </div>
