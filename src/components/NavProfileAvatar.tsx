@@ -11,8 +11,8 @@ interface NavProfileAvatarProps {
 
 const sizeClasses = {
   sm: "h-8 w-8",
-  md: "h-9 w-9",
-  lg: "h-10 w-10",
+  md: "h-10 w-10",
+  lg: "h-12 w-12",
 };
 
 export const NavProfileAvatar = ({
@@ -28,13 +28,16 @@ export const NavProfileAvatar = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Avatar className={cn("h-full w-full transition-all duration-200", isHovered && "ring-2 ring-primary/30")}>
+      <Avatar className={cn("h-full w-full transition-all duration-200 border border-border/50 shadow-sm", isHovered && "ring-2 ring-primary/30")}>
         <AvatarImage 
           src={avatarUrl || undefined} 
           alt={userName} 
           className="object-cover"
+          loading="eager"
+          referrerPolicy="no-referrer"
+          style={{ imageRendering: 'auto' }}
         />
-        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-xs">
+        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
           {userName.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
