@@ -53,7 +53,6 @@ const Debtors = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [formData, setFormData] = useState({
-    name: "",
     company_name: "",
     contact_name: "",
     email: "",
@@ -134,6 +133,7 @@ const Debtors = () => {
 
       const { error } = await supabase.from("debtors").insert({
         ...formData,
+        name: formData.company_name,
         user_id: user.id,
       } as any);
 
@@ -141,7 +141,6 @@ const Debtors = () => {
       toast.success("Account created successfully");
       setIsCreateOpen(false);
       setFormData({
-        name: "",
         company_name: "",
         contact_name: "",
         email: "",
@@ -200,15 +199,6 @@ const Debtors = () => {
                 </DialogHeader>
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Name *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="company_name">Company Name *</Label>
                       <Input
