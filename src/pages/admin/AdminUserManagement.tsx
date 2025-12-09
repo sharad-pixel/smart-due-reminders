@@ -29,6 +29,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -124,9 +125,11 @@ const AdminUserManagement = () => {
   const [filterPlan, setFilterPlan] = useState<string>("all");
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userDetailData, setUserDetailData] = useState<UserDetailData | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -316,6 +319,35 @@ const AdminUserManagement = () => {
     } catch (error: any) {
       console.error("Error toggling admin:", error);
       toast.error("Failed to update admin status");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteClick = (user: UserProfile) => {
+    setSelectedUser(user);
+    setDeleteConfirmEmail("");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser || deleteConfirmEmail !== selectedUser.email) return;
+
+    setActionLoading(selectedUser.id);
+    try {
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: selectedUser.id },
+      });
+
+      if (error) throw error;
+
+      toast.success(`User ${selectedUser.email} and all related data have been deleted`);
+      setDeleteDialogOpen(false);
+      await fetchUsers();
+      await fetchStats();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Failed to delete user");
     } finally {
       setActionLoading(null);
     }
@@ -647,6 +679,15 @@ const AdminUserManagement = () => {
                                     </>
                                   )}
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(user)}
+                                  disabled={actionLoading === user.id}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete User
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -936,6 +977,61 @@ const AdminUserManagement = () => {
               </TabsContent>
             </Tabs>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete User Permanently
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete{" "}
+              <strong>{selectedUser?.email}</strong> and all associated data including:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>All invoices and payment records</li>
+              <li>All accounts/debtors</li>
+              <li>All documents and files</li>
+              <li>All collection activities and tasks</li>
+              <li>All AI drafts and workflows</li>
+              <li>Team memberships and settings</li>
+              <li>Branding and organization data</li>
+            </ul>
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-sm font-medium mb-2">
+                To confirm, type the user's email address:
+              </p>
+              <Input
+                placeholder={selectedUser?.email}
+                value={deleteConfirmEmail}
+                onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                className="font-mono"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteUser}
+              disabled={actionLoading === selectedUser?.id || deleteConfirmEmail !== selectedUser?.email}
+            >
+              {actionLoading === selectedUser?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Delete User Permanently
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>
