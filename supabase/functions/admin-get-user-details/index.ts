@@ -54,8 +54,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    const url = new URL(req.url);
-    const userId = url.searchParams.get('userId');
+    // Get userId from request body or query params
+    let userId: string | null = null;
+    
+    // Try to get from body first (POST request)
+    try {
+      const body = await req.json();
+      userId = body.userId;
+    } catch {
+      // If no body, try query params (GET request)
+      const url = new URL(req.url);
+      userId = url.searchParams.get('userId');
+    }
 
     if (!userId) {
       return new Response(
