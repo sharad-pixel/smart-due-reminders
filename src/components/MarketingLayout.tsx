@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
+import LanguageSelector from "@/components/LanguageSelector";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -78,6 +79,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               About
             </button>
+            <LanguageSelector />
             <Button onClick={() => navigate("/login")} variant="ghost">
               Login
             </Button>
