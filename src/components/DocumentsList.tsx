@@ -37,6 +37,7 @@ import { format } from "date-fns";
 interface DocumentsListProps {
   organizationId?: string;
   debtorId?: string;
+  isParentAccount?: boolean;
 }
 
 const STATUS_CONFIG = {
@@ -66,7 +67,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-export default function DocumentsList({ organizationId, debtorId }: DocumentsListProps) {
+export default function DocumentsList({ organizationId, debtorId, isParentAccount = true }: DocumentsListProps) {
   const queryClient = useQueryClient();
   const { data: documents, isLoading } = useDocuments(organizationId, debtorId);
   const updateStatusMutation = useUpdateDocumentStatus();
@@ -191,19 +192,24 @@ export default function DocumentsList({ organizationId, debtorId }: DocumentsLis
                         </p>
                       )}
                       
-                      {/* Public Visibility Toggle */}
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                        <Switch
-                          checked={doc.public_visible || false}
-                          onCheckedChange={(checked) => 
-                            toggleVisibilityMutation.mutate({ documentId: doc.id, visible: checked })
-                          }
-                          disabled={toggleVisibilityMutation.isPending}
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          Visible on Public AR Page
-                        </span>
-                      </div>
+                      {/* Public Visibility Toggle - Only for Parent Accounts and Verified Documents */}
+                      {isParentAccount && (
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                          <Switch
+                            checked={doc.public_visible || false}
+                            onCheckedChange={(checked) => 
+                              toggleVisibilityMutation.mutate({ documentId: doc.id, visible: checked })
+                            }
+                            disabled={toggleVisibilityMutation.isPending || doc.status !== 'verified'}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            Visible on Public AR Page
+                            {doc.status !== 'verified' && (
+                              <span className="text-xs text-warning ml-1">(Verify document first)</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

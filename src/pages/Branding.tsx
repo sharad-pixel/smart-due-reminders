@@ -438,7 +438,10 @@ export default function Branding() {
                   <a href="/documents" className="text-primary hover:underline">
                     Documents
                   </a>{" "}
-                  page and toggle the "Visible on Public AR Page" option for each document.
+                  page, <strong>verify the document</strong>, then toggle the "Visible on Public AR Page" option.
+                </p>
+                <p className="mt-2">
+                  <strong>Note:</strong> Only verified documents can be made public. Documents must be reviewed and verified before they appear on the AR page.
                 </p>
                 <p className="mt-2">
                   Only W-9s, ACH authorizations, wire instructions, and compliance documents 
