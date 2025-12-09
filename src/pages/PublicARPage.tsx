@@ -533,11 +533,14 @@ export default function PublicARPage() {
       {/* Enterprise Footer */}
       <footer className="mt-12 border-t bg-slate-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {branding.footer_disclaimer && (
-            <div className="mb-6 p-4 rounded-xl bg-white border text-sm text-muted-foreground">
-              {branding.footer_disclaimer}
+          <div className="mb-6 p-4 rounded-xl bg-white border text-sm text-muted-foreground flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-blue-50 flex-shrink-0">
+              <FileText className="h-4 w-4 text-blue-600" />
             </div>
-          )}
+            <p>
+              <span className="font-medium text-foreground">Payment Tip:</span> When making payments, please reference your invoice number to ensure smoother and timely processing of your payment.
+            </p>
+          </div>
           
           <Separator className="my-6" />
           
