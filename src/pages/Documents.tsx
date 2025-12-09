@@ -8,10 +8,12 @@ import { FileText, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 export default function Documents() {
   const [activeTab, setActiveTab] = useState("all");
   const { data: organization, isLoading: orgLoading } = useOrganization();
+  const { isTeamMember } = useEffectiveAccount();
 
   // Get document statistics
   const { data: stats } = useQuery({
@@ -113,14 +115,16 @@ export default function Documents() {
         </div>
 
         {/* Main Content */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Upload Section */}
-          <div>
-            <DocumentUpload organizationId={organization?.id} />
-          </div>
+        <div className={`grid ${!isTeamMember ? 'md:grid-cols-3' : ''} gap-6`}>
+          {/* Upload Section - Only for Parent Accounts */}
+          {!isTeamMember && (
+            <div>
+              <DocumentUpload organizationId={organization?.id} />
+            </div>
+          )}
 
           {/* Documents List */}
-          <div className="md:col-span-2">
+          <div className={!isTeamMember ? "md:col-span-2" : ""}>
             <Card>
               <CardHeader>
                 <CardTitle>Your Documents</CardTitle>
@@ -138,19 +142,19 @@ export default function Documents() {
                     <TabsTrigger value="rejected">Rejected</TabsTrigger>
                   </TabsList>
                   <TabsContent value="all" className="mt-6">
-                    <DocumentsList organizationId={organization?.id} />
+                    <DocumentsList organizationId={organization?.id} isParentAccount={!isTeamMember} />
                   </TabsContent>
                   <TabsContent value="pending" className="mt-6">
-                    <DocumentsList organizationId={organization?.id} />
+                    <DocumentsList organizationId={organization?.id} isParentAccount={!isTeamMember} />
                   </TabsContent>
                   <TabsContent value="verified" className="mt-6">
-                    <DocumentsList organizationId={organization?.id} />
+                    <DocumentsList organizationId={organization?.id} isParentAccount={!isTeamMember} />
                   </TabsContent>
                   <TabsContent value="expired" className="mt-6">
-                    <DocumentsList organizationId={organization?.id} />
+                    <DocumentsList organizationId={organization?.id} isParentAccount={!isTeamMember} />
                   </TabsContent>
                   <TabsContent value="rejected" className="mt-6">
-                    <DocumentsList organizationId={organization?.id} />
+                    <DocumentsList organizationId={organization?.id} isParentAccount={!isTeamMember} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
