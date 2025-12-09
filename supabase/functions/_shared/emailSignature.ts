@@ -81,19 +81,22 @@ function generatePublicARPageCTA(branding: BrandingSettings): string {
   const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
   if (!arPageUrl || !branding.ar_page_enabled) return "";
 
-  const businessName = branding.business_name || branding.from_name || "Our";
+  const businessName = branding.business_name || branding.from_name || "Our Company";
 
   return `
-    <div style="text-align: center; margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border: 1px solid #cbd5e1;">
-      <p style="margin: 0 0 12px; font-size: 14px; color: #475569; font-weight: 500;">
-        📄 View ${escapeHtml(businessName)} AR Information Page
+    <div style="text-align: center; margin: 24px 0; padding: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; border: 1px solid #93c5fd;">
+      <p style="margin: 0 0 8px; font-size: 16px; color: #1e40af; font-weight: 600;">
+        📄 ${escapeHtml(businessName)} Accounts Receivable Portal
+      </p>
+      <p style="margin: 0 0 16px; font-size: 13px; color: #3b82f6;">
+        View payment options, download invoices, and access important documents
       </p>
       <a href="${escapeHtml(arPageUrl)}" 
-         style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
-        View Payment Options & Documents →
+         style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+        Visit AR Portal →
       </a>
-      <p style="margin: 12px 0 0; font-size: 12px; color: #64748b;">
-        Access invoices, payment methods, and important documents
+      <p style="margin: 16px 0 0; font-size: 12px; color: #64748b; font-style: italic;">
+        💡 Tip: When making payments, reference your invoice number for faster processing
       </p>
     </div>
   `.trim();
@@ -323,13 +326,14 @@ export function generateEmailSignature(
       />`
     : "";
 
-  // Public AR Page link
+  // Public AR Page link with description
   const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
   const arPageLink = arPageUrl && branding.ar_page_enabled
     ? `<p style="margin: 12px 0 0; font-size: 13px;">
         📄 <a href="${escapeHtml(arPageUrl)}" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
-          View our AR Information Page →
+          Visit our AR Portal
         </a>
+        <span style="color: #64748b;"> — View invoices, payment options & documents</span>
       </p>`
     : "";
 
@@ -403,10 +407,12 @@ export function generatePlainTextSignature(
   signature += `   6 AI Agents • 24/7 Collections • Smart Recovery\n`;
   signature += `   ${COMPANY_INFO.website}\n\n`;
   
-  // Public AR page link
+  // Public AR page link with description
   const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
   if (arPageUrl && branding.ar_page_enabled) {
-    signature += `📄 View our AR Information Page: ${arPageUrl}\n\n`;
+    signature += `📄 Visit our AR Portal: ${arPageUrl}\n`;
+    signature += `   View invoices, payment options & important documents\n`;
+    signature += `   💡 Tip: Reference your invoice number when making payments\n\n`;
   }
   
   signature += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
