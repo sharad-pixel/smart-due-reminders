@@ -388,7 +388,7 @@ const DebtorDetail = () => {
             </Button>
             <Button onClick={() => setIsAccountSummaryOpen(true)} variant="outline">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Generate Account Summary
+              AI Outreach
             </Button>
             <Button variant="outline" onClick={() => setIsEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
