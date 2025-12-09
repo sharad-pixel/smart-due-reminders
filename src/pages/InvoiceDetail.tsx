@@ -60,7 +60,7 @@ interface Invoice {
   created_at: string | null;
   updated_at: string | null;
   debtors?: { 
-    name: string; 
+    company_name: string; 
     email: string;
     crm_account_id: string | null;
   };
@@ -175,7 +175,7 @@ const InvoiceDetail = () => {
       const [invoiceRes, outreachRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(name, email, crm_account_id)")
+          .select("*, debtors(company_name, email, crm_account_id)")
           .eq("id", id)
           .single(),
         supabase
@@ -667,7 +667,7 @@ const InvoiceDetail = () => {
             </Button>
             <div>
               <h1 className="text-4xl font-bold text-primary">Invoice #{invoice.invoice_number}</h1>
-              <p className="text-muted-foreground mt-1">{invoice.debtors?.name}</p>
+              <p className="text-muted-foreground mt-1">{invoice.debtors?.company_name}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm font-mono text-muted-foreground">{invoice.reference_id}</span>
                 <Button
@@ -857,8 +857,8 @@ const InvoiceDetail = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-medium">{invoice.debtors?.name}</p>
+                <p className="text-sm text-muted-foreground">Company</p>
+                <p className="font-medium">{invoice.debtors?.company_name}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>

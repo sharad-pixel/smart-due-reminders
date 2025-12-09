@@ -36,7 +36,7 @@ interface Invoice {
   status: string;
   last_contact_date: string | null;
   debtor_id: string;
-  debtors?: { name: string };
+  debtors?: { company_name: string };
   ai_workflows?: Array<{
     id: string;
     is_active: boolean;
@@ -45,7 +45,7 @@ interface Invoice {
 
 interface Debtor {
   id: string;
-  name: string;
+  company_name: string;
 }
 
 const Invoices = () => {
@@ -112,10 +112,10 @@ const Invoices = () => {
       const [invoicesRes, debtorsRes, agentPersonasRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(name), ai_workflows(id, is_active)")
+          .select("*, debtors(company_name), ai_workflows(id, is_active)")
           .eq("is_archived", false)
           .order("due_date", { ascending: false }),
-        supabase.from("debtors").select("id, name").order("name"),
+        supabase.from("debtors").select("id, company_name").order("company_name"),
         supabase.from("ai_agent_personas").select("name, bucket_min, bucket_max").order("bucket_min"),
       ]);
 
@@ -261,7 +261,7 @@ const Invoices = () => {
         (inv) =>
           inv.reference_id.toLowerCase().includes(term) ||
           inv.invoice_number.toLowerCase().includes(term) ||
-          inv.debtors?.name.toLowerCase().includes(term)
+          inv.debtors?.company_name.toLowerCase().includes(term)
       );
     }
 
@@ -296,7 +296,7 @@ const Invoices = () => {
     return filteredInvoices.map(inv => ({
       ...inv,
       days_past_due: getDaysPastDue(inv.due_date),
-      debtor_name: inv.debtors?.name || '',
+      debtor_name: inv.debtors?.company_name || '',
     }));
   }, [filteredInvoices]);
 
@@ -449,7 +449,7 @@ const Invoices = () => {
                           <SelectContent>
                             {debtors.map((debtor) => (
                               <SelectItem key={debtor.id} value={debtor.id}>
-                                {debtor.name}
+                                {debtor.company_name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -649,7 +649,7 @@ const Invoices = () => {
                   <SelectItem value="all">All Accounts</SelectItem>
                   {debtors.map((debtor) => (
                     <SelectItem key={debtor.id} value={debtor.id}>
-                      {debtor.name}
+                      {debtor.company_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -826,7 +826,7 @@ const Invoices = () => {
                         </TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">{invoice.reference_id}</TableCell>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{invoice.debtors?.name}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{invoice.debtors?.company_name}</TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">${invoice.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-sm tabular-nums">{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
                         <TableCell>
