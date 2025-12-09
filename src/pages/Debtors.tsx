@@ -9,11 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { AIInsightsCard } from "@/components/AIInsightsCard";
+
+interface Contact {
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+  outreach_enabled: boolean;
+}
 
 
 
@@ -52,11 +61,11 @@ const Debtors = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [contacts, setContacts] = useState<Contact[]>([
+    { name: "", title: "", email: "", phone: "", outreach_enabled: true }
+  ]);
   const [formData, setFormData] = useState({
     company_name: "",
-    contact_name: "",
-    email: "",
-    phone: "",
     type: "B2C" as "B2B" | "B2C",
     address: "",
     address_line1: "",
@@ -124,27 +133,63 @@ const Debtors = () => {
   };
 
 
+  const addContact = () => {
+    setContacts([...contacts, { name: "", title: "", email: "", phone: "", outreach_enabled: true }]);
+  };
+
+  const removeContact = (index: number) => {
+    if (contacts.length > 1) {
+      setContacts(contacts.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateContact = (index: number, field: keyof Contact, value: string | boolean) => {
+    const updated = [...contacts];
+    updated[index] = { ...updated[index], [field]: value };
+    setContacts(updated);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const primaryContact = contacts[0];
+    if (!primaryContact.name || !primaryContact.email) {
+      toast.error("Primary contact name and email are required");
+      return;
+    }
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("debtors").insert({
+      const { data: debtor, error } = await supabase.from("debtors").insert({
         ...formData,
         name: formData.company_name,
+        contact_name: primaryContact.name,
+        email: primaryContact.email,
+        phone: primaryContact.phone,
         user_id: user.id,
-      } as any);
+      } as any).select().single();
 
       if (error) throw error;
+
+      const contactsToInsert = contacts.map((contact, index) => ({
+        debtor_id: debtor.id,
+        user_id: user.id,
+        name: contact.name,
+        title: contact.title || null,
+        email: contact.email || null,
+        phone: contact.phone || null,
+        outreach_enabled: contact.outreach_enabled,
+        is_primary: index === 0,
+      }));
+
+      await supabase.from("debtor_contacts").insert(contactsToInsert);
+
       toast.success("Account created successfully");
       setIsCreateOpen(false);
       setFormData({
         company_name: "",
-        contact_name: "",
-        email: "",
-        phone: "",
         type: "B2C",
         address: "",
         address_line1: "",
@@ -157,6 +202,7 @@ const Debtors = () => {
         external_customer_id: "",
         crm_account_id_external: "",
       });
+      setContacts([{ name: "", title: "", email: "", phone: "", outreach_enabled: true }]);
       fetchDebtors();
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
@@ -209,34 +255,6 @@ const Debtors = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="contact_name">Contact Name *</Label>
-                      <Input
-                        id="contact_name"
-                        value={formData.contact_name}
-                        onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="type">Type *</Label>
                       <Select
                         value={formData.type}
@@ -254,6 +272,94 @@ const Debtors = () => {
                       </Select>
                     </div>
                   </div>
+
+                  {/* Contacts Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Contacts</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={addContact}>
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Add Contact
+                      </Button>
+                    </div>
+                    
+                    {contacts.map((contact, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {index === 0 ? "Primary Contact" : `Contact ${index + 1}`}
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`outreach-${index}`} className="text-sm">Outreach</Label>
+                                <Switch
+                                  id={`outreach-${index}`}
+                                  checked={contact.outreach_enabled}
+                                  onCheckedChange={(checked) => updateContact(index, "outreach_enabled", checked)}
+                                />
+                              </div>
+                              {index > 0 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeContact(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label htmlFor={`contact-name-${index}`} className="text-xs">
+                                Name {index === 0 && "*"}
+                              </Label>
+                              <Input
+                                id={`contact-name-${index}`}
+                                value={contact.name}
+                                onChange={(e) => updateContact(index, "name", e.target.value)}
+                                placeholder="Full name"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor={`contact-title-${index}`} className="text-xs">Title</Label>
+                              <Input
+                                id={`contact-title-${index}`}
+                                value={contact.title}
+                                onChange={(e) => updateContact(index, "title", e.target.value)}
+                                placeholder="e.g., CFO, AP Manager"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor={`contact-email-${index}`} className="text-xs">
+                                Email {index === 0 && "*"}
+                              </Label>
+                              <Input
+                                id={`contact-email-${index}`}
+                                type="email"
+                                value={contact.email}
+                                onChange={(e) => updateContact(index, "email", e.target.value)}
+                                placeholder="email@company.com"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor={`contact-phone-${index}`} className="text-xs">Phone</Label>
+                              <Input
+                                id={`contact-phone-${index}`}
+                                type="tel"
+                                value={contact.phone}
+                                onChange={(e) => updateContact(index, "phone", e.target.value)}
+                                placeholder="(555) 123-4567"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="address_line1">Address Line 1</Label>
                     <Input

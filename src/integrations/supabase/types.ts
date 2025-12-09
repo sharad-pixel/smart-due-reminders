@@ -1656,6 +1656,66 @@ export type Database = {
           },
         ]
       }
+      debtor_contacts: {
+        Row: {
+          created_at: string
+          debtor_id: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          organization_id: string | null
+          outreach_enabled: boolean
+          phone: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          debtor_id: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          organization_id?: string | null
+          outreach_enabled?: boolean
+          phone?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          debtor_id?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          organization_id?: string | null
+          outreach_enabled?: boolean
+          phone?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debtor_contacts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debtor_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtor_risk_history: {
         Row: {
           ai_sentiment_score: number | null
