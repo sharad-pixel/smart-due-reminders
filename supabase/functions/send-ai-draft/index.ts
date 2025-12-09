@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateBrandedEmail } from "../_shared/emailSignature.ts";
+import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 // Platform email configuration
-const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 // Decrypt a value using AES-GCM (kept for SMS Twilio credentials)
@@ -77,22 +76,25 @@ serve(async (req) => {
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
-    // Fetch branding settings for signature
+    // Fetch branding settings for signature and From name
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled")
       .eq("user_id", user.id)
       .single();
 
+    // Generate the From address using company name
+    const fromEmail = getEmailFromAddress(branding || {});
+
     let sendResult = { success: false, message: "", replyTo: "" };
-    let sentFrom = PLATFORM_FROM_EMAIL;
+    let sentFrom = fromEmail;
 
     // Send based on channel
     if (draft.channel === "email") {
       // Use platform email - reply-to is based on invoice
       const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
       
-      console.log(`Sending email via platform from ${PLATFORM_FROM_EMAIL} to ${debtor.email} with reply-to: ${replyToAddress}`);
+      console.log(`Sending email via platform from ${fromEmail} to ${debtor.email} with reply-to: ${replyToAddress}`);
 
       // Format message body with line breaks
       const formattedBody = draft.message_body.replace(/\n/g, "<br>");
@@ -119,7 +121,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             to: debtor.email,
-            from: PLATFORM_FROM_EMAIL,
+            from: fromEmail,
             reply_to: replyToAddress,
             subject: draft.subject || "Payment Reminder",
             html: emailHtml,

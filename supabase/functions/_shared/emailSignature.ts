@@ -2,14 +2,14 @@
  * Email Signature Generator for Edge Functions
  * 
  * Generates consistent enterprise-grade email signatures with organization branding,
- * custom signatures, payment links, and RecouplyAI Inc. branding.
+ * custom signatures, payment links, Public AR page links, and RecouplyAI Inc. branding.
  */
 
 // Company Information
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "AI-Powered CashOps Platform",
+  tagline: "Collection Intelligence Platform",
   website: "https://recouply.ai",
   emails: {
     collections: "collections@recouply.ai",
@@ -26,6 +26,9 @@ export interface BrandingSettings {
   email_signature?: string;
   email_footer?: string;
   primary_color?: string;
+  ar_page_public_token?: string | null;
+  ar_page_enabled?: boolean;
+  stripe_payment_link?: string | null;
 }
 
 export interface PaymentLinkOptions {
@@ -49,12 +52,64 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * Get the public AR page URL for the account
+ */
+function getPublicARPageUrl(token: string | null | undefined): string | null {
+  if (!token) return null;
+  return `https://recouply.ai/ar/${token}`;
+}
+
+/**
+ * Generate the From name for emails (Company Name format)
+ */
+export function getEmailFromName(branding: BrandingSettings): string {
+  return branding.business_name || branding.from_name || "Recouply.ai";
+}
+
+/**
+ * Generate the full From address with company name
+ */
+export function getEmailFromAddress(branding: BrandingSettings): string {
+  const fromName = getEmailFromName(branding);
+  return `${fromName} <notifications@send.inbound.services.recouply.ai>`;
+}
+
+/**
+ * Generate Public AR Page CTA section for emails
+ */
+function generatePublicARPageCTA(branding: BrandingSettings): string {
+  const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
+  if (!arPageUrl || !branding.ar_page_enabled) return "";
+
+  const businessName = branding.business_name || branding.from_name || "Our";
+
+  return `
+    <div style="text-align: center; margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border: 1px solid #cbd5e1;">
+      <p style="margin: 0 0 12px; font-size: 14px; color: #475569; font-weight: 500;">
+        📄 View ${escapeHtml(businessName)} AR Information Page
+      </p>
+      <a href="${escapeHtml(arPageUrl)}" 
+         style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+        View Payment Options & Documents →
+      </a>
+      <p style="margin: 12px 0 0; font-size: 12px; color: #64748b;">
+        Access invoices, payment methods, and important documents
+      </p>
+    </div>
+  `.trim();
+}
+
+/**
  * Generate RecouplyAI Inc. enterprise branded footer section
  */
-function generateRecouplyFooter(): string {
+function generateRecouplyFooter(branding: BrandingSettings): string {
   const currentYear = new Date().getFullYear();
+  const arPageCTA = generatePublicARPageCTA(branding);
   
   return `
+    <!-- Public AR Page CTA -->
+    ${arPageCTA ? `<tr><td style="padding: 0 36px;">${arPageCTA}</td></tr>` : ""}
+    
     <!-- RecouplyAI Inc. Enterprise Footer -->
     <tr>
       <td style="padding: 32px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 0 0 12px 12px;">
@@ -190,7 +245,7 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}):
             </td>
           </tr>
           
-          ${generateRecouplyFooter()}
+          ${generateRecouplyFooter(branding)}
         </table>
         
         <!-- Unsubscribe and Legal Links -->
@@ -268,6 +323,16 @@ export function generateEmailSignature(
       />`
     : "";
 
+  // Public AR Page link
+  const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
+  const arPageLink = arPageUrl && branding.ar_page_enabled
+    ? `<p style="margin: 12px 0 0; font-size: 13px;">
+        📄 <a href="${escapeHtml(arPageUrl)}" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+          View our AR Information Page →
+        </a>
+      </p>`
+    : "";
+
   return `
     ${paymentButton}
     <div style="margin-top: 36px; padding-top: 28px; border-top: 2px solid #e2e8f0;">
@@ -295,6 +360,7 @@ export function generateEmailSignature(
                   <p style="margin: 0; font-size: 12px; color: #94a3b8;">
                     ${COMPANY_INFO.legalName} • <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #64748b; text-decoration: none;">${COMPANY_INFO.emails.support}</a>
                   </p>
+                  ${arPageLink}
                 </td>
               </tr>
             </table>
@@ -336,6 +402,13 @@ export function generatePlainTextSignature(
   signature += `   ${COMPANY_INFO.tagline}\n`;
   signature += `   6 AI Agents • 24/7 Collections • Smart Recovery\n`;
   signature += `   ${COMPANY_INFO.website}\n\n`;
+  
+  // Public AR page link
+  const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
+  if (arPageUrl && branding.ar_page_enabled) {
+    signature += `📄 View our AR Information Page: ${arPageUrl}\n\n`;
+  }
+  
   signature += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   signature += `${COMPANY_INFO.legalName}\n`;
   signature += `Support: ${COMPANY_INFO.emails.support}\n`;

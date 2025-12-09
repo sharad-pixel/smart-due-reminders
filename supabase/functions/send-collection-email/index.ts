@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateBrandedEmail } from "../_shared/emailSignature.ts";
+import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 // Platform email configuration
-const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 serve(async (req) => {
@@ -55,14 +54,17 @@ serve(async (req) => {
       replyToEmail = `collections@${PLATFORM_INBOUND_DOMAIN}`;
     }
 
-    console.log(`Sending email from platform: ${PLATFORM_FROM_EMAIL}, reply-to: ${replyToEmail}`);
-
-    // Fetch branding settings for signature
+    // Fetch branding settings for signature and From name
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled")
       .eq("user_id", user.id)
       .single();
+
+    // Generate the From address using company name
+    const fromEmail = getEmailFromAddress(branding || {});
+
+    console.log(`Sending email from: ${fromEmail}, reply-to: ${replyToEmail}`);
 
     // Build fully branded email with signature and optional payment link
     const emailHtml = generateBrandedEmail(
@@ -86,7 +88,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           to: recipientEmail,
-          from: PLATFORM_FROM_EMAIL,
+          from: fromEmail,
           reply_to: replyToEmail,
           subject,
           html: emailHtml,
@@ -130,8 +132,8 @@ serve(async (req) => {
             message_body: body,
             sent_at: new Date().toISOString(),
             metadata: {
-              from_email: PLATFORM_FROM_EMAIL,
-              from_name: "Recouply.ai",
+              from_email: fromEmail,
+              from_name: branding?.business_name || "Recouply.ai",
               reply_to_email: replyToEmail,
               platform_send: true,
               payment_url: paymentUrl || null,
@@ -165,7 +167,7 @@ serve(async (req) => {
         success: true,
         message: "Email sent successfully",
         sender: {
-          email: PLATFORM_FROM_EMAIL,
+          email: fromEmail,
           reply_to: replyToEmail,
         },
       }),
