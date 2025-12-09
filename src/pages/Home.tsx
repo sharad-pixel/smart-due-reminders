@@ -12,6 +12,7 @@ import ValuePropositions from "@/components/marketing/ValuePropositions";
 import FeatureGrid from "@/components/marketing/FeatureGrid";
 import AIAgentsSection from "@/components/marketing/AIAgentsSection";
 import WhyDifferent from "@/components/marketing/WhyDifferent";
+import IntelligenceShowcase from "@/components/marketing/IntelligenceShowcase";
 
 const Home = () => {
   return (
@@ -21,6 +22,7 @@ const Home = () => {
       <AnimatedMetrics />
       <ValuePropositions />
       <FeatureGrid />
+      <IntelligenceShowcase />
       <AIAgentsSection />
       <EmailDemo />
       <WhyDifferent />
