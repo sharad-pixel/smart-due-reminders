@@ -139,19 +139,30 @@ export const InvoiceWorkflowCard = ({
 
   const nextAgentInfo = getDaysUntilNextAgent();
 
-  // Calculate next outreach date
+  // Calculate next outreach date based on actual sent count
   const getNextOutreachInfo = () => {
     if (sortedSteps.length === 0) return null;
-    const nextStep = sortedSteps.find(step => step.day_offset > daysPastDue);
+    
+    // Check if all steps have been sent
+    if (outreachCount >= sortedSteps.length) {
+      return { step: sortedSteps[sortedSteps.length - 1], date: null, daysUntil: 0, isComplete: true };
+    }
+    
+    // Find the next step that hasn't been sent yet (based on outreachCount)
+    const nextStepIndex = outreachCount;
+    const nextStep = sortedSteps[nextStepIndex];
     
     if (nextStep) {
       const dueDateObj = new Date(dueDate);
       const nextOutreachDate = addDays(dueDateObj, nextStep.day_offset);
-      return { step: nextStep, date: nextOutreachDate, daysUntil: nextStep.day_offset - daysPastDue };
+      const daysUntil = Math.max(0, nextStep.day_offset - daysPastDue);
+      return { step: nextStep, date: nextOutreachDate, daysUntil };
     }
-    return { step: sortedSteps[sortedSteps.length - 1], date: null, daysUntil: 0, isComplete: true };
+    
+    return null;
   };
   
+  // Need to recalculate when outreachCount updates
   const nextOutreach = getNextOutreachInfo();
 
   if (!isActiveInvoice) {
