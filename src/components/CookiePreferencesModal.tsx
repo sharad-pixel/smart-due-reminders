@@ -7,11 +7,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Shield, BarChart3, Target, Cog } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { CookiePreferences } from '@/hooks/useCookieConsent';
 
 interface CookiePreferencesModalProps {
@@ -79,6 +88,84 @@ export function CookiePreferencesModal({
     onSave(preferences);
   };
 
+  const isMobile = useIsMobile();
+
+  const content = (
+    <div className="space-y-4 py-4">
+      {cookieCategories.map((category, index) => {
+        const Icon = category.icon;
+        const isEnabled = category.required || preferences[category.id as keyof typeof preferences];
+        
+        return (
+          <div key={category.id}>
+            {index > 0 && <Separator className="mb-4" />}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={category.id} className="font-medium">
+                      {category.name}
+                    </Label>
+                    {category.required && (
+                      <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                        Required
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {category.description}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id={category.id}
+                checked={isEnabled}
+                onCheckedChange={() => !category.required && handleToggle(category.id as 'functional' | 'analytics' | 'marketing')}
+                disabled={category.required}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const footer = (
+    <div className="flex flex-col sm:flex-row gap-2 w-full">
+      <Button variant="outline" onClick={onRejectAll} className="w-full sm:w-auto">
+        Reject All
+      </Button>
+      <Button variant="outline" onClick={onAcceptAll} className="w-full sm:w-auto">
+        Accept All
+      </Button>
+      <Button onClick={handleSave} className="w-full sm:w-auto">
+        Save Preferences
+      </Button>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Cookie Preferences</SheetTitle>
+            <SheetDescription>
+              Manage your cookie preferences. You can enable or disable different types of cookies below.
+            </SheetDescription>
+          </SheetHeader>
+          {content}
+          <SheetFooter className="mt-4">
+            {footer}
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -88,58 +175,9 @@ export function CookiePreferencesModal({
             Manage your cookie preferences. You can enable or disable different types of cookies below.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {cookieCategories.map((category, index) => {
-            const Icon = category.icon;
-            const isEnabled = category.required || preferences[category.id as keyof typeof preferences];
-            
-            return (
-              <div key={category.id}>
-                {index > 0 && <Separator className="mb-4" />}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="p-2 rounded-lg bg-muted">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={category.id} className="font-medium">
-                          {category.name}
-                        </Label>
-                        {category.required && (
-                          <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                            Required
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {category.description}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id={category.id}
-                    checked={isEnabled}
-                    onCheckedChange={() => !category.required && handleToggle(category.id as 'functional' | 'analytics' | 'marketing')}
-                    disabled={category.required}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
+        {content}
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={onRejectAll} className="w-full sm:w-auto">
-            Reject All
-          </Button>
-          <Button variant="outline" onClick={onAcceptAll} className="w-full sm:w-auto">
-            Accept All
-          </Button>
-          <Button onClick={handleSave} className="w-full sm:w-auto">
-            Save Preferences
-          </Button>
+          {footer}
         </DialogFooter>
       </DialogContent>
     </Dialog>
