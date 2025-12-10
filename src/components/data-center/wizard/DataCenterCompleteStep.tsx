@@ -1,8 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, Users, FileSpreadsheet, Eye } from "lucide-react";
+import { CheckCircle, AlertTriangle, Users, FileSpreadsheet, Eye, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DataCenterCompleteStepProps {
   result: any;
@@ -101,6 +102,19 @@ export const DataCenterCompleteStep = ({ result, uploadId }: DataCenterCompleteS
           )}
         </CardContent>
       </Card>
+
+      {/* Outreach Notice */}
+      {result.fileType !== "payments" && (result.newRecords || 0) > 0 && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Mail className="h-5 w-5 text-primary" />
+          <AlertDescription className="ml-2">
+            <span className="font-medium">Collection Outreach Active:</span>{" "}
+            {result.newRecords} new invoice(s) with "Open" or "In Payment Plan" status are now enrolled in automated 
+            AI collection workflows. Our AI agents will begin sending collection emails based on your configured 
+            workflows and each invoice's aging bucket.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Needs Review Warning */}
       {hasNeedsReview && (
