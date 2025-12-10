@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all Open or InPaymentPlan invoices (use left join to include invoices even if debtor has no email)
+    // Get all Open or InPaymentPlan invoices with debtor contacts
     const { data: invoices, error: invoicesError } = await supabaseAdmin
       .from('invoices')
       .select(`
@@ -46,8 +46,7 @@ Deno.serve(async (req) => {
           id,
           name,
           company_name,
-          email,
-          contact_name
+          email
         )
       `)
       .in('status', ['Open', 'InPaymentPlan']);
@@ -171,11 +170,27 @@ Deno.serve(async (req) => {
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
+        // Fetch primary contact from debtor_contacts
+        const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
+        let debtorName = debtor?.company_name || debtor?.name || 'Customer';
+        
+        if (debtor?.id) {
+          const { data: contacts } = await supabaseAdmin
+            .from('debtor_contacts')
+            .select('name, is_primary')
+            .eq('debtor_id', debtor.id)
+            .order('is_primary', { ascending: false });
+          
+          if (contacts && contacts.length > 0) {
+            // Use primary contact or first contact
+            const primaryContact = contacts.find((c: any) => c.is_primary);
+            debtorName = primaryContact?.name || contacts[0]?.name || debtorName;
+          }
+        }
+
         // Build context
         const businessName = branding?.business_name || 'Your Company';
         const fromName = branding?.from_name || businessName;
-        const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
-        const debtorName = debtor?.contact_name || debtor?.name || debtor?.company_name;
 
         // Get persona-specific tone based on days past due
         const persona = getPersonaToneByDaysPastDue(daysPastDue);

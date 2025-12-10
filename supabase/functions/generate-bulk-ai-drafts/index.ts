@@ -72,8 +72,7 @@ Deno.serve(async (req) => {
               id,
               name,
               company_name,
-              email,
-              contact_name
+              email
             )
           `)
           .eq('id', invoiceId)
@@ -83,6 +82,22 @@ Deno.serve(async (req) => {
         if (invoiceError || !invoice) {
           errors.push({ invoice_id: invoiceId, error: 'Invoice not found' });
           continue;
+        }
+
+        // Fetch primary contact from debtor_contacts
+        let debtorName = invoice.debtors.company_name || invoice.debtors.name || 'Customer';
+        
+        if (invoice.debtors.id) {
+          const { data: contacts } = await supabaseClient
+            .from('debtor_contacts')
+            .select('name, is_primary')
+            .eq('debtor_id', invoice.debtors.id)
+            .order('is_primary', { ascending: false });
+          
+          if (contacts && contacts.length > 0) {
+            const primaryContact = contacts.find((c: any) => c.is_primary);
+            debtorName = primaryContact?.name || contacts[0]?.name || debtorName;
+          }
         }
 
         // Calculate days past due and aging bucket
@@ -139,7 +154,6 @@ Deno.serve(async (req) => {
         // Build AI prompt with persona-specific tone
         const businessName = branding?.business_name || 'Your Company';
         const fromName = branding?.from_name || businessName;
-        const debtorName = invoice.debtors.contact_name || invoice.debtors.name || invoice.debtors.company_name;
         
         // Get persona-specific tone
         const persona = getPersonaToneByDaysPastDue(daysPastDue);
