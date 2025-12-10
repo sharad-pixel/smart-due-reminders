@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Building2, Mail, Clock, TrendingDown, CheckCircle, ArrowRight, Users, BarChart3, Shield, Zap } from "lucide-react";
+import { Building2, Mail, Clock, TrendingDown, CheckCircle, ArrowRight, Users, BarChart3, Shield, Zap, Brain } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
@@ -49,7 +49,7 @@ const SMB = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-                <Building2 className="h-4 w-4" />
+                <Brain className="h-4 w-4" />
                 Collection Intelligence for SMBs
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -139,7 +139,8 @@ const SMB = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 flex items-center gap-3">
+                <Brain className="h-8 w-8 text-primary" />
                 Collection Intelligence Dashboard
               </h2>
               <p className="text-lg text-muted-foreground mb-6">

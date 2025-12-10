@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Rocket, DollarSign, Clock, TrendingUp, CheckCircle, ArrowRight, Zap, Target, BarChart3 } from "lucide-react";
+import { Rocket, DollarSign, Clock, TrendingUp, CheckCircle, ArrowRight, Zap, Target, BarChart3, Brain } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
@@ -47,7 +47,7 @@ const Startups = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-                <Rocket className="h-4 w-4" />
+                <Brain className="h-4 w-4" />
                 Collection Intelligence for Startups
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -83,7 +83,8 @@ const Startups = () => {
       {/* Key Benefits */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 flex items-center justify-center gap-3">
+            <Brain className="h-8 w-8 text-primary" />
             Why Startups Choose Collection Intelligence
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">

@@ -410,7 +410,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
-                          <Target className="h-4 w-4 text-primary" />
+                          <Brain className="h-4 w-4 text-primary" />
                           <span className="font-semibold text-sm">Collection Intelligence Report</span>
                         </div>
                         <div className="flex items-center gap-2">

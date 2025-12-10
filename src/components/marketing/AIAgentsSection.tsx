@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, Brain } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 
 const watchdogAgent = {
@@ -21,7 +21,8 @@ const AIAgentsSection = () => {
       
       <div className="container mx-auto max-w-6xl relative z-10">
         <div className="text-center mb-16">
-          <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+            <Brain className="h-4 w-4" />
             Collection Intelligence Agents
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
