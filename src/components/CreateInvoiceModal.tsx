@@ -39,7 +39,6 @@ export const CreateInvoiceModal = ({
     currency: "USD",
     product_description: "",
     external_invoice_id: "",
-    po_number: ""
   });
 
   // Auto-calculate due date when issue_date or payment_terms changes
@@ -101,7 +100,6 @@ export const CreateInvoiceModal = ({
         currency: "USD",
         product_description: "",
         external_invoice_id: "",
-        po_number: ""
       });
       
       onOpenChange(false);
@@ -255,27 +253,15 @@ export const CreateInvoiceModal = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="external_invoice_id">External Invoice ID</Label>
-                <Input
-                  id="external_invoice_id"
-                  value={formData.external_invoice_id}
-                  onChange={(e) => setFormData({ ...formData, external_invoice_id: e.target.value })}
-                  placeholder="e.g., QB-12345"
-                />
-                <p className="text-xs text-muted-foreground">ID from your billing system</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="po_number">PO Number</Label>
-                <Input
-                  id="po_number"
-                  value={formData.po_number}
-                  onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
-                  placeholder="e.g., PO-2024-001"
-                />
-                <p className="text-xs text-muted-foreground">Customer's purchase order number</p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="external_invoice_id">External Invoice ID</Label>
+              <Input
+                id="external_invoice_id"
+                value={formData.external_invoice_id}
+                onChange={(e) => setFormData({ ...formData, external_invoice_id: e.target.value })}
+                placeholder="e.g., QB-12345"
+              />
+              <p className="text-xs text-muted-foreground">ID from your billing system</p>
             </div>
           </div>
 
