@@ -104,6 +104,20 @@ const CreateTaskModal = ({
 
       if (error) throw error;
 
+      // Notify all team members about the new task
+      if (newTask) {
+        try {
+          await supabase.functions.invoke("notify-task-created", {
+            body: {
+              taskId: newTask.id,
+              creatorUserId: user.id,
+            },
+          });
+        } catch (notifyErr) {
+          console.error("Task notification error:", notifyErr);
+        }
+      }
+
       // Send email notification if assigned to a team member
       if (assignedTo && assignedTo !== "unassigned" && newTask) {
         try {
