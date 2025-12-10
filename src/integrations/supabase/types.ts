@@ -2462,6 +2462,71 @@ export type Database = {
           },
         ]
       }
+      email_broadcasts: {
+        Row: {
+          audience: string
+          audience_filter: Json | null
+          body_html: string
+          body_text: string | null
+          created_at: string
+          created_by: string | null
+          failed_count: number | null
+          id: string
+          scheduled_at: string | null
+          sent_at: string | null
+          sent_count: number | null
+          status: string
+          subject: string
+          template_id: string | null
+          total_recipients: number | null
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          audience_filter?: Json | null
+          body_html: string
+          body_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number | null
+          id?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          audience_filter?: Json | null
+          body_html?: string
+          body_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number | null
+          id?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_broadcasts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_connection_logs: {
         Row: {
           created_at: string
@@ -2582,6 +2647,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_templates: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          subject_template: string
+          template_key: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+          variables: Json | null
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          subject_template: string
+          template_key: string
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          subject_template?: string
+          template_key?: string
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          variables?: Json | null
+        }
+        Relationships: []
       }
       image_moderation_logs: {
         Row: {

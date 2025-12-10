@@ -66,6 +66,7 @@ import AdminEdgeFunctions from "./pages/admin/AdminEdgeFunctions";
 import AdminDatabase from "./pages/admin/AdminDatabase";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminSystem from "./pages/admin/AdminSystem";
+import AdminEmailTemplates from "./pages/admin/AdminEmailTemplates";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
           <Route path="/admin/database" element={<AdminDatabase />} />
           <Route path="/admin/security" element={<AdminSecurity />} />
           <Route path="/admin/system" element={<AdminSystem />} />
+          <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
