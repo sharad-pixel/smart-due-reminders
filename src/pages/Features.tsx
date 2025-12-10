@@ -12,7 +12,8 @@ const Features = () => {
     <MarketingLayout>
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
-          <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            <Brain className="h-4 w-4" />
             Collection Intelligence Platform
           </div>
           <h1 className="text-5xl font-bold mb-6">
@@ -141,7 +142,7 @@ const Features = () => {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
-                <BarChart3 className="h-7 w-7 text-primary" />
+                <Brain className="h-7 w-7 text-primary" />
               </div>
               <h2 className="text-3xl font-bold mb-4">Collection Intelligence Dashboard</h2>
               <p className="text-muted-foreground mb-4">

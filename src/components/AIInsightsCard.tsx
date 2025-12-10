@@ -116,7 +116,7 @@ export function AIInsightsCard({
           <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
+                <Brain className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">Collection Intelligence</CardTitle>
               </div>
               <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ export function AIInsightsCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Brain className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">Collection Intelligence</CardTitle>
           </div>
           <Button 
