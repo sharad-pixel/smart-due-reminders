@@ -391,20 +391,37 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       // Trigger AI mapping when entering mapping step
       runAIMapping.mutate();
     } else if (currentStep === 1) {
-    // Validate required fields
-      const relevantGroupings = fileType === "accounts" 
-        ? ["account", "customer"] 
-        : fileType === "invoice_aging" 
-          ? ["customer", "invoice", "account"] 
-          : ["customer", "payment", "account"];
-      const requiredFields = fieldDefinitions?.filter(f => f.required_for_recouply && relevantGroupings.includes(f.grouping)) || [];
+      // Validate required fields based on file type
+      // For accounts: customer_name, customer_email (RAID is auto-generated)
+      // For invoices: recouply_account_id, invoice_number, amount_original, invoice_date, due_date
+      // For payments: recouply_invoice_id, payment_invoice_number, payment_amount, payment_date
+      
+      let requiredKeys: string[] = [];
+      
+      if (fileType === "accounts") {
+        // Accounts: name and email required, RAID is auto-generated
+        requiredKeys = ["customer_name", "customer_email"];
+      } else if (fileType === "invoice_aging") {
+        // Invoices: need RAID to link to account, plus invoice details
+        requiredKeys = ["recouply_account_id", "invoice_number", "amount_original", "invoice_date", "due_date"];
+      } else if (fileType === "payments") {
+        // Payments: need RINV (primary) + invoice number (fallback), amount, date
+        requiredKeys = ["recouply_invoice_id", "payment_invoice_number", "payment_amount", "payment_date"];
+      }
+      
       const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
-      const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));
-
-      if (missingRequired.length > 0) {
+      const missingRequiredKeys = requiredKeys.filter(key => !mappedKeys.includes(key));
+      
+      if (missingRequiredKeys.length > 0) {
+        // Get labels for the missing fields
+        const missingLabels = missingRequiredKeys.map(key => {
+          const field = fieldDefinitions?.find(f => f.key === key);
+          return field?.label || key;
+        });
+        
         toast({
           title: "Missing required fields",
-          description: `Please map: ${missingRequired.map(f => f.label).join(", ")}`,
+          description: `Please map: ${missingLabels.join(", ")}`,
           variant: "destructive",
         });
         return;
