@@ -3008,6 +3008,7 @@ export type Database = {
           payment_method: string | null
           payment_terms: string | null
           payment_terms_days: number | null
+          po_number: string | null
           product_description: string | null
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
@@ -3048,6 +3049,7 @@ export type Database = {
           payment_method?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
+          po_number?: string | null
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
@@ -3088,6 +3090,7 @@ export type Database = {
           payment_method?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
+          po_number?: string | null
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
