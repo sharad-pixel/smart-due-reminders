@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, FileText, Link as LinkIcon, X, Plus, Loader2, Brain, Sparkles, CheckCircle2 } from "lucide-react";
+import { Mail, FileText, Link as LinkIcon, X, Plus, Loader2, Brain, Sparkles, CheckCircle2, AlertTriangle, Target } from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -54,6 +54,14 @@ interface AttachedDoc {
   url: string;
 }
 
+interface Intelligence {
+  riskLevel: "low" | "medium" | "high" | "critical" | "unknown";
+  riskScore: number;
+  executiveSummary: string;
+  collectionStrategy: string;
+  communicationSentiment: string;
+}
+
 const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModalProps) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [openTasks, setOpenTasks] = useState<Task[]>([]);
@@ -68,6 +76,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [showAddLink, setShowAddLink] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
+  const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -78,6 +87,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const fetchAccountData = async () => {
     setLoading(true);
     setAiGenerated(false);
+    setIntelligence(null);
     try {
       // Fetch open invoices and tasks in parallel
       const [invoicesRes, tasksRes] = await Promise.all([
@@ -142,7 +152,13 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       setSubject(data.subject || `Account Outreach - ${debtor.company_name}`);
       setMessage(data.message || "");
       setAiGenerated(true);
-      toast.success("AI outreach generated based on account activity");
+      
+      // Capture intelligence report if available
+      if (data.intelligence) {
+        setIntelligence(data.intelligence);
+      }
+      
+      toast.success("AI outreach generated based on Collection Intelligence Report");
     } catch (error: any) {
       console.error("Error generating AI outreach:", error);
       toast.error(error.message || "Failed to generate AI outreach");
@@ -292,8 +308,52 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                 {aiGenerated && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950 p-3 rounded-lg">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>AI-generated outreach based on account activity. You can edit before sending.</span>
+                    <span>AI-generated outreach based on Collection Intelligence Report. You can edit before sending.</span>
                   </div>
+                )}
+                
+                {/* Intelligence Report Summary */}
+                {intelligence && (
+                  <Card className={`border-2 ${
+                    intelligence.riskLevel === "low" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" :
+                    intelligence.riskLevel === "medium" ? "border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/20" :
+                    intelligence.riskLevel === "high" ? "border-orange-200 bg-orange-50/50 dark:bg-orange-950/20" :
+                    intelligence.riskLevel === "critical" ? "border-red-200 bg-red-50/50 dark:bg-red-950/20" :
+                    "border-gray-200 bg-gray-50/50 dark:bg-gray-900/20"
+                  }`}>
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-4 w-4 text-primary" />
+                          <span className="font-semibold text-sm">Intelligence-Driven Tone</span>
+                        </div>
+                        <Badge variant={
+                          intelligence.riskLevel === "low" ? "default" :
+                          intelligence.riskLevel === "medium" ? "secondary" :
+                          "destructive"
+                        } className="gap-1">
+                          {intelligence.riskLevel === "high" || intelligence.riskLevel === "critical" ? (
+                            <AlertTriangle className="h-3 w-3" />
+                          ) : null}
+                          {intelligence.riskLevel.charAt(0).toUpperCase() + intelligence.riskLevel.slice(1)} Risk
+                          <span className="opacity-70">({intelligence.riskScore}/100)</span>
+                        </Badge>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground">{intelligence.executiveSummary}</p>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2 bg-background/50 rounded">
+                          <span className="font-medium text-muted-foreground">Sentiment:</span>
+                          <p className="mt-0.5">{intelligence.communicationSentiment}</p>
+                        </div>
+                        <div className="p-2 bg-background/50 rounded">
+                          <span className="font-medium text-muted-foreground">Strategy:</span>
+                          <p className="mt-0.5">{intelligence.collectionStrategy}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
                 
                 <div>
