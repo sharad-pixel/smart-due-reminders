@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 
@@ -148,6 +149,9 @@ const Debtors = () => {
 
     setFilteredDebtors(filtered);
   };
+
+  // Sorting hook for the table
+  const { sortedData, sortKey, sortDirection, handleSort } = useSorting(filteredDebtors);
 
 
   const addContact = () => {
@@ -671,17 +675,63 @@ const Debtors = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Account</TableHead>
+                      <SortableTableHead
+                        sortKey="company_name"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Account
+                      </SortableTableHead>
                       <TableHead>Contacts</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Balance</TableHead>
-                      <TableHead className="text-center">Invoices</TableHead>
-                      <TableHead className="text-center">Max DPD</TableHead>
-                      <TableHead className="text-center">Score</TableHead>
+                      <SortableTableHead
+                        sortKey="type"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Type
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="total_open_balance"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                        className="text-right"
+                      >
+                        Balance
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="open_invoices_count"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                        className="text-center"
+                      >
+                        Invoices
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="max_days_past_due"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                        className="text-center"
+                      >
+                        Max DPD
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="payment_score"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                        className="text-center"
+                      >
+                        Score
+                      </SortableTableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredDebtors.map((debtor) => (
+                    {sortedData.map((debtor) => (
                       <TableRow
                         key={debtor.id}
                         className="cursor-pointer hover:bg-muted/50"
