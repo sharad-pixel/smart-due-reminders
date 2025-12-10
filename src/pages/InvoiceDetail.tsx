@@ -94,9 +94,13 @@ interface OutreachLog {
   sent_at: string | null;
   status: string;
   message_body: string;
-  sent_to: string;
-  sent_from: string | null;
-  delivery_metadata: any;
+  sent_to?: string;
+  sent_from?: string | null;
+  delivery_metadata?: any;
+  metadata?: any;
+  direction?: string;
+  activity_type?: string;
+  source: 'outreach_logs' | 'collection_activities';
 }
 
 interface AIDraft {
@@ -174,7 +178,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const fetchData = async () => {
     try {
-      const [invoiceRes, outreachRes, draftsRes, tasksRes] = await Promise.all([
+      const [invoiceRes, outreachLogsRes, activitiesRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*, debtors(company_name, email, crm_account_id)")
@@ -184,6 +188,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .from("outreach_logs")
           .select("*")
           .eq("invoice_id", id)
+          .order("sent_at", { ascending: false }),
+        supabase
+          .from("collection_activities")
+          .select("*")
+          .eq("invoice_id", id)
+          .eq("direction", "outbound")
           .order("sent_at", { ascending: false }),
         supabase
           .from("ai_drafts")
@@ -201,7 +211,30 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       if (invoiceRes.error) throw invoiceRes.error;
       setInvoice(invoiceRes.data);
 
-      setOutreach(outreachRes.data || []);
+      // Combine outreach logs and collection activities
+      const outreachFromLogs: OutreachLog[] = (outreachLogsRes.data || []).map(log => ({
+        ...log,
+        source: 'outreach_logs' as const
+      }));
+      
+      const outreachFromActivities: OutreachLog[] = (activitiesRes.data || []).map(activity => ({
+        id: activity.id,
+        channel: activity.channel,
+        subject: activity.subject,
+        sent_at: activity.sent_at,
+        status: 'sent',
+        message_body: activity.message_body,
+        metadata: activity.metadata,
+        direction: activity.direction,
+        activity_type: activity.activity_type,
+        source: 'collection_activities' as const
+      }));
+      
+      // Combine and deduplicate (prefer collection_activities if both exist)
+      const allOutreach = [...outreachFromActivities, ...outreachFromLogs]
+        .sort((a, b) => new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime());
+      
+      setOutreach(allOutreach);
       setDrafts(draftsRes.data || []);
       setTasks((tasksRes.data || []) as CollectionTask[]);
 
