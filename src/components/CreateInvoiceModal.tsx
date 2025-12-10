@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { extractDaysFromPaymentTerms, calculateDueDate } from "@/lib/paymentTerms";
 
 interface CreateInvoiceModalProps {
@@ -26,6 +27,7 @@ export const CreateInvoiceModal = ({
   onInvoiceCreated 
 }: CreateInvoiceModalProps) => {
   const [loading, setLoading] = useState(false);
+  const [acknowledgeOutreach, setAcknowledgeOutreach] = useState(false);
   const [formData, setFormData] = useState({
     invoice_number: "",
     amount: "",
@@ -241,6 +243,30 @@ export const CreateInvoiceModal = ({
             />
           </div>
 
+          {/* Outreach Acknowledgment */}
+          {(formData.status === "Open" || formData.status === "InPaymentPlan") && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-medium">Automated Collection Outreach</span>
+              </div>
+              <p className="text-sm text-amber-600 dark:text-amber-500">
+                This invoice will be enrolled in automated AI collection workflows. Our AI agents will begin sending 
+                collection emails based on your configured workflows and the invoice's aging bucket.
+              </p>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="acknowledge-outreach"
+                  checked={acknowledgeOutreach}
+                  onCheckedChange={(checked) => setAcknowledgeOutreach(checked === true)}
+                />
+                <Label htmlFor="acknowledge-outreach" className="text-sm cursor-pointer leading-relaxed">
+                  I understand that collection outreach will begin automatically for this invoice
+                </Label>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-4">
             <Button
               type="button"
@@ -250,7 +276,10 @@ export const CreateInvoiceModal = ({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="submit" 
+              disabled={loading || ((formData.status === "Open" || formData.status === "InPaymentPlan") && !acknowledgeOutreach)}
+            >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
