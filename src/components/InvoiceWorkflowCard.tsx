@@ -74,6 +74,7 @@ export const InvoiceWorkflowCard = ({
   
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
   const [inboundEmails, setInboundEmails] = useState<InboundEmail[]>([]);
+  const [outreachCount, setOutreachCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export const InvoiceWorkflowCard = ({
       if (!invoiceId) return;
       setLoading(true);
       
-      const [tasksRes, emailsRes] = await Promise.all([
+      const [tasksRes, emailsRes, activitiesRes] = await Promise.all([
         supabase
           .from('collection_tasks')
           .select('id, summary, status, priority, task_type, notes, created_at')
@@ -93,11 +94,17 @@ export const InvoiceWorkflowCard = ({
           .select('id, subject, ai_summary, from_email, created_at')
           .eq('invoice_id', invoiceId)
           .order('created_at', { ascending: false })
-          .limit(3)
+          .limit(3),
+        supabase
+          .from('collection_activities')
+          .select('id', { count: 'exact' })
+          .eq('invoice_id', invoiceId)
+          .eq('direction', 'outbound')
       ]);
 
       setTasks(tasksRes.data || []);
       setInboundEmails(emailsRes.data || []);
+      setOutreachCount(activitiesRes.count || 0);
       setLoading(false);
     };
 
@@ -333,22 +340,22 @@ export const InvoiceWorkflowCard = ({
                 Workflow: {workflow.name}
               </span>
               <span className="text-[10px] text-muted-foreground">
-                {sortedSteps.length} steps
+                {outreachCount} of {sortedSteps.length} sent
               </span>
             </div>
             <div className="flex gap-1">
               {sortedSteps.slice(0, 6).map((step, index) => {
-                const isPast = daysPastDue > step.day_offset;
-                const isCurrent = daysPastDue >= step.day_offset && 
-                  (index === sortedSteps.length - 1 || daysPastDue < sortedSteps[index + 1]?.day_offset);
+                // Use actual outreach count to determine completed steps
+                const isSent = index < outreachCount;
+                const isNext = index === outreachCount;
                 
                 return (
                   <div 
                     key={step.id}
                     className={`flex-1 h-1.5 rounded-full transition-colors ${
-                      isCurrent ? 'bg-primary' : isPast ? 'bg-primary/40' : 'bg-muted'
+                      isNext ? 'bg-primary' : isSent ? 'bg-green-500' : 'bg-muted'
                     }`}
-                    title={`Day ${step.day_offset}: ${step.label}`}
+                    title={`Day ${step.day_offset}: ${step.label}${isSent ? ' (Sent)' : isNext ? ' (Next)' : ''}`}
                   />
                 );
               })}
