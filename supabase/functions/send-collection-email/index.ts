@@ -54,11 +54,15 @@ serve(async (req) => {
       replyToEmail = `collections@${PLATFORM_INBOUND_DOMAIN}`;
     }
 
-    // Fetch branding settings for signature and From name
+    // Get effective account ID (for team member support)
+    const { data: effectiveAccountId } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
+    const brandingOwnerId = effectiveAccountId || user.id;
+
+    // Fetch branding settings for signature and From name (using effective account)
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled")
-      .eq("user_id", user.id)
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .eq("user_id", brandingOwnerId)
       .single();
 
     // Generate the From address using company name

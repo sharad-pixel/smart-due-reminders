@@ -101,11 +101,15 @@ serve(async (req) => {
       throw new Error("Debtor not found");
     }
 
-    // Fetch user's branding settings
+    // Get effective account ID (for team member support)
+    const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
+    const brandingOwnerId = effectiveAccountId || user.id;
+
+    // Fetch user's branding settings (using effective account)
     const { data: branding, error: brandingError } = await supabase
       .from("branding_settings")
-      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, logo_url, primary_color")
-      .eq("user_id", user.id)
+      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, logo_url, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .eq("user_id", brandingOwnerId)
       .single();
 
     if (brandingError && brandingError.code !== "PGRST116") {
@@ -121,6 +125,9 @@ serve(async (req) => {
       email_footer: null,
       logo_url: null,
       primary_color: "#1e3a5f",
+      ar_page_public_token: null,
+      ar_page_enabled: false,
+      stripe_payment_link: null,
     };
 
     // If generateOnly, use AI to create the outreach content
