@@ -24,6 +24,7 @@ import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import { InvoiceContextPreview } from "@/components/InvoiceContextPreview";
+import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
 
 interface Invoice {
   id: string;
@@ -120,7 +121,8 @@ const InvoiceDetail = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [associatedWorkflow, setAssociatedWorkflow] = useState<CollectionWorkflow | null>(null);
-  const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
+const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
+  const [workflowSteps, setWorkflowSteps] = useState<{ id: string; step_order: number; day_offset: number; channel: string; label: string; is_active: boolean }[]>([]);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
   const [drafts, setDrafts] = useState<AIDraft[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,13 +229,15 @@ const InvoiceDetail = () => {
           if (workflowData) {
             setAssociatedWorkflow(workflowData);
 
-            // Get workflow steps count
-            const { count } = await supabase
+            // Get workflow steps
+            const { data: stepsData, count } = await supabase
               .from("collection_workflow_steps")
-              .select("*", { count: "exact", head: true })
+              .select("id, step_order, day_offset, channel, label, is_active", { count: "exact" })
               .eq("workflow_id", workflowData.id)
-              .eq("is_active", true);
+              .eq("is_active", true)
+              .order("step_order", { ascending: true });
 
+            setWorkflowSteps(stepsData || []);
             setWorkflowStepsCount(count || 0);
           }
         }
@@ -691,7 +695,7 @@ const InvoiceDetail = () => {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-5 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Invoice Details</CardTitle>
@@ -955,6 +959,14 @@ const InvoiceDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* AI Workflow Card */}
+          <InvoiceWorkflowCard
+            daysPastDue={daysPastDue}
+            workflow={associatedWorkflow}
+            workflowSteps={workflowSteps}
+            isActiveInvoice={invoice.status === 'Open' || invoice.status === 'InPaymentPlan'}
+          />
         </div>
 
         {/* Context Preview - RCA + CS Cases */}
