@@ -70,12 +70,13 @@ interface Metrics {
 }
 
 export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [cacheExpiresAt, setCacheExpiresAt] = useState<string | null>(null);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Load cached report on mount
   useEffect(() => {
@@ -83,6 +84,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
   }, [debtorId]);
 
   const loadCachedReport = async () => {
+    setLoading(true);
     try {
       const { data: debtor } = await supabase
         .from("debtors")
@@ -99,11 +101,19 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
           setGeneratedAt(debtor.intelligence_report_generated_at);
           setFromCache(true);
           setCacheExpiresAt(new Date(new Date(debtor.intelligence_report_generated_at).getTime() + 24 * 60 * 60 * 1000).toISOString());
-          // We don't have metrics cached, so we'll show report without them until regenerated
+          setLoading(false);
+          setInitialLoadDone(true);
+          return;
         }
       }
+      
+      // No valid cached report - show the generate button
+      setLoading(false);
+      setInitialLoadDone(true);
     } catch (error) {
       console.error("Error loading cached report:", error);
+      setLoading(false);
+      setInitialLoadDone(true);
     }
   };
 
@@ -172,6 +182,28 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
     }
   };
 
+  if (loading && !initialLoadDone) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary animate-pulse" />
+            Loading Intelligence Report...
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <div className="grid grid-cols-3 gap-4">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!intelligence && !loading) {
     return (
       <Card className="border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
@@ -185,35 +217,13 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
               AI-powered risk analysis based on payment history, tasks, and communication patterns
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2 italic">
-              More interactions = more accurate insights
+              Reports are auto-generated daily at 5 AM PT
             </p>
           </div>
           <Button onClick={() => generateIntelligence(false)} className="gap-2">
             <Brain className="h-4 w-4" />
             Generate Intelligence Report
           </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary animate-pulse" />
-            Analyzing Account...
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <div className="grid grid-cols-3 gap-4">
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-          </div>
-          <Skeleton className="h-32 w-full" />
         </CardContent>
       </Card>
     );
@@ -252,7 +262,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
           <Info className="h-3.5 w-3.5 shrink-0" />
           <span>
-            Report auto-refreshes every 24 hours. Click refresh to regenerate manually.
+            Reports auto-refresh daily at 5 AM PT. Click refresh to regenerate manually.
           </span>
         </div>
       </CardHeader>
