@@ -125,33 +125,197 @@ serve(async (req) => {
 
     // If generateOnly, use AI to create the outreach content
     if (generateOnly) {
-      logStep("Generating AI outreach content");
+      logStep("Generating AI outreach content with intelligence report");
       
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) {
         throw new Error("LOVABLE_API_KEY is not configured");
       }
 
-      // Fetch additional context - payment history
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("amount, payment_date, payment_method")
+      // First, generate the intelligence report to inform the outreach tone
+      logStep("Fetching collection intelligence report");
+      
+      // Fetch all the context data for intelligence report
+      const { data: invoicesData } = await supabase
+        .from("invoices")
+        .select("*")
         .eq("debtor_id", debtorId)
-        .order("payment_date", { ascending: false })
-        .limit(5);
+        .eq("is_archived", false);
 
-      // Fetch inbound communication history
+      const invoiceIds = invoicesData?.map(i => i.id) || [];
+      let payments: any[] = [];
+      if (invoiceIds.length > 0) {
+        const { data: paymentLinks } = await supabase
+          .from("payment_invoice_links")
+          .select("*, payments(*)")
+          .in("invoice_id", invoiceIds);
+        payments = paymentLinks?.map(pl => pl.payments).filter(Boolean) || [];
+      }
+
+      const { data: tasks } = await supabase
+        .from("collection_tasks")
+        .select("*")
+        .eq("debtor_id", debtorId)
+        .order("created_at", { ascending: false });
+
       const { data: inboundEmails } = await supabase
         .from("inbound_emails")
-        .select("subject, ai_summary, category, sentiment, created_at")
+        .select("*")
         .eq("debtor_id", debtorId)
-        .order("created_at", { ascending: false })
-        .limit(5);
+        .order("received_at", { ascending: false })
+        .limit(10);
 
+      const { data: contacts } = await supabase
+        .from("debtor_contacts")
+        .select("*")
+        .eq("debtor_id", debtorId);
+
+      // Calculate metrics for intelligence
+      const openInvoicesForReport = invoicesData?.filter(i => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
+      const totalOpenBalance = openInvoicesForReport.reduce((sum, inv) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+      
+      const paidInvoices = invoicesData?.filter(i => i.status === "Paid" && i.paid_at) || [];
+      let avgDSO = 0;
+      if (paidInvoices.length > 0) {
+        const dsoValues = paidInvoices.map(inv => {
+          const dueDate = new Date(inv.due_date);
+          const paidDate = new Date(inv.paid_at);
+          return Math.max(0, Math.floor((paidDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        });
+        avgDSO = Math.round(dsoValues.reduce((a, b) => a + b, 0) / dsoValues.length);
+      }
+
+      const openTasksList = tasks?.filter(t => t.status === "open") || [];
+      const completedTasks = tasks?.filter(t => t.status === "done") || [];
+      const overdueTasks = openTasksList.filter(t => t.due_date && new Date(t.due_date) < new Date());
+
+      const contextData = {
+        account: {
+          name: debtor.company_name || debtor.name,
+          type: debtor.type,
+          paymentScore: debtor.payment_score,
+          riskTier: debtor.payment_risk_tier || debtor.risk_tier,
+          avgDaysToPay: debtor.avg_days_to_pay,
+          creditLimit: debtor.credit_limit
+        },
+        financials: {
+          totalOpenBalance,
+          openInvoicesCount: openInvoicesForReport.length,
+          totalInvoicesCount: invoicesData?.length || 0,
+          paidInvoicesCount: paidInvoices.length,
+          avgDSO,
+          disputedCount: debtor.disputed_invoices_count || 0,
+          writtenOffCount: debtor.written_off_invoices_count || 0
+        },
+        tasks: {
+          openCount: openTasksList.length,
+          completedCount: completedTasks.length,
+          overdueCount: overdueTasks.length,
+          recentTypes: tasks?.slice(0, 5).map(t => t.task_type) || []
+        },
+        communications: {
+          inboundCount: inboundEmails?.length || 0,
+          recentSentiments: inboundEmails?.slice(0, 5).map(e => ({
+            date: e.received_at,
+            subject: e.subject,
+            sentiment: e.sentiment || "unknown",
+            category: e.category,
+            priority: e.priority
+          })) || [],
+          lastContactDate: inboundEmails?.[0]?.received_at || null
+        },
+        contacts: contacts?.map(c => ({
+          name: c.name,
+          title: c.title,
+          outreachEnabled: c.outreach_enabled,
+          isPrimary: c.is_primary
+        })) || [],
+        paymentHistory: payments.slice(0, 10).map(p => ({
+          date: p.payment_date,
+          amount: p.amount,
+          method: p.payment_method
+        }))
+      };
+
+      // Generate intelligence report first
+      const intelligenceSystemPrompt = `You are a Collection Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
+
+Your reports should be:
+- Concise and actionable
+- Risk-focused with clear recommendations
+- Based on the data provided
+- Written in a professional tone
+
+Structure your response as JSON with these fields:
+- riskLevel: "low" | "medium" | "high" | "critical"
+- riskScore: number 0-100 (100 = highest risk)
+- executiveSummary: 2-3 sentence overview
+- keyInsights: array of 3-5 bullet point insights
+- recommendations: array of 2-3 specific action items
+- paymentBehavior: brief assessment of payment patterns
+- communicationSentiment: assessment of customer engagement/sentiment
+- collectionStrategy: recommended approach for this account`;
+
+      const intelligenceUserPrompt = `Generate a Collection Intelligence Report for this account:
+
+${JSON.stringify(contextData, null, 2)}
+
+Provide your analysis as a JSON object.`;
+
+      logStep("Generating intelligence report via AI");
+
+      const intelligenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: intelligenceSystemPrompt },
+            { role: "user", content: intelligenceUserPrompt }
+          ],
+        }),
+      });
+
+      let intelligenceReport: any = null;
+
+      if (intelligenceResponse.ok) {
+        const intelligenceData = await intelligenceResponse.json();
+        const intelligenceContent = intelligenceData.choices?.[0]?.message?.content || "";
+        
+        try {
+          const jsonMatch = intelligenceContent.match(/```json\s*([\s\S]*?)\s*```/) || 
+                            intelligenceContent.match(/```\s*([\s\S]*?)\s*```/) ||
+                            [null, intelligenceContent];
+          intelligenceReport = JSON.parse(jsonMatch[1] || intelligenceContent);
+          logStep("Intelligence report generated", { riskLevel: intelligenceReport.riskLevel, riskScore: intelligenceReport.riskScore });
+        } catch (parseError) {
+          logStep("Failed to parse intelligence report, using defaults", parseError);
+        }
+      } else {
+        const status = intelligenceResponse.status;
+        if (status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        logStep("Intelligence report generation failed", { status });
+      }
+
+      // Now generate the outreach email using the intelligence report
       const totalOutstanding = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
       const highPriorityTasks = openTasks?.filter(t => t.priority === "high") || [];
-      
-      // Build context for AI
+
+      // Build context summary including intelligence insights
       const contextSummary = {
         accountName: debtor.company_name,
         contactName: debtor.name,
@@ -166,23 +330,47 @@ serve(async (req) => {
         riskTier: debtor.risk_tier || "unknown",
         paymentScore: debtor.payment_score || null,
         avgDaysToPay: debtor.avg_days_to_pay || null,
+        // Add intelligence report insights
+        intelligence: intelligenceReport
       };
 
-      logStep("Context for AI", contextSummary);
+      logStep("Context for AI outreach", { hasIntelligence: !!intelligenceReport });
+
+      // Build the outreach prompt with intelligence report guidance
+      const intelligenceGuidance = intelligenceReport ? `
+COLLECTION INTELLIGENCE REPORT:
+- Risk Level: ${intelligenceReport.riskLevel} (Score: ${intelligenceReport.riskScore}/100)
+- Executive Summary: ${intelligenceReport.executiveSummary}
+- Payment Behavior: ${intelligenceReport.paymentBehavior}
+- Communication Sentiment: ${intelligenceReport.communicationSentiment}
+- Recommended Strategy: ${intelligenceReport.collectionStrategy}
+- Key Insights: ${intelligenceReport.keyInsights?.join("; ") || "None"}
+- Recommended Actions: ${intelligenceReport.recommendations?.join("; ") || "None"}
+
+CRITICAL TONE GUIDANCE based on intelligence:
+${intelligenceReport.riskLevel === "low" ? "- Use a friendly, appreciative tone. Acknowledge their good payment history. Frame this as a gentle reminder." : ""}
+${intelligenceReport.riskLevel === "medium" ? "- Use a professional, balanced tone. Be courteous but clear about the importance of resolving the balance." : ""}
+${intelligenceReport.riskLevel === "high" ? "- Use a firm but professional tone. Emphasize urgency without being aggressive. Focus on resolution options." : ""}
+${intelligenceReport.riskLevel === "critical" ? "- Use a direct, serious tone. Clearly state the consequences of non-payment. Offer immediate resolution paths." : ""}
+${intelligenceReport.communicationSentiment?.toLowerCase().includes("negative") ? "- Customer sentiment is negative. Be extra diplomatic and focus on problem-solving." : ""}
+${intelligenceReport.communicationSentiment?.toLowerCase().includes("positive") ? "- Customer has shown positive engagement. Leverage this relationship." : ""}
+` : "";
 
       const systemPrompt = `You are a professional collections specialist crafting personalized outreach for accounts receivable. 
-Your tone should be professional, firm but courteous, and focused on resolution.
+Your tone should be tailored based on the Collection Intelligence Report provided.
 
 Guidelines:
+- CRITICALLY IMPORTANT: Match your tone to the intelligence report's risk level and recommended strategy
 - Reference specific open invoices and their amounts
 - If there are open tasks (like disputes, payment plan requests, document requests), acknowledge them
 - If payment history exists, acknowledge their past payments positively
 - If there are high-priority tasks, address them directly
-- Adapt tone based on risk tier: Low risk = friendly reminder, High/Critical = more urgent
-- Always include a clear call to action
+- Always include a clear call to action aligned with the recommended strategy
 - Keep the message concise but comprehensive
 - Do not include placeholder text - use the actual data provided
 - Sign off professionally
+
+${intelligenceGuidance}
 
 Company name for signature: ${brandingSettings.business_name || "Collections Team"}`;
 
@@ -250,7 +438,7 @@ Generate a JSON response with:
       const aiData = await aiResponse.json();
       const content = aiData.choices?.[0]?.message?.content;
       
-      logStep("AI response received", { contentLength: content?.length });
+      logStep("AI outreach response received", { contentLength: content?.length });
 
       // Parse the AI response
       let generatedSubject = `Account Outreach - ${debtor.company_name}`;
@@ -271,7 +459,8 @@ Generate a JSON response with:
         JSON.stringify({ 
           subject: generatedSubject, 
           message: generatedMessage,
-          context: contextSummary
+          context: contextSummary,
+          intelligence: intelligenceReport
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
