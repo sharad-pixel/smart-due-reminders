@@ -92,6 +92,7 @@ const Invoices = () => {
     notes: "",
     product_description: "",
     external_invoice_id: "",
+    po_number: "",
   });
 
   useEffect(() => {
@@ -330,6 +331,7 @@ const Invoices = () => {
         notes: formData.notes || null,
         product_description: formData.product_description || null,
         external_invoice_id: formData.external_invoice_id || null,
+        po_number: formData.po_number || null,
       } as any);
 
       if (error) throw error;
@@ -347,6 +349,7 @@ const Invoices = () => {
         notes: "",
         product_description: "",
         external_invoice_id: "",
+        po_number: "",
       });
       fetchData();
     } catch (error: any) {
@@ -611,14 +614,24 @@ const Invoices = () => {
                         <p className="text-xs text-muted-foreground">ID from your billing system</p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="notes">Notes</Label>
+                        <Label htmlFor="po_number">PO Number</Label>
                         <Input
-                          id="notes"
-                          value={formData.notes}
-                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                          placeholder="Additional notes..."
+                          id="po_number"
+                          value={formData.po_number}
+                          onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
+                          placeholder="e.g., PO-2024-001"
                         />
+                        <p className="text-xs text-muted-foreground">Customer's purchase order number</p>
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Input
+                        id="notes"
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        placeholder="Additional notes..."
+                      />
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">
