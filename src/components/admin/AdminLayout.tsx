@@ -48,6 +48,7 @@ const adminNavItems = [
   { path: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
   { path: "/admin/waitlist", label: "Waitlist", icon: Mail },
   { path: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
+  { path: "/admin/email-templates", label: "Email Templates", icon: Mail },
   { path: "/admin/edge-functions", label: "Edge Functions", icon: Zap },
   { path: "/admin/database", label: "Database Health", icon: Database },
   { path: "/admin/security", label: "Security Center", icon: Shield },
