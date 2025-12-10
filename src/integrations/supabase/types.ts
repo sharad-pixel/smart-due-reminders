@@ -1829,6 +1829,8 @@ export type Database = {
           id: string
           in_payment_plan_invoices_count: number | null
           industry: string | null
+          intelligence_report: Json | null
+          intelligence_report_generated_at: string | null
           is_active: boolean | null
           is_archived: boolean | null
           last_score_change_reason: string | null
@@ -1907,6 +1909,8 @@ export type Database = {
           id?: string
           in_payment_plan_invoices_count?: number | null
           industry?: string | null
+          intelligence_report?: Json | null
+          intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
           last_score_change_reason?: string | null
@@ -1985,6 +1989,8 @@ export type Database = {
           id?: string
           in_payment_plan_invoices_count?: number | null
           industry?: string | null
+          intelligence_report?: Json | null
+          intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
           last_score_change_reason?: string | null
