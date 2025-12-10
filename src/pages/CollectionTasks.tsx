@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { ExternalLink } from "lucide-react";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,6 +82,7 @@ export default function CollectionTasks() {
   const debtorIdFromUrl = searchParams.get('debtor');
   const taskIdFromUrl = searchParams.get('taskId');
   const { permissions, loading: roleLoading } = useRoleAccess();
+  const { getPreference, setPreference, isLoaded: prefsLoaded } = useUserPreferences('/tasks');
   
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,16 +92,21 @@ export default function CollectionTasks() {
   // Bulk selection
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
-  // Filters
+  // Filters - load from preferences
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [taskTypeFilter, setTaskTypeFilter] = useState<string>('all');
   const [assignedFilter, setAssignedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [hideClosed, setHideClosed] = useState(false);
+  
+  // Persisted toggle states
+  const showArchived = getPreference('showArchived', false);
+  const hideClosed = getPreference('hideClosed', false);
+  
+  const setShowArchived = (value: boolean) => setPreference('showArchived', value);
+  const setHideClosed = (value: boolean) => setPreference('hideClosed', value);
 
   // Current user ID for "Assigned to Me" filter
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -117,8 +124,10 @@ export default function CollectionTasks() {
   }, []);
 
   useEffect(() => {
-    loadTasks();
-  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl, showArchived]);
+    if (prefsLoaded) {
+      loadTasks();
+    }
+  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl, showArchived, prefsLoaded]);
 
   // Open task modal if taskId is in URL (from notification click)
   useEffect(() => {
