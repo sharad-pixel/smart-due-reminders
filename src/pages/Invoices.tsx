@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -89,6 +90,8 @@ const Invoices = () => {
     payment_terms: "Net 30",
     external_link: "",
     notes: "",
+    product_description: "",
+    external_invoice_id: "",
   });
 
   useEffect(() => {
@@ -325,6 +328,8 @@ const Invoices = () => {
         payment_terms: formData.payment_terms,
         external_link: formData.external_link || null,
         notes: formData.notes || null,
+        product_description: formData.product_description || null,
+        external_invoice_id: formData.external_invoice_id || null,
       } as any);
 
       if (error) throw error;
@@ -340,6 +345,8 @@ const Invoices = () => {
         payment_terms: "Net 30",
         external_link: "",
         notes: "",
+        product_description: "",
+        external_invoice_id: "",
       });
       fetchData();
     } catch (error: any) {
@@ -461,7 +468,7 @@ const Invoices = () => {
                           onClick={() => window.open('/debtors', '_blank')}
                         >
                           <Plus className="h-4 w-4 mr-1" />
-                          New Debtor
+                          New Account
                         </Button>
                       </div>
                     </div>
@@ -578,13 +585,41 @@ const Invoices = () => {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Input
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    />
+                  
+                  {/* Recommended Fields */}
+                  <div className="space-y-4 pt-3 border-t">
+                    <p className="text-xs font-medium text-muted-foreground">Recommended Fields</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="product_description">Product/Service Description</Label>
+                      <Textarea
+                        id="product_description"
+                        value={formData.product_description}
+                        onChange={(e) => setFormData({ ...formData, product_description: e.target.value })}
+                        placeholder="Describe the products or services for this invoice..."
+                        rows={2}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="external_invoice_id">External Invoice ID</Label>
+                        <Input
+                          id="external_invoice_id"
+                          value={formData.external_invoice_id}
+                          onChange={(e) => setFormData({ ...formData, external_invoice_id: e.target.value })}
+                          placeholder="e.g., QB-12345"
+                        />
+                        <p className="text-xs text-muted-foreground">ID from your billing system</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">Notes</Label>
+                        <Input
+                          id="notes"
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="Additional notes..."
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end space-x-2">
                     <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
