@@ -967,6 +967,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             workflowSteps={workflowSteps}
             isActiveInvoice={invoice.status === 'Open' || invoice.status === 'InPaymentPlan'}
             dueDate={invoice.due_date}
+            invoiceId={invoice.id}
           />
         </div>
 
