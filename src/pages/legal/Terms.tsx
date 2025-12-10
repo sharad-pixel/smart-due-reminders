@@ -8,7 +8,7 @@ const Terms = () => {
     <MarketingLayout>
       <div className="container mx-auto max-w-4xl px-4 py-16">
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground mb-8">Last updated: December 2024</p>
+        <p className="text-sm text-muted-foreground mb-8">Last updated: December 2025</p>
 
         <div className="space-y-8 text-muted-foreground">
           <section>
