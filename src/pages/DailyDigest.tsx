@@ -39,7 +39,7 @@ const DailyDigest = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.functions.invoke('daily-digest-runner', {
-        body: { force: true, userId: user?.id }
+        body: { force: true, userId: user?.id, skipEmail: true }
       });
       if (error) throw error;
       toast({ title: 'Digest Generated', description: 'Your daily digest has been created.' });

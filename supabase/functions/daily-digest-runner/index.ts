@@ -21,18 +21,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request body to check for force flag and userId
+    // Parse request body to check for force flag, userId, and skipEmail
     let forceRegenerate = false;
     let targetUserId: string | null = null;
+    let skipEmail = false;
     try {
       const body = await req.json();
       forceRegenerate = body?.force === true;
       targetUserId = body?.userId || null;
+      skipEmail = body?.skipEmail === true; // Skip email sending for manual syncs
     } catch {
       // No body or invalid JSON, use defaults
     }
 
-    logStep('Starting daily digest generation', { forceRegenerate, targetUserId });
+    logStep('Starting daily digest generation', { forceRegenerate, targetUserId, skipEmail });
 
     // If userId is provided, only process that specific user (customer-level sync)
     // Otherwise, process all users (platform-level cron job only)
@@ -439,7 +441,7 @@ serve(async (req) => {
           logStep('Email already sent today, skipping email send', { userId: user.id, date: today });
         }
         
-        if (user.email && digestEmailEnabled && !emailAlreadySent) {
+        if (user.email && digestEmailEnabled && !emailAlreadySent && !skipEmail) {
           try {
             const emailBody = generateEmailHtml({
               name: user.name || 'there',
