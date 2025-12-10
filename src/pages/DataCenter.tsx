@@ -175,22 +175,23 @@ const DataCenter = () => {
                 <div>
                   <p className="font-medium text-foreground mb-1">Required Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Account Name</strong> - Company or customer name</li>
-                    <li><strong>Email</strong> - Primary contact email</li>
+                    <li><strong>Customer Name</strong> - Company or customer name</li>
+                    <li><strong>Customer Email</strong> - Primary contact email</li>
                   </ul>
                 </div>
                 <div>
                   <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li>Contact Name, Phone</li>
-                    <li>External Customer ID</li>
+                    <li>Contact Name, Customer Phone</li>
+                    <li>External Customer ID, CRM Account ID</li>
                     <li>Industry, Account Type</li>
-                    <li>Billing Address fields</li>
+                    <li>Billing Address</li>
                   </ul>
                 </div>
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t flex items-start gap-1.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
                   <p className="text-muted-foreground">
-                    <strong>Tip:</strong> Import accounts first, then invoices, then payments for best matching.
+                    Recouply Account ID (RAID) is auto-generated. Import accounts first for best matching.
                   </p>
                 </div>
               </CardContent>
@@ -209,23 +210,25 @@ const DataCenter = () => {
                 <div>
                   <p className="font-medium text-foreground mb-1">Required Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Recouply Account ID</strong> - Links to existing account</li>
+                    <li><strong>Recouply Account ID</strong> - Links to existing account (RAID)</li>
                     <li><strong>Invoice Number</strong> - Your invoice identifier</li>
-                    <li><strong>Invoice Amount</strong> - Total amount due</li>
+                    <li><strong>Original Amount</strong> - Invoice total amount</li>
+                    <li><strong>Invoice Date</strong> - Date invoice was issued</li>
                     <li><strong>Due Date</strong> - Payment due date</li>
                   </ul>
                 </div>
                 <div>
                   <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li>Invoice Date, Outstanding Amount</li>
-                    <li>Payment Terms, Status</li>
-                    <li>External Invoice ID</li>
+                    <li>Outstanding Amount, Currency</li>
+                    <li>Invoice Status, External Invoice ID</li>
+                    <li>Product/Service Description</li>
                   </ul>
                 </div>
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t flex items-start gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
                   <p className="text-muted-foreground">
-                    <strong>Tip:</strong> Export accounts first to get Recouply Account IDs for linking.
+                    Export accounts first to get Recouply Account IDs for linking invoices.
                   </p>
                 </div>
               </CardContent>
@@ -244,23 +247,24 @@ const DataCenter = () => {
                 <div>
                   <p className="font-medium text-foreground mb-1">Required Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Recouply Account ID</strong> - Links to account</li>
-                    <li><strong>Recouply Invoice ID</strong> - Primary match key</li>
+                    <li><strong>Recouply Invoice ID</strong> - Primary match key (RINV)</li>
+                    <li><strong>Invoice Number</strong> - Fallback match key</li>
                     <li><strong>Payment Amount</strong> - Amount paid</li>
+                    <li><strong>Payment Date</strong> - Date payment received</li>
                   </ul>
                 </div>
                 <div>
                   <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li>Payment Date, Payment Method</li>
-                    <li>Check/Reference Number</li>
-                    <li>SS Invoice # (fallback match)</li>
+                    <li>Payment Method (check, wire, ACH)</li>
+                    <li>Payment Reference / Check Number</li>
+                    <li>Payment Notes</li>
                   </ul>
                 </div>
                 <div className="pt-2 border-t flex items-start gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
                   <p className="text-muted-foreground">
-                    Export invoices first to get Recouply Invoice IDs for accurate matching.
+                    Export invoices first to get Recouply Invoice IDs for accurate payment matching.
                   </p>
                 </div>
               </CardContent>
