@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { EmailPreviewFrame } from "@/components/admin/EmailPreviewFrame";
+import { EditableEmailPreviewFrame, EmailLayoutData } from "@/components/admin/EditableEmailPreviewFrame";
 import { toast } from "sonner";
 import { 
   Mail, 
@@ -276,6 +277,10 @@ export default function AdminEmailTemplates() {
         <TemplatePreviewDialog
           template={previewTemplate}
           onClose={() => setPreviewTemplate(null)}
+          onSaveChanges={(template) => {
+            updateMutation.mutate(template);
+            setPreviewTemplate(null);
+          }}
         />
 
         {/* Create Dialog */}
@@ -400,11 +405,18 @@ function TemplateEditDialog({
             </TabsContent>
 
             <TabsContent value="preview" className="mt-0">
-              <EmailPreviewFrame
+              <EditableEmailPreviewFrame
                 subject={formData.subject_template || ""}
                 bodyHtml={formData.body_html || ""}
                 businessName="Recouply.ai"
                 primaryColor="#1e3a5f"
+                onSave={(layoutData: EmailLayoutData) => {
+                  setFormData({
+                    ...formData,
+                    subject_template: layoutData.subject,
+                    body_html: layoutData.bodyHtml,
+                  });
+                }}
               />
             </TabsContent>
 
@@ -479,14 +491,19 @@ function TemplateEditDialog({
   );
 }
 
-// Preview Dialog Component with Full Layout
+// Preview Dialog Component with Full Layout and Editing
 function TemplatePreviewDialog({
   template,
   onClose,
+  onSaveChanges,
 }: {
   template: EmailTemplate | null;
   onClose: () => void;
+  onSaveChanges?: (template: Partial<EmailTemplate> & { id: string }) => void;
 }) {
+  const [hasChanges, setHasChanges] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<EmailLayoutData | null>(null);
+
   if (!template) return null;
 
   // Replace variables with sample data for preview
@@ -548,26 +565,44 @@ function TemplatePreviewDialog({
   const previewSubject = replaceVariables(template.subject_template);
   const previewBody = replaceVariables(template.body_html);
 
+  const handleLayoutChange = (layoutData: EmailLayoutData) => {
+    setHasChanges(true);
+    setPendingChanges(layoutData);
+  };
+
+  const handleSave = () => {
+    if (pendingChanges && onSaveChanges) {
+      onSaveChanges({
+        id: template.id,
+        subject_template: pendingChanges.subject,
+        body_html: pendingChanges.bodyHtml,
+      });
+      setHasChanges(false);
+      setPendingChanges(null);
+    }
+  };
+
   return (
     <Dialog open={!!template} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Full Email Preview: {template.template_name}
+            Edit & Preview: {template.template_name}
           </DialogTitle>
           <DialogDescription>
-            Preview how this email will appear to recipients with full branding
+            Edit the email layout visually and preview how it will appear to recipients
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          <EmailPreviewFrame
+          <EditableEmailPreviewFrame
             subject={previewSubject}
             bodyHtml={previewBody}
             businessName="Recouply.ai"
             primaryColor="#1e3a5f"
             arPageLink="/ar/sample-token"
+            onSave={handleLayoutChange}
           />
         </div>
 
@@ -575,6 +610,12 @@ function TemplatePreviewDialog({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
+          {onSaveChanges && hasChanges && (
+            <Button onClick={handleSave}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes to Template
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
