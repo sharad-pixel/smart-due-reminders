@@ -792,7 +792,7 @@ export default function CollectionTasks() {
                       <TableHead>Priority</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="min-w-[200px]">Summary</TableHead>
-                      <TableHead>Debtor</TableHead>
+                      <TableHead>Account</TableHead>
                       <TableHead>Invoice</TableHead>
                       <TableHead>Assigned To</TableHead>
                       <TableHead>Inbound</TableHead>
