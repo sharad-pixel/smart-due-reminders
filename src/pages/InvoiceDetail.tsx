@@ -23,7 +23,7 @@ import { TasksSummaryCard } from "@/components/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/CreateTaskModal";
-import { InvoiceContextPreview } from "@/components/InvoiceContextPreview";
+
 import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
 
 interface Invoice {
@@ -822,8 +822,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             </Card>
           </div>
 
-          {/* Middle Column - Account & CRM Info */}
-          <div className="space-y-6">
+          {/* Middle Column - Account Info */}
+          <div>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>Account Info</CardTitle>
@@ -847,56 +847,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 </Button>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Customer Snapshot</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {crmAccount ? (
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Account</p>
-                      <p className="text-sm font-medium">{crmAccount.name}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {crmAccount.segment && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Segment</p>
-                          <p className="text-sm font-medium">{crmAccount.segment}</p>
-                        </div>
-                      )}
-                      {crmAccount.mrr !== null && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">MRR</p>
-                          <p className="text-sm font-medium">${crmAccount.mrr.toLocaleString()}</p>
-                        </div>
-                      )}
-                    </div>
-                    {crmAccount.health_score && (
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <span className="text-xs text-muted-foreground">Health</span>
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            crmAccount.health_score.toLowerCase() === "healthy" || crmAccount.health_score.toLowerCase() === "green"
-                              ? "bg-green-100 text-green-800"
-                              : crmAccount.health_score.toLowerCase() === "at risk" || crmAccount.health_score.toLowerCase() === "yellow"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {crmAccount.health_score}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No CRM account linked
-                  </p>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Right Column - Collection Intelligence */}
@@ -912,8 +862,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           </div>
         </div>
 
-        {/* Context Preview - RCA + CS Cases */}
-        <InvoiceContextPreview debtorId={invoice.debtor_id} invoiceId={invoice.id} />
 
         <div className="grid md:grid-cols-3 gap-6">
           <Card>
