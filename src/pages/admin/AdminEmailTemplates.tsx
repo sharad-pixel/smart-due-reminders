@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { EmailPreviewFrame } from "@/components/admin/EmailPreviewFrame";
 import { toast } from "sonner";
 import { 
   Mail, 
@@ -26,7 +28,11 @@ import {
   Shield,
   DollarSign,
   Code,
-  Variable
+  Variable,
+  Sparkles,
+  Send,
+  Users,
+  Loader2,
 } from "lucide-react";
 
 interface EmailTemplate {
@@ -59,6 +65,7 @@ export default function AdminEmailTemplates() {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["email-templates"],
@@ -127,18 +134,21 @@ export default function AdminEmailTemplates() {
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ["all", ...Object.keys(categoryConfig)];
-
   return (
     <AdminLayout title="Email Templates" description="Manage platform-wide email templates and communications">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
+          <div></div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsBroadcastOpen(true)}>
+              <Megaphone className="h-4 w-4 mr-2" />
+              New Broadcast
+            </Button>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Template
+            </Button>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Template
-          </Button>
         </div>
 
         {/* Filters */}
@@ -275,12 +285,19 @@ export default function AdminEmailTemplates() {
           onCreate={(template) => createMutation.mutate(template)}
           isCreating={createMutation.isPending}
         />
+
+        {/* Broadcast Dialog */}
+        <BroadcastComposerDialog
+          open={isBroadcastOpen}
+          onClose={() => setIsBroadcastOpen(false)}
+          templates={templates.filter((t) => t.category === "marketing")}
+        />
       </div>
     </AdminLayout>
   );
 }
 
-// Edit Dialog Component
+// Edit Dialog Component with Rich Editor
 function TemplateEditDialog({
   template,
   onClose,
@@ -293,7 +310,7 @@ function TemplateEditDialog({
   isSaving: boolean;
 }) {
   const [formData, setFormData] = useState<Partial<EmailTemplate>>({});
-  const [activeTab, setActiveTab] = useState("content");
+  const [activeTab, setActiveTab] = useState("editor");
 
   useEffect(() => {
     if (template) {
@@ -309,7 +326,7 @@ function TemplateEditDialog({
 
   return (
     <Dialog open={!!template} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -320,117 +337,135 @@ function TemplateEditDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="html">HTML Editor</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="editor">Visual Editor</TabsTrigger>
+            <TabsTrigger value="code">HTML Code</TabsTrigger>
+            <TabsTrigger value="preview">Full Preview</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="content" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Template Name</Label>
-              <Input
-                value={formData.template_name || ""}
-                onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Subject Line</Label>
-              <Input
-                value={formData.subject_template || ""}
-                onChange={(e) => setFormData({ ...formData, subject_template: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use variables like {"{{user_name}}"} for personalization
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={formData.description || ""}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
-              />
-            </div>
-          </TabsContent>
+          <div className="flex-1 overflow-y-auto mt-4">
+            <TabsContent value="editor" className="space-y-4 mt-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Template Name</Label>
+                  <Input
+                    value={formData.template_name || ""}
+                    onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subject Line</Label>
+                  <Input
+                    value={formData.subject_template || ""}
+                    onChange={(e) => setFormData({ ...formData, subject_template: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Email Body</Label>
+                <RichTextEditor
+                  content={formData.body_html || ""}
+                  onChange={(html) => setFormData({ ...formData, body_html: html })}
+                />
+              </div>
+            </TabsContent>
 
-          <TabsContent value="html" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>HTML Body</Label>
-                <Badge variant="outline" className="gap-1">
-                  <Code className="h-3 w-3" />
-                  HTML
-                </Badge>
-              </div>
-              <Textarea
-                value={formData.body_html || ""}
-                onChange={(e) => setFormData({ ...formData, body_html: e.target.value })}
-                rows={15}
-                className="font-mono text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Plain Text Body (Fallback)</Label>
-              <Textarea
-                value={formData.body_text || ""}
-                onChange={(e) => setFormData({ ...formData, body_text: e.target.value })}
-                rows={6}
-                className="font-mono text-sm"
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Active</Label>
-                <p className="text-sm text-muted-foreground">Enable or disable this template</p>
-              </div>
-              <Switch
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(categoryConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      <span className="flex items-center gap-2">
-                        {config.icon}
-                        {config.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Variable className="h-4 w-4" />
-                <Label>Available Variables</Label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(formData.variables as string[])?.map((v) => (
-                  <Badge key={v} variant="secondary">
-                    {`{{${v}}}`}
+            <TabsContent value="code" className="space-y-4 mt-0">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>HTML Body</Label>
+                  <Badge variant="outline" className="gap-1">
+                    <Code className="h-3 w-3" />
+                    HTML
                   </Badge>
-                ))}
+                </div>
+                <Textarea
+                  value={formData.body_html || ""}
+                  onChange={(e) => setFormData({ ...formData, body_html: e.target.value })}
+                  rows={20}
+                  className="font-mono text-sm"
+                />
               </div>
-            </div>
-          </TabsContent>
+              <div className="space-y-2">
+                <Label>Plain Text Body (Fallback)</Label>
+                <Textarea
+                  value={formData.body_text || ""}
+                  onChange={(e) => setFormData({ ...formData, body_text: e.target.value })}
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="preview" className="mt-0">
+              <EmailPreviewFrame
+                subject={formData.subject_template || ""}
+                bodyHtml={formData.body_html || ""}
+                businessName="Recouply.ai"
+                primaryColor="#1e3a5f"
+              />
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4 mt-0">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <Label>Active</Label>
+                  <p className="text-sm text-muted-foreground">Enable or disable this template</p>
+                </div>
+                <Switch
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(categoryConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-2">
+                          {config.icon}
+                          {config.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={formData.description || ""}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Variable className="h-4 w-4" />
+                  <Label>Available Variables</Label>
+                </div>
+                <div className="flex flex-wrap gap-2 p-4 border rounded-lg bg-muted/50">
+                  {(formData.variables as string[])?.map((v) => (
+                    <Badge key={v} variant="secondary">
+                      {`{{${v}}}`}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          </div>
         </Tabs>
 
-        <DialogFooter className="mt-6">
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
@@ -444,7 +479,7 @@ function TemplateEditDialog({
   );
 }
 
-// Preview Dialog Component
+// Preview Dialog Component with Full Layout
 function TemplatePreviewDialog({
   template,
   onClose,
@@ -515,32 +550,28 @@ function TemplatePreviewDialog({
 
   return (
     <Dialog open={!!template} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Preview: {template.template_name}
+            Full Email Preview: {template.template_name}
           </DialogTitle>
           <DialogDescription>
-            Preview how this email will appear to recipients
+            Preview how this email will appear to recipients with full branding
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4">
-          <div className="p-4 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground">Subject:</p>
-            <p className="font-medium">{previewSubject}</p>
-          </div>
-
-          <div className="border rounded-lg p-6 bg-white">
-            <div
-              dangerouslySetInnerHTML={{ __html: previewBody }}
-              className="prose prose-sm max-w-none"
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          <EmailPreviewFrame
+            subject={previewSubject}
+            bodyHtml={previewBody}
+            businessName="Recouply.ai"
+            primaryColor="#1e3a5f"
+            arPageLink="/ar/sample-token"
+          />
         </div>
 
-        <DialogFooter className="mt-6">
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -567,9 +598,9 @@ function TemplateCreateDialog({
     template_name: "",
     category: "transactional",
     subject_template: "",
-    body_html: "",
+    body_html: "<p>Hello {{user_name}},</p><p>Your content here...</p>",
     body_text: "",
-    variables: [] as string[],
+    variables: ["user_name", "user_email"] as string[],
     is_active: true,
     description: "",
   });
@@ -584,7 +615,7 @@ function TemplateCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
@@ -615,45 +646,43 @@ function TemplateCreateDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(categoryConfig).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="flex items-center gap-2">
-                      {config.icon}
-                      {config.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(categoryConfig).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      <span className="flex items-center gap-2">
+                        {config.icon}
+                        {config.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Subject Line *</Label>
+              <Input
+                placeholder="e.g., Reminder: Invoice {{invoice_number}}"
+                value={formData.subject_template}
+                onChange={(e) => setFormData({ ...formData, subject_template: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Subject Line *</Label>
-            <Input
-              placeholder="e.g., Reminder: Invoice {{invoice_number}}"
-              value={formData.subject_template}
-              onChange={(e) => setFormData({ ...formData, subject_template: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>HTML Body *</Label>
-            <Textarea
-              placeholder="<p>Hello {{user_name}},</p>"
-              value={formData.body_html}
-              onChange={(e) => setFormData({ ...formData, body_html: e.target.value })}
-              rows={8}
-              className="font-mono text-sm"
+            <Label>Email Body *</Label>
+            <RichTextEditor
+              content={formData.body_html}
+              onChange={(html) => setFormData({ ...formData, body_html: html })}
             />
           </div>
 
@@ -674,6 +703,362 @@ function TemplateCreateDialog({
           <Button onClick={handleCreate} disabled={isCreating}>
             <Plus className="h-4 w-4 mr-2" />
             {isCreating ? "Creating..." : "Create Template"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Broadcast Composer Dialog with AI Generation
+function BroadcastComposerDialog({
+  open,
+  onClose,
+  templates,
+}: {
+  open: boolean;
+  onClose: () => void;
+  templates: EmailTemplate[];
+}) {
+  const [activeTab, setActiveTab] = useState("compose");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [subject, setSubject] = useState("");
+  const [bodyHtml, setBodyHtml] = useState("<p>Hello {{user_name}},</p><p>Your message here...</p>");
+  const [audience, setAudience] = useState<"all_active" | "paid_only" | "free_only">("all_active");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  
+  // AI Generation form
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiEmailType, setAiEmailType] = useState<"product_update" | "feature_announcement" | "newsletter" | "promotion">("product_update");
+  const [aiTone, setAiTone] = useState<"professional" | "friendly" | "excited" | "urgent">("professional");
+  const [aiKeyPoints, setAiKeyPoints] = useState("");
+  const [ctaText, setCtaText] = useState("");
+  const [ctaLink, setCtaLink] = useState("");
+
+  const handleTemplateSelect = (templateKey: string) => {
+    const template = templates.find((t) => t.template_key === templateKey);
+    if (template) {
+      setSubject(template.subject_template);
+      setBodyHtml(template.body_html);
+    }
+    setSelectedTemplate(templateKey);
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!aiTopic) {
+      toast.error("Please enter a topic for the email");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-marketing-email", {
+        body: {
+          email_type: aiEmailType,
+          topic: aiTopic,
+          tone: aiTone,
+          key_points: aiKeyPoints.split("\n").filter((p) => p.trim()),
+          cta_text: ctaText || undefined,
+          cta_link: ctaLink || undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      setSubject(data.email.subject);
+      setBodyHtml(data.email.body_html);
+      setActiveTab("compose");
+      toast.success("Email content generated successfully!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to generate email";
+      toast.error(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSendTest = async () => {
+    if (!subject || !bodyHtml) {
+      toast.error("Please add subject and body content");
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-broadcast-email", {
+        body: {
+          subject,
+          body_html: bodyHtml,
+          test_mode: true,
+        },
+      });
+
+      if (error) throw error;
+      toast.success(data.message || "Test email sent!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to send test email";
+      toast.error(message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendBroadcast = async () => {
+    if (!subject || !bodyHtml) {
+      toast.error("Please add subject and body content");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to send this email to ${audience === "all_active" ? "all active users" : audience === "paid_only" ? "paid subscribers only" : "free users only"}?`)) {
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-broadcast-email", {
+        body: {
+          subject,
+          body_html: bodyHtml,
+          audience,
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Broadcast sent to ${data.sent_count} recipients!`);
+      onClose();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to send broadcast";
+      toast.error(message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Megaphone className="h-5 w-5" />
+            Marketing Email Broadcast
+          </DialogTitle>
+          <DialogDescription>
+            Create and send marketing emails to platform users with AI assistance
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="ai" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Generate
+            </TabsTrigger>
+            <TabsTrigger value="compose">Compose</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="send" className="gap-2">
+              <Send className="h-4 w-4" />
+              Send
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 overflow-y-auto mt-4">
+            <TabsContent value="ai" className="space-y-4 mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    Generate Email with AI
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Email Type</Label>
+                      <Select value={aiEmailType} onValueChange={(v: typeof aiEmailType) => setAiEmailType(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="product_update">Product Update</SelectItem>
+                          <SelectItem value="feature_announcement">Feature Announcement</SelectItem>
+                          <SelectItem value="newsletter">Newsletter</SelectItem>
+                          <SelectItem value="promotion">Promotion</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tone</Label>
+                      <Select value={aiTone} onValueChange={(v: typeof aiTone) => setAiTone(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="professional">Professional</SelectItem>
+                          <SelectItem value="friendly">Friendly</SelectItem>
+                          <SelectItem value="excited">Excited</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Topic / Main Message *</Label>
+                    <Input
+                      placeholder="e.g., Introducing our new AI Personas feature..."
+                      value={aiTopic}
+                      onChange={(e) => setAiTopic(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Key Points (one per line)</Label>
+                    <Textarea
+                      placeholder="e.g.,&#10;7 new AI personas for different collection stages&#10;Customizable tone settings&#10;50% faster email generation"
+                      value={aiKeyPoints}
+                      onChange={(e) => setAiKeyPoints(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>CTA Button Text</Label>
+                      <Input
+                        placeholder="e.g., Try It Now"
+                        value={ctaText}
+                        onChange={(e) => setCtaText(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CTA Link</Label>
+                      <Input
+                        placeholder="e.g., https://recouply.ai/personas"
+                        value={ctaLink}
+                        onChange={(e) => setCtaLink(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateWithAI}
+                    disabled={isGenerating || !aiTopic}
+                    className="w-full"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Generate Email Content
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="compose" className="space-y-4 mt-0">
+              <div className="space-y-2">
+                <Label>Use Template (Optional)</Label>
+                <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.template_key} value={t.template_key}>
+                        {t.template_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Subject Line *</Label>
+                <Input
+                  placeholder="Email subject..."
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Email Body *</Label>
+                <RichTextEditor
+                  content={bodyHtml}
+                  onChange={setBodyHtml}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="preview" className="mt-0">
+              <EmailPreviewFrame
+                subject={subject.replace(/\{\{user_name\}\}/g, "John Smith")}
+                bodyHtml={bodyHtml.replace(/\{\{user_name\}\}/g, "John Smith")}
+                businessName="Recouply.ai"
+                primaryColor="#1e3a5f"
+                arPageLink="/ar/sample"
+              />
+            </TabsContent>
+
+            <TabsContent value="send" className="space-y-4 mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Audience Selection
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Send To</Label>
+                    <Select value={audience} onValueChange={(v: typeof audience) => setAudience(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all_active">All Active Users</SelectItem>
+                        <SelectItem value="paid_only">Paid Subscribers Only</SelectItem>
+                        <SelectItem value="free_only">Free Users Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleSendTest}
+                      disabled={isSending || !subject || !bodyHtml}
+                      className="flex-1"
+                    >
+                      {isSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                      Send Test to Me
+                    </Button>
+                    <Button
+                      onClick={handleSendBroadcast}
+                      disabled={isSending || !subject || !bodyHtml}
+                      className="flex-1"
+                    >
+                      {isSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                      Send Broadcast
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
           </Button>
         </DialogFooter>
       </DialogContent>
