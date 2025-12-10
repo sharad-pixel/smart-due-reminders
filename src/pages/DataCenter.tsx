@@ -186,6 +186,7 @@ const DataCenter = () => {
                     <li>External Customer ID, CRM Account ID</li>
                     <li>Industry, Account Type</li>
                     <li>Billing Address</li>
+                    <li>Customer ID</li>
                   </ul>
                 </div>
                 <div className="pt-2 border-t flex items-start gap-1.5">
@@ -223,6 +224,7 @@ const DataCenter = () => {
                     <li>Outstanding Amount, Currency</li>
                     <li>Invoice Status, External Invoice ID</li>
                     <li>Product/Service Description</li>
+                    <li>PO Number</li>
                   </ul>
                 </div>
                 <div className="pt-2 border-t flex items-start gap-1.5">
