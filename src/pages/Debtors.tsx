@@ -87,6 +87,7 @@ const Debtors = () => {
     notes: "",
     external_customer_id: "",
     crm_account_id_external: "",
+    industry: "",
   });
 
   useEffect(() => {
@@ -222,6 +223,7 @@ const Debtors = () => {
         notes: "",
         external_customer_id: "",
         crm_account_id_external: "",
+        industry: "",
       });
       setContacts([{ name: "", title: "", email: "", phone: "", outreach_enabled: true }]);
       fetchDebtors();
@@ -433,7 +435,7 @@ const Debtors = () => {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="external_customer_id">Account ID (Billing System)</Label>
                       <Input
@@ -450,6 +452,15 @@ const Debtors = () => {
                         value={formData.crm_account_id_external}
                         onChange={(e) => setFormData({ ...formData, crm_account_id_external: e.target.value })}
                         placeholder="e.g., SF_001234"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="industry">Industry</Label>
+                      <Input
+                        id="industry"
+                        value={formData.industry}
+                        onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                        placeholder="e.g., Technology"
                       />
                     </div>
                   </div>
