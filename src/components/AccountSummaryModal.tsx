@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, FileText, Link as LinkIcon, X, Plus, Loader2, Brain, Sparkles, CheckCircle2, AlertTriangle, Target } from "lucide-react";
+import { Mail, FileText, Link as LinkIcon, X, Plus, Loader2, Brain, Sparkles, CheckCircle2, AlertTriangle, Target, Clock, Info } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface Invoice {
   id: string;
@@ -60,6 +61,9 @@ interface Intelligence {
   executiveSummary: string;
   collectionStrategy: string;
   communicationSentiment: string;
+  keyInsights?: string[];
+  recommendations?: string[];
+  paymentBehavior?: string;
 }
 
 const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModalProps) => {
@@ -77,6 +81,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const [showAddLink, setShowAddLink] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
+  const [intelligenceGeneratedAt, setIntelligenceGeneratedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -87,10 +92,9 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const fetchAccountData = async () => {
     setLoading(true);
     setAiGenerated(false);
-    setIntelligence(null);
     try {
-      // Fetch open invoices and tasks in parallel
-      const [invoicesRes, tasksRes] = await Promise.all([
+      // Fetch open invoices, tasks, and debtor's cached intelligence in parallel
+      const [invoicesRes, tasksRes, debtorRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*")
@@ -102,7 +106,12 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
           .select("id, summary, task_type, status, priority")
           .eq("debtor_id", debtor.id)
           .in("status", ["open", "in_progress"])
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("debtors")
+          .select("intelligence_report, intelligence_report_generated_at")
+          .eq("id", debtor.id)
+          .single()
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
@@ -110,6 +119,23 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       
       setInvoices(invoicesRes.data || []);
       setOpenTasks(tasksRes.data || []);
+      
+      // Load cached intelligence report if less than 24 hours old
+      if (debtorRes.data?.intelligence_report && debtorRes.data?.intelligence_report_generated_at) {
+        const cacheAge = Date.now() - new Date(debtorRes.data.intelligence_report_generated_at).getTime();
+        const cacheAgeHours = cacheAge / (1000 * 60 * 60);
+        
+        if (cacheAgeHours < 24) {
+          setIntelligence(debtorRes.data.intelligence_report as unknown as Intelligence);
+          setIntelligenceGeneratedAt(debtorRes.data.intelligence_report_generated_at);
+        } else {
+          setIntelligence(null);
+          setIntelligenceGeneratedAt(null);
+        }
+      } else {
+        setIntelligence(null);
+        setIntelligenceGeneratedAt(null);
+      }
       
       // Clear previous content
       setSubject("");
@@ -156,6 +182,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       // Capture intelligence report if available
       if (data.intelligence) {
         setIntelligence(data.intelligence);
+        setIntelligenceGeneratedAt(data.intelligenceGeneratedAt || new Date().toISOString());
       }
       
       toast.success("AI outreach generated based on Collection Intelligence Report");
@@ -269,6 +296,60 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
               </Card>
             </div>
 
+            {/* Show cached intelligence report if available */}
+            {!message && intelligence && (
+              <Card className={`border-2 ${
+                intelligence.riskLevel === "low" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" :
+                intelligence.riskLevel === "medium" ? "border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/20" :
+                intelligence.riskLevel === "high" ? "border-orange-200 bg-orange-50/50 dark:bg-orange-950/20" :
+                intelligence.riskLevel === "critical" ? "border-red-200 bg-red-50/50 dark:bg-red-950/20" :
+                "border-gray-200 bg-gray-50/50 dark:bg-gray-900/20"
+              }`}>
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm">Cached Intelligence Report</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {intelligenceGeneratedAt && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(intelligenceGeneratedAt), { addSuffix: true })}
+                        </span>
+                      )}
+                      <Badge variant={
+                        intelligence.riskLevel === "low" ? "default" :
+                        intelligence.riskLevel === "medium" ? "secondary" :
+                        "destructive"
+                      } className="gap-1">
+                        {intelligence.riskLevel.charAt(0).toUpperCase() + intelligence.riskLevel.slice(1)} Risk
+                        <span className="opacity-70">({intelligence.riskScore}/100)</span>
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1.5">
+                    <Info className="h-3 w-3 shrink-0" />
+                    <span>This report will be used to inform AI Outreach tone. Valid for 24 hours.</span>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">{intelligence.executiveSummary}</p>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-2 bg-background/50 rounded">
+                      <span className="font-medium text-muted-foreground">Strategy:</span>
+                      <p className="mt-0.5">{intelligence.collectionStrategy}</p>
+                    </div>
+                    <div className="p-2 bg-background/50 rounded">
+                      <span className="font-medium text-muted-foreground">Sentiment:</span>
+                      <p className="mt-0.5">{intelligence.communicationSentiment}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* AI Generate Button */}
             {!message && (
               <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
@@ -279,17 +360,22 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                   <div className="text-center">
                     <h3 className="font-semibold">Generate AI Outreach</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      AI will analyze {invoices.length} invoices and {openTasks.length} tasks to craft personalized outreach
+                      {intelligence 
+                        ? `AI will use the cached intelligence report to craft personalized outreach`
+                        : `AI will analyze ${invoices.length} invoices and ${openTasks.length} tasks to craft personalized outreach`
+                      }
                     </p>
-                    <p className="text-xs text-muted-foreground/70 mt-2 italic">
-                      More account activity = more accurate outreach
-                    </p>
+                    {!intelligence && (
+                      <p className="text-xs text-muted-foreground/70 mt-2 italic">
+                        More account activity = more accurate outreach
+                      </p>
+                    )}
                   </div>
                   <Button onClick={generateAIOutreach} disabled={generating} className="gap-2">
                     {generating ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Analyzing Activity...
+                        {intelligence ? "Generating Outreach..." : "Analyzing Activity..."}
                       </>
                     ) : (
                       <>
@@ -322,22 +408,36 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                     "border-gray-200 bg-gray-50/50 dark:bg-gray-900/20"
                   }`}>
                     <CardContent className="pt-4 space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <Target className="h-4 w-4 text-primary" />
-                          <span className="font-semibold text-sm">Intelligence-Driven Tone</span>
+                          <span className="font-semibold text-sm">Collection Intelligence Report</span>
                         </div>
-                        <Badge variant={
-                          intelligence.riskLevel === "low" ? "default" :
-                          intelligence.riskLevel === "medium" ? "secondary" :
-                          "destructive"
-                        } className="gap-1">
-                          {intelligence.riskLevel === "high" || intelligence.riskLevel === "critical" ? (
-                            <AlertTriangle className="h-3 w-3" />
-                          ) : null}
-                          {intelligence.riskLevel.charAt(0).toUpperCase() + intelligence.riskLevel.slice(1)} Risk
-                          <span className="opacity-70">({intelligence.riskScore}/100)</span>
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {intelligenceGeneratedAt && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDistanceToNow(new Date(intelligenceGeneratedAt), { addSuffix: true })}
+                            </span>
+                          )}
+                          <Badge variant={
+                            intelligence.riskLevel === "low" ? "default" :
+                            intelligence.riskLevel === "medium" ? "secondary" :
+                            "destructive"
+                          } className="gap-1">
+                            {intelligence.riskLevel === "high" || intelligence.riskLevel === "critical" ? (
+                              <AlertTriangle className="h-3 w-3" />
+                            ) : null}
+                            {intelligence.riskLevel.charAt(0).toUpperCase() + intelligence.riskLevel.slice(1)} Risk
+                            <span className="opacity-70">({intelligence.riskScore}/100)</span>
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      {/* 24-hour cache notice */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1.5">
+                        <Info className="h-3 w-3 shrink-0" />
+                        <span>Report valid for 24 hours. Also visible on Account Details page.</span>
                       </div>
                       
                       <p className="text-sm text-muted-foreground">{intelligence.executiveSummary}</p>
