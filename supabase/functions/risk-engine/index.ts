@@ -545,14 +545,30 @@ function calculateFullEnterpriseScore(
   }
 
   // DPD Score: 100 at 0 DPD, decreases as DPD increases
-  // At 120+ DPD, score is 0
-  const dpdScore = Math.max(0, 100 - (maxDPD / 1.2));
+  // Progressive scaling for extreme cases:
+  // - At 120+ DPD: score drops to 0-10
+  // - At 180+ DPD: score is 0
+  let dpdScore: number;
+  if (maxDPD >= 180) {
+    dpdScore = 0; // Severely overdue - no health credit
+  } else if (maxDPD >= 120) {
+    dpdScore = Math.max(0, 10 - ((maxDPD - 120) / 6)); // 10 down to 0 between 120-180
+  } else {
+    dpdScore = Math.max(0, 100 - (maxDPD / 1.2));
+  }
 
   // DPD Risk: 0 at 0 DPD, increases as DPD increases
-  // At 120+ DPD, risk is 100
+  // Progressive scaling for extreme cases:
+  // - At 120 DPD: risk = 100
+  // - At 180+ DPD: risk stays at 100 but we add severe penalties
   const dpdRisk = Math.min(100, maxDPD / 1.2);
 
-  if (maxDPD > 90) {
+  // Apply severe penalties for extreme DPD cases
+  if (maxDPD >= 200) {
+    penalties.push({ reason: `Severely delinquent (${maxDPD} days past due)`, amount: 50, category: 'dpd' });
+  } else if (maxDPD >= 150) {
+    penalties.push({ reason: `Extremely overdue (${maxDPD} days past due)`, amount: 40, category: 'dpd' });
+  } else if (maxDPD > 90) {
     penalties.push({ reason: `Critical DPD (${maxDPD} days)`, amount: 30, category: 'dpd' });
   } else if (maxDPD > 60) {
     penalties.push({ reason: `High DPD (${maxDPD} days)`, amount: 20, category: 'dpd' });
@@ -678,7 +694,7 @@ function calculateFullEnterpriseScore(
   // =============================================
 
   // Collections Health Score (weighted average)
-  const collectionsHealthScore = Math.round(
+  let collectionsHealthScore = Math.round(
     (0.35 * paymentHistoryScore) +
     (0.30 * dpdScore) +
     (0.20 * outstandingBalanceScore) +
@@ -686,12 +702,25 @@ function calculateFullEnterpriseScore(
   );
 
   // Collections Risk Score (weighted average)
-  const collectionsRiskScore = Math.round(
+  let collectionsRiskScore = Math.round(
     (0.40 * dpdRisk) +
     (0.25 * negativePaymentTrend) +
     (0.20 * aiSentimentRisk) +
     (0.15 * balanceConcentrationRisk)
   );
+
+  // Apply severe adjustments for extreme DPD cases (200+ days)
+  // These accounts should NEVER have a positive/healthy score
+  if (maxDPD >= 200) {
+    collectionsHealthScore = Math.min(collectionsHealthScore, 15); // Cap health at 15 (Critical)
+    collectionsRiskScore = Math.max(collectionsRiskScore, 85); // Floor risk at 85 (Critical Risk)
+  } else if (maxDPD >= 150) {
+    collectionsHealthScore = Math.min(collectionsHealthScore, 25); // Cap health at 25 (At Risk)
+    collectionsRiskScore = Math.max(collectionsRiskScore, 75); // Floor risk at 75 (High Risk)
+  } else if (maxDPD >= 120) {
+    collectionsHealthScore = Math.min(collectionsHealthScore, 35); // Cap health at 35 (At Risk)
+    collectionsRiskScore = Math.max(collectionsRiskScore, 65); // Floor risk at 65 (High Risk)
+  }
 
   // Determine tiers
   const healthTier = getHealthTier(collectionsHealthScore);
