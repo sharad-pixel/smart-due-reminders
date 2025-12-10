@@ -26,17 +26,14 @@ const UsageMeter = ({ compact = false }: UsageMeterProps) => {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUsage();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchUsage, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchUsage = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
 
       const { data, error } = await supabase.functions.invoke('get-monthly-usage');
       if (!error && data) {
