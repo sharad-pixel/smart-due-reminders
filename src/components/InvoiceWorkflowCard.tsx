@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { getPersonaByDaysPastDue, getPersonaByName } from "@/lib/personaConfig";
-import { Calendar, Mail, MessageSquare, Clock, Bot } from "lucide-react";
+import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
+import { Calendar, Mail, MessageSquare, Clock, Bot, CalendarClock } from "lucide-react";
+import { format, addDays } from "date-fns";
 
 interface WorkflowStep {
   id: string;
@@ -26,6 +27,7 @@ interface InvoiceWorkflowCardProps {
   workflow: CollectionWorkflow | null;
   workflowSteps: WorkflowStep[];
   isActiveInvoice: boolean;
+  dueDate: string;
 }
 
 const getAgingBucketLabel = (bucket: string): string => {
@@ -57,7 +59,8 @@ export const InvoiceWorkflowCard = ({
   daysPastDue, 
   workflow, 
   workflowSteps,
-  isActiveInvoice 
+  isActiveInvoice,
+  dueDate
 }: InvoiceWorkflowCardProps) => {
   const persona = getPersonaByDaysPastDue(daysPastDue);
   const sortedSteps = [...workflowSteps].sort((a, b) => a.step_order - b.step_order);
@@ -73,6 +76,36 @@ export const InvoiceWorkflowCard = ({
   };
   
   const currentStepIndex = getCurrentStepIndex();
+  
+  // Calculate next outreach date
+  const getNextOutreachInfo = () => {
+    if (sortedSteps.length === 0) return null;
+    
+    // Find the next step that hasn't been reached yet
+    const nextStep = sortedSteps.find(step => step.day_offset > daysPastDue);
+    
+    if (nextStep) {
+      // Calculate the date: due_date + day_offset
+      const dueDateObj = new Date(dueDate);
+      const nextOutreachDate = addDays(dueDateObj, nextStep.day_offset);
+      return {
+        step: nextStep,
+        date: nextOutreachDate,
+        daysUntil: nextStep.day_offset - daysPastDue
+      };
+    }
+    
+    // All steps have been reached - return the last step info
+    const lastStep = sortedSteps[sortedSteps.length - 1];
+    return {
+      step: lastStep,
+      date: null, // Already passed
+      daysUntil: 0,
+      isComplete: true
+    };
+  };
+  
+  const nextOutreach = getNextOutreachInfo();
 
   if (!isActiveInvoice) {
     return (
@@ -101,6 +134,39 @@ export const InvoiceWorkflowCard = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Next Outreach Date */}
+        {nextOutreach && workflow && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/30 border border-accent/50">
+            <CalendarClock className="h-5 w-5 text-accent-foreground" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">
+                {nextOutreach.isComplete ? 'All Steps Complete' : 'Next Scheduled Outreach'}
+              </p>
+              {nextOutreach.date && !nextOutreach.isComplete ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg font-semibold text-foreground">
+                    {format(nextOutreach.date, 'MMM d, yyyy')}
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    {nextOutreach.daysUntil === 0 ? 'Today' : 
+                     nextOutreach.daysUntil === 1 ? 'Tomorrow' : 
+                     `In ${nextOutreach.daysUntil} days`}
+                  </Badge>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {nextOutreach.isComplete ? 'Workflow has completed all scheduled steps' : 'No upcoming outreach scheduled'}
+                </p>
+              )}
+              {nextOutreach.step && !nextOutreach.isComplete && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Step {nextOutreach.step.step_order}: {nextOutreach.step.label}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Assigned Persona */}
         {persona ? (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
