@@ -695,280 +695,221 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-5 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoice Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Amount</p>
-                <p className="text-2xl font-bold">
-                  {invoice.currency || 'USD'} ${invoice.amount.toLocaleString()}
-                </p>
-              </div>
-              {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
+        {/* Main Content Grid - 3 columns on large screens */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Invoice Details & Status */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Invoice Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">Outstanding Balance</p>
-                  <p className={`text-lg font-semibold ${invoice.amount_outstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                    ${invoice.amount_outstanding.toLocaleString()}
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Amount</p>
+                  <p className="text-xl font-bold">
+                    {invoice.currency || 'USD'} ${invoice.amount.toLocaleString()}
                   </p>
                 </div>
-              )}
-              {invoice.subtotal !== null && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Subtotal</p>
-                  <p className="font-medium">${invoice.subtotal.toLocaleString()}</p>
-                </div>
-              )}
-              {invoice.tax_amount !== null && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Tax</p>
-                  <p className="font-medium">${invoice.tax_amount.toLocaleString()}</p>
-                </div>
-              )}
-              {invoice.total_amount !== null && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="font-medium">${invoice.total_amount.toLocaleString()}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                    invoice.status
-                  )}`}
-                >
-                  {invoice.status}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Issue Date</p>
-                <p className="font-medium">{new Date(invoice.issue_date).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Due Date</p>
-                <p className="font-medium">{new Date(invoice.due_date).toLocaleDateString()}</p>
-              </div>
-              {invoice.payment_terms && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Payment Terms</p>
-                  <p className="font-medium">{invoice.payment_terms}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Days Past Due</p>
-                <p
-                  className={`font-bold text-lg ${
-                    daysPastDue === 0
-                      ? "text-green-600"
-                      : daysPastDue <= 30
-                      ? "text-yellow-600"
-                      : daysPastDue <= 60
-                      ? "text-orange-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {daysPastDue === 0 ? "Current" : `${daysPastDue} days`}
-                </p>
-              </div>
-              {invoice.aging_bucket && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Aging Bucket</p>
-                  <p className="font-medium">{getAgingBucketLabel(invoice.aging_bucket)}</p>
-                </div>
-              )}
-              {invoice.product_description && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Product Description</p>
-                  <p className="text-sm">{invoice.product_description}</p>
-                </div>
-              )}
-              {invoice.is_overage && (
-                <div>
-                  <Badge variant="destructive">Overage Invoice</Badge>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Status Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="default"
-                className="w-full justify-start"
-                onClick={() => setApplyPaymentOpen(true)}
-                disabled={invoice.status === "Paid"}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Apply Payment
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleStatusChange("Paid")}
-                disabled={invoice.status === "Paid"}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark as Paid
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleStatusChange("Disputed")}
-                disabled={invoice.status === "Disputed"}
-              >
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Mark as Disputed
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleStatusChange("Settled")}
-                disabled={invoice.status === "Settled"}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark as Settled
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleStatusChange("InPaymentPlan")}
-                disabled={invoice.status === "InPaymentPlan"}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                In Payment Plan
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleStatusChange("Canceled")}
-                disabled={invoice.status === "Canceled"}
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Cancel Invoice
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Company</p>
-                <p className="font-medium">{invoice.debtors?.company_name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{invoice.debtors?.email}</p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
-              >
-                View Account Details
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Snapshot</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {crmAccount ? (
-                <div className="space-y-3">
+                {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Account Name</p>
-                    <p className="font-medium">{crmAccount.name}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Outstanding</p>
+                    <p className={`text-lg font-semibold ${invoice.amount_outstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      ${invoice.amount_outstanding.toLocaleString()}
+                    </p>
                   </div>
-                  {crmAccount.segment && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Segment</p>
-                      <p className="font-medium">{crmAccount.segment}</p>
-                    </div>
-                  )}
-                  {crmAccount.mrr !== null && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">MRR</p>
-                      <p className="font-medium">${crmAccount.mrr.toLocaleString()}</p>
-                    </div>
-                  )}
-                  {crmAccount.lifetime_value !== null && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Lifetime Value</p>
-                      <p className="font-medium">${crmAccount.lifetime_value.toLocaleString()}</p>
-                    </div>
-                  )}
-                  {crmAccount.customer_since && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Customer Since</p>
-                      <p className="font-medium">{new Date(crmAccount.customer_since).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                  {crmAccount.health_score && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Health Score</p>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          crmAccount.health_score.toLowerCase() === "healthy" || crmAccount.health_score.toLowerCase() === "green"
-                            ? "bg-green-100 text-green-800"
-                            : crmAccount.health_score.toLowerCase() === "at risk" || crmAccount.health_score.toLowerCase() === "yellow"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {crmAccount.health_score}
-                      </span>
-                    </div>
-                  )}
-                  {crmAccount.status && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          crmAccount.status === "Active"
-                            ? "bg-green-100 text-green-800"
-                            : crmAccount.status === "ChurnRisk"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {crmAccount.status}
-                      </span>
-                    </div>
-                  )}
-                  {crmAccount.owner_name && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Owner</p>
-                      <p className="font-medium">{crmAccount.owner_name}</p>
-                    </div>
-                  )}
+                )}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Issue Date</p>
+                    <p className="text-sm font-medium">{new Date(invoice.issue_date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Due Date</p>
+                    <p className="text-sm font-medium">{new Date(invoice.due_date).toLocaleDateString()}</p>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No CRM account linked. Link this debtor to a CRM account in their profile.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                      {invoice.status}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Days Past Due</p>
+                    <p className={`text-lg font-bold ${
+                      daysPastDue === 0 ? "text-green-600" : daysPastDue <= 30 ? "text-yellow-600" : daysPastDue <= 60 ? "text-orange-600" : "text-red-600"
+                    }`}>
+                      {daysPastDue === 0 ? "Current" : daysPastDue}
+                    </p>
+                  </div>
+                </div>
+                {invoice.payment_terms && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">Payment Terms</p>
+                    <p className="text-sm font-medium">{invoice.payment_terms}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* AI Workflow Card */}
-          <InvoiceWorkflowCard
-            daysPastDue={daysPastDue}
-            workflow={associatedWorkflow}
-            workflowSteps={workflowSteps}
-            isActiveInvoice={invoice.status === 'Open' || invoice.status === 'InPaymentPlan'}
-            dueDate={invoice.due_date}
-            invoiceId={invoice.id}
-          />
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Status Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => setApplyPaymentOpen(true)}
+                  disabled={invoice.status === "Paid"}
+                >
+                  <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+                  Apply Payment
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => handleStatusChange("Paid")}
+                  disabled={invoice.status === "Paid"}
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Mark Paid
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => handleStatusChange("Disputed")}
+                  disabled={invoice.status === "Disputed"}
+                >
+                  <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Disputed
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => handleStatusChange("Settled")}
+                  disabled={invoice.status === "Settled"}
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Settled
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => handleStatusChange("InPaymentPlan")}
+                  disabled={invoice.status === "InPaymentPlan"}
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Payment Plan
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => handleStatusChange("Canceled")}
+                  disabled={invoice.status === "Canceled"}
+                >
+                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Cancel
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Middle Column - Account & CRM Info */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Account Info</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Company</p>
+                  <p className="font-medium">{invoice.debtors?.company_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium">{invoice.debtors?.email}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
+                >
+                  View Account Details
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Customer Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {crmAccount ? (
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Account</p>
+                      <p className="text-sm font-medium">{crmAccount.name}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {crmAccount.segment && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Segment</p>
+                          <p className="text-sm font-medium">{crmAccount.segment}</p>
+                        </div>
+                      )}
+                      {crmAccount.mrr !== null && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">MRR</p>
+                          <p className="text-sm font-medium">${crmAccount.mrr.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+                    {crmAccount.health_score && (
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-xs text-muted-foreground">Health</span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            crmAccount.health_score.toLowerCase() === "healthy" || crmAccount.health_score.toLowerCase() === "green"
+                              ? "bg-green-100 text-green-800"
+                              : crmAccount.health_score.toLowerCase() === "at risk" || crmAccount.health_score.toLowerCase() === "yellow"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {crmAccount.health_score}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No CRM account linked
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Collection Intelligence */}
+          <div>
+            <InvoiceWorkflowCard
+              daysPastDue={daysPastDue}
+              workflow={associatedWorkflow}
+              workflowSteps={workflowSteps}
+              isActiveInvoice={invoice.status === 'Open' || invoice.status === 'InPaymentPlan'}
+              dueDate={invoice.due_date}
+              invoiceId={invoice.id}
+            />
+          </div>
         </div>
 
         {/* Context Preview - RCA + CS Cases */}
