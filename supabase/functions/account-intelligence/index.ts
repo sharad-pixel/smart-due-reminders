@@ -6,13 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const CACHE_DURATION_HOURS = 24;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { debtor_id } = await req.json();
+    const { debtor_id, force_regenerate } = await req.json();
     
     if (!debtor_id) {
       return new Response(JSON.stringify({ error: "debtor_id is required" }), {
@@ -47,120 +49,40 @@ serve(async (req) => {
       });
     }
 
-    // Fetch invoices for this account
-    const { data: invoices } = await supabase
-      .from("invoices")
-      .select("*")
-      .eq("debtor_id", debtor_id)
-      .eq("is_archived", false);
-
-    // Fetch payments linked to this account's invoices
-    const invoiceIds = invoices?.map(i => i.id) || [];
-    let payments: any[] = [];
-    if (invoiceIds.length > 0) {
-      const { data: paymentLinks } = await supabase
-        .from("payment_invoice_links")
-        .select("*, payments(*)")
-        .in("invoice_id", invoiceIds);
-      payments = paymentLinks?.map(pl => pl.payments).filter(Boolean) || [];
-    }
-
-    // Fetch collection tasks
-    const { data: tasks } = await supabase
-      .from("collection_tasks")
-      .select("*")
-      .eq("debtor_id", debtor_id)
-      .order("created_at", { ascending: false });
-
-    // Fetch inbound emails for sentiment analysis
-    const { data: inboundEmails } = await supabase
-      .from("inbound_emails")
-      .select("*")
-      .eq("debtor_id", debtor_id)
-      .order("received_at", { ascending: false })
-      .limit(10);
-
-    // Fetch contacts for this account
-    const { data: contacts } = await supabase
-      .from("debtor_contacts")
-      .select("*")
-      .eq("debtor_id", debtor_id);
-
-    // Calculate metrics
-    const openInvoices = invoices?.filter(i => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
-    const totalOpenBalance = openInvoices.reduce((sum, inv) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+    // Check if we have a cached report that's less than 24 hours old
+    const cachedReport = debtor.intelligence_report;
+    const cachedAt = debtor.intelligence_report_generated_at;
     
-    // Calculate DSO (Days Sales Outstanding)
-    const paidInvoices = invoices?.filter(i => i.status === "Paid" && i.paid_at) || [];
-    let avgDSO = 0;
-    if (paidInvoices.length > 0) {
-      const dsoValues = paidInvoices.map(inv => {
-        const dueDate = new Date(inv.due_date);
-        const paidDate = new Date(inv.paid_at);
-        return Math.max(0, Math.floor((paidDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-      });
-      avgDSO = Math.round(dsoValues.reduce((a, b) => a + b, 0) / dsoValues.length);
+    if (!force_regenerate && cachedReport && cachedAt) {
+      const cacheAge = Date.now() - new Date(cachedAt).getTime();
+      const cacheAgeHours = cacheAge / (1000 * 60 * 60);
+      
+      if (cacheAgeHours < CACHE_DURATION_HOURS) {
+        console.log(`[INTELLIGENCE] Using cached report (${cacheAgeHours.toFixed(1)} hours old)`);
+        
+        // Return cached data with metrics
+        const metrics = await fetchMetrics(supabase, debtor_id, debtor);
+        
+        return new Response(JSON.stringify({
+          success: true,
+          intelligence: cachedReport,
+          metrics,
+          generatedAt: cachedAt,
+          fromCache: true,
+          cacheExpiresAt: new Date(new Date(cachedAt).getTime() + CACHE_DURATION_HOURS * 60 * 60 * 1000).toISOString()
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    // Task metrics
-    const openTasks = tasks?.filter(t => t.status === "open") || [];
-    const completedTasks = tasks?.filter(t => t.status === "done") || [];
-    const overdueTasks = openTasks.filter(t => t.due_date && new Date(t.due_date) < new Date());
+    console.log(`[INTELLIGENCE] Generating new report for debtor ${debtor_id}`);
 
-    // Sentiment from inbound emails
-    const sentimentSummary = inboundEmails?.map(e => ({
-      date: e.received_at,
-      subject: e.subject,
-      sentiment: e.sentiment || "unknown",
-      category: e.category,
-      priority: e.priority
-    })) || [];
-
-    // Payment history summary
-    const paymentHistory = payments.map(p => ({
-      date: p.payment_date,
-      amount: p.amount,
-      method: p.payment_method
-    }));
+    // Fetch all data for the report
+    const metrics = await fetchMetrics(supabase, debtor_id, debtor);
 
     // Build context for AI
-    const contextData = {
-      account: {
-        name: debtor.company_name || debtor.name,
-        type: debtor.type,
-        paymentScore: debtor.payment_score,
-        riskTier: debtor.payment_risk_tier || debtor.risk_tier,
-        avgDaysToPay: debtor.avg_days_to_pay,
-        creditLimit: debtor.credit_limit
-      },
-      financials: {
-        totalOpenBalance,
-        openInvoicesCount: openInvoices.length,
-        totalInvoicesCount: invoices?.length || 0,
-        paidInvoicesCount: paidInvoices.length,
-        avgDSO,
-        disputedCount: debtor.disputed_invoices_count || 0,
-        writtenOffCount: debtor.written_off_invoices_count || 0
-      },
-      tasks: {
-        openCount: openTasks.length,
-        completedCount: completedTasks.length,
-        overdueCount: overdueTasks.length,
-        recentTypes: tasks?.slice(0, 5).map(t => t.task_type) || []
-      },
-      communications: {
-        inboundCount: inboundEmails?.length || 0,
-        recentSentiments: sentimentSummary.slice(0, 5),
-        lastContactDate: inboundEmails?.[0]?.received_at || null
-      },
-      contacts: contacts?.map(c => ({
-        name: c.name,
-        title: c.title,
-        outreachEnabled: c.outreach_enabled,
-        isPrimary: c.is_primary
-      })) || [],
-      paymentHistory: paymentHistory.slice(0, 10)
-    };
+    const contextData = metrics;
 
     // Generate AI intelligence report
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -260,11 +182,28 @@ Provide your analysis as a JSON object.`;
       };
     }
 
+    const generatedAt = new Date().toISOString();
+
+    // Cache the report in the debtors table
+    const { error: updateError } = await supabase
+      .from("debtors")
+      .update({
+        intelligence_report: intelligence,
+        intelligence_report_generated_at: generatedAt
+      })
+      .eq("id", debtor_id);
+
+    if (updateError) {
+      console.error("Failed to cache intelligence report:", updateError);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       intelligence,
       metrics: contextData,
-      generatedAt: new Date().toISOString()
+      generatedAt,
+      fromCache: false,
+      cacheExpiresAt: new Date(Date.now() + CACHE_DURATION_HOURS * 60 * 60 * 1000).toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -278,3 +217,113 @@ Provide your analysis as a JSON object.`;
     });
   }
 });
+
+async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
+  // Fetch invoices for this account
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("*")
+    .eq("debtor_id", debtor_id)
+    .eq("is_archived", false);
+
+  // Fetch payments linked to this account's invoices
+  const invoiceIds = invoices?.map((i: any) => i.id) || [];
+  let payments: any[] = [];
+  if (invoiceIds.length > 0) {
+    const { data: paymentLinks } = await supabase
+      .from("payment_invoice_links")
+      .select("*, payments(*)")
+      .in("invoice_id", invoiceIds);
+    payments = paymentLinks?.map((pl: any) => pl.payments).filter(Boolean) || [];
+  }
+
+  // Fetch collection tasks
+  const { data: tasks } = await supabase
+    .from("collection_tasks")
+    .select("*")
+    .eq("debtor_id", debtor_id)
+    .order("created_at", { ascending: false });
+
+  // Fetch inbound emails for sentiment analysis
+  const { data: inboundEmails } = await supabase
+    .from("inbound_emails")
+    .select("*")
+    .eq("debtor_id", debtor_id)
+    .order("received_at", { ascending: false })
+    .limit(10);
+
+  // Fetch contacts for this account
+  const { data: contacts } = await supabase
+    .from("debtor_contacts")
+    .select("*")
+    .eq("debtor_id", debtor_id);
+
+  // Calculate metrics
+  const openInvoices = invoices?.filter((i: any) => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
+  const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+  
+  // Calculate DSO (Days Sales Outstanding)
+  const paidInvoices = invoices?.filter((i: any) => i.status === "Paid" && i.paid_at) || [];
+  let avgDSO = 0;
+  if (paidInvoices.length > 0) {
+    const dsoValues = paidInvoices.map((inv: any) => {
+      const dueDate = new Date(inv.due_date);
+      const paidDate = new Date(inv.paid_at);
+      return Math.max(0, Math.floor((paidDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+    });
+    avgDSO = Math.round(dsoValues.reduce((a: number, b: number) => a + b, 0) / dsoValues.length);
+  }
+
+  // Task metrics
+  const openTasks = tasks?.filter((t: any) => t.status === "open") || [];
+  const completedTasks = tasks?.filter((t: any) => t.status === "done") || [];
+  const overdueTasks = openTasks.filter((t: any) => t.due_date && new Date(t.due_date) < new Date());
+
+  return {
+    account: {
+      name: debtor.company_name || debtor.name,
+      type: debtor.type,
+      paymentScore: debtor.payment_score,
+      riskTier: debtor.payment_risk_tier || debtor.risk_tier,
+      avgDaysToPay: debtor.avg_days_to_pay,
+      creditLimit: debtor.credit_limit
+    },
+    financials: {
+      totalOpenBalance,
+      openInvoicesCount: openInvoices.length,
+      totalInvoicesCount: invoices?.length || 0,
+      paidInvoicesCount: paidInvoices.length,
+      avgDSO,
+      disputedCount: debtor.disputed_invoices_count || 0,
+      writtenOffCount: debtor.written_off_invoices_count || 0
+    },
+    tasks: {
+      openCount: openTasks.length,
+      completedCount: completedTasks.length,
+      overdueCount: overdueTasks.length,
+      recentTypes: tasks?.slice(0, 5).map((t: any) => t.task_type) || []
+    },
+    communications: {
+      inboundCount: inboundEmails?.length || 0,
+      recentSentiments: (inboundEmails || []).slice(0, 5).map((e: any) => ({
+        date: e.received_at,
+        subject: e.subject,
+        sentiment: e.sentiment || "unknown",
+        category: e.category,
+        priority: e.priority
+      })),
+      lastContactDate: inboundEmails?.[0]?.received_at || null
+    },
+    contacts: (contacts || []).map((c: any) => ({
+      name: c.name,
+      title: c.title,
+      outreachEnabled: c.outreach_enabled,
+      isPrimary: c.is_primary
+    })),
+    paymentHistory: payments.slice(0, 10).map((p: any) => ({
+      date: p.payment_date,
+      amount: p.amount,
+      method: p.payment_method
+    }))
+  };
+}

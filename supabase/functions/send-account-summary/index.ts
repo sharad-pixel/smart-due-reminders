@@ -132,10 +132,26 @@ serve(async (req) => {
         throw new Error("LOVABLE_API_KEY is not configured");
       }
 
-      // First, generate the intelligence report to inform the outreach tone
-      logStep("Fetching collection intelligence report");
-      
-      // Fetch all the context data for intelligence report
+      // First, check if we have a cached intelligence report that's less than 24 hours old
+      const CACHE_DURATION_HOURS = 24;
+      let intelligenceReport: any = null;
+      let usedCachedReport = false;
+
+      const cachedReport = debtor.intelligence_report;
+      const cachedAt = debtor.intelligence_report_generated_at;
+
+      if (cachedReport && cachedAt) {
+        const cacheAge = Date.now() - new Date(cachedAt).getTime();
+        const cacheAgeHours = cacheAge / (1000 * 60 * 60);
+        
+        if (cacheAgeHours < CACHE_DURATION_HOURS) {
+          logStep("Using cached intelligence report", { cacheAgeHours: cacheAgeHours.toFixed(1) });
+          intelligenceReport = cachedReport;
+          usedCachedReport = true;
+        }
+      }
+
+      // Fetch context data for outreach generation
       const { data: invoicesData } = await supabase
         .from("invoices")
         .select("*")
@@ -170,7 +186,7 @@ serve(async (req) => {
         .select("*")
         .eq("debtor_id", debtorId);
 
-      // Calculate metrics for intelligence
+      // Calculate metrics for intelligence (if we need to generate a new report)
       const openInvoicesForReport = invoicesData?.filter(i => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
       const totalOpenBalance = openInvoicesForReport.reduce((sum, inv) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
       
@@ -189,56 +205,59 @@ serve(async (req) => {
       const completedTasks = tasks?.filter(t => t.status === "done") || [];
       const overdueTasks = openTasksList.filter(t => t.due_date && new Date(t.due_date) < new Date());
 
-      const contextData = {
-        account: {
-          name: debtor.company_name || debtor.name,
-          type: debtor.type,
-          paymentScore: debtor.payment_score,
-          riskTier: debtor.payment_risk_tier || debtor.risk_tier,
-          avgDaysToPay: debtor.avg_days_to_pay,
-          creditLimit: debtor.credit_limit
-        },
-        financials: {
-          totalOpenBalance,
-          openInvoicesCount: openInvoicesForReport.length,
-          totalInvoicesCount: invoicesData?.length || 0,
-          paidInvoicesCount: paidInvoices.length,
-          avgDSO,
-          disputedCount: debtor.disputed_invoices_count || 0,
-          writtenOffCount: debtor.written_off_invoices_count || 0
-        },
-        tasks: {
-          openCount: openTasksList.length,
-          completedCount: completedTasks.length,
-          overdueCount: overdueTasks.length,
-          recentTypes: tasks?.slice(0, 5).map(t => t.task_type) || []
-        },
-        communications: {
-          inboundCount: inboundEmails?.length || 0,
-          recentSentiments: inboundEmails?.slice(0, 5).map(e => ({
-            date: e.received_at,
-            subject: e.subject,
-            sentiment: e.sentiment || "unknown",
-            category: e.category,
-            priority: e.priority
-          })) || [],
-          lastContactDate: inboundEmails?.[0]?.received_at || null
-        },
-        contacts: contacts?.map(c => ({
-          name: c.name,
-          title: c.title,
-          outreachEnabled: c.outreach_enabled,
-          isPrimary: c.is_primary
-        })) || [],
-        paymentHistory: payments.slice(0, 10).map(p => ({
-          date: p.payment_date,
-          amount: p.amount,
-          method: p.payment_method
-        }))
-      };
+      // If no cached report, generate a new one
+      if (!intelligenceReport) {
+        logStep("Generating new intelligence report via AI");
 
-      // Generate intelligence report first
-      const intelligenceSystemPrompt = `You are a Collection Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
+        const contextData = {
+          account: {
+            name: debtor.company_name || debtor.name,
+            type: debtor.type,
+            paymentScore: debtor.payment_score,
+            riskTier: debtor.payment_risk_tier || debtor.risk_tier,
+            avgDaysToPay: debtor.avg_days_to_pay,
+            creditLimit: debtor.credit_limit
+          },
+          financials: {
+            totalOpenBalance,
+            openInvoicesCount: openInvoicesForReport.length,
+            totalInvoicesCount: invoicesData?.length || 0,
+            paidInvoicesCount: paidInvoices.length,
+            avgDSO,
+            disputedCount: debtor.disputed_invoices_count || 0,
+            writtenOffCount: debtor.written_off_invoices_count || 0
+          },
+          tasks: {
+            openCount: openTasksList.length,
+            completedCount: completedTasks.length,
+            overdueCount: overdueTasks.length,
+            recentTypes: tasks?.slice(0, 5).map(t => t.task_type) || []
+          },
+          communications: {
+            inboundCount: inboundEmails?.length || 0,
+            recentSentiments: inboundEmails?.slice(0, 5).map(e => ({
+              date: e.received_at,
+              subject: e.subject,
+              sentiment: e.sentiment || "unknown",
+              category: e.category,
+              priority: e.priority
+            })) || [],
+            lastContactDate: inboundEmails?.[0]?.received_at || null
+          },
+          contacts: contacts?.map(c => ({
+            name: c.name,
+            title: c.title,
+            outreachEnabled: c.outreach_enabled,
+            isPrimary: c.is_primary
+          })) || [],
+          paymentHistory: payments.slice(0, 10).map(p => ({
+            date: p.payment_date,
+            amount: p.amount,
+            method: p.payment_method
+          }))
+        };
+
+        const intelligenceSystemPrompt = `You are a Collection Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
 
 Your reports should be:
 - Concise and actionable
@@ -256,59 +275,66 @@ Structure your response as JSON with these fields:
 - communicationSentiment: assessment of customer engagement/sentiment
 - collectionStrategy: recommended approach for this account`;
 
-      const intelligenceUserPrompt = `Generate a Collection Intelligence Report for this account:
+        const intelligenceUserPrompt = `Generate a Collection Intelligence Report for this account:
 
 ${JSON.stringify(contextData, null, 2)}
 
 Provide your analysis as a JSON object.`;
 
-      logStep("Generating intelligence report via AI");
+        const intelligenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: intelligenceSystemPrompt },
+              { role: "user", content: intelligenceUserPrompt }
+            ],
+          }),
+        });
 
-      const intelligenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: intelligenceSystemPrompt },
-            { role: "user", content: intelligenceUserPrompt }
-          ],
-        }),
-      });
+        if (intelligenceResponse.ok) {
+          const intelligenceData = await intelligenceResponse.json();
+          const intelligenceContent = intelligenceData.choices?.[0]?.message?.content || "";
+          
+          try {
+            const jsonMatch = intelligenceContent.match(/```json\s*([\s\S]*?)\s*```/) || 
+                              intelligenceContent.match(/```\s*([\s\S]*?)\s*```/) ||
+                              [null, intelligenceContent];
+            intelligenceReport = JSON.parse(jsonMatch[1] || intelligenceContent);
+            logStep("Intelligence report generated", { riskLevel: intelligenceReport.riskLevel, riskScore: intelligenceReport.riskScore });
 
-      let intelligenceReport: any = null;
+            // Cache the new report
+            await supabase
+              .from("debtors")
+              .update({
+                intelligence_report: intelligenceReport,
+                intelligence_report_generated_at: new Date().toISOString()
+              })
+              .eq("id", debtorId);
 
-      if (intelligenceResponse.ok) {
-        const intelligenceData = await intelligenceResponse.json();
-        const intelligenceContent = intelligenceData.choices?.[0]?.message?.content || "";
-        
-        try {
-          const jsonMatch = intelligenceContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                            intelligenceContent.match(/```\s*([\s\S]*?)\s*```/) ||
-                            [null, intelligenceContent];
-          intelligenceReport = JSON.parse(jsonMatch[1] || intelligenceContent);
-          logStep("Intelligence report generated", { riskLevel: intelligenceReport.riskLevel, riskScore: intelligenceReport.riskScore });
-        } catch (parseError) {
-          logStep("Failed to parse intelligence report, using defaults", parseError);
+          } catch (parseError) {
+            logStep("Failed to parse intelligence report, using defaults", parseError);
+          }
+        } else {
+          const status = intelligenceResponse.status;
+          if (status === 429) {
+            return new Response(
+              JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          if (status === 402) {
+            return new Response(
+              JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          logStep("Intelligence report generation failed", { status });
         }
-      } else {
-        const status = intelligenceResponse.status;
-        if (status === 429) {
-          return new Response(
-            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (status === 402) {
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        logStep("Intelligence report generation failed", { status });
       }
 
       // Now generate the outreach email using the intelligence report

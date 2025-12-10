@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,10 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Info
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface AccountIntelligenceCardProps {
   debtorId: string;
@@ -72,15 +74,47 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [cacheExpiresAt, setCacheExpiresAt] = useState<string | null>(null);
 
-  const generateIntelligence = async () => {
+  // Load cached report on mount
+  useEffect(() => {
+    loadCachedReport();
+  }, [debtorId]);
+
+  const loadCachedReport = async () => {
+    try {
+      const { data: debtor } = await supabase
+        .from("debtors")
+        .select("intelligence_report, intelligence_report_generated_at")
+        .eq("id", debtorId)
+        .single();
+
+      if (debtor?.intelligence_report && debtor?.intelligence_report_generated_at) {
+        const cacheAge = Date.now() - new Date(debtor.intelligence_report_generated_at).getTime();
+        const cacheAgeHours = cacheAge / (1000 * 60 * 60);
+
+        if (cacheAgeHours < 24) {
+          setIntelligence(debtor.intelligence_report as unknown as Intelligence);
+          setGeneratedAt(debtor.intelligence_report_generated_at);
+          setFromCache(true);
+          setCacheExpiresAt(new Date(new Date(debtor.intelligence_report_generated_at).getTime() + 24 * 60 * 60 * 1000).toISOString());
+          // We don't have metrics cached, so we'll show report without them until regenerated
+        }
+      }
+    } catch (error) {
+      console.error("Error loading cached report:", error);
+    }
+  };
+
+  const generateIntelligence = async (forceRegenerate = false) => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
       const { data, error } = await supabase.functions.invoke("account-intelligence", {
-        body: { debtor_id: debtorId },
+        body: { debtor_id: debtorId, force_regenerate: forceRegenerate },
       });
 
       if (error) throw error;
@@ -102,7 +136,14 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
       setIntelligence(data.intelligence);
       setMetrics(data.metrics);
       setGeneratedAt(data.generatedAt);
-      toast.success("Collection Intelligence generated");
+      setFromCache(data.fromCache || false);
+      setCacheExpiresAt(data.cacheExpiresAt || null);
+      
+      if (data.fromCache) {
+        toast.info("Showing cached intelligence report");
+      } else {
+        toast.success("Collection Intelligence generated");
+      }
     } catch (error: any) {
       console.error("Error generating intelligence:", error);
       toast.error(error.message || "Failed to generate intelligence");
@@ -147,7 +188,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
               More interactions = more accurate insights
             </p>
           </div>
-          <Button onClick={generateIntelligence} className="gap-2">
+          <Button onClick={() => generateIntelligence(false)} className="gap-2">
             <Brain className="h-4 w-4" />
             Generate Intelligence Report
           </Button>
@@ -181,21 +222,38 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
             Collection Intelligence Report
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {generatedAt && (
-              <span className="text-xs text-muted-foreground">
-                Generated {new Date(generatedAt).toLocaleString()}
-              </span>
+              <div className="flex flex-col items-end text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(generatedAt), { addSuffix: true })}
+                  {fromCache && <Badge variant="secondary" className="text-xs ml-1">Cached</Badge>}
+                </span>
+              </div>
             )}
-            <Button variant="outline" size="sm" onClick={generateIntelligence} disabled={loading}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => generateIntelligence(true)} 
+              disabled={loading}
+              title="Regenerate report manually"
+            >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
+        </div>
+        {/* 24-hour auto-refresh notice */}
+        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Report auto-refreshes every 24 hours. Click refresh to regenerate manually.
+          </span>
         </div>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
