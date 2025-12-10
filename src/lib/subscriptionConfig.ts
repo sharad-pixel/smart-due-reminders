@@ -18,30 +18,33 @@
 
 export const STRIPE_PRICES = {
   monthly: {
-    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',      // $199/month - 100 invoices
-    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',       // $499/month - 300 invoices
-    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx', // $799/month - 500 invoices
+    starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',      // $199/month - 100 invoices
+    growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',       // $499/month - 300 invoices
+    professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ', // $799/month - 500 invoices
   },
   annual: {
-    // Annual prices with 20% discount - to be created in Stripe
-    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',      // Placeholder - update with annual price
-    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',       // Placeholder - update with annual price
-    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx', // Placeholder - update with annual price
+    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $1,910.40/year - 100 invoices
+    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $4,790.40/year - 300 invoices
+    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $7,670.40/year - 500 invoices
   },
-  invoice: 'price_1SbvzMBqszPdRiQv0AM0GDrv',        // $1.99 per invoice
+  invoice: 'price_1SbvzMBqszPdRiQv0AM0GDrv',        // $1.99 per invoice (keep existing)
   
   // Team seat add-on pricing
   seat: {
-    monthly: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',      // $75/user/month
-    annual: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',       // Placeholder - update with annual price
+    monthly: 'price_1ScbGhBfb0dWgtCDZukktOuA',      // $75/user/month
+    annual: 'price_1ScbGiBfb0dWgtCDOrLwli7A',       // $720/year per user
   },
 } as const;
 
 export const STRIPE_PRODUCTS = {
-  starter: 'prod_TZ46AeXdRCONZ3',
-  growth: 'prod_TZ474fjPrZYG15',
-  professional: 'prod_TZ47GQm8Pmer7R',
-  seat: 'prod_TZ47bCfLPMXbBh',
+  starter: 'prod_TZkmWC1MyKQXpP',
+  starterAnnual: 'prod_TZkm7G0Mg8x9se',
+  growth: 'prod_TZkmds8B5fChZF',
+  growthAnnual: 'prod_TZkmtYIr8uLZl8',
+  professional: 'prod_TZkm0viKFTgHDi',
+  professionalAnnual: 'prod_TZkmtqnzjaZaoY',
+  seat: 'prod_TZkmoqr5xpSBtV',
+  seatAnnual: 'prod_TZkmyzUeLp2SmA',
   invoice: 'prod_TZ47dBqm7afkzi',
 } as const;
 
