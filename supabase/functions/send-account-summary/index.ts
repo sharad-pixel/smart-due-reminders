@@ -136,6 +136,7 @@ serve(async (req) => {
       const CACHE_DURATION_HOURS = 24;
       let intelligenceReport: any = null;
       let usedCachedReport = false;
+      let intelligenceGeneratedAt: string | null = null;
 
       const cachedReport = debtor.intelligence_report;
       const cachedAt = debtor.intelligence_report_generated_at;
@@ -147,6 +148,7 @@ serve(async (req) => {
         if (cacheAgeHours < CACHE_DURATION_HOURS) {
           logStep("Using cached intelligence report", { cacheAgeHours: cacheAgeHours.toFixed(1) });
           intelligenceReport = cachedReport;
+          intelligenceGeneratedAt = cachedAt;
           usedCachedReport = true;
         }
       }
@@ -305,6 +307,7 @@ Provide your analysis as a JSON object.`;
                               intelligenceContent.match(/```\s*([\s\S]*?)\s*```/) ||
                               [null, intelligenceContent];
             intelligenceReport = JSON.parse(jsonMatch[1] || intelligenceContent);
+            intelligenceGeneratedAt = new Date().toISOString();
             logStep("Intelligence report generated", { riskLevel: intelligenceReport.riskLevel, riskScore: intelligenceReport.riskScore });
 
             // Cache the new report
@@ -312,7 +315,7 @@ Provide your analysis as a JSON object.`;
               .from("debtors")
               .update({
                 intelligence_report: intelligenceReport,
-                intelligence_report_generated_at: new Date().toISOString()
+                intelligence_report_generated_at: intelligenceGeneratedAt
               })
               .eq("id", debtorId);
 
@@ -486,7 +489,8 @@ Generate a JSON response with:
           subject: generatedSubject, 
           message: generatedMessage,
           context: contextSummary,
-          intelligence: intelligenceReport
+          intelligence: intelligenceReport,
+          intelligenceGeneratedAt
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
