@@ -51,9 +51,15 @@ serve(async (req) => {
     const iv = data.slice(0, 12);
     const encryptedData = data.slice(12);
 
-    // Get encryption key
+    // Get encryption key - fail explicitly if not configured
+    const encryptionKeyRaw = Deno.env.get('ENCRYPTION_KEY');
+    if (!encryptionKeyRaw) {
+      console.error('ENCRYPTION_KEY not configured');
+      throw new Error('Encryption key not configured');
+    }
+    
     const encoder = new TextEncoder();
-    const keyMaterial = encoder.encode(Deno.env.get('ENCRYPTION_KEY') || 'default-key-replace-in-production');
+    const keyMaterial = encoder.encode(encryptionKeyRaw);
     const key = await crypto.subtle.importKey(
       'raw',
       keyMaterial,
