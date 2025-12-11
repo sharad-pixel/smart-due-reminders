@@ -16,6 +16,7 @@ interface EscalationRequest {
   escalation_reason: string;
   transcript_excerpt?: string;
   user_email?: string;
+  user_name?: string;
 }
 
 serve(async (req) => {
@@ -47,7 +48,8 @@ serve(async (req) => {
       confidence_score,
       escalation_reason,
       transcript_excerpt,
-      user_email
+      user_email,
+      user_name
     } = body;
 
     // Validate required fields
@@ -97,6 +99,10 @@ serve(async (req) => {
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">User Type</td>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${userType}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">User Name</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${user_name || 'Not provided'}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">User Email</td>

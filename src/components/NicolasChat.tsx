@@ -446,6 +446,12 @@ export default function NicolasChat() {
   const [user, setUser] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  
+  // Contact info collection for escalation
+  const [isCollectingContactInfo, setIsCollectingContactInfo] = useState(false);
+  const [pendingEscalationQuestion, setPendingEscalationQuestion] = useState<string | null>(null);
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -500,8 +506,12 @@ export default function NicolasChat() {
     return bestMatch;
   };
 
-  const escalateToSupport = async (question: string, transcript?: string) => {
+  const escalateToSupport = async (question: string, transcript?: string, providedName?: string, providedEmail?: string) => {
     setIsLoading(true);
+    
+    // Use provided contact info or fall back to logged-in user
+    const escalationEmail = providedEmail || user?.email || null;
+    const escalationName = providedName || null;
     
     try {
       const { error } = await supabase.functions.invoke('nicolas-escalate-support', {
@@ -513,7 +523,8 @@ export default function NicolasChat() {
           confidence_score: 0.2,
           escalation_reason: "User requested human support or low confidence answer",
           transcript_excerpt: transcript,
-          user_email: user?.email || null
+          user_email: escalationEmail,
+          user_name: escalationName
         }
       });
 
@@ -528,6 +539,85 @@ export default function NicolasChat() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Start escalation flow - collect contact info first
+  const startEscalation = (question: string) => {
+    // If user is logged in, skip contact collection
+    if (user?.email) {
+      completeEscalation(question);
+      return;
+    }
+    
+    setPendingEscalationQuestion(question);
+    setIsCollectingContactInfo(true);
+    
+    // Add a message asking for contact info
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: "I'd be happy to connect you with our support team! To make sure Sharad can get back to you, please provide your contact information below.",
+      timestamp: new Date(),
+      confidence: 1
+    }]);
+  };
+
+  // Complete escalation with contact info
+  const completeEscalation = async (question?: string) => {
+    const questionToEscalate = question || pendingEscalationQuestion || "User requested human help";
+    const transcript = messages
+      .slice(-6)
+      .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
+      .join("\n");
+
+    const response = await escalateToSupport(
+      questionToEscalate,
+      transcript,
+      contactName || undefined,
+      contactEmail || user?.email || undefined
+    );
+
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: response,
+      timestamp: new Date(),
+      isEscalated: true,
+      links: [
+        { label: "Schedule Meeting", path: "__CALENDLY__" },
+        { label: "Contact Form", path: "/contact" }
+      ]
+    }]);
+
+    // Reset state
+    setIsCollectingContactInfo(false);
+    setPendingEscalationQuestion(null);
+    setContactName("");
+    setContactEmail("");
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactEmail.trim()) {
+      toast.error("Please provide your email address");
+      return;
+    }
+    completeEscalation();
+  };
+
+  const cancelContactCollection = () => {
+    setIsCollectingContactInfo(false);
+    setPendingEscalationQuestion(null);
+    setContactName("");
+    setContactEmail("");
+    
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: "No problem! Let me know if there's anything else I can help you with.",
+      timestamp: new Date(),
+      confidence: 1
+    }]);
   };
 
   const handleSend = async () => {
@@ -551,18 +641,10 @@ export default function NicolasChat() {
       let responseLinks = links;
 
       if (answer === "__ESCALATE__") {
-        const transcript = messages
-          .slice(-6)
-          .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
-          .join("\n");
-        
-        responseContent = await escalateToSupport(userMessage.content, transcript);
-        isEscalated = true;
-        // Provide contact options after escalation
-        responseLinks = [
-          { label: "Schedule Meeting", path: "__CALENDLY__" },
-          { label: "Contact Form", path: "/contact" }
-        ];
+        // Start escalation flow (will collect contact info if not logged in)
+        setIsLoading(false);
+        startEscalation(userMessage.content);
+        return;
       } else {
         responseContent = answer;
       }
@@ -592,29 +674,9 @@ export default function NicolasChat() {
     }
   };
 
-  const handleEscalate = async () => {
+  const handleEscalate = () => {
     const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
-    const transcript = messages
-      .slice(-6)
-      .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
-      .join("\n");
-
-    const response = await escalateToSupport(
-      lastUserMessage?.content || "User requested human help",
-      transcript
-    );
-
-    setMessages(prev => [...prev, {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: response,
-      timestamp: new Date(),
-      isEscalated: true,
-      links: [
-        { label: "Schedule Meeting", path: "__CALENDLY__" },
-        { label: "Contact Form", path: "/contact" }
-      ]
-    }]);
+    startEscalation(lastUserMessage?.content || "User requested human help");
   };
 
   const handleLinkClick = () => {
@@ -759,40 +821,86 @@ export default function NicolasChat() {
 
       {/* Footer */}
       <div className="p-4 border-t space-y-3">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="flex gap-2"
-        >
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me anything..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-        <div className="flex items-center justify-between text-xs">
-          <button
-            onClick={handleEscalate}
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-          >
-            <ThumbsDown className="h-3 w-3" />
-            Need human help?
-          </button>
-          <a
-            href="mailto:support@recouply.ai"
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-          >
-            <ExternalLink className="h-3 w-3" />
-            support@recouply.ai
-          </a>
-        </div>
+        {isCollectingContactInfo ? (
+          // Contact info collection form
+          <form onSubmit={handleContactSubmit} className="space-y-2">
+            <p className="text-xs text-muted-foreground mb-2">Please provide your contact details:</p>
+            <Input
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              placeholder="Your name (optional)"
+              disabled={isLoading}
+              className="text-sm"
+            />
+            <Input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="Your email (required)"
+              disabled={isLoading}
+              required
+              className="text-sm"
+            />
+            <div className="flex gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={cancelContactCollection}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                size="sm" 
+                disabled={isLoading || !contactEmail.trim()}
+                className="flex-1"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send to Support"}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          // Normal chat input
+          <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSend();
+              }}
+              className="flex gap-2"
+            >
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask me anything..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+            <div className="flex items-center justify-between text-xs">
+              <button
+                onClick={handleEscalate}
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                <ThumbsDown className="h-3 w-3" />
+                Need human help?
+              </button>
+              <a
+                href="mailto:support@recouply.ai"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" />
+                support@recouply.ai
+              </a>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
