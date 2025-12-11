@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
@@ -62,6 +62,8 @@ interface Debtor {
   contacts?: DebtorContact[];
 }
 
+const ROWS_PER_PAGE = 50;
+
 const Debtors = () => {
   const navigate = useNavigate();
   const [debtors, setDebtors] = useState<Debtor[]>([]);
@@ -71,6 +73,7 @@ const Debtors = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [currentPage, setCurrentPage] = useState(1);
   const [contacts, setContacts] = useState<Contact[]>([
     { name: "", title: "", email: "", phone: "", outreach_enabled: true }
   ]);
@@ -96,6 +99,7 @@ const Debtors = () => {
 
   useEffect(() => {
     filterDebtors();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [debtors, searchTerm, typeFilter]);
 
   const fetchDebtors = async () => {
@@ -153,6 +157,13 @@ const Debtors = () => {
 
   // Sorting hook for the table
   const { sortedData, sortKey, sortDirection, handleSort } = useSorting(filteredDebtors);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedData.length / ROWS_PER_PAGE);
+  const paginatedData = sortedData.slice(
+    (currentPage - 1) * ROWS_PER_PAGE,
+    currentPage * ROWS_PER_PAGE
+  );
 
 
   const addContact = () => {
@@ -543,7 +554,7 @@ const Debtors = () => {
               </div>
             ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredDebtors.map((debtor) => (
+                {paginatedData.map((debtor) => (
                   <div
                     key={debtor.id}
                     className="group border rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card"
@@ -744,7 +755,7 @@ const Debtors = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedData.map((debtor) => (
+                    {paginatedData.map((debtor) => (
                       <TableRow
                         key={debtor.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -826,6 +837,38 @@ const Debtors = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * ROWS_PER_PAGE + 1} - {Math.min(currentPage * ROWS_PER_PAGE, sortedData.length)} of {sortedData.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
