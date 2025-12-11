@@ -527,6 +527,8 @@ serve(async (req) => {
           newRecords++;
         } else if (fileType === "accounts") {
           // ACCOUNTS: Create or update customer/debtor records
+          // If RAID is provided, update existing account; otherwise create new
+          const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
           const accountName = String(getValue(row, "account_name") || getValue(row, "customer_name") || "").trim();
           const email = String(getValue(row, "customer_email") || getValue(row, "email") || "").trim();
           const externalId = getValue(row, "external_customer_id") ? String(getValue(row, "external_customer_id")) : null;
@@ -537,31 +539,54 @@ serve(async (req) => {
             continue;
           }
 
-          // Check if account already exists
-          let debtorId = customerMap.get(normalizeString(accountName));
-          if (externalId) {
-            debtorId = debtorId || customerMap.get(normalizeString(externalId));
+          // Check if account already exists - PRIORITY: RAID first, then name/externalId
+          let debtorId: string | null = null;
+          
+          // PRIORITY 1: Match by Recouply Account ID (reference_id) - indicates update
+          if (recouplyAccountId) {
+            debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+            if (debtorId) {
+              console.log(`Row ${i}: Found existing account by RAID: ${recouplyAccountId} - will update`);
+            }
+          }
+          
+          // PRIORITY 2: Match by name or external ID (for accounts without RAID provided)
+          if (!debtorId) {
+            debtorId = customerMap.get(normalizeString(accountName)) || null;
+            if (!debtorId && externalId) {
+              debtorId = customerMap.get(normalizeString(externalId)) || null;
+            }
           }
 
           if (debtorId) {
-            // Update existing account
+            // Update existing account with new data
+            const updateData: Record<string, any> = {
+              updated_at: new Date().toISOString(),
+            };
+            
+            // Only update fields that have values
+            if (accountName) updateData.company_name = accountName;
+            if (accountName) updateData.name = accountName;
+            if (email) updateData.email = email;
+            if (getValue(row, "customer_phone")) updateData.phone = String(getValue(row, "customer_phone"));
+            if (getValue(row, "contact_name")) updateData.contact_name = String(getValue(row, "contact_name"));
+            if (getValue(row, "industry")) updateData.industry = String(getValue(row, "industry"));
+            if (externalId) updateData.external_customer_id = externalId;
+            if (getValue(row, "crm_account_id_external")) updateData.crm_account_id_external = String(getValue(row, "crm_account_id_external"));
+            if (getValue(row, "billing_address")) updateData.billing_address_line1 = String(getValue(row, "billing_address"));
+            
             await supabase
               .from("debtors")
-              .update({
-                company_name: accountName,
-                email: email || undefined,
-                phone: getValue(row, "customer_phone") ? String(getValue(row, "customer_phone")) : undefined,
-                contact_name: getValue(row, "contact_name") ? String(getValue(row, "contact_name")) : undefined,
-                industry: getValue(row, "industry") ? String(getValue(row, "industry")) : undefined,
-                external_customer_id: externalId || undefined,
-                updated_at: new Date().toISOString(),
-              })
+              .update(updateData)
               .eq("id", debtorId);
             
             existingCustomersCount++;
             matched++;
+            console.log(`Row ${i}: Updated existing account: ${accountName}`);
           } else {
-            // Create new account
+            // Create new account - auto-generate RAID
+            const newRaid = `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+            
             const { data: newDebtor, error: debtorError } = await supabase
               .from("debtors")
               .insert({
@@ -573,7 +598,9 @@ serve(async (req) => {
                 phone: getValue(row, "customer_phone") ? String(getValue(row, "customer_phone")) : null,
                 industry: getValue(row, "industry") ? String(getValue(row, "industry")) : null,
                 external_customer_id: externalId,
-                reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+                crm_account_id_external: getValue(row, "crm_account_id_external") ? String(getValue(row, "crm_account_id_external")) : null,
+                billing_address_line1: getValue(row, "billing_address") ? String(getValue(row, "billing_address")) : null,
+                reference_id: newRaid,
               })
               .select()
               .single();
@@ -590,6 +617,7 @@ serve(async (req) => {
             }
             newCustomers++;
             newRecords++;
+            console.log(`Row ${i}: Created new account: ${accountName} with RAID: ${newRaid}`);
           }
         }
 
