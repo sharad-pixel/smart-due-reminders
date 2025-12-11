@@ -82,6 +82,8 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const [aiGenerated, setAiGenerated] = useState(false);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [intelligenceGeneratedAt, setIntelligenceGeneratedAt] = useState<string | null>(null);
+  const [hasOutreachContact, setHasOutreachContact] = useState(false);
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -93,8 +95,8 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
     setLoading(true);
     setAiGenerated(false);
     try {
-      // Fetch open invoices, tasks, and debtor's cached intelligence in parallel
-      const [invoicesRes, tasksRes, debtorRes] = await Promise.all([
+      // Fetch open invoices, tasks, debtor's cached intelligence, and contacts in parallel
+      const [invoicesRes, tasksRes, debtorRes, contactsRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*")
@@ -111,7 +113,13 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
           .from("debtors")
           .select("intelligence_report, intelligence_report_generated_at")
           .eq("id", debtor.id)
-          .single()
+          .single(),
+        supabase
+          .from("debtor_contacts")
+          .select("email, is_primary, outreach_enabled")
+          .eq("debtor_id", debtor.id)
+          .eq("outreach_enabled", true)
+          .order("is_primary", { ascending: false })
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
@@ -119,6 +127,12 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       
       setInvoices(invoicesRes.data || []);
       setOpenTasks(tasksRes.data || []);
+      
+      // Check for outreach-enabled contact with email
+      const outreachContacts = contactsRes.data || [];
+      const validContact = outreachContacts.find((c: any) => c.email);
+      setHasOutreachContact(!!validContact);
+      setContactEmail(validContact?.email || null);
       
       // Load cached intelligence report if less than 24 hours old
       if (debtorRes.data?.intelligence_report && debtorRes.data?.intelligence_report_generated_at) {
@@ -264,6 +278,19 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
           </div>
         ) : (
           <div className="space-y-6">
+            {/* No contact warning */}
+            {!hasOutreachContact && (
+              <div className="flex items-center gap-3 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 rounded-lg">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-medium">No outreach contact configured</p>
+                  <p className="text-xs mt-0.5 opacity-80">
+                    Add a contact with email and enable outreach in the Contacts section to send emails.
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {/* Activity Summary Cards */}
             <div className="grid grid-cols-2 gap-4">
               <Card className="bg-muted/30">
@@ -668,11 +695,20 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {contactEmail && hasOutreachContact && (
+            <p className="text-xs text-muted-foreground mr-auto hidden sm:block">
+              Sending to: {contactEmail}
+            </p>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSend} disabled={sending || loading || !message}>
+          <Button 
+            onClick={handleSend} 
+            disabled={sending || loading || !message || !hasOutreachContact}
+            title={!hasOutreachContact ? "Add a contact with email and enable outreach first" : undefined}
+          >
             {sending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
