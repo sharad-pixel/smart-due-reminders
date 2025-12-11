@@ -135,7 +135,20 @@ export const DataCenterMappingStep = ({
     ...(customFields || []).map(f => ({ ...f, isCustom: true })),
   ];
   
-  const requiredFields = fieldDefinitions.filter(f => f.required_for_recouply && relevantGroupings.includes(f.grouping));
+  // For accounts uploads, RAID is not required (new accounts don't have one)
+  // For invoice/payment uploads, RAID is required for matching
+  const requiredFields = fieldDefinitions.filter(f => {
+    if (!relevantGroupings.includes(f.grouping)) return false;
+    if (!f.required_for_recouply) return false;
+    
+    // For accounts uploads, RAID is optional since new accounts won't have one
+    if (fileType === "accounts" && f.key === "recouply_account_id") return false;
+    
+    // For accounts, require account_name instead
+    if (fileType === "accounts" && f.key === "account_name") return true;
+    
+    return true;
+  });
   const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
   const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));
 
