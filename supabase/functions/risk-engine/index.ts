@@ -7,41 +7,59 @@ const corsHeaders = {
 };
 
 // ============================================
-// ENTERPRISE-GRADE COLLECTIONS SCORING SYSTEM
+// CREDIT RISK INTELLIGENCE ENGINE
 // ============================================
+// Modeled after: FICO SBSS, D&B PAYDEX, Experian Intelliscore, Moody's
 // 
-// Two computed scores per account:
-// 1. Collections Health Score (0-100) - Higher is better
-// 2. Collections Risk Score (0-100) - Higher is riskier
+// Risk Score (1-100): Higher = Riskier
+// Risk Tier: Low / Medium / High / Critical
 //
-// Health Score Formula:
-//   = (0.35 × Payment History Score)
-//   + (0.30 × Days Past Due Score)
-//   + (0.20 × Outstanding Balance Score)
-//   + (0.15 × AI Sentiment Score)
+// SCORING WEIGHTS:
+// A. Invoice Behavior (50%)
+//    - Average DPD last 6 months
+//    - % of invoices >30, >60, >90 days
+//    - Outstanding balance vs historical average
+//    - Frequency of partial payments
+//    - Broken promises-to-pay
+//    - Month-to-month volatility
 //
-// Risk Score Formula:
-//   = (0.40 × DPD Risk)
-//   + (0.25 × Negative Payment Trend)
-//   + (0.20 × AI Sentiment Risk)
-//   + (0.15 × Balance Concentration Risk)
+// B. Payment Patterns & Trends (20%)
+//    - Early vs late payment ratio
+//    - Payment disputes count
+//    - Recency & consistency of payments
+//    - Largest overdue invoice amount
+//    - Payment method reliability
+//
+// C. Customer Health Indicators (15%)
+//    - Industry risk (B2B vs B2C)
+//    - Customer size/type
+//    - Concentration risk (>15% of AR?)
+//    - Seasonality/revenue fluctuations
+//
+// D. Operational Signals (15%)
+//    - Email sentiment
+//    - Response time to outreach
+//    - Engagement pattern (opens, replies)
+//    - Escalations, disputes, stalled conversations
+//    - Missing docs (W9, PO requirements)
 
-interface EnterpriseScoreResult {
-  // Health scoring (higher = healthier)
+interface CreditRiskResult {
+  // Risk scoring (1-100, higher = riskier)
+  credit_risk_score: number | null;
+  risk_tier: string;
+  
+  // Legacy health score for UI compatibility (0-100, higher = healthier)
   collections_health_score: number | null;
   health_tier: string;
-  
-  // Risk scoring (higher = riskier)
-  collections_risk_score: number | null;
-  risk_tier_detailed: string;
   
   // AI Sentiment
   ai_sentiment_score: number | null;
   ai_sentiment_category: string | null;
   
   // Legacy fields for backward compatibility
+  collections_risk_score: number | null;
+  risk_tier_detailed: string;
   risk_payment_score: number | null;
-  risk_tier: string;
   risk_status_note: string;
   
   // Metadata
@@ -53,30 +71,44 @@ interface EnterpriseScoreResult {
 }
 
 interface ScoreComponents {
-  // Health Score Components (0-100 each, before weighting)
-  payment_history_score: number;
-  dpd_score: number;
-  outstanding_balance_score: number;
-  ai_sentiment_health_score: number;
+  // A. Invoice Behavior (50%)
+  invoice_behavior_score: number;
+  avg_dpd_last_6_months: number;
+  pct_over_30_days: number;
+  pct_over_60_days: number;
+  pct_over_90_days: number;
+  partial_payment_frequency: number;
+  broken_promises_count: number;
+  volatility_score: number;
   
-  // Risk Score Components (0-100 each, before weighting)
-  dpd_risk: number;
-  negative_payment_trend: number;
-  ai_sentiment_risk: number;
-  balance_concentration_risk: number;
+  // B. Payment Patterns (20%)
+  payment_patterns_score: number;
+  early_vs_late_ratio: number;
+  payment_disputes_count: number;
+  payment_recency_days: number;
+  largest_overdue_amount: number;
+  
+  // C. Customer Health (15%)
+  customer_health_score: number;
+  customer_type: string;
+  concentration_risk_pct: number;
+  
+  // D. Operational Signals (15%)
+  operational_signals_score: number;
+  email_sentiment_score: number;
+  response_time_avg_days: number;
+  engagement_rate: number;
+  escalation_count: number;
+  missing_docs_count: number;
   
   // Raw data
   data_sufficient: boolean;
-  on_time_payment_pct: number;
-  avg_days_late: number;
-  broken_promises_count: number;
   max_dpd: number;
   total_outstanding: number;
-  high_aging_concentration_pct: number;
-  engagement_rate: number;
   
   // Detailed breakdown for explainability
   penalties: { reason: string; amount: number; category: string }[];
+  factors: { factor: string; impact: string; value: string }[];
 }
 
 interface Invoice {
@@ -88,6 +120,16 @@ interface Invoice {
   due_date: string;
   payment_date: string | null;
   aging_bucket: string;
+}
+
+interface Debtor {
+  id: string;
+  user_id: string;
+  type: string;
+  total_open_balance: number;
+  collections_health_score: number | null;
+  collections_risk_score: number | null;
+  health_tier: string | null;
 }
 
 interface InboundEmail {
@@ -104,6 +146,7 @@ interface CollectionActivity {
   opened_at: string | null;
   responded_at: string | null;
   created_at: string;
+  sent_at: string | null;
 }
 
 interface CollectionOutcome {
@@ -112,6 +155,14 @@ interface CollectionOutcome {
   promise_to_pay_date: string | null;
   payment_date: string | null;
   created_at: string;
+}
+
+interface CollectionTask {
+  id: string;
+  task_type: string;
+  status: string;
+  priority: string;
+  level: string | null;
 }
 
 interface SentimentConfig {
@@ -125,19 +176,20 @@ const MIN_INVOICES = 3;
 const MIN_PAYMENTS = 2;
 const MIN_DAYS_OBSERVED = 60;
 
-// Tier thresholds
-const HEALTH_TIERS = {
-  HEALTHY: { min: 75, label: 'Healthy', color: 'green' },
-  WATCH: { min: 50, label: 'Watch', color: 'yellow' },
-  AT_RISK: { min: 25, label: 'At Risk', color: 'orange' },
-  CRITICAL: { min: 0, label: 'Critical', color: 'red' }
+// Tier thresholds (Risk Score based - higher is worse)
+const RISK_TIERS = {
+  LOW: { max: 30, label: 'Low', color: 'green' },
+  MEDIUM: { max: 55, label: 'Medium', color: 'yellow' },
+  HIGH: { max: 75, label: 'High', color: 'orange' },
+  CRITICAL: { max: 100, label: 'Critical', color: 'red' }
 };
 
-const RISK_TIERS = {
-  LOW: { max: 25, label: 'Low Risk', color: 'green' },
-  MEDIUM: { max: 50, label: 'Medium Risk', color: 'yellow' },
-  HIGH: { max: 75, label: 'High Risk', color: 'orange' },
-  CRITICAL: { max: 100, label: 'Critical Risk', color: 'red' }
+// Health tiers (inverted from risk - higher is better)
+const HEALTH_TIERS = {
+  HEALTHY: { min: 70, label: 'Healthy', color: 'green' },
+  WATCH: { min: 45, label: 'Watch', color: 'yellow' },
+  AT_RISK: { min: 25, label: 'At Risk', color: 'orange' },
+  CRITICAL: { min: 0, label: 'Critical', color: 'red' }
 };
 
 serve(async (req) => {
@@ -162,49 +214,73 @@ serve(async (req) => {
       sentimentConfigMap.set(cfg.category, cfg);
     });
 
+    // Get total AR for concentration risk calculation
+    let totalARByUser = new Map<string, number>();
+
     let targetDebtorIds: string[] = [];
     let targetUserId: string | null = user_id || null;
 
     if (recalculate_all && user_id) {
       const { data: debtors, error } = await supabase
         .from('debtors')
-        .select('id')
+        .select('id, total_open_balance')
         .eq('user_id', user_id)
         .eq('is_archived', false);
 
       if (error) throw error;
       targetDebtorIds = debtors?.map(d => d.id) || [];
+      
+      // Calculate total AR for this user
+      const totalAR = debtors?.reduce((sum, d) => sum + (d.total_open_balance || 0), 0) || 0;
+      totalARByUser.set(user_id, totalAR);
     } else if (debtor_id) {
       targetDebtorIds = [debtor_id];
       
-      if (!targetUserId) {
-        const { data: debtor } = await supabase
+      const { data: debtor } = await supabase
+        .from('debtors')
+        .select('user_id, total_open_balance')
+        .eq('id', debtor_id)
+        .single();
+      
+      if (debtor) {
+        targetUserId = debtor.user_id;
+        
+        // Get total AR for this user
+        const { data: allDebtors } = await supabase
           .from('debtors')
-          .select('user_id')
-          .eq('id', debtor_id)
-          .single();
-        targetUserId = debtor?.user_id;
+          .select('total_open_balance')
+          .eq('user_id', debtor.user_id)
+          .eq('is_archived', false);
+        
+        const totalAR = allDebtors?.reduce((sum, d) => sum + (d.total_open_balance || 0), 0) || 0;
+        totalARByUser.set(debtor.user_id, totalAR);
       }
     } else if (recalculate_all && !user_id) {
       const { data: debtors, error } = await supabase
         .from('debtors')
-        .select('id, user_id')
+        .select('id, user_id, total_open_balance')
         .eq('is_archived', false);
 
       if (error) throw error;
       targetDebtorIds = debtors?.map(d => d.id) || [];
+      
+      // Calculate total AR per user
+      for (const d of debtors || []) {
+        const current = totalARByUser.get(d.user_id) || 0;
+        totalARByUser.set(d.user_id, current + (d.total_open_balance || 0));
+      }
     }
 
-    console.log(`[RISK-ENGINE] Processing ${targetDebtorIds.length} debtors with enterprise scoring`);
+    console.log(`[CREDIT-RISK-ENGINE] Processing ${targetDebtorIds.length} accounts with credit bureau methodology`);
 
-    const results: EnterpriseScoreResult[] = [];
+    const results: CreditRiskResult[] = [];
 
     for (const debtorId of targetDebtorIds) {
       try {
-        const result = await calculateEnterpriseScore(supabase, debtorId, sentimentConfigMap, analyze_sentiment);
+        const result = await calculateCreditRiskScore(supabase, debtorId, sentimentConfigMap, totalARByUser);
         results.push(result);
       } catch (err) {
-        console.error(`[RISK-ENGINE] Error processing debtor ${debtorId}:`, err);
+        console.error(`[CREDIT-RISK-ENGINE] Error processing debtor ${debtorId}:`, err);
       }
     }
 
@@ -214,7 +290,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('[RISK-ENGINE] Error:', error);
+    console.error('[CREDIT-RISK-ENGINE] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -223,14 +299,14 @@ serve(async (req) => {
 });
 
 /**
- * Main enterprise scoring calculation for a single debtor
+ * Main credit risk scoring calculation for a single account
  */
-async function calculateEnterpriseScore(
+async function calculateCreditRiskScore(
   supabase: any,
   debtorId: string,
   sentimentConfigMap: Map<string, SentimentConfig>,
-  analyzeSentiment: boolean = false
-): Promise<EnterpriseScoreResult> {
+  totalARByUser: Map<string, number>
+): Promise<CreditRiskResult> {
   // Get debtor info with previous scores for change tracking
   const { data: debtor, error: debtorError } = await supabase
     .from('debtors')
@@ -265,6 +341,12 @@ async function calculateEnterpriseScore(
     .select('*')
     .eq('debtor_id', debtorId);
 
+  // Get collection tasks (for escalations, missing docs)
+  const { data: tasks } = await supabase
+    .from('collection_tasks')
+    .select('*')
+    .eq('debtor_id', debtorId);
+
   // Get inbound emails for sentiment analysis
   const { data: inboundEmails } = await supabase
     .from('inbound_emails')
@@ -291,17 +373,22 @@ async function calculateEnterpriseScore(
     paymentCount >= MIN_PAYMENTS && 
     daysObserved >= MIN_DAYS_OBSERVED;
 
-  let result: EnterpriseScoreResult;
+  const totalUserAR = totalARByUser.get(debtor.user_id) || 0;
+
+  let result: CreditRiskResult;
 
   if (!isDataSufficient) {
     result = createInsufficientDataResult(invoiceCount, paymentCount, daysObserved);
   } else {
-    result = calculateFullEnterpriseScore(
+    result = calculateFullCreditRiskScore(
       invoices || [],
       activities || [],
       outcomes || [],
+      tasks || [],
       inboundEmails || [],
       sentimentConfigMap,
+      debtor,
+      totalUserAR,
       invoiceCount,
       paymentCount,
       daysObserved
@@ -340,7 +427,7 @@ async function calculateEnterpriseScore(
   await supabase
     .from('debtors')
     .update({
-      // New enterprise fields
+      // New credit risk fields
       collections_health_score: result.collections_health_score,
       collections_risk_score: result.collections_risk_score,
       health_tier: result.health_tier,
@@ -364,13 +451,11 @@ async function calculateEnterpriseScore(
     .insert({
       debtor_id: debtorId,
       user_id: debtor.user_id,
-      // Enterprise fields
       collections_health_score: result.collections_health_score,
       collections_risk_score: result.collections_risk_score,
       health_tier: result.health_tier,
       ai_sentiment_score: result.ai_sentiment_score,
       score_components: result.score_components,
-      // Legacy fields
       risk_payment_score: result.risk_payment_score,
       risk_tier: result.risk_tier,
       risk_status_note: result.risk_status_note,
@@ -380,7 +465,7 @@ async function calculateEnterpriseScore(
       calculation_details: result.score_components
     });
 
-  // Log significant score changes for auditability
+  // Log significant score changes
   if (previousHealthScore !== null && 
       (Math.abs((result.collections_health_score || 0) - previousHealthScore) >= 5 ||
        Math.abs((result.collections_risk_score || 0) - (previousRiskScore || 0)) >= 5)) {
@@ -401,7 +486,7 @@ async function calculateEnterpriseScore(
       });
   }
 
-  console.log(`[RISK-ENGINE] Debtor ${debtorId}: Health=${result.collections_health_score}, Risk=${result.collections_risk_score}, Tiers=${result.health_tier}/${result.risk_tier_detailed}`);
+  console.log(`[CREDIT-RISK-ENGINE] Account ${debtorId}: Risk=${result.credit_risk_score}, Health=${result.collections_health_score}, Tier=${result.risk_tier}`);
 
   return result;
 }
@@ -413,8 +498,10 @@ function createInsufficientDataResult(
   invoiceCount: number,
   paymentCount: number,
   daysObserved: number
-): EnterpriseScoreResult {
+): CreditRiskResult {
   return {
+    credit_risk_score: null,
+    risk_tier: 'Still learning',
     collections_health_score: null,
     health_tier: 'Still Learning',
     collections_risk_score: null,
@@ -422,48 +509,63 @@ function createInsufficientDataResult(
     ai_sentiment_score: null,
     ai_sentiment_category: null,
     risk_payment_score: null,
-    risk_tier: 'Still learning',
     risk_status_note: `Insufficient history – still learning this account's behavior. (${invoiceCount} invoices, ${paymentCount} payments, ${daysObserved} days observed)`,
     basis_invoices_count: invoiceCount,
     basis_payments_count: paymentCount,
     basis_days_observed: daysObserved,
     score_components: {
-      payment_history_score: 0,
-      dpd_score: 0,
-      outstanding_balance_score: 0,
-      ai_sentiment_health_score: 50,
-      dpd_risk: 0,
-      negative_payment_trend: 0,
-      ai_sentiment_risk: 50,
-      balance_concentration_risk: 0,
-      data_sufficient: false,
-      on_time_payment_pct: 0,
-      avg_days_late: 0,
+      invoice_behavior_score: 0,
+      avg_dpd_last_6_months: 0,
+      pct_over_30_days: 0,
+      pct_over_60_days: 0,
+      pct_over_90_days: 0,
+      partial_payment_frequency: 0,
       broken_promises_count: 0,
+      volatility_score: 0,
+      payment_patterns_score: 0,
+      early_vs_late_ratio: 0,
+      payment_disputes_count: 0,
+      payment_recency_days: 0,
+      largest_overdue_amount: 0,
+      customer_health_score: 0,
+      customer_type: 'unknown',
+      concentration_risk_pct: 0,
+      operational_signals_score: 0,
+      email_sentiment_score: 50,
+      response_time_avg_days: 0,
+      engagement_rate: 0,
+      escalation_count: 0,
+      missing_docs_count: 0,
+      data_sufficient: false,
       max_dpd: 0,
       total_outstanding: 0,
-      high_aging_concentration_pct: 0,
-      engagement_rate: 0,
-      penalties: []
+      penalties: [],
+      factors: []
     },
     last_score_change_reason: 'Insufficient data for scoring'
   };
 }
 
 /**
- * Calculate full enterprise scores with all components
+ * Calculate full credit risk score with all components
  */
-function calculateFullEnterpriseScore(
+function calculateFullCreditRiskScore(
   invoices: Invoice[],
   activities: CollectionActivity[],
   outcomes: CollectionOutcome[],
+  tasks: CollectionTask[],
   inboundEmails: InboundEmail[],
   sentimentConfigMap: Map<string, SentimentConfig>,
+  debtor: Debtor,
+  totalUserAR: number,
   invoiceCount: number,
   paymentCount: number,
   daysObserved: number
-): EnterpriseScoreResult {
+): CreditRiskResult {
   const penalties: { reason: string; amount: number; category: string }[] = [];
+  const factors: { factor: string; impact: string; value: string }[] = [];
+  const now = Date.now();
+  const sixMonthsAgo = now - (180 * 24 * 60 * 60 * 1000);
 
   // Categorize invoices
   const paidInvoices = invoices.filter(inv => 
@@ -474,335 +576,477 @@ function calculateFullEnterpriseScore(
   );
 
   // =============================================
-  // COMPONENT 1: Payment History Score (0-100)
-  // Based on: on-time %, avg days late, broken promises
+  // A. INVOICE BEHAVIOR (50% of total score)
   // =============================================
-  let onTimeCount = 0;
-  let totalDaysLate = 0;
-  let latePaymentCount = 0;
-
-  for (const inv of paidInvoices) {
-    if (inv.payment_date && inv.due_date) {
-      const paymentDate = new Date(inv.payment_date);
+  
+  // A1. Calculate average DPD for last 6 months
+  let avgDpdLast6Months = 0;
+  let totalDpdSum = 0;
+  let dpdCount = 0;
+  
+  for (const inv of openInvoices) {
+    const invoiceDate = new Date(inv.invoice_date);
+    if (invoiceDate.getTime() >= sixMonthsAgo) {
       const dueDate = new Date(inv.due_date);
-      const daysLate = Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (daysLate <= 0) {
-        onTimeCount++;
-      } else {
-        latePaymentCount++;
-        totalDaysLate += daysLate;
-      }
+      const dpd = Math.max(0, Math.floor((now - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      totalDpdSum += dpd;
+      dpdCount++;
     }
   }
-
-  const onTimePct = paidInvoices.length > 0 ? (onTimeCount / paidInvoices.length) * 100 : 50;
-  const avgDaysLate = latePaymentCount > 0 ? totalDaysLate / latePaymentCount : 0;
-
-  // Count broken promises (promise to pay that wasn't fulfilled)
+  avgDpdLast6Months = dpdCount > 0 ? totalDpdSum / dpdCount : 0;
+  
+  // A2. Calculate % of invoices by aging
+  const totalOpenCount = openInvoices.length;
+  let over30Count = 0, over60Count = 0, over90Count = 0;
+  let maxDPD = 0;
+  
+  for (const inv of openInvoices) {
+    const dueDate = new Date(inv.due_date);
+    const dpd = Math.max(0, Math.floor((now - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+    maxDPD = Math.max(maxDPD, dpd);
+    
+    if (dpd > 30) over30Count++;
+    if (dpd > 60) over60Count++;
+    if (dpd > 90) over90Count++;
+  }
+  
+  const pctOver30 = totalOpenCount > 0 ? (over30Count / totalOpenCount) * 100 : 0;
+  const pctOver60 = totalOpenCount > 0 ? (over60Count / totalOpenCount) * 100 : 0;
+  const pctOver90 = totalOpenCount > 0 ? (over90Count / totalOpenCount) * 100 : 0;
+  
+  // A3. Outstanding balance relative to historical average
+  const totalOutstanding = openInvoices.reduce((sum, inv) => 
+    sum + (inv.outstanding_amount || inv.amount || 0), 0
+  );
+  
+  // A4. Partial payments frequency
+  const partialPaymentInvoices = invoices.filter(inv => inv.status === 'PartiallyPaid');
+  const partialPaymentFrequency = invoiceCount > 0 ? (partialPaymentInvoices.length / invoiceCount) * 100 : 0;
+  
+  // A5. Broken promises-to-pay
   const brokenPromises = (outcomes || []).filter(o => 
     o.outcome_type === 'promise_to_pay' && 
     o.promise_to_pay_date && 
     !o.payment_date &&
     new Date(o.promise_to_pay_date) < new Date()
   ).length;
-
-  // Calculate Payment History Score (0-100)
-  let paymentHistoryScore = 100;
   
-  // Deduct for late payment percentage
-  const latePct = 100 - onTimePct;
-  paymentHistoryScore -= latePct * 0.5; // 50% weight on late payment rate
-  
-  // Deduct for average days late (max 30 point deduction)
-  const avgLatePenalty = Math.min(avgDaysLate / 3, 30);
-  paymentHistoryScore -= avgLatePenalty;
-  
-  // Deduct for broken promises (10 pts each, max 20)
-  paymentHistoryScore -= Math.min(brokenPromises * 10, 20);
-  
-  paymentHistoryScore = clamp(paymentHistoryScore, 0, 100);
-
-  if (onTimePct < 50) {
-    penalties.push({ reason: `Low on-time payment rate (${Math.round(onTimePct)}%)`, amount: 25, category: 'payment_history' });
-  }
-  if (avgDaysLate > 30) {
-    penalties.push({ reason: `High average days late (${Math.round(avgDaysLate)} days)`, amount: 20, category: 'payment_history' });
-  }
-  if (brokenPromises > 0) {
-    penalties.push({ reason: `Broken payment promises (${brokenPromises})`, amount: brokenPromises * 10, category: 'payment_history' });
-  }
-
-  // =============================================
-  // COMPONENT 2: Days Past Due Score (0-100)
-  // Based on: max DPD across open invoices
-  // =============================================
-  let maxDPD = 0;
-  for (const inv of openInvoices) {
-    const dueDate = new Date(inv.due_date);
-    const dpd = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-    maxDPD = Math.max(maxDPD, dpd);
-  }
-
-  // DPD Score: 100 at 0 DPD, decreases as DPD increases
-  // Progressive scaling for extreme cases:
-  // - At 120+ DPD: score drops to 0-10
-  // - At 180+ DPD: score is 0
-  let dpdScore: number;
-  if (maxDPD >= 180) {
-    dpdScore = 0; // Severely overdue - no health credit
-  } else if (maxDPD >= 120) {
-    dpdScore = Math.max(0, 10 - ((maxDPD - 120) / 6)); // 10 down to 0 between 120-180
-  } else {
-    dpdScore = Math.max(0, 100 - (maxDPD / 1.2));
-  }
-
-  // DPD Risk: 0 at 0 DPD, increases as DPD increases
-  // Progressive scaling for extreme cases:
-  // - At 120 DPD: risk = 100
-  // - At 180+ DPD: risk stays at 100 but we add severe penalties
-  const dpdRisk = Math.min(100, maxDPD / 1.2);
-
-  // Apply severe penalties for extreme DPD cases
-  if (maxDPD >= 200) {
-    penalties.push({ reason: `Severely delinquent (${maxDPD} days past due)`, amount: 50, category: 'dpd' });
-  } else if (maxDPD >= 150) {
-    penalties.push({ reason: `Extremely overdue (${maxDPD} days past due)`, amount: 40, category: 'dpd' });
-  } else if (maxDPD > 90) {
-    penalties.push({ reason: `Critical DPD (${maxDPD} days)`, amount: 30, category: 'dpd' });
-  } else if (maxDPD > 60) {
-    penalties.push({ reason: `High DPD (${maxDPD} days)`, amount: 20, category: 'dpd' });
-  } else if (maxDPD > 30) {
-    penalties.push({ reason: `Elevated DPD (${maxDPD} days)`, amount: 10, category: 'dpd' });
-  }
-
-  // =============================================
-  // COMPONENT 3: Outstanding Balance Score (0-100)
-  // Based on: total outstanding and aging concentration
-  // =============================================
-  const totalOutstanding = openInvoices.reduce((sum, inv) => 
-    sum + (inv.outstanding_amount || inv.amount || 0), 0
-  );
-
-  let highAgingAmount = 0;
-  for (const inv of openInvoices) {
-    const bucket = inv.aging_bucket || '';
-    if (['dpd_61_90', 'dpd_91_120', 'dpd_121_150', 'dpd_150_plus'].includes(bucket)) {
-      highAgingAmount += inv.outstanding_amount || inv.amount || 0;
+  // A6. Volatility score (month-to-month payment variation)
+  let volatilityScore = 0;
+  if (paidInvoices.length >= 3) {
+    const monthlyPayments = new Map<string, number>();
+    for (const inv of paidInvoices) {
+      if (inv.payment_date) {
+        const month = inv.payment_date.substring(0, 7);
+        const current = monthlyPayments.get(month) || 0;
+        monthlyPayments.set(month, current + 1);
+      }
+    }
+    
+    const counts = Array.from(monthlyPayments.values());
+    if (counts.length >= 2) {
+      const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+      const variance = counts.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / counts.length;
+      volatilityScore = Math.min(100, Math.sqrt(variance) * 20);
     }
   }
-
-  const highAgingConcentration = totalOutstanding > 0 ? (highAgingAmount / totalOutstanding) * 100 : 0;
-
-  // Outstanding Balance Score: Penalize high aging concentration
-  let outstandingBalanceScore = 100 - highAgingConcentration;
-  outstandingBalanceScore = clamp(outstandingBalanceScore, 0, 100);
-
-  // Balance Concentration Risk
-  const balanceConcentrationRisk = highAgingConcentration;
-
-  if (highAgingConcentration > 50) {
-    penalties.push({ reason: `High aging concentration (${Math.round(highAgingConcentration)}% in 60+ days)`, amount: 25, category: 'balance' });
+  
+  // Calculate Invoice Behavior Risk Score (0-100, higher = riskier)
+  let invoiceBehaviorScore = 0;
+  
+  // Avg DPD contribution (0-35 points based on severity)
+  if (avgDpdLast6Months >= 150) {
+    invoiceBehaviorScore += 35;
+    penalties.push({ reason: `Severely delinquent (avg ${Math.round(avgDpdLast6Months)} DPD)`, amount: 35, category: 'invoice_behavior' });
+    factors.push({ factor: 'Average Days Past Due', impact: 'critical', value: `${Math.round(avgDpdLast6Months)} days` });
+  } else if (avgDpdLast6Months >= 90) {
+    invoiceBehaviorScore += 28;
+    penalties.push({ reason: `Critical DPD (avg ${Math.round(avgDpdLast6Months)} days)`, amount: 28, category: 'invoice_behavior' });
+    factors.push({ factor: 'Average Days Past Due', impact: 'high', value: `${Math.round(avgDpdLast6Months)} days` });
+  } else if (avgDpdLast6Months >= 60) {
+    invoiceBehaviorScore += 20;
+    factors.push({ factor: 'Average Days Past Due', impact: 'medium', value: `${Math.round(avgDpdLast6Months)} days` });
+  } else if (avgDpdLast6Months >= 30) {
+    invoiceBehaviorScore += 12;
+    factors.push({ factor: 'Average Days Past Due', impact: 'low', value: `${Math.round(avgDpdLast6Months)} days` });
+  } else {
+    factors.push({ factor: 'Average Days Past Due', impact: 'positive', value: `${Math.round(avgDpdLast6Months)} days` });
   }
+  
+  // % over 30/60/90 contribution (0-25 points)
+  if (pctOver90 >= 50) {
+    invoiceBehaviorScore += 25;
+    penalties.push({ reason: `${Math.round(pctOver90)}% invoices >90 days past due`, amount: 25, category: 'invoice_behavior' });
+  } else if (pctOver60 >= 50) {
+    invoiceBehaviorScore += 18;
+    penalties.push({ reason: `${Math.round(pctOver60)}% invoices >60 days past due`, amount: 18, category: 'invoice_behavior' });
+  } else if (pctOver30 >= 50) {
+    invoiceBehaviorScore += 10;
+  }
+  
+  // Broken promises (0-20 points)
+  if (brokenPromises >= 3) {
+    invoiceBehaviorScore += 20;
+    penalties.push({ reason: `${brokenPromises} broken payment promises`, amount: 20, category: 'invoice_behavior' });
+  } else if (brokenPromises >= 1) {
+    invoiceBehaviorScore += brokenPromises * 7;
+    penalties.push({ reason: `${brokenPromises} broken payment promise(s)`, amount: brokenPromises * 7, category: 'invoice_behavior' });
+  }
+  
+  // Volatility (0-10 points)
+  if (volatilityScore > 50) {
+    invoiceBehaviorScore += 10;
+  } else if (volatilityScore > 25) {
+    invoiceBehaviorScore += 5;
+  }
+  
+  // Partial payments frequency (0-10 points) - not necessarily bad, but indicates cash flow issues
+  if (partialPaymentFrequency > 30) {
+    invoiceBehaviorScore += 10;
+  } else if (partialPaymentFrequency > 15) {
+    invoiceBehaviorScore += 5;
+  }
+  
+  invoiceBehaviorScore = clamp(invoiceBehaviorScore, 0, 100);
 
   // =============================================
-  // COMPONENT 4: AI Sentiment Score (0-100)
-  // Based on: recent inbound email sentiment analysis
+  // B. PAYMENT PATTERNS & TRENDS (20% of total score)
   // =============================================
-  let aiSentimentHealthScore = 50; // Default neutral
-  let aiSentimentRisk = 50;
+  
+  // B1. Early vs late payment ratio
+  let earlyPayments = 0, latePayments = 0;
+  for (const inv of paidInvoices) {
+    if (inv.payment_date && inv.due_date) {
+      const paymentDate = new Date(inv.payment_date);
+      const dueDate = new Date(inv.due_date);
+      if (paymentDate <= dueDate) {
+        earlyPayments++;
+      } else {
+        latePayments++;
+      }
+    }
+  }
+  const earlyVsLateRatio = (earlyPayments + latePayments) > 0 
+    ? earlyPayments / (earlyPayments + latePayments) 
+    : 0.5;
+  
+  // B2. Payment disputes
+  const disputedInvoices = invoices.filter(inv => inv.status === 'Disputed');
+  const paymentDisputesCount = disputedInvoices.length;
+  
+  // B3. Payment recency (days since last payment)
+  let paymentRecencyDays = 999;
+  const sortedPaidInvoices = paidInvoices
+    .filter(inv => inv.payment_date)
+    .sort((a, b) => new Date(b.payment_date!).getTime() - new Date(a.payment_date!).getTime());
+  
+  if (sortedPaidInvoices.length > 0) {
+    const lastPaymentDate = new Date(sortedPaidInvoices[0].payment_date!);
+    paymentRecencyDays = Math.floor((now - lastPaymentDate.getTime()) / (1000 * 60 * 60 * 24));
+  }
+  
+  // B4. Largest overdue invoice amount
+  let largestOverdueAmount = 0;
+  for (const inv of openInvoices) {
+    const dueDate = new Date(inv.due_date);
+    if (dueDate.getTime() < now) {
+      const amount = inv.outstanding_amount || inv.amount || 0;
+      largestOverdueAmount = Math.max(largestOverdueAmount, amount);
+    }
+  }
+  
+  // Calculate Payment Patterns Risk Score (0-100)
+  let paymentPatternsScore = 0;
+  
+  // Early vs late ratio (0-35 points)
+  if (earlyVsLateRatio < 0.2) {
+    paymentPatternsScore += 35;
+    penalties.push({ reason: `Only ${Math.round(earlyVsLateRatio * 100)}% payments on time`, amount: 35, category: 'payment_patterns' });
+    factors.push({ factor: 'On-Time Payment Rate', impact: 'critical', value: `${Math.round(earlyVsLateRatio * 100)}%` });
+  } else if (earlyVsLateRatio < 0.4) {
+    paymentPatternsScore += 25;
+    factors.push({ factor: 'On-Time Payment Rate', impact: 'high', value: `${Math.round(earlyVsLateRatio * 100)}%` });
+  } else if (earlyVsLateRatio < 0.6) {
+    paymentPatternsScore += 15;
+    factors.push({ factor: 'On-Time Payment Rate', impact: 'medium', value: `${Math.round(earlyVsLateRatio * 100)}%` });
+  } else if (earlyVsLateRatio < 0.8) {
+    paymentPatternsScore += 5;
+    factors.push({ factor: 'On-Time Payment Rate', impact: 'low', value: `${Math.round(earlyVsLateRatio * 100)}%` });
+  } else {
+    factors.push({ factor: 'On-Time Payment Rate', impact: 'positive', value: `${Math.round(earlyVsLateRatio * 100)}%` });
+  }
+  
+  // Payment disputes (0-25 points)
+  if (paymentDisputesCount >= 3) {
+    paymentPatternsScore += 25;
+    penalties.push({ reason: `${paymentDisputesCount} disputed invoices`, amount: 25, category: 'payment_patterns' });
+  } else if (paymentDisputesCount >= 1) {
+    paymentPatternsScore += paymentDisputesCount * 8;
+  }
+  
+  // Payment recency (0-25 points)
+  if (paymentRecencyDays >= 180) {
+    paymentPatternsScore += 25;
+    penalties.push({ reason: `No payment in ${paymentRecencyDays} days`, amount: 25, category: 'payment_patterns' });
+  } else if (paymentRecencyDays >= 90) {
+    paymentPatternsScore += 15;
+  } else if (paymentRecencyDays >= 60) {
+    paymentPatternsScore += 8;
+  }
+  
+  // Largest overdue (0-15 points based on relative size)
+  if (largestOverdueAmount > 50000) {
+    paymentPatternsScore += 15;
+  } else if (largestOverdueAmount > 20000) {
+    paymentPatternsScore += 10;
+  } else if (largestOverdueAmount > 5000) {
+    paymentPatternsScore += 5;
+  }
+  
+  paymentPatternsScore = clamp(paymentPatternsScore, 0, 100);
+
+  // =============================================
+  // C. CUSTOMER HEALTH INDICATORS (15% of total score)
+  // =============================================
+  
+  // C1. Customer type (B2B vs B2C)
+  const customerType = debtor.type || 'B2B';
+  
+  // C2. Concentration risk
+  const accountBalance = debtor.total_open_balance || 0;
+  const concentrationRiskPct = totalUserAR > 0 ? (accountBalance / totalUserAR) * 100 : 0;
+  
+  // Calculate Customer Health Risk Score (0-100)
+  let customerHealthScore = 0;
+  
+  // Customer type risk (B2C slightly higher risk for collections)
+  if (customerType === 'B2C') {
+    customerHealthScore += 10;
+    factors.push({ factor: 'Customer Type', impact: 'low', value: 'B2C' });
+  } else {
+    factors.push({ factor: 'Customer Type', impact: 'positive', value: 'B2B' });
+  }
+  
+  // Concentration risk (0-50 points)
+  if (concentrationRiskPct > 30) {
+    customerHealthScore += 50;
+    penalties.push({ reason: `High concentration risk (${Math.round(concentrationRiskPct)}% of AR)`, amount: 50, category: 'customer_health' });
+    factors.push({ factor: 'AR Concentration', impact: 'critical', value: `${Math.round(concentrationRiskPct)}%` });
+  } else if (concentrationRiskPct > 15) {
+    customerHealthScore += 25;
+    factors.push({ factor: 'AR Concentration', impact: 'medium', value: `${Math.round(concentrationRiskPct)}%` });
+  } else {
+    factors.push({ factor: 'AR Concentration', impact: 'positive', value: `${Math.round(concentrationRiskPct)}%` });
+  }
+  
+  customerHealthScore = clamp(customerHealthScore, 0, 100);
+
+  // =============================================
+  // D. OPERATIONAL SIGNALS (15% of total score)
+  // =============================================
+  
+  // D1. Email sentiment
+  let emailSentimentScore = 50; // Default neutral (0-100, higher = riskier)
   let latestSentimentCategory: string | null = null;
-  let latestSentimentScore: number | null = null;
-
-  // Get most recent sentiment from inbound emails
+  let latestSentimentValue: number | null = null;
+  
   const emailsWithSentiment = (inboundEmails || []).filter(e => e.ai_sentiment_category);
   
   if (emailsWithSentiment.length > 0) {
-    // Weight recent emails more heavily
     let totalWeight = 0;
-    let weightedHealthSum = 0;
     let weightedRiskSum = 0;
 
     emailsWithSentiment.forEach((email, index) => {
-      const weight = 1 / (index + 1); // More recent = higher weight
+      const weight = 1 / (index + 1);
       const config = sentimentConfigMap.get(email.ai_sentiment_category || 'neutral');
       
       if (config) {
-        weightedHealthSum += config.health_score_value * weight;
         weightedRiskSum += config.risk_score_value * weight;
         totalWeight += weight;
       }
     });
 
     if (totalWeight > 0) {
-      aiSentimentHealthScore = weightedHealthSum / totalWeight;
-      aiSentimentRisk = weightedRiskSum / totalWeight;
+      emailSentimentScore = weightedRiskSum / totalWeight;
     }
 
-    // Store most recent sentiment
     latestSentimentCategory = emailsWithSentiment[0]?.ai_sentiment_category || null;
-    latestSentimentScore = emailsWithSentiment[0]?.ai_sentiment_score || null;
-
-    if (aiSentimentHealthScore < 30) {
-      penalties.push({ reason: `Negative sentiment detected (${latestSentimentCategory})`, amount: 20, category: 'sentiment' });
-    }
+    latestSentimentValue = emailsWithSentiment[0]?.ai_sentiment_score || null;
   } else {
-    // No response = no_response category
     const noResponseConfig = sentimentConfigMap.get('no_response');
     if (noResponseConfig) {
-      aiSentimentHealthScore = noResponseConfig.health_score_value;
-      aiSentimentRisk = noResponseConfig.risk_score_value;
+      emailSentimentScore = noResponseConfig.risk_score_value;
       latestSentimentCategory = 'no_response';
     }
   }
-
-  // =============================================
-  // COMPONENT 5: Negative Payment Trend (0-100)
-  // Based on: trend of payment behavior over time
-  // =============================================
-  let negativePaymentTrend = 0;
   
-  // Split payments into recent (last 90 days) vs older
-  const now = Date.now();
-  const ninetyDaysAgo = now - (90 * 24 * 60 * 60 * 1000);
-  
-  const recentPaidInvoices = paidInvoices.filter(inv => 
-    inv.payment_date && new Date(inv.payment_date).getTime() > ninetyDaysAgo
+  // D2. Response time (average days to respond to outreach)
+  let responseTimeAvgDays = 0;
+  const outboundActivities = (activities || []).filter(a => 
+    a.activity_type === 'outbound' && a.sent_at
   );
-  const olderPaidInvoices = paidInvoices.filter(inv => 
-    inv.payment_date && new Date(inv.payment_date).getTime() <= ninetyDaysAgo
-  );
-
-  if (recentPaidInvoices.length >= 2 && olderPaidInvoices.length >= 2) {
-    // Calculate average days to pay for each period
-    const recentAvgDays = calculateAvgDaysToPay(recentPaidInvoices);
-    const olderAvgDays = calculateAvgDaysToPay(olderPaidInvoices);
-    
-    // Negative trend if recent payments are slower
-    if (recentAvgDays > olderAvgDays) {
-      const trendDiff = recentAvgDays - olderAvgDays;
-      negativePaymentTrend = Math.min(100, trendDiff * 2);
-      
-      if (trendDiff > 15) {
-        penalties.push({ reason: `Payment behavior worsening (${Math.round(trendDiff)} days slower)`, amount: 15, category: 'trend' });
-      }
-    }
-  }
-
-  // =============================================
-  // CALCULATE FINAL SCORES
-  // =============================================
-
-  // Collections Health Score (weighted average)
-  let collectionsHealthScore = Math.round(
-    (0.35 * paymentHistoryScore) +
-    (0.30 * dpdScore) +
-    (0.20 * outstandingBalanceScore) +
-    (0.15 * aiSentimentHealthScore)
-  );
-
-  // Collections Risk Score (weighted average)
-  let collectionsRiskScore = Math.round(
-    (0.40 * dpdRisk) +
-    (0.25 * negativePaymentTrend) +
-    (0.20 * aiSentimentRisk) +
-    (0.15 * balanceConcentrationRisk)
-  );
-
-  // Apply severe adjustments for extreme DPD cases (200+ days)
-  // These accounts should NEVER have a positive/healthy score
-  if (maxDPD >= 200) {
-    collectionsHealthScore = Math.min(collectionsHealthScore, 15); // Cap health at 15 (Critical)
-    collectionsRiskScore = Math.max(collectionsRiskScore, 85); // Floor risk at 85 (Critical Risk)
-  } else if (maxDPD >= 150) {
-    collectionsHealthScore = Math.min(collectionsHealthScore, 25); // Cap health at 25 (At Risk)
-    collectionsRiskScore = Math.max(collectionsRiskScore, 75); // Floor risk at 75 (High Risk)
-  } else if (maxDPD >= 120) {
-    collectionsHealthScore = Math.min(collectionsHealthScore, 35); // Cap health at 35 (At Risk)
-    collectionsRiskScore = Math.max(collectionsRiskScore, 65); // Floor risk at 65 (High Risk)
-  }
-
-  // Determine tiers
-  const healthTier = getHealthTier(collectionsHealthScore);
-  const riskTierDetailed = getRiskTier(collectionsRiskScore);
-
-  // Legacy risk tier (for backward compatibility)
-  const legacyRiskTier = getLegacyRiskTier(collectionsHealthScore);
-
-  // Calculate engagement rate
-  const outboundActivities = (activities || []).filter(a => a.activity_type === 'outbound');
   const respondedActivities = outboundActivities.filter(a => a.responded_at);
+  
+  if (respondedActivities.length > 0) {
+    let totalResponseDays = 0;
+    for (const act of respondedActivities) {
+      const sentDate = new Date(act.sent_at!);
+      const respondedDate = new Date(act.responded_at!);
+      totalResponseDays += Math.floor((respondedDate.getTime() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+    }
+    responseTimeAvgDays = totalResponseDays / respondedActivities.length;
+  }
+  
+  // D3. Engagement rate
   const engagementRate = outboundActivities.length > 0 
     ? (respondedActivities.length / outboundActivities.length) * 100 
-    : 0;
+    : 50; // Default 50% if no outreach
+  
+  // D4. Escalations count
+  const escalationTasks = (tasks || []).filter(t => 
+    t.level === 'escalation' || t.priority === 'urgent' || t.priority === 'high'
+  );
+  const escalationCount = escalationTasks.length;
+  
+  // D5. Missing docs
+  const missingDocsTasks = (tasks || []).filter(t => 
+    t.task_type === 'W9_REQUEST' || 
+    t.task_type === 'DOCUMENT_REQUEST' ||
+    t.task_type === 'PO_REQUEST'
+  );
+  const missingDocsCount = missingDocsTasks.length;
+  
+  // Calculate Operational Signals Risk Score (0-100)
+  let operationalSignalsScore = 0;
+  
+  // Sentiment (0-35 points)
+  if (emailSentimentScore >= 70) {
+    operationalSignalsScore += 35;
+    penalties.push({ reason: `Negative sentiment detected (${latestSentimentCategory})`, amount: 35, category: 'operational' });
+    factors.push({ factor: 'Communication Sentiment', impact: 'critical', value: latestSentimentCategory || 'negative' });
+  } else if (emailSentimentScore >= 50) {
+    operationalSignalsScore += 15;
+    factors.push({ factor: 'Communication Sentiment', impact: 'medium', value: latestSentimentCategory || 'neutral' });
+  } else {
+    factors.push({ factor: 'Communication Sentiment', impact: 'positive', value: latestSentimentCategory || 'positive' });
+  }
+  
+  // Engagement rate (0-25 points)
+  if (engagementRate < 20) {
+    operationalSignalsScore += 25;
+    penalties.push({ reason: `Very low engagement rate (${Math.round(engagementRate)}%)`, amount: 25, category: 'operational' });
+  } else if (engagementRate < 40) {
+    operationalSignalsScore += 15;
+  } else if (engagementRate < 60) {
+    operationalSignalsScore += 5;
+  }
+  
+  // Escalations (0-20 points)
+  if (escalationCount >= 3) {
+    operationalSignalsScore += 20;
+    penalties.push({ reason: `${escalationCount} escalations/high-priority issues`, amount: 20, category: 'operational' });
+  } else if (escalationCount >= 1) {
+    operationalSignalsScore += escalationCount * 7;
+  }
+  
+  // Missing docs (0-10 points)
+  if (missingDocsCount >= 2) {
+    operationalSignalsScore += 10;
+  } else if (missingDocsCount === 1) {
+    operationalSignalsScore += 5;
+  }
+  
+  // Response time (0-10 points)
+  if (responseTimeAvgDays > 14) {
+    operationalSignalsScore += 10;
+  } else if (responseTimeAvgDays > 7) {
+    operationalSignalsScore += 5;
+  }
+  
+  operationalSignalsScore = clamp(operationalSignalsScore, 0, 100);
+
+  // =============================================
+  // CALCULATE FINAL CREDIT RISK SCORE
+  // =============================================
+  
+  // Weighted calculation (higher = riskier)
+  let creditRiskScore = Math.round(
+    (0.50 * invoiceBehaviorScore) +    // A. Invoice Behavior (50%)
+    (0.20 * paymentPatternsScore) +    // B. Payment Patterns (20%)
+    (0.15 * customerHealthScore) +     // C. Customer Health (15%)
+    (0.15 * operationalSignalsScore)   // D. Operational Signals (15%)
+  );
+  
+  // Apply severe adjustments for extreme DPD cases
+  // Accounts with 150+ DPD should ALWAYS be high risk
+  if (maxDPD >= 150) {
+    creditRiskScore = Math.max(creditRiskScore, 80); // Floor at 80 (Critical)
+    factors.push({ factor: 'Extreme Delinquency Override', impact: 'critical', value: `${maxDPD} days past due` });
+  } else if (maxDPD >= 120) {
+    creditRiskScore = Math.max(creditRiskScore, 70); // Floor at 70 (High)
+  } else if (maxDPD >= 90) {
+    creditRiskScore = Math.max(creditRiskScore, 60); // Floor at 60 (High)
+  }
+  
+  // Clamp final score
+  creditRiskScore = clamp(creditRiskScore, 1, 100);
+  
+  // Calculate health score (inverse of risk)
+  const collectionsHealthScore = 100 - creditRiskScore;
+  
+  // Determine tiers
+  const riskTier = getRiskTier(creditRiskScore);
+  const healthTier = getHealthTier(collectionsHealthScore);
 
   return {
+    credit_risk_score: creditRiskScore,
+    risk_tier: riskTier,
     collections_health_score: collectionsHealthScore,
     health_tier: healthTier,
-    collections_risk_score: collectionsRiskScore,
-    risk_tier_detailed: riskTierDetailed,
-    ai_sentiment_score: latestSentimentScore,
+    collections_risk_score: creditRiskScore,
+    risk_tier_detailed: riskTier,
+    ai_sentiment_score: latestSentimentValue,
     ai_sentiment_category: latestSentimentCategory,
-    
-    // Legacy fields
-    risk_payment_score: collectionsHealthScore, // Use health score for legacy
-    risk_tier: legacyRiskTier,
-    risk_status_note: generateStatusNote(healthTier, riskTierDetailed, penalties),
-    
+    risk_payment_score: collectionsHealthScore,
+    risk_status_note: generateStatusNote(healthTier, riskTier, penalties),
     basis_invoices_count: invoiceCount,
     basis_payments_count: paymentCount,
     basis_days_observed: daysObserved,
     score_components: {
-      payment_history_score: Math.round(paymentHistoryScore),
-      dpd_score: Math.round(dpdScore),
-      outstanding_balance_score: Math.round(outstandingBalanceScore),
-      ai_sentiment_health_score: Math.round(aiSentimentHealthScore),
-      dpd_risk: Math.round(dpdRisk),
-      negative_payment_trend: Math.round(negativePaymentTrend),
-      ai_sentiment_risk: Math.round(aiSentimentRisk),
-      balance_concentration_risk: Math.round(balanceConcentrationRisk),
-      data_sufficient: true,
-      on_time_payment_pct: Math.round(onTimePct),
-      avg_days_late: Math.round(avgDaysLate),
+      invoice_behavior_score: Math.round(invoiceBehaviorScore),
+      avg_dpd_last_6_months: Math.round(avgDpdLast6Months),
+      pct_over_30_days: Math.round(pctOver30),
+      pct_over_60_days: Math.round(pctOver60),
+      pct_over_90_days: Math.round(pctOver90),
+      partial_payment_frequency: Math.round(partialPaymentFrequency),
       broken_promises_count: brokenPromises,
+      volatility_score: Math.round(volatilityScore),
+      payment_patterns_score: Math.round(paymentPatternsScore),
+      early_vs_late_ratio: Math.round(earlyVsLateRatio * 100),
+      payment_disputes_count: paymentDisputesCount,
+      payment_recency_days: paymentRecencyDays,
+      largest_overdue_amount: largestOverdueAmount,
+      customer_health_score: Math.round(customerHealthScore),
+      customer_type: customerType,
+      concentration_risk_pct: Math.round(concentrationRiskPct),
+      operational_signals_score: Math.round(operationalSignalsScore),
+      email_sentiment_score: Math.round(emailSentimentScore),
+      response_time_avg_days: Math.round(responseTimeAvgDays),
+      engagement_rate: Math.round(engagementRate),
+      escalation_count: escalationCount,
+      missing_docs_count: missingDocsCount,
+      data_sufficient: true,
       max_dpd: maxDPD,
       total_outstanding: totalOutstanding,
-      high_aging_concentration_pct: Math.round(highAgingConcentration),
-      engagement_rate: Math.round(engagementRate),
-      penalties
+      penalties,
+      factors
     },
     last_score_change_reason: ''
   };
 }
 
-function calculateAvgDaysToPay(invoices: Invoice[]): number {
-  if (invoices.length === 0) return 0;
-  
-  let totalDays = 0;
-  let count = 0;
-  
-  for (const inv of invoices) {
-    if (inv.payment_date && inv.invoice_date) {
-      const paymentDate = new Date(inv.payment_date);
-      const invoiceDate = new Date(inv.invoice_date);
-      const days = Math.floor((paymentDate.getTime() - invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-      totalDays += Math.max(0, days);
-      count++;
-    }
-  }
-  
-  return count > 0 ? totalDays / count : 0;
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-function getHealthTier(score: number): string {
-  if (score >= HEALTH_TIERS.HEALTHY.min) return HEALTH_TIERS.HEALTHY.label;
-  if (score >= HEALTH_TIERS.WATCH.min) return HEALTH_TIERS.WATCH.label;
-  if (score >= HEALTH_TIERS.AT_RISK.min) return HEALTH_TIERS.AT_RISK.label;
-  return HEALTH_TIERS.CRITICAL.label;
 }
 
 function getRiskTier(score: number): string {
@@ -812,14 +1056,14 @@ function getRiskTier(score: number): string {
   return RISK_TIERS.CRITICAL.label;
 }
 
-function getLegacyRiskTier(healthScore: number): string {
-  if (healthScore >= 85) return 'Low';
-  if (healthScore >= 70) return 'Medium';
-  if (healthScore >= 50) return 'High';
-  return 'Critical';
+function getHealthTier(score: number): string {
+  if (score >= HEALTH_TIERS.HEALTHY.min) return HEALTH_TIERS.HEALTHY.label;
+  if (score >= HEALTH_TIERS.WATCH.min) return HEALTH_TIERS.WATCH.label;
+  if (score >= HEALTH_TIERS.AT_RISK.min) return HEALTH_TIERS.AT_RISK.label;
+  return HEALTH_TIERS.CRITICAL.label;
 }
 
 function generateStatusNote(healthTier: string, riskTier: string, penalties: { reason: string }[]): string {
   const topPenalties = penalties.slice(0, 2).map(p => p.reason).join('. ');
-  return `${healthTier} health, ${riskTier}. ${topPenalties}`.trim();
+  return `${healthTier} health, ${riskTier} risk. ${topPenalties}`.trim();
 }
