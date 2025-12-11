@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight, MessageCircle, Zap, Target, Brain, Bot, LogIn, AlertTriangle, Sparkles } from "lucide-react";
+import { Mail, ArrowRight, MessageCircle, Zap, Target, Brain, Bot, LogIn, AlertTriangle, Sparkles, Inbox, ListTodo } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
@@ -223,69 +223,79 @@ const ComingSoon = () => {
       {/* Radial glow behind main card */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-gradient-radial from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
 
-      <Card className="max-w-2xl w-full border-2 border-primary/20 shadow-2xl relative z-10 backdrop-blur-sm bg-card/95 animate-pulse-glow">
-        <CardContent className="pt-12 pb-12 px-8 text-center space-y-8">
-          {/* Collection Intelligence Brain Logo */}
-          <div className="space-y-6 relative">
-            {/* Orbiting elements around brain */}
-            <div className="relative w-24 h-24 mx-auto">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
-                  <Brain className="h-16 w-16 text-primary relative animate-brain-pulse" />
+      <Card className="max-w-5xl w-full border-2 border-primary/20 shadow-2xl relative z-10 backdrop-blur-sm bg-card/95 animate-pulse-glow">
+        <CardContent className="pt-8 pb-8 px-8 space-y-6">
+          {/* Header Row */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Logo & Title */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+                    <Brain className="h-10 w-10 text-primary relative animate-brain-pulse" />
+                  </div>
                 </div>
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-accent rounded-full animate-orbit"
+                    style={{ animationDelay: `${i * -2.5}s`, animationDuration: '7s' }}
+                  />
+                ))}
               </div>
-              {/* Orbiting dots */}
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="absolute top-1/2 left-1/2 w-2 h-2 bg-accent rounded-full animate-orbit"
-                  style={{ 
-                    animationDelay: `${i * -2}s`,
-                    animationDuration: '8s',
-                  }}
-                />
-              ))}
+              <div className="text-left">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent animate-text-gradient">
+                  Recouply.ai
+                </h1>
+                <p className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-primary" />
+                  Collection Intelligence
+                </p>
+              </div>
             </div>
-            
-            <div className="space-y-2 opacity-0 animate-reveal-up" style={{ animationDelay: '0.2s' }}>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent animate-text-gradient">
-                Recouply.ai
-              </h1>
-              <p className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                Collection Intelligence
-              </p>
+
+            {/* Status Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/30 rounded-full">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
+              </span>
+              <span className="text-sm font-medium bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Private Beta • Coming Soon
+              </span>
             </div>
           </div>
 
-          {/* Status Badge with enhanced pulse animation */}
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/30 rounded-full opacity-0 animate-reveal-up" style={{ animationDelay: '0.3s' }}>
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent" />
-            </span>
-            <span className="text-sm font-medium bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Private Beta • AI-Powered Collections
-            </span>
+          {/* Feature Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.3s' }}>
+            <div className="bg-muted/30 p-4 rounded-xl border border-primary/10 text-center">
+              <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Inbox className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">Inbound AI</h3>
+              <p className="text-xs text-muted-foreground">Reads and understands every customer response</p>
+            </div>
+            <div className="bg-muted/30 p-4 rounded-xl border border-primary/10 text-center">
+              <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <ListTodo className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">Smart Tasks</h3>
+              <p className="text-xs text-muted-foreground">Auto-creates tasks from customer messages</p>
+            </div>
+            <div className="bg-muted/30 p-4 rounded-xl border border-primary/10 text-center">
+              <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">24/7 Automation</h3>
+              <p className="text-xs text-muted-foreground">Workflows that run automatically</p>
+            </div>
           </div>
 
-          {/* Main Message with Collection Intelligence branding */}
-          <div className="space-y-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.4s' }}>
-            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
-              <Sparkles className="h-6 w-6 text-accent animate-pulse" />
-              Coming Soon
-              <Sparkles className="h-6 w-6 text-accent animate-pulse" style={{ animationDelay: '0.5s' }} />
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
-              The <span className="font-semibold text-primary">AI Collections Command Center</span> is launching soon. 
-              Transform how you collect overdue invoices with{" "}
-              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-                <Brain className="h-4 w-4 text-primary" />
-                Collection Intelligence
-              </span>.
-            </p>
-          </div>
+          {/* Description */}
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto opacity-0 animate-reveal-up" style={{ animationDelay: '0.4s' }}>
+            Transform your accounts receivable with <span className="font-semibold text-primary">AI that reads, understands, and acts</span> on every customer communication.
+          </p>
 
           {/* AI Personas Carousel */}
           <div className="space-y-6 pt-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.5s' }}>
