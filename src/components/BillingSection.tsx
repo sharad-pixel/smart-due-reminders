@@ -45,9 +45,10 @@ interface BillingSectionProps {
   };
   canManageBilling: boolean;
   onRefresh: () => void;
+  isTeamMember?: boolean;
 }
 
-const BillingSection = ({ profile, canManageBilling, onRefresh }: BillingSectionProps) => {
+const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = false }: BillingSectionProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
