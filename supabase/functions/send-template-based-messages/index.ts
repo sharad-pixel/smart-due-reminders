@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getOutreachContacts } from "../_shared/contactUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,25 +106,12 @@ serve(async (req) => {
           // Personalize the template with invoice data
           const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
           
-          // Fetch primary contact from debtor_contacts (source of truth)
-          let contactEmail = "";
-          let contactName = debtor?.name || debtor?.company_name || "";
-          if (debtor?.id) {
-            const { data: contacts } = await supabase
-              .from("debtor_contacts")
-              .select("name, email, is_primary, outreach_enabled")
-              .eq("debtor_id", debtor.id)
-              .eq("outreach_enabled", true)
-              .order("is_primary", { ascending: false });
-            
-            if (contacts && contacts.length > 0) {
-              const primaryContact = contacts.find((c: any) => c.is_primary) || contacts[0];
-              contactEmail = primaryContact?.email || "";
-              contactName = primaryContact?.name || contactName;
-            }
-          }
+          // Fetch all outreach-enabled contacts with fallback to debtor record
+          const outreachContacts = await getOutreachContacts(supabase, debtor?.id, debtor);
+          const allEmails = outreachContacts.emails;
+          const contactName = outreachContacts.primaryName || debtor?.name || debtor?.company_name || "";
           
-          if (!contactEmail) {
+          if (allEmails.length === 0) {
             console.log(`No outreach-enabled contact with email for debtor on invoice ${invoice.invoice_number}, skipping`);
             continue;
           }
@@ -150,9 +138,9 @@ serve(async (req) => {
 
           const replyToEmail = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
 
-          console.log(`Sending email to ${contactEmail} for invoice ${invoice.invoice_number}`);
+          console.log(`Sending email to ${allEmails.join(', ')} for invoice ${invoice.invoice_number}`);
 
-          // Send email directly via send-email function
+          // Send email to ALL outreach-enabled contacts
           const sendEmailResponse = await fetch(
             `${supabaseUrl}/functions/v1/send-email`,
             {
@@ -162,7 +150,7 @@ serve(async (req) => {
                 "Authorization": `Bearer ${supabaseKey}`,
               },
               body: JSON.stringify({
-                to: contactEmail,
+                to: allEmails, // Send to all outreach-enabled contacts
                 from: PLATFORM_FROM_EMAIL,
                 reply_to: replyToEmail,
                 subject: personalizedSubject || `Invoice ${invoice.invoice_number} - Payment Required`,
@@ -179,7 +167,7 @@ serve(async (req) => {
             continue;
           }
 
-          console.log(`Email sent to ${contactEmail} for invoice ${invoice.invoice_number}`);
+          console.log(`Email sent to ${allEmails.length} recipient(s) for invoice ${invoice.invoice_number}`);
 
           // Log the collection activity
           await supabase

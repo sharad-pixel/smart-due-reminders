@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { getOutreachContacts } from "../_shared/contactUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,33 +77,12 @@ serve(async (req) => {
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
-    // Fetch primary contact from debtor_contacts (source of truth), fallback to debtor record
-    let contactEmail = "";
-    let contactPhone = "";
-    if (debtor?.id) {
-      const { data: contacts } = await supabaseClient
-        .from("debtor_contacts")
-        .select("email, phone, is_primary, outreach_enabled")
-        .eq("debtor_id", debtor.id)
-        .eq("outreach_enabled", true)
-        .order("is_primary", { ascending: false });
-      
-      if (contacts && contacts.length > 0) {
-        const primaryContact = contacts.find((c: any) => c.is_primary) || contacts[0];
-        contactEmail = primaryContact?.email || "";
-        contactPhone = primaryContact?.phone || "";
-      }
-      
-      // Fallback to debtor record email/phone if no contacts found
-      if (!contactEmail && debtor.email) {
-        contactEmail = debtor.email;
-        console.log(`Using fallback email from debtor record: ${contactEmail}`);
-      }
-      if (!contactPhone && debtor.phone) {
-        contactPhone = debtor.phone;
-        console.log(`Using fallback phone from debtor record: ${contactPhone}`);
-      }
-    }
+    // Fetch all outreach-enabled contacts with fallback to debtor record
+    const outreachContacts = await getOutreachContacts(supabaseClient, debtor?.id, debtor);
+    const allEmails = outreachContacts.emails;
+    const allPhones = outreachContacts.phones;
+    
+    console.log(`Outreach contacts: ${allEmails.length} emails, ${allPhones.length} phones`);
 
     // Get effective account ID (for team member support)
     const { data: effectiveAccountId } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
@@ -123,14 +103,14 @@ serve(async (req) => {
 
     // Send based on channel
     if (draft.channel === "email") {
-      if (!contactEmail) {
+      if (allEmails.length === 0) {
         throw new Error("No email found for this account. Please add a contact with email and enable outreach.");
       }
       
       // Use platform email - reply-to is based on invoice
       const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
       
-      console.log(`Sending email via platform from ${fromEmail} to ${contactEmail} with reply-to: ${replyToAddress}`);
+      console.log(`Sending email via platform from ${fromEmail} to ${allEmails.join(', ')} with reply-to: ${replyToAddress}`);
 
       // Format message body with line breaks
       const formattedBody = draft.message_body.replace(/\n/g, "<br>");
@@ -142,11 +122,10 @@ serve(async (req) => {
         {
           invoiceId: invoice.id,
           amount: invoice.amount,
-          // Payment URL would be added here if Stripe payment links are configured
         }
       );
 
-      // Send via platform send-email function
+      // Send to ALL outreach-enabled contacts
       const sendEmailResponse = await fetch(
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
         {
@@ -156,7 +135,7 @@ serve(async (req) => {
             "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
           },
           body: JSON.stringify({
-            to: contactEmail,
+            to: allEmails, // Send to all outreach-enabled contacts
             from: fromEmail,
             reply_to: replyToAddress,
             subject: draft.subject || "Payment Reminder",
@@ -174,7 +153,7 @@ serve(async (req) => {
 
       sendResult = { 
         success: true, 
-        message: "Email sent successfully via Recouply.ai platform",
+        message: `Email sent successfully to ${allEmails.length} recipient(s)`,
         replyTo: replyToAddress
       };
     } else if (draft.channel === "sms") {
@@ -191,7 +170,7 @@ serve(async (req) => {
         throw new Error("Twilio credentials not configured. Please configure in Settings.");
       }
 
-      if (!contactPhone) {
+      if (allPhones.length === 0) {
         throw new Error("No phone number found for this account. Please add a contact with phone and enable outreach.");
       }
 
@@ -209,33 +188,42 @@ serve(async (req) => {
       sentFrom = twilioProfile.twilio_from_number;
       const twilioAuth = btoa(`${accountSid}:${authToken}`);
       
-      try {
-        const twilioResponse = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Basic ${twilioAuth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              To: contactPhone,
-              From: twilioProfile.twilio_from_number,
-              Body: draft.message_body,
-            }),
+      // Send SMS to ALL outreach-enabled contacts with phone numbers
+      let smsSuccessCount = 0;
+      for (const phone of allPhones) {
+        try {
+          const twilioResponse = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Basic ${twilioAuth}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                To: phone,
+                From: twilioProfile.twilio_from_number,
+                Body: draft.message_body,
+              }),
+            }
+          );
+
+          if (!twilioResponse.ok) {
+            const errorText = await twilioResponse.text();
+            console.error(`Twilio error for ${phone}:`, errorText);
+          } else {
+            smsSuccessCount++;
           }
-        );
-
-        if (!twilioResponse.ok) {
-          const errorText = await twilioResponse.text();
-          throw new Error(`Twilio error: ${errorText}`);
+        } catch (smsError: any) {
+          console.error(`SMS send error for ${phone}:`, smsError);
         }
-
-        sendResult = { success: true, message: "SMS sent successfully", replyTo: "" };
-      } catch (smsError: any) {
-        console.error("SMS send error:", smsError);
-        throw new Error(`Failed to send SMS: ${smsError.message}`);
       }
+
+      if (smsSuccessCount === 0) {
+        throw new Error("Failed to send SMS to any recipients");
+      }
+
+      sendResult = { success: true, message: `SMS sent to ${smsSuccessCount} recipient(s)`, replyTo: "" };
     }
 
     // Log the outreach
@@ -246,7 +234,7 @@ serve(async (req) => {
       channel: draft.channel,
       subject: draft.subject,
       message_body: draft.message_body,
-      sent_to: draft.channel === "email" ? contactEmail : contactPhone,
+      sent_to: draft.channel === "email" ? allEmails.join(', ') : allPhones.join(', '),
       sent_from: sentFrom,
       status: "sent",
       sent_at: new Date().toISOString(),
@@ -254,6 +242,7 @@ serve(async (req) => {
         draft_id: draft_id,
         reply_to: sendResult.replyTo || undefined,
         platform_send: draft.channel === "email",
+        recipients_count: draft.channel === "email" ? allEmails.length : allPhones.length,
       },
     });
 
