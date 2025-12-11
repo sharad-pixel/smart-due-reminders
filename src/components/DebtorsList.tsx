@@ -68,16 +68,29 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("debtors").insert([{
+      const { data: debtor, error } = await supabase.from("debtors").insert([{
         ...formData,
         name: formData.contact_name || formData.company_name,
         primary_contact_name: formData.contact_name,
         primary_email: formData.email,
         primary_phone: formData.phone,
         user_id: user.id,
-      } as any]);
+      } as any]).select().single();
       
       if (error) throw error;
+
+      // Create primary contact for the new account
+      if (debtor && formData.email) {
+        await supabase.from("debtor_contacts").insert({
+          debtor_id: debtor.id,
+          user_id: user.id,
+          name: formData.contact_name || "Primary Contact",
+          email: formData.email,
+          phone: formData.phone || null,
+          is_primary: true,
+          outreach_enabled: true,
+        });
+      }
       
       toast.success("Account added successfully");
       setOpen(false);

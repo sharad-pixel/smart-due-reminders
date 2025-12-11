@@ -270,15 +270,19 @@ serve(async (req) => {
               }
               
               // Create new customer
+              const contactName = String(getValue(row, "contact_name") || customerName);
+              const contactEmail = String(getValue(row, "customer_email") || "");
+              const contactPhone = String(getValue(row, "customer_phone") || "");
+              
               const { data: newDebtor, error: debtorError } = await supabase
                 .from("debtors")
                 .insert({
                   user_id: user.id,
                   company_name: customerName,
                   name: customerName,
-                  contact_name: String(getValue(row, "contact_name") || customerName),
-                  email: String(getValue(row, "customer_email") || ""),
-                  phone: String(getValue(row, "customer_phone") || ""),
+                  contact_name: contactName,
+                  email: contactEmail,
+                  phone: contactPhone,
                   external_customer_id: customerId ? String(customerId) : null,
                   reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
                 })
@@ -297,6 +301,19 @@ serve(async (req) => {
                 customerRefMap.set(normalizeString(newDebtor.reference_id), debtorId!);
               }
               newCustomers++;
+              
+              // Create primary contact for the new debtor
+              if (contactEmail) {
+                await supabase.from("debtor_contacts").insert({
+                  debtor_id: debtorId,
+                  user_id: user.id,
+                  name: contactName || customerName,
+                  email: contactEmail,
+                  phone: contactPhone || null,
+                  is_primary: true,
+                  outreach_enabled: true,
+                });
+              }
               
               // Update staging row for newly created customer
               await supabase
@@ -610,17 +627,41 @@ serve(async (req) => {
         // Insert this batch of new accounts
         if (accountsToCreate.length > 0) {
           console.log(`Inserting batch of ${accountsToCreate.length} accounts`);
-          const { error: createError } = await supabase
+          const { data: createdAccounts, error: createError } = await supabase
             .from("debtors")
-            .insert(accountsToCreate);
+            .insert(accountsToCreate)
+            .select("id, contact_name, email, phone");
           
           if (createError) {
             console.error("Batch account creation error:", createError);
             errors += accountsToCreate.length;
             newCustomers -= accountsToCreate.length;
-          } else {
-            newRecords += accountsToCreate.length;
-            matched += accountsToCreate.length;
+          } else if (createdAccounts) {
+            newRecords += createdAccounts.length;
+            matched += createdAccounts.length;
+            
+            // Create primary contacts for all new accounts
+            const contactsToCreate = createdAccounts
+              .filter((acc: any) => acc.email)
+              .map((acc: any) => ({
+                debtor_id: acc.id,
+                user_id: user.id,
+                name: acc.contact_name || "Primary Contact",
+                email: acc.email,
+                phone: acc.phone || null,
+                is_primary: true,
+                outreach_enabled: true,
+              }));
+            
+            if (contactsToCreate.length > 0) {
+              const { error: contactError } = await supabase
+                .from("debtor_contacts")
+                .insert(contactsToCreate);
+              
+              if (contactError) {
+                console.error("Batch contact creation error:", contactError);
+              }
+            }
           }
         }
       }
