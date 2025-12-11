@@ -399,8 +399,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       let requiredKeys: string[] = [];
       
       if (fileType === "accounts") {
-        // Accounts: name and email required, RAID is auto-generated
-        requiredKeys = ["customer_name", "customer_email"];
+        // Accounts: company name, contact name, and email required, RAID is auto-generated
+        requiredKeys = ["company_name", "contact_name", "contact_email"];
       } else if (fileType === "invoice_aging") {
         // Invoices: need RAID to link to account, plus invoice details
         requiredKeys = ["recouply_account_id", "invoice_number", "amount_original", "invoice_date", "due_date"];

@@ -242,8 +242,9 @@ const DataCenter = () => {
                 <div>
                   <p className="font-medium text-foreground mb-1">Required Fields:</p>
                   <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Customer Name</strong> - Company or customer name</li>
-                    <li><strong>Customer Email</strong> - Primary contact email</li>
+                    <li><strong>Company Name</strong> - Company or business name</li>
+                    <li><strong>Contact Name</strong> - Primary contact person</li>
+                    <li><strong>Contact Email</strong> - Primary contact email</li>
                   </ul>
                 </div>
                 <div>
