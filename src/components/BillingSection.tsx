@@ -356,7 +356,7 @@ const BillingSection = ({ profile, canManageBilling, onRefresh }: BillingSection
                 <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
                   <AlertTriangle className="h-4 w-4" />
                   <span>
-                    {usageData.overageCount} overage invoices (${(usageData.overageCount * 1.50).toFixed(2)})
+                    {usageData.overageCount} overage invoices (${(usageData.overageCount * 1.99).toFixed(2)})
                   </span>
                 </div>
               )}

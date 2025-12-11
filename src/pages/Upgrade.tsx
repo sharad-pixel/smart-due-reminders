@@ -347,7 +347,7 @@ const Upgrade = () => {
                   </ul>
                   
                   <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/50 rounded">
-                    <p>+$1.50 per invoice over limit</p>
+                    <p>+$1.99 per invoice over limit</p>
                     <p>+{formatPrice(seatPrice)}/seat{isAnnual ? '/year' : '/month'}</p>
                   </div>
                   

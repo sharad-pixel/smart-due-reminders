@@ -20,7 +20,7 @@ const faqs = [
   },
   {
     question: "What happens if I exceed my invoice limit?",
-    answer: "Your collections continue without interruption. Any invoices beyond your plan limit are billed at $1.50 per invoice. You can also upgrade your plan anytime to get a better rate."
+    answer: "Your collections continue without interruption. Any invoices beyond your plan limit are billed at $1.99 per invoice. You can also upgrade your plan anytime to get a better rate."
   },
   {
     question: "Do you integrate with my existing tools?",
