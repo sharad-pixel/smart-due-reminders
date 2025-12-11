@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight, MessageCircle, Zap, Target, Sparkles, Bot, LogIn, AlertTriangle } from "lucide-react";
+import { Mail, ArrowRight, MessageCircle, Zap, Target, Brain, Bot, LogIn, AlertTriangle, Sparkles } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
@@ -172,8 +172,23 @@ const ComingSoon = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
+      {/* Animated gradient background with Collection Intelligence theme */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
+      
+      {/* Neural network pattern overlay */}
+      <div className="absolute inset-0 opacity-10">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="neural-grid" width="60" height="60" patternUnits="userSpaceOnUse">
+              <circle cx="30" cy="30" r="1.5" fill="hsl(var(--primary))" />
+              <line x1="30" y1="30" x2="60" y2="30" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.3" />
+              <line x1="30" y1="30" x2="30" y2="60" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.3" />
+              <line x1="30" y1="30" x2="60" y2="60" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.2" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#neural-grid)" />
+        </svg>
+      </div>
       
       {/* Animated gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -182,66 +197,105 @@ const ComingSoon = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
       </div>
 
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-
-      {/* Floating particles */}
+      {/* Floating data particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(30)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-primary/40 rounded-full animate-float-particle"
+            className="absolute rounded-full animate-float-particle"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${8 + Math.random() * 4}s`,
+              animationDuration: `${6 + Math.random() * 4}s`,
+              width: `${2 + Math.random() * 4}px`,
+              height: `${2 + Math.random() * 4}px`,
+              background: i % 3 === 0 
+                ? 'hsl(var(--primary) / 0.6)' 
+                : i % 3 === 1 
+                  ? 'hsl(var(--accent) / 0.6)' 
+                  : 'hsl(var(--primary) / 0.4)',
             }}
           />
         ))}
       </div>
 
       {/* Radial glow behind main card */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-primary/10 via-transparent to-transparent rounded-full blur-2xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-gradient-radial from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
 
-      <Card className="max-w-2xl w-full border-2 shadow-2xl relative z-10 backdrop-blur-sm bg-card/95">
+      <Card className="max-w-2xl w-full border-2 border-primary/20 shadow-2xl relative z-10 backdrop-blur-sm bg-card/95 animate-pulse-glow">
         <CardContent className="pt-12 pb-12 px-8 text-center space-y-8">
-          {/* Logo with glow effect */}
-          <div className="space-y-4 relative">
-            <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full" />
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent relative animate-fade-in">
-              Recouply.ai
-            </h1>
-            <p className="text-2xl font-semibold text-foreground relative animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              AI-Powered Invoice Collection
-            </p>
+          {/* Collection Intelligence Brain Logo */}
+          <div className="space-y-6 relative">
+            {/* Orbiting elements around brain */}
+            <div className="relative w-24 h-24 mx-auto">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+                  <Brain className="h-16 w-16 text-primary relative animate-brain-pulse" />
+                </div>
+              </div>
+              {/* Orbiting dots */}
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="absolute top-1/2 left-1/2 w-2 h-2 bg-accent rounded-full animate-orbit"
+                  style={{ 
+                    animationDelay: `${i * -2}s`,
+                    animationDuration: '8s',
+                  }}
+                />
+              ))}
+            </div>
+            
+            <div className="space-y-2 opacity-0 animate-reveal-up" style={{ animationDelay: '0.2s' }}>
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent animate-text-gradient">
+                Recouply.ai
+              </h1>
+              <p className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Collection Intelligence
+                <span className="text-xs align-super">™</span>
+              </p>
+            </div>
           </div>
 
-          {/* Status Badge with pulse animation */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-primary">Private Beta</span>
+          {/* Status Badge with enhanced pulse animation */}
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/30 rounded-full opacity-0 animate-reveal-up" style={{ animationDelay: '0.3s' }}>
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent" />
+            </span>
+            <span className="text-sm font-medium bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Private Beta • AI-Powered Collections
+            </span>
           </div>
 
-          {/* Main Message */}
-          <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+          {/* Main Message with Collection Intelligence branding */}
+          <div className="space-y-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.4s' }}>
+            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
+              <Sparkles className="h-6 w-6 text-accent animate-pulse" />
               Coming Soon
-              <Sparkles className="h-6 w-6 text-primary animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <Sparkles className="h-6 w-6 text-accent animate-pulse" style={{ animationDelay: '0.5s' }} />
             </h2>
-            <p className="text-lg text-muted-foreground max-w-lg mx-auto">
-              The AI Collections Command Center is launching soon. Get early access and transform how you collect overdue invoices.
+            <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
+              The <span className="font-semibold text-primary">AI Collections Command Center</span> is launching soon. 
+              Transform how you collect overdue invoices with{" "}
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                <Brain className="h-4 w-4 text-primary" />
+                Collection Intelligence
+              </span>.
             </p>
           </div>
 
           {/* AI Personas Carousel */}
-          <div className="space-y-6 pt-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="space-y-6 pt-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.5s' }}>
             <div className="text-center space-y-3">
               <h3 className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
-                <Bot className="h-6 w-6 text-primary animate-pulse" />
+                <Brain className="h-6 w-6 text-primary animate-brain-pulse" />
                 Meet Your AI Collection Team
               </h3>
+              <p className="text-sm text-muted-foreground">Powered by Collection Intelligence™</p>
               
               {/* Animated Avatar Grid */}
               <div className="flex justify-center items-center gap-3 py-6">

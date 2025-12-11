@@ -113,6 +113,30 @@ export default {
           "0%, 100%": { transform: "translateY(0) translateX(0)", opacity: "0.3" },
           "50%": { transform: "translateY(-20px) translateX(10px)", opacity: "0.6" },
         },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 20px hsl(var(--primary) / 0.3), 0 0 40px hsl(var(--primary) / 0.1)" },
+          "50%": { boxShadow: "0 0 40px hsl(var(--primary) / 0.5), 0 0 80px hsl(var(--primary) / 0.2)" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "brain-pulse": {
+          "0%, 100%": { transform: "scale(1)", filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.5))" },
+          "50%": { transform: "scale(1.1)", filter: "drop-shadow(0 0 16px hsl(var(--primary) / 0.8))" },
+        },
+        "orbit": {
+          "0%": { transform: "rotate(0deg) translateX(60px) rotate(0deg)" },
+          "100%": { transform: "rotate(360deg) translateX(60px) rotate(-360deg)" },
+        },
+        "reveal-up": {
+          "0%": { opacity: "0", transform: "translateY(30px) scale(0.95)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "text-gradient": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -126,6 +150,12 @@ export default {
         "scroll-down": "scroll-down 1.5s ease-in-out infinite",
         "marquee": "marquee 30s linear infinite",
         "float-particle": "float-particle 5s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 3s ease-in-out infinite",
+        "shimmer": "shimmer 3s ease-in-out infinite",
+        "brain-pulse": "brain-pulse 2s ease-in-out infinite",
+        "orbit": "orbit 8s linear infinite",
+        "reveal-up": "reveal-up 0.6s ease-out forwards",
+        "text-gradient": "text-gradient 4s ease infinite",
       },
     },
   },
