@@ -232,45 +232,7 @@ const ComingSoon = () => {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
-                  {/* Custom Brain with $ divider */}
-                  <svg 
-                    className="h-16 w-16 text-primary relative animate-brain-pulse" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                    style={{ mixBlendMode: 'normal' }}
-                  >
-                    {/* Left brain hemisphere */}
-                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v0" />
-                    <path d="M9.5 2A4.5 4.5 0 0 0 5 6.5c0 1.4.6 2.6 1.5 3.5" />
-                    <path d="M5.5 10c-1.2.7-2 2-2 3.5a4 4 0 0 0 4 4" />
-                    <path d="M7.5 17.5c-1 .6-1.5 1.4-1.5 2.5a2.5 2.5 0 0 0 4 2" />
-                    <path d="M10 20v1.5a1.5 1.5 0 0 0 2 1.42" />
-                    {/* Right brain hemisphere */}
-                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v0" />
-                    <path d="M14.5 2A4.5 4.5 0 0 1 19 6.5c0 1.4-.6 2.6-1.5 3.5" />
-                    <path d="M18.5 10c1.2.7 2 2 2 3.5a4 4 0 0 1-4 4" />
-                    <path d="M16.5 17.5c1 .6 1.5 1.4 1.5 2.5a2.5 2.5 0 0 1-4 2" />
-                    <path d="M14 20v1.5a1.5 1.5 0 0 1-2 1.42" />
-                    {/* $ symbol as center divider */}
-                    <text 
-                      x="12" 
-                      y="14" 
-                      textAnchor="middle" 
-                      dominantBaseline="middle" 
-                      fill="currentColor" 
-                      stroke="currentColor" 
-                      strokeWidth="0.5" 
-                      fontSize="10" 
-                      fontWeight="bold"
-                      style={{ mixBlendMode: 'normal' }}
-                    >
-                      $
-                    </text>
-                  </svg>
+                  <Brain className="h-16 w-16 text-primary relative animate-brain-pulse" />
                 </div>
               </div>
               {/* Orbiting dots */}
