@@ -248,7 +248,9 @@ const Debtors = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Accounts</h1>
-            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Manage your customer accounts</p>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
+              Manage your customer accounts • <span className="font-medium">{debtors.length} total accounts</span>
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate('/data-center')}>
