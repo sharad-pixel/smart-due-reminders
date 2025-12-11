@@ -249,8 +249,14 @@ const ComingSoon = () => {
             </div>
             
             <div className="space-y-2 opacity-0 animate-reveal-up" style={{ animationDelay: '0.2s' }}>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent animate-text-gradient">
-                Recouply.ai
+              <h1 className="text-5xl font-bold flex items-center justify-center">
+                <span className="relative inline-flex items-center">
+                  <Brain className="h-10 w-10 text-primary animate-brain-pulse mr-1" />
+                  <span className="absolute -inset-1 bg-primary/20 blur-lg rounded-full" />
+                </span>
+                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent animate-text-gradient">
+                  ecouply.ai
+                </span>
               </h1>
               <p className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
