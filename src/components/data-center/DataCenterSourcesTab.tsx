@@ -304,12 +304,16 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem onClick={() => downloadSourceTemplate(source.id, source.source_name, "accounts")}>
+                            <Users className="h-4 w-4 mr-2" />
+                            Download Accounts Template
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => downloadSourceTemplate(source.id, source.source_name, "invoice_aging")}>
                             <FileSpreadsheet className="h-4 w-4 mr-2" />
                             Download Invoice Template
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => downloadSourceTemplate(source.id, source.source_name, "payments")}>
-                            <Download className="h-4 w-4 mr-2" />
+                            <DollarSign className="h-4 w-4 mr-2" />
                             Download Payment Template
                           </DropdownMenuItem>
                           <div className="border-t my-1" />
