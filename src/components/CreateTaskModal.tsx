@@ -61,13 +61,45 @@ const CreateTaskModal = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("team_members")
-        .select("id, name, email")
-        .eq("user_id", user.id);
+      // Get effective account ID for the current user
+      const { data: accountUser } = await supabase
+        .from("account_users")
+        .select("account_id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .limit(1)
+        .single();
+
+      const accountId = accountUser?.account_id || user.id;
+
+      // Fetch all active team members under this account
+      const { data: members, error } = await supabase
+        .from("account_users")
+        .select(`
+          id,
+          user_id,
+          email,
+          role,
+          profiles:user_id (
+            name,
+            email
+          )
+        `)
+        .eq("account_id", accountId)
+        .eq("status", "active");
 
       if (error) throw error;
-      setTeamMembers(data || []);
+
+      // Transform to TeamMember format
+      const teamMembersList: TeamMember[] = (members || [])
+        .filter((m: any) => m.user_id) // Only include members with linked profiles
+        .map((m: any) => ({
+          id: m.user_id, // Use the profile user_id for assignment
+          name: m.profiles?.name || m.email || "Unknown",
+          email: m.profiles?.email || m.email || "",
+        }));
+
+      setTeamMembers(teamMembersList);
     } catch (error) {
       console.error("Error fetching team members:", error);
     }
@@ -124,7 +156,7 @@ const CreateTaskModal = ({
           const { error: emailError } = await supabase.functions.invoke("send-task-assignment", {
             body: {
               taskId: newTask.id,
-              teamMemberId: assignedTo,
+              userId: assignedTo, // This is the profile.id / user_id
             },
           });
           
