@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
 import { Sparkles, Zap, Users, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { RecouplyLogo } from "@/components/RecouplyLogo";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -227,10 +228,7 @@ const Login = () => {
             <Sparkles className="w-4 h-4 mr-2" />
             Early Access Program
           </Badge>
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="text-foreground">Recouply</span>
-            <span className="text-primary">.ai</span>
-          </h1>
+          <RecouplyLogo size="xl" className="justify-center mb-2" />
           <p className="text-muted-foreground">AI-Powered CashOps Platform</p>
         </div>
 

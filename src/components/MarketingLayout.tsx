@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
 import { Brain } from "lucide-react";
 
@@ -32,9 +32,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             className="cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              {COMPANY_INFO.displayName}
-            </h1>
+            <RecouplyLogo size="lg" />
           </div>
           <nav className="hidden lg:flex items-center gap-5">
             <button 
@@ -108,9 +106,9 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-4">
-                {COMPANY_INFO.displayName}
-              </h3>
+              <div className="mb-4">
+                <RecouplyLogo size="lg" />
+              </div>
               <p className="text-sm text-muted-foreground mb-4">
                 {COMPANY_INFO.tagline}
               </p>
