@@ -52,7 +52,6 @@ serve(async (req) => {
         debtors (
           id,
           name,
-          email,
           company_name,
           crm_account_id
         )
