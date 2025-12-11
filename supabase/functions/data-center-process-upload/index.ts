@@ -526,130 +526,132 @@ serve(async (req) => {
           matched++;
           newRecords++;
         } else if (fileType === "accounts") {
-          // ACCOUNTS: Batch process for better performance with large uploads
-          const accountsToCreate: any[] = [];
-          const accountsToUpdate: any[] = [];
+          // ACCOUNTS: Process in small chunks to avoid memory limits
+          const BATCH_SIZE = 50;
           
-          for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
+          for (let batchStart = 0; batchStart < rows.length; batchStart += BATCH_SIZE) {
+            const batchEnd = Math.min(batchStart + BATCH_SIZE, rows.length);
+            const batchRows = rows.slice(batchStart, batchEnd);
+            const accountsToCreate: any[] = [];
             
-            const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
-            const companyName = String(getValue(row, "company_name") || "").trim();
-            const contactName = String(getValue(row, "contact_name") || "").trim();
-            const contactEmail = String(getValue(row, "contact_email") || "").trim();
-            const contactPhone = String(getValue(row, "contact_phone") || "").trim();
-            const accountType = String(getValue(row, "account_type") || "B2C").trim();
-            const addressLine1 = String(getValue(row, "address_line1") || "").trim();
-            const addressLine2 = String(getValue(row, "address_line2") || "").trim();
-            const city = String(getValue(row, "city") || "").trim();
-            const state = String(getValue(row, "state") || "").trim();
-            const postalCode = String(getValue(row, "postal_code") || "").trim();
-            const country = String(getValue(row, "country") || "").trim();
-            const externalCustomerId = String(getValue(row, "customer_id") || "").trim();
-            const crmId = String(getValue(row, "crm_id") || "").trim();
-            const industry = String(getValue(row, "industry") || "").trim();
-            const notes = String(getValue(row, "notes") || "").trim();
+            console.log(`Processing batch ${batchStart}-${batchEnd} of ${rows.length}`);
             
-            // Validate required fields
-            if (!companyName || !contactName || !contactEmail) {
-              console.error(`Row ${i}: Missing required fields`);
-              errors++;
-              continue;
-            }
-            
-            const parsedType = accountType.toUpperCase() === "B2B" ? "B2B" : "B2C";
-            
-            // Check if this is an update (RAID provided) or new account (no RAID)
-            let debtorId: string | null = null;
-            if (recouplyAccountId) {
-              debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
-            }
-            
-            if (debtorId) {
-              // Queue for batch update
-              const updateData: any = {
-                id: debtorId,
-                updated_at: new Date().toISOString(),
-                company_name: companyName,
-                name: companyName,
-                contact_name: contactName,
-                email: contactEmail,
-                type: parsedType,
-              };
+            for (let j = 0; j < batchRows.length; j++) {
+              const row = batchRows[j];
+              const i = batchStart + j;
               
-              if (contactPhone) updateData.phone = contactPhone;
-              if (addressLine1) updateData.address_line1 = addressLine1;
-              if (addressLine2) updateData.address_line2 = addressLine2;
-              if (city) updateData.city = city;
-              if (state) updateData.state = state;
-              if (postalCode) updateData.postal_code = postalCode;
-              if (country) updateData.country = country;
-              if (externalCustomerId) updateData.external_customer_id = externalCustomerId;
-              if (crmId) updateData.crm_account_id_external = crmId;
-              if (industry) updateData.industry = industry;
-              if (notes) updateData.notes = notes;
+              const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
+              const companyName = String(getValue(row, "company_name") || "").trim();
+              const contactName = String(getValue(row, "contact_name") || "").trim();
+              const contactEmail = String(getValue(row, "contact_email") || "").trim();
+              const contactPhone = String(getValue(row, "contact_phone") || "").trim();
+              const accountType = String(getValue(row, "account_type") || "B2C").trim();
+              const addressLine1 = String(getValue(row, "address_line1") || "").trim();
+              const addressLine2 = String(getValue(row, "address_line2") || "").trim();
+              const city = String(getValue(row, "city") || "").trim();
+              const state = String(getValue(row, "state") || "").trim();
+              const postalCode = String(getValue(row, "postal_code") || "").trim();
+              const country = String(getValue(row, "country") || "").trim();
+              const externalCustomerId = String(getValue(row, "customer_id") || "").trim();
+              const crmId = String(getValue(row, "crm_id") || "").trim();
+              const industry = String(getValue(row, "industry") || "").trim();
+              const notes = String(getValue(row, "notes") || "").trim();
               
-              accountsToUpdate.push(updateData);
-              existingCustomersCount++;
-            } else {
-              // Queue for batch insert (always create new when no RAID)
-              const newRaid = `RCPLY-ACCT-${Date.now()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+              // Validate required fields
+              if (!companyName || !contactName || !contactEmail) {
+                console.error(`Row ${i}: Missing required fields`);
+                errors++;
+                continue;
+              }
               
-              accountsToCreate.push({
-                user_id: user.id,
-                company_name: companyName,
-                name: companyName,
-                contact_name: contactName,
-                email: contactEmail,
-                phone: contactPhone || null,
-                type: parsedType,
-                address_line1: addressLine1 || null,
-                address_line2: addressLine2 || null,
-                city: city || null,
-                state: state || null,
-                postal_code: postalCode || null,
-                country: country || null,
-                external_customer_id: externalCustomerId || null,
-                crm_account_id_external: crmId || null,
-                industry: industry || null,
-                notes: notes || null,
-                reference_id: newRaid,
-              });
-              newCustomers++;
+              const parsedType = accountType.toUpperCase() === "B2B" ? "B2B" : "B2C";
+              
+              // Check if this is an update (RAID provided) or new account (no RAID)
+              let debtorId: string | null = null;
+              if (recouplyAccountId) {
+                debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+              }
+              
+              if (debtorId) {
+                // Update existing account one at a time (rare case)
+                const updateData: any = {
+                  updated_at: new Date().toISOString(),
+                  company_name: companyName,
+                  name: companyName,
+                  contact_name: contactName,
+                  email: contactEmail,
+                  type: parsedType,
+                };
+                
+                if (contactPhone) updateData.phone = contactPhone;
+                if (addressLine1) updateData.address_line1 = addressLine1;
+                if (addressLine2) updateData.address_line2 = addressLine2;
+                if (city) updateData.city = city;
+                if (state) updateData.state = state;
+                if (postalCode) updateData.postal_code = postalCode;
+                if (country) updateData.country = country;
+                if (externalCustomerId) updateData.external_customer_id = externalCustomerId;
+                if (crmId) updateData.crm_account_id_external = crmId;
+                if (industry) updateData.industry = industry;
+                if (notes) updateData.notes = notes;
+                
+                await supabase.from("debtors").update(updateData).eq("id", debtorId);
+                existingCustomersCount++;
+                matched++;
+              } else {
+                // Queue for batch insert
+                const newRaid = `RCPLY-ACCT-${Date.now()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+                
+                accountsToCreate.push({
+                  user_id: user.id,
+                  company_name: companyName,
+                  name: companyName,
+                  contact_name: contactName,
+                  email: contactEmail,
+                  phone: contactPhone || null,
+                  type: parsedType,
+                  address_line1: addressLine1 || null,
+                  address_line2: addressLine2 || null,
+                  city: city || null,
+                  state: state || null,
+                  postal_code: postalCode || null,
+                  country: country || null,
+                  external_customer_id: externalCustomerId || null,
+                  crm_account_id_external: crmId || null,
+                  industry: industry || null,
+                  notes: notes || null,
+                  reference_id: newRaid,
+                });
+                newCustomers++;
+              }
+              
+              processed++;
             }
             
-            processed++;
-          }
-          
-          // Execute batch operations
-          if (accountsToCreate.length > 0) {
-            console.log(`Batch creating ${accountsToCreate.length} new accounts`);
-            const { error: createError } = await supabase
-              .from("debtors")
-              .insert(accountsToCreate);
-            
-            if (createError) {
-              console.error("Batch account creation error:", createError);
-              errors += accountsToCreate.length;
-            } else {
-              newRecords += accountsToCreate.length;
-              matched += accountsToCreate.length;
-            }
-          }
-          
-          if (accountsToUpdate.length > 0) {
-            console.log(`Batch updating ${accountsToUpdate.length} existing accounts`);
-            const { error: updateError } = await supabase
-              .from("debtors")
-              .upsert(accountsToUpdate);
-            
-            if (updateError) {
-              console.error("Batch account update error:", updateError);
-              errors += accountsToUpdate.length;
-            } else {
-              matched += accountsToUpdate.length;
+            // Insert this batch of new accounts
+            if (accountsToCreate.length > 0) {
+              console.log(`Inserting batch of ${accountsToCreate.length} accounts`);
+              const { error: createError } = await supabase
+                .from("debtors")
+                .insert(accountsToCreate);
+              
+              if (createError) {
+                console.error("Batch account creation error:", createError);
+                errors += accountsToCreate.length;
+                newCustomers -= accountsToCreate.length;
+              } else {
+                newRecords += accountsToCreate.length;
+                matched += accountsToCreate.length;
+              }
             }
           }
+        }
+
+        // For accounts, we process all rows in the batch loop above, so mark this row as processed
+        // (the outer loop still exists but accounts handles its own iteration)
+        if (fileType === "accounts") {
+          // Already processed in batch above, break out of outer loop
+          break;
         }
       } catch (rowError: any) {
         console.error(`Error processing row ${i}:`, rowError);
