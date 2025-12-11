@@ -526,143 +526,131 @@ serve(async (req) => {
           matched++;
           newRecords++;
         } else if (fileType === "accounts") {
-          // ACCOUNTS: Create or update customer/debtor records
-          // Fields aligned with Create New Account form
-          const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
-          const companyName = String(getValue(row, "company_name") || "").trim();
-          const accountType = String(getValue(row, "account_type") || "B2C").trim();
-          const contactName = String(getValue(row, "contact_name") || "").trim();
-          const contactTitle = getValue(row, "contact_title") ? String(getValue(row, "contact_title")).trim() : null;
-          const contactEmail = String(getValue(row, "contact_email") || "").trim();
-          const contactPhone = getValue(row, "contact_phone") ? String(getValue(row, "contact_phone")).trim() : null;
-          const addressLine1 = getValue(row, "address_line1") ? String(getValue(row, "address_line1")).trim() : null;
-          const addressLine2 = getValue(row, "address_line2") ? String(getValue(row, "address_line2")).trim() : null;
-          const city = getValue(row, "city") ? String(getValue(row, "city")).trim() : null;
-          const state = getValue(row, "state") ? String(getValue(row, "state")).trim() : null;
-          const postalCode = getValue(row, "postal_code") ? String(getValue(row, "postal_code")).trim() : null;
-          const country = getValue(row, "country") ? String(getValue(row, "country")).trim() : null;
-          const externalCustomerId = getValue(row, "external_customer_id") ? String(getValue(row, "external_customer_id")).trim() : null;
-          const crmId = getValue(row, "crm_id") ? String(getValue(row, "crm_id")).trim() : null;
-          const industry = getValue(row, "industry") ? String(getValue(row, "industry")).trim() : null;
-          const notes = getValue(row, "account_notes") || getValue(row, "notes") ? String(getValue(row, "account_notes") || getValue(row, "notes")).trim() : null;
+          // ACCOUNTS: Batch process for better performance with large uploads
+          const accountsToCreate: any[] = [];
+          const accountsToUpdate: any[] = [];
           
-          // Validate required fields
-          if (!companyName) {
-            console.error(`Row ${i}: Missing required Company Name`);
-            errors++;
-            continue;
-          }
-          if (!contactName) {
-            console.error(`Row ${i}: Missing required Contact Name`);
-            errors++;
-            continue;
-          }
-          if (!contactEmail) {
-            console.error(`Row ${i}: Missing required Contact Email`);
-            errors++;
-            continue;
-          }
-
-          // Check if account already exists - PRIORITY: RAID first, then name/externalId
-          let debtorId: string | null = null;
-          
-          // PRIORITY 1: Match by Recouply Account ID (reference_id) - indicates update
-          if (recouplyAccountId) {
-            debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            
+            const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
+            const companyName = String(getValue(row, "company_name") || "").trim();
+            const contactName = String(getValue(row, "contact_name") || "").trim();
+            const contactEmail = String(getValue(row, "contact_email") || "").trim();
+            const contactPhone = String(getValue(row, "contact_phone") || "").trim();
+            const accountType = String(getValue(row, "account_type") || "B2C").trim();
+            const addressLine1 = String(getValue(row, "address_line1") || "").trim();
+            const addressLine2 = String(getValue(row, "address_line2") || "").trim();
+            const city = String(getValue(row, "city") || "").trim();
+            const state = String(getValue(row, "state") || "").trim();
+            const postalCode = String(getValue(row, "postal_code") || "").trim();
+            const country = String(getValue(row, "country") || "").trim();
+            const externalCustomerId = String(getValue(row, "customer_id") || "").trim();
+            const crmId = String(getValue(row, "crm_id") || "").trim();
+            const industry = String(getValue(row, "industry") || "").trim();
+            const notes = String(getValue(row, "notes") || "").trim();
+            
+            // Validate required fields
+            if (!companyName || !contactName || !contactEmail) {
+              console.error(`Row ${i}: Missing required fields`);
+              errors++;
+              continue;
+            }
+            
+            const parsedType = accountType.toUpperCase() === "B2B" ? "B2B" : "B2C";
+            
+            // Check if this is an update (RAID provided) or new account (no RAID)
+            let debtorId: string | null = null;
+            if (recouplyAccountId) {
+              debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+            }
+            
             if (debtorId) {
-              console.log(`Row ${i}: Found existing account by RAID: ${recouplyAccountId} - will update`);
-            }
-          }
-          
-          // PRIORITY 2: Match by name or external ID (for accounts without RAID provided)
-          if (!debtorId) {
-            debtorId = customerMap.get(normalizeString(companyName)) || null;
-            if (!debtorId && externalCustomerId) {
-              debtorId = customerMap.get(normalizeString(externalCustomerId)) || null;
-            }
-          }
-
-          // Parse account type
-          const parsedType = accountType.toUpperCase() === "B2B" ? "B2B" : "B2C";
-
-          if (debtorId) {
-            // Update existing account with new data
-            const updateData: Record<string, any> = {
-              updated_at: new Date().toISOString(),
-              company_name: companyName,
-              name: companyName,
-              contact_name: contactName,
-              email: contactEmail,
-              type: parsedType,
-            };
-            
-            // Only update optional fields that have values
-            if (contactPhone) updateData.phone = contactPhone;
-            if (addressLine1) updateData.address_line1 = addressLine1;
-            if (addressLine2) updateData.address_line2 = addressLine2;
-            if (city) updateData.city = city;
-            if (state) updateData.state = state;
-            if (postalCode) updateData.postal_code = postalCode;
-            if (country) updateData.country = country;
-            if (externalCustomerId) updateData.external_customer_id = externalCustomerId;
-            if (crmId) updateData.crm_account_id_external = crmId;
-            if (industry) updateData.industry = industry;
-            if (notes) updateData.notes = notes;
-            
-            await supabase
-              .from("debtors")
-              .update(updateData)
-              .eq("id", debtorId);
-            
-            existingCustomersCount++;
-            matched++;
-            console.log(`Row ${i}: Updated existing account: ${companyName}`);
-          } else {
-            // Create new account - auto-generate RAID
-            const newRaid = `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-            
-            const { data: newDebtor, error: debtorError } = await supabase
-              .from("debtors")
-              .insert({
+              // Queue for batch update
+              const updateData: any = {
+                id: debtorId,
+                updated_at: new Date().toISOString(),
+                company_name: companyName,
+                name: companyName,
+                contact_name: contactName,
+                email: contactEmail,
+                type: parsedType,
+              };
+              
+              if (contactPhone) updateData.phone = contactPhone;
+              if (addressLine1) updateData.address_line1 = addressLine1;
+              if (addressLine2) updateData.address_line2 = addressLine2;
+              if (city) updateData.city = city;
+              if (state) updateData.state = state;
+              if (postalCode) updateData.postal_code = postalCode;
+              if (country) updateData.country = country;
+              if (externalCustomerId) updateData.external_customer_id = externalCustomerId;
+              if (crmId) updateData.crm_account_id_external = crmId;
+              if (industry) updateData.industry = industry;
+              if (notes) updateData.notes = notes;
+              
+              accountsToUpdate.push(updateData);
+              existingCustomersCount++;
+            } else {
+              // Queue for batch insert (always create new when no RAID)
+              const newRaid = `RCPLY-ACCT-${Date.now()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+              
+              accountsToCreate.push({
                 user_id: user.id,
                 company_name: companyName,
                 name: companyName,
                 contact_name: contactName,
                 email: contactEmail,
-                phone: contactPhone,
+                phone: contactPhone || null,
                 type: parsedType,
-                address_line1: addressLine1,
-                address_line2: addressLine2,
-                city: city,
-                state: state,
-                postal_code: postalCode,
-                country: country,
-                external_customer_id: externalCustomerId,
-                crm_account_id_external: crmId,
-                industry: industry,
-                notes: notes,
+                address_line1: addressLine1 || null,
+                address_line2: addressLine2 || null,
+                city: city || null,
+                state: state || null,
+                postal_code: postalCode || null,
+                country: country || null,
+                external_customer_id: externalCustomerId || null,
+                crm_account_id_external: crmId || null,
+                industry: industry || null,
+                notes: notes || null,
                 reference_id: newRaid,
-              })
-              .select()
-              .single();
-
-            if (debtorError) {
-              console.error("Account creation error:", debtorError);
-              errors++;
-              continue;
+              });
+              newCustomers++;
             }
-
-            customerMap.set(normalizeString(companyName), newDebtor.id);
-            if (newDebtor.reference_id) {
-              customerRefMap.set(normalizeString(newDebtor.reference_id), newDebtor.id);
+            
+            processed++;
+          }
+          
+          // Execute batch operations
+          if (accountsToCreate.length > 0) {
+            console.log(`Batch creating ${accountsToCreate.length} new accounts`);
+            const { error: createError } = await supabase
+              .from("debtors")
+              .insert(accountsToCreate);
+            
+            if (createError) {
+              console.error("Batch account creation error:", createError);
+              errors += accountsToCreate.length;
+            } else {
+              newRecords += accountsToCreate.length;
+              matched += accountsToCreate.length;
             }
-            newCustomers++;
-            newRecords++;
-            console.log(`Row ${i}: Created new account: ${companyName} with RAID: ${newRaid}`);
+          }
+          
+          if (accountsToUpdate.length > 0) {
+            console.log(`Batch updating ${accountsToUpdate.length} existing accounts`);
+            const { error: updateError } = await supabase
+              .from("debtors")
+              .upsert(accountsToUpdate);
+            
+            if (updateError) {
+              console.error("Batch account update error:", updateError);
+              errors += accountsToUpdate.length;
+            } else {
+              matched += accountsToUpdate.length;
+            }
           }
         }
-
-        processed++;
       } catch (rowError: any) {
         console.error(`Error processing row ${i}:`, rowError);
         errors++;
