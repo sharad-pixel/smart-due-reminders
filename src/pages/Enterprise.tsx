@@ -57,13 +57,13 @@ const Enterprise = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
                 <Building className="h-4 w-4" />
-                For Enterprise
+                Built for Enterprise
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Scale Cash Operations Without Increasing Headcount
+                Ideal for Enterprise Companies with High Volume Transactions
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                AI agents trained on your CRM data, CS cases, and customer history—automating collections at scale with enterprise-grade security and governance.
+                Built for enterprise companies processing thousands of invoices monthly. AI agents trained on your CRM data, CS cases, and customer history—automating high-volume collections with enterprise-grade security and governance.
               </p>
               <div className="flex gap-4 flex-wrap">
                 <Button size="lg" onClick={() => navigate("/contact-us")} className="text-lg px-8">
@@ -94,10 +94,10 @@ const Enterprise = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Enterprise-Grade Cash Operations
+            Built for High Volume Transaction Processing
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Built for companies with 10,000+ invoices per month
+            Ideal for enterprise companies processing 10,000+ invoices per month with complex collection workflows
           </p>
           
           <div className="grid md:grid-cols-2 gap-8">
@@ -268,10 +268,10 @@ const Enterprise = () => {
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Scale Your Cash Operations?
+            Ready to Handle High Volume Transactions?
           </h2>
           <p className="text-lg opacity-90 mb-8">
-            Let's discuss how Recouply.ai can integrate with your systems and automate collections at enterprise scale.
+            Built for enterprise companies with complex, high-volume collection needs. Let's discuss how Recouply.ai can automate your operations at scale.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" variant="secondary" onClick={() => navigate("/contact-us")} className="text-lg px-8">
