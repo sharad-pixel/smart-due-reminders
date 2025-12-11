@@ -37,6 +37,10 @@ Deno.serve(async (req) => {
 
     const userId = userData.user.id;
 
+    // Get effective account ID for team member access
+    const { data: effectiveAccountData } = await supabaseClient.rpc('get_effective_account_id', { input_user_id: userId });
+    const effectiveAccountId = effectiveAccountData || userId;
+
     // Get optional debtor_id from query params
     const url = new URL(req.url);
     const debtorId = url.searchParams.get('debtor_id');
@@ -54,7 +58,7 @@ Deno.serve(async (req) => {
           risk_tier
         )
       `)
-      .eq('user_id', userId)
+      .eq('user_id', effectiveAccountId)
       .in('status', ['Open', 'InPaymentPlan']);
 
     // Filter by debtor if provided
