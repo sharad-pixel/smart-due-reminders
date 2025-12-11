@@ -170,22 +170,31 @@ Deno.serve(async (req) => {
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
-        // Fetch primary contact from debtor_contacts
+        // Fetch primary contact from debtor_contacts (source of truth for contact names)
         const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
-        let debtorName = debtor?.company_name || debtor?.name || 'Customer';
+        let debtorName = 'Customer'; // Default fallback
+        let companyName = debtor?.company_name || debtor?.name || 'Customer';
         
         if (debtor?.id) {
           const { data: contacts } = await supabaseAdmin
             .from('debtor_contacts')
-            .select('name, is_primary')
+            .select('name, is_primary, outreach_enabled')
             .eq('debtor_id', debtor.id)
+            .eq('outreach_enabled', true)
             .order('is_primary', { ascending: false });
           
           if (contacts && contacts.length > 0) {
-            // Use primary contact or first contact
+            // Use primary contact or first outreach-enabled contact (this is the source of truth)
             const primaryContact = contacts.find((c: any) => c.is_primary);
-            debtorName = primaryContact?.name || contacts[0]?.name || debtorName;
+            debtorName = primaryContact?.name || contacts[0]?.name || companyName;
+            console.log(`Using contact name from debtor_contacts: ${debtorName}`);
+          } else {
+            // No outreach-enabled contacts found, use company name
+            debtorName = companyName;
+            console.log(`No outreach-enabled contacts, using company name: ${debtorName}`);
           }
+        } else {
+          debtorName = companyName;
         }
 
         // Build context
