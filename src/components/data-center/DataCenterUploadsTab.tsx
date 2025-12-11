@@ -18,7 +18,8 @@ import {
   Loader2,
   RefreshCw,
   Archive,
-  RotateCcw
+  RotateCcw,
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, addHours, addDays, differenceInHours, differenceInDays, isPast } from "date-fns";
@@ -63,7 +64,7 @@ const getExpirationInfo = (upload: any) => {
 };
 
 interface DataCenterUploadsTabProps {
-  onStartUpload: (fileType: "invoice_aging" | "payments") => void;
+  onStartUpload: (fileType: "invoice_aging" | "payments" | "accounts") => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -208,6 +209,7 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="accounts">Accounts</SelectItem>
                 <SelectItem value="invoice_aging">Invoices</SelectItem>
                 <SelectItem value="payments">Payments</SelectItem>
               </SelectContent>
@@ -242,17 +244,25 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${upload.file_type === "invoice_aging" ? "bg-blue-100" : "bg-green-100"}`}>
-                      {upload.file_type === "invoice_aging" ? (
-                        <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+                    <div className={`p-2 rounded-lg ${
+                      upload.file_type === "accounts" 
+                        ? "bg-purple-100 dark:bg-purple-900/30" 
+                        : upload.file_type === "invoice_aging" 
+                          ? "bg-blue-100 dark:bg-blue-900/30" 
+                          : "bg-green-100 dark:bg-green-900/30"
+                    }`}>
+                      {upload.file_type === "accounts" ? (
+                        <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      ) : upload.file_type === "invoice_aging" ? (
+                        <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       ) : (
-                        <DollarSign className="h-5 w-5 text-green-600" />
+                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                       )}
                     </div>
                     <div>
                       <p className="font-medium">{upload.file_name}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{upload.file_type === "invoice_aging" ? "Invoice Aging" : "Payments"}</span>
+                        <span>{upload.file_type === "accounts" ? "Accounts" : upload.file_type === "invoice_aging" ? "Invoice Aging" : "Payments"}</span>
                         {upload.source && (
                           <>
                             <span>•</span>
@@ -334,6 +344,10 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
             <p className="mb-2">No uploads yet</p>
             <p className="text-sm mb-4">Start by uploading your AR aging data or payments</p>
             <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={() => onStartUpload("accounts")}>
+                <Users className="h-4 w-4 mr-2" />
+                Upload Accounts
+              </Button>
               <Button onClick={() => onStartUpload("invoice_aging")}>
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Upload Invoices
