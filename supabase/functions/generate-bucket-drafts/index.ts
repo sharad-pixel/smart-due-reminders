@@ -151,9 +151,9 @@ APPROACH STYLE - RELATIONSHIP FOCUSED:
         due_date, 
         debtor_id,
         debtors!inner(
+          id,
           name, 
-          company_name, 
-          email
+          company_name
         )
       `)
       .eq('user_id', user.id)
@@ -433,7 +433,22 @@ EXAMPLE PHRASES:
           const businessName = branding?.business_name || 'Your Company';
           const fromName = branding?.from_name || businessName;
           const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
-          const debtorName = debtor.name || debtor.company_name;
+          
+          // Fetch contact name from debtor_contacts (source of truth)
+          let debtorName = debtor.company_name || debtor.name || 'Customer';
+          if (debtor?.id) {
+            const { data: contacts } = await supabase
+              .from('debtor_contacts')
+              .select('name, is_primary, outreach_enabled')
+              .eq('debtor_id', debtor.id)
+              .eq('outreach_enabled', true)
+              .order('is_primary', { ascending: false });
+            
+            if (contacts && contacts.length > 0) {
+              const primaryContact = contacts.find((c: any) => c.is_primary);
+              debtorName = primaryContact?.name || contacts[0]?.name || debtorName;
+            }
+          }
 
           const systemPrompt = `You are ${personaContext.name}, an AI collections agent for ${businessName}.
 

@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all Open or InPaymentPlan invoices with debtor contacts
+    // Get all Open or InPaymentPlan invoices with debtor info
     const { data: invoices, error: invoicesError } = await supabaseAdmin
       .from('invoices')
       .select(`
@@ -45,8 +45,7 @@ Deno.serve(async (req) => {
         debtors(
           id,
           name,
-          company_name,
-          email
+          company_name
         )
       `)
       .in('status', ['Open', 'InPaymentPlan']);

@@ -71,8 +71,7 @@ Deno.serve(async (req) => {
             debtors!inner(
               id,
               name,
-              company_name,
-              email
+              company_name
             )
           `)
           .eq('id', invoiceId)
@@ -84,14 +83,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Fetch primary contact from debtor_contacts
+        // Fetch primary contact from debtor_contacts (source of truth)
         let debtorName = invoice.debtors.company_name || invoice.debtors.name || 'Customer';
         
         if (invoice.debtors.id) {
           const { data: contacts } = await supabaseClient
             .from('debtor_contacts')
-            .select('name, is_primary')
+            .select('name, is_primary, outreach_enabled')
             .eq('debtor_id', invoice.debtors.id)
+            .eq('outreach_enabled', true)
             .order('is_primary', { ascending: false });
           
           if (contacts && contacts.length > 0) {
