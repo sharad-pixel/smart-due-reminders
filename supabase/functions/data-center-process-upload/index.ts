@@ -575,7 +575,7 @@ serve(async (req) => {
             matched++;
           } else {
             // Queue for batch insert
-            const newRaid = `RCPLY-ACCT-${Date.now()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+            const newRaid = `RCPLY-ACCT-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
             
             accountsToCreate.push({
               user_id: user.id,
