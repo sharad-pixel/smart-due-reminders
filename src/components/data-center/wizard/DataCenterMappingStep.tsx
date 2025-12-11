@@ -123,11 +123,12 @@ export const DataCenterMappingStep = ({
     },
   });
 
+  // For accounts uploads, use only customer fields; for invoices/payments include both
   const relevantGroupings = fileType === "accounts"
-    ? ["account", "customer", "meta"]
+    ? ["customer", "meta"]
     : fileType === "invoice_aging" 
-      ? ["customer", "invoice", "account", "meta"] 
-      : ["customer", "payment", "account", "meta"];
+      ? ["customer", "invoice", "meta"] 
+      : ["customer", "payment", "meta"];
   
   // Combine system fields with custom fields
   const allFields = [
@@ -135,19 +136,19 @@ export const DataCenterMappingStep = ({
     ...(customFields || []).map(f => ({ ...f, isCustom: true })),
   ];
   
-  // For accounts uploads, RAID is not required (new accounts don't have one)
-  // For invoice/payment uploads, RAID is required for matching
+  // Determine required fields based on file type
+  // For accounts: company_name, contact_name, contact_email are required (RAID is optional for new accounts)
+  // For invoices/payments: RAID is required for matching
   const requiredFields = fieldDefinitions.filter(f => {
     if (!relevantGroupings.includes(f.grouping)) return false;
-    if (!f.required_for_recouply) return false;
     
-    // For accounts uploads, RAID is optional since new accounts won't have one
-    if (fileType === "accounts" && f.key === "recouply_account_id") return false;
+    // For accounts uploads, these specific fields are required
+    if (fileType === "accounts") {
+      return ["company_name", "contact_name", "contact_email"].includes(f.key);
+    }
     
-    // For accounts, require account_name instead
-    if (fileType === "accounts" && f.key === "account_name") return true;
-    
-    return true;
+    // For other types, use the required_for_recouply flag
+    return f.required_for_recouply;
   });
   const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
   const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));

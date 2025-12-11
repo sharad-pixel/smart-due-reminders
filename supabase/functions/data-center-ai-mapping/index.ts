@@ -8,18 +8,29 @@ const corsHeaders = {
 interface MappingRequest {
   headers: string[];
   sampleRows: Record<string, any>[];
-  fileType: "invoice_aging" | "payments";
+  fileType: "invoice_aging" | "payments" | "accounts";
 }
 
-// Field definitions for mapping
+// Field definitions for mapping - aligned with Create New Account form
 const FIELD_DEFINITIONS = {
   customer: [
-    { key: "customer_name", label: "Customer Name", aliases: ["customer", "client", "company", "account", "name", "cust name", "customer name", "client name", "company name"] },
-    { key: "customer_id", label: "Customer ID", aliases: ["customer id", "client id", "account id", "cust id", "external id", "customer number"] },
-    { key: "customer_email", label: "Customer Email", aliases: ["email", "customer email", "client email", "contact email"] },
-    { key: "customer_phone", label: "Customer Phone", aliases: ["phone", "telephone", "customer phone", "contact phone"] },
-    { key: "billing_address", label: "Billing Address", aliases: ["address", "billing address", "street", "location"] },
-    { key: "contact_name", label: "Contact Name", aliases: ["contact", "contact name", "primary contact", "contact person"] },
+    { key: "company_name", label: "Company Name", aliases: ["company", "company name", "business name", "account name", "customer name", "client name", "name"] },
+    { key: "account_type", label: "Type", aliases: ["type", "account type", "customer type", "business type", "b2b", "b2c"] },
+    { key: "contact_name", label: "Contact Name", aliases: ["contact", "contact name", "primary contact", "contact person", "full name", "name"] },
+    { key: "contact_title", label: "Contact Title", aliases: ["title", "contact title", "job title", "position", "role"] },
+    { key: "contact_email", label: "Contact Email", aliases: ["email", "contact email", "primary email", "email address"] },
+    { key: "contact_phone", label: "Contact Phone", aliases: ["phone", "contact phone", "telephone", "phone number", "mobile"] },
+    { key: "address_line1", label: "Address Line 1", aliases: ["address", "address 1", "address line 1", "street", "street address"] },
+    { key: "address_line2", label: "Address Line 2", aliases: ["address 2", "address line 2", "apt", "suite", "unit"] },
+    { key: "city", label: "City", aliases: ["city", "town"] },
+    { key: "state", label: "State", aliases: ["state", "province", "region"] },
+    { key: "postal_code", label: "Postal Code", aliases: ["postal code", "zip", "zip code", "postcode"] },
+    { key: "country", label: "Country", aliases: ["country", "nation"] },
+    { key: "external_customer_id", label: "Account ID (Billing System)", aliases: ["account id", "billing id", "customer id", "external id", "qb id", "quickbooks id"] },
+    { key: "crm_id", label: "CRM ID", aliases: ["crm id", "salesforce id", "sf id", "hubspot id", "crm account"] },
+    { key: "industry", label: "Industry", aliases: ["industry", "sector", "vertical", "business industry"] },
+    { key: "account_notes", label: "Notes", aliases: ["notes", "comments", "remarks", "account notes"] },
+    { key: "recouply_account_id", label: "Recouply Account ID (RAID)", aliases: ["raid", "recouply id", "recouply account id", "account raid"] },
   ],
   invoice: [
     { key: "invoice_number", label: "Invoice Number", aliases: ["invoice", "inv", "invoice no", "invoice number", "inv no", "inv #", "invoice #", "document number", "doc no"] },
@@ -32,6 +43,7 @@ const FIELD_DEFINITIONS = {
     { key: "po_number", label: "PO Number", aliases: ["po", "po number", "purchase order", "po #"] },
     { key: "product_description", label: "Product Description", aliases: ["description", "product", "service", "item", "line item", "product description"] },
     { key: "external_invoice_id", label: "External Invoice ID", aliases: ["external id", "system id", "reference"] },
+    { key: "recouply_account_id", label: "Recouply Account ID (RAID)", aliases: ["raid", "recouply id", "recouply account id", "account raid", "customer raid"] },
   ],
   payment: [
     { key: "payment_date", label: "Payment Date", aliases: ["payment date", "pay date", "date paid", "received date", "deposit date"] },
@@ -39,6 +51,9 @@ const FIELD_DEFINITIONS = {
     { key: "payment_reference", label: "Payment Reference", aliases: ["reference", "check number", "check no", "check #", "transaction id", "confirmation"] },
     { key: "payment_method", label: "Payment Method", aliases: ["method", "payment method", "pay method", "type"] },
     { key: "payment_notes", label: "Payment Notes", aliases: ["notes", "memo", "comments", "payment notes"] },
+    { key: "recouply_account_id", label: "Recouply Account ID (RAID)", aliases: ["raid", "recouply id", "recouply account id", "account raid"] },
+    { key: "recouply_invoice_id", label: "Recouply Invoice ID", aliases: ["rinvd", "recouply invoice", "invoice raid"] },
+    { key: "payment_invoice_number", label: "Invoice Number", aliases: ["invoice", "invoice number", "inv no", "invoice #"] },
   ],
   meta: [
     { key: "notes", label: "Notes", aliases: ["notes", "comments", "remarks"] },
@@ -154,9 +169,14 @@ serve(async (req) => {
     console.log("AI Mapping request:", { headerCount: headers.length, sampleCount: sampleRows.length, fileType });
     
     // Determine relevant field groups based on file type
-    const relevantGroups = fileType === "invoice_aging" 
-      ? ["customer", "invoice", "meta"] 
-      : ["customer", "payment", "meta"];
+    let relevantGroups: string[];
+    if (fileType === "accounts") {
+      relevantGroups = ["customer", "meta"];
+    } else if (fileType === "invoice_aging") {
+      relevantGroups = ["customer", "invoice", "meta"];
+    } else {
+      relevantGroups = ["customer", "payment", "meta"];
+    }
     
     const relevantFields = relevantGroups.flatMap(group => 
       FIELD_DEFINITIONS[group as keyof typeof FIELD_DEFINITIONS] || []

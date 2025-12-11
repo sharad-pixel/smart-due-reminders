@@ -527,14 +527,38 @@ serve(async (req) => {
           newRecords++;
         } else if (fileType === "accounts") {
           // ACCOUNTS: Create or update customer/debtor records
-          // If RAID is provided, update existing account; otherwise create new
+          // Fields aligned with Create New Account form
           const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
-          const accountName = String(getValue(row, "account_name") || getValue(row, "customer_name") || "").trim();
-          const email = String(getValue(row, "customer_email") || getValue(row, "email") || "").trim();
-          const externalId = getValue(row, "external_customer_id") ? String(getValue(row, "external_customer_id")) : null;
+          const companyName = String(getValue(row, "company_name") || "").trim();
+          const accountType = String(getValue(row, "account_type") || "B2C").trim();
+          const contactName = String(getValue(row, "contact_name") || "").trim();
+          const contactTitle = getValue(row, "contact_title") ? String(getValue(row, "contact_title")).trim() : null;
+          const contactEmail = String(getValue(row, "contact_email") || "").trim();
+          const contactPhone = getValue(row, "contact_phone") ? String(getValue(row, "contact_phone")).trim() : null;
+          const addressLine1 = getValue(row, "address_line1") ? String(getValue(row, "address_line1")).trim() : null;
+          const addressLine2 = getValue(row, "address_line2") ? String(getValue(row, "address_line2")).trim() : null;
+          const city = getValue(row, "city") ? String(getValue(row, "city")).trim() : null;
+          const state = getValue(row, "state") ? String(getValue(row, "state")).trim() : null;
+          const postalCode = getValue(row, "postal_code") ? String(getValue(row, "postal_code")).trim() : null;
+          const country = getValue(row, "country") ? String(getValue(row, "country")).trim() : null;
+          const externalCustomerId = getValue(row, "external_customer_id") ? String(getValue(row, "external_customer_id")).trim() : null;
+          const crmId = getValue(row, "crm_id") ? String(getValue(row, "crm_id")).trim() : null;
+          const industry = getValue(row, "industry") ? String(getValue(row, "industry")).trim() : null;
+          const notes = getValue(row, "account_notes") || getValue(row, "notes") ? String(getValue(row, "account_notes") || getValue(row, "notes")).trim() : null;
           
-          if (!accountName) {
-            console.error(`Row ${i}: Missing required account name`);
+          // Validate required fields
+          if (!companyName) {
+            console.error(`Row ${i}: Missing required Company Name`);
+            errors++;
+            continue;
+          }
+          if (!contactName) {
+            console.error(`Row ${i}: Missing required Contact Name`);
+            errors++;
+            continue;
+          }
+          if (!contactEmail) {
+            console.error(`Row ${i}: Missing required Contact Email`);
             errors++;
             continue;
           }
@@ -552,28 +576,38 @@ serve(async (req) => {
           
           // PRIORITY 2: Match by name or external ID (for accounts without RAID provided)
           if (!debtorId) {
-            debtorId = customerMap.get(normalizeString(accountName)) || null;
-            if (!debtorId && externalId) {
-              debtorId = customerMap.get(normalizeString(externalId)) || null;
+            debtorId = customerMap.get(normalizeString(companyName)) || null;
+            if (!debtorId && externalCustomerId) {
+              debtorId = customerMap.get(normalizeString(externalCustomerId)) || null;
             }
           }
+
+          // Parse account type
+          const parsedType = accountType.toUpperCase() === "B2B" ? "B2B" : "B2C";
 
           if (debtorId) {
             // Update existing account with new data
             const updateData: Record<string, any> = {
               updated_at: new Date().toISOString(),
+              company_name: companyName,
+              name: companyName,
+              contact_name: contactName,
+              email: contactEmail,
+              type: parsedType,
             };
             
-            // Only update fields that have values
-            if (accountName) updateData.company_name = accountName;
-            if (accountName) updateData.name = accountName;
-            if (email) updateData.email = email;
-            if (getValue(row, "customer_phone")) updateData.phone = String(getValue(row, "customer_phone"));
-            if (getValue(row, "contact_name")) updateData.contact_name = String(getValue(row, "contact_name"));
-            if (getValue(row, "industry")) updateData.industry = String(getValue(row, "industry"));
-            if (externalId) updateData.external_customer_id = externalId;
-            if (getValue(row, "crm_account_id_external")) updateData.crm_account_id_external = String(getValue(row, "crm_account_id_external"));
-            if (getValue(row, "billing_address")) updateData.billing_address_line1 = String(getValue(row, "billing_address"));
+            // Only update optional fields that have values
+            if (contactPhone) updateData.phone = contactPhone;
+            if (addressLine1) updateData.address_line1 = addressLine1;
+            if (addressLine2) updateData.address_line2 = addressLine2;
+            if (city) updateData.city = city;
+            if (state) updateData.state = state;
+            if (postalCode) updateData.postal_code = postalCode;
+            if (country) updateData.country = country;
+            if (externalCustomerId) updateData.external_customer_id = externalCustomerId;
+            if (crmId) updateData.crm_account_id_external = crmId;
+            if (industry) updateData.industry = industry;
+            if (notes) updateData.notes = notes;
             
             await supabase
               .from("debtors")
@@ -582,7 +616,7 @@ serve(async (req) => {
             
             existingCustomersCount++;
             matched++;
-            console.log(`Row ${i}: Updated existing account: ${accountName}`);
+            console.log(`Row ${i}: Updated existing account: ${companyName}`);
           } else {
             // Create new account - auto-generate RAID
             const newRaid = `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -591,15 +625,22 @@ serve(async (req) => {
               .from("debtors")
               .insert({
                 user_id: user.id,
-                company_name: accountName,
-                name: accountName,
-                contact_name: String(getValue(row, "contact_name") || accountName),
-                email: email || `no-email-${Date.now()}@placeholder.com`,
-                phone: getValue(row, "customer_phone") ? String(getValue(row, "customer_phone")) : null,
-                industry: getValue(row, "industry") ? String(getValue(row, "industry")) : null,
-                external_customer_id: externalId,
-                crm_account_id_external: getValue(row, "crm_account_id_external") ? String(getValue(row, "crm_account_id_external")) : null,
-                billing_address_line1: getValue(row, "billing_address") ? String(getValue(row, "billing_address")) : null,
+                company_name: companyName,
+                name: companyName,
+                contact_name: contactName,
+                email: contactEmail,
+                phone: contactPhone,
+                type: parsedType,
+                address_line1: addressLine1,
+                address_line2: addressLine2,
+                city: city,
+                state: state,
+                postal_code: postalCode,
+                country: country,
+                external_customer_id: externalCustomerId,
+                crm_account_id_external: crmId,
+                industry: industry,
+                notes: notes,
                 reference_id: newRaid,
               })
               .select()
@@ -611,13 +652,13 @@ serve(async (req) => {
               continue;
             }
 
-            customerMap.set(normalizeString(accountName), newDebtor.id);
+            customerMap.set(normalizeString(companyName), newDebtor.id);
             if (newDebtor.reference_id) {
               customerRefMap.set(normalizeString(newDebtor.reference_id), newDebtor.id);
             }
             newCustomers++;
             newRecords++;
-            console.log(`Row ${i}: Created new account: ${accountName} with RAID: ${newRaid}`);
+            console.log(`Row ${i}: Created new account: ${companyName} with RAID: ${newRaid}`);
           }
         }
 
