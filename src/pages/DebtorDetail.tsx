@@ -15,8 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, Trash2, User } from "lucide-react";
+import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { ContactCard } from "@/components/ContactCard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RiskEngineCard } from "@/components/RiskEngineCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
@@ -520,56 +521,16 @@ const DebtorDetail = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               {contacts.length > 0 ? (
                 contacts.map((contact) => (
-                  <div key={contact.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{contact.name}</span>
-                        {contact.is_primary && (
-                          <Badge variant="secondary" className="text-xs">Primary</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground">Outreach</span>
-                          <Switch
-                            checked={contact.outreach_enabled}
-                            onCheckedChange={(checked) => handleToggleOutreach(contact.id, checked)}
-                          />
-                        </div>
-                        {!contact.is_primary && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => handleDeleteContact(contact.id, contact.is_primary)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    {contact.title && (
-                      <p className="text-sm text-muted-foreground">{contact.title}</p>
-                    )}
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      {contact.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          <span>{contact.email}</span>
-                        </div>
-                      )}
-                      {contact.phone && (
-                        <div className="flex items-center gap-1">
-                          <PhoneIcon className="h-3 w-3 text-muted-foreground" />
-                          <span>{contact.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <ContactCard
+                    key={contact.id}
+                    contact={contact}
+                    onToggleOutreach={handleToggleOutreach}
+                    onDelete={handleDeleteContact}
+                    onUpdate={fetchContacts}
+                  />
                 ))
               ) : (
                 <div className="space-y-4">
