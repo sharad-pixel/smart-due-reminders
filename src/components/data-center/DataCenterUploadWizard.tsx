@@ -310,6 +310,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
     },
   });
 
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingBatch, setProcessingBatch] = useState(0);
+  const [totalBatches, setTotalBatches] = useState(0);
+
   const processUpload = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -350,21 +354,70 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         }
       }
 
-      // Process data via edge function
-      const { data: result, error: processError } = await supabase.functions.invoke("data-center-process-upload", {
-        body: {
-          uploadId: upload.id,
-          rows: parsedData.rows,
-          mappings: columnMappings.filter(m => m.fieldKey).reduce((acc, m) => {
-            acc[m.fileColumn] = m.fieldKey!;
-            return acc;
-          }, {} as Record<string, string>),
-          fileType,
-        },
-      });
+      // Process data in client-side batches to avoid edge function timeout
+      const BATCH_SIZE = 100; // Send 100 rows at a time to avoid timeout
+      const rows = parsedData.rows;
+      const batches = Math.ceil(rows.length / BATCH_SIZE);
+      setTotalBatches(batches);
+      
+      const mappings = columnMappings.filter(m => m.fieldKey).reduce((acc, m) => {
+        acc[m.fileColumn] = m.fieldKey!;
+        return acc;
+      }, {} as Record<string, string>);
 
-      if (processError) throw processError;
-      return result;
+      let aggregatedResult = {
+        totalRows: rows.length,
+        processed: 0,
+        matched: 0,
+        needsReview: 0,
+        errors: 0,
+        newCustomers: 0,
+        existingCustomers: 0,
+        newRecords: 0,
+        fileType,
+        invoicesPaid: 0,
+        invoicesPartiallyPaid: 0,
+        draftsGenerated: 0,
+      };
+
+      for (let i = 0; i < batches; i++) {
+        const start = i * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, rows.length);
+        const batchRows = rows.slice(start, end);
+        
+        setProcessingBatch(i + 1);
+        setProcessingProgress(Math.round(((i + 1) / batches) * 100));
+
+        const { data: result, error: processError } = await supabase.functions.invoke("data-center-process-upload", {
+          body: {
+            uploadId: upload.id,
+            rows: batchRows,
+            mappings,
+            fileType,
+            batchIndex: i,
+            totalBatches: batches,
+            isLastBatch: i === batches - 1,
+          },
+        });
+
+        if (processError) throw processError;
+        
+        // Aggregate results from each batch
+        if (result) {
+          aggregatedResult.processed += result.processed || 0;
+          aggregatedResult.matched += result.matched || 0;
+          aggregatedResult.needsReview += result.needsReview || 0;
+          aggregatedResult.errors += result.errors || 0;
+          aggregatedResult.newCustomers += result.newCustomers || 0;
+          aggregatedResult.existingCustomers += result.existingCustomers || 0;
+          aggregatedResult.newRecords += result.newRecords || 0;
+          aggregatedResult.invoicesPaid += result.invoicesPaid || 0;
+          aggregatedResult.invoicesPartiallyPaid += result.invoicesPartiallyPaid || 0;
+          aggregatedResult.draftsGenerated += result.draftsGenerated || 0;
+        }
+      }
+
+      return aggregatedResult;
     },
     onSuccess: (result) => {
       setProcessResult(result);
@@ -448,6 +501,9 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
     setProcessResult(null);
     setDetectedType(null);
     setFileType(initialFileType);
+    setProcessingProgress(0);
+    setProcessingBatch(0);
+    setTotalBatches(0);
     onClose();
   };
 
@@ -527,11 +583,30 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
           )}
 
           {currentStep === 2 && parsedData && (
-            <DataCenterPreviewStep
-              parsedData={parsedData}
-              columnMappings={columnMappings}
-              fieldDefinitions={fieldDefinitions || []}
-            />
+            processUpload.isPending ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <div className="text-center">
+                  <h3 className="text-lg font-medium">Processing Data...</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Batch {processingBatch} of {totalBatches}
+                  </p>
+                  <div className="w-64 mt-4">
+                    <Progress value={processingProgress} className="h-2" />
+                    <p className="text-xs text-muted-foreground mt-1">{processingProgress}% complete</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Please wait while we process your {parsedData.rows.length} rows...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <DataCenterPreviewStep
+                parsedData={parsedData}
+                columnMappings={columnMappings}
+                fieldDefinitions={fieldDefinitions || []}
+              />
+            )
           )}
 
           {currentStep === 3 && (

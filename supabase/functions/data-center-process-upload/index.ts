@@ -11,6 +11,9 @@ interface ProcessRequest {
   rows: Record<string, any>[];
   mappings: Record<string, string>;
   fileType: "invoice_aging" | "payments" | "accounts";
+  batchIndex?: number;
+  totalBatches?: number;
+  isLastBatch?: boolean;
 }
 
 function parseDate(value: any): string | null {
@@ -69,10 +72,9 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Unauthorized");
 
-    const { uploadId, rows, mappings, fileType }: ProcessRequest = await req.json();
+    const { uploadId, rows, mappings, fileType, batchIndex = 0, totalBatches = 1, isLastBatch = true }: ProcessRequest = await req.json();
 
-    console.log(`Processing upload ${uploadId}: ${rows.length} rows, fileType: ${fileType}`);
-    console.log(`Mappings received:`, JSON.stringify(mappings));
+    console.log(`Processing upload ${uploadId}: batch ${batchIndex + 1}/${totalBatches}, ${rows.length} rows, fileType: ${fileType}`);
 
     // Get reverse mapping (field key -> file column)
     const reverseMap: Record<string, string> = {};
@@ -179,31 +181,33 @@ serve(async (req) => {
     let invoicesPartiallyPaid = 0;
     const createdInvoiceIds: string[] = [];
 
-    // Insert staging rows
-    const stagingRows = rows.map((row, index) => {
-      const normalized: Record<string, any> = {};
-      for (const [fileCol, fieldKey] of Object.entries(mappings)) {
-        normalized[fieldKey] = row[fileCol];
+    // Only insert staging rows on first batch to reduce overhead
+    if (batchIndex === 0) {
+      const stagingRows = rows.map((row, index) => {
+        const normalized: Record<string, any> = {};
+        for (const [fileCol, fieldKey] of Object.entries(mappings)) {
+          normalized[fieldKey] = row[fileCol];
+        }
+        return {
+          upload_id: uploadId,
+          row_index: index,
+          raw_json: row,
+          normalized_json: normalized,
+          match_status: "unmatched",
+        };
+      });
+
+      // Batch insert staging rows
+      const { error: stagingError } = await supabase
+        .from("data_center_staging_rows")
+        .insert(stagingRows);
+
+      if (stagingError) {
+        console.error("Staging error:", stagingError);
       }
-      return {
-        upload_id: uploadId,
-        row_index: index,
-        raw_json: row,
-        normalized_json: normalized,
-        match_status: "unmatched",
-      };
-    });
-
-    // Batch insert staging rows
-    const { error: stagingError } = await supabase
-      .from("data_center_staging_rows")
-      .insert(stagingRows);
-
-    if (stagingError) {
-      console.error("Staging error:", stagingError);
     }
 
-    // Process each row - use batch processing for all file types
+    // Process rows - client already batches, but we use internal batches for DB operations
     const BATCH_SIZE = 50;
     
     if (fileType === "invoice_aging") {
@@ -622,20 +626,22 @@ serve(async (req) => {
       }
     }
 
-    // Update upload status
-    const finalStatus = errors > 0 ? "needs_review" : "processed";
-    await supabase
-      .from("data_center_uploads")
-      .update({
-        status: finalStatus,
-        processed_count: processed,
-        matched_count: matched,
-        processed_at: new Date().toISOString(),
-      })
-      .eq("id", uploadId);
+    // Only update upload status on last batch
+    if (isLastBatch) {
+      const finalStatus = errors > 0 ? "needs_review" : "processed";
+      await supabase
+        .from("data_center_uploads")
+        .update({
+          status: finalStatus,
+          processed_count: processed,
+          matched_count: matched,
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", uploadId);
+    }
 
-    // Track invoice usage for each new invoice
-    if (fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
+    // Only track invoice usage on last batch to avoid duplicate tracking
+    if (isLastBatch && fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
       console.log(`Tracking usage for ${createdInvoiceIds.length} new invoices`);
       
       for (const invoiceId of createdInvoiceIds) {
@@ -649,11 +655,11 @@ serve(async (req) => {
       }
     }
 
-    // Trigger AI workflow assignment and draft generation for new invoices
+    // Skip AI workflow triggering until last batch to avoid duplicate drafts
     let draftsGenerated = 0;
     let workflowErrors: string[] = [];
     
-    if (fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
+    if (isLastBatch && fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
       console.log(`Triggering AI workflow for ${createdInvoiceIds.length} new invoices`);
       
       // Fetch the created invoices with their aging buckets
