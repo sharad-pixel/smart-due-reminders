@@ -32,16 +32,9 @@ interface Task {
 interface Debtor {
   id: string;
   name: string;
+  email: string;
   company_name: string;
   current_balance: number | null;
-}
-
-interface Contact {
-  id: string;
-  name: string;
-  email: string | null;
-  is_primary: boolean;
-  outreach_enabled: boolean;
 }
 
 interface AccountSummaryModalProps {
@@ -89,7 +82,6 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const [aiGenerated, setAiGenerated] = useState(false);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [intelligenceGeneratedAt, setIntelligenceGeneratedAt] = useState<string | null>(null);
-  const [primaryContact, setPrimaryContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -101,8 +93,8 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
     setLoading(true);
     setAiGenerated(false);
     try {
-      // Fetch open invoices, tasks, debtor's cached intelligence, and contacts in parallel
-      const [invoicesRes, tasksRes, debtorRes, contactsRes] = await Promise.all([
+      // Fetch open invoices, tasks, and debtor's cached intelligence in parallel
+      const [invoicesRes, tasksRes, debtorRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*")
@@ -119,13 +111,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
           .from("debtors")
           .select("intelligence_report, intelligence_report_generated_at")
           .eq("id", debtor.id)
-          .single(),
-        supabase
-          .from("debtor_contacts")
-          .select("id, name, email, is_primary, outreach_enabled")
-          .eq("debtor_id", debtor.id)
-          .eq("outreach_enabled", true)
-          .order("is_primary", { ascending: false })
+          .single()
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
@@ -133,14 +119,6 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       
       setInvoices(invoicesRes.data || []);
       setOpenTasks(tasksRes.data || []);
-      
-      // Set primary outreach-enabled contact
-      if (contactsRes.data && contactsRes.data.length > 0) {
-        const primary = contactsRes.data.find((c: Contact) => c.is_primary) || contactsRes.data[0];
-        setPrimaryContact(primary);
-      } else {
-        setPrimaryContact(null);
-      }
       
       // Load cached intelligence report if less than 24 hours old
       if (debtorRes.data?.intelligence_report && debtorRes.data?.intelligence_report_generated_at) {
@@ -252,28 +230,12 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       });
 
       if (error) throw error;
-      
-      // Check for error in response body
-      if (data?.error) {
-        if (data.error.includes("outreach-enabled contact")) {
-          toast.error("No outreach-enabled contact found. Please add a contact with email and enable outreach in the Contacts section.");
-        } else {
-          toast.error(data.error);
-        }
-        return;
-      }
 
       toast.success("AI outreach sent successfully");
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error sending outreach:", error);
-      // Parse error message from edge function response
-      const errorMessage = error?.message || "Failed to send outreach";
-      if (errorMessage.includes("outreach-enabled contact")) {
-        toast.error("No outreach-enabled contact found. Please add a contact with email and enable outreach in the Contacts section.");
-      } else {
-        toast.error(errorMessage);
-      }
+      toast.error(error.message || "Failed to send outreach");
     } finally {
       setSending(false);
     }
@@ -496,17 +458,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                 
                 <div>
                   <Label htmlFor="to">To</Label>
-                  <Input 
-                    id="to" 
-                    value={primaryContact?.email || "No outreach-enabled contact"} 
-                    disabled 
-                    className={`bg-muted ${!primaryContact?.email ? 'text-destructive' : ''}`} 
-                  />
-                  {!primaryContact?.email && (
-                    <p className="text-xs text-destructive mt-1">
-                      Please add an outreach-enabled contact with email in the Contacts section
-                    </p>
-                  )}
+                  <Input id="to" value={debtor.email} disabled className="bg-muted" />
                 </div>
 
                 <div>
