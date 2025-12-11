@@ -538,6 +538,54 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ assignment_email_sent_at: new Date().toISOString() })
       .eq("id", taskId);
 
+    // Create in-app notification for the assigned user
+    // First, find the actual user_id (if memberUserId is an account_users.id, we need the linked user_id)
+    let notifyUserId = memberUserId;
+    if (profile?.id) {
+      notifyUserId = profile.id;
+    } else {
+      // Try to get user_id from account_users
+      const { data: au } = await supabase
+        .from("account_users")
+        .select("user_id")
+        .eq("id", memberUserId)
+        .maybeSingle();
+      if (au?.user_id) {
+        notifyUserId = au.user_id;
+      }
+    }
+
+    // Get assigner name
+    const { data: assignerProfile } = await supabase
+      .from("profiles")
+      .select("name, email")
+      .eq("id", task.user_id)
+      .maybeSingle();
+    
+    const assignerName = assignerProfile?.name || assignerProfile?.email || "A team member";
+    const debtorName = task.debtors?.company_name || task.debtors?.name || "Unknown Account";
+
+    // Create notification
+    const { error: notifyError } = await supabase
+      .from("user_notifications")
+      .insert({
+        user_id: notifyUserId,
+        type: "task_assigned",
+        title: "Task Assigned to You",
+        message: `${assignerName} assigned you a ${task.priority} priority task: "${task.summary.substring(0, 50)}${task.summary.length > 50 ? "..." : ""}" for ${debtorName}`,
+        link: "/tasks",
+        source_type: "task",
+        source_id: taskId,
+        sender_id: task.user_id,
+        sender_name: assignerName,
+      });
+
+    if (notifyError) {
+      console.error("[SEND-TASK-ASSIGNMENT] Failed to create notification:", notifyError);
+    } else {
+      console.log("[SEND-TASK-ASSIGNMENT] In-app notification created for user:", notifyUserId);
+    }
+
     return new Response(
       JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
