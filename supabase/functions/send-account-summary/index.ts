@@ -504,11 +504,25 @@ Generate a JSON response with:
     }
 
     // If not generateOnly, proceed with sending the email
-    if (!debtor.email || debtor.email.trim() === "") {
-      throw new Error("Debtor does not have an email address configured. Please add an email address to send the outreach.");
+    // Get primary contact email from debtor_contacts (source of truth)
+    let contactEmail = "";
+    const { data: outreachContacts } = await supabase
+      .from("debtor_contacts")
+      .select("email, is_primary, outreach_enabled")
+      .eq("debtor_id", debtorId)
+      .eq("outreach_enabled", true)
+      .order("is_primary", { ascending: false });
+    
+    if (outreachContacts && outreachContacts.length > 0) {
+      const primaryContact = outreachContacts.find((c: any) => c.is_primary) || outreachContacts[0];
+      contactEmail = primaryContact?.email || "";
+    }
+    
+    if (!contactEmail) {
+      throw new Error("No outreach-enabled contact with email found. Please add a contact with email and enable outreach.");
     }
 
-    logStep("Sending outreach email", { to: debtor.email });
+    logStep("Sending outreach email", { to: contactEmail });
 
     // Determine from address
     const fromName = brandingSettings.from_name || brandingSettings.business_name || "Recouply.ai";
@@ -642,7 +656,7 @@ Generate a JSON response with:
 </body>
 </html>`.trim();
 
-    logStep(`Sending email via platform from ${fromEmail} to ${debtor.email}`);
+    logStep(`Sending email via platform from ${fromEmail} to ${contactEmail}`);
 
     // Send via platform send-email function
     const sendEmailResponse = await fetch(
@@ -654,7 +668,7 @@ Generate a JSON response with:
           "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
         },
         body: JSON.stringify({
-          to: debtor.email,
+          to: contactEmail,
           from: fromEmail,
           reply_to: replyToAddress,
           subject: subject,
@@ -716,7 +730,7 @@ Generate a JSON response with:
           channel: "email",
           subject: subject,
           message_body: message,
-          sent_to: debtor.email,
+          sent_to: contactEmail,
           sent_from: fromEmail,
           sent_at: new Date().toISOString(),
           status: "sent",
