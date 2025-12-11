@@ -37,7 +37,7 @@ export const AgingBucketBreakdown = ({ debtorId }: AgingBucketBreakdownProps) =>
     { key: "dpd_31_60", label: "31-60 Days Past Due", persona: personaConfig.james, total: data.dpd_31_60.total_amount },
     { key: "dpd_61_90", label: "61-90 Days Past Due", persona: personaConfig.katy, total: data.dpd_61_90.total_amount },
     { key: "dpd_91_120", label: "91-120 Days Past Due", persona: personaConfig.troy, total: data.dpd_91_120.total_amount },
-    { key: "dpd_121_150", label: "121-150 Days Past Due", persona: personaConfig.gotti, total: data.dpd_121_150.total_amount },
+    { key: "dpd_121_150", label: "121-150 Days Past Due", persona: personaConfig.jimmy, total: data.dpd_121_150.total_amount },
     { key: "dpd_150_plus", label: "150+ Days Past Due", persona: personaConfig.rocco, total: data.dpd_150_plus.total_amount },
   ];
 
