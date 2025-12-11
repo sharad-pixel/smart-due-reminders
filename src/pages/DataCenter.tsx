@@ -30,6 +30,7 @@ import { DataCenterUploadsTab } from "@/components/data-center/DataCenterUploads
 import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploadWizard";
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
 import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
+import * as XLSX from "xlsx";
 
 const DataCenter = () => {
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
@@ -67,6 +68,68 @@ const DataCenter = () => {
     }
     setSelectedFileType(fileType);
     setUploadWizardOpen(true);
+  };
+
+  const handleExportAccounts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      // Fetch all accounts for the user
+      const { data: accounts, error } = await supabase
+        .from("debtors")
+        .select("reference_id, company_name, name, email, phone, type, external_customer_id, crm_account_id_external, industry, address_line1, address_line2, city, state, postal_code, country")
+        .eq("user_id", user.id)
+        .order("company_name");
+
+      if (error) throw error;
+
+      if (!accounts || accounts.length === 0) {
+        toast.info("No accounts to export", {
+          description: "Create some accounts first before exporting."
+        });
+        return;
+      }
+
+      // Format data for export
+      const exportData = accounts.map(acc => ({
+        "Recouply Account ID (RAID)": acc.reference_id,
+        "Company Name": acc.company_name,
+        "Contact Name": acc.name,
+        "Contact Email": acc.email,
+        "Contact Phone": acc.phone || "",
+        "Account Type": acc.type || "",
+        "External Customer ID": acc.external_customer_id || "",
+        "CRM Account ID": acc.crm_account_id_external || "",
+        "Industry": acc.industry || "",
+        "Address Line 1": acc.address_line1 || "",
+        "Address Line 2": acc.address_line2 || "",
+        "City": acc.city || "",
+        "State": acc.state || "",
+        "Postal Code": acc.postal_code || "",
+        "Country": acc.country || ""
+      }));
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Accounts");
+
+      // Download file
+      XLSX.writeFile(wb, `recouply_accounts_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      toast.success("Accounts exported", {
+        description: `Exported ${accounts.length} accounts with Recouply Account IDs for invoice mapping.`
+      });
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast.error("Export failed", {
+        description: error.message || "Could not export accounts"
+      });
+    }
   };
 
   return (
@@ -149,6 +212,10 @@ const DataCenter = () => {
               <Button size="sm" variant="outline" onClick={() => handleStartUpload("payments")}>
                 <DollarSign className="h-4 w-4 mr-1" />
                 Payments
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleExportAccounts}>
+                <Download className="h-4 w-4 mr-1" />
+                Export Accounts
               </Button>
             </CardContent>
           </Card>
