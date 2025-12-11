@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateEmailSignature } from "../_shared/emailSignature.ts";
+import { getOutreachContacts } from "../_shared/contactUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -504,25 +505,15 @@ Generate a JSON response with:
     }
 
     // If not generateOnly, proceed with sending the email
-    // Get primary contact email from debtor_contacts (source of truth)
-    let contactEmail = "";
-    const { data: outreachContacts } = await supabase
-      .from("debtor_contacts")
-      .select("email, is_primary, outreach_enabled")
-      .eq("debtor_id", debtorId)
-      .eq("outreach_enabled", true)
-      .order("is_primary", { ascending: false });
+    // Get all outreach-enabled contacts with fallback to debtor record
+    const outreachContactsResult = await getOutreachContacts(supabase, debtorId, debtor);
+    const allEmails = outreachContactsResult.emails;
     
-    if (outreachContacts && outreachContacts.length > 0) {
-      const primaryContact = outreachContacts.find((c: any) => c.is_primary) || outreachContacts[0];
-      contactEmail = primaryContact?.email || "";
-    }
-    
-    if (!contactEmail) {
+    if (allEmails.length === 0) {
       throw new Error("No outreach-enabled contact with email found. Please add a contact with email and enable outreach.");
     }
 
-    logStep("Sending outreach email", { to: contactEmail });
+    logStep("Sending outreach email", { to: allEmails.join(', '), recipientCount: allEmails.length });
 
     // Determine from address
     const fromName = brandingSettings.from_name || brandingSettings.business_name || "Recouply.ai";
@@ -656,9 +647,9 @@ Generate a JSON response with:
 </body>
 </html>`.trim();
 
-    logStep(`Sending email via platform from ${fromEmail} to ${contactEmail}`);
+    logStep(`Sending email via platform from ${fromEmail} to ${allEmails.join(', ')}`);
 
-    // Send via platform send-email function
+    // Send to ALL outreach-enabled contacts
     const sendEmailResponse = await fetch(
       `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
       {
@@ -668,7 +659,7 @@ Generate a JSON response with:
           "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
         },
         body: JSON.stringify({
-          to: contactEmail,
+          to: allEmails, // Send to all outreach-enabled contacts
           from: fromEmail,
           reply_to: replyToAddress,
           subject: subject,
@@ -730,7 +721,7 @@ Generate a JSON response with:
           channel: "email",
           subject: subject,
           message_body: message,
-          sent_to: contactEmail,
+          sent_to: allEmails.join(', '),
           sent_from: fromEmail,
           sent_at: new Date().toISOString(),
           status: "sent",
