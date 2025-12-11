@@ -598,9 +598,8 @@ const Debtors = () => {
                             </div>
                           ))
                         ) : (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{debtor.email}</span>
+                          <div className="text-xs text-muted-foreground italic">
+                            No contacts added
                           </div>
                         )}
                       </div>
@@ -780,13 +779,8 @@ const Debtors = () => {
                                 </div>
                               ))
                             ) : (
-                              <div className="flex items-center gap-2 text-xs">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted text-muted-foreground">
-                                  <User className="h-3 w-3" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <span className="text-muted-foreground truncate block">{debtor.email}</span>
-                                </div>
+                              <div className="text-xs text-muted-foreground italic">
+                                No contacts added
                               </div>
                             )}
                           </div>

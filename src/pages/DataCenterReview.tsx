@@ -125,7 +125,7 @@ const DataCenterReview = () => {
 
       const { data, error } = await supabase
         .from("debtors")
-        .select("id, name, company_name, email")
+        .select("id, name, company_name, reference_id")
         .eq("user_id", user.id)
         .order("name", { ascending: true });
 
@@ -470,7 +470,7 @@ const DataCenterReview = () => {
                       {debtors?.map((debtor: any) => (
                         <SelectItem key={debtor.id} value={debtor.id}>
                           {debtor.name || debtor.company_name}
-                          {debtor.email && ` (${debtor.email})`}
+                          {debtor.reference_id && ` (${debtor.reference_id})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -571,8 +571,8 @@ const DataCenterReview = () => {
                               {(rawJson.amount_outstanding || rawJson.amount || rawJson.amount_original) && (
                                 <span>Amount: ${rawJson.amount_outstanding || rawJson.amount || rawJson.amount_original}</span>
                               )}
-                              {(matchedDebtor?.email || rawJson.email || rawJson.customer_email) && (
-                                <span>Email: {matchedDebtor?.email || rawJson.email || rawJson.customer_email}</span>
+                              {(rawJson.email || rawJson.customer_email) && (
+                                <span>Email: {rawJson.email || rawJson.customer_email}</span>
                               )}
                             </div>
                           </div>
@@ -619,8 +619,8 @@ const DataCenterReview = () => {
                             <LinkIcon className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">Matched to:</span>
                             <span className="text-sm">{matchedDebtor.name || matchedDebtor.company_name}</span>
-                            {matchedDebtor.email && (
-                              <span className="text-sm text-muted-foreground">({matchedDebtor.email})</span>
+                            {matchedDebtor.reference_id && (
+                              <span className="text-sm text-muted-foreground">({matchedDebtor.reference_id})</span>
                             )}
                           </div>
                         </div>
@@ -644,7 +644,7 @@ const DataCenterReview = () => {
                                 {debtors?.map((debtor: any) => (
                                   <SelectItem key={debtor.id} value={debtor.id}>
                                     {debtor.name || debtor.company_name}
-                                    {debtor.email && ` (${debtor.email})`}
+                                    {debtor.reference_id && ` (${debtor.reference_id})`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
