@@ -519,7 +519,10 @@ Generate a JSON response with:
     }
     
     if (!contactEmail) {
-      throw new Error("No outreach-enabled contact with email found. Please add a contact with email and enable outreach.");
+      return new Response(
+        JSON.stringify({ error: "No outreach-enabled contact with email found. Please add a contact with email and enable outreach." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     logStep("Sending outreach email", { to: contactEmail });

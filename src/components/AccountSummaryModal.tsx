@@ -230,12 +230,28 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       });
 
       if (error) throw error;
+      
+      // Check for error in response body
+      if (data?.error) {
+        if (data.error.includes("outreach-enabled contact")) {
+          toast.error("No outreach-enabled contact found. Please add a contact with email and enable outreach in the Contacts section.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
 
       toast.success("AI outreach sent successfully");
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error sending outreach:", error);
-      toast.error(error.message || "Failed to send outreach");
+      // Parse error message from edge function response
+      const errorMessage = error?.message || "Failed to send outreach";
+      if (errorMessage.includes("outreach-enabled contact")) {
+        toast.error("No outreach-enabled contact found. Please add a contact with email and enable outreach in the Contacts section.");
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setSending(false);
     }
