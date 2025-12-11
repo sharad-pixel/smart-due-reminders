@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import recouplyLogo from "@/assets/recouply-logo.png";
 import NicolasChat from "@/components/NicolasChat";
+import { Brain } from "lucide-react";
 
 
 interface MarketingLayoutProps {
@@ -12,7 +13,7 @@ interface MarketingLayoutProps {
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "AI-Powered CashOps Platform",
+  tagline: "Collection Intelligence Platform",
   emails: {
     collections: "collections@recouply.ai",
     support: "support@recouply.ai",
@@ -47,6 +48,13 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               className="text-foreground hover:text-primary transition-colors"
             >
               Features
+            </button>
+            <button 
+              onClick={() => navigate("/collection-intelligence")}
+              className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+            >
+              <Brain className="h-4 w-4" />
+              Collection Intelligence
             </button>
             <button 
               onClick={() => navigate("/pricing")}
@@ -113,6 +121,15 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-sm">
+                <li>
+                  <button 
+                    onClick={() => navigate("/collection-intelligence")}
+                    className="text-muted-foreground hover:text-primary flex items-center gap-1"
+                  >
+                    <Brain className="h-3 w-3" />
+                    Collection Intelligence
+                  </button>
+                </li>
                 <li>
                   <button 
                     onClick={() => navigate("/features")}

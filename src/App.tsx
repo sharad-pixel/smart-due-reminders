@@ -6,6 +6,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import { CookieConsentProvider } from "./components/CookieConsentProvider";
 import Home from "./pages/Home";
 import Features from "./pages/Features";
+import CollectionIntelligence from "./pages/CollectionIntelligence";
 import Pricing from "./pages/Pricing";
 import Solutions from "./pages/Solutions";
 import SmallBusinesses from "./pages/solutions/SmallBusinesses";
@@ -84,6 +85,7 @@ const App = () => (
           {/* Full marketing site accessible at /home */}
           <Route path="/home" element={<Home />} />
           <Route path="/features" element={<Features />} />
+          <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/personas" element={<Personas />} />
           <Route path="/ai-command-center" element={<AICommandCenter />} />
