@@ -233,7 +233,13 @@ const ComingSoon = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
-                    <Brain className="h-10 w-10 text-primary relative animate-brain-pulse" />
+                    {/* Brain with $ overlay */}
+                    <div className="relative">
+                      <Brain className="h-10 w-10 text-primary relative animate-brain-pulse" />
+                      <span className="absolute inset-0 flex items-center justify-center text-accent font-bold text-lg opacity-80 animate-pulse" style={{ textShadow: '0 0 8px hsl(var(--accent))' }}>
+                        $
+                      </span>
+                    </div>
                   </div>
                 </div>
                 {[0, 1, 2].map((i) => (
