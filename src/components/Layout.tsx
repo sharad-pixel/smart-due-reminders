@@ -40,7 +40,7 @@ import { UsageIndicator } from "@/components/UsageIndicator";
 import { SecurityAlert } from "@/components/SecurityAlert";
 import { DigestNotificationBanner } from "@/components/DigestNotificationBanner";
 import { logAuditEvent } from "@/lib/auditLog";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -237,9 +237,7 @@ const Layout = ({ children }: LayoutProps) => {
               </Button>
               
               <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
-                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                  Recouply.ai
-                </h1>
+                <RecouplyLogo size="md" />
               </Link>
               
               {/* Desktop Navigation */}

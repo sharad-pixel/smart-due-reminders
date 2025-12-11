@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RecouplyLogo } from "@/components/RecouplyLogo";
 
 const personas = Object.values(personaConfig);
 
@@ -249,15 +250,7 @@ const ComingSoon = () => {
             </div>
             
             <div className="space-y-2 opacity-0 animate-reveal-up" style={{ animationDelay: '0.2s' }}>
-              <h1 className="text-5xl font-bold flex items-center justify-center gap-2">
-                <span className="relative">
-                  <Brain className="h-10 w-10 text-primary animate-brain-pulse" />
-                  <span className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
-                </span>
-                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent animate-text-gradient">
-                  Recouply.ai
-                </span>
-              </h1>
+              <RecouplyLogo size="xl" animated className="justify-center text-5xl" />
               <p className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
                 Collection Intelligence

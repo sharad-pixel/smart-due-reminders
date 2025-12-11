@@ -22,7 +22,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
-import recouplyLogo from "@/assets/recouply-logo.png";
+import { RecouplyLogo } from "@/components/RecouplyLogo";
 
 interface ARPageData {
   branding: {
@@ -566,14 +566,7 @@ export default function PublicARPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <img 
-                  src={recouplyLogo} 
-                  alt="Recouply.ai" 
-                  className="h-6 w-auto"
-                />
-                <span className="font-semibold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Recouply.ai
-                </span>
+                <RecouplyLogo size="sm" />
               </a>
             </div>
           </div>

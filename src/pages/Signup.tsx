@@ -13,6 +13,7 @@ import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
 import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock, Mail, ArrowRight, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -409,10 +410,7 @@ const Signup = () => {
             <Lock className="w-4 h-4 mr-2" />
             Invite-Only Early Access
           </Badge>
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="text-foreground">Recouply</span>
-            <span className="text-primary">.ai</span>
-          </h1>
+          <RecouplyLogo size="xl" className="justify-center mb-2" />
           <p className="text-muted-foreground">AI-Powered CashOps Platform</p>
         </div>
 
