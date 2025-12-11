@@ -133,6 +133,46 @@ export const DataCenterFileUploadStep = ({
           </Button>
         </div>
         
+        {/* Data Type Documentation */}
+        {fileType === "accounts" && (
+          <Alert className="mt-2 bg-muted/50">
+            <Users className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-1">Accounts Upload Behavior:</p>
+              <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
+                <li><strong>Without RAID:</strong> Creates a new account and auto-generates a Recouply Account ID (RAID)</li>
+                <li><strong>With RAID:</strong> Updates the existing account record with the new data from your file</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {fileType === "invoice_aging" && (
+          <Alert className="mt-2 bg-muted/50">
+            <FileSpreadsheet className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-1">Invoices Upload Behavior:</p>
+              <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
+                <li><strong>RAID required:</strong> Recouply Account ID is required to match invoices to existing accounts</li>
+                <li>New invoices are created and assigned to the matched account</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {fileType === "payments" && (
+          <Alert className="mt-2 bg-muted/50">
+            <DollarSign className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-1">Payments Upload Behavior:</p>
+              <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
+                <li><strong>RAID required:</strong> Recouply Account ID is required to match payments to accounts</li>
+                <li><strong>Invoice ID required:</strong> Recouply Invoice ID (or Invoice Number) to reconcile payments</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Detection Alert */}
         {detectedType && detectedType.detected !== "unknown" && detectedType.detected !== fileType && (
           <Alert variant="destructive" className="mt-2">
