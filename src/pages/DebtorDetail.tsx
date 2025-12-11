@@ -573,33 +573,15 @@ const DebtorDetail = () => {
                 ))
               ) : (
                 <div className="space-y-4">
-                  <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{debtor.contact_name || "Primary Contact"}</span>
-                        <Badge variant="secondary" className="text-xs">Primary (Legacy)</Badge>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span>{debtor.email}</span>
-                      </div>
-                      {debtor.phone && (
-                        <div className="flex items-center gap-1">
-                          <PhoneIcon className="h-3 w-3 text-muted-foreground" />
-                          <span>{debtor.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-center py-2">
-                    <p className="text-sm text-muted-foreground mb-2">Add additional contacts for this account</p>
+                  <div className="border rounded-lg p-4 space-y-2 bg-muted/30 text-center">
+                    <User className="h-8 w-8 text-muted-foreground mx-auto" />
+                    <p className="text-sm text-muted-foreground">No contacts added yet</p>
+                    <p className="text-xs text-muted-foreground">Add a contact to enable outreach for this account</p>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => setIsAddContactOpen(true)}
+                      className="mt-2"
                     >
                       <UserPlus className="h-4 w-4 mr-1" />
                       Add Contact
