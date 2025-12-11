@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Plus, DollarSign, AlertTriangle, Users } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Plus, DollarSign, AlertTriangle, Users, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 
 interface DataCenterFileUploadStepProps {
   file: File | null;
@@ -25,6 +26,77 @@ interface DataCenterFileUploadStepProps {
   onFileTypeChange: (type: "invoice_aging" | "payments" | "accounts") => void;
   detectedType?: { detected: "invoice_aging" | "payments" | "accounts" | "unknown"; confidence: number; reasons: string[] } | null;
 }
+
+// Template columns matching Create New Account form exactly
+const ACCOUNTS_TEMPLATE_COLUMNS = [
+  "Company Name",
+  "Type",
+  "Contact Name",
+  "Contact Title",
+  "Contact Email",
+  "Contact Phone",
+  "Address Line 1",
+  "Address Line 2",
+  "City",
+  "State",
+  "Postal Code",
+  "Country",
+  "Account ID (Billing System)",
+  "CRM ID",
+  "Industry",
+  "Notes",
+  "Recouply Account ID (RAID)",
+];
+
+const INVOICES_TEMPLATE_COLUMNS = [
+  "Recouply Account ID (RAID)",
+  "Invoice Number",
+  "Invoice Date",
+  "Due Date",
+  "Original Amount",
+  "Outstanding Amount",
+  "Currency",
+  "Invoice Status",
+  "PO Number",
+  "Product Description",
+  "External Invoice ID",
+  "Notes",
+];
+
+const PAYMENTS_TEMPLATE_COLUMNS = [
+  "Recouply Account ID (RAID)",
+  "Recouply Invoice ID",
+  "Invoice Number",
+  "Payment Date",
+  "Payment Amount",
+  "Payment Reference",
+  "Payment Method",
+  "Payment Notes",
+];
+
+const downloadTemplate = (fileType: "invoice_aging" | "payments" | "accounts") => {
+  const columns = fileType === "accounts" 
+    ? ACCOUNTS_TEMPLATE_COLUMNS 
+    : fileType === "invoice_aging" 
+      ? INVOICES_TEMPLATE_COLUMNS 
+      : PAYMENTS_TEMPLATE_COLUMNS;
+
+  // Create workbook with headers only
+  const ws = XLSX.utils.aoa_to_sheet([columns]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template");
+
+  // Set column widths
+  ws["!cols"] = columns.map(() => ({ wch: 20 }));
+
+  const fileName = fileType === "accounts" 
+    ? "recouply_accounts_template.xlsx"
+    : fileType === "invoice_aging"
+      ? "recouply_invoices_template.xlsx"
+      : "recouply_payments_template.xlsx";
+
+  XLSX.writeFile(wb, fileName);
+};
 
 export const DataCenterFileUploadStep = ({
   file,
@@ -102,7 +174,18 @@ export const DataCenterFileUploadStep = ({
 
       {/* File Type Selection */}
       <div className="space-y-2">
-        <Label>Data Type</Label>
+        <div className="flex items-center justify-between">
+          <Label>Data Type</Label>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => downloadTemplate(fileType)}
+            className="text-xs"
+          >
+            <Download className="h-3 w-3 mr-1" />
+            Download Template
+          </Button>
+        </div>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -138,10 +221,13 @@ export const DataCenterFileUploadStep = ({
           <Alert className="mt-2 bg-muted/50">
             <Users className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-1">Accounts Upload Behavior:</p>
+              <p className="font-medium mb-1">Accounts Upload - Required Fields:</p>
               <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
-                <li><strong>Without RAID:</strong> Creates a new account and auto-generates a Recouply Account ID (RAID)</li>
-                <li><strong>With RAID:</strong> Updates the existing account record with the new data from your file</li>
+                <li><strong>Company Name *</strong> - Business/company name</li>
+                <li><strong>Contact Name *</strong> - Primary contact full name</li>
+                <li><strong>Contact Email *</strong> - Primary contact email</li>
+                <li><strong>Without RAID:</strong> Creates new account with auto-generated ID</li>
+                <li><strong>With RAID:</strong> Updates existing account record</li>
               </ul>
             </AlertDescription>
           </Alert>
