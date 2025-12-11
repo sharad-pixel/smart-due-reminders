@@ -1,6 +1,7 @@
 // supabase/functions/resend-inbound-tasks/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Webhook } from "https://esm.sh/svix@1.15.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -102,16 +103,52 @@ serve(async (req) => {
     });
   }
 
+  // Get raw body for signature verification
+  const rawBody = await req.text();
   let rawPayload: ResendWebhookPayload;
 
   try {
-    rawPayload = await req.json();
+    rawPayload = JSON.parse(rawBody);
   } catch (err) {
     console.error("Failed to parse JSON payload", err);
     return new Response(JSON.stringify({ error: "Invalid JSON payload" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  // Verify webhook signature if headers are present (Resend webhook events)
+  const svixId = req.headers.get("svix-id");
+  const svixTimestamp = req.headers.get("svix-timestamp");
+  const svixSignature = req.headers.get("svix-signature");
+  
+  if (svixId && svixTimestamp && svixSignature) {
+    const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("RESEND_WEBHOOK_SECRET not configured");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    try {
+      const wh = new Webhook(webhookSecret);
+      wh.verify(rawBody, {
+        "svix-id": svixId,
+        "svix-timestamp": svixTimestamp,
+        "svix-signature": svixSignature,
+      });
+      console.log("Webhook signature verified successfully");
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err);
+      return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  } else {
+    console.log("No svix headers present - accepting as direct inbound email routing");
   }
 
   console.log("Received webhook payload type:", rawPayload.type || "direct");
