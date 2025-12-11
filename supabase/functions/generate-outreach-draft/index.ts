@@ -50,6 +50,7 @@ serve(async (req) => {
       .select(`
         *,
         debtors (
+          id,
           name,
           email,
           company_name,
@@ -62,6 +63,24 @@ serve(async (req) => {
     if (invoiceError || !invoice) {
       console.error("Invoice fetch error:", invoiceError);
       throw new Error("Invoice not found");
+    }
+
+    // Fetch primary contact from debtor_contacts table (source of truth for contact names)
+    let contactName = invoice.debtors.name; // fallback
+    if (invoice.debtors.id) {
+      const { data: contacts } = await supabaseClient
+        .from('debtor_contacts')
+        .select('name, is_primary, outreach_enabled')
+        .eq('debtor_id', invoice.debtors.id)
+        .eq('outreach_enabled', true)
+        .order('is_primary', { ascending: false });
+      
+      if (contacts && contacts.length > 0) {
+        // Use primary contact or first outreach-enabled contact
+        const primaryContact = contacts.find((c: any) => c.is_primary);
+        contactName = primaryContact?.name || contacts[0]?.name || contactName;
+        console.log(`Using contact name from debtor_contacts: ${contactName}`);
+      }
     }
 
     // Fetch payments applied to this invoice
@@ -161,10 +180,10 @@ serve(async (req) => {
       taskContext = `\n\nCRITICAL: The customer has made the following requests or raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these items in your message. Handle them professionally based on ${agentPersona.name}'s ${agentPersona.tone_guidelines} tone.`;
     }
 
-    // Prepare prompt data
+    // Prepare prompt data - use contactName from debtor_contacts (source of truth)
     const promptData = {
       business_name: profile.business_name || "Our Business",
-      debtor_name: invoice.debtors.name,
+      debtor_name: contactName,
       debtor_company: invoice.debtors.company_name,
       invoice_number: invoice.invoice_number,
       amount: invoice.amount,
@@ -179,7 +198,7 @@ serve(async (req) => {
       task_context: taskContext,
     };
 
-    console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number, "outstanding:", amountOutstanding);
+    console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number, "contact:", contactName, "outstanding:", amountOutstanding);
 
     // Call OpenAI API
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
