@@ -856,12 +856,14 @@ const Profile = () => {
             profile={{
               id: profile.id,
               email: profile.email,
-              plan_type: profile.plan_type,
+              // Team members inherit parent's plan, not their own "free" plan
+              plan_type: isTeamMember ? (ownerPlanType as PlanType | null) : profile.plan_type,
               stripe_customer_id: profile.stripe_customer_id,
               stripe_subscription_id: profile.stripe_subscription_id,
             }}
             canManageBilling={canManageBilling}
             onRefresh={loadProfileData}
+            isTeamMember={isTeamMember}
           />
         )}
 
