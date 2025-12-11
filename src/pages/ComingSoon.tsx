@@ -255,7 +255,6 @@ const ComingSoon = () => {
               <p className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
                 Collection Intelligence
-                <span className="text-xs align-super">™</span>
               </p>
             </div>
           </div>
@@ -295,7 +294,7 @@ const ComingSoon = () => {
                 <Brain className="h-6 w-6 text-primary animate-brain-pulse" />
                 Meet Your AI Collection Team
               </h3>
-              <p className="text-sm text-muted-foreground">Powered by Collection Intelligence™</p>
+              <p className="text-sm text-muted-foreground">Powered by Collection Intelligence</p>
               
               {/* Animated Avatar Grid */}
               <div className="flex justify-center items-center gap-3 py-6">
