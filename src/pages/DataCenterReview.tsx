@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
@@ -18,7 +18,9 @@ import {
   X,
   Users,
   Trash2,
-  Archive
+  Archive,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const PAGE_SIZE = 25;
+
 const DataCenterReview = () => {
   const { uploadId } = useParams<{ uploadId: string }>();
   const navigate = useNavigate();
@@ -39,6 +43,7 @@ const DataCenterReview = () => {
   const [selectedMatches, setSelectedMatches] = useState<Record<string, string>>({});
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkMatchCustomerId, setBulkMatchCustomerId] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch upload details
   const { data: upload, isLoading: uploadLoading } = useQuery({
@@ -55,28 +60,50 @@ const DataCenterReview = () => {
     enabled: !!uploadId,
   });
 
-  // Fetch ALL staging rows (unfiltered) for accurate counts
-  const { data: allStagingRows, refetch: refetchAll } = useQuery({
-    queryKey: ["data-center-staging-rows-all", uploadId],
+  // Fetch stats counts only (not full rows)
+  const { data: stats, refetch: refetchStats } = useQuery({
+    queryKey: ["data-center-staging-stats", uploadId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get total count
+      const { count: totalCount } = await supabase
         .from("data_center_staging_rows")
-        .select("*")
+        .select("*", { count: "exact", head: true })
+        .eq("upload_id", uploadId);
+
+      // Get matched count
+      const { count: matchedCount } = await supabase
+        .from("data_center_staging_rows")
+        .select("*", { count: "exact", head: true })
         .eq("upload_id", uploadId)
-        .order("row_index", { ascending: true });
-      if (error) throw error;
-      return data;
+        .in("match_status", ["matched_customer", "matched_invoice", "matched_payment"]);
+
+      // Get pending count
+      const { count: pendingCount } = await supabase
+        .from("data_center_staging_rows")
+        .select("*", { count: "exact", head: true })
+        .eq("upload_id", uploadId)
+        .in("match_status", ["needs_review", "unmatched"]);
+
+      return {
+        totalRows: totalCount || 0,
+        matchedCount: matchedCount || 0,
+        pendingCount: pendingCount || 0,
+        processedCount: (totalCount || 0) - (pendingCount || 0),
+      };
     },
     enabled: !!uploadId,
   });
 
-  // Fetch staging rows with filter applied
-  const { data: stagingRows, isLoading: rowsLoading, refetch } = useQuery({
-    queryKey: ["data-center-staging-rows", uploadId, statusFilter],
+  // Fetch staging rows with pagination
+  const { data: stagingData, isLoading: rowsLoading, refetch } = useQuery({
+    queryKey: ["data-center-staging-rows", uploadId, statusFilter, currentPage, searchTerm],
     queryFn: async () => {
+      const from = (currentPage - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       let query = supabase
         .from("data_center_staging_rows")
-        .select("*")
+        .select("*", { count: "exact" })
         .eq("upload_id", uploadId)
         .order("row_index", { ascending: true });
 
@@ -86,37 +113,29 @@ const DataCenterReview = () => {
         query = query.eq("match_status", statusFilter);
       }
 
-      const { data, error } = await query;
+      // Apply pagination
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data;
+      
+      return { rows: data || [], totalCount: count || 0 };
     },
     enabled: !!uploadId,
   });
 
-  // Calculate actual stats from staging rows
-  const actualStats = {
-    totalRows: allStagingRows?.length || 0,
-    matchedCount: allStagingRows?.filter((r: any) => 
-      r.match_status === "matched_customer" || 
-      r.match_status === "matched_invoice" || 
-      r.match_status === "matched_payment"
-    ).length || 0,
-    pendingCount: allStagingRows?.filter((r: any) => 
-      r.match_status === "needs_review" || r.match_status === "unmatched"
-    ).length || 0,
-    processedCount: allStagingRows?.filter((r: any) => 
-      r.match_status !== "needs_review" && r.match_status !== "unmatched"
-    ).length || 0,
-  };
+  const stagingRows = stagingData?.rows || [];
+  const totalFilteredCount = stagingData?.totalCount || 0;
+  const totalPages = Math.ceil(totalFilteredCount / PAGE_SIZE);
 
   // Helper to refetch all data
   const refetchAllData = () => {
     refetch();
-    refetchAll();
+    refetchStats();
     queryClient.invalidateQueries({ queryKey: ["data-center-upload", uploadId] });
   };
 
-  // Fetch debtors for manual matching
+  // Fetch debtors for manual matching (limited fields)
   const { data: debtors } = useQuery({
     queryKey: ["debtors-for-matching"],
     queryFn: async () => {
@@ -127,7 +146,8 @@ const DataCenterReview = () => {
         .from("debtors")
         .select("id, name, company_name, email")
         .eq("user_id", user.id)
-        .order("name", { ascending: true });
+        .order("name", { ascending: true })
+        .limit(500);
 
       if (error) throw error;
       return data;
@@ -235,7 +255,6 @@ const DataCenterReview = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Create a new debtor
       const { data: newDebtor, error: debtorError } = await supabase
         .from("debtors")
         .insert({
@@ -251,7 +270,6 @@ const DataCenterReview = () => {
 
       if (debtorError) throw debtorError;
 
-      // Update staging row
       const { error: updateError } = await supabase
         .from("data_center_staging_rows")
         .update({
@@ -299,10 +317,12 @@ const DataCenterReview = () => {
     },
   });
 
-  // Get pending rows for selection
-  const pendingRows = stagingRows?.filter((r: any) => 
-    r.match_status === "needs_review" || r.match_status === "unmatched"
-  ) || [];
+  // Get pending rows on current page for selection
+  const pendingRowsOnPage = useMemo(() => 
+    stagingRows.filter((r: any) => 
+      r.match_status === "needs_review" || r.match_status === "unmatched"
+    ), [stagingRows]
+  );
 
   const toggleRowSelection = (rowId: string) => {
     setSelectedRows(prev => {
@@ -316,24 +336,43 @@ const DataCenterReview = () => {
     });
   };
 
-  const toggleAllPending = () => {
-    if (selectedRows.size === pendingRows.length) {
-      setSelectedRows(new Set());
+  const toggleAllOnPage = () => {
+    const allOnPageSelected = pendingRowsOnPage.every((r: any) => selectedRows.has(r.id));
+    if (allOnPageSelected) {
+      setSelectedRows(prev => {
+        const newSet = new Set(prev);
+        pendingRowsOnPage.forEach((r: any) => newSet.delete(r.id));
+        return newSet;
+      });
     } else {
-      setSelectedRows(new Set(pendingRows.map((r: any) => r.id)));
+      setSelectedRows(prev => {
+        const newSet = new Set(prev);
+        pendingRowsOnPage.forEach((r: any) => newSet.add(r.id));
+        return newSet;
+      });
     }
   };
 
-  const filteredRows = stagingRows?.filter((row: any) => {
-    if (!searchTerm) return true;
-    const rawJson = row.raw_json || {};
+  // Filter rows by search term (client-side on current page only)
+  const filteredRows = useMemo(() => {
+    if (!searchTerm) return stagingRows;
     const searchLower = searchTerm.toLowerCase();
-    return (
-      (rawJson.customer_name || "").toLowerCase().includes(searchLower) ||
-      (rawJson.company_name || "").toLowerCase().includes(searchLower) ||
-      (rawJson.invoice_number || "").toLowerCase().includes(searchLower)
-    );
-  });
+    return stagingRows.filter((row: any) => {
+      const rawJson = row.raw_json || {};
+      return (
+        (rawJson.customer_name || "").toLowerCase().includes(searchLower) ||
+        (rawJson.company_name || "").toLowerCase().includes(searchLower) ||
+        (rawJson.invoice_number || "").toLowerCase().includes(searchLower)
+      );
+    });
+  }, [stagingRows, searchTerm]);
+
+  // Create a map for quick debtor lookup
+  const debtorMap = useMemo(() => {
+    const map = new Map();
+    debtors?.forEach((d: any) => map.set(d.id, d));
+    return map;
+  }, [debtors]);
 
   const isLoading = uploadLoading || rowsLoading;
 
@@ -354,6 +393,13 @@ const DataCenterReview = () => {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  // Reset to page 1 when filter changes
+  const handleFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+    setSelectedRows(new Set());
   };
 
   return (
@@ -392,25 +438,25 @@ const DataCenterReview = () => {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="pt-4 text-center">
-              <div className="text-2xl font-bold">{actualStats.totalRows}</div>
+              <div className="text-2xl font-bold">{stats?.totalRows || 0}</div>
               <p className="text-sm text-muted-foreground">Total Rows</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{actualStats.matchedCount}</div>
+              <div className="text-2xl font-bold text-green-600">{stats?.matchedCount || 0}</div>
               <p className="text-sm text-muted-foreground">Matched</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 text-center">
-              <div className="text-2xl font-bold text-amber-600">{actualStats.pendingCount}</div>
+              <div className="text-2xl font-bold text-amber-600">{stats?.pendingCount || 0}</div>
               <p className="text-sm text-muted-foreground">Pending Review</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{actualStats.processedCount}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats?.processedCount || 0}</div>
               <p className="text-sm text-muted-foreground">Processed</p>
             </CardContent>
           </Card>
@@ -422,7 +468,9 @@ const DataCenterReview = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-lg">Staging Rows</CardTitle>
-                <CardDescription>Review and match records to customers</CardDescription>
+                <CardDescription>
+                  Showing {filteredRows.length} of {totalFilteredCount} records (Page {currentPage} of {totalPages || 1})
+                </CardDescription>
               </div>
               <div className="flex gap-3">
                 <div className="relative">
@@ -434,7 +482,7 @@ const DataCenterReview = () => {
                     className="pl-9 w-[200px]"
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleFilterChange}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -467,7 +515,7 @@ const DataCenterReview = () => {
                       <SelectValue placeholder="Select customer to match all..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {debtors?.map((debtor: any) => (
+                      {debtors?.slice(0, 100).map((debtor: any) => (
                         <SelectItem key={debtor.id} value={debtor.id}>
                           {debtor.name || debtor.company_name}
                           {debtor.email && ` (${debtor.email})`}
@@ -509,16 +557,16 @@ const DataCenterReview = () => {
               </div>
             )}
 
-            {/* Select All for Pending */}
-            {pendingRows.length > 0 && (
+            {/* Select All for Pending on Page */}
+            {pendingRowsOnPage.length > 0 && (
               <div className="mb-4 flex items-center gap-2">
                 <Checkbox
                   id="select-all"
-                  checked={selectedRows.size === pendingRows.length && pendingRows.length > 0}
-                  onCheckedChange={toggleAllPending}
+                  checked={pendingRowsOnPage.length > 0 && pendingRowsOnPage.every((r: any) => selectedRows.has(r.id))}
+                  onCheckedChange={toggleAllOnPage}
                 />
                 <Label htmlFor="select-all" className="text-sm cursor-pointer">
-                  Select all pending ({pendingRows.length})
+                  Select all on this page ({pendingRowsOnPage.length})
                 </Label>
               </div>
             )}
@@ -531,7 +579,7 @@ const DataCenterReview = () => {
               <div className="space-y-4">
                 {filteredRows.map((row: any) => {
                   const rawJson = row.raw_json || {};
-                  const matchedDebtor = debtors?.find((d: any) => d.id === row.matched_customer_id);
+                  const matchedDebtor = debtorMap.get(row.matched_customer_id);
                   const isPending = row.match_status === "needs_review" || row.match_status === "unmatched";
 
                   return (
@@ -579,7 +627,7 @@ const DataCenterReview = () => {
                         </div>
 
                         <div className="flex gap-2">
-                          {(row.match_status === "needs_review" || row.match_status === "unmatched") && (
+                          {isPending && (
                             <>
                               <Button
                                 size="sm"
@@ -627,7 +675,7 @@ const DataCenterReview = () => {
                       )}
 
                       {/* Manual Match Selector */}
-                      {(row.match_status === "needs_review" || row.match_status === "unmatched") && (
+                      {isPending && (
                         <div className="flex items-end gap-3">
                           <div className="flex-1">
                             <Label className="text-sm">Match to existing customer</Label>
@@ -641,7 +689,7 @@ const DataCenterReview = () => {
                                 <SelectValue placeholder="Select a customer..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {debtors?.map((debtor: any) => (
+                                {debtors?.slice(0, 100).map((debtor: any) => (
                                   <SelectItem key={debtor.id} value={debtor.id}>
                                     {debtor.name || debtor.company_name}
                                     {debtor.email && ` (${debtor.email})`}
@@ -684,6 +732,35 @@ const DataCenterReview = () => {
                     </div>
                   );
                 })}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
