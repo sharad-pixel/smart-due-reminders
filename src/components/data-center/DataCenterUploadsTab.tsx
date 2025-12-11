@@ -7,6 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -19,7 +29,8 @@ import {
   RefreshCw,
   Archive,
   RotateCcw,
-  Users
+  Users,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, addHours, addDays, differenceInHours, differenceInDays, isPast } from "date-fns";
@@ -84,6 +95,8 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [uploadToDelete, setUploadToDelete] = useState<{ id: string; fileName: string } | null>(null);
   
   const { data: uploads, isLoading, refetch } = useQuery({
     queryKey: ["data-center-uploads", showArchived, statusFilter, fileTypeFilter],
@@ -155,6 +168,41 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
       toast.error("Failed to restore upload");
     },
   });
+
+  const deleteUpload = useMutation({
+    mutationFn: async (uploadId: string) => {
+      // First delete all staging rows associated with this upload
+      const { error: stagingError } = await supabase
+        .from("data_center_staging_rows")
+        .delete()
+        .eq("upload_id", uploadId);
+      
+      if (stagingError) throw stagingError;
+
+      // Then delete the upload record
+      const { error: uploadError } = await supabase
+        .from("data_center_uploads")
+        .delete()
+        .eq("id", uploadId);
+      
+      if (uploadError) throw uploadError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
+      queryClient.invalidateQueries({ queryKey: ["data-center-stats"] });
+      toast.success("Upload and associated records deleted permanently");
+      setDeleteDialogOpen(false);
+      setUploadToDelete(null);
+    },
+    onError: () => {
+      toast.error("Failed to delete upload");
+    },
+  });
+
+  const handleDeleteClick = (upload: { id: string; file_name: string }) => {
+    setUploadToDelete({ id: upload.id, fileName: upload.file_name });
+    setDeleteDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -333,6 +381,16 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
                         <Archive className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     )}
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleDeleteClick(upload)}
+                      disabled={deleteUpload.isPending}
+                      title="Delete upload permanently"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               );
@@ -360,6 +418,35 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
           </div>
         )}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Upload Permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{uploadToDelete?.fileName}</strong> and all its associated staging rows. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUploadToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => uploadToDelete && deleteUpload.mutate(uploadToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteUpload.isPending}
+            >
+              {deleteUpload.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Permanently"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
