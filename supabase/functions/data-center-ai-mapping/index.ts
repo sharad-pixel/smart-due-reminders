@@ -18,7 +18,7 @@ const FIELD_DEFINITIONS = {
     { key: "account_type", label: "Type", aliases: ["type", "account type", "customer type", "business type", "b2b", "b2c"] },
     { key: "contact_name", label: "Contact Name", aliases: ["contact", "contact name", "primary contact", "contact person", "full name", "name"] },
     { key: "contact_title", label: "Contact Title", aliases: ["title", "contact title", "job title", "position", "role"] },
-    { key: "contact_email", label: "Contact Email", aliases: ["email", "contact email", "primary email", "email address"] },
+    { key: "contact_email", label: "Contact Email", aliases: ["email", "contact email", "customer email", "primary email", "email address"] },
     { key: "contact_phone", label: "Contact Phone", aliases: ["phone", "contact phone", "telephone", "phone number", "mobile"] },
     { key: "address_line1", label: "Address Line 1", aliases: ["address", "address 1", "address line 1", "street", "street address"] },
     { key: "address_line2", label: "Address Line 2", aliases: ["address 2", "address line 2", "apt", "suite", "unit"] },
