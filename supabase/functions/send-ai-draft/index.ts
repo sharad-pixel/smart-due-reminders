@@ -61,6 +61,13 @@ serve(async (req) => {
       }
     );
 
+    // Service role client for operations that need to bypass RLS (team member updates)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
     // Get authenticated user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) throw new Error("Not authenticated");
@@ -246,14 +253,14 @@ serve(async (req) => {
       },
     });
 
-    // Update invoice last_contact_date
-    await supabaseClient
+    // Update invoice last_contact_date (use admin client for team member access)
+    await supabaseAdmin
       .from("invoices")
       .update({ last_contact_date: new Date().toISOString().split('T')[0] })
       .eq("id", invoice.id);
 
-    // Update draft status to sent
-    await supabaseClient
+    // Update draft status to sent (use admin client for team member access)
+    await supabaseAdmin
       .from("ai_drafts")
       .update({ 
         status: "sent",
