@@ -76,6 +76,24 @@ serve(async (req) => {
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
+    // Fetch primary contact from debtor_contacts (source of truth)
+    let contactEmail = "";
+    let contactPhone = "";
+    if (debtor?.id) {
+      const { data: contacts } = await supabaseClient
+        .from("debtor_contacts")
+        .select("email, phone, is_primary, outreach_enabled")
+        .eq("debtor_id", debtor.id)
+        .eq("outreach_enabled", true)
+        .order("is_primary", { ascending: false });
+      
+      if (contacts && contacts.length > 0) {
+        const primaryContact = contacts.find((c: any) => c.is_primary) || contacts[0];
+        contactEmail = primaryContact?.email || "";
+        contactPhone = primaryContact?.phone || "";
+      }
+    }
+
     // Get effective account ID (for team member support)
     const { data: effectiveAccountId } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
     const brandingOwnerId = effectiveAccountId || user.id;
@@ -95,10 +113,14 @@ serve(async (req) => {
 
     // Send based on channel
     if (draft.channel === "email") {
+      if (!contactEmail) {
+        throw new Error("No email found for this account. Please add a contact with email and enable outreach.");
+      }
+      
       // Use platform email - reply-to is based on invoice
       const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
       
-      console.log(`Sending email via platform from ${fromEmail} to ${debtor.email} with reply-to: ${replyToAddress}`);
+      console.log(`Sending email via platform from ${fromEmail} to ${contactEmail} with reply-to: ${replyToAddress}`);
 
       // Format message body with line breaks
       const formattedBody = draft.message_body.replace(/\n/g, "<br>");
@@ -124,7 +146,7 @@ serve(async (req) => {
             "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
           },
           body: JSON.stringify({
-            to: debtor.email,
+            to: contactEmail,
             from: fromEmail,
             reply_to: replyToAddress,
             subject: draft.subject || "Payment Reminder",
@@ -159,8 +181,8 @@ serve(async (req) => {
         throw new Error("Twilio credentials not configured. Please configure in Settings.");
       }
 
-      if (!debtor.phone) {
-        throw new Error("Debtor phone number not available");
+      if (!contactPhone) {
+        throw new Error("No phone number found for this account. Please add a contact with phone and enable outreach.");
       }
 
       // Decrypt Twilio credentials
@@ -187,7 +209,7 @@ serve(async (req) => {
               "Content-Type": "application/x-www-form-urlencoded",
             },
             body: new URLSearchParams({
-              To: debtor.phone,
+              To: contactPhone,
               From: twilioProfile.twilio_from_number,
               Body: draft.message_body,
             }),
@@ -214,7 +236,7 @@ serve(async (req) => {
       channel: draft.channel,
       subject: draft.subject,
       message_body: draft.message_body,
-      sent_to: draft.channel === "email" ? debtor.email : debtor.phone,
+      sent_to: draft.channel === "email" ? contactEmail : contactPhone,
       sent_from: sentFrom,
       status: "sent",
       sent_at: new Date().toISOString(),

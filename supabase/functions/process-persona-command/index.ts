@@ -283,16 +283,27 @@ serve(async (req) => {
       }
     }
     
-    // If still no debtor, try to find by sender email
+    // If still no debtor, try to find by sender email in debtor_contacts
     if (!debtor && senderEmail) {
-      const { data: debtorByEmail } = await supabaseAdmin
-        .from('debtors')
-        .select('*')
+      // Search debtor_contacts for matching email
+      const { data: contactMatch } = await supabaseAdmin
+        .from('debtor_contacts')
+        .select('debtor_id')
         .eq('user_id', user.id)
-        .eq('email', senderEmail)
+        .ilike('email', senderEmail)
+        .limit(1)
         .single();
       
-      debtor = debtorByEmail;
+      if (contactMatch?.debtor_id) {
+        const { data: debtorByContact } = await supabaseAdmin
+          .from('debtors')
+          .select('*')
+          .eq('id', contactMatch.debtor_id)
+          .eq('user_id', user.id)
+          .single();
+        
+        debtor = debtorByContact;
+      }
       
       if (debtor) {
         // Try to get the most recent open invoice for this debtor
@@ -315,6 +326,22 @@ serve(async (req) => {
       }
     }
     
+    // Get contact email from debtor_contacts for prompt context
+    let contactEmail = senderEmail || 'Unknown';
+    if (debtor?.id) {
+      const { data: contacts } = await supabaseAdmin
+        .from('debtor_contacts')
+        .select('email, is_primary')
+        .eq('debtor_id', debtor.id)
+        .eq('outreach_enabled', true)
+        .order('is_primary', { ascending: false });
+      
+      if (contacts && contacts.length > 0) {
+        const primaryContact = contacts.find((c: any) => c.is_primary) || contacts[0];
+        contactEmail = primaryContact?.email || contactEmail;
+      }
+    }
+    
     // Resolve persona (default to Sam for general responses)
     const persona = resolvePersona(daysPastDue, parsed.personaName);
     
@@ -333,13 +360,13 @@ Amount: $${invoice.amount}
 Due Date: ${invoice.due_date}
 Days Past Due: ${daysPastDue}
 Customer: ${debtor?.company_name || debtor?.name || 'Customer'}
-Email: ${debtor?.email || senderEmail || 'Unknown'}
+Email: ${contactEmail}
 Action requested: ${parsed.action}`;
     } else if (debtor) {
       userPrompt = `Generate a ${parsed.channel} response for a customer inquiry:
 
 Customer: ${debtor.company_name || debtor.name}
-Email: ${debtor.email}
+Email: ${contactEmail}
 Total Outstanding Balance: $${debtor.total_open_balance || 0}
 Open Invoices: ${debtor.open_invoices_count || 0}
 
