@@ -76,7 +76,7 @@ serve(async (req) => {
     const invoice = draft.invoices;
     const debtor = invoice.debtors;
 
-    // Fetch primary contact from debtor_contacts (source of truth)
+    // Fetch primary contact from debtor_contacts (source of truth), fallback to debtor record
     let contactEmail = "";
     let contactPhone = "";
     if (debtor?.id) {
@@ -91,6 +91,16 @@ serve(async (req) => {
         const primaryContact = contacts.find((c: any) => c.is_primary) || contacts[0];
         contactEmail = primaryContact?.email || "";
         contactPhone = primaryContact?.phone || "";
+      }
+      
+      // Fallback to debtor record email/phone if no contacts found
+      if (!contactEmail && debtor.email) {
+        contactEmail = debtor.email;
+        console.log(`Using fallback email from debtor record: ${contactEmail}`);
+      }
+      if (!contactPhone && debtor.phone) {
+        contactPhone = debtor.phone;
+        console.log(`Using fallback phone from debtor record: ${contactPhone}`);
       }
     }
 
