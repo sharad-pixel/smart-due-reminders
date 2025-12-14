@@ -599,6 +599,12 @@ Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SM
             continue;
           }
 
+          // Calculate recommended send date based on due date + step day_offset
+          // If already past the step's trigger date, use today
+          const stepTriggerDate = new Date(dueDate);
+          stepTriggerDate.setDate(stepTriggerDate.getDate() + step.day_offset);
+          const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
+
           // Insert draft
           const { error: draftError } = await supabase
             .from('ai_drafts')
@@ -613,7 +619,7 @@ Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SM
               step_number: step.step_order,
               days_past_due: daysPastDue,
               status: 'pending_approval',
-              recommended_send_date: new Date().toISOString().split('T')[0],
+              recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
             });
 
           if (draftError) {

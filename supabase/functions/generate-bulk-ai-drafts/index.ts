@@ -282,6 +282,13 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
         const subjectPrompt = workflowStep?.subject_template || 
           `Invoice ${invoice.invoice_number} - ${daysPastDue} Days Past Due`;
 
+        // Calculate recommended send date based on due date + step day_offset
+        // If already past the step's trigger date, use today
+        const stepDayOffset = workflowStep?.day_offset || 0;
+        const stepTriggerDate = new Date(dueDate);
+        stepTriggerDate.setDate(stepTriggerDate.getDate() + stepDayOffset);
+        const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
+
         // Create draft in database
         const { data: draft, error: draftError } = await supabaseClient
           .from('ai_drafts')
@@ -294,7 +301,8 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
             subject: subjectPrompt,
             message_body: generatedContent,
             status: 'pending_approval',
-            recommended_send_date: new Date().toISOString(),
+            recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
+            days_past_due: daysPastDue,
           })
           .select()
           .single();
