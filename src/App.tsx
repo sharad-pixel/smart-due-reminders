@@ -55,6 +55,7 @@ import ARAging from "./pages/ARAging";
 import DataCenter from "./pages/DataCenter";
 import DataCenterReview from "./pages/DataCenterReview";
 import DailyDigest from "./pages/DailyDigest";
+import Outreach from "./pages/Outreach";
 import About from "./pages/About";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
@@ -132,6 +133,7 @@ const App = () => (
           <Route path="/data-center" element={<DataCenter />} />
           <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
           <Route path="/daily-digest" element={<DailyDigest />} />
+          <Route path="/outreach" element={<Outreach />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/user-management" element={<AdminUserManagement />} />
           <Route path="/admin/activity" element={<AdminActivityLogs />} />

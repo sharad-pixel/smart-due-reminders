@@ -212,6 +212,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const aiToolsItems = [
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
+    { path: "/outreach", label: "Outreach", icon: Mail },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
