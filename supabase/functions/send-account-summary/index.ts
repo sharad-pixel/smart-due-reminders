@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateEmailSignature } from "../_shared/emailSignature.ts";
+import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 
 const corsHeaders = {
@@ -515,9 +515,8 @@ Generate a JSON response with:
 
     logStep("Sending outreach email", { to: allEmails.join(', '), recipientCount: allEmails.length });
 
-    // Determine from address
-    const fromName = brandingSettings.from_name || brandingSettings.business_name || "Recouply.ai";
-    const fromEmail = `${fromName} <notifications@send.inbound.services.recouply.ai>`;
+    // Generate From address using company branding with Recouply.ai fallback
+    const fromEmail = getEmailFromAddress(brandingSettings);
     
     // Use platform reply-to address based on debtor for inbound routing
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
@@ -583,16 +582,7 @@ Generate a JSON response with:
       `;
     }
 
-    // Generate signature with payment link
-    const signature = generateEmailSignature(
-      brandingSettings,
-      {
-        paymentUrl: paymentUrl,
-        amount: totalAmount,
-      }
-    );
-
-    // Build email content body
+    // Build email content body with message, invoice table, and links
     const emailContent = `
       <div style="white-space: pre-wrap; line-height: 1.6; color: #374151;">
         ${(message || "").replace(/\n/g, '<br>')}
@@ -601,53 +591,17 @@ Generate a JSON response with:
       ${linksHtml}
     `;
 
-    // Build full email HTML with branding wrapper
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; line-height: 1.6;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
-    <tr>
-      <td style="padding: 32px 20px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="700" style="margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-          <!-- Header with branding -->
-          <tr>
-            <td style="padding: 24px 32px; background: linear-gradient(135deg, ${primaryColor} 0%, #2d5a87 100%); border-radius: 12px 12px 0 0;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td>
-                    ${brandingSettings.logo_url 
-                      ? `<img src="${brandingSettings.logo_url}" alt="${brandingSettings.business_name}" style="max-height: 48px; max-width: 180px; height: auto;" />`
-                      : `<span style="color: #ffffff; font-size: 20px; font-weight: 700;">${brandingSettings.business_name || 'Account Outreach'}</span>`
-                    }
-                  </td>
-                  <td style="text-align: right;">
-                    <span style="color: rgba(255,255,255,0.9); font-size: 14px;">AI-Powered Outreach</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- Main Content -->
-          <tr>
-            <td style="padding: 32px; color: #1e293b; font-size: 15px;">
-              ${emailContent}
-              ${signature}
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`.trim();
+    // Generate fully branded email HTML using shared template (uses Recouply.ai fallback)
+    const emailHtml = generateBrandedEmail(
+      emailContent,
+      brandingSettings,
+      {
+        paymentUrl: paymentUrl,
+        amount: totalAmount,
+      }
+    );
 
-    logStep(`Sending email via platform from ${fromEmail} to ${allEmails.join(', ')}`);
+    logStep(`Sending branded email via platform from ${fromEmail} to ${allEmails.join(', ')}`);
 
     // Send to ALL outreach-enabled contacts
     const sendEmailResponse = await fetch(
@@ -694,9 +648,10 @@ Generate a JSON response with:
         reply_to: replyToAddress,
         platform_send: true,
         branding_applied: !!branding,
-        from_name: fromName,
+        from_name: brandingSettings.business_name || 'Recouply.ai',
         payment_url: paymentUrl || null,
         ai_generated: true,
+        branded: true,
       },
     }).select().single();
 
