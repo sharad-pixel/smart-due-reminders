@@ -65,6 +65,7 @@ interface UserProfile {
   name: string | null;
   email: string | null;
   plan_type: PlanType | null;
+  subscription_status: string | null;
   plan_id: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
@@ -858,6 +859,7 @@ const Profile = () => {
               email: profile.email,
               // Team members inherit parent's plan, not their own "free" plan
               plan_type: isTeamMember ? (ownerPlanType as PlanType | null) : profile.plan_type,
+              subscription_status: isTeamMember ? (ownerSubscriptionStatus || null) : profile.subscription_status,
               stripe_customer_id: profile.stripe_customer_id,
               stripe_subscription_id: profile.stripe_subscription_id,
             }}

@@ -32,10 +32,14 @@ const logStep = (step: string, details?: any) => {
 // New pricing: Starter $199, Growth $499, Professional $799
 // ============================================================================
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  // New monthly prices (December 2024)
-  'price_1SbvygBqszPdRiQvnV7E6rMr': 'starter',      // $199/month
-  'price_1SbvzEBqszPdRiQv5C0Vj5JJ': 'growth',       // $499/month
-  'price_1SbvzJBqszPdRiQvGtEB1XQx': 'professional', // $799/month
+  // Current monthly prices (December 2024)
+  'price_1ScbGXBfb0dWgtCDpDqTtrC7': 'starter',      // $199/month
+  'price_1ScbGbBfb0dWgtCDLjXblCw4': 'growth',       // $499/month
+  'price_1ScbGeBfb0dWgtCDrtiXDKiJ': 'professional', // $799/month
+  // Current annual prices
+  'price_1ScbGZBfb0dWgtCDvfg6hyy6': 'starter',      // annual
+  'price_1ScbGcBfb0dWgtCDQpH6uB7A': 'growth',       // annual
+  'price_1ScbGfBfb0dWgtCDhCxrFPE4': 'professional', // annual
   // Legacy monthly prices (old pricing)
   'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
   'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
@@ -44,21 +48,15 @@ const PRICE_TO_PLAN_MAP: Record<string, string> = {
   'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
   'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
   'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
-  // Very old legacy prices (for backwards compatibility)
-  'price_1SX2cyFaeMMSBqclAGkxSliI': 'starter',
-  'price_1SX2dkFaeMMSBqclPIjUA6N2': 'growth',
-  'price_1SX2duFaeMMSBqclrYq4rikr': 'professional',
 };
 
 // Seat price IDs (not mapped to plans, used for identification) - $75/seat/month
 const SEAT_PRICE_IDS = [
-  'price_1SbvzLBqszPdRiQvI5Dl6LkA', // New $75/month seat
+  'price_1ScbGhBfb0dWgtCDZukktOuA', // Current monthly $75
+  'price_1ScbGiBfb0dWgtCDOrLwli7A', // Current annual $720
   'price_1SbWueFaeMMSBqclnDqJkOQW', // Legacy monthly seat
   'price_1SbWuuFaeMMSBqclX6xqgX9E', // Legacy annual seat
 ];
-
-// Invoice price ID - $1.99/invoice
-const INVOICE_PRICE_ID = 'price_1SbvzMBqszPdRiQv0AM0GDrv';
 
 /**
  * Extract billing interval from subscription

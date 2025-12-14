@@ -40,6 +40,7 @@ interface BillingSectionProps {
     id: string;
     email: string | null;
     plan_type: string | null;
+    subscription_status: string | null;
     stripe_customer_id: string | null;
     stripe_subscription_id: string | null;
   };
@@ -69,7 +70,8 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
   } | null>(null);
 
   const currentPlan = (profile.plan_type || 'free') as PlanType;
-  const hasActiveSubscription = !!profile.stripe_subscription_id;
+  // Check both subscription_status and stripe_subscription_id for backwards compatibility
+  const hasActiveSubscription = (profile.subscription_status === 'active' || profile.subscription_status === 'trialing') || !!profile.stripe_subscription_id;
 
   // Sync subscription and usage on mount
   useEffect(() => {
