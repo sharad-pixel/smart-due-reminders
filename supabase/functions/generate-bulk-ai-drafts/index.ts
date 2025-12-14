@@ -106,11 +106,15 @@ Deno.serve(async (req) => {
         const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
         
         let agingBucket = 'current';
-        if (daysPastDue >= 91) {
+        if (daysPastDue > 150) {
+          agingBucket = 'dpd_150_plus';
+        } else if (daysPastDue > 120) {
+          agingBucket = 'dpd_121_150';
+        } else if (daysPastDue > 90) {
           agingBucket = 'dpd_91_120';
-        } else if (daysPastDue >= 61) {
+        } else if (daysPastDue > 60) {
           agingBucket = 'dpd_61_90';
-        } else if (daysPastDue >= 31) {
+        } else if (daysPastDue > 30) {
           agingBucket = 'dpd_31_60';
         } else if (daysPastDue >= 1) {
           agingBucket = 'dpd_1_30';
@@ -155,11 +159,14 @@ Deno.serve(async (req) => {
         const businessName = branding?.business_name || 'Your Company';
         const fromName = branding?.from_name || businessName;
         
-        // Get persona-specific tone
+        // Get persona-specific tone based on days past due
         const persona = getPersonaToneByDaysPastDue(daysPastDue);
         const personaGuidelines = persona?.systemPromptGuidelines || '';
+        const personaName = persona?.name || 'Collections Agent';
         
-        const systemPrompt = `You are drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
+        console.log(`Using persona ${personaName} for invoice ${invoice.invoice_number} (${daysPastDue} days past due, bucket: ${agingBucket})`);
+        
+        const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
 ${personaGuidelines}
 
@@ -335,10 +342,12 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
 function getDefaultTemplate(bucket: string): string {
   const templates: Record<string, string> = {
     current: 'Generate a friendly reminder that payment is coming due soon. Keep tone positive and helpful.',
-    dpd_1_30: 'Generate a warm, friendly follow-up about the outstanding invoice. Use soft language and offer help.',
-    dpd_31_60: 'Generate a professional, direct message about the overdue invoice. Be clear about expectations.',
-    dpd_61_90: 'Generate a serious, assertive message about the significantly overdue invoice.',
-    dpd_91_120: 'Generate a very firm, formal message about the long-overdue invoice.',
+    dpd_1_30: 'Generate a warm, friendly follow-up about the outstanding invoice. Use soft language and offer help. Do NOT use urgent or pressure language.',
+    dpd_31_60: 'Generate a professional, direct message about the overdue invoice. Be clear about expectations while offering solutions.',
+    dpd_61_90: 'Generate a serious, assertive message about the significantly overdue invoice. Emphasize urgency and the need for immediate attention.',
+    dpd_91_120: 'Generate a very firm, formal message about the long-overdue invoice. Use final notice language and mention potential escalation.',
+    dpd_121_150: 'Generate a legal-tone message about the critically overdue invoice. Reference potential legal remedies while remaining compliant.',
+    dpd_150_plus: 'Generate a final internal collections message. Be authoritative and firm, demanding immediate resolution. Do not threaten legal action or third-party collections.',
   };
   return templates[bucket] || templates.current;
 }
