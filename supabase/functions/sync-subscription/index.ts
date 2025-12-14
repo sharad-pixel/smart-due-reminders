@@ -24,10 +24,14 @@ const logStep = (step: string, details?: any) => {
 
 // Price ID to plan mapping - Updated December 2024
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  // New monthly prices ($199 / $499 / $799)
-  'price_1SbvygBqszPdRiQvnV7E6rMr': 'starter',
-  'price_1SbvzEBqszPdRiQv5C0Vj5JJ': 'growth',
-  'price_1SbvzJBqszPdRiQvGtEB1XQx': 'professional',
+  // Current monthly prices ($199 / $499 / $799)
+  'price_1ScbGXBfb0dWgtCDpDqTtrC7': 'starter',
+  'price_1ScbGbBfb0dWgtCDLjXblCw4': 'growth',
+  'price_1ScbGeBfb0dWgtCDrtiXDKiJ': 'professional',
+  // Current annual prices
+  'price_1ScbGZBfb0dWgtCDvfg6hyy6': 'starter',
+  'price_1ScbGcBfb0dWgtCDQpH6uB7A': 'growth',
+  'price_1ScbGfBfb0dWgtCDhCxrFPE4': 'professional',
   // Legacy monthly prices (old pricing)
   'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
   'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
@@ -36,15 +40,12 @@ const PRICE_TO_PLAN_MAP: Record<string, string> = {
   'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
   'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
   'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
-  // Very old legacy prices
-  'price_1SX2cyFaeMMSBqclAGkxSliI': 'starter',
-  'price_1SX2dkFaeMMSBqclPIjUA6N2': 'growth',
-  'price_1SX2duFaeMMSBqclrYq4rikr': 'professional',
 };
 
 // Seat price IDs - $75/user/month
 const SEAT_PRICE_IDS = [
-  'price_1SbvzLBqszPdRiQvI5Dl6LkA',  // New $75/month
+  'price_1ScbGhBfb0dWgtCDZukktOuA',  // Current monthly $75
+  'price_1ScbGiBfb0dWgtCDOrLwli7A',  // Current annual $720
   'price_1SbWueFaeMMSBqclnDqJkOQW',  // Legacy monthly
   'price_1SbWuuFaeMMSBqclX6xqgX9E',  // Legacy annual
 ];
