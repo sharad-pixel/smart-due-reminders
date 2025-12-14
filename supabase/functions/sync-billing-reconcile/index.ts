@@ -137,6 +137,32 @@ Deno.serve(async (req) => {
     let subscriptionStatus = 'none';
 
     if (stripeCustomerId) {
+      // Verify customer exists in Stripe first
+      try {
+        await stripe.customers.retrieve(stripeCustomerId);
+      } catch (err: any) {
+        if (err.code === 'resource_missing' || err.statusCode === 404 || err.message?.includes('No such customer')) {
+          logStep('Stripe customer not found, clearing stale reference');
+          // Clear the stale customer ID from the database
+          await supabaseClient
+            .from('profiles')
+            .update({ stripe_customer_id: null, stripe_subscription_id: null })
+            .eq('id', user.id);
+          
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Stripe billing account not found. Please re-subscribe to a plan.',
+            dbSeats: totalDbBillableSeats,
+            stripeSeats: 0,
+            needsResubscribe: true,
+          }), {
+            status: 200, // Return 200 so frontend handles gracefully
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw err;
+      }
+
       // Check for existing subscription
       const subscriptions = await stripe.subscriptions.list({
         customer: stripeCustomerId,
