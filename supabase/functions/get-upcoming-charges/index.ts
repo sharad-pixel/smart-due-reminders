@@ -84,15 +84,32 @@ serve(async (req) => {
 
     logStep("Stripe customer found", { customerId });
 
-    // Get upcoming invoice from Stripe
+    // Verify customer exists in Stripe first
+    try {
+      await stripe.customers.retrieve(customerId);
+    } catch (err: any) {
+      if (err.code === 'resource_missing' || err.statusCode === 404) {
+        logStep("Stripe customer not found in Stripe, clearing reference");
+        return new Response(JSON.stringify({
+          has_upcoming_invoice: false,
+          message: "Billing account needs to be re-established"
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      throw err;
+    }
+
+    // Get upcoming invoice from Stripe using correct method name
     let upcomingInvoice;
     try {
-      upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+      upcomingInvoice = await stripe.invoices.upcoming({
         customer: customerId,
       });
     } catch (err: any) {
       // No upcoming invoice is normal for customers without active subscriptions
-      if (err.code === 'invoice_upcoming_none') {
+      if (err.code === 'invoice_upcoming_none' || err.message?.includes('No upcoming invoices')) {
         return new Response(JSON.stringify({
           has_upcoming_invoice: false,
           message: "No upcoming invoice"
