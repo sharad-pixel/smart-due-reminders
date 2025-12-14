@@ -296,7 +296,7 @@ const DailyDigest = () => {
             </CardContent>
           </Card>
 
-          {/* CFO Cash Flow News & CashOps Insights */}
+          {/* CFO Cash Flow News & Collections Insights */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* CFO News & Trends */}
             <Card>
@@ -376,12 +376,12 @@ const DailyDigest = () => {
               </CardContent>
             </Card>
 
-            {/* CashOps & AR Automation News */}
+            {/* Collections & AR Automation News */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-primary" />
-                  CashOps & AR Automation
+                  Collections & AR Automation
                 </CardTitle>
                 <CardDescription>Industry updates on collections technology</CardDescription>
               </CardHeader>

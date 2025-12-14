@@ -28,7 +28,7 @@ const Solutions = () => {
         "Reduce ARR leakage with intelligent AI agents",
         "Automate follow-ups that get smarter over time",
         "Lighten load on CSM/Finance teams",
-        "Customer-safe CashOps that preserves relationships"
+        "Customer-safe collections that preserve relationships"
       ],
       link: "/solutions/saas"
     },
@@ -64,13 +64,13 @@ const Solutions = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              AI CashOps Engine
+              Collection Intelligence Engine
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Six AI Agents Built for Your Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-              Recouply.ai deploys six specialized AI agents that work 24/7 to optimize your CashOps and recover overdue invoices—
+              Recouply.ai deploys six specialized AI agents that work 24/7 to optimize your collections and recover overdue invoices—
               getting smarter with every interaction while preserving customer relationships.
             </p>
             <p className="text-lg text-primary font-medium">

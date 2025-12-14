@@ -183,7 +183,7 @@ const Auth = () => {
             <span className="text-foreground">Recouply</span>
             <span className="text-primary">.ai</span>
           </h1>
-          <p className="text-muted-foreground">AI-Powered CashOps Platform</p>
+          <p className="text-muted-foreground">Collection Intelligence Platform</p>
         </div>
 
         <Card className="border-2">

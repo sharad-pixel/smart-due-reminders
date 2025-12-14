@@ -8,7 +8,7 @@ const SaaSBenefits = () => {
     "Customer-friendly tone maintains NRR and reduces churn risk",
     "Agents learn and improve recovery rates with every interaction",
     "Stripe + Chargebee payment link embedding",
-    "Full CashOps DSO dashboard with real-time visibility",
+    "Full collections DSO dashboard with real-time visibility",
     "AI-driven follow-up that adapts to customer behavior",
     "Sentiment-aware messaging that boosts response rates"
   ];
