@@ -30,6 +30,8 @@ interface ConsumptionData {
     overageCharges: number;
     remaining: number;
     percentUsed: number;
+    planName: string;
+    overageRate: number;
   };
   seats: {
     billable: number;
@@ -76,15 +78,21 @@ const ConsumptionTracker = () => {
         const limit = usageData.included_allowance || 0;
         const used = usageData.included_invoices_used || 0;
         const overage = usageData.overage_invoices || 0;
+        const overageRate = usageData.overage_rate || 1.99;
+        
+        // Calculate overage charges: $1.99 per invoice over the plan limit
+        const calculatedOverageCharges = overage * overageRate;
         
         setConsumption({
           invoices: {
             used,
             limit,
             overage,
-            overageCharges: usageData.overage_charges_total || (overage * 1.99),
+            overageCharges: usageData.overage_charges_total || calculatedOverageCharges,
             remaining: usageData.remaining_quota || 0,
             percentUsed: limit > 0 ? Math.min(100, (used / limit) * 100) : 0,
+            planName: usageData.plan_name || 'Unknown',
+            overageRate,
           },
           seats: {
             billable: 0,
@@ -217,6 +225,11 @@ const ConsumptionTracker = () => {
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-semibold">Invoice Usage</h3>
+            {consumption && (
+              <Badge variant="secondary" className="ml-2 capitalize">
+                {consumption.invoices.planName} Plan
+              </Badge>
+            )}
             <Badge variant="outline" className="ml-auto">
               {consumption?.period ? formatPeriod(consumption.period) : 'Current Period'}
             </Badge>
@@ -226,7 +239,7 @@ const ConsumptionTracker = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">
-                  {consumption.invoices.used} of {consumption.invoices.limit} invoices used
+                  {consumption.invoices.used} of {consumption.invoices.limit} included invoices used
                 </span>
                 <span className={`font-semibold ${getUsageColor(consumption.invoices.percentUsed)}`}>
                   {Math.round(consumption.invoices.percentUsed)}%
@@ -245,7 +258,7 @@ const ConsumptionTracker = () => {
                 </div>
                 <div className="p-3 rounded-lg bg-green-500/10 text-center">
                   <p className="text-2xl font-bold text-green-600">{consumption.invoices.used}</p>
-                  <p className="text-xs text-muted-foreground">Used</p>
+                  <p className="text-xs text-muted-foreground">Included Used</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50 text-center">
                   <p className="text-2xl font-bold text-muted-foreground">{consumption.invoices.remaining}</p>
@@ -253,14 +266,37 @@ const ConsumptionTracker = () => {
                 </div>
               </div>
 
-              {consumption.invoices.overage > 0 && (
-                <Alert className="border-amber-500/50 bg-amber-500/5">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <AlertDescription className="text-amber-700">
-                    <strong>{consumption.invoices.overage} overage invoices</strong> this period at $1.99 each = 
-                    <strong className="ml-1">{formatPrice(consumption.invoices.overageCharges)}</strong>
-                  </AlertDescription>
-                </Alert>
+              {/* Overage Section - Enhanced */}
+              {consumption.invoices.overage > 0 ? (
+                <div className="mt-4 p-4 rounded-lg border-2 border-amber-500/30 bg-amber-500/5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                    <h4 className="font-semibold text-amber-800">Invoice Overages</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-amber-100/50 rounded-lg">
+                      <p className="text-3xl font-bold text-amber-700">{consumption.invoices.overage}</p>
+                      <p className="text-xs text-amber-600">Overage Invoices</p>
+                    </div>
+                    <div className="text-center p-3 bg-amber-100/50 rounded-lg">
+                      <p className="text-3xl font-bold text-amber-700">
+                        {formatPrice(consumption.invoices.overageCharges)}
+                      </p>
+                      <p className="text-xs text-amber-600">Overage Charges</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm text-amber-700 text-center">
+                    <span className="font-medium">{consumption.invoices.overage} invoices</span> × 
+                    <span className="font-medium ml-1">${consumption.invoices.overageRate.toFixed(2)}/invoice</span> = 
+                    <span className="font-bold ml-1">{formatPrice(consumption.invoices.overageCharges)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 p-3 rounded-lg border border-green-500/30 bg-green-500/5 text-center">
+                  <p className="text-sm text-green-700">
+                    ✓ No overages this period — all invoices within plan limit
+                  </p>
+                </div>
               )}
             </div>
           )}
