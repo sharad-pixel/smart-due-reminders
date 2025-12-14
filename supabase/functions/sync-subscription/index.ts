@@ -173,53 +173,55 @@ serve(async (req) => {
       .update({ stripe_customer_id: customerId })
       .eq('id', accountId);
 
-    // Get active subscriptions
+    // Get all subscriptions (active, trialing, or canceled but still in period)
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: 'active',
-      limit: 1,
+      limit: 5,
     });
 
     logStep('Fetched subscriptions', { count: subscriptions.data.length });
 
-    if (subscriptions.data.length === 0) {
-      // Check for trialing subscriptions
-      const trialingSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: 'trialing',
-        limit: 1,
-      });
+    // Find the best subscription to use (prioritize active, then trialing, then canceled with access)
+    let subscription: Stripe.Subscription | undefined = subscriptions.data.find((s: Stripe.Subscription) => s.status === 'active');
+    if (!subscription) {
+      subscription = subscriptions.data.find((s: Stripe.Subscription) => s.status === 'trialing');
+    }
+    if (!subscription) {
+      // Check for canceled subscription that still has access (cancel_at_period_end = true, within period)
+      subscription = subscriptions.data.find((s: Stripe.Subscription) => 
+        s.status === 'canceled' || 
+        (s.cancel_at_period_end && s.current_period_end * 1000 > Date.now())
+      );
+    }
 
-      if (trialingSubscriptions.data.length === 0) {
-        logStep('No active or trialing subscription found');
-        
-        // Update profile to free
-        await supabase
-          .from('profiles')
-          .update({
-            stripe_subscription_id: null,
-            plan_type: 'free',
-            subscription_status: null,
-            current_period_end: null,
-          })
-          .eq('id', accountId);
+    if (!subscription) {
+      logStep('No usable subscription found');
+      
+      // Update profile to free
+      await supabase
+        .from('profiles')
+        .update({
+          stripe_subscription_id: null,
+          plan_type: 'free',
+          subscription_status: 'inactive',
+          current_period_end: null,
+          cancel_at_period_end: false,
+        })
+        .eq('id', accountId);
 
-        return new Response(
-          JSON.stringify({ 
-            subscribed: false,
-            plan_type: 'free',
-            message: 'No active subscription'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      subscriptions.data = trialingSubscriptions.data;
+      return new Response(
+        JSON.stringify({ 
+          subscribed: false,
+          plan_type: 'free',
+          subscription_status: 'inactive',
+          message: 'No active subscription'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Retrieve full subscription details to get period dates
-    const subscriptionId = subscriptions.data[0].id;
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const fullSubscription = await stripe.subscriptions.retrieve(subscription.id);
     
     const planType = getPlanFromSubscription(subscription);
     const billingInterval = getBillingInterval(subscription);
