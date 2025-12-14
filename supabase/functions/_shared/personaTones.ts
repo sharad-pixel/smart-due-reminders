@@ -138,9 +138,9 @@ export function getPersonaToneByBucket(bucket: string): PersonaToneConfig | null
       return personaTones.troy;
     case 'dpd_121_150':
       return personaTones.jimmy;
+    case 'dpd_150_plus':
     case 'dpd_151_plus':
     default:
-      // For 91+ that doesn't match specific buckets, use days to determine
       return personaTones.rocco;
   }
 }

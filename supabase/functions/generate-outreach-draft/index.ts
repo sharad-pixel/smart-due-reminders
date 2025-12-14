@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getPersonaToneByDaysPastDue } from "../_shared/personaTones.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,7 @@ const corsHeaders = {
 
 interface GenerateDraftRequest {
   invoice_id: string;
-  tone: "friendly" | "firm" | "neutral";
+  tone?: "friendly" | "firm" | "neutral"; // Optional, will use persona if not provided
   step_number: number;
 }
 
@@ -40,8 +41,8 @@ serve(async (req) => {
 
     const { invoice_id, tone, step_number }: GenerateDraftRequest = await req.json();
 
-    if (!invoice_id || !tone || step_number === undefined) {
-      throw new Error("Missing required parameters: invoice_id, tone, step_number");
+    if (!invoice_id || step_number === undefined) {
+      throw new Error("Missing required parameters: invoice_id, step_number");
     }
 
     // Fetch invoice with debtor information
@@ -125,25 +126,22 @@ serve(async (req) => {
     const diffTime = today.getTime() - dueDate.getTime();
     const daysPastDue = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
-    // Fetch the appropriate AI agent persona based on days past due
-    // If not past due (daysPastDue = 0), use the first persona (Sam)
-    const queryDays = daysPastDue === 0 ? 1 : daysPastDue;
+    // Get persona-specific tone based on days past due (using shared persona system)
+    const persona = getPersonaToneByDaysPastDue(daysPastDue === 0 ? 1 : daysPastDue);
+    const personaName = persona?.name || 'Collections Agent';
+    const personaGuidelines = persona?.systemPromptGuidelines || '';
     
-    const { data: agentPersona, error: agentError } = await supabaseClient
+    console.log(`Using persona ${personaName} for ${daysPastDue} days past due`);
+
+    // Also fetch AI agent persona from database for agent_persona_id
+    const { data: agentPersona } = await supabaseClient
       .from("ai_agent_personas")
-      .select("*")
-      .lte("bucket_min", queryDays)
-      .or(`bucket_max.is.null,bucket_max.gte.${queryDays}`)
+      .select("id, name")
+      .lte("bucket_min", daysPastDue === 0 ? 1 : daysPastDue)
+      .or(`bucket_max.is.null,bucket_max.gte.${daysPastDue === 0 ? 1 : daysPastDue}`)
       .order("bucket_min", { ascending: false })
       .limit(1)
       .single();
-
-    if (agentError || !agentPersona) {
-      console.error("Agent persona fetch error:", agentError);
-      throw new Error("Could not determine appropriate collection agent");
-    }
-
-    console.log(`Using agent ${agentPersona.name} for ${daysPastDue} days past due`);
 
     // Fetch any open tasks for this invoice
     const { data: openTasks } = await supabaseClient
@@ -176,7 +174,7 @@ serve(async (req) => {
         return `- ${label}: ${task.summary}${task.recommended_action ? ` (Action needed: ${task.recommended_action})` : ''}`;
       }).join('\n');
 
-      taskContext = `\n\nCRITICAL: The customer has made the following requests or raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these items in your message. Handle them professionally based on ${agentPersona.name}'s ${agentPersona.tone_guidelines} tone.`;
+      taskContext = `\n\nCRITICAL: The customer has made the following requests or raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these items in your message. Handle them professionally based on ${personaName}'s tone.`;
     }
 
     // Prepare prompt data - use contactName from debtor_contacts (source of truth)
@@ -192,35 +190,29 @@ serve(async (req) => {
       due_date: new Date(invoice.due_date).toLocaleDateString(),
       days_past_due: daysPastDue,
       payment_link: profile.stripe_payment_link_url || "Please contact us for payment options",
-      tone: tone,
       step_number: step_number,
       task_context: taskContext,
     };
 
-    console.log("Generating draft for invoice:", invoice_id, "tone:", tone, "step:", step_number, "contact:", contactName, "outstanding:", amountOutstanding);
+    console.log("Generating draft for invoice:", invoice_id, "persona:", personaName, "step:", step_number, "contact:", contactName, "outstanding:", amountOutstanding);
 
-    // Call OpenAI API
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key not configured");
+    // Call Lovable AI API (using persona-specific tone)
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are an assistant helping a business collect its own overdue invoices while preserving the customer relationship.
-You are NOT a collection agency and you must never imply that you are.
-Messages are sent from the business itself.
-No legal threats. No harassment. No false statements. No mention of Recouply.ai or any third-party.
-Always include the payment link once in the email.
+    const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${promptData.business_name} to send to their customer about an overdue invoice.
+
+${personaGuidelines}
+
+CRITICAL COMPLIANCE RULES:
+- Be respectful and non-threatening
+- NEVER claim to be or act as a "collection agency" or legal authority
+- NEVER use harassment or intimidation
+- Write as if you are ${promptData.business_name}, NOT a third party
+- Always include the payment link once in the email
+- Encourage the customer to pay or reply if there is a dispute or issue
 ${promptData.task_context}
 
 ${crmAccount ? `Use the CRM account context to adjust tone and recommendations:
@@ -232,15 +224,28 @@ You must respond in JSON format with the following structure:
 {
   "email_subject": "string",
   "email_body": "string"
-}`,
+}`;
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
           },
           {
             role: "user",
             content: `Generate a collection message with the following details:
 
 Business name: ${promptData.business_name}
-Debtor name: ${promptData.debtor_name}
-Debtor company: ${promptData.debtor_company}
+Customer name: ${promptData.debtor_name}
+Customer company: ${promptData.debtor_company}
 Invoice number: ${promptData.invoice_number}
 Original Amount: $${promptData.amount} ${promptData.currency}
 Amount Already Paid: $${promptData.total_paid} ${promptData.currency}
@@ -248,7 +253,6 @@ BALANCE DUE: $${promptData.amount_outstanding} ${promptData.currency}
 Due date: ${promptData.due_date}
 Days past due: ${promptData.days_past_due}
 Payment link: ${promptData.payment_link}
-Tone: ${promptData.tone}
 Step number in cadence: ${promptData.step_number}
 ${crmAccount ? `
 CRM Account Context:
@@ -266,28 +270,26 @@ Please generate:
    - ${promptData.total_paid > 0 ? `Acknowledge the partial payment of $${promptData.total_paid} already received` : "States the full amount due"}
    - Includes the payment link once
    - Invites the customer to contact us if there are any issues or disputes
-   - Uses a ${promptData.tone} tone${crmAccount ? "\n   - Takes into account the customer's value and relationship status" : ""}
+   - Uses ${personaName}'s ${persona?.tone || 'professional'} tone${crmAccount ? "\n   - Takes into account the customer's value and relationship status" : ""}
 
 Return the response as JSON with fields: email_subject, email_body`,
           },
         ],
-        temperature: 0.7,
-        max_completion_tokens: 1000,
       }),
     });
 
-    if (!openAIResponse.ok) {
-      const errorText = await openAIResponse.text();
-      console.error("OpenAI API error:", errorText);
-      throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI API error:", errorText);
+      throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
-    const openAIData = await openAIResponse.json();
-    console.log("OpenAI response:", JSON.stringify(openAIData, null, 2));
+    const aiData = await aiResponse.json();
+    console.log("AI response:", JSON.stringify(aiData, null, 2));
 
-    const content = openAIData.choices[0].message.content;
+    const content = aiData.choices[0].message.content;
     
-    // Parse the JSON response from OpenAI
+    // Parse the JSON response from AI
     let parsedContent;
     try {
       // Try to extract JSON from markdown code blocks if present
@@ -295,7 +297,7 @@ Return the response as JSON with fields: email_subject, email_body`,
       const jsonString = jsonMatch ? jsonMatch[1] : content;
       parsedContent = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", content);
+      console.error("Failed to parse AI response:", content);
       throw new Error("Failed to parse AI response. Please try again.");
     }
 
@@ -319,7 +321,7 @@ Return the response as JSON with fields: email_subject, email_body`,
         message_body: email_body,
         recommended_send_date: today_date,
         status: "pending_approval",
-        agent_persona_id: agentPersona.id,
+        agent_persona_id: agentPersona?.id || null,
         days_past_due: daysPastDue,
       })
       .select()
