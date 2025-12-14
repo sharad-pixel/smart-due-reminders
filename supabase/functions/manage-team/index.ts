@@ -28,9 +28,10 @@ const corsHeaders = {
 };
 
 // Seat pricing configuration - must match src/lib/subscriptionConfig.ts STRIPE_PRICES.seat
+// Updated December 2024 with correct Stripe price IDs
 const SEAT_PRICE_IDS = {
-  month: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',  // $75/user/month
-  year: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',   // Same price for now (placeholder for annual)
+  month: 'price_1ScbGhBfb0dWgtCDZukktOuA',  // $75/user/month
+  year: 'price_1ScbGiBfb0dWgtCDOrLwli7A',   // $720/user/year (20% discount)
 };
 
 const logStep = (step: string, details?: any) => {

@@ -17,9 +17,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Seat price IDs - Updated December 2024
 const SEAT_PRICE_IDS = {
-  month: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',
-  year: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',
+  month: 'price_1ScbGhBfb0dWgtCDZukktOuA',  // $75/user/month
+  year: 'price_1ScbGiBfb0dWgtCDOrLwli7A',   // $720/user/year (20% discount)
 };
 
 const logStep = (step: string, details?: any) => {

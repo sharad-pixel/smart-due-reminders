@@ -599,39 +599,78 @@ const Team = () => {
                   </Badge>
                 </div>
                 
-                {/* Seat Count Summary */}
+                {/* Seat Count Summary - Enhanced */}
                 {(() => {
                   const activeMembers = teamMembers.filter(m => m.status === 'active');
+                  const pendingMembers = teamMembers.filter(m => m.status === 'pending');
+                  const disabledMembers = teamMembers.filter(m => m.status === 'disabled');
                   const ownerCount = activeMembers.filter(m => m.role === 'owner').length;
-                  const billableSeats = Math.max(0, activeMembers.length - ownerCount);
-                  const monthlyTotal = billableSeats * SEAT_PRICING.monthlyPrice;
+                  
+                  // Billable = active non-owners + pending (charged on invite)
+                  const activeBillable = Math.max(0, activeMembers.length - ownerCount);
+                  const pendingBillable = pendingMembers.length;
+                  const totalBillable = activeBillable + pendingBillable;
+                  const monthlyTotal = totalBillable * SEAT_PRICING.monthlyPrice;
                   
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-background rounded-lg border">
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-primary">{activeMembers.length}</p>
-                        <p className="text-xs text-muted-foreground">Active Users</p>
+                    <div className="space-y-4">
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="p-3 bg-background rounded-lg border text-center">
+                          <p className="text-2xl font-bold text-primary">{ownerCount}</p>
+                          <p className="text-xs text-muted-foreground">Owner(s)</p>
+                          <Badge variant="outline" className="mt-1 text-xs">Free</Badge>
+                        </div>
+                        <div className="p-3 bg-background rounded-lg border text-center">
+                          <p className="text-2xl font-bold text-success">{activeBillable}</p>
+                          <p className="text-xs text-muted-foreground">Active Members</p>
+                          <Badge variant="default" className="mt-1 text-xs bg-success/20 text-success border-success/30">
+                            <UserCheck className="h-3 w-3 mr-1" /> Active
+                          </Badge>
+                        </div>
+                        <div className="p-3 bg-background rounded-lg border text-center">
+                          <p className="text-2xl font-bold text-warning">{pendingBillable}</p>
+                          <p className="text-xs text-muted-foreground">Pending Invites</p>
+                          <Badge variant="outline" className="mt-1 text-xs border-warning text-warning">
+                            <Send className="h-3 w-3 mr-1" /> Invited
+                          </Badge>
+                        </div>
+                        <div className="p-3 bg-background rounded-lg border text-center">
+                          <p className="text-2xl font-bold">{disabledMembers.length}</p>
+                          <p className="text-xs text-muted-foreground">Inactive</p>
+                          <Badge variant="secondary" className="mt-1 text-xs">
+                            <UserX className="h-3 w-3 mr-1" /> Disabled
+                          </Badge>
+                        </div>
+                        <div className="p-3 bg-primary/10 rounded-lg border border-primary/30 text-center col-span-2 md:col-span-1">
+                          <p className="text-2xl font-bold text-primary">{totalBillable}</p>
+                          <p className="text-xs text-muted-foreground">Total Billable</p>
+                          <p className="text-sm font-semibold text-primary mt-1">${monthlyTotal.toFixed(2)}/mo</p>
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{billableSeats}</p>
-                        <p className="text-xs text-muted-foreground">Billable Seats</p>
-                        <p className="text-xs text-muted-foreground">(Owner is free)</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-success">${monthlyTotal.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">Est. Monthly</p>
+                      
+                      {/* Usage Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Seat Usage</span>
+                          <span className="font-medium">
+                            {totalBillable} of {(features?.features as any)?.max_invited_users || 0} seats used
+                          </span>
+                        </div>
+                        <Progress 
+                          value={(totalBillable / ((features?.features as any)?.max_invited_users || 1)) * 100} 
+                          className="h-2"
+                        />
+                        {pendingBillable > 0 && (
+                          <p className="text-xs text-muted-foreground italic">
+                            <AlertCircle className="h-3 w-3 inline mr-1" />
+                            Pending invites are billed immediately upon invitation
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
                 })()}
-                
-                <Progress 
-                  value={(teamMembers.filter(m => m.role !== 'owner').length / ((features?.features as any)?.max_invited_users || 1)) * 100} 
-                  className="h-2"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {teamMembers.filter(m => m.role !== 'owner').length} of {(features?.features as any)?.max_invited_users || 0} seats used
-                </p>
               </div>
             </CardContent>
           </Card>
