@@ -118,6 +118,7 @@ interface StripeSubscriptionData {
   current_period_start?: string;
   current_period_end?: string;
   cancel_at_period_end?: boolean;
+  from_database?: boolean;
 }
 
 const Billing = () => {
@@ -297,18 +298,20 @@ const Billing = () => {
   const parentAccount = accountHierarchy.parentAccount;
   const billableSeats = billingDiscrepancy?.dbSeats ?? accountHierarchy.billing.billableSeats;
 
-  // Always use hierarchy billing data - it contains owner's plan for both owners and team members
-  // For team members, hierarchy.billing contains the parent account's billing info
-  // Priority: 1) hierarchy billing (most reliable for team members), 2) stripeData (synced from Stripe), 3) profile (db fallback)
-  const effectivePlanType = isTeamMember 
-    ? (accountHierarchy.billing.planType || parentAccount?.planType || 'free')
-    : (stripeData?.plan_type || accountHierarchy.billing.planType || profile?.plan_type || 'free');
-  const effectiveSubscriptionStatus = isTeamMember
-    ? (accountHierarchy.billing.subscriptionStatus || parentAccount?.subscriptionStatus || 'inactive')
-    : (stripeData?.subscription_status || accountHierarchy.billing.subscriptionStatus || profile?.subscription_status || 'inactive');
-  const effectiveBillingInterval = isTeamMember
-    ? (accountHierarchy.billing.billingInterval || parentAccount?.billingInterval || 'month')
-    : (stripeData?.billing_interval || accountHierarchy.billing.billingInterval || profile?.billing_interval || 'month');
+    // CRITICAL: Always prioritize DATABASE values (profile) as source of truth
+    // Only use stripeData when it has a valid subscription (not from_database fallback)
+    // This prevents showing "Free" when user has an active paid plan in the database
+    const hasValidStripeSync = stripeData && stripeData.subscribed && !stripeData.from_database;
+    
+    const effectivePlanType = isTeamMember 
+      ? (accountHierarchy.billing.planType || parentAccount?.planType || 'free')
+      : (profile?.plan_type || stripeData?.plan_type || 'free');
+    const effectiveSubscriptionStatus = isTeamMember
+      ? (accountHierarchy.billing.subscriptionStatus || parentAccount?.subscriptionStatus || 'inactive')
+      : (profile?.subscription_status || stripeData?.subscription_status || 'inactive');
+    const effectiveBillingInterval = isTeamMember
+      ? (accountHierarchy.billing.billingInterval || parentAccount?.billingInterval || 'month')
+      : (profile?.billing_interval || stripeData?.billing_interval || 'month');
 
   const planConfig = getPlanConfig(effectivePlanType);
   
