@@ -35,8 +35,8 @@ const SEAT_PRICING = {
 
 // Seat price IDs (must match Stripe configuration) - Updated December 2024
 const SEAT_PRICE_IDS = {
-  month: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',  // $75/user/month
-  year: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',   // Placeholder - using monthly for now
+  month: 'price_1ScbGhBfb0dWgtCDZukktOuA',  // $75/user/month
+  year: 'price_1ScbGiBfb0dWgtCDOrLwli7A',   // $720/user/year (20% discount)
 };
 
 interface SyncRequest {
