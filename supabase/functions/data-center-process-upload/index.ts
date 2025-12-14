@@ -729,7 +729,8 @@ serve(async (req) => {
           else bucket = 'dpd_150_plus';
         }
         
-        if (bucket && bucket !== 'current') {
+        // Include ALL invoices including 'current' for immediate outreach on upload
+        if (bucket) {
           if (!bucketInvoices[bucket]) bucketInvoices[bucket] = [];
           bucketInvoices[bucket].push(inv.id);
         }
