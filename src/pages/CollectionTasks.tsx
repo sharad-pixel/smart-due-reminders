@@ -572,26 +572,27 @@ export default function CollectionTasks() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="container mx-auto py-4 sm:py-6 space-y-4 sm:space-y-6 px-4 sm:px-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <CheckSquare className="h-8 w-8" />
-              Collection Tasks
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
+              <CheckSquare className="h-6 w-6 sm:h-8 sm:w-8" />
+              <span className="hidden sm:inline">Collection Tasks</span>
+              <span className="sm:hidden">Tasks</span>
             </h1>
-            <p className="text-muted-foreground mt-1">
-              AI-extracted action items from customer responses
-            </p>
           </div>
+          <p className="text-sm text-muted-foreground hidden sm:block">
+            AI-extracted action items from customer responses
+          </p>
           <div className="flex gap-2 flex-wrap">
-            <Badge variant="outline" className="text-sm">
+            <Badge variant="outline" className="text-xs sm:text-sm">
               {openCount} Open
             </Badge>
-            <Badge variant="outline" className="text-sm">
+            <Badge variant="outline" className="text-xs sm:text-sm">
               {inProgressCount} In Progress
             </Badge>
-            <Badge variant="outline" className="text-sm">
+            <Badge variant="outline" className="text-xs sm:text-sm">
               {doneCount} Done
             </Badge>
           </div>
@@ -600,15 +601,15 @@ export default function CollectionTasks() {
         {/* Bulk Actions Bar */}
         {selectedTaskIds.size > 0 && permissions.canEditTasks && (
           <Card className="border-primary">
-            <CardContent className="py-3">
-              <div className="flex flex-wrap items-center gap-3">
+            <CardContent className="py-2 sm:py-3 px-3 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                 <span className="text-sm font-medium">
-                  {selectedTaskIds.size} task(s) selected
+                  {selectedTaskIds.size} selected
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select onValueChange={handleBulkStatusChange} disabled={isBulkProcessing}>
-                    <SelectTrigger className="w-[140px] h-8">
-                      <SelectValue placeholder="Set Status" />
+                    <SelectTrigger className="w-[110px] sm:w-[140px] h-8 text-xs sm:text-sm">
+                      <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="open">Open</SelectItem>
@@ -628,8 +629,8 @@ export default function CollectionTasks() {
                       }} 
                       disabled={isBulkProcessing}
                     >
-                      <SelectTrigger className="w-[160px] h-8">
-                        <SelectValue placeholder="Assign To" />
+                      <SelectTrigger className="w-[110px] sm:w-[160px] h-8 text-xs sm:text-sm">
+                        <SelectValue placeholder="Assign" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassign</SelectItem>
@@ -651,9 +652,10 @@ export default function CollectionTasks() {
                       size="sm"
                       onClick={() => setShowArchiveDialog(true)}
                       disabled={isBulkProcessing}
+                      className="h-8 text-xs sm:text-sm"
                     >
-                      {showArchived ? <ArchiveRestore className="h-4 w-4 mr-1" /> : <Archive className="h-4 w-4 mr-1" />}
-                      {showArchived ? 'Restore' : 'Archive'}
+                      {showArchived ? <ArchiveRestore className="h-4 w-4 sm:mr-1" /> : <Archive className="h-4 w-4 sm:mr-1" />}
+                      <span className="hidden sm:inline">{showArchived ? 'Restore' : 'Archive'}</span>
                     </Button>
                   )}
 
@@ -661,6 +663,7 @@ export default function CollectionTasks() {
                     variant="ghost" 
                     size="sm"
                     onClick={() => setSelectedTaskIds(new Set())}
+                    className="h-8 text-xs sm:text-sm"
                   >
                     Clear
                   </Button>
@@ -672,26 +675,26 @@ export default function CollectionTasks() {
 
         {/* Filters */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="h-5 w-5" />
+          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
               Filters
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="relative">
+          <CardContent className="px-3 sm:px-6">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
+              <div className="relative col-span-2 lg:col-span-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search tasks..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9 sm:h-10 text-sm"
                 />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -703,7 +706,7 @@ export default function CollectionTasks() {
               </Select>
 
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -716,8 +719,8 @@ export default function CollectionTasks() {
               </Select>
 
               <Select value={taskTypeFilter} onValueChange={setTaskTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Task Type" />
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                  <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
                   {taskTypes.map(type => (
@@ -729,11 +732,11 @@ export default function CollectionTasks() {
               </Select>
 
               <Select value={assignedFilter} onValueChange={setAssignedFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Assigned To" />
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                  <SelectValue placeholder="Assigned" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Assignments</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="me">Assigned to Me</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {accountUsers.map(user => (
@@ -746,15 +749,15 @@ export default function CollectionTasks() {
             </div>
             
             {/* Toggle filters */}
-            <div className="flex flex-wrap items-center gap-6 mt-4 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
               <div className="flex items-center gap-2">
                 <Switch
                   id="hide-closed"
                   checked={hideClosed}
                   onCheckedChange={setHideClosed}
                 />
-                <Label htmlFor="hide-closed" className="text-sm cursor-pointer">
-                  Hide closed tasks
+                <Label htmlFor="hide-closed" className="text-xs sm:text-sm cursor-pointer">
+                  Hide closed
                 </Label>
               </div>
               <div className="flex items-center gap-2">
@@ -763,16 +766,16 @@ export default function CollectionTasks() {
                   checked={showArchived}
                   onCheckedChange={setShowArchived}
                 />
-                <Label htmlFor="show-archived" className="text-sm cursor-pointer flex items-center gap-1">
-                  <Archive className="h-4 w-4" />
-                  Show archived
+                <Label htmlFor="show-archived" className="text-xs sm:text-sm cursor-pointer flex items-center gap-1">
+                  <Archive className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Archived
                 </Label>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Tasks Table */}
+        {/* Tasks - Desktop Table / Mobile Cards */}
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
@@ -784,102 +787,186 @@ export default function CollectionTasks() {
                 <p className="text-muted-foreground">No tasks found</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox 
-                          checked={isAllSelected}
-                          onCheckedChange={handleSelectAll}
-                          aria-label="Select all"
-                          className={isSomeSelected && !isAllSelected ? "opacity-50" : ""}
-                        />
-                      </TableHead>
-                      <TableHead className="w-24">Days Open</TableHead>
-                      <TableHead className="w-32">Created</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="min-w-[200px]">Summary</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Invoice</TableHead>
-                      <TableHead>Assigned To</TableHead>
-                      <TableHead>Inbound</TableHead>
-                      <TableHead className="w-32">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTasks.map((task) => {
-                      const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
-                      return (
-                        <TableRow
-                          key={task.id}
-                          className={`cursor-pointer hover:bg-muted/50 ${selectedTaskIds.has(task.id) ? 'bg-muted/30' : ''}`}
-                          onClick={() => handleViewDetails(task)}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox 
+                            checked={isAllSelected}
+                            onCheckedChange={handleSelectAll}
+                            aria-label="Select all"
+                            className={isSomeSelected && !isAllSelected ? "opacity-50" : ""}
+                          />
+                        </TableHead>
+                        <TableHead className="w-24">Days Open</TableHead>
+                        <TableHead className="w-32">Created</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="min-w-[200px]">Summary</TableHead>
+                        <TableHead>Account</TableHead>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Assigned To</TableHead>
+                        <TableHead>Inbound</TableHead>
+                        <TableHead className="w-32">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTasks.map((task) => {
+                        const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
+                        return (
+                          <TableRow
+                            key={task.id}
+                            className={`cursor-pointer hover:bg-muted/50 ${selectedTaskIds.has(task.id) ? 'bg-muted/30' : ''}`}
+                            onClick={() => handleViewDetails(task)}
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Checkbox 
+                                checked={selectedTaskIds.has(task.id)}
+                                onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
+                                aria-label={`Select task ${task.summary}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                                <CalendarClock className="h-3 w-3" />
+                                {daysOpen === 0 ? 'Today' : `${daysOpen}d`}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(task.created_at || '').toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>{getPriorityBadge(task.priority)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {getTaskIcon(task.task_type)}
+                                <span className="text-sm whitespace-nowrap">{task.task_type.replace(/_/g, " ")}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-md">
+                              <div className="space-y-1">
+                                <p className="text-sm line-clamp-2">{task.summary}</p>
+                                {task.from_email && (
+                                  <p className="text-xs text-muted-foreground">From: {task.from_email}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-sm">{task.debtors?.name}</p>
+                                <p className="text-xs text-muted-foreground">{task.debtors?.company_name}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {task.invoices?.invoice_number || "-"}
+                            </TableCell>
+                            <TableCell>{getAssignedDisplay(task)}</TableCell>
+                            <TableCell>{getInboundLink(task)}</TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Select
+                                value={task.status}
+                                onValueChange={(value) => handleStatusChange(task.id, value)}
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="open">Open</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="done">Done</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="lg:hidden divide-y">
+                  {filteredTasks.map((task) => {
+                    const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
+                    return (
+                      <div
+                        key={task.id}
+                        className={`p-4 cursor-pointer active:bg-muted/50 transition-colors ${selectedTaskIds.has(task.id) ? 'bg-muted/30' : ''}`}
+                        onClick={() => handleViewDetails(task)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div onClick={(e) => e.stopPropagation()} className="pt-1">
                             <Checkbox 
                               checked={selectedTaskIds.has(task.id)}
                               onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
                               aria-label={`Select task ${task.summary}`}
                             />
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
-                              <CalendarClock className="h-3 w-3" />
-                              {daysOpen === 0 ? 'Today' : `${daysOpen}d`}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {new Date(task.created_at || '').toLocaleDateString()}
-                          </TableCell>
-                        <TableCell>{getPriorityBadge(task.priority)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getTaskIcon(task.task_type)}
-                            <span className="text-sm whitespace-nowrap">{task.task_type.replace(/_/g, " ")}</span>
                           </div>
-                        </TableCell>
-                        <TableCell className="max-w-md">
-                          <div className="space-y-1">
-                            <p className="text-sm line-clamp-2">{task.summary}</p>
-                            {task.from_email && (
-                              <p className="text-xs text-muted-foreground">From: {task.from_email}</p>
-                            )}
+                          <div className="flex-1 min-w-0 space-y-2">
+                            {/* Header row with priority and days open */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {getPriorityBadge(task.priority)}
+                              <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="text-xs">
+                                <CalendarClock className="h-3 w-3 mr-1" />
+                                {daysOpen === 0 ? 'Today' : `${daysOpen}d`}
+                              </Badge>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                {getTaskIcon(task.task_type)}
+                                <span>{task.task_type.replace(/_/g, " ")}</span>
+                              </div>
+                            </div>
+                            
+                            {/* Summary */}
+                            <p className="text-sm font-medium line-clamp-2">{task.summary}</p>
+                            
+                            {/* Account & Invoice info */}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                              {task.debtors?.name && (
+                                <span className="font-medium text-foreground">{task.debtors.name}</span>
+                              )}
+                              {task.invoices?.invoice_number && (
+                                <span className="font-mono">#{task.invoices.invoice_number}</span>
+                              )}
+                              {task.assigned_user_name && (
+                                <span>→ {task.assigned_user_name}</span>
+                              )}
+                            </div>
+                            
+                            {/* Status selector */}
+                            <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+                              <Select
+                                value={task.status}
+                                onValueChange={(value) => handleStatusChange(task.id, value)}
+                              >
+                                <SelectTrigger className="h-8 w-[130px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="open">Open</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="done">Done</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {task.inbound_email_id && (
+                                <Link 
+                                  to={`/inbound?email=${task.inbound_email_id}${task.invoice_id ? `&invoiceId=${task.invoice_id}` : ''}`}
+                                  className="flex items-center gap-1 text-primary hover:underline text-xs"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Mail className="h-3 w-3" />
+                                  View Email
+                                </Link>
+                              )}
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-sm">{task.debtors?.name}</p>
-                            <p className="text-xs text-muted-foreground">{task.debtors?.company_name}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {task.invoices?.invoice_number || "-"}
-                        </TableCell>
-                        <TableCell>{getAssignedDisplay(task)}</TableCell>
-                        <TableCell>{getInboundLink(task)}</TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Select
-                            value={task.status}
-                            onValueChange={(value) => handleStatusChange(task.id, value)}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="open">Open</SelectItem>
-                              <SelectItem value="in_progress">In Progress</SelectItem>
-                              <SelectItem value="done">Done</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

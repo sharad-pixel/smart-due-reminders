@@ -230,5 +230,101 @@ All colors MUST be HSL.
     content: attr(data-label);
     @apply lg:hidden font-semibold text-muted-foreground text-xs uppercase mb-1 block;
   }
+  
+  /* Mobile-friendly button groups */
+  .mobile-btn-group {
+    @apply flex flex-col sm:flex-row gap-2 w-full sm:w-auto;
+  }
+  
+  .mobile-btn-group > * {
+    @apply w-full sm:w-auto;
+  }
+  
+  /* Mobile-friendly form layouts */
+  .mobile-form-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+  }
+  
+  /* Mobile-friendly cards with swipe hint */
+  .mobile-card-swipeable {
+    @apply touch-pan-x overflow-x-auto snap-x snap-mandatory;
+  }
+  
+  .mobile-card-swipeable > * {
+    @apply snap-start shrink-0;
+  }
+  
+  /* Responsive modal/dialog content */
+  .mobile-modal-content {
+    @apply max-h-[85vh] overflow-y-auto;
+  }
+  
+  /* Mobile-friendly filter sections */
+  .mobile-filters {
+    @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3;
+  }
+  
+  .mobile-filters > .full-width {
+    @apply col-span-2 sm:col-span-1;
+  }
+  
+  /* Mobile-friendly stat cards */
+  .mobile-stat-grid {
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4;
+  }
+  
+  /* Floating action button for mobile */
+  .mobile-fab {
+    @apply fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg;
+  }
+  
+  /* Bottom sheet style for mobile */
+  .mobile-bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-2xl shadow-xl safe-bottom;
+    max-height: 90vh;
+  }
+  
+  /* Mobile-optimized table cells */
+  .mobile-table-cell {
+    @apply py-3 px-2 sm:px-4;
+  }
+  
+  /* Prevent text overflow on mobile */
+  .mobile-truncate {
+    @apply truncate max-w-[120px] sm:max-w-[200px] lg:max-w-none;
+  }
+  
+  /* Mobile-friendly badges */
+  .mobile-badge-group {
+    @apply flex flex-wrap gap-1.5;
+  }
+  
+  /* Hide on mobile, show on desktop */
+  .desktop-only {
+    @apply hidden lg:block;
+  }
+  
+  /* Show on mobile, hide on desktop */
+  .mobile-only {
+    @apply block lg:hidden;
+  }
+  
+  /* Mobile-friendly action bar */
+  .mobile-action-bar {
+    @apply sticky bottom-0 left-0 right-0 bg-card border-t p-4 safe-bottom z-40;
+  }
+  
+  /* Improved touch scrolling */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Mobile card hover alternative - active state */
+  @media (hover: none) {
+    .mobile-active:active {
+      @apply bg-accent/50;
+    }
+  }
 }
 
