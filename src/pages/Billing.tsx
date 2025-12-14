@@ -246,7 +246,10 @@ const Billing = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, cancelAtPeriodEnd?: boolean) => {
+    if (cancelAtPeriodEnd && status === 'active') {
+      return <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" /> Cancels at Period End</Badge>;
+    }
     switch (status) {
       case 'active':
       case 'trialing':
@@ -431,10 +434,10 @@ const Billing = () => {
           {/* Current Plan */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Current Plan
-                {getStatusBadge(effectiveSubscriptionStatus)}
-              </CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              Current Plan
+              {getStatusBadge(effectiveSubscriptionStatus, stripeData?.cancel_at_period_end)}
+            </CardTitle>
               <CardDescription>
                 Your subscription details and billing information
               </CardDescription>
@@ -478,13 +481,19 @@ const Billing = () => {
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span>
                         <strong>Team Seats:</strong>{' '}
-                        {billableSeats} seat(s)
-                        {billingDiscrepancy && billingDiscrepancy.stripeSeats !== billingDiscrepancy.dbSeats && (
-                          <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-600">
-                            Stripe: {billingDiscrepancy.stripeSeats}
-                          </Badge>
-                        )}
+                        {billableSeats} billable seat(s)
+                        <span className="text-muted-foreground ml-1">
+                          (owner seat included free)
+                        </span>
                       </span>
+                    </div>
+                    {/* Detailed seat breakdown */}
+                    <div className="pl-6 text-muted-foreground text-xs space-y-0.5">
+                      <div>Active members: {accountHierarchy.billing.activeMembers} (includes owner)</div>
+                      <div>Pending invites: {accountHierarchy.billing.pendingInvites}</div>
+                      {accountHierarchy.billing.disabledMembers > 0 && (
+                        <div>Disabled: {accountHierarchy.billing.disabledMembers}</div>
+                      )}
                     </div>
                     <p>
                       <strong>Invoice Limit:</strong>{' '}
@@ -497,8 +506,18 @@ const Billing = () => {
                     )}
                     {(stripeData?.current_period_end || profile?.current_period_end) && (
                       <p>
-                        <strong>Term End:</strong> {formatDate(stripeData?.current_period_end || profile?.current_period_end || '')}
+                        <strong>{stripeData?.cancel_at_period_end ? 'Access Ends:' : 'Term End:'}</strong>{' '}
+                        {formatDate(stripeData?.current_period_end || profile?.current_period_end || '')}
                       </p>
+                    )}
+                    {stripeData?.cancel_at_period_end && (
+                      <Alert className="mt-2 border-amber-500/50 bg-amber-500/5">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <AlertDescription className="text-amber-700 text-sm">
+                          Your subscription is set to cancel at the end of this billing period. 
+                          You'll retain access until {formatDate(stripeData?.current_period_end || profile?.current_period_end || '')}.
+                        </AlertDescription>
+                      </Alert>
                     )}
                     {/* Monthly Charges Breakdown */}
                     <div className="pt-3 mt-3 border-t space-y-1">
