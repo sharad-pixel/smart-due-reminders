@@ -266,6 +266,12 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
         const subjectPrompt = nextStep.subject_template || 
           `Invoice ${invoice.invoice_number} - Payment Reminder`;
 
+        // Calculate recommended send date based on due date + step day_offset
+        // If already past the step's trigger date, use today
+        const stepTriggerDate = new Date(dueDate);
+        stepTriggerDate.setDate(stepTriggerDate.getDate() + nextStep.day_offset);
+        const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
+
         // Create draft in database
         const { error: draftError } = await supabaseAdmin
           .from('ai_drafts')
@@ -278,7 +284,7 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
             subject: subjectPrompt,
             message_body: generatedContent,
             status: 'pending_approval',
-            recommended_send_date: new Date().toISOString(),
+            recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
             days_past_due: daysPastDue,
           });
 
