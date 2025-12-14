@@ -215,19 +215,15 @@ const Outreach = () => {
           <TabsList>
             <TabsTrigger value="scheduled" className="gap-2">
               <Calendar className="h-4 w-4" />
-              Scheduled Outreach
+              Upcoming Outreach
             </TabsTrigger>
             <TabsTrigger value="invoices" className="gap-2">
               <FileText className="h-4 w-4" />
-              Invoice Overview
-            </TabsTrigger>
-            <TabsTrigger value="new" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              New with History
+              All Invoices
             </TabsTrigger>
           </TabsList>
 
-          {/* Scheduled Outreach Tab */}
+          {/* Upcoming Outreach Tab */}
           <TabsContent value="scheduled" className="space-y-4">
             {isLoading ? (
               <div className="space-y-3">
@@ -239,7 +235,7 @@ const Outreach = () => {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No scheduled outreach</p>
+                  <p className="text-muted-foreground">No upcoming outreach scheduled</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Enable auto-generate drafts in AI Workflows to schedule outreach
                   </p>
@@ -255,40 +251,49 @@ const Outreach = () => {
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-primary" />
                           {getDateLabel(date)}
+                          <span className="text-xs text-muted-foreground">
+                            ({format(new Date(date), "MMM d, yyyy")})
+                          </span>
                         </CardTitle>
                         <Badge variant="outline">{drafts?.length} messages</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="px-4 pb-4 pt-0">
                       <div className="space-y-2">
-                        {drafts?.map((draft) => (
-                          <div
-                            key={draft.id}
-                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer"
-                            onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Mail className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {draft.invoices?.debtors?.company_name || draft.invoices?.debtors?.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {draft.invoices?.invoice_number} • Step {draft.step_number}
-                                </p>
+                        {drafts?.map((draft) => {
+                          const bucketInfo = AGING_BUCKETS.find(
+                            (b) => b.key === draft.invoices?.aging_bucket
+                          );
+                          return (
+                            <div
+                              key={draft.id}
+                              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer"
+                              onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-2 h-8 rounded-full ${bucketInfo?.color || "bg-gray-300"}`} />
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {draft.invoices?.debtors?.company_name || draft.invoices?.debtors?.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {draft.invoices?.invoice_number} • Step {draft.step_number} • {bucketInfo?.label || "Unknown"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={draft.status === "approved" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {draft.status === "approved" ? "Ready to Send" : "Pending Review"}
+                                </Badge>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant={draft.status === "approved" ? "default" : "secondary"}
-                                className="text-xs"
-                              >
-                                {draft.status === "approved" ? "Ready" : "Pending"}
-                              </Badge>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
@@ -296,7 +301,7 @@ const Outreach = () => {
             )}
           </TabsContent>
 
-          {/* Invoice Overview Tab */}
+          {/* All Invoices Tab */}
           <TabsContent value="invoices" className="space-y-4">
             {isLoading ? (
               <div className="space-y-3">
@@ -311,6 +316,9 @@ const Outreach = () => {
                     {filteredInvoices?.map((invoice) => {
                       const historyCount = outreachHistory?.[invoice.id] || 0;
                       const bucketInfo = AGING_BUCKETS.find((b) => b.key === invoice.aging_bucket);
+                      const scheduledCount = scheduledDrafts?.filter(
+                        (d) => d.invoice_id === invoice.id
+                      ).length || 0;
 
                       return (
                         <div
@@ -325,96 +333,28 @@ const Outreach = () => {
                                 {invoice.debtors?.company_name || invoice.debtors?.name}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {invoice.invoice_number} • ${invoice.amount?.toLocaleString()}
+                                {invoice.invoice_number} • ${invoice.amount?.toLocaleString()} • {bucketInfo?.label}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            {historyCount > 0 ? (
-                              <Badge variant="outline" className="gap-1">
-                                <Mail className="h-3 w-3" />
-                                {historyCount}
+                            {scheduledCount > 0 && (
+                              <Badge variant="outline" className="gap-1 text-primary border-primary">
+                                <Clock className="h-3 w-3" />
+                                {scheduledCount} scheduled
                               </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">No outreach</Badge>
+                            )}
+                            {historyCount > 0 && (
+                              <Badge variant="secondary" className="gap-1">
+                                <Mail className="h-3 w-3" />
+                                {historyCount} sent
+                              </Badge>
                             )}
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                       );
                     })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* New Invoices with History Tab */}
-          <TabsContent value="new" className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">
-                    New Invoices with Outreach History
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    Invoices in current/early buckets that already have communication history
-                  </p>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {invoicesData
-                      ?.filter(
-                        (inv) =>
-                          ["current", "dpd_1_30"].includes(inv.aging_bucket || "") &&
-                          outreachHistory?.[inv.id]
-                      )
-                      .map((invoice) => {
-                        const historyCount = outreachHistory?.[invoice.id] || 0;
-
-                        return (
-                          <div
-                            key={invoice.id}
-                            className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer"
-                            onClick={() => navigate(`/invoices/${invoice.id}`)}
-                          >
-                            <div className="flex items-center gap-4">
-                              <Users className="h-5 w-5 text-primary" />
-                              <div>
-                                <p className="font-medium">
-                                  {invoice.debtors?.company_name || invoice.debtors?.name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {invoice.invoice_number} • Due {format(new Date(invoice.due_date), "MMM d")}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <Badge className="gap-1">
-                                <Mail className="h-3 w-3" />
-                                {historyCount} sent
-                              </Badge>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    {invoicesData?.filter(
-                      (inv) =>
-                        ["current", "dpd_1_30"].includes(inv.aging_bucket || "") &&
-                        outreachHistory?.[inv.id]
-                    ).length === 0 && (
-                      <div className="py-12 text-center">
-                        <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <p className="text-muted-foreground">No new invoices with outreach history</p>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
