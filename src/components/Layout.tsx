@@ -475,10 +475,8 @@ const Layout = ({ children }: LayoutProps) => {
       <footer className="border-t bg-card/50 py-6 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                Recouply.ai
-              </span>
+            <div className="flex items-center gap-3">
+              <RecouplyLogo size="sm" />
               <span className="text-muted-foreground text-sm">
                 Collection Intelligence Platform
               </span>
