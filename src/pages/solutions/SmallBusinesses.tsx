@@ -14,7 +14,7 @@ const SmallBusinesses = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "AI-Powered CashOps for Small Businesses | Recouply.ai";
+    document.title = "Collection Intelligence for Small Businesses | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for small businesses, service providers, and contractors. Getting smarter with every invoice while protecting customer relationships.');
@@ -58,7 +58,7 @@ const SmallBusinesses = () => {
     "Embedded payment links in every email and SMS",
     "QuickBooks and accounting software integration",
     "Customer-friendly tone that preserves relationships",
-    "Full CashOps dashboard with real-time visibility"
+    "Full collections dashboard with real-time visibility"
   ];
 
   return (
@@ -136,7 +136,7 @@ Meanwhile, unpaid invoices pile up, cash gets tight, and you're stuck choosing b
 
 Plug in your invoices and let the agents do the rest. The system automatically sends polite reminders before due dates and intelligently follows up when payments are late. Each message includes a secure payment link, making it easy for customers to pay immediately.
 
-You review and approve every message before it goes out, maintaining complete control. No awkward phone calls, no aggressive tactics—just intelligent automation that gets smarter every day. It's like having a full CashOps department working for you at a fraction of the cost of one employee.`}
+You review and approve every message before it goes out, maintaining complete control. No awkward phone calls, no aggressive tactics—just intelligent automation that gets smarter every day. It's like having a full collections department working for you at a fraction of the cost of one employee.`}
               </p>
             </div>
           )}

@@ -9,7 +9,7 @@
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "AI-Powered CashOps Platform",
+  tagline: "Collection Intelligence Platform",
   website: "https://recouply.ai",
   emails: {
     collections: "collections@recouply.ai",

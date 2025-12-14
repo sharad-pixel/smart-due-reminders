@@ -267,7 +267,7 @@ const Signup = () => {
           console.error('Failed to send welcome email:', welcomeErr);
         }
 
-        toast.success("Welcome to Recouply.ai! You're on your way to CashOps Excellence.");
+        toast.success("Welcome to Recouply.ai! You're on your way to Collection Excellence.");
         navigate("/dashboard");
         return;
       }
@@ -366,7 +366,7 @@ const Signup = () => {
       }
 
       if (authData.session) {
-        toast.success("Welcome to Recouply.ai! You're on your way to CashOps Excellence.");
+        toast.success("Welcome to Recouply.ai! You're on your way to Collection Excellence.");
         navigate("/dashboard");
       } else {
         toast.success("Account created! Please check your email to verify your account.");
@@ -411,7 +411,7 @@ const Signup = () => {
             Invite-Only Early Access
           </Badge>
           <RecouplyLogo size="xl" className="justify-center mb-2" />
-          <p className="text-muted-foreground">AI-Powered CashOps Platform</p>
+          <p className="text-muted-foreground">Collection Intelligence Platform</p>
         </div>
 
         {/* Early Access Benefits Card */}

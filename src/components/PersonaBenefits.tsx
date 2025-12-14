@@ -12,7 +12,7 @@ const PersonaBenefits = () => {
         "Automated follow-up eliminates manual AR work",
         "Intelligent risk scoring prioritizes high-impact accounts",
         "Reduce DSO and minimize write-offs",
-        "Real-time visibility into CashOps pipeline"
+        "Real-time visibility into collections pipeline"
       ]
     },
     {
@@ -35,14 +35,14 @@ const PersonaBenefits = () => {
         "Plug in your invoices—agents do the rest",
         "Hands-off cash collection with full control",
         "Faster payments without hiring staff",
-        "Affordable CashOps at a fraction of employee cost",
+        "Affordable collections at a fraction of employee cost",
         "Easy setup with no technical expertise needed"
       ]
     },
     {
       icon: Settings,
       title: "RevOps / Operations Leader",
-      tagline: "The CashOps layer your systems have been missing.",
+      tagline: "The collection intelligence layer your systems have been missing.",
       benefits: [
         "Operational efficiency meets AI-driven recovery",
         "Clean workflows and data-driven insights",

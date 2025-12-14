@@ -14,10 +14,10 @@ export default function WhyCollectionsMatter() {
         <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
           <div className="container mx-auto max-w-6xl text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              CashOps, Revenue Recognition & Business Growth
+              Collections, Revenue Recognition & Business Growth
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto">
-              Strong CashOps and clean AR processes are not back-office tasks — they are critical revenue drivers. 
+              Strong collections and clean AR processes are not back-office tasks — they are critical revenue drivers. 
               Recouply.ai deploys six AI agents that work 24/7 to recover revenue faster and strengthen your cash flow.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -25,7 +25,7 @@ export default function WhyCollectionsMatter() {
                 Try Recouply.ai
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/ai-command-center')}>
-                See the AI CashOps Command Center
+                See the AI Command Center
               </Button>
             </div>
           </div>
@@ -35,7 +35,7 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Why CashOps Matter More Than Ever
+              Why Collections Matter More Than Ever
             </h2>
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <Card>
@@ -49,7 +49,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-destructive mt-1">•</span>
-                      <span>Poor CashOps drag down EBITDA</span>
+                      <span>Poor collections drag down EBITDA</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-destructive mt-1">•</span>
@@ -123,10 +123,10 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-center">
-              CashOps → Direct Impact on Revenue Recognition
+              Collections → Direct Impact on Revenue Recognition
             </h2>
             <p className="text-xl text-muted-foreground mb-12 text-center max-w-3xl mx-auto">
-              Revenue recognition requires collectability assessment. Poor CashOps directly impact your financial statements.
+              Revenue recognition requires collectability assessment. Poor collections directly impact your financial statements.
             </p>
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
@@ -151,7 +151,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                      <span>Clean CashOps = clean books</span>
+                      <span>Clean collections = clean books</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -159,7 +159,7 @@ export default function WhyCollectionsMatter() {
 
               <Card className="bg-gradient-to-br from-primary/10 to-secondary/10">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Benefits of Strong CashOps</h3>
+                  <h3 className="text-xl font-semibold mb-4">Benefits of Strong Collections</h3>
                   <ul className="space-y-3 text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
@@ -171,7 +171,7 @@ export default function WhyCollectionsMatter() {
                     </li>
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
-                      <span>AI-driven CashOps reduces the risk of misstatements</span>
+                      <span>AI-driven collections reduces the risk of misstatements</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-success mt-1 flex-shrink-0" />
@@ -193,7 +193,7 @@ export default function WhyCollectionsMatter() {
             <Card className="bg-gradient-to-r from-success/10 to-primary/10 mb-8">
               <CardContent className="p-8 text-center">
                 <p className="text-2xl md:text-3xl font-bold mb-2">
-                  "Businesses with optimized CashOps have 30–60% faster cash cycles"
+                  "Businesses with optimized collections have 30–60% faster cash cycles"
                 </p>
                 <p className="text-xl text-muted-foreground">
                   and up to 40% fewer bad-debt write-offs
@@ -251,7 +251,7 @@ export default function WhyCollectionsMatter() {
         <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Business Problems Caused by Weak CashOps
+              Business Problems Caused by Weak Collections
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
@@ -304,11 +304,11 @@ export default function WhyCollectionsMatter() {
                       </ul>
                     </div>
                     <div className="p-8">
-                      <h3 className="text-2xl font-bold mb-4">CashOps Command Center</h3>
+                      <h3 className="text-2xl font-bold mb-4">Collections Command Center</h3>
                       <ul className="space-y-3 text-muted-foreground">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                          <span>Full visibility into CashOps pipeline</span>
+                          <span>Full visibility into collections pipeline</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
@@ -413,7 +413,7 @@ export default function WhyCollectionsMatter() {
                       "High write-offs and bad debt",
                       "Slow revenue close cycles",
                       "Cash shortages and unpredictability",
-                      "Fire-drill CashOps approach",
+                      "Fire-drill collections approach",
                       "Overworked teams",
                       "Inconsistent customer communication"
                     ].map((item, index) => (
@@ -438,7 +438,7 @@ export default function WhyCollectionsMatter() {
                       "Better customer experience",
                       "Intelligence that compounds over time",
                       "Clean AR and accurate reporting",
-                      "Proactive CashOps strategy"
+                      "Proactive collections strategy"
                     ].map((item, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />

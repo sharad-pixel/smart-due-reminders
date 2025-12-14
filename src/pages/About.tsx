@@ -126,7 +126,7 @@ const About = () => {
                     
                     <div className="mt-6 text-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
                       <p className="italic text-muted-foreground text-sm border-l-2 border-primary pl-4 text-left">
-                        "Building the future of CashOps — where enterprise-grade reliability meets startup agility."
+                        "Building the future of collections — where enterprise-grade reliability meets startup agility."
                       </p>
                       <p className="mt-3 font-signature text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                         — {founderConfig.name}
@@ -185,14 +185,14 @@ const About = () => {
             </Badge>
             
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              AI-Powered Cash Operations Designed by Real Operators
+              Collection Intelligence Designed by Real Operators
             </h2>
             
             <p className="text-lg text-muted-foreground leading-relaxed mb-8">
               Recouply.ai was created to solve a real problem: companies struggle with late payments, 
               messy AR workflows, inaccurate billing, broken aging reports, and manual collections processes. 
               Built from real enterprise RevOps experience, Recouply.ai delivers a smarter, automated 
-              approach to CashOps — turning AR chaos into clarity.
+              approach to collections — turning AR chaos into clarity.
             </p>
           </div>
           
@@ -324,7 +324,7 @@ const About = () => {
               The Founder's Career Timeline
             </h2>
             <p className="text-lg text-muted-foreground">
-              From enterprise revenue operations to building the future of CashOps
+              From enterprise revenue operations to building the future of collection intelligence
             </p>
           </div>
           

@@ -57,7 +57,7 @@ const SaaS = () => {
     "CRM-connected context-aware outreach",
     "Automated promise-to-pay and renewal reminders",
     "Customer-safe language that preserves relationships",
-    "Full CashOps DSO dashboard with real-time visibility"
+    "Full collections DSO dashboard with real-time visibility"
   ];
 
   const examples = [
@@ -80,7 +80,7 @@ const SaaS = () => {
             Six AI Agents Reducing ARR Leakage—24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Get the power of an entire CashOps department for less than the cost of one employee. 
+            Get the power of an entire collections department for less than the cost of one employee. 
             Our AI agents work around the clock, getting smarter with every interaction.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -116,7 +116,7 @@ const SaaS = () => {
               <p className="text-muted-foreground whitespace-pre-line">
                 {copy?.problem_copy || `Small finance teams manually chasing overdue invoices while collections responsibilities fall on CSMs and AEs. Disorganized shared inboxes lead to inconsistent follow-up, and ARR leakage from unmanaged renewals or overdue invoices creates cash flow unpredictability.
 
-Without scalable CashOps processes, SaaS companies struggle with:
+Without scalable collections processes, SaaS companies struggle with:
 • Manual invoice follow-up consuming valuable time
 • CSMs and AEs diverted from revenue-generating activities
 • No systematic approach to handling overdue accounts

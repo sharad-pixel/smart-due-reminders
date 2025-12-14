@@ -229,7 +229,7 @@ const Login = () => {
             Early Access Program
           </Badge>
           <RecouplyLogo size="xl" className="justify-center mb-2" />
-          <p className="text-muted-foreground">AI-Powered CashOps Platform</p>
+          <p className="text-muted-foreground">Collection Intelligence Platform</p>
         </div>
 
         <Card className="border-2">

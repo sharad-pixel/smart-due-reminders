@@ -480,7 +480,7 @@ const Layout = ({ children }: LayoutProps) => {
                 Recouply.ai
               </span>
               <span className="text-muted-foreground text-sm">
-                AI-Powered CashOps Platform
+                Collection Intelligence Platform
               </span>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

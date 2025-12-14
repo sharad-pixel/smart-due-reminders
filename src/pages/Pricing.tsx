@@ -75,7 +75,7 @@ const plans = [
 const platformFeatures = [
   "Six AI agents working 24/7",
   "Full automation capabilities",
-  "CashOps dashboard & analytics",
+  "Collections dashboard & analytics",
   "Unlimited contacts / accounts",
   "Email & SMS outreach",
   "Promise-to-Pay tracking",
@@ -109,7 +109,7 @@ const icpBenefits = [
   },
   {
     title: "SMB & Local Services",
-    description: "Simple AI-powered CashOps, intelligence that compounds over time, maintain customer relationships",
+    description: "Simple AI-powered collections, intelligence that compounds over time, maintain customer relationships",
     link: "/solutions/small-businesses"
   }
 ];
@@ -122,7 +122,7 @@ const Pricing = () => {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Recouply.ai Pricing – AI-Powered CashOps for SMB + SaaS";
+    document.title = "Recouply.ai Pricing – Collection Intelligence Platform for SMB + SaaS";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute('content', 'Simple, transparent pricing based on active invoice volume. All plans include full platform access with six AI agents recovering revenue 24/7.');
@@ -404,7 +404,7 @@ const Pricing = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-4">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-              AI-Powered CashOps
+              Collection Intelligence Platform
             </div>
           </div>
           <h2 className="text-3xl font-bold text-center mb-4">
