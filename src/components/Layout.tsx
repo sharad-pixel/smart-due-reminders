@@ -122,7 +122,7 @@ const Layout = ({ children }: LayoutProps) => {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, email, avatar_url, stripe_subscription_id, plan_type, is_admin")
+          .select("name, email, avatar_url, plan_type, subscription_status, is_admin")
           .eq("id", user.id)
           .single();
 
@@ -138,8 +138,9 @@ const Layout = ({ children }: LayoutProps) => {
           setAvatarUrl(profile.avatar_url);
         }
 
-        if (profile?.stripe_subscription_id) {
-          setSubscriptionStatus("Active");
+        // Use subscription_status from profile (set by sync-subscription)
+        if (profile?.subscription_status && profile.subscription_status !== 'inactive') {
+          setSubscriptionStatus(profile.subscription_status);
         } else {
           setSubscriptionStatus(null);
         }
