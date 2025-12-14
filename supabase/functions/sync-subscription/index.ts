@@ -153,12 +153,18 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: ownerProfile.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep('No Stripe customer found');
+      logStep('No Stripe customer found - returning existing database plan data');
+      // CRITICAL: Return the existing plan data from database, NOT 'free'
+      // This preserves the user's actual subscription status
       return new Response(
         JSON.stringify({ 
-          subscribed: false,
-          plan_type: 'free',
-          message: 'No Stripe customer found'
+          subscribed: ownerProfile.subscription_status === 'active',
+          plan_type: ownerProfile.plan_type || 'free',
+          billing_interval: ownerProfile.billing_interval || 'month',
+          subscription_status: ownerProfile.subscription_status || 'inactive',
+          current_period_end: ownerProfile.current_period_end,
+          message: 'No Stripe customer found - using database values',
+          from_database: true,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
