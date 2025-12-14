@@ -266,7 +266,7 @@ export const TaskDetailModal = ({
       
       if (error) throw error;
       
-      // Create notifications for mentioned users
+      // Create notifications for mentioned users (sends email + in-app notification)
       for (const mentionedUserId of noteMentions) {
         // Don't notify yourself
         if (mentionedUserId !== currentUser.id) {
@@ -275,7 +275,8 @@ export const TaskDetailModal = ({
             currentUser.name,
             currentUser.id,
             task.id,
-            task.summary
+            task.summary,
+            newNote.trim()
           );
         }
       }
