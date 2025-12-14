@@ -221,13 +221,21 @@ Deno.serve(async (req) => {
 
     // Perform reconciliation
     if (!stripeCustomerId || !stripeSubscriptionId) {
+      // Return 200 with info so UI handles gracefully - user has a plan in DB but no Stripe subscription
       return new Response(JSON.stringify({
         success: false,
-        error: 'No active subscription to reconcile. Please upgrade to a paid plan first.',
+        noSubscription: true,
+        message: 'No active Stripe subscription found. Your plan may have been set up manually or requires re-subscription.',
         dbSeats: totalDbBillableSeats,
         stripeSeats: 0,
+        planType: profile.plan_type,
+        breakdown: {
+          activeSeats: dbActiveSeats,
+          pendingSeats: dbPendingSeats,
+          disabledWithBilling: dbDisabledWithBilling,
+        }
       }), {
-        status: 400,
+        status: 200, // Return 200 so frontend handles gracefully
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
