@@ -112,12 +112,13 @@ APPROACH STYLE - RELATIONSHIP FOCUSED:
     console.log(`Generating drafts for aging bucket: ${aging_bucket}`);
 
     // Calculate the days past due range for this bucket
-    let minDays = 0;
+    let minDays = -999999; // Allow negative for current invoices
     let maxDays = 999999;
     
     switch (aging_bucket) {
       case 'current':
-        maxDays = -1;
+        minDays = -999999;
+        maxDays = 0; // Current = not past due (0 or negative days past due)
         break;
       case 'dpd_1_30':
         minDays = 1;
@@ -136,6 +137,8 @@ APPROACH STYLE - RELATIONSHIP FOCUSED:
         maxDays = 120;
         break;
       case 'dpd_120_plus':
+      case 'dpd_121_150':
+      case 'dpd_150_plus':
         minDays = 121;
         break;
     }
@@ -299,7 +302,32 @@ APPROACH STYLE - RELATIONSHIP FOCUSED:
 
           // Get persona-specific tone and writing style
           const getPersonaContext = (bucket: string, days: number) => {
-            if (days <= 30 || bucket === 'dpd_1_30') {
+            // Current bucket: invoice not yet due - send invoice notification
+            if (bucket === 'current' || days <= 0) {
+              return {
+                name: 'Sam',
+                tone: 'Warm, professional, and welcoming',
+                style: `You are Sam - a friendly, professional customer success specialist sending an invoice notification. Your tone is warm and helpful.
+                
+VOICE & STYLE:
+- This is an invoice notification, NOT a collection message - the invoice is not due yet
+- Use professional but warm language ("Thank you for your business", "Attached please find", "We appreciate your partnership")
+- Clearly state the invoice details: number, amount, due date
+- Provide helpful payment information or instructions
+- Express appreciation for their business
+- Offer to help with any questions
+- Keep the message professional and informative
+
+EXAMPLE PHRASES:
+- "Thank you for your recent order/service"
+- "Please find your invoice details below"
+- "Payment is due by [due date]"
+- "If you have any questions about this invoice, please don't hesitate to reach out"
+- "We appreciate your business and look forward to serving you"
+- "For your convenience, you can pay via..."
+- "Thank you for being a valued customer"`
+              };
+            } else if (days <= 30 || bucket === 'dpd_1_30') {
               return {
                 name: 'Sam',
                 tone: 'Warm, friendly, and gentle',
