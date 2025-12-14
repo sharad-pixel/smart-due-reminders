@@ -152,8 +152,12 @@ const Login = () => {
     setSendingReset(true);
 
     try {
-      await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: getAuthRedirectUrl('/auth/reset-password'),
+      // Use custom branded password reset email
+      await supabase.functions.invoke('send-password-reset', {
+        body: { 
+          email: resetEmail,
+          redirectTo: getAuthRedirectUrl('/auth/reset-password'),
+        },
       });
 
       logSecurityEvent({
