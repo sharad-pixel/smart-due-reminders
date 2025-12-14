@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@/lib/subscriptionConfig";
 import { AccountHierarchy } from "@/components/AccountHierarchy";
 import { useAccountHierarchy } from "@/hooks/useAccountHierarchy";
+import ConsumptionTracker from "@/components/ConsumptionTracker";
 
 // Colorful gauge component
 const UsageGauge = ({ 
@@ -575,70 +576,8 @@ const Billing = () => {
             </CardContent>
           </Card>
 
-          {/* Usage */}
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Monthly Usage
-              </CardTitle>
-              <CardDescription>
-                Track your invoice usage for the current billing period
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-8">
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                {/* Colorful Gauge */}
-                <UsageGauge 
-                  used={invoicesUsed}
-                  limit={typeof invoiceLimit === 'number' ? invoiceLimit : 0}
-                  isUnlimited={isUnlimited}
-                />
-                
-                {/* Stats */}
-                <div className="flex-1 w-full">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                      <p className="text-2xl font-bold text-blue-600">
-                        {isUnlimited ? '∞' : invoiceLimit}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Plan Limit</p>
-                    </div>
-                    <div className="text-center p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                      <p className="text-2xl font-bold text-green-600">{invoicesUsed}</p>
-                      <p className="text-sm text-muted-foreground">Used</p>
-                    </div>
-                    <div className="text-center p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <p className="text-2xl font-bold text-amber-600">{usage?.overage_invoices ?? 0}</p>
-                      <p className="text-sm text-muted-foreground">Overage</p>
-                    </div>
-                  </div>
-                  
-                  {!isUnlimited && (
-                    <div className="mt-4 p-3 rounded-lg bg-muted/50">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Remaining this period</span>
-                        <span className="font-medium">
-                          {usage?.remaining_quota ?? (typeof invoiceLimit === 'number' ? invoiceLimit - invoicesUsed : 0)} invoices
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {(usage?.overage_invoices ?? 0) > 0 && (
-                    <Alert className="mt-4 border-amber-500/50 bg-amber-500/5">
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      <AlertDescription className="text-amber-700">
-                        You have {usage?.overage_invoices} overage invoice(s) this period. 
-                        These will be billed at ${(usage?.overage_rate ?? 1.5).toFixed(2)} each 
-                        (${((usage?.overage_invoices ?? 0) * (usage?.overage_rate ?? 1.5)).toFixed(2)} total).
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Consumption & Upcoming Charges */}
+          <ConsumptionTracker />
 
           {/* Account Hierarchy - Visual Tree */}
           <AccountHierarchy />
