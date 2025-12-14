@@ -170,30 +170,30 @@ export const useNotifications = () => {
   };
 };
 
-// Helper function to create a notification (called from components)
+// Helper function to create a notification and send email (called from components)
 export const createMentionNotification = async (
   mentionedUserId: string,
   senderName: string,
   senderId: string,
   taskId: string,
-  taskSummary: string
+  taskSummary: string,
+  noteContent?: string
 ) => {
   try {
-    const { error } = await supabase
-      .from('user_notifications')
-      .insert({
-        user_id: mentionedUserId,
-        type: 'mention',
-        title: 'You were mentioned in a task note',
-        message: `${senderName} mentioned you in: "${taskSummary.substring(0, 50)}${taskSummary.length > 50 ? '...' : ''}"`,
-        link: `/tasks`,
-        source_type: 'task',
-        source_id: taskId,
-        sender_id: senderId,
-        sender_name: senderName
-      });
+    // Call the edge function which sends both email and creates in-app notification
+    const { error } = await supabase.functions.invoke('send-mention-notification', {
+      body: {
+        mentionedUserId,
+        senderName,
+        senderId,
+        taskId,
+        taskSummary,
+        noteContent
+      }
+    });
 
     if (error) throw error;
+    console.log('[createMentionNotification] Successfully sent mention notification to:', mentionedUserId);
   } catch (error) {
     console.error('Error creating mention notification:', error);
   }
