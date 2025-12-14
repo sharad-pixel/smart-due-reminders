@@ -33,7 +33,6 @@ import Team from "./pages/Team";
 import AcceptInvite from "./pages/AcceptInvite";
 import Profile from "./pages/Profile";
 import SecurityDashboard from "./pages/SecurityDashboard";
-import SecuritySettings from "./pages/SecuritySettings";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionTasks from "./pages/CollectionTasks";
 import Personas from "./pages/Personas";
@@ -123,7 +122,6 @@ const App = () => (
           <Route path="/team" element={<Team />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route path="/security" element={<SecurityDashboard />} />
-          <Route path="/security-settings" element={<SecuritySettings />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/branding" element={<Branding />} />

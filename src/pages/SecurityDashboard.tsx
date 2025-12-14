@@ -7,10 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, AlertTriangle, Activity, Download, RefreshCw } from "lucide-react";
+import { Shield, AlertTriangle, Activity, Download, RefreshCw, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
+import { MFASettings } from "@/components/MFASettings";
+import { SessionManager } from "@/components/SessionManager";
+import { DataEncryptionSettings } from "@/components/DataEncryptionSettings";
 
 interface AuditLog {
   id: string;
@@ -274,11 +277,21 @@ export default function SecurityDashboard() {
         </div>
 
         {/* Tabs for different views */}
-        <Tabs defaultValue="audit" className="space-y-4">
+        <Tabs defaultValue="settings" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </TabsTrigger>
             <TabsTrigger value="audit">Audit Logs</TabsTrigger>
             <TabsTrigger value="security">Security Events</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="settings" className="space-y-6">
+            <MFASettings />
+            <SessionManager />
+            <DataEncryptionSettings />
+          </TabsContent>
 
           <TabsContent value="audit" className="space-y-4">
             <Card>
