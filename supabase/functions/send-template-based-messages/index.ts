@@ -1,14 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
+import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
+
+// Cache branding settings per user to avoid repeated queries
+const brandingCache = new Map<string, any>();
 
 // Process a batch of invoices for a template
 async function processInvoiceBatch(
@@ -69,6 +72,18 @@ async function processInvoiceBatch(
       continue;
     }
 
+    // Fetch branding settings for this user (cached)
+    let branding = brandingCache.get(template.user_id);
+    if (!branding) {
+      const { data: brandingData } = await supabase
+        .from('branding_settings')
+        .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link')
+        .eq('user_id', template.user_id)
+        .maybeSingle();
+      branding = brandingData || {};
+      brandingCache.set(template.user_id, branding);
+    }
+
     const dueDate = new Date(invoice.due_date);
     dueDate.setHours(0, 0, 0, 0);
     const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -91,7 +106,23 @@ async function processInvoiceBatch(
 
     const replyToEmail = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
 
-    console.log(`Sending email to ${allEmails.join(', ')} for invoice ${invoice.invoice_number}`);
+    // Generate From address with user's branding (falls back to Recouply.ai if no branding)
+    const fromEmail = getEmailFromAddress(branding);
+
+    // Format body with line breaks
+    const formattedBody = personalizedBody.replace(/\n/g, "<br>");
+
+    // Generate fully branded email HTML (uses Recouply.ai branding as fallback)
+    const emailHtml = generateBrandedEmail(
+      formattedBody,
+      branding,
+      {
+        invoiceId: invoice.id,
+        amount: invoice.amount,
+      }
+    );
+
+    console.log(`Sending branded email from ${fromEmail} to ${allEmails.join(', ')} for invoice ${invoice.invoice_number}`);
 
     try {
       // Send email to ALL outreach-enabled contacts
@@ -105,10 +136,10 @@ async function processInvoiceBatch(
           },
           body: JSON.stringify({
             to: allEmails,
-            from: PLATFORM_FROM_EMAIL,
+            from: fromEmail,
             reply_to: replyToEmail,
             subject: personalizedSubject || `Invoice ${invoice.invoice_number} - Payment Required`,
-            html: personalizedBody,
+            html: emailHtml,
           }),
         }
       );
@@ -137,10 +168,12 @@ async function processInvoiceBatch(
           message_body: personalizedBody,
           sent_at: new Date().toISOString(),
           metadata: {
-            from_email: PLATFORM_FROM_EMAIL,
+            from_email: fromEmail,
+            from_name: branding?.business_name || 'Recouply.ai',
             reply_to_email: replyToEmail,
             template_id: template.id,
             platform_send: true,
+            branded: true,
           },
         });
 
