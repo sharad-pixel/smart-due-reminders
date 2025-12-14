@@ -10,19 +10,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Eye, AlertCircle, Sparkles, X, ListChecks, Upload, Download, RefreshCw } from "lucide-react";
+import { Plus, Search, Eye, AlertCircle, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AIPromptCreationModal } from "@/components/AIPromptCreationModal";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
-import { InvoiceImportModal } from "@/components/InvoiceImportModal";
-import { InvoiceExportModal } from "@/components/InvoiceExportModal";
-import { BulkStatusUpdateModal } from "@/components/BulkStatusUpdateModal";
-import { ImportJobHistory } from "@/components/ImportJobHistory";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 
@@ -71,10 +66,6 @@ const Invoices = () => {
     return saved === "true";
   });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isAIPromptOpen, setIsAIPromptOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isExportOpen, setIsExportOpen] = useState(false);
-  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
@@ -388,43 +379,6 @@ const Invoices = () => {
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Track and manage outstanding invoices</p>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              onClick={() => setIsImportOpen(true)}
-              className="gap-2 flex-1 sm:flex-initial"
-              size="sm"
-            >
-              <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">Import</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsExportOpen(true)}
-              className="gap-2 flex-1 sm:flex-initial"
-              size="sm"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsBulkStatusOpen(true)}
-              className="gap-2 flex-1 sm:flex-initial"
-              size="sm"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline">Bulk Update</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsAIPromptOpen(true)}
-              className="gap-2 flex-1 sm:flex-initial"
-              size="sm"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Create with AI</span>
-              <span className="sm:hidden">AI</span>
-            </Button>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
                 <Button className="flex-1 sm:flex-initial" size="sm">
@@ -950,113 +904,6 @@ const Invoices = () => {
             )}
           </CardContent>
         </Card>
-
-        <AIPromptCreationModal
-          open={isAIPromptOpen}
-          onOpenChange={setIsAIPromptOpen}
-          onSuccess={fetchData}
-        />
-
-        <Dialog open={showBulkAssignDialog} onOpenChange={setShowBulkAssignDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Assign to Workflow</DialogTitle>
-              <DialogDescription>
-                Select which aging bucket workflow to assign the {selectedInvoices.length} selected invoice(s) to.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Label htmlFor="aging-bucket">Aging Bucket</Label>
-              <Select value={selectedAgingBucket} onValueChange={setSelectedAgingBucket}>
-                <SelectTrigger id="aging-bucket">
-                  <SelectValue placeholder="Select aging bucket" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current">Current (Not Past Due)</SelectItem>
-                  <SelectItem value="dpd_1_30">1-30 Days Past Due</SelectItem>
-                  <SelectItem value="dpd_31_60">31-60 Days Past Due</SelectItem>
-                  <SelectItem value="dpd_61_90">61-90 Days Past Due</SelectItem>
-                  <SelectItem value="dpd_91_120">91-120 Days Past Due</SelectItem>
-                  <SelectItem value="dpd_121_150">121-150 Days Past Due</SelectItem>
-                  <SelectItem value="dpd_150_plus">150+ Days Past Due</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowBulkAssignDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleBulkAssign}>
-                Assign
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Change Invoice Status</DialogTitle>
-              <DialogDescription>
-                Select the new status for the {selectedInvoices.length} selected invoice(s).
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Label htmlFor="bulk-status">New Status</Label>
-              <Select value={selectedBulkStatus} onValueChange={(value) => setSelectedBulkStatus(value as any)}>
-                <SelectTrigger id="bulk-status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Open">Open</SelectItem>
-                  <SelectItem value="Paid">Paid</SelectItem>
-                  <SelectItem value="Disputed">Disputed</SelectItem>
-                  <SelectItem value="Settled">Settled</SelectItem>
-                  <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
-                  <SelectItem value="Canceled">Canceled</SelectItem>
-                  <SelectItem value="FinalInternalCollections">Final Internal Collections</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowBulkStatusDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleBulkStatusChange}>
-                Update Status
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <InvoiceImportModal
-          open={isImportOpen}
-          onOpenChange={setIsImportOpen}
-          onImportComplete={fetchData}
-        />
-
-        <InvoiceExportModal
-          open={isExportOpen}
-          onOpenChange={setIsExportOpen}
-        />
-
-        <BulkStatusUpdateModal
-          open={isBulkStatusOpen}
-          onOpenChange={setIsBulkStatusOpen}
-          onUpdateComplete={fetchData}
-        />
-
-        <AIPromptCreationModal
-          open={isAIPromptOpen}
-          onOpenChange={setIsAIPromptOpen}
-          onSuccess={() => {
-            fetchData();
-          }}
-        />
-
-        <div className="mt-8">
-          <ImportJobHistory />
-        </div>
       </div>
     </Layout>
   );
