@@ -16,8 +16,8 @@ const corsHeaders = {
 };
 
 const SEAT_PRICE_IDS: Record<string, string> = {
-  month: 'price_1SbWueFaeMMSBqclnDqJkOQW',
-  year: 'price_1SbWuuFaeMMSBqclX6xqgX9E',
+  month: 'price_1ScbGhBfb0dWgtCDZukktOuA',  // $75/month
+  year: 'price_1ScbGiBfb0dWgtCDOrLwli7A',   // $720/year
 };
 
 const logStep = (step: string, details?: any) => {

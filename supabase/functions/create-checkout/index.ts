@@ -25,26 +25,22 @@ const corsHeaders = {
 // Updated price IDs - December 2024
 const PRICE_IDS: Record<string, Record<string, string>> = {
   month: {
-    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',      // $199/month
-    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',       // $499/month
-    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx', // $799/month
+    starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',      // $199/month
+    growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',       // $499/month
+    professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ', // $799/month
   },
   year: {
-    // Placeholder - using monthly for now until annual prices created
-    starter: 'price_1SbvygBqszPdRiQvnV7E6rMr',
-    growth: 'price_1SbvzEBqszPdRiQv5C0Vj5JJ',
-    professional: 'price_1SbvzJBqszPdRiQvGtEB1XQx',
+    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $191,040/year (annual)
+    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $479,040/year (annual)
+    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $767,040/year (annual)
   }
 };
 
 // Seat pricing: $75/user/month
 const SEAT_PRICE_IDS: Record<string, string> = {
-  month: 'price_1SbvzLBqszPdRiQvI5Dl6LkA',
-  year: 'price_1SbvzLBqszPdRiQvI5Dl6LkA', // Placeholder
+  month: 'price_1ScbGhBfb0dWgtCDZukktOuA',  // $75/month
+  year: 'price_1ScbGiBfb0dWgtCDOrLwli7A',   // $720/year
 };
-
-// Invoice pricing: $1.99/invoice
-const INVOICE_PRICE_ID = 'price_1SbvzMBqszPdRiQv0AM0GDrv';
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
