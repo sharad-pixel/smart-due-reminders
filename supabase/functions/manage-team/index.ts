@@ -318,6 +318,34 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'invite': {
+        if (!email || !email.trim()) {
+          return new Response(
+            JSON.stringify({ error: 'Email address is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Check if this email is already a pending invite for THIS account
+        const { data: existingPendingInvite } = await supabaseClient
+          .from('account_users')
+          .select('id, status')
+          .eq('account_id', managingAccountId)
+          .eq('email', normalizedEmail)
+          .in('status', ['pending', 'active'])
+          .maybeSingle();
+
+        if (existingPendingInvite) {
+          const statusMsg = existingPendingInvite.status === 'pending' 
+            ? 'already has a pending invite' 
+            : 'is already an active team member';
+          return new Response(
+            JSON.stringify({ error: `This email ${statusMsg} for this account` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         // Check current team size
         const { count: currentTeamCount } = await supabaseClient
           .from('account_users')
@@ -340,15 +368,15 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Check if user exists
+        // Check if user exists in profiles
         const { data: existingUser } = await supabaseClient
           .from('profiles')
           .select('id, email')
-          .eq('email', email)
+          .eq('email', normalizedEmail)
           .maybeSingle();
 
         if (existingUser) {
-          // Check if already a team member
+          // Check if already a team member (by user_id)
           const { data: existingMember } = await supabaseClient
             .from('account_users')
             .select('id, status')
@@ -358,7 +386,7 @@ Deno.serve(async (req) => {
 
           if (existingMember) {
             return new Response(
-              JSON.stringify({ error: 'This user is already a team member' }),
+              JSON.stringify({ error: 'This user is already a team member of this account' }),
               { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
