@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       const dueDate = new Date(invoice.due_date);
       const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
       
+      // Determine aging bucket - use >= for inclusive boundaries matching persona bucket ranges
       let bucket: keyof typeof categorized = 'current';
       if (daysPastDue >= 151) {
         bucket = 'dpd_150_plus';
