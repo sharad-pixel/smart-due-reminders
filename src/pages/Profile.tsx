@@ -48,7 +48,10 @@ import {
   Building2,
   Pencil,
   Copy,
-  Bell
+  Bell,
+  KeyRound,
+  Lock,
+  Mail
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { PLAN_FEATURES } from "@/lib/planGating";
@@ -121,6 +124,13 @@ const Profile = () => {
   const [dailyDigestEmailEnabled, setDailyDigestEmailEnabled] = useState(true);
   const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
   
+  // Password change state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [authProvider, setAuthProvider] = useState<'email' | 'google' | 'other' | null>(null);
+  
   // Get effective account info for parent/child display
   const { 
     isTeamMember, 
@@ -161,6 +171,16 @@ const Profile = () => {
       if (!user) {
         navigate("/login");
         return;
+      }
+
+      // Determine auth provider
+      const provider = user.app_metadata?.provider;
+      if (provider === 'google') {
+        setAuthProvider('google');
+      } else if (provider === 'email' || !provider) {
+        setAuthProvider('email');
+      } else {
+        setAuthProvider('other');
       }
 
       // Get user profile
@@ -499,6 +519,61 @@ const Profile = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully",
+      });
+      setPasswordDialogOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleRequestDeletion = async () => {
     if (!profile) return;
     
@@ -735,6 +810,131 @@ const Profile = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Security & Authentication Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Security & Authentication
+            </CardTitle>
+            <CardDescription>
+              Manage how you sign in to your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Auth Method Display */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                {authProvider === 'google' ? (
+                  <>
+                    <div className="h-10 w-10 rounded-full bg-white border flex items-center justify-center">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium">Google Account</p>
+                      <p className="text-sm text-muted-foreground">{profile.email}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Mail className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Email & Password</p>
+                      <p className="text-sm text-muted-foreground">{profile.email}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Connected
+              </Badge>
+            </div>
+
+            {/* Password Change - Only for email/password users */}
+            {authProvider === 'email' && (
+              <div className="flex items-center justify-between p-4 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Password</p>
+                    <p className="text-sm text-muted-foreground">Update your account password</p>
+                  </div>
+                </div>
+                <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">Change Password</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                      <DialogDescription>
+                        Enter a new password for your account. Password must be at least 8 characters.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input
+                          id="new-password"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter new password"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Confirm Password</Label>
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => {
+                        setPasswordDialogOpen(false);
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleChangePassword}
+                        disabled={changingPassword || !newPassword || !confirmPassword}
+                      >
+                        {changingPassword ? "Updating..." : "Update Password"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+
+            {/* Info for Google users */}
+            {authProvider === 'google' && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Your account is linked to Google. Password management is handled through your Google account settings.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
