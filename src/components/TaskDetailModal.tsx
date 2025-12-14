@@ -343,36 +343,36 @@ export const TaskDetailModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:hidden">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto [&>button]:hidden p-4 sm:p-6">
         <DialogHeader className="pr-0">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-xl">
+              <DialogTitle className="text-base sm:text-xl">
                 {getTaskTypeLabel(task.task_type)}
               </DialogTitle>
-              <DialogDescription className="mt-1">
+              <DialogDescription className="mt-1 text-sm line-clamp-2 sm:line-clamp-none">
                 {task.summary}
               </DialogDescription>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-8 w-8 shrink-0 -mr-2 -mt-1"
               onClick={() => onOpenChange(false)}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </Button>
           </div>
-          <div className="flex gap-2 flex-wrap mt-3">
-            <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap mt-2 sm:mt-3">
+            <Badge variant={daysOpen > 7 ? "destructive" : daysOpen > 3 ? "default" : "secondary"} className="flex items-center gap-1 text-xs">
               <CalendarClock className="h-3 w-3" />
-              {daysOpen === 0 ? 'Today' : `${daysOpen}d open`}
+              {daysOpen === 0 ? 'Today' : `${daysOpen}d`}
             </Badge>
-            <Badge variant={task.status === 'done' ? 'default' : 'secondary'}>
+            <Badge variant={task.status === 'done' ? 'default' : 'secondary'} className="text-xs">
               {task.status}
             </Badge>
-            <Badge>{task.priority}</Badge>
+            <Badge className="text-xs">{task.priority}</Badge>
           </div>
         </DialogHeader>
 
