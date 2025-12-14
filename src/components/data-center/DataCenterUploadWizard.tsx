@@ -355,7 +355,7 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       }
 
       // Process data in client-side batches to avoid edge function timeout
-      const BATCH_SIZE = 100; // Send 100 rows at a time to avoid timeout
+      const BATCH_SIZE = 50; // Send 50 rows at a time for optimal processing
       const rows = parsedData.rows;
       const batches = Math.ceil(rows.length / BATCH_SIZE);
       setTotalBatches(batches);
