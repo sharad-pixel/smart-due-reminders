@@ -1,12 +1,9 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, isToday, isTomorrow, isThisWeek, addDays } from "date-fns";
+import { format } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Mail, Clock, TrendingUp, FileText, Users, Brain, ChevronRight } from "lucide-react";
+import { Mail, Clock, Brain, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,16 +14,16 @@ const AGING_BUCKETS = [
   { key: "dpd_31_60", label: "31-60 Days", color: "bg-orange-500" },
   { key: "dpd_61_90", label: "61-90 Days", color: "bg-red-400" },
   { key: "dpd_91_120", label: "91-120 Days", color: "bg-red-500" },
-  { key: "dpd_121_plus", label: "121+ Days", color: "bg-red-700" },
+  { key: "dpd_121_150", label: "121-150 Days", color: "bg-red-600" },
+  { key: "dpd_150_plus", label: "150+ Days", color: "bg-red-700" },
 ];
 
 const Outreach = () => {
   const navigate = useNavigate();
-  const [selectedBucket, setSelectedBucket] = useState<string>("all");
 
-  // Fetch invoices with outreach data
+  // Fetch invoices with next scheduled outreach
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
-    queryKey: ["outreach-invoices"],
+    queryKey: ["outreach-invoices-with-drafts"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -40,7 +37,6 @@ const Outreach = () => {
           due_date,
           aging_bucket,
           status,
-          last_contact_date,
           debtor_id,
           debtors (
             id,
@@ -56,40 +52,33 @@ const Outreach = () => {
     },
   });
 
-  // Fetch scheduled drafts (upcoming outreach)
-  const { data: scheduledDrafts, isLoading: draftsLoading } = useQuery({
-    queryKey: ["scheduled-drafts"],
+  // Fetch next scheduled draft per invoice
+  const { data: nextDrafts, isLoading: draftsLoading } = useQuery({
+    queryKey: ["next-drafts-per-invoice"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) return {};
 
-      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("ai_drafts")
-        .select(`
-          id,
-          invoice_id,
-          subject,
-          channel,
-          status,
-          recommended_send_date,
-          step_number,
-          invoices (
-            id,
-            invoice_number,
-            aging_bucket,
-            debtors (
-              name,
-              company_name
-            )
-          )
-        `)
+        .select("invoice_id, recommended_send_date, status, step_number")
         .in("status", ["pending_approval", "approved"])
-        .gte("recommended_send_date", today)
         .order("recommended_send_date", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+
+      // Get the earliest draft per invoice
+      const nextPerInvoice: Record<string, { date: string; status: string; step: number }> = {};
+      (data || []).forEach((draft) => {
+        if (draft.invoice_id && !nextPerInvoice[draft.invoice_id]) {
+          nextPerInvoice[draft.invoice_id] = {
+            date: draft.recommended_send_date || "",
+            status: draft.status || "",
+            step: draft.step_number,
+          };
+        }
+      });
+      return nextPerInvoice;
     },
   });
 
@@ -108,7 +97,6 @@ const Outreach = () => {
 
       if (error) throw error;
 
-      // Count per invoice
       const counts: Record<string, number> = {};
       (data || []).forEach((activity) => {
         if (activity.invoice_id) {
@@ -119,46 +107,35 @@ const Outreach = () => {
     },
   });
 
-  // Calculate bucket summaries
-  const bucketSummaries = AGING_BUCKETS.map((bucket) => {
-    const bucketInvoices = invoicesData?.filter((inv) => inv.aging_bucket === bucket.key) || [];
-    const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-    const withOutreach = bucketInvoices.filter((inv) => outreachHistory?.[inv.id]).length;
-    const scheduled = scheduledDrafts?.filter(
-      (d) => d.invoices?.aging_bucket === bucket.key
-    ).length || 0;
-
+  // Group invoices by aging bucket
+  const invoicesByBucket = AGING_BUCKETS.map((bucket) => {
+    const invoices = invoicesData?.filter((inv) => inv.aging_bucket === bucket.key) || [];
+    const totalAmount = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
     return {
       ...bucket,
-      count: bucketInvoices.length,
+      invoices,
       totalAmount,
-      withOutreach,
-      scheduled,
+      count: invoices.length,
     };
-  });
-
-  // Filter invoices by bucket
-  const filteredInvoices = selectedBucket === "all"
-    ? invoicesData
-    : invoicesData?.filter((inv) => inv.aging_bucket === selectedBucket);
-
-  // Group scheduled drafts by date
-  const groupedDrafts = scheduledDrafts?.reduce((acc, draft) => {
-    const date = draft.recommended_send_date || "unscheduled";
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(draft);
-    return acc;
-  }, {} as Record<string, typeof scheduledDrafts>) || {};
-
-  const getDateLabel = (dateStr: string) => {
-    const date = new Date(dateStr);
-    if (isToday(date)) return "Today";
-    if (isTomorrow(date)) return "Tomorrow";
-    if (isThisWeek(date)) return format(date, "EEEE");
-    return format(date, "MMM d, yyyy");
-  };
+  }).filter((bucket) => bucket.count > 0);
 
   const isLoading = invoicesLoading || draftsLoading || historyLoading;
+
+  const formatNextOutreach = (invoiceId: string) => {
+    const draft = nextDrafts?.[invoiceId];
+    if (!draft?.date) return null;
+    
+    const date = new Date(draft.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    if (diffDays < 7) return format(date, "EEEE");
+    return format(date, "MMM d");
+  };
 
   return (
     <Layout>
@@ -170,186 +147,95 @@ const Outreach = () => {
             <h1 className="text-2xl font-bold">Outreach Command Center</h1>
           </div>
           <p className="text-muted-foreground">
-            Manage scheduled outreach, track communication history, and monitor collection activities by aging bucket.
+            View all invoices by aging bucket with scheduled outreach dates.
           </p>
         </div>
 
-        {/* Bucket Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {bucketSummaries.map((bucket) => (
-            <Card
-              key={bucket.key}
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                selectedBucket === bucket.key ? "ring-2 ring-primary" : ""
-              }`}
-              onClick={() => setSelectedBucket(bucket.key === selectedBucket ? "all" : bucket.key)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
-                  <Badge variant="secondary" className="text-xs">
-                    {bucket.count}
-                  </Badge>
-                </div>
-                <p className="text-xs font-medium text-muted-foreground">{bucket.label}</p>
-                <p className="text-lg font-bold">
-                  ${bucket.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </p>
-                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <Mail className="h-3 w-3" />
-                  <span>{bucket.withOutreach} contacted</span>
-                </div>
-                {bucket.scheduled > 0 && (
-                  <div className="flex items-center gap-2 mt-1 text-xs text-primary">
-                    <Clock className="h-3 w-3" />
-                    <span>{bucket.scheduled} scheduled</span>
+        {/* Invoices by Aging Bucket */}
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-48 w-full" />
+            ))}
+          </div>
+        ) : invoicesByBucket.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No open invoices found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {invoicesByBucket.map((bucket) => (
+              <Card key={bucket.key}>
+                <CardHeader className="py-3 px-4 border-b">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
+                      {bucket.label}
+                      <Badge variant="secondary">{bucket.count} invoices</Badge>
+                    </CardTitle>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      ${bucket.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="scheduled" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="scheduled" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              Upcoming Outreach
-            </TabsTrigger>
-            <TabsTrigger value="invoices" className="gap-2">
-              <FileText className="h-4 w-4" />
-              All Invoices
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Upcoming Outreach Tab */}
-          <TabsContent value="scheduled" className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-24 w-full" />
-                ))}
-              </div>
-            ) : Object.keys(groupedDrafts).length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No upcoming outreach scheduled</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Enable auto-generate drafts in AI Workflows to schedule outreach
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              Object.entries(groupedDrafts)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([date, drafts]) => (
-                  <Card key={date}>
-                    <CardHeader className="py-3 px-4">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-primary" />
-                          {getDateLabel(date)}
-                          <span className="text-xs text-muted-foreground">
-                            ({format(new Date(date), "MMM d, yyyy")})
-                          </span>
-                        </CardTitle>
-                        <Badge variant="outline">{drafts?.length} messages</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="px-4 pb-4 pt-0">
-                      <div className="space-y-2">
-                        {drafts?.map((draft) => {
-                          const bucketInfo = AGING_BUCKETS.find(
-                            (b) => b.key === draft.invoices?.aging_bucket
-                          );
-                          return (
-                            <div
-                              key={draft.id}
-                              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer"
-                              onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`w-2 h-8 rounded-full ${bucketInfo?.color || "bg-gray-300"}`} />
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">
-                                    {draft.invoices?.debtors?.company_name || draft.invoices?.debtors?.name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {draft.invoices?.invoice_number} • Step {draft.step_number} • {bucketInfo?.label || "Unknown"}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  variant={draft.status === "approved" ? "default" : "secondary"}
-                                  className="text-xs"
-                                >
-                                  {draft.status === "approved" ? "Ready to Send" : "Pending Review"}
-                                </Badge>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-            )}
-          </TabsContent>
-
-          {/* All Invoices Tab */}
-          <TabsContent value="invoices" className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : (
-              <Card>
+                </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y">
-                    {filteredInvoices?.map((invoice) => {
+                    {bucket.invoices.map((invoice) => {
+                      const nextOutreach = formatNextOutreach(invoice.id);
                       const historyCount = outreachHistory?.[invoice.id] || 0;
-                      const bucketInfo = AGING_BUCKETS.find((b) => b.key === invoice.aging_bucket);
-                      const scheduledCount = scheduledDrafts?.filter(
-                        (d) => d.invoice_id === invoice.id
-                      ).length || 0;
+                      const draftInfo = nextDrafts?.[invoice.id];
 
                       return (
                         <div
                           key={invoice.id}
-                          className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer"
+                          className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                           onClick={() => navigate(`/invoices/${invoice.id}`)}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-2 h-8 rounded-full ${bucketInfo?.color || "bg-gray-300"}`} />
-                            <div>
-                              <p className="font-medium">
-                                {invoice.debtors?.company_name || invoice.debtors?.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {invoice.invoice_number} • ${invoice.amount?.toLocaleString()} • {bucketInfo?.label}
-                              </p>
-                            </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {invoice.debtors?.company_name || invoice.debtors?.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {invoice.invoice_number} • ${invoice.amount?.toLocaleString()}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            {scheduledCount > 0 && (
-                              <Badge variant="outline" className="gap-1 text-primary border-primary">
-                                <Clock className="h-3 w-3" />
-                                {scheduledCount} scheduled
-                              </Badge>
+                          
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* Next Outreach */}
+                            {nextOutreach ? (
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">Next Outreach</p>
+                                <div className="flex items-center gap-1 justify-end">
+                                  <Clock className="h-3 w-3 text-primary" />
+                                  <span className="text-sm font-medium text-primary">{nextOutreach}</span>
+                                  {draftInfo && (
+                                    <Badge 
+                                      variant={draftInfo.status === "approved" ? "default" : "outline"} 
+                                      className="text-xs ml-1"
+                                    >
+                                      Step {draftInfo.step}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">Next Outreach</p>
+                                <span className="text-sm text-muted-foreground">Not scheduled</span>
+                              </div>
                             )}
+                            
+                            {/* Sent count */}
                             {historyCount > 0 && (
                               <Badge variant="secondary" className="gap-1">
                                 <Mail className="h-3 w-3" />
-                                {historyCount} sent
+                                {historyCount}
                               </Badge>
                             )}
+                            
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
@@ -358,9 +244,9 @@ const Outreach = () => {
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );
