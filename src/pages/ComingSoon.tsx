@@ -27,6 +27,7 @@ import { founderConfig, notableCompanies } from "@/lib/founderConfig";
 import founderPhoto from "@/assets/founder-sharad-cartoon.png";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MarketingLayout from "@/components/MarketingLayout";
 
 const ComingSoon = () => {
   const [formData, setFormData] = useState({
@@ -99,7 +100,7 @@ const ComingSoon = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <MarketingLayout>
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
         {/* Subtle background */}
@@ -549,22 +550,7 @@ const ComingSoon = () => {
         </div>
       </section>
 
-      {/* Simple Footer */}
-      <footer className="py-12 border-t border-border">
-        <div className="container mx-auto px-4 text-center space-y-4">
-          <RecouplyLogo size="md" className="justify-center" />
-          <p className="text-sm text-muted-foreground">
-            Building the future of AR collections, one partner at a time.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Questions? Email{" "}
-            <a href={`mailto:${founderConfig.email}`} className="text-primary hover:underline">
-              {founderConfig.email}
-            </a>
-          </p>
-        </div>
-      </footer>
-    </div>
+    </MarketingLayout>
   );
 };
 

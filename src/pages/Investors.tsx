@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { founderConfig } from "@/lib/founderConfig";
 import founderPhoto from "@/assets/founder-sharad-cartoon.png";
+import MarketingLayout from "@/components/MarketingLayout";
 import { 
   Brain, 
   TrendingUp, 
@@ -30,19 +31,7 @@ const Investors = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/">
-            <RecouplyLogo size="md" />
-          </Link>
-          <Button onClick={scrollToContact} className="gap-2">
-            Request Info <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </nav>
-
+    <MarketingLayout>
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
@@ -456,24 +445,7 @@ const Investors = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-12 border-t border-border">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <RecouplyLogo size="sm" />
-          </div>
-          <p className="text-muted-foreground">
-            Collection Intelligence with Continuous Risk Assessment for Your Receivables.
-          </p>
-          <div className="mt-6 flex justify-center gap-6 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-            <Link to="/legal/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link to="/legal/terms" className="hover:text-primary transition-colors">Terms</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </MarketingLayout>
   );
 };
 
