@@ -117,9 +117,8 @@ const ComingSoon = () => {
             </div>
             
             <div className="space-y-6 pt-4">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                We're Building the Future of
-                <span className="block text-primary">AR Collections</span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
+                We're Building <span className="text-primary">Collection Intelligence</span> with Continuous Risk Assessment for Your Receivables
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                 And we're looking for a small group of forward-thinking finance leaders to build it with us.
