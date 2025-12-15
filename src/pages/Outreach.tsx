@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users } from "lucide-react";
+import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users, Calendar, AlertTriangle, DollarSign, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -73,7 +73,8 @@ const Outreach = () => {
             id,
             name,
             company_name,
-            outreach_paused
+            outreach_paused,
+            collections_risk_score
           )
         `)
         .in("status", ["Open", "InPaymentPlan"])
@@ -124,7 +125,7 @@ const Outreach = () => {
     },
   });
 
-  // Fetch outreach history counts per invoice
+  // Fetch outreach history counts and last outreach date per invoice
   const { data: outreachHistory, isLoading: historyLoading } = useQuery({
     queryKey: ["outreach-history"],
     queryFn: async () => {
@@ -133,19 +134,23 @@ const Outreach = () => {
 
       const { data, error } = await supabase
         .from("collection_activities")
-        .select("invoice_id")
+        .select("invoice_id, sent_at")
         .eq("direction", "outbound")
-        .not("invoice_id", "is", null);
+        .not("invoice_id", "is", null)
+        .order("sent_at", { ascending: false });
 
       if (error) throw error;
 
-      const counts: Record<string, number> = {};
+      const info: Record<string, { count: number; lastSentAt: string | null }> = {};
       (data || []).forEach((activity) => {
         if (activity.invoice_id) {
-          counts[activity.invoice_id] = (counts[activity.invoice_id] || 0) + 1;
+          if (!info[activity.invoice_id]) {
+            info[activity.invoice_id] = { count: 0, lastSentAt: activity.sent_at };
+          }
+          info[activity.invoice_id].count += 1;
         }
       });
-      return counts;
+      return info;
     },
   });
 
@@ -450,21 +455,27 @@ const Outreach = () => {
                         <Badge variant="outline" className="text-xs">{invoices.length}</Badge>
                       </div>
                       <div className="divide-y">
-                        {invoices.map((invoice) => {
+                      {invoices.map((invoice) => {
                           const draftInfo = nextDrafts?.[invoice.id];
-                          const historyCount = outreachHistory?.[invoice.id] || 0;
+                          const historyInfo = outreachHistory?.[invoice.id];
+                          const historyCount = historyInfo?.count || 0;
+                          const lastSentAt = historyInfo?.lastSentAt;
                           const nextDate = draftInfo?.date ? formatDate(draftInfo.date) : null;
+                          const daysPastDue = getDaysPastDue(invoice.due_date);
+                          const invoiceAmount = invoice.amount || 0;
 
                           const isPaused = invoice.outreach_paused || invoice.debtors?.outreach_paused;
                           const isAccountPaused = invoice.debtors?.outreach_paused;
+                          const riskScore = invoice.debtors?.collections_risk_score;
 
                           return (
                             <div
                               key={invoice.id}
-                              className={`flex items-center justify-between p-3 px-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
+                              className={`grid grid-cols-12 gap-2 items-center p-3 px-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
                             >
+                              {/* Account & Invoice Info - 3 cols */}
                               <div 
-                                className="flex-1 min-w-0 cursor-pointer"
+                                className="col-span-3 min-w-0 cursor-pointer"
                                 onClick={() => navigate(`/invoices/${invoice.id}`)}
                               >
                                 <div className="flex items-center gap-2">
@@ -472,25 +483,74 @@ const Outreach = () => {
                                     {invoice.debtors?.company_name || invoice.debtors?.name}
                                   </p>
                                   {isPaused && (
-                                    <Badge variant="outline" className="text-xs gap-1 text-orange-600 border-orange-300">
-                                      <PauseCircle className="h-3 w-3" />
-                                      {isAccountPaused ? "Account Paused" : "Paused"}
+                                    <Badge variant="outline" className="text-[10px] gap-0.5 text-orange-600 border-orange-300 shrink-0">
+                                      <PauseCircle className="h-2.5 w-2.5" />
+                                      {isAccountPaused ? "Acct" : "Inv"}
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {invoice.invoice_number} • ${invoice.amount?.toLocaleString()}
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {invoice.invoice_number}
                                 </p>
                               </div>
-                              
-                              <div className="flex items-center gap-3 shrink-0">
+
+                              {/* Amount & Outstanding - 2 cols */}
+                              <div className="col-span-2 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <DollarSign className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-sm font-medium">
+                                    {invoiceAmount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Due Date & DPD - 2 cols */}
+                              <div className="col-span-2">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-xs">{format(new Date(invoice.due_date), "MMM d")}</span>
+                                </div>
+                                {daysPastDue > 0 && (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <AlertTriangle className={`h-3 w-3 ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`} />
+                                    <span className={`text-xs font-medium ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`}>
+                                      {daysPastDue}d overdue
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Last Outreach - 2 cols */}
+                              <div className="col-span-2">
+                                {lastSentAt ? (
+                                  <div className="flex items-center gap-1">
+                                    <Send className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                      {format(new Date(lastSentAt), "MMM d")}
+                                    </span>
+                                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                                      {historyCount}
+                                    </Badge>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No outreach</span>
+                                )}
+                                {riskScore && riskScore >= 70 && (
+                                  <Badge variant="destructive" className="text-[10px] mt-0.5">
+                                    High Risk
+                                  </Badge>
+                                )}
+                              </div>
+
+                              {/* Next Outreach & Actions - 3 cols */}
+                              <div className="col-span-3 flex items-center justify-end gap-2">
                                 {!isPaused && nextDate ? (
                                   <div className="flex items-center gap-1.5">
                                     <Clock className="h-3 w-3 text-primary" />
                                     <span className="text-sm text-primary font-medium">{nextDate}</span>
                                     <Badge 
                                       variant={draftInfo?.status === "approved" ? "default" : "outline"} 
-                                      className="text-xs"
+                                      className="text-[10px]"
                                     >
                                       {draftInfo?.status === "approved" ? "Ready" : "Pending"}
                                     </Badge>
@@ -498,13 +558,6 @@ const Outreach = () => {
                                 ) : !isPaused ? (
                                   <span className="text-xs text-muted-foreground">—</span>
                                 ) : null}
-                                
-                                {historyCount > 0 && (
-                                  <Badge variant="secondary" className="gap-1 text-xs">
-                                    <Mail className="h-3 w-3" />
-                                    {historyCount}
-                                  </Badge>
-                                )}
                                 
                                 {/* Pause/Resume toggle for invoice (only if account not paused) */}
                                 {!isAccountPaused && (
