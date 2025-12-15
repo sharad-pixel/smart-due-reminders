@@ -84,6 +84,7 @@ export const TaskDetailModal = ({
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null);
   const [noteMentions, setNoteMentions] = useState<string[]>([]);
   const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([]);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -512,25 +513,33 @@ export const TaskDetailModal = ({
           <div className="space-y-3 pt-2 border-t">
             <h4 className="font-semibold text-sm flex items-center gap-2">
               <StickyNote className="h-4 w-4" />
-              Notes
+              Notes {notes.length > 0 && <Badge variant="secondary" className="text-xs">{notes.length}</Badge>}
             </h4>
             
             {/* Existing Notes */}
             {notes.length > 0 && (
-              <ScrollArea className="max-h-40">
-                <div className="space-y-2">
-                  {notes.map((note) => (
-                    <div key={note.id} className="bg-muted/50 p-3 rounded-lg text-sm">
-                      <div className="whitespace-pre-wrap">{renderNoteWithMentions(note.content)}</div>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span className="font-medium">{note.user_name}</span>
-                        <span>•</span>
-                        <span>{format(new Date(note.created_at), 'MMM d, yyyy h:mm a')}</span>
-                      </div>
+              <div className="space-y-2">
+                {(showAllNotes ? notes : notes.slice(0, 3)).map((note) => (
+                  <div key={note.id} className="bg-muted/50 p-3 rounded-lg text-sm">
+                    <div className="whitespace-pre-wrap">{renderNoteWithMentions(note.content)}</div>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <span className="font-medium">{note.user_name}</span>
+                      <span>•</span>
+                      <span>{format(new Date(note.created_at), 'MMM d, yyyy h:mm a')}</span>
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                  </div>
+                ))}
+                {notes.length > 3 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowAllNotes(!showAllNotes)}
+                    className="w-full text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {showAllNotes ? `Show less` : `Show ${notes.length - 3} more note${notes.length - 3 > 1 ? 's' : ''}`}
+                  </Button>
+                )}
+              </div>
             )}
             
             {/* Add Note Input */}
