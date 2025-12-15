@@ -1,99 +1,49 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, ArrowRight, MessageCircle, Zap, Target, Brain, Bot, LogIn, AlertTriangle, Sparkles } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { personaConfig } from "@/lib/personaConfig";
-import { Badge } from "@/components/ui/badge";
+import { 
+  Brain, 
+  CheckCircle, 
+  Users, 
+  Lightbulb, 
+  Lock, 
+  ArrowRight,
+  Building2,
+  Target,
+  Zap,
+  Clock,
+  XCircle,
+  Sparkles,
+  BadgeCheck,
+  Calendar,
+  Send
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
-
-const personas = Object.values(personaConfig);
+import { founderConfig, notableCompanies } from "@/lib/founderConfig";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ComingSoon = () => {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    company: "",
+    role: "",
+    monthlyInvoices: "",
+    biggestChallenge: "",
+    whyInterested: ""
+  });
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [oauthError, setOauthError] = useState<string | null>(null);
-  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
-  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [visibleAgents, setVisibleAgents] = useState<number[]>([]);
 
-  // Check for authenticated user and redirect to dashboard
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          navigate("/dashboard");
-        }
-      }
-    );
-
-    // Check existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        navigate("/dashboard");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  // Staggered agent reveal animation
-  useEffect(() => {
-    const revealAgents = () => {
-      personas.forEach((_, index) => {
-        setTimeout(() => {
-          setVisibleAgents(prev => [...prev, index]);
-        }, index * 300);
-      });
-    };
-    
-    const timer = setTimeout(revealAgents, 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Auto-rotate carousel after all agents visible
-  useEffect(() => {
-    if (!carouselApi || visibleAgents.length < personas.length) return;
-
-    const interval = setInterval(() => {
-      carouselApi.scrollNext();
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [carouselApi, visibleAgents.length]);
-
-  // Track current slide
-  useEffect(() => {
-    if (!carouselApi) return;
-
-    const onSelect = () => {
-      setCurrentSlide(carouselApi.selectedScrollSnap());
-    };
-
-    carouselApi.on("select", onSelect);
-    return () => {
-      carouselApi.off("select", onSelect);
-    };
-  }, [carouselApi]);
-
-  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) {
-      toast.error("Please enter your name");
+    if (!formData.name.trim() || !formData.email.trim() || !formData.company.trim()) {
+      toast.error("Please fill in all required fields");
       return;
     }
     
@@ -101,476 +51,523 @@ const ComingSoon = () => {
 
     try {
       const { error } = await supabase
-        .from('waitlist_signups')
-        .insert([{ email, name: name.trim() }]);
+        .from('contact_requests')
+        .insert([{ 
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          company: formData.company.trim(),
+          team_size: formData.role,
+          monthly_invoices: formData.monthlyInvoices,
+          message: `Biggest Challenge: ${formData.biggestChallenge}\n\nWhy Interested: ${formData.whyInterested}`
+        }]);
       
-      if (error) {
-        if (error.code === '23505') {
-          toast.error("This email is already on the waitlist!");
-        } else {
-          throw error;
-        }
-      } else {
-        // Send admin alert with name
-        try {
-          await supabase.functions.invoke('send-admin-alert', {
-            body: { type: 'waitlist', email, name: name.trim() }
-          });
-        } catch (alertErr) {
-          console.error('Failed to send admin alert:', alertErr);
-        }
-        
-        toast.success("Thanks! We'll notify you when we launch.", {
-          description: "You're now on the waitlist for early access."
+      if (error) throw error;
+
+      // Send admin alert
+      try {
+        await supabase.functions.invoke('send-admin-alert', {
+          body: { 
+            type: 'design_partner_application', 
+            email: formData.email,
+            name: formData.name.trim(),
+            company: formData.company.trim()
+          }
         });
-        setEmail("");
-        setName("");
+      } catch (alertErr) {
+        console.error('Failed to send admin alert:', alertErr);
       }
+      
+      toast.success("Application received!", {
+        description: "We'll review your application and be in touch within 48 hours."
+      });
+      setFormData({
+        name: "",
+        email: "",
+        company: "",
+        role: "",
+        monthlyInvoices: "",
+        biggestChallenge: "",
+        whyInterested: ""
+      });
     } catch (error) {
-      console.error('Error saving to waitlist:', error);
+      console.error('Error submitting application:', error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    setOauthError(null);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: getAuthRedirectUrl('/dashboard'),
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
-        },
-      });
-
-      if (error) {
-        if (isRedirectUriMismatchError(error)) {
-          setOauthError(`redirect_uri_mismatch: The Google OAuth redirect URI is not configured correctly. Admin: Add "${SUPABASE_CALLBACK_URL}" to Authorized redirect URIs in Google Cloud Console.`);
-          toast.error('OAuth configuration error. Please contact the administrator.');
-        } else if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
-          toast.error('Google sign-in is not yet configured. Please contact support.');
-        } else {
-          throw error;
-        }
-      }
-    } catch (error: any) {
-      if (isRedirectUriMismatchError(error)) {
-        setOauthError(`redirect_uri_mismatch: The Google OAuth redirect URI is not configured correctly. Admin: Add "${SUPABASE_CALLBACK_URL}" to Authorized redirect URIs in Google Cloud Console.`);
-        toast.error('OAuth configuration error. Please contact the administrator.');
-      } else {
-        toast.error(error.message || "Google sign in failed");
-      }
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-      {/* Animated gradient background with Collection Intelligence theme */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
-      
-      {/* Neural network pattern overlay */}
-      <div className="absolute inset-0 opacity-10">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="neural-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <circle cx="30" cy="30" r="1.5" fill="hsl(var(--primary))" />
-              <line x1="30" y1="30" x2="60" y2="30" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.3" />
-              <line x1="30" y1="30" x2="30" y2="60" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.3" />
-              <line x1="30" y1="30" x2="60" y2="60" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.2" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#neural-grid)" />
-        </svg>
-      </div>
-      
-      {/* Animated gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-20 lg:py-32">
+        {/* Subtle background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-3xl opacity-50" />
+        
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-8">
+            <div className="space-y-4">
+              <RecouplyLogo size="xl" animated className="justify-center text-4xl" />
+              <p className="text-lg text-muted-foreground flex items-center justify-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Collection Intelligence Platform
+              </p>
+            </div>
+            
+            <div className="space-y-6 pt-4">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
+                We're Building the Future of
+                <span className="block text-primary">AR Collections</span>
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                And we're looking for a small group of forward-thinking finance leaders to build it with us.
+              </p>
+            </div>
 
-      {/* Floating data particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(30)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full animate-float-particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${6 + Math.random() * 4}s`,
-              width: `${2 + Math.random() * 4}px`,
-              height: `${2 + Math.random() * 4}px`,
-              background: i % 3 === 0 
-                ? 'hsl(var(--primary) / 0.6)' 
-                : i % 3 === 1 
-                  ? 'hsl(var(--accent) / 0.6)' 
-                  : 'hsl(var(--primary) / 0.4)',
-            }}
-          />
-        ))}
-      </div>
+            <Button 
+              size="lg" 
+              className="text-lg px-8 py-6 gap-2"
+              onClick={() => document.getElementById('apply-form')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Apply to Become a Design Partner
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
 
-      {/* Radial glow behind main card */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-gradient-radial from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
+      {/* Why Design Partners Section */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                Why Become a Design Partner?
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                This isn't a beta test. It's a partnership.
+              </p>
+            </div>
 
-      <Card className="max-w-2xl w-full border-2 border-primary/20 shadow-2xl relative z-10 backdrop-blur-sm bg-card/95 animate-pulse-glow">
-        <CardContent className="pt-12 pb-12 px-8 text-center space-y-8">
-          {/* Collection Intelligence Brain Logo */}
-          <div className="space-y-6 relative">
-            {/* Orbiting elements around brain */}
-            <div className="relative w-24 h-24 mx-auto">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
-                  <Brain className="h-16 w-16 text-primary relative animate-brain-pulse" />
-                </div>
-              </div>
-              {/* Orbiting dots */}
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="absolute top-1/2 left-1/2 w-2 h-2 bg-accent rounded-full animate-orbit"
-                  style={{ 
-                    animationDelay: `${i * -2}s`,
-                    animationDuration: '8s',
-                  }}
-                />
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="border-primary/20 bg-card">
+                <CardContent className="pt-6 text-center space-y-4">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                    <Zap className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Early Access</h3>
+                  <p className="text-muted-foreground">
+                    Be the first to use features before anyone else. Get a head start on AI-powered collections.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20 bg-card">
+                <CardContent className="pt-6 text-center space-y-4">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                    <Lightbulb className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Shape the Roadmap</h3>
+                  <p className="text-muted-foreground">
+                    Direct input on features and priorities. Your feedback drives what we build next.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20 bg-card">
+                <CardContent className="pt-6 text-center space-y-4">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                    <Lock className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Locked Pricing</h3>
+                  <p className="text-muted-foreground">
+                    Lock in founding member pricing for life. As we grow, your rate stays the same.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem vs Solution Section */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                The Collections Problem
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Problem Side */}
+              <Card className="border-destructive/20 bg-destructive/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-destructive">
+                    <XCircle className="h-5 w-5" />
+                    Today's Reality
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    "Manual follow-ups that eat hours every week",
+                    "Spreadsheets to track who owes what",
+                    "Generic email templates that get ignored",
+                    "No visibility into collection effectiveness",
+                    "Inconsistent tone across team members",
+                    "Important customers falling through cracks"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{item}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Solution Side */}
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    <CheckCircle className="h-5 w-5" />
+                    What We're Building
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    "AI agents that handle outreach automatically",
+                    "Intelligent prioritization based on risk",
+                    "Personalized messages that sound human",
+                    "Real-time dashboards and analytics",
+                    "Consistent tone with escalating urgency",
+                    "Every invoice tracked, nothing missed"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span className="text-foreground">{item}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Preview Section */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground flex items-center justify-center gap-3">
+                <Brain className="h-8 w-8 text-primary" />
+                Collection Intelligence
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                A glimpse of what's coming
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-6">
+              {[
+                {
+                  icon: Users,
+                  title: "AI Agent Team",
+                  description: "Six specialized AI agents, each trained for different aging buckets and communication styles."
+                },
+                {
+                  icon: Target,
+                  title: "Risk Scoring",
+                  description: "Automatically prioritize accounts based on payment behavior, history, and collection likelihood."
+                },
+                {
+                  icon: Clock,
+                  title: "Automated Workflows",
+                  description: "Set it and forget it. AI handles the cadence while you focus on strategic accounts."
+                },
+                {
+                  icon: Sparkles,
+                  title: "Smart Drafting",
+                  description: "AI-composed messages that adapt tone based on relationship history and invoice age."
+                }
+              ].map((feature, i) => (
+                <Card key={i} className="border-border/50">
+                  <CardContent className="pt-6 space-y-3">
+                    <feature.icon className="h-8 w-8 text-primary" />
+                    <h3 className="text-lg font-semibold">{feature.title}</h3>
+                    <p className="text-muted-foreground text-sm">{feature.description}</p>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-            
-            <div className="space-y-2 opacity-0 animate-reveal-up" style={{ animationDelay: '0.2s' }}>
-              <RecouplyLogo size="xl" animated className="justify-center text-5xl" />
-              <p className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                Collection Intelligence
+          </div>
+        </div>
+      </section>
+
+      {/* Ideal Partner Profile Section */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                Who We're Looking For
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Design Partners who will get the most value from this partnership
               </p>
             </div>
-          </div>
 
-          {/* Status Badge with enhanced pulse animation */}
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/30 rounded-full opacity-0 animate-reveal-up" style={{ animationDelay: '0.3s' }}>
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent" />
-            </span>
-            <span className="text-sm font-medium bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Private Beta • AI-Powered Collections
-            </span>
+            <Card className="border-primary/20">
+              <CardContent className="pt-6 space-y-6">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {[
+                    "SaaS or B2B services company",
+                    "100+ invoices per month",
+                    "Dedicated AR/Finance person",
+                    "Open to trying new approaches",
+                    "Willing to share honest feedback",
+                    "Available for monthly check-ins"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <BadgeCheck className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Not every company is a fit, and that's okay. We're selective because we want to build deep relationships with partners who will truly benefit.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+        </div>
+      </section>
 
-          {/* Main Message with Collection Intelligence branding */}
-          <div className="space-y-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.4s' }}>
-            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
-              <Sparkles className="h-6 w-6 text-accent animate-pulse" />
-              Coming Soon
-              <Sparkles className="h-6 w-6 text-accent animate-pulse" style={{ animationDelay: '0.5s' }} />
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
-              The <span className="font-semibold text-primary">AI Collections Command Center</span> is launching soon. 
-              Transform how you collect overdue invoices with{" "}
-              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-                <Brain className="h-4 w-4 text-primary" />
-                Collection Intelligence
-              </span>.
-            </p>
-          </div>
-
-          {/* AI Personas Carousel */}
-          <div className="space-y-6 pt-4 opacity-0 animate-reveal-up" style={{ animationDelay: '0.5s' }}>
-            <div className="text-center space-y-3">
-              <h3 className="text-2xl font-semibold text-foreground flex items-center justify-center gap-2">
-                <Brain className="h-6 w-6 text-primary animate-brain-pulse" />
-                Meet Your AI Collection Team
-              </h3>
-              <p className="text-sm text-muted-foreground">Powered by Collection Intelligence</p>
-              
-              {/* Animated Avatar Grid */}
-              <div className="flex justify-center items-center gap-3 py-6">
-                {personas.map((persona, index) => (
-                  <div
-                    key={persona.name}
-                    className={`relative transition-all duration-500 ${
-                      visibleAgents.includes(index)
-                        ? 'opacity-100 scale-100 translate-y-0'
-                        : 'opacity-0 scale-50 translate-y-8'
-                    }`}
-                    style={{ 
-                      animationDelay: `${index * 0.15}s`,
-                    }}
-                  >
-                    <div 
-                      className={`relative cursor-pointer transition-all duration-300 hover:scale-125 ${
-                        currentSlide === index ? 'scale-110 z-10' : 'hover:z-10'
-                      }`}
-                      onClick={() => carouselApi?.scrollTo(index)}
-                      style={{
-                        animation: visibleAgents.includes(index) ? `float ${3 + index * 0.5}s ease-in-out infinite` : 'none',
-                        animationDelay: `${index * 0.3}s`,
-                      }}
-                    >
-                      {/* Glow effect for active */}
-                      {currentSlide === index && (
-                        <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
-                      )}
-                      <PersonaAvatar 
-                        persona={persona} 
-                        size="lg" 
-                        className={`relative ${currentSlide === index ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
-                      />
-                      {/* Name tooltip on hover */}
-                      <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium transition-opacity duration-200 ${
-                        currentSlide === index ? 'opacity-100 text-primary' : 'opacity-0'
-                      }`}>
-                        {persona.name}
+      {/* Founder Section */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <Card className="border-primary/20 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-5 gap-0">
+                  {/* Photo Column */}
+                  <div className="md:col-span-2 bg-gradient-to-br from-primary/10 to-accent/10 p-8 flex items-center justify-center">
+                    <div className="space-y-4 text-center">
+                      <div className="w-32 h-32 mx-auto rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-xl">
+                        <img 
+                          src="/lovable-uploads/founder-sharad-cartoon.png" 
+                          alt={founderConfig.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement!.innerHTML = `<span class="text-4xl font-bold text-primary">${founderConfig.name.split(' ').map(n => n[0]).join('')}</span>`;
+                          }}
+                        />
                       </div>
+                      <div>
+                        <h3 className="text-xl font-bold">{founderConfig.name}</h3>
+                        <p className="text-sm text-muted-foreground">{founderConfig.title}</p>
+                      </div>
+                      <a 
+                        href={founderConfig.linkedIn}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        View LinkedIn Profile
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {visibleAgents.length === personas.length && (
-                <p className="text-sm text-muted-foreground animate-fade-in">
-                  6 specialized agents working 24/7 • Click an agent to learn more
-                </p>
-              )}
+                  {/* Bio Column */}
+                  <div className="md:col-span-3 p-8 space-y-6">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-bold">From the Founder</h2>
+                      <p className="text-sm text-muted-foreground">{founderConfig.yearsExperience} years in Revenue Operations</p>
+                    </div>
+                    
+                    <blockquote className="text-muted-foreground leading-relaxed border-l-2 border-primary pl-4 italic">
+                      "I've spent my career building and fixing collections processes at companies like {notableCompanies.slice(0, 3).join(', ')}. The same problems keep showing up: manual work, inconsistent follow-ups, and good customers getting treated the same as bad ones. Recouply is what I wish existed years ago."
+                    </blockquote>
 
-              {/* Slide indicators */}
-              <div className="flex justify-center gap-2 pt-2">
-                {personas.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => carouselApi?.scrollTo(i)}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      currentSlide === i 
-                        ? 'bg-primary w-6' 
-                        : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-            <Carousel 
-              className="w-full max-w-2xl mx-auto"
-              setApi={setCarouselApi}
-            >
-              <CarouselContent>
-                {Object.values(personaConfig).map((persona) => (
-                  <CarouselItem key={persona.name}>
-                    <Card 
-                      className="border-2 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-primary/50 group"
-                      onMouseEnter={() => setHoveredPersona(persona.name)}
-                      onMouseLeave={() => setHoveredPersona(null)}
-                      onClick={() => setSelectedPersona(selectedPersona === persona.name ? null : persona.name)}
-                    >
-                      <CardContent className="p-8 text-center space-y-6 relative overflow-hidden">
-                        {/* Subtle gradient on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        
-                        <div className="relative">
-                          <div className={`transition-transform duration-300 ${hoveredPersona === persona.name ? 'scale-110' : ''}`}>
-                            <PersonaAvatar persona={persona} size="xl" className="justify-center" />
-                          </div>
-                          {hoveredPersona === persona.name && (
-                            <div className="absolute -top-2 -right-2 animate-pulse">
-                              <Badge className="bg-primary shadow-lg">Click to learn more</Badge>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-3 relative">
-                          <h4 className="text-2xl font-bold text-foreground">{persona.name}</h4>
-                          <p className="text-sm text-muted-foreground">{persona.description}</p>
-                          <Badge variant="outline" className="text-primary border-primary">
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
-                          </Badge>
-                        </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">Previous experience includes:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['ServiceTitan', 'Workday', 'Contentful', 'Maxio', 'Chegg'].map((company) => (
+                          <span 
+                            key={company}
+                            className="text-xs px-3 py-1 bg-muted rounded-full text-muted-foreground"
+                          >
+                            {company}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
 
-                        <div className={`space-y-4 transition-all duration-500 relative ${
-                          selectedPersona === persona.name 
-                            ? 'max-h-96 opacity-100' 
-                            : 'max-h-0 opacity-0 overflow-hidden'
-                        }`}>
-                          <div className="h-px bg-border" />
-                          
-                          <div className="space-y-3 text-left">
-                            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
-                              <MessageCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-1">Communication Style</p>
-                                <p className="text-sm text-muted-foreground italic">"{persona.tone}"</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
-                              <Zap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-1">Automated Actions</p>
-                                <p className="text-sm text-muted-foreground">Sends reminders, follows up, and adapts messaging automatically</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
-                              <Target className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-1">Success Rate</p>
-                                <p className="text-sm text-muted-foreground">Optimized for maximum recovery at this collection stage</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="w-full mt-2 relative"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPersona(selectedPersona === persona.name ? null : persona.name);
-                          }}
-                        >
-                          {selectedPersona === persona.name ? 'Show Less' : 'Learn More'}
-                          <ArrowRight className={`ml-2 h-4 w-4 transition-transform ${
-                            selectedPersona === persona.name ? 'rotate-90' : ''
-                          }`} />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </div>
-
-          {/* Features Preview with staggered animation */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            {[
-              { icon: "⚡", title: "Automated Workflows", desc: "Set it and forget it collections", delay: "0.5s" },
-              { icon: "📊", title: "Analytics Dashboard", desc: "Track every response and outcome", delay: "0.6s" },
-              { icon: "🎯", title: "Smart Targeting", desc: "Right message at the right time", delay: "0.7s" },
-            ].map((feature, i) => (
-              <div 
-                key={i} 
-                className="space-y-2 animate-fade-in group hover:scale-105 transition-transform duration-300"
-                style={{ animationDelay: feature.delay }}
-              >
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto group-hover:bg-primary/20 transition-colors duration-300 group-hover:shadow-lg group-hover:shadow-primary/20">
-                  <span className="text-2xl">{feature.icon}</span>
+                    <div className="pt-4 flex items-center gap-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(founderConfig.calendly, '_blank')}
+                        className="gap-2"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        Book a Call
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </div>
-            ))}
+              </CardContent>
+            </Card>
           </div>
+        </div>
+      </section>
 
-          {/* Early Access Login Section */}
-          <div className="pt-6 space-y-4 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-            <div className="relative">
-              <Separator className="my-4" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-4 text-sm text-muted-foreground font-medium">
-                Already have access?
-              </span>
-            </div>
-
-            <div className="max-w-sm mx-auto space-y-3">
-              {/* OAuth Error Alert - Admin Only */}
-              {oauthError && (
-                <Alert variant="destructive" className="text-left">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>OAuth Configuration Error</AlertTitle>
-                  <AlertDescription className="text-xs mt-2">
-                    <p className="mb-2">{oauthError}</p>
-                    <p className="font-medium">Required Redirect URI:</p>
-                    <code className="block mt-1 p-2 bg-destructive/10 rounded text-xs break-all">
-                      {SUPABASE_CALLBACK_URL}
-                    </code>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-12 border-2 hover:bg-primary/5 hover:border-primary/50 transition-all duration-300"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-              >
-                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-                {googleLoading ? "Signing in..." : "Sign in with Google"}
-              </Button>
-              
-              <p className="text-xs text-center text-muted-foreground">
-                Early access members can sign in to access the platform
+      {/* Application Form Section */}
+      <section id="apply-form" className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                Apply to Become a Design Partner
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Tell us about your company and collection challenges
               </p>
             </div>
-          </div>
 
-          {/* Waitlist Form with glow effect */}
-          <div className="pt-4">
-            <div className="relative mb-4">
-              <Separator className="my-4" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-4 text-sm text-muted-foreground font-medium">
-                Not a member yet?
-              </span>
-            </div>
-            
-            <form onSubmit={handleWaitlistSubmit} className="max-w-md mx-auto space-y-4">
-              <div className="space-y-3 relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-1000" />
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="bg-background"
-                  />
-                </div>
-                <div className="relative flex gap-2">
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="pl-10 bg-background"
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Your Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Jane Smith"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Work Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="jane@company.com"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Company Name *</Label>
+                      <Input
+                        id="company"
+                        value={formData.company}
+                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        placeholder="Acme Inc"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Your Role</Label>
+                      <Input
+                        id="role"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        placeholder="VP Finance, AR Manager, etc."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="monthlyInvoices">Monthly Invoice Volume</Label>
+                    <Select 
+                      value={formData.monthlyInvoices} 
+                      onValueChange={(value) => setFormData({ ...formData, monthlyInvoices: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="under-100">Under 100</SelectItem>
+                        <SelectItem value="100-500">100 - 500</SelectItem>
+                        <SelectItem value="500-1000">500 - 1,000</SelectItem>
+                        <SelectItem value="1000-5000">1,000 - 5,000</SelectItem>
+                        <SelectItem value="5000+">5,000+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="challenge">What's your biggest collections challenge?</Label>
+                    <Textarea
+                      id="challenge"
+                      value={formData.biggestChallenge}
+                      onChange={(e) => setFormData({ ...formData, biggestChallenge: e.target.value })}
+                      placeholder="e.g., Too much manual follow-up, inconsistent processes, no visibility into aging..."
+                      rows={3}
                     />
                   </div>
-                  <Button type="submit" disabled={loading} size="lg" className="relative overflow-hidden group">
-                    <span className="relative z-10">{loading ? "Joining..." : "Request Access"}</span>
-                    <ArrowRight className="ml-2 h-4 w-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Join the waitlist to get early access and exclusive launch benefits
-              </p>
-            </form>
-          </div>
 
-        </CardContent>
-      </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="interest">Why are you interested in being a Design Partner?</Label>
+                    <Textarea
+                      id="interest"
+                      value={formData.whyInterested}
+                      onChange={(e) => setFormData({ ...formData, whyInterested: e.target.value })}
+                      placeholder="Tell us what you hope to get out of this partnership..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <Button type="submit" size="lg" className="w-full gap-2" disabled={loading}>
+                    {loading ? (
+                      "Submitting..."
+                    ) : (
+                      <>
+                        Submit Application
+                        <Send className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    We review every application personally. Expect to hear back within 48 hours.
+                  </p>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Simple Footer */}
+      <footer className="py-12 border-t border-border">
+        <div className="container mx-auto px-4 text-center space-y-4">
+          <RecouplyLogo size="md" className="justify-center" />
+          <p className="text-sm text-muted-foreground">
+            Building the future of AR collections, one partner at a time.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Questions? Email{" "}
+            <a href={`mailto:${founderConfig.email}`} className="text-primary hover:underline">
+              {founderConfig.email}
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
