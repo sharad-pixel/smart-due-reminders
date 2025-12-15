@@ -107,7 +107,7 @@ const ComingSoon = () => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
         <div className="container relative z-10 mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
+          <div className="max-w-5xl mx-auto text-center space-y-8">
             <div className="space-y-4">
               <RecouplyLogo size="xl" animated className="justify-center text-4xl" />
               <p className="text-lg text-muted-foreground flex items-center justify-center gap-2">
