@@ -12,33 +12,33 @@ const SMB = () => {
   const capabilities = [
     {
       icon: Clock,
-      title: "24/7 Follow-Up Automation",
-      description: "Reminders, escalations, and follow-ups run automatically—even when you're sleeping."
+      title: "24/7 Risk-Aware Follow-Up",
+      description: "Reminders and escalations guided by payment signals—proactive outreach that runs while you sleep."
     },
     {
       icon: Mail,
       title: "AI Email Reading & Response",
-      description: "AI agents read customer replies, understand intent, and generate smart responses."
+      description: "Agents understand customer intent and draft responses—reviewed before sending, always under your control."
     },
     {
       icon: TrendingDown,
-      title: "Reduce DSO by 35-50%",
-      description: "Consistent, timely outreach means faster payments and improved cash flow."
+      title: "Improve Cash Visibility",
+      description: "Timely, context-aware outreach designed to support predictable cash outcomes."
     },
     {
       icon: Shield,
-      title: "Never Miss an Invoice",
-      description: "No more overdue balances slipping through the cracks with automated tracking."
+      title: "Act Before Risk Compounds",
+      description: "Proactive signals surface accounts that need attention—so nothing slips through."
     }
   ];
 
   const features = [
-    "Automated dunning sequences for each aging bucket",
-    "Smart escalation based on customer behavior",
-    "Payment plan negotiation workflows",
-    "Real-time dashboard with DSO metrics",
+    "Risk-aware dunning sequences for each aging bucket",
+    "Escalation guided by payment behavior signals",
+    "Payment plan workflows with human approval",
+    "Real-time dashboard with actionable insights",
     "Full audit trail of all communications",
-    "Integration with popular billing systems"
+    "Integrations with popular billing systems"
   ];
 
   return (
@@ -53,10 +53,10 @@ const SMB = () => {
                 Collection Intelligence for SMBs
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Your New AR Collections Team—Powered by AI
+                AI-Assisted Collections With Human Oversight
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Stop chasing payments manually. Six AI agents handle follow-ups, reminders, and escalations 24/7—so you can focus on running your business.
+                Six agents learn from payment behavior and account context to guide your next action—so you can focus on running your business while staying in control.
               </p>
               <div className="flex gap-4 flex-wrap">
                 <Button size="lg" onClick={() => navigate("/signup")} className="text-lg px-8">
@@ -87,10 +87,10 @@ const SMB = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Everything You Need to Eliminate Late Payments
+            Everything You Need to Act Earlier on AR
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            A complete AR automation solution that works as hard as your team
+            Risk-aware automation designed to support predictable cash outcomes
           </p>
           
           <div className="grid md:grid-cols-2 gap-8">
@@ -120,7 +120,7 @@ const SMB = () => {
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Built for Operational Efficiency
+            Built for Visibility and Control
           </h2>
           
           <div className="grid md:grid-cols-2 gap-4">
@@ -144,7 +144,7 @@ const SMB = () => {
                 Collection Intelligence Dashboard
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                AI-powered insights across accounts, communications, payments, and tasks. Know exactly where your money is and what actions will recover it fastest.
+                Visibility into risk signals, payment patterns, and communication sentiment. Know where your money is and what actions will move the needle.
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
@@ -219,10 +219,10 @@ const SMB = () => {
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Automate Your AR Operations?
+            Ready for Risk-Aware Collections?
           </h2>
           <p className="text-lg opacity-90 mb-8">
-            Join SMBs who've reduced DSO by 40% and recovered thousands in the first month.
+            Join SMBs using AI-assisted intelligence to recover revenue and support predictable cash flow.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" variant="secondary" onClick={() => navigate("/signup")} className="text-lg px-8">

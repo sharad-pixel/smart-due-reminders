@@ -1,12 +1,12 @@
 import { Brain, Mail, Zap, CheckCircle, TrendingUp, Shield } from "lucide-react";
 
 const differentiators = [
-  { icon: Brain, title: "360° Account Intelligence", description: "AI analyzes payment history, communication patterns, and risk factors for every account" },
-  { icon: Mail, title: "Communication Intelligence", description: "Understands inbound/outbound messages, sentiment, and response patterns" },
-  { icon: Zap, title: "Task & Resolution Intelligence", description: "Tracks task completion, resolution effectiveness, and team performance" },
-  { icon: CheckCircle, title: "Payment Pattern Analysis", description: "Identifies payment behaviors, predicts delays, and optimizes collection timing" },
-  { icon: TrendingUp, title: "Continuous Learning", description: "AI improves with every touchpoint—emails, notes, payments, and resolutions" },
-  { icon: Shield, title: "Predictive Risk Scoring", description: "Early warning system identifies at-risk accounts before they become problems" },
+  { icon: Brain, title: "360° Account Intelligence", description: "Payment history, communication patterns, and risk signals—synthesized into actionable context" },
+  { icon: Mail, title: "Communication Intelligence", description: "Understands sentiment and intent to guide your next action, not just respond" },
+  { icon: Zap, title: "Task & Resolution Intelligence", description: "Tracks what works, surfaces what doesn't—informing team decisions" },
+  { icon: CheckCircle, title: "Payment Behavior as Insight", description: "Learns from every payment pattern to help you act before risk compounds" },
+  { icon: TrendingUp, title: "Intelligence That Compounds", description: "Every touchpoint makes the system smarter—better signals over time" },
+  { icon: Shield, title: "Proactive Risk Signals", description: "Early visibility into at-risk accounts—designed to support predictable cash flow" },
 ];
 
 const WhyDifferent = () => {
@@ -18,10 +18,10 @@ const WhyDifferent = () => {
             Collection Intelligence Platform
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Intelligence at Every Touchpoint
+            Intelligence That Informs Action
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            AI that analyzes accounts, communications, payments, tasks, and notes to maximize recovery
+            Signals from accounts, communications, and payments—guiding decisions, not just automating tasks
           </p>
         </div>
         

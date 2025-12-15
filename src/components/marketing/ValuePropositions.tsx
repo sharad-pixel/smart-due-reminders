@@ -17,7 +17,7 @@ const ValuePropositions = () => {
             Built for Every Stage of Growth
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Whether you're a startup, SMB, or enterprise—Recouply.ai scales with your needs
+            Risk-aware intelligence that scales with your business—from startup to enterprise
           </p>
         </div>
         
@@ -29,7 +29,7 @@ const ValuePropositions = () => {
                 <Rocket className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For Startups</h3>
-              <p className="text-lg text-muted-foreground mb-6">Grow Faster Without Hiring a Finance Team</p>
+              <p className="text-lg text-muted-foreground mb-6">Visibility Into Cash Outcomes From Day One</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
@@ -64,7 +64,7 @@ const ValuePropositions = () => {
                 <Building2 className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For SMBs</h3>
-              <p className="text-lg text-muted-foreground mb-6">Your New AR Collections Team—Powered by AI</p>
+              <p className="text-lg text-muted-foreground mb-6">AI-Assisted Collections With Human Oversight</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
@@ -96,7 +96,7 @@ const ValuePropositions = () => {
                 <Building className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For Enterprise</h3>
-              <p className="text-lg text-muted-foreground mb-6">Scale Cash Operations Without Increasing Headcount</p>
+              <p className="text-lg text-muted-foreground mb-6">Cross-Functional Intelligence for Finance, Sales & RevOps</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />

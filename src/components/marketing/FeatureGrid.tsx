@@ -3,14 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, Mail, Target, AlertTriangle, DollarSign, Clock, BarChart3, Brain } from "lucide-react";
 
 const features = [
-  { icon: Users, title: "Multi-Agent Workflow Automation", description: "6 specialized AI collectors working in sync around the clock" },
-  { icon: Mail, title: "AI Email Reading + Smart Response", description: "Automatically reads, understands, and responds to customer emails" },
-  { icon: Target, title: "Invoice & Debtor-Level Routing", description: "Smart routing based on customer value, history, and risk tier" },
-  { icon: AlertTriangle, title: "Risk Scoring & Early Warning", description: "Proactive alerts before accounts go delinquent" },
-  { icon: DollarSign, title: "Payment Plan Negotiation", description: "AI-assisted payment arrangement and settlement workflows" },
-  { icon: Clock, title: "Aging Bucket Automation", description: "Automated escalation based on days past due" },
-  { icon: BarChart3, title: "Real-time Dashboard", description: "Cash Operations HQ with full visibility into AR health" },
-  { icon: Brain, title: "Full Message History + AI Summary", description: "Complete audit trail with intelligent conversation summaries" },
+  { icon: Users, title: "Multi-Agent Workflow Automation", description: "6 specialized agents working in sync, guided by payment behavior signals" },
+  { icon: Mail, title: "AI Email Reading + Smart Response", description: "Understands customer intent, drafts responses—reviewed before sending" },
+  { icon: Target, title: "Invoice & Account-Level Routing", description: "Context-aware routing based on value, history, and risk signals" },
+  { icon: AlertTriangle, title: "Risk Scoring & Early Warning", description: "Proactive signals before risk compounds—act earlier, not later" },
+  { icon: DollarSign, title: "Payment Plan Negotiation", description: "AI-assisted arrangements with human oversight at every step" },
+  { icon: Clock, title: "Aging Bucket Automation", description: "Risk-aware escalation aligned with cash flow outcomes" },
+  { icon: BarChart3, title: "Real-time Dashboard", description: "Full visibility into AR health and actionable next steps" },
+  { icon: Brain, title: "Full Message History + AI Summary", description: "Complete audit trail with intelligence that informs decisions" },
 ];
 
 const FeatureGrid = () => {
@@ -44,10 +44,10 @@ const FeatureGrid = () => {
             Features
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Everything You Need to Automate Collections
+            Everything You Need for Risk-Aware Collections
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            A complete Cash Operations platform powered by AI
+            A complete platform designed to support predictable cash outcomes
           </p>
         </div>
         
