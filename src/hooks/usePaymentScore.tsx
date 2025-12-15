@@ -78,12 +78,13 @@ export const useDebtorDashboard = () => {
       const avgScore = data.filter(d => d.payment_score !== null).reduce((sum, d) => sum + (d.payment_score || 0), 0) / 
         (data.filter(d => d.payment_score !== null).length || 1);
       
-      // Count by new risk tiers
-      const stillLearning = data.filter(d => !d.payment_risk_tier || d.payment_risk_tier === "Still learning").length;
-      const lowRisk = data.filter(d => d.payment_risk_tier === "Low").length;
-      const mediumRisk = data.filter(d => d.payment_risk_tier === "Medium").length;
-      const highRisk = data.filter(d => d.payment_risk_tier === "High").length;
-      const criticalRisk = data.filter(d => d.payment_risk_tier === "Critical").length;
+      // Count by risk tiers (case-insensitive matching)
+      const tier = (d: typeof data[0]) => d.payment_risk_tier?.toLowerCase();
+      const stillLearning = data.filter(d => !d.payment_risk_tier || tier(d) === "still learning").length;
+      const lowRisk = data.filter(d => tier(d) === "low").length;
+      const mediumRisk = data.filter(d => tier(d) === "medium").length;
+      const highRisk = data.filter(d => tier(d) === "high").length;
+      const criticalRisk = data.filter(d => tier(d) === "critical").length;
       
       // Calculate DSO (Days Sales Outstanding)
       const totalAR = data.reduce((sum, d) => sum + (d.total_open_balance || 0), 0);
