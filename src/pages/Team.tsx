@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft, Send, Building2, Link2 } from "lucide-react";
+import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft, Send, Building2, Link2, Crown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -64,6 +64,9 @@ const Team = () => {
   const [reassignEmail, setReassignEmail] = useState("");
   const [isReassigning, setIsReassigning] = useState(false);
   const [isResendingInvite, setIsResendingInvite] = useState<string | null>(null);
+  const [showTransferOwnershipDialog, setShowTransferOwnershipDialog] = useState(false);
+  const [selectedNewOwner, setSelectedNewOwner] = useState<TeamMember | null>(null);
+  const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
   
   // Get effective account info for team members
   const { isTeamMember, ownerName, ownerEmail, ownerCompanyName, ownerPlanType, ownerSubscriptionStatus, memberRole, loading: accountLoading } = useEffectiveAccount();
@@ -321,6 +324,35 @@ const Team = () => {
       toast.error(error.message || "Failed to resend invitation");
     } finally {
       setIsResendingInvite(null);
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!selectedNewOwner) {
+      toast.error("Please select an admin to transfer ownership to");
+      return;
+    }
+
+    setIsTransferringOwnership(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "transfer_ownership",
+          newOwnerId: selectedNewOwner.user_id,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Ownership transferred successfully");
+      setShowTransferOwnershipDialog(false);
+      setSelectedNewOwner(null);
+      await loadTeamMembers();
+    } catch (error: any) {
+      console.error("Error transferring ownership:", error);
+      toast.error(error.message || "Failed to transfer ownership");
+    } finally {
+      setIsTransferringOwnership(false);
     }
   };
 
@@ -778,6 +810,17 @@ const Team = () => {
                   
                   {/* Actions */}
                   <div className="flex items-center gap-2 flex-wrap lg:justify-end pt-2 lg:pt-0 border-t lg:border-t-0">
+                    {member.role === "owner" && !isTeamMember && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowTransferOwnershipDialog(true)}
+                        className="h-8 text-xs"
+                      >
+                        <Crown className="h-3 w-3 mr-1" />
+                        Transfer Ownership
+                      </Button>
+                    )}
                     {member.role !== "owner" && (
                       <>
                         {member.status === "active" && (
@@ -1018,6 +1061,81 @@ const Team = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Transfer Ownership Dialog */}
+            <AlertDialog open={showTransferOwnershipDialog} onOpenChange={setShowTransferOwnershipDialog}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <Crown className="h-5 w-5 text-warning" />
+                    Transfer Ownership
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Transfer account ownership to an admin. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <Alert className="bg-destructive/10 border-destructive/30">
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <AlertDescription className="text-destructive">
+                      <strong>Warning:</strong> You will become an admin and lose owner privileges including billing management.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="space-y-2">
+                    <Label>Select New Owner (Admin only)</Label>
+                    <Select
+                      value={selectedNewOwner?.user_id || ""}
+                      onValueChange={(value) => {
+                        const member = teamMembers.find(m => m.user_id === value);
+                        setSelectedNewOwner(member || null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an admin..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers
+                          .filter(m => m.role === "admin" && m.status === "active")
+                          .map(member => (
+                            <SelectItem key={member.user_id} value={member.user_id}>
+                              {member.profiles?.name || member.profiles?.email || member.email}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                    {teamMembers.filter(m => m.role === "admin" && m.status === "active").length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        No admins available. Promote a team member to admin first.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isTransferringOwnership}>Cancel</AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    onClick={handleTransferOwnership}
+                    disabled={isTransferringOwnership || !selectedNewOwner}
+                  >
+                    {isTransferringOwnership ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Transferring...
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="h-4 w-4 mr-2" />
+                        Transfer Ownership
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             
             {/* Billing Info Footer */}
             <div className="mt-6 pt-4 border-t">
