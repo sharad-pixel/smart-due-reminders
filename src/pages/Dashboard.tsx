@@ -6,13 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, Play, HeartPulse, Zap } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, Play, HeartPulse, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
-import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
 import { PaymentActivityCard } from "@/components/PaymentActivityCard";
 import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
@@ -81,10 +79,6 @@ const Dashboard = () => {
   const [priorityOverdues, setPriorityOverdues] = useState<Invoice[]>([]);
   const [statusFilters, setStatusFilters] = useState<string[]>(["Open", "InPaymentPlan"]);
   const [tasksAssignedToMeOnly, setTasksAssignedToMeOnly] = useState(false);
-  
-  // Debtor Dashboard state
-  const { data: debtorData, isLoading: debtorLoading } = useDebtorDashboard();
-  const { calculateScore } = usePaymentScore();
   
   // Sorting state for Priority Overdues
   const [overdueSortKey, setOverdueSortKey] = useState<string | null>("daysPastDue");
@@ -786,83 +780,6 @@ const Dashboard = () => {
 
         {/* Payment Activity Section */}
         <PaymentActivityCard limit={5} />
-
-        {/* Account Dashboard Section */}
-        <div className="space-y-6 pt-8 border-t">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold">Account Analytics</h2>
-              <p className="text-muted-foreground">Monitor payment scores and risk indicators</p>
-            </div>
-            <Button 
-              onClick={() => calculateScore.mutate({ recalculate_all: true })} 
-              disabled={calculateScore.isPending}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${calculateScore.isPending ? "animate-spin" : ""}`} />
-              Recalculate Scores
-            </Button>
-          </div>
-
-          {/* Account Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-5">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Accounts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{debtorData?.summary.totalDebtors || 0}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Days Sales Outstanding</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{debtorData?.summary.dso || 0}</div>
-                <p className="text-xs text-muted-foreground">Days average</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Payment Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{debtorData?.summary.avgScore || 50}</div>
-                <p className="text-xs text-muted-foreground">Out of 100</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Low Risk</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{debtorData?.summary.lowRisk || 0}</div>
-                <p className="text-xs text-muted-foreground">Score 80-100</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">High Risk</CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">{debtorData?.summary.highRisk || 0}</div>
-                <p className="text-xs text-muted-foreground">Score 0-49</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Aging Bucket Breakdown */}
-          <AgingBucketBreakdown />
-        </div>
 
         {/* Task Detail Modal */}
         <TaskDetailModal
