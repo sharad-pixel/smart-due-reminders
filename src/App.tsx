@@ -80,11 +80,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
-          {/* HOMEPAGE: Coming Soon page for public visitors */}
-          <Route path="/" element={<ComingSoon />} />
-          
-          {/* Full marketing site accessible at /home */}
+          {/* HOMEPAGE: Main marketing landing page */}
+          <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/design-partners" element={<ComingSoon />} />
           <Route path="/features" element={<Features />} />
           <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
           <Route path="/pricing" element={<Pricing />} />
