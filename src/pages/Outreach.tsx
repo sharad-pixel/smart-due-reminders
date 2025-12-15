@@ -1,28 +1,36 @@
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle } from "lucide-react";
+import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { personaConfig, getPersonaByDaysPastDue } from "@/lib/personaConfig";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AGING_BUCKETS = [
-  { key: "current", label: "Current", color: "bg-green-500" },
-  { key: "dpd_1_30", label: "1-30 Days", color: "bg-yellow-500" },
-  { key: "dpd_31_60", label: "31-60 Days", color: "bg-orange-500" },
-  { key: "dpd_61_90", label: "61-90 Days", color: "bg-red-400" },
-  { key: "dpd_91_120", label: "91-120 Days", color: "bg-red-500" },
-  { key: "dpd_121_150", label: "121-150 Days", color: "bg-red-600" },
-  { key: "dpd_150_plus", label: "150+ Days", color: "bg-red-700" },
+  { key: "current", label: "Current", color: "bg-green-500", minDays: 0, maxDays: 0 },
+  { key: "dpd_1_30", label: "1-30 Days", color: "bg-yellow-500", minDays: 1, maxDays: 30 },
+  { key: "dpd_31_60", label: "31-60 Days", color: "bg-orange-500", minDays: 31, maxDays: 60 },
+  { key: "dpd_61_90", label: "61-90 Days", color: "bg-red-400", minDays: 61, maxDays: 90 },
+  { key: "dpd_91_120", label: "91-120 Days", color: "bg-red-500", minDays: 91, maxDays: 120 },
+  { key: "dpd_121_150", label: "121-150 Days", color: "bg-red-600", minDays: 121, maxDays: 150 },
+  { key: "dpd_150_plus", label: "150+ Days", color: "bg-red-700", minDays: 151, maxDays: null },
 ];
 
 const Outreach = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Filter state
+  const [bucketFilter, setBucketFilter] = useState<string>("all");
+  const [personaFilter, setPersonaFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Mutation for toggling invoice outreach pause
   const toggleInvoicePause = useMutation({
@@ -141,34 +149,97 @@ const Outreach = () => {
     },
   });
 
-  // Group invoices by aging bucket, then by next email step
-  const invoicesByBucket = AGING_BUCKETS.map((bucket) => {
-    const bucketInvoices = invoicesData?.filter((inv) => inv.aging_bucket === bucket.key) || [];
+  // Helper to get days past due
+  const getDaysPastDue = (dueDate: string) => {
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = today.getTime() - due.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  // Summary stats per bucket and persona
+  const summaryStats = useMemo(() => {
+    if (!invoicesData) return [];
     
-    // Group by next step label within the bucket
-    const byStep: Record<string, typeof bucketInvoices> = {};
-    bucketInvoices.forEach((inv) => {
-      const draft = nextDrafts?.[inv.id];
-      const stepKey = draft?.stepLabel || "No Outreach Scheduled";
-      if (!byStep[stepKey]) byStep[stepKey] = [];
-      byStep[stepKey].push(inv);
-    });
+    return AGING_BUCKETS.map((bucket) => {
+      const bucketInvoices = invoicesData.filter((inv) => inv.aging_bucket === bucket.key);
+      const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+      const pausedCount = bucketInvoices.filter((inv) => inv.outreach_paused || inv.debtors?.outreach_paused).length;
+      
+      // Get persona for this bucket based on days
+      const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
+      const persona = getPersonaByDaysPastDue(midDays);
+      
+      return {
+        ...bucket,
+        count: bucketInvoices.length,
+        totalAmount,
+        pausedCount,
+        persona,
+      };
+    }).filter((b) => b.count > 0);
+  }, [invoicesData]);
 
-    // Sort steps: scheduled first (by step number), then "No Outreach Scheduled" last
-    const sortedSteps = Object.entries(byStep).sort(([a], [b]) => {
-      if (a === "No Outreach Scheduled") return 1;
-      if (b === "No Outreach Scheduled") return -1;
-      return a.localeCompare(b);
+  // Apply filters
+  const filteredInvoices = useMemo(() => {
+    if (!invoicesData) return [];
+    
+    return invoicesData.filter((inv) => {
+      // Bucket filter
+      if (bucketFilter !== "all" && inv.aging_bucket !== bucketFilter) return false;
+      
+      // Persona filter
+      if (personaFilter !== "all") {
+        const dpd = getDaysPastDue(inv.due_date);
+        const persona = getPersonaByDaysPastDue(dpd);
+        if (!persona || persona.name.toLowerCase() !== personaFilter) return false;
+      }
+      
+      // Status filter (paused/active)
+      if (statusFilter === "paused" && !inv.outreach_paused && !inv.debtors?.outreach_paused) return false;
+      if (statusFilter === "active" && (inv.outreach_paused || inv.debtors?.outreach_paused)) return false;
+      
+      return true;
     });
+  }, [invoicesData, bucketFilter, personaFilter, statusFilter]);
 
-    const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-    return {
-      ...bucket,
-      stepGroups: sortedSteps,
-      totalAmount,
-      count: bucketInvoices.length,
-    };
-  }).filter((bucket) => bucket.count > 0);
+  // Group filtered invoices by aging bucket, then by next email step
+  const invoicesByBucket = useMemo(() => {
+    return AGING_BUCKETS.map((bucket) => {
+      const bucketInvoices = filteredInvoices.filter((inv) => inv.aging_bucket === bucket.key);
+      
+      // Group by next step label within the bucket
+      const byStep: Record<string, typeof bucketInvoices> = {};
+      bucketInvoices.forEach((inv) => {
+        const draft = nextDrafts?.[inv.id];
+        const stepKey = draft?.stepLabel || "No Outreach Scheduled";
+        if (!byStep[stepKey]) byStep[stepKey] = [];
+        byStep[stepKey].push(inv);
+      });
+
+      // Sort steps: scheduled first (by step number), then "No Outreach Scheduled" last
+      const sortedSteps = Object.entries(byStep).sort(([a], [b]) => {
+        if (a === "No Outreach Scheduled") return 1;
+        if (b === "No Outreach Scheduled") return -1;
+        return a.localeCompare(b);
+      });
+
+      const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+      
+      // Get persona for this bucket
+      const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
+      const persona = getPersonaByDaysPastDue(midDays);
+      
+      return {
+        ...bucket,
+        stepGroups: sortedSteps,
+        totalAmount,
+        count: bucketInvoices.length,
+        persona,
+      };
+    }).filter((bucket) => bucket.count > 0);
+  }, [filteredInvoices, nextDrafts]);
 
   const isLoading = invoicesLoading || draftsLoading || historyLoading;
 
@@ -184,6 +255,8 @@ const Outreach = () => {
     return format(date, "MMM d");
   };
 
+  const personaList = Object.entries(personaConfig);
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -198,6 +271,129 @@ const Outreach = () => {
           </p>
         </div>
 
+        {/* Summary Cards by Bucket with Persona */}
+        {!isLoading && summaryStats.length > 0 && (
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+            {summaryStats.map((stat) => (
+              <Card 
+                key={stat.key} 
+                className={`cursor-pointer hover:shadow-md transition-shadow ${bucketFilter === stat.key ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => setBucketFilter(bucketFilter === stat.key ? "all" : stat.key)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    {stat.persona ? (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={stat.persona.avatar} alt={stat.persona.name} />
+                        <AvatarFallback style={{ backgroundColor: stat.persona.color }}>
+                          {stat.persona.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className={`w-8 h-8 rounded-full ${stat.color} flex items-center justify-center`}>
+                        <Users className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{stat.label}</p>
+                      {stat.persona && (
+                        <p className="text-[10px] text-muted-foreground truncate">{stat.persona.name}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-lg font-bold">{stat.count}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ${stat.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </p>
+                    {stat.pausedCount > 0 && (
+                      <Badge variant="outline" className="text-[10px] gap-1 text-orange-600 border-orange-300">
+                        <PauseCircle className="h-2.5 w-2.5" />
+                        {stat.pausedCount} paused
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filters:</span>
+              </div>
+              
+              <Select value={bucketFilter} onValueChange={setBucketFilter}>
+                <SelectTrigger className="w-[150px] h-8 text-sm">
+                  <SelectValue placeholder="All Buckets" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Buckets</SelectItem>
+                  {AGING_BUCKETS.map((bucket) => (
+                    <SelectItem key={bucket.key} value={bucket.key}>
+                      {bucket.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={personaFilter} onValueChange={setPersonaFilter}>
+                <SelectTrigger className="w-[140px] h-8 text-sm">
+                  <SelectValue placeholder="All Personas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Personas</SelectItem>
+                  {personaList.map(([key, persona]) => (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: persona.color }}
+                        />
+                        {persona.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[130px] h-8 text-sm">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(bucketFilter !== "all" || personaFilter !== "all" || statusFilter !== "all") && (
+                <Badge 
+                  variant="secondary" 
+                  className="cursor-pointer" 
+                  onClick={() => {
+                    setBucketFilter("all");
+                    setPersonaFilter("all");
+                    setStatusFilter("all");
+                  }}
+                >
+                  Clear Filters
+                </Badge>
+              )}
+              
+              <span className="text-sm text-muted-foreground ml-auto">
+                {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Invoices by Aging Bucket */}
         {isLoading ? (
           <div className="space-y-4">
@@ -209,7 +405,9 @@ const Outreach = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No open invoices found</p>
+              <p className="text-muted-foreground">
+                {filteredInvoices.length === 0 && invoicesData?.length ? "No invoices match your filters" : "No open invoices found"}
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -219,8 +417,22 @@ const Outreach = () => {
                 <CardHeader className="py-3 px-4 border-b">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-semibold flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
+                      {bucket.persona ? (
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={bucket.persona.avatar} alt={bucket.persona.name} />
+                          <AvatarFallback style={{ backgroundColor: bucket.persona.color }}>
+                            {bucket.persona.name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
+                      )}
                       {bucket.label}
+                      {bucket.persona && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          ({bucket.persona.name})
+                        </span>
+                      )}
                       <Badge variant="secondary">{bucket.count} invoices</Badge>
                     </CardTitle>
                     <span className="text-sm font-medium text-muted-foreground">
