@@ -454,6 +454,14 @@ const Outreach = () => {
                         <span className="text-sm font-medium">{stepLabel}</span>
                         <Badge variant="outline" className="text-xs">{invoices.length}</Badge>
                       </div>
+                      {/* Column Headers */}
+                      <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground">
+                        <div className="col-span-3">Account / Invoice</div>
+                        <div className="col-span-2 text-right">Amount</div>
+                        <div className="col-span-2">Due Date</div>
+                        <div className="col-span-2">Last Outreach</div>
+                        <div className="col-span-3 text-right">Next Outreach</div>
+                      </div>
                       <div className="divide-y">
                       {invoices.map((invoice) => {
                           const draftInfo = nextDrafts?.[invoice.id];
