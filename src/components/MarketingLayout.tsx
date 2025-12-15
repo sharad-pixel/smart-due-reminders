@@ -231,9 +231,6 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              AI-powered software as a service. Not a collection agency.
-            </p>
           </div>
         </div>
       </footer>
