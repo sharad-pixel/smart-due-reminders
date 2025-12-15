@@ -66,6 +66,10 @@ export const useDebtorDashboard = () => {
   return useQuery({
     queryKey: ["debtor-dashboard"],
     queryFn: async () => {
+      // Ensure user is authenticated before querying
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from("debtors")
         .select("*")
