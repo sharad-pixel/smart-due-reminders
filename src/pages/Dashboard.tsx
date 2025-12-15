@@ -184,7 +184,7 @@ const Dashboard = () => {
           .select("*, debtors(name, company_name), invoices(invoice_number)")
           .in("status", ["open", "in_progress"])
           .order("created_at", { ascending: false })
-          .limit(10),
+          .limit(25),
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
@@ -269,14 +269,14 @@ const Dashboard = () => {
         { bucket: "121+", count: buckets["121+"].count, amount: buckets["121+"].amount },
       ]);
 
-      // Get Priority Overdues (top 10 by days past due)
+      // Get Priority Overdues (top 25 by days past due)
       const overdues = openInvoices
         .map((inv) => ({
           ...inv,
           daysPastDue: getDaysPastDue(inv.due_date),
         }))
         .sort((a, b) => b.daysPastDue - a.daysPastDue)
-        .slice(0, 10);
+        .slice(0, 25);
 
       setPriorityOverdues(overdues);
     } catch (error: any) {

@@ -62,7 +62,7 @@ interface Debtor {
   contacts?: DebtorContact[];
 }
 
-const ROWS_PER_PAGE = 50;
+const ROWS_PER_PAGE = 25;
 
 const Debtors = () => {
   const navigate = useNavigate();
