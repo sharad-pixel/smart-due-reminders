@@ -40,12 +40,13 @@ const logStep = (step: string, details?: any) => {
 };
 
 interface TeamAction {
-  action: 'invite' | 'deactivate' | 'reactivate' | 'reassign' | 'resend_invite' | 'changeRole' | 'list' | 'getAssignedTasksCount' | 'disable' | 'enable';
+  action: 'invite' | 'deactivate' | 'reactivate' | 'reassign' | 'resend_invite' | 'changeRole' | 'list' | 'getAssignedTasksCount' | 'disable' | 'enable' | 'transfer_ownership';
   email?: string;
   userId?: string;
   memberId?: string;
   role?: string;
   reassignTo?: string;
+  newOwnerId?: string;
 }
 
 // Helper: Get billable seat count for an account
@@ -259,7 +260,7 @@ Deno.serve(async (req) => {
     
     const user = userData.user;
     const body: TeamAction = await req.json();
-    const { action, email, userId, memberId, role, reassignTo } = body;
+    const { action, email, userId, memberId, role, reassignTo, newOwnerId } = body;
 
     logStep('Action received', { action, userId: user.id });
 
@@ -1108,6 +1109,137 @@ Deno.serve(async (req) => {
           data,
           billableSeats,
           totalMembers: data?.length || 0
+        };
+        break;
+      }
+
+      case 'transfer_ownership': {
+        // Only the current owner can transfer ownership
+        if (!membershipCheck?.is_owner && membershipCheck?.role !== 'owner') {
+          return new Response(
+            JSON.stringify({ error: 'Only the current owner can transfer ownership' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (!newOwnerId) {
+          return new Response(
+            JSON.stringify({ error: 'New owner ID is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Verify the new owner is an active admin of this account
+        const { data: newOwnerMember, error: newOwnerError } = await supabaseClient
+          .from('account_users')
+          .select('id, user_id, role, status, is_owner')
+          .eq('account_id', managingAccountId)
+          .eq('user_id', newOwnerId)
+          .eq('status', 'active')
+          .single();
+
+        if (newOwnerError || !newOwnerMember) {
+          return new Response(
+            JSON.stringify({ error: 'New owner must be an active team member' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (newOwnerMember.role !== 'admin') {
+          return new Response(
+            JSON.stringify({ error: 'New owner must have admin role before ownership can be transferred' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        logStep('Initiating ownership transfer', { 
+          currentOwner: user.id, 
+          newOwner: newOwnerId,
+          accountId: managingAccountId 
+        });
+
+        // Start the transfer - update the current owner to admin
+        const { error: demoteError } = await supabaseClient
+          .from('account_users')
+          .update({ 
+            role: 'admin', 
+            is_owner: false,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('account_id', managingAccountId)
+          .eq('user_id', user.id)
+          .eq('is_owner', true);
+
+        if (demoteError) {
+          logStep('Error demoting current owner', { error: demoteError });
+          throw demoteError;
+        }
+
+        // Promote the new owner
+        const { error: promoteError } = await supabaseClient
+          .from('account_users')
+          .update({ 
+            role: 'owner', 
+            is_owner: true,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('account_id', managingAccountId)
+          .eq('user_id', newOwnerId);
+
+        if (promoteError) {
+          // Rollback - restore original owner
+          await supabaseClient
+            .from('account_users')
+            .update({ 
+              role: 'owner', 
+              is_owner: true,
+              updated_at: new Date().toISOString() 
+            })
+            .eq('account_id', managingAccountId)
+            .eq('user_id', user.id);
+          
+          logStep('Error promoting new owner, rolled back', { error: promoteError });
+          throw promoteError;
+        }
+
+        // Update the organizations table to reflect new owner
+        const { error: orgError } = await supabaseClient
+          .from('organizations')
+          .update({ 
+            owner_user_id: newOwnerId,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('owner_user_id', managingAccountId);
+
+        if (orgError) {
+          logStep('Error updating organization owner', { error: orgError });
+          // Don't fail the entire operation for this - account_users is the source of truth
+        }
+
+        // Log audit event
+        await supabaseClient.from('audit_logs').insert({
+          user_id: user.id,
+          action_type: 'ownership_transfer',
+          resource_type: 'account',
+          resource_id: managingAccountId,
+          old_values: { owner_user_id: user.id },
+          new_values: { owner_user_id: newOwnerId },
+          metadata: { 
+            transferred_by: user.id,
+            transferred_to: newOwnerId,
+            account_id: managingAccountId
+          },
+        });
+
+        logStep('Ownership transfer completed successfully', { 
+          previousOwner: user.id, 
+          newOwner: newOwnerId 
+        });
+
+        result = { 
+          success: true, 
+          message: 'Ownership transferred successfully. You are now an admin of this account.',
+          newOwnerId
         };
         break;
       }
