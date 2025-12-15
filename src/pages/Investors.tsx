@@ -444,10 +444,10 @@ const Investors = () => {
 
             <div className="space-y-4">
               <Button size="lg" className="text-lg px-8 py-6 gap-2" asChild>
-                <a href="mailto:sharad@recouply.ai?subject=Investment Inquiry - Recouply.ai">
+                <Link to="/contact">
                   Request Investor Information
                   <ArrowRight className="h-5 w-5" />
-                </a>
+                </Link>
               </Button>
               <p className="text-sm text-muted-foreground">
                 Investment opportunities are private and reviewed manually.
