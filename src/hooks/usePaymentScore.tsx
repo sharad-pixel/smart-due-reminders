@@ -70,6 +70,7 @@ export const useDebtorDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Fetch debtors
       const { data, error } = await supabase
         .from("debtors")
         .select("*")
@@ -77,6 +78,41 @@ export const useDebtorDashboard = () => {
         .order("payment_score", { ascending: true, nullsFirst: true });
 
       if (error) throw error;
+
+      // Fetch invoices from last 90 days for DSO calculation
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
+
+      const { data: invoices, error: invoicesError } = await supabase
+        .from("invoices")
+        .select("amount_original, amount_outstanding, status, issue_date")
+        .gte("issue_date", ninetyDaysAgoStr)
+        .not("status", "eq", "Draft");
+
+      if (invoicesError) throw invoicesError;
+
+      // Calculate DSO using proper formula:
+      // DSO = (Total Outstanding Amount / Total Original Invoice Amount) × 90
+      let totalOutstanding = 0;
+      let totalOriginal = 0;
+
+      (invoices || []).forEach((inv: any) => {
+        const original = Number(inv.amount_original) || Number(inv.amount_outstanding) || 0;
+        totalOriginal += original;
+        
+        // Paid invoices contribute 0 outstanding_amount
+        if (inv.status === "Paid" || inv.status === "Settled" || inv.status === "Canceled") {
+          totalOutstanding += 0;
+        } else {
+          // Open, Partial, Overdue invoices
+          totalOutstanding += Number(inv.amount_outstanding) || 0;
+        }
+      });
+
+      let dso = totalOriginal > 0 ? Math.round((totalOutstanding / totalOriginal) * 90) : 0;
+      // Cap DSO at maximum 365
+      dso = Math.min(dso, 365);
 
       const totalDebtors = data.length;
       const avgScore = data.filter(d => d.payment_score !== null).reduce((sum, d) => sum + (d.payment_score || 0), 0) / 
@@ -90,14 +126,8 @@ export const useDebtorDashboard = () => {
       const highRisk = data.filter(d => tier(d) === "high").length;
       const criticalRisk = data.filter(d => tier(d) === "critical").length;
       
-      // Calculate DSO (Days Sales Outstanding)
+      // Calculate total AR
       const totalAR = data.reduce((sum, d) => sum + (d.total_open_balance || 0), 0);
-      const weightedDaysToPay = data.reduce((sum, d) => {
-        const balance = d.total_open_balance || 0;
-        const days = d.avg_days_to_pay || 0;
-        return sum + (balance * days);
-      }, 0);
-      const dso = totalAR > 0 ? Math.round(weightedDaysToPay / totalAR) : 0;
 
       return {
         debtors: data,
