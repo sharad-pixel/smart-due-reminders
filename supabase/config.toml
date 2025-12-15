@@ -260,3 +260,6 @@ verify_jwt = true
 
 [functions.daily-intelligence-reports]
 verify_jwt = false
+
+[functions.ensure-invoice-workflows]
+verify_jwt = false
