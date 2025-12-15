@@ -6,13 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, ExternalLink, Play, HeartPulse, Zap } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, TrendingDown, Play, HeartPulse, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDebtorDashboard, usePaymentScore } from "@/hooks/usePaymentScore";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
@@ -87,17 +85,10 @@ const Dashboard = () => {
   // Debtor Dashboard state
   const { data: debtorData, isLoading: debtorLoading } = useDebtorDashboard();
   const { calculateScore } = usePaymentScore();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [riskFilter, setRiskFilter] = useState<string>("all");
-  const [scoreFilter, setScoreFilter] = useState<string>("all");
   
   // Sorting state for Priority Overdues
   const [overdueSortKey, setOverdueSortKey] = useState<string | null>("daysPastDue");
   const [overdueSortDir, setOverdueSortDir] = useState<SortDirection>("desc");
-  
-  // Sorting state for Accounts table
-  const [accountSortKey, setAccountSortKey] = useState<string | null>("payment_score");
-  const [accountSortDir, setAccountSortDir] = useState<SortDirection>("asc");
 
   // Saved views
   const {
@@ -113,18 +104,15 @@ const Dashboard = () => {
 
   // Build current view config
   const currentConfig: ViewConfig = useMemo(() => ({
-    filters: { searchTerm, riskFilter, scoreFilter, statusFilters },
+    filters: { statusFilters },
     sorting: overdueSortKey ? { column: overdueSortKey, direction: overdueSortDir || 'asc' } : undefined
-  }), [searchTerm, riskFilter, scoreFilter, statusFilters, overdueSortKey, overdueSortDir]);
+  }), [statusFilters, overdueSortKey, overdueSortDir]);
 
   // Apply loaded view config
   useEffect(() => {
     if (activeView?.view_config) {
       const config = activeView.view_config;
       if (config.filters) {
-        if (config.filters.searchTerm !== undefined) setSearchTerm(config.filters.searchTerm);
-        if (config.filters.riskFilter !== undefined) setRiskFilter(config.filters.riskFilter);
-        if (config.filters.scoreFilter !== undefined) setScoreFilter(config.filters.scoreFilter);
         if (config.filters.statusFilters !== undefined) setStatusFilters(config.filters.statusFilters);
       }
       if (config.sorting) {
@@ -145,17 +133,6 @@ const Dashboard = () => {
     }
   };
   
-  const handleAccountSort = (key: string) => {
-    if (accountSortKey === key) {
-      if (accountSortDir === "asc") setAccountSortDir("desc");
-      else if (accountSortDir === "desc") { setAccountSortDir(null); setAccountSortKey(null); }
-      else setAccountSortDir("asc");
-    } else {
-      setAccountSortKey(key);
-      setAccountSortDir("asc");
-    }
-  };
-  
   const sortedOverdues = useMemo(() => {
     if (!overdueSortKey || !overdueSortDir) return priorityOverdues;
     return [...priorityOverdues].sort((a: any, b: any) => {
@@ -167,29 +144,6 @@ const Dashboard = () => {
       return overdueSortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
   }, [priorityOverdues, overdueSortKey, overdueSortDir]);
-  
-  const sortedAccounts = useMemo(() => {
-    const filtered = debtorData?.debtors.filter(debtor => {
-      const matchesSearch = debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           debtor.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRisk = riskFilter === "all" || debtor.payment_risk_tier === riskFilter;
-      const matchesScore = scoreFilter === "all" || 
-        (scoreFilter === "high" && (debtor.payment_score || 50) >= 80) ||
-        (scoreFilter === "medium" && (debtor.payment_score || 50) >= 50 && (debtor.payment_score || 50) < 80) ||
-        (scoreFilter === "low" && (debtor.payment_score || 50) < 50);
-      return matchesSearch && matchesRisk && matchesScore;
-    }) || [];
-    
-    if (!accountSortKey || !accountSortDir) return filtered;
-    return [...filtered].sort((a: any, b: any) => {
-      let aVal = a[accountSortKey];
-      let bVal = b[accountSortKey];
-      if (aVal == null) return accountSortDir === "asc" ? 1 : -1;
-      if (bVal == null) return accountSortDir === "asc" ? -1 : 1;
-      if (typeof aVal === "string") return accountSortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      return accountSortDir === "asc" ? aVal - bVal : bVal - aVal;
-    });
-  }, [debtorData?.debtors, searchTerm, riskFilter, scoreFilter, accountSortKey, accountSortDir]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -908,205 +862,6 @@ const Dashboard = () => {
 
           {/* Aging Bucket Breakdown */}
           <AgingBucketBreakdown />
-
-          {/* Account Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="flex gap-4 flex-wrap">
-              <Input
-                placeholder="Search accounts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-              
-              <Select value={riskFilter} onValueChange={setRiskFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Risk Tier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Risk Tiers</SelectItem>
-                  <SelectItem value="low">Low Risk</SelectItem>
-                  <SelectItem value="medium">Medium Risk</SelectItem>
-                  <SelectItem value="high">High Risk</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={scoreFilter} onValueChange={setScoreFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Score Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Scores</SelectItem>
-                  <SelectItem value="high">80-100 (High)</SelectItem>
-                  <SelectItem value="medium">50-79 (Medium)</SelectItem>
-                  <SelectItem value="low">0-49 (Low)</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Account Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Accounts</CardTitle>
-              <CardDescription>Click on an account to view detailed score breakdown. Click column headers to sort.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortableTableHead
-                      sortKey="name"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Account Name
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="payment_score"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Payment Score
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="payment_risk_tier"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Risk Tier
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="total_open_balance"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Outstanding Balance
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="open_invoices_count"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Open Invoices
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="avg_days_to_pay"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Avg Days to Pay
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="max_days_past_due"
-                      currentSortKey={accountSortKey}
-                      currentSortDirection={accountSortDir}
-                      onSort={handleAccountSort}
-                    >
-                      Max Days Past Due
-                    </SortableTableHead>
-                    <TableHead>Flags</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedAccounts.map((debtor) => {
-                      const score = debtor.payment_score || 50;
-                      const getScoreBadge = () => {
-                        if (score >= 80) return <Badge className="bg-green-500">Low Risk</Badge>;
-                        if (score >= 50) return <Badge className="bg-yellow-500">Medium Risk</Badge>;
-                        return <Badge className="bg-red-500">High Risk</Badge>;
-                      };
-                      const getScoreColor = () => {
-                        if (score >= 80) return "text-green-600";
-                        if (score >= 50) return "text-yellow-600";
-                        return "text-red-600";
-                      };
-
-                      return (
-                        <TableRow
-                          key={debtor.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/debtors/${debtor.id}`)}
-                        >
-                          <TableCell className="font-medium">{debtor.name}</TableCell>
-                          <TableCell>
-                            <span className={`text-2xl font-bold ${getScoreColor()}`}>
-                              {score}
-                            </span>
-                          </TableCell>
-                          <TableCell>{getScoreBadge()}</TableCell>
-                          <TableCell>
-                            ${(debtor.total_open_balance || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Link 
-                              to={`/invoices?debtor=${debtor.id}`}
-                              className="text-primary hover:underline font-medium"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {debtor.open_invoices_count || 0}
-                            </Link>
-                          </TableCell>
-                          <TableCell>
-                            {debtor.avg_days_to_pay 
-                              ? `${debtor.avg_days_to_pay.toFixed(1)} days`
-                              : "N/A"}
-                          </TableCell>
-                          <TableCell>
-                            {debtor.max_days_past_due || 0} days
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              {(debtor.disputed_invoices_count || 0) > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  {debtor.disputed_invoices_count} Disputed
-                                </Badge>
-                              )}
-                              {(debtor.in_payment_plan_invoices_count || 0) > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  {debtor.in_payment_plan_invoices_count} In Plan
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Link
-                                to={`/collection-tasks?debtor=${debtor.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button variant="ghost" size="sm" className="h-8">
-                                  <ExternalLink className="h-3 w-3 mr-1" />
-                                  Tasks
-                                </Button>
-                              </Link>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  
-                  {sortedAccounts.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground">
-                        No accounts found matching your filters
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Task Detail Modal */}

@@ -65,6 +65,7 @@ export const usePaymentScore = (debtorId?: string) => {
 export const useDebtorDashboard = () => {
   return useQuery({
     queryKey: ["debtor-dashboard"],
+    staleTime: 0,
     queryFn: async () => {
       // Ensure user is authenticated before querying
       const { data: { user } } = await supabase.auth.getUser();
@@ -84,21 +85,27 @@ export const useDebtorDashboard = () => {
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
 
+      // Get all invoices for DSO calculation (exclude Draft)
       const { data: invoices, error: invoicesError } = await supabase
         .from("invoices")
-        .select("amount_original, amount_outstanding, status, issue_date")
-        .gte("issue_date", ninetyDaysAgoStr)
+        .select("amount, amount_original, amount_outstanding, status, issue_date")
         .not("status", "eq", "Draft");
 
       if (invoicesError) throw invoicesError;
+
+      // Filter invoices from last 90 days client-side for DSO
+      const recentInvoices = (invoices || []).filter((inv: any) => {
+        if (!inv.issue_date) return false;
+        return inv.issue_date >= ninetyDaysAgoStr;
+      });
 
       // Calculate DSO using proper formula:
       // DSO = (Total Outstanding Amount / Total Original Invoice Amount) × 90
       let totalOutstanding = 0;
       let totalOriginal = 0;
 
-      (invoices || []).forEach((inv: any) => {
-        const original = Number(inv.amount_original) || Number(inv.amount_outstanding) || 0;
+      recentInvoices.forEach((inv: any) => {
+        const original = Number(inv.amount_original) || Number(inv.amount) || 0;
         totalOriginal += original;
         
         // Paid invoices contribute 0 outstanding_amount
@@ -106,7 +113,7 @@ export const useDebtorDashboard = () => {
           totalOutstanding += 0;
         } else {
           // Open, Partial, Overdue invoices
-          totalOutstanding += Number(inv.amount_outstanding) || 0;
+          totalOutstanding += Number(inv.amount_outstanding) || Number(inv.amount) || 0;
         }
       });
 
@@ -115,8 +122,10 @@ export const useDebtorDashboard = () => {
       dso = Math.min(dso, 365);
 
       const totalDebtors = data.length;
-      const avgScore = data.filter(d => d.payment_score !== null).reduce((sum, d) => sum + (d.payment_score || 0), 0) / 
-        (data.filter(d => d.payment_score !== null).length || 1);
+      const scoredDebtors = data.filter(d => d.payment_score !== null);
+      const avgScore = scoredDebtors.length > 0 
+        ? scoredDebtors.reduce((sum, d) => sum + (d.payment_score || 0), 0) / scoredDebtors.length
+        : 50;
       
       // Count by risk tiers (case-insensitive matching)
       const tier = (d: typeof data[0]) => d.payment_risk_tier?.toLowerCase();
