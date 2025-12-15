@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -60,10 +60,13 @@ interface Invoice {
   aging_bucket: string | null;
   created_at: string | null;
   updated_at: string | null;
+  outreach_paused: boolean | null;
+  outreach_paused_at: string | null;
   debtors?: { 
     company_name: string; 
     email: string;
     crm_account_id: string | null;
+    outreach_paused?: boolean | null;
   };
 }
 
@@ -181,7 +184,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const [invoiceRes, outreachLogsRes, activitiesRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(company_name, email, crm_account_id)")
+          .select("*, debtors(company_name, email, crm_account_id, outreach_paused)")
           .eq("id", id)
           .single(),
         supabase
@@ -722,11 +725,63 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               </div>
             </div>
           </div>
-          <Button onClick={handleEditInvoice}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Invoice
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Outreach Pause Toggle */}
+            <Button 
+              variant={invoice.outreach_paused ? "default" : "outline"} 
+              onClick={async () => {
+                const newPaused = !invoice.outreach_paused;
+                const { error } = await supabase
+                  .from("invoices")
+                  .update({ 
+                    outreach_paused: newPaused,
+                    outreach_paused_at: newPaused ? new Date().toISOString() : null
+                  })
+                  .eq("id", id);
+                if (error) {
+                  toast.error("Failed to update outreach status");
+                } else {
+                  toast.success(newPaused ? "Outreach paused for this invoice" : "Outreach resumed for this invoice");
+                  fetchData();
+                }
+              }}
+              className={invoice.outreach_paused ? "bg-orange-600 hover:bg-orange-700" : ""}
+              disabled={invoice.debtors?.outreach_paused === true}
+              title={invoice.debtors?.outreach_paused ? "Account-level outreach is paused" : undefined}
+            >
+              {invoice.outreach_paused ? (
+                <>
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Resume Outreach
+                </>
+              ) : (
+                <>
+                  <PauseCircle className="h-4 w-4 mr-2" />
+                  Pause Outreach
+                </>
+              )}
+            </Button>
+            <Button onClick={handleEditInvoice}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Invoice
+            </Button>
+          </div>
         </div>
+
+        {/* Paused Alert Banners */}
+        {(invoice.outreach_paused || invoice.debtors?.outreach_paused) && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center gap-3">
+            <PauseCircle className="h-5 w-5 text-orange-600 shrink-0" />
+            <div>
+              <p className="font-medium text-orange-800">Outreach Paused</p>
+              <p className="text-sm text-orange-700">
+                {invoice.debtors?.outreach_paused 
+                  ? "All outreach for this account is paused. Resume at the account level to enable outreach."
+                  : "Automated outreach for this invoice is paused. Click \"Resume Outreach\" to restart."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Grid - 3 columns on large screens */}
         <div className="grid lg:grid-cols-3 gap-6">

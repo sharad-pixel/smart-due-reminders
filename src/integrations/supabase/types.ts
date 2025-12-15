@@ -1842,6 +1842,9 @@ export type Database = {
           notes: string | null
           open_invoices_count: number | null
           organization_id: string | null
+          outreach_paused: boolean | null
+          outreach_paused_at: string | null
+          outreach_paused_reason: string | null
           payment_risk_tier: string | null
           payment_score: number | null
           payment_score_last_calculated: string | null
@@ -1922,6 +1925,9 @@ export type Database = {
           notes?: string | null
           open_invoices_count?: number | null
           organization_id?: string | null
+          outreach_paused?: boolean | null
+          outreach_paused_at?: string | null
+          outreach_paused_reason?: string | null
           payment_risk_tier?: string | null
           payment_score?: number | null
           payment_score_last_calculated?: string | null
@@ -2002,6 +2008,9 @@ export type Database = {
           notes?: string | null
           open_invoices_count?: number | null
           organization_id?: string | null
+          outreach_paused?: boolean | null
+          outreach_paused_at?: string | null
+          outreach_paused_reason?: string | null
           payment_risk_tier?: string | null
           payment_score?: number | null
           payment_score_last_calculated?: string | null
@@ -3119,6 +3128,9 @@ export type Database = {
           next_contact_date: string | null
           notes: string | null
           organization_id: string | null
+          outreach_paused: boolean | null
+          outreach_paused_at: string | null
+          outreach_paused_reason: string | null
           paid_date: string | null
           payment_date: string | null
           payment_method: string | null
@@ -3160,6 +3172,9 @@ export type Database = {
           next_contact_date?: string | null
           notes?: string | null
           organization_id?: string | null
+          outreach_paused?: boolean | null
+          outreach_paused_at?: string | null
+          outreach_paused_reason?: string | null
           paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
@@ -3201,6 +3216,9 @@ export type Database = {
           next_contact_date?: string | null
           notes?: string | null
           organization_id?: string | null
+          outreach_paused?: boolean | null
+          outreach_paused_at?: string | null
+          outreach_paused_reason?: string | null
           paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
