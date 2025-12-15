@@ -433,7 +433,7 @@ const Investors = () => {
 
             <div className="space-y-4">
               <Button size="lg" className="text-lg px-8 py-6 gap-2" asChild>
-                <Link to="/contact">
+                <Link to="/contact?intent=investment">
                   Request Investor Information
                   <ArrowRight className="h-5 w-5" />
                 </Link>
