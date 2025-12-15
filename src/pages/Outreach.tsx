@@ -52,7 +52,7 @@ const Outreach = () => {
     },
   });
 
-  // Fetch next scheduled draft per invoice
+  // Fetch next scheduled draft per invoice with step label
   const { data: nextDrafts, isLoading: draftsLoading } = useQuery({
     queryKey: ["next-drafts-per-invoice"],
     queryFn: async () => {
@@ -61,20 +61,30 @@ const Outreach = () => {
 
       const { data, error } = await supabase
         .from("ai_drafts")
-        .select("invoice_id, recommended_send_date, status, step_number")
+        .select(`
+          invoice_id, 
+          recommended_send_date, 
+          status, 
+          step_number,
+          workflow_step_id,
+          collection_workflow_steps (
+            label
+          )
+        `)
         .in("status", ["pending_approval", "approved"])
         .order("recommended_send_date", { ascending: true });
 
       if (error) throw error;
 
       // Get the earliest draft per invoice
-      const nextPerInvoice: Record<string, { date: string; status: string; step: number }> = {};
-      (data || []).forEach((draft) => {
+      const nextPerInvoice: Record<string, { date: string; status: string; step: number; stepLabel: string }> = {};
+      (data || []).forEach((draft: any) => {
         if (draft.invoice_id && !nextPerInvoice[draft.invoice_id]) {
           nextPerInvoice[draft.invoice_id] = {
             date: draft.recommended_send_date || "",
             status: draft.status || "",
             step: draft.step_number,
+            stepLabel: draft.collection_workflow_steps?.label || `Step ${draft.step_number}`,
           };
         }
       });
@@ -107,30 +117,43 @@ const Outreach = () => {
     },
   });
 
-  // Group invoices by aging bucket
+  // Group invoices by aging bucket, then by next email step
   const invoicesByBucket = AGING_BUCKETS.map((bucket) => {
-    const invoices = invoicesData?.filter((inv) => inv.aging_bucket === bucket.key) || [];
-    const totalAmount = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const bucketInvoices = invoicesData?.filter((inv) => inv.aging_bucket === bucket.key) || [];
+    
+    // Group by next step label within the bucket
+    const byStep: Record<string, typeof bucketInvoices> = {};
+    bucketInvoices.forEach((inv) => {
+      const draft = nextDrafts?.[inv.id];
+      const stepKey = draft?.stepLabel || "No Outreach Scheduled";
+      if (!byStep[stepKey]) byStep[stepKey] = [];
+      byStep[stepKey].push(inv);
+    });
+
+    // Sort steps: scheduled first (by step number), then "No Outreach Scheduled" last
+    const sortedSteps = Object.entries(byStep).sort(([a], [b]) => {
+      if (a === "No Outreach Scheduled") return 1;
+      if (b === "No Outreach Scheduled") return -1;
+      return a.localeCompare(b);
+    });
+
+    const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
     return {
       ...bucket,
-      invoices,
+      stepGroups: sortedSteps,
       totalAmount,
-      count: invoices.length,
+      count: bucketInvoices.length,
     };
   }).filter((bucket) => bucket.count > 0);
 
   const isLoading = invoicesLoading || draftsLoading || historyLoading;
 
-  const formatNextOutreach = (invoiceId: string) => {
-    const draft = nextDrafts?.[invoiceId];
-    if (!draft?.date) return null;
-    
-    const date = new Date(draft.date);
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Tomorrow";
     if (diffDays < 7) return format(date, "EEEE");
@@ -166,7 +189,7 @@ const Outreach = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {invoicesByBucket.map((bucket) => (
               <Card key={bucket.key}>
                 <CardHeader className="py-3 px-4 border-b">
@@ -182,66 +205,66 @@ const Outreach = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="divide-y">
-                    {bucket.invoices.map((invoice) => {
-                      const nextOutreach = formatNextOutreach(invoice.id);
-                      const historyCount = outreachHistory?.[invoice.id] || 0;
-                      const draftInfo = nextDrafts?.[invoice.id];
+                  {bucket.stepGroups.map(([stepLabel, invoices]) => (
+                    <div key={stepLabel}>
+                      {/* Step subheader */}
+                      <div className="px-4 py-2 bg-muted/30 border-b flex items-center gap-2">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm font-medium">{stepLabel}</span>
+                        <Badge variant="outline" className="text-xs">{invoices.length}</Badge>
+                      </div>
+                      <div className="divide-y">
+                        {invoices.map((invoice) => {
+                          const draftInfo = nextDrafts?.[invoice.id];
+                          const historyCount = outreachHistory?.[invoice.id] || 0;
+                          const nextDate = draftInfo?.date ? formatDate(draftInfo.date) : null;
 
-                      return (
-                        <div
-                          key={invoice.id}
-                          className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                          onClick={() => navigate(`/invoices/${invoice.id}`)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {invoice.debtors?.company_name || invoice.debtors?.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {invoice.invoice_number} • ${invoice.amount?.toLocaleString()}
-                            </p>
-                          </div>
-                          
-                          <div className="flex items-center gap-3 shrink-0">
-                            {/* Next Outreach */}
-                            {nextOutreach ? (
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">Next Outreach</p>
-                                <div className="flex items-center gap-1 justify-end">
-                                  <Clock className="h-3 w-3 text-primary" />
-                                  <span className="text-sm font-medium text-primary">{nextOutreach}</span>
-                                  {draftInfo && (
+                          return (
+                            <div
+                              key={invoice.id}
+                              className="flex items-center justify-between p-3 px-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                              onClick={() => navigate(`/invoices/${invoice.id}`)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate text-sm">
+                                  {invoice.debtors?.company_name || invoice.debtors?.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {invoice.invoice_number} • ${invoice.amount?.toLocaleString()}
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center gap-3 shrink-0">
+                                {nextDate ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="h-3 w-3 text-primary" />
+                                    <span className="text-sm text-primary font-medium">{nextDate}</span>
                                     <Badge 
-                                      variant={draftInfo.status === "approved" ? "default" : "outline"} 
-                                      className="text-xs ml-1"
+                                      variant={draftInfo?.status === "approved" ? "default" : "outline"} 
+                                      className="text-xs"
                                     >
-                                      Step {draftInfo.step}
+                                      {draftInfo?.status === "approved" ? "Ready" : "Pending"}
                                     </Badge>
-                                  )}
-                                </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                                
+                                {historyCount > 0 && (
+                                  <Badge variant="secondary" className="gap-1 text-xs">
+                                    <Mail className="h-3 w-3" />
+                                    {historyCount}
+                                  </Badge>
+                                )}
+                                
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               </div>
-                            ) : (
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">Next Outreach</p>
-                                <span className="text-sm text-muted-foreground">Not scheduled</span>
-                              </div>
-                            )}
-                            
-                            {/* Sent count */}
-                            {historyCount > 0 && (
-                              <Badge variant="secondary" className="gap-1">
-                                <Mail className="h-3 w-3" />
-                                {historyCount}
-                              </Badge>
-                            )}
-                            
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             ))}
