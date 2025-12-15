@@ -393,7 +393,7 @@ const ComingSoon = () => {
                     </div>
                     
                     <blockquote className="text-muted-foreground leading-relaxed border-l-2 border-primary pl-4 italic">
-                      "I've spent my career building and fixing collections processes at companies like {notableCompanies.slice(0, 3).join(', ')}. The same problems keep showing up: manual work, inconsistent follow-ups, and good customers getting treated the same as bad ones. Recouply is what I wish existed years ago."
+                      "I've spent my career building and operating CPQ, Billing, Revenue Recognition, and Order-to-Cash systems at Workday, Contentful, and Leanplum (now CleverTap). Across companies and growth stages, the same gaps kept appearing: fragmented data, manual prioritization, and no continuous way to apply Collection Intelligence and real-time risk assessments to receivables. Recouply.ai was built to close that gap—bringing intelligence, automation, and visibility into how cash is actually collected."
                     </blockquote>
 
                     <div className="space-y-2">
