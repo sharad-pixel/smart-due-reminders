@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2, PauseCircle, PlayCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ContactCard } from "@/components/ContactCard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -60,6 +60,8 @@ interface Debtor {
   payment_score_last_calculated: string | null;
   risk_status_note: string | null;
   risk_last_calculated_at: string | null;
+  outreach_paused: boolean | null;
+  outreach_paused_at: string | null;
 }
 
 interface DebtorContact {
@@ -484,7 +486,40 @@ const DebtorDetail = () => {
               </div>
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
+            {/* Outreach Pause Toggle */}
+            <Button 
+              variant={debtor.outreach_paused ? "default" : "outline"} 
+              onClick={async () => {
+                const newPaused = !debtor.outreach_paused;
+                const { error } = await supabase
+                  .from("debtors")
+                  .update({ 
+                    outreach_paused: newPaused,
+                    outreach_paused_at: newPaused ? new Date().toISOString() : null
+                  })
+                  .eq("id", id);
+                if (error) {
+                  toast.error("Failed to update outreach status");
+                } else {
+                  toast.success(newPaused ? "All outreach paused for this account" : "Outreach resumed for this account");
+                  fetchDebtor();
+                }
+              }}
+              className={debtor.outreach_paused ? "bg-orange-600 hover:bg-orange-700" : ""}
+            >
+              {debtor.outreach_paused ? (
+                <>
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Resume Outreach
+                </>
+              ) : (
+                <>
+                  <PauseCircle className="h-4 w-4 mr-2" />
+                  Pause Outreach
+                </>
+              )}
+            </Button>
             <Button onClick={() => setIsCreateInvoiceOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Invoice
@@ -503,6 +538,19 @@ const DebtorDetail = () => {
             </Button>
           </div>
         </div>
+
+        {/* Paused Alert Banner */}
+        {debtor.outreach_paused && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center gap-3">
+            <PauseCircle className="h-5 w-5 text-orange-600 shrink-0" />
+            <div>
+              <p className="font-medium text-orange-800">Outreach Paused</p>
+              <p className="text-sm text-orange-700">
+                All automated outreach for this account is paused. Click "Resume Outreach" to restart collection communications.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card>

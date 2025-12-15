@@ -1,12 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, Brain, ChevronRight } from "lucide-react";
+import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 const AGING_BUCKETS = [
   { key: "current", label: "Current", color: "bg-green-500" },
@@ -20,6 +22,26 @@ const AGING_BUCKETS = [
 
 const Outreach = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Mutation for toggling invoice outreach pause
+  const toggleInvoicePause = useMutation({
+    mutationFn: async ({ invoiceId, paused }: { invoiceId: string; paused: boolean }) => {
+      const { error } = await supabase
+        .from("invoices")
+        .update({ 
+          outreach_paused: paused,
+          outreach_paused_at: paused ? new Date().toISOString() : null
+        })
+        .eq("id", invoiceId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { paused }) => {
+      toast.success(paused ? "Outreach paused for invoice" : "Outreach resumed for invoice");
+      queryClient.invalidateQueries({ queryKey: ["outreach-invoices-with-drafts"] });
+    },
+    onError: () => toast.error("Failed to update outreach status"),
+  });
 
   // Fetch invoices with next scheduled outreach
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
@@ -38,10 +60,12 @@ const Outreach = () => {
           aging_bucket,
           status,
           debtor_id,
+          outreach_paused,
           debtors (
             id,
             name,
-            company_name
+            company_name,
+            outreach_paused
           )
         `)
         .in("status", ["Open", "InPaymentPlan"])
@@ -219,23 +243,36 @@ const Outreach = () => {
                           const historyCount = outreachHistory?.[invoice.id] || 0;
                           const nextDate = draftInfo?.date ? formatDate(draftInfo.date) : null;
 
+                          const isPaused = invoice.outreach_paused || invoice.debtors?.outreach_paused;
+                          const isAccountPaused = invoice.debtors?.outreach_paused;
+
                           return (
                             <div
                               key={invoice.id}
-                              className="flex items-center justify-between p-3 px-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                              onClick={() => navigate(`/invoices/${invoice.id}`)}
+                              className={`flex items-center justify-between p-3 px-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
                             >
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-sm">
-                                  {invoice.debtors?.company_name || invoice.debtors?.name}
-                                </p>
+                              <div 
+                                className="flex-1 min-w-0 cursor-pointer"
+                                onClick={() => navigate(`/invoices/${invoice.id}`)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium truncate text-sm">
+                                    {invoice.debtors?.company_name || invoice.debtors?.name}
+                                  </p>
+                                  {isPaused && (
+                                    <Badge variant="outline" className="text-xs gap-1 text-orange-600 border-orange-300">
+                                      <PauseCircle className="h-3 w-3" />
+                                      {isAccountPaused ? "Account Paused" : "Paused"}
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   {invoice.invoice_number} • ${invoice.amount?.toLocaleString()}
                                 </p>
                               </div>
                               
                               <div className="flex items-center gap-3 shrink-0">
-                                {nextDate ? (
+                                {!isPaused && nextDate ? (
                                   <div className="flex items-center gap-1.5">
                                     <Clock className="h-3 w-3 text-primary" />
                                     <span className="text-sm text-primary font-medium">{nextDate}</span>
@@ -246,9 +283,9 @@ const Outreach = () => {
                                       {draftInfo?.status === "approved" ? "Ready" : "Pending"}
                                     </Badge>
                                   </div>
-                                ) : (
+                                ) : !isPaused ? (
                                   <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                ) : null}
                                 
                                 {historyCount > 0 && (
                                   <Badge variant="secondary" className="gap-1 text-xs">
@@ -257,7 +294,31 @@ const Outreach = () => {
                                   </Badge>
                                 )}
                                 
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                {/* Pause/Resume toggle for invoice (only if account not paused) */}
+                                {!isAccountPaused && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleInvoicePause.mutate({ 
+                                        invoiceId: invoice.id, 
+                                        paused: !invoice.outreach_paused 
+                                      });
+                                    }}
+                                    className="p-1 rounded hover:bg-muted"
+                                    title={invoice.outreach_paused ? "Resume outreach" : "Pause outreach"}
+                                  >
+                                    {invoice.outreach_paused ? (
+                                      <PlayCircle className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <PauseCircle className="h-4 w-4 text-muted-foreground hover:text-orange-600" />
+                                    )}
+                                  </button>
+                                )}
+                                
+                                <ChevronRight 
+                                  className="h-4 w-4 text-muted-foreground cursor-pointer" 
+                                  onClick={() => navigate(`/invoices/${invoice.id}`)}
+                                />
                               </div>
                             </div>
                           );

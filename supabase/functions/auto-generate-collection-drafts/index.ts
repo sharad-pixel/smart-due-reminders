@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
     today.setHours(0, 0, 0, 0);
 
     // Get all Open or InPaymentPlan invoices with debtor info
+    // Skip invoices or accounts with outreach_paused = true
     const { data: invoices, error: invoicesError } = await supabaseAdmin
       .from('invoices')
       .select(`
@@ -42,13 +43,16 @@ Deno.serve(async (req) => {
         debtor_id,
         aging_bucket,
         bucket_entered_at,
+        outreach_paused,
         debtors(
           id,
           name,
-          company_name
+          company_name,
+          outreach_paused
         )
       `)
-      .in('status', ['Open', 'InPaymentPlan']);
+      .in('status', ['Open', 'InPaymentPlan'])
+      .eq('outreach_paused', false);
 
     if (invoicesError) {
       console.error('Error fetching invoices:', invoicesError);
@@ -62,6 +66,14 @@ Deno.serve(async (req) => {
 
     for (const invoice of invoices || []) {
       try {
+        // Skip if the account has outreach paused
+        const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
+        if (debtor?.outreach_paused) {
+          console.log(`Skipping invoice ${invoice.invoice_number}: account outreach is paused`);
+          skipped++;
+          continue;
+        }
+
         // Calculate days past due
         const dueDate = new Date(invoice.due_date);
         const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -170,7 +182,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         // Fetch primary contact from debtor_contacts (source of truth for contact names)
-        const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
+        // Reuse debtor variable from earlier in the loop (line 70)
         let debtorName = 'Customer'; // Default fallback
         let companyName = debtor?.company_name || debtor?.name || 'Customer';
         
