@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
@@ -28,23 +27,19 @@ import {
   startupFeatures,
   notableCompanies
 } from "@/lib/founderConfig";
+import SEO from "@/components/SEO";
 
 const About = () => {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    document.title = "About Recouply.ai — Founder Story & Company Mission";
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        "content",
-        "Enterprise Functionality with Startup Mentality. Founded by RevOps leader Sharad Chanana with 15+ years modernizing RevOps, Q2C, Collections, and Billing at scale."
-      );
-    }
-  }, []);
-
   return (
     <MarketingLayout>
+      <SEO
+        title="About Recouply.ai | Founder Story & Company Mission"
+        description="Enterprise functionality with startup mentality. Founded by RevOps leader Sharad Chanana with 15+ years modernizing RevOps, Q2C, Collections, and Billing at scale."
+        canonical="https://recouply.ai/about"
+        keywords="Recouply founder, collection intelligence company, AR automation startup, Sharad Chanana, RevOps leader"
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 py-20 lg:py-32">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />

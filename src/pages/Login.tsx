@@ -13,6 +13,7 @@ import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
 import { Sparkles, Zap, Users, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
+import SEO from "@/components/SEO";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -224,7 +225,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <>
+      <SEO
+        title="Login | Recouply.ai"
+        description="Sign in to your Recouply.ai account to manage your collection intelligence dashboard."
+        noindex={true}
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
         {/* Early Access Banner */}
         <div className="text-center mb-6">
@@ -437,7 +444,8 @@ const Login = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

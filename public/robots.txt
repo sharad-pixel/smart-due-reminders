@@ -1,3 +1,6 @@
+# Recouply.ai Robots.txt
+# Collection Intelligence Platform
+
 User-agent: Googlebot
 Allow: /
 
@@ -12,3 +15,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /settings
+Disallow: /profile
+Disallow: /api
+
+# Sitemap
+Sitemap: https://recouply.ai/sitemap.xml

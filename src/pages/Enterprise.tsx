@@ -5,6 +5,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
+import SEO from "@/components/SEO";
 
 const Enterprise = () => {
   const navigate = useNavigate();
@@ -50,6 +51,12 @@ const Enterprise = () => {
 
   return (
     <MarketingLayout>
+      <SEO
+        title="Enterprise AR Automation | High-Volume Collection Intelligence"
+        description="AI collection intelligence for enterprise—handle 10,000+ invoices monthly with Salesforce, NetSuite integration. Enterprise governance, audit trails, and risk scoring."
+        canonical="https://recouply.ai/enterprise"
+        keywords="enterprise AR automation, high volume collections, Salesforce AR integration, NetSuite collections, enterprise invoice management"
+      />
       {/* Hero */}
       <section className="py-20 px-4 bg-gradient-to-b from-background via-primary/5 to-muted/30">
         <div className="container mx-auto max-w-5xl">

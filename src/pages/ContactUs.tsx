@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { HoneypotField, isHoneypotTriggered } from "@/components/HoneypotField";
 import { checkClientRateLimit } from "@/lib/rateLimiting";
+import SEO from "@/components/SEO";
 
 const INTENT_OPTIONS = [
   { value: "general", label: "General Inquiry" },
@@ -152,6 +153,12 @@ const ContactUs = () => {
 
   return (
     <MarketingLayout>
+      <SEO
+        title="Contact Us | Recouply.ai"
+        description="Get in touch with Recouply.ai for sales inquiries, demos, partnerships, or support. We'd love to hear from you."
+        canonical="https://recouply.ai/contact"
+        keywords="contact Recouply, AR automation demo, collection software inquiry"
+      />
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-2xl">
           <div className="text-center mb-12">

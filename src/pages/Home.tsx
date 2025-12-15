@@ -13,6 +13,7 @@ import ValuePropositions from "@/components/marketing/ValuePropositions";
 import FeatureGrid from "@/components/marketing/FeatureGrid";
 import AIAgentsSection from "@/components/marketing/AIAgentsSection";
 import WhyDifferent from "@/components/marketing/WhyDifferent";
+import SEO from "@/components/SEO";
 
 const DesignPartnersSection = () => {
   return (
@@ -60,6 +61,12 @@ const DesignPartnersSection = () => {
 const Home = () => {
   return (
     <MarketingLayout>
+      <SEO
+        title="Recouply.ai | AI-Powered Collection Intelligence Platform"
+        description="Transform accounts receivable with AI collection intelligence. Automate invoice follow-ups, predict payment behavior, and accelerate cash flow—without collection agencies."
+        canonical="https://recouply.ai"
+        keywords="AI collection software, accounts receivable automation, invoice collection, AR automation, cash flow management, payment recovery"
+      />
       <AnimatedHero />
       <DesignPartnersSection />
       <ScrollPipeline />

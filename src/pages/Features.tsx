@@ -4,12 +4,19 @@ import { Mail, MessageSquare, Users, CreditCard, CheckCircle, Bot, BarChart3, Sh
 import MarketingLayout from "@/components/MarketingLayout";
 import AIAgentRoles from "@/components/AIAgentRoles";
 import { Card, CardContent } from "@/components/ui/card";
+import SEO from "@/components/SEO";
 
 const Features = () => {
   const navigate = useNavigate();
 
   return (
     <MarketingLayout>
+      <SEO
+        title="AI Collection Features | Accounts Receivable Automation"
+        description="Six AI agents power your collection intelligence—automating invoice follow-ups, learning payment behavior, and adapting tone based on real-time signals. Human-approved outreach."
+        canonical="https://recouply.ai/features"
+        keywords="AI collection agents, AR automation features, invoice follow-up automation, payment behavior analysis, collection workflows"
+      />
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
