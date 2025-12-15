@@ -24,6 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { founderConfig, notableCompanies } from "@/lib/founderConfig";
+import founderPhoto from "@/assets/founder-sharad-cartoon.png";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -360,13 +361,9 @@ const ComingSoon = () => {
                     <div className="space-y-4 text-center">
                       <div className="w-32 h-32 mx-auto rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-xl">
                         <img 
-                          src="/lovable-uploads/founder-sharad-cartoon.png" 
+                          src={founderPhoto} 
                           alt={founderConfig.name}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.parentElement!.innerHTML = `<span class="text-4xl font-bold text-primary">${founderConfig.name.split(' ').map(n => n[0]).join('')}</span>`;
-                          }}
                         />
                       </div>
                       <div>
