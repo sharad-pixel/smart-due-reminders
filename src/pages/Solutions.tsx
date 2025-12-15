@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Home, Briefcase, Store, Building2 } from "lucide-react";
+import SEO from "@/components/SEO";
 
 const Solutions = () => {
   const navigate = useNavigate();
@@ -60,6 +61,12 @@ const Solutions = () => {
 
   return (
     <MarketingLayout>
+      <SEO
+        title="AR Automation Solutions by Industry | Recouply.ai"
+        description="AI collection intelligence built for your industry—SaaS, professional services, SMB. Six agents that learn payment behavior and preserve customer relationships."
+        canonical="https://recouply.ai/solutions"
+        keywords="AR automation by industry, SaaS collections, professional services AR, small business invoice collection"
+      />
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">

@@ -16,6 +16,7 @@ import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock, Mail, ArrowRight, 
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import SEO from "@/components/SEO";
 
 // NIST-compliant password requirements
 const passwordRequirements = [
@@ -402,7 +403,13 @@ const Signup = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <>
+      <SEO
+        title="Sign Up | Recouply.ai"
+        description="Create your Recouply.ai account and start automating invoice collection with AI-powered intelligence."
+        noindex={true}
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-lg">
         {/* Early Access Banner */}
         <div className="text-center mb-6">
@@ -754,6 +761,7 @@ const Signup = () => {
         </Dialog>
       </div>
     </div>
+    </>
   );
 };
 

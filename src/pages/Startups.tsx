@@ -5,6 +5,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
+import SEO from "@/components/SEO";
 
 const Startups = () => {
   const navigate = useNavigate();
@@ -41,6 +42,12 @@ const Startups = () => {
 
   return (
     <MarketingLayout>
+      <SEO
+        title="AI Collection Software for Startups | Recouply.ai"
+        description="Protect your runway with AI-powered invoice collection. Six agents automate follow-ups 24/7—recover revenue faster without hiring a finance team."
+        canonical="https://recouply.ai/startups"
+        keywords="startup invoice collection, AI AR for startups, automated collections startup, cash flow management startup"
+      />
       {/* Hero */}
       <section className="py-20 px-4 bg-gradient-to-b from-background via-primary/5 to-muted/30">
         <div className="container mx-auto max-w-5xl">

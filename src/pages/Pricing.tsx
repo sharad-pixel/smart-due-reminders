@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { CostComparisonSection } from "@/components/marketing/CostComparisonSection";
+import SEO from "@/components/SEO";
 
 /**
  * Pricing page with monthly/annual billing toggle
@@ -122,11 +123,6 @@ const Pricing = () => {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Recouply.ai Pricing – Collection Intelligence Platform for SMB + SaaS";
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', 'Simple, transparent pricing based on active invoice volume. All plans include full platform access with six AI agents recovering revenue 24/7.');
-    }
     
     // Check if user has an active subscription
     checkSubscription();
@@ -206,6 +202,12 @@ const Pricing = () => {
 
   return (
     <MarketingLayout>
+      <SEO
+        title="Pricing | AI Collection Software for SMB & SaaS"
+        description="Simple, transparent pricing based on active invoice volume. All plans include six AI agents, risk-aware automation, and full platform access. Start free trial."
+        canonical="https://recouply.ai/pricing"
+        keywords="collection software pricing, AR automation cost, invoice collection pricing, AI accounts receivable pricing"
+      />
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
