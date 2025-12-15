@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -85,14 +85,15 @@ const Outreach = () => {
     },
   });
 
-  // Fetch next scheduled draft per invoice with step label
+  // Fetch next scheduled draft per invoice OR calculate from workflow steps
   const { data: nextDrafts, isLoading: draftsLoading } = useQuery({
-    queryKey: ["next-drafts-per-invoice"],
+    queryKey: ["next-drafts-per-invoice", invoicesData],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return {};
 
-      const { data, error } = await supabase
+      // Get existing pending/approved drafts
+      const { data: drafts, error: draftsError } = await supabase
         .from("ai_drafts")
         .select(`
           invoice_id, 
@@ -107,11 +108,11 @@ const Outreach = () => {
         .in("status", ["pending_approval", "approved"])
         .order("recommended_send_date", { ascending: true });
 
-      if (error) throw error;
+      if (draftsError) throw draftsError;
 
-      // Get the earliest draft per invoice
+      // Get earliest draft per invoice
       const nextPerInvoice: Record<string, { date: string; status: string; step: number; stepLabel: string }> = {};
-      (data || []).forEach((draft: any) => {
+      (drafts || []).forEach((draft: any) => {
         if (draft.invoice_id && !nextPerInvoice[draft.invoice_id]) {
           nextPerInvoice[draft.invoice_id] = {
             date: draft.recommended_send_date || "",
@@ -121,8 +122,70 @@ const Outreach = () => {
           };
         }
       });
+
+      // For invoices without drafts, calculate next outreach from workflow steps
+      const invoicesWithoutDrafts = (invoicesData || []).filter(inv => !nextPerInvoice[inv.id]);
+      
+      if (invoicesWithoutDrafts.length > 0) {
+        // Get outreach counts per invoice to determine which step is next
+        const { data: activities } = await supabase
+          .from("collection_activities")
+          .select("invoice_id")
+          .eq("direction", "outbound")
+          .not("invoice_id", "is", null);
+        
+        const outreachCountMap: Record<string, number> = {};
+        (activities || []).forEach((a: any) => {
+          outreachCountMap[a.invoice_id] = (outreachCountMap[a.invoice_id] || 0) + 1;
+        });
+
+        // Get all active workflows with their steps
+        const { data: workflows } = await supabase
+          .from("collection_workflows")
+          .select(`
+            id, aging_bucket,
+            collection_workflow_steps (id, step_order, day_offset, label, is_active)
+          `)
+          .eq("is_active", true);
+
+        const workflowsByBucket: Record<string, any> = {};
+        (workflows || []).forEach((w: any) => {
+          workflowsByBucket[w.aging_bucket] = w;
+        });
+
+        // Calculate next outreach for each invoice without drafts
+        for (const invoice of invoicesWithoutDrafts) {
+          const bucket = invoice.aging_bucket || "current";
+          const workflow = workflowsByBucket[bucket];
+          if (!workflow?.collection_workflow_steps?.length) continue;
+
+          const steps = [...workflow.collection_workflow_steps]
+            .filter((s: any) => s.is_active)
+            .sort((a: any, b: any) => a.step_order - b.step_order);
+          
+          if (steps.length === 0) continue;
+
+          const outreachCount = outreachCountMap[invoice.id] || 0;
+          const nextStepIndex = Math.min(outreachCount, steps.length - 1);
+          const nextStep = steps[nextStepIndex];
+          
+          if (nextStep && invoice.due_date) {
+            const dueDate = new Date(invoice.due_date);
+            const nextDate = addDays(dueDate, nextStep.day_offset);
+            
+            nextPerInvoice[invoice.id] = {
+              date: nextDate.toISOString().split('T')[0],
+              status: "scheduled",
+              step: nextStep.step_order,
+              stepLabel: nextStep.label || `Step ${nextStep.step_order}`,
+            };
+          }
+        }
+      }
+
       return nextPerInvoice;
     },
+    enabled: !!invoicesData,
   });
 
   // Fetch outreach history counts and last outreach date per invoice

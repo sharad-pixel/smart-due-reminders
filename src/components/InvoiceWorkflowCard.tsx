@@ -75,6 +75,8 @@ export const InvoiceWorkflowCard = ({
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
   const [inboundEmails, setInboundEmails] = useState<InboundEmail[]>([]);
   const [outreachCount, setOutreachCount] = useState(0);
+  const [nextDraftDate, setNextDraftDate] = useState<string | null>(null);
+  const [nextDraftStep, setNextDraftStep] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export const InvoiceWorkflowCard = ({
       if (!invoiceId) return;
       setLoading(true);
       
-      const [tasksRes, emailsRes, activitiesRes] = await Promise.all([
+      const [tasksRes, emailsRes, activitiesRes, draftsRes] = await Promise.all([
         supabase
           .from('collection_tasks')
           .select('id, summary, status, priority, task_type, notes, created_at')
@@ -99,12 +101,30 @@ export const InvoiceWorkflowCard = ({
           .from('collection_activities')
           .select('id', { count: 'exact' })
           .eq('invoice_id', invoiceId)
-          .eq('direction', 'outbound')
+          .eq('direction', 'outbound'),
+        supabase
+          .from('ai_drafts')
+          .select('recommended_send_date, step_number, collection_workflow_steps(label)')
+          .eq('invoice_id', invoiceId)
+          .in('status', ['pending_approval', 'approved'])
+          .order('recommended_send_date', { ascending: true })
+          .limit(1)
       ]);
 
       setTasks(tasksRes.data || []);
       setInboundEmails(emailsRes.data || []);
       setOutreachCount(activitiesRes.count || 0);
+      
+      // Set next draft info from ai_drafts table
+      if (draftsRes.data && draftsRes.data.length > 0) {
+        const draft = draftsRes.data[0] as any;
+        setNextDraftDate(draft.recommended_send_date);
+        setNextDraftStep(draft.collection_workflow_steps?.label || `Step ${draft.step_number}`);
+      } else {
+        setNextDraftDate(null);
+        setNextDraftStep(null);
+      }
+      
       setLoading(false);
     };
 
@@ -263,23 +283,34 @@ export const InvoiceWorkflowCard = ({
           </div>
         </div>
 
-        {/* Next Outreach */}
-        {nextOutreach && workflow && (
+        {/* Next Outreach - Use actual draft date if available */}
+        {workflow && (
           <div className="flex items-center gap-3 p-2.5 rounded-lg bg-accent/20 border border-accent/30">
             <CalendarClock className="h-4 w-4 text-accent-foreground shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium">
-                {nextOutreach.isComplete ? 'All outreach complete' : 'Next Outreach'}
-              </p>
-              {nextOutreach.date && !nextOutreach.isComplete && (
-                <p className="text-xs text-muted-foreground">
-                  {format(nextOutreach.date, 'MMM d')} · {nextOutreach.step.label}
-                </p>
+              {nextDraftDate ? (
+                <>
+                  <p className="text-xs font-medium">Next Outreach</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(nextDraftDate), 'MMM d, yyyy')} · {nextDraftStep}
+                  </p>
+                </>
+              ) : nextOutreach?.isComplete ? (
+                <p className="text-xs font-medium">All outreach complete</p>
+              ) : nextOutreach?.date ? (
+                <>
+                  <p className="text-xs font-medium">Next Outreach</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(nextOutreach.date, 'MMM d')} · {nextOutreach.step.label}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">No outreach scheduled</p>
               )}
             </div>
-            {!nextOutreach.isComplete && nextOutreach.daysUntil > 0 && (
+            {nextDraftDate && (
               <Badge variant="outline" className="text-[10px] shrink-0">
-                {nextOutreach.daysUntil}d
+                {Math.max(0, Math.ceil((new Date(nextDraftDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}d
               </Badge>
             )}
           </div>
