@@ -29,7 +29,7 @@ const plans = [
     equivalentMonthly: PLAN_CONFIGS.starter.equivalentMonthly,
     period: "/month",
     invoiceLimit: "Up to 100 active invoices/month",
-    description: "Perfect for small businesses with light AR volume.",
+    description: "Perfect for small businesses seeking visibility into cash outcomes.",
     cta: "Start Free Trial",
     planType: "starter",
     popular: false
@@ -41,7 +41,7 @@ const plans = [
     equivalentMonthly: PLAN_CONFIGS.growth.equivalentMonthly,
     period: "/month",
     invoiceLimit: "Up to 300 active invoices/month",
-    description: "Ideal for scaling teams needing automated AR workflows.",
+    description: "Ideal for scaling teams needing risk-aware workflows.",
     cta: "Start Free Trial",
     planType: "growth",
     popular: true
@@ -53,7 +53,7 @@ const plans = [
     equivalentMonthly: PLAN_CONFIGS.professional.equivalentMonthly,
     period: "/month",
     invoiceLimit: "Up to 500 active invoices/month",
-    description: "Built for high-volume AR operations ready for advanced automation.",
+    description: "Built for high-volume operations seeking proactive intelligence.",
     cta: "Start Free Trial",
     planType: "professional",
     popular: false
@@ -65,7 +65,7 @@ const plans = [
     equivalentMonthly: 0,
     period: "",
     invoiceLimit: "500+ active invoices/month",
-    description: "Everything in Professional, plus: Custom RCA integrations, CS case intelligence, multi-system sync, and advanced agent personalization using customer relationship data.",
+    description: "Everything in Professional, plus: Custom integrations, CS case intelligence, cross-functional alignment with Finance, Sales & RevOps teams.",
     cta: "Contact Sales",
     planType: "enterprise",
     popular: false
@@ -73,9 +73,9 @@ const plans = [
 ];
 
 const platformFeatures = [
-  "Six AI agents working 24/7",
-  "Full automation capabilities",
-  "Collections dashboard & analytics",
+  "Six AI-assisted agents, human-approved",
+  "Risk-aware automation capabilities",
+  "Collection intelligence dashboard",
   "Unlimited contacts / accounts",
   "Email & SMS outreach",
   "Promise-to-Pay tracking",
@@ -86,30 +86,30 @@ const platformFeatures = [
 const enterpriseFeatures = [
   "Custom Salesforce RCA & Revenue platform integrations",
   "Real-time CS Case feed (Salesforce, Zendesk, Intercom)",
-  "AI agents trained on invoice + case + relationship context",
-  "Contextual tone shifting based on open cases & churn risk",
+  "Agents informed by invoice + case + relationship context",
+  "Risk-aware tone shifting based on open cases & churn signals",
   "Dedicated integration workshop, API mapping & tuning"
 ];
 
 const icpBenefits = [
   {
     title: "Small Businesses",
-    description: "Six AI agents handling reminders 24/7, payment links in every message, friendly tone to preserve repeat business",
+    description: "Six AI-assisted agents guiding follow-ups, payment links in every message, risk-aware workflows",
     link: "/solutions/small-businesses"
   },
   {
     title: "Professional Services",
-    description: "Eliminate uncomfortable invoice reminders for agencies, consultants, legal practices, and accounting firms",
+    description: "Replace uncomfortable reminders with context-aware outreach for agencies, consultants, and firms",
     link: "/solutions/professional-services"
   },
   {
     title: "SaaS Companies",
-    description: "Reduce ARR leakage with intelligent AI agents, automate invoice reminders for lean finance teams, CRM-aware messaging",
+    description: "Reduce revenue leakage with proactive intelligence, Finance & RevOps-friendly workflows",
     link: "/solutions/saas"
   },
   {
     title: "SMB & Local Services",
-    description: "Simple AI-powered collections, intelligence that compounds over time, maintain customer relationships",
+    description: "Risk-aware collections, intelligence that compounds, designed to preserve customer relationships",
     link: "/solutions/small-businesses"
   }
 ];
@@ -218,10 +218,10 @@ const Pricing = () => {
             All plans include full platform access. Choose based on your monthly active invoice volume.
           </p>
           <p className="text-lg text-primary font-medium mb-4">
-            Six AI agents recovering your revenue 24/7—included in every plan.
+            Six AI-assisted agents, human-approved—included in every plan.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
-            Pricing is based on active invoices per month. All plans include full access to AI agents, automation, dashboards, and support.
+            Pricing is based on active invoices per month. All plans include risk-aware automation, dashboards, and support.
           </p>
         </div>
       </section>
@@ -367,7 +367,7 @@ const Pricing = () => {
             Built for Your Industry
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Recouply.ai's six AI agents are optimized for businesses across multiple verticals
+            Recouply.ai's six agents are optimized for businesses seeking proactive intelligence across verticals
           </p>
           <div className="grid md:grid-cols-2 gap-6">
             {icpBenefits.map((benefit, idx) => (
@@ -390,10 +390,10 @@ const Pricing = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center mb-4">
-            Perfect for SaaS Companies
+            Designed for SaaS Companies
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            All plans include SaaS-optimized features to reduce ARR leakage with AI agents that learn and improve
+            All plans include SaaS-optimized features to reduce revenue leakage with intelligence that compounds
           </p>
           <SaaSBenefits />
         </div>
@@ -408,10 +408,10 @@ const Pricing = () => {
             </div>
           </div>
           <h2 className="text-3xl font-bold text-center mb-4">
-            Meet Your Six AI Agents
+            Meet Your Six AI-Assisted Agents
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Every plan includes access to six specialized AI agents that work 24/7—learning and improving with every interaction
+            Every plan includes access to six specialized agents—learning from every interaction, reviewed before action
           </p>
           <TooltipProvider delayDuration={100}>
             <div className="flex justify-center items-center gap-8 flex-wrap mb-8">

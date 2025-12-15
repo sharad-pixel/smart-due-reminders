@@ -13,10 +13,10 @@ const Solutions = () => {
       title: "Small Businesses",
       description: "For service providers, contractors, and local businesses",
       benefits: [
-        "Six AI agents handling payment reminders 24/7",
-        "Embed payment links in every communication",
-        "QuickBooks-friendly workflows",
-        "Agents learn and improve recovery rates over time"
+        "Six AI-assisted agents guiding payment follow-ups",
+        "Payment links embedded in every communication",
+        "Risk-aware workflows that protect cash flow",
+        "Intelligence that compounds with every interaction"
       ],
       link: "/solutions/small-businesses"
     },
@@ -25,10 +25,10 @@ const Solutions = () => {
       title: "SaaS Companies",
       description: "For SaaS companies looking to reduce ARR leakage",
       benefits: [
-        "Reduce ARR leakage with intelligent AI agents",
-        "Automate follow-ups that get smarter over time",
-        "Lighten load on CSM/Finance teams",
-        "Customer-safe collections that preserve relationships"
+        "Reduce revenue leakage with proactive intelligence",
+        "Automated follow-ups guided by payment behavior",
+        "Lighten the load on Finance and RevOps teams",
+        "Relationship-aware outreach, human-approved"
       ],
       link: "/solutions/saas"
     },
@@ -37,10 +37,10 @@ const Solutions = () => {
       title: "Professional Services",
       description: "For agencies, consultants, accounting firms, legal practices",
       benefits: [
-        "Eliminate uncomfortable invoice reminder emails",
-        "AI agents adapt tone based on client relationships",
-        "Accelerate cash collection cycles",
-        "Preserve client relationships with intelligent outreach"
+        "Replace uncomfortable reminders with AI-assisted outreach",
+        "Tone adapts based on relationship context",
+        "Designed to support predictable cash outcomes",
+        "Preserve client trust while guiding recovery"
       ],
       link: "/solutions/professional-services"
     },
@@ -49,10 +49,10 @@ const Solutions = () => {
       title: "Local Retail & Services",
       description: "For retail shops, service providers, and local businesses",
       benefits: [
-        "Six AI agents working around the clock",
-        "Professional outreach from your business",
-        "Payment tracking and DSO reporting",
-        "Intelligence that compounds over time"
+        "Six agents working around the clock, reviewed by you",
+        "Professional outreach aligned with your brand",
+        "Visibility into payment patterns and DSO",
+        "Signals that inform your next action"
       ],
       link: "/solutions/small-businesses"
     }
@@ -70,11 +70,11 @@ const Solutions = () => {
               Six AI Agents Built for Your Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-              Recouply.ai deploys six specialized AI agents that work 24/7 to optimize your collections and recover overdue invoices—
-              getting smarter with every interaction while preserving customer relationships.
+              Recouply.ai deploys six specialized agents that learn from payment behavior and account context—
+              helping you act earlier, recover smarter, and preserve relationships.
             </p>
             <p className="text-lg text-primary font-medium">
-              "The future of receivables management."
+              "Proactive intelligence, human-controlled outcomes."
             </p>
           </div>
 
@@ -120,11 +120,11 @@ const Solutions = () => {
               Ready to Put Six AI Agents to Work?
             </h2>
             <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
-              Join businesses using six AI agents that work nonstop, recovering revenue 24/7—
-              at a fraction of the cost of one employee.
+              Join businesses using AI-assisted collections to recover revenue around the clock—
+              with human oversight at every step.
             </p>
             <p className="text-md text-primary font-medium mb-8">
-              "Predictable cash flow powered by AI."
+              "Designed to support predictable cash flow."
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button 

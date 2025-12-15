@@ -44,11 +44,11 @@ const FinalCTA = () => {
             </h2>
             
             <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-              AI That Analyzes Every Touchpoint
+              AI-Assisted Intelligence, Human-Controlled Outcomes
             </p>
             
             <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Accounts, communications, payments, tasks, and notes—all analyzed by AI to maximize your receivables recovery.
+              Payment behavior, communication signals, and risk context—synthesized to help teams act earlier and recover smarter.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
