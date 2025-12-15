@@ -210,6 +210,7 @@ Deno.serve(async (req) => {
 ${personaGuidelines}
 
 CRITICAL COMPLIANCE RULES:
+- ALWAYS write in English. Never use any other language.
 - Be respectful and non-threatening
 - NEVER claim to be or act as a "collection agency" or legal authority
 - NEVER use harassment or intimidation
