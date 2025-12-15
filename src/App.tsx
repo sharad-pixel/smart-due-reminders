@@ -57,6 +57,7 @@ import DataCenterReview from "./pages/DataCenterReview";
 import DailyDigest from "./pages/DailyDigest";
 import Outreach from "./pages/Outreach";
 import About from "./pages/About";
+import Investors from "./pages/Investors";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
@@ -98,6 +99,7 @@ const App = () => (
           <Route path="/smb" element={<SMB />} />
           <Route path="/enterprise" element={<Enterprise />} />
           <Route path="/about" element={<About />} />
+          <Route path="/investors" element={<Investors />} />
           <Route path="/legal/terms" element={<Terms />} />
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/cookies" element={<Cookies />} />
