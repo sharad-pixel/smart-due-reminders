@@ -167,6 +167,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 </li>
                 <li>
                   <button 
+                    onClick={() => navigate("/investors")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Investors
+                  </button>
+                </li>
+                <li>
+                  <button 
                     onClick={() => navigate("/legal/terms")}
                     className="text-muted-foreground hover:text-primary"
                   >
@@ -195,20 +203,20 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm mb-4">
                 <li>
-                  <a 
-                    href={`mailto:${COMPANY_INFO.emails.support}`}
+                  <button 
+                    onClick={() => navigate("/contact")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {COMPANY_INFO.emails.support}
-                  </a>
+                    Contact Us
+                  </button>
                 </li>
                 <li>
-                  <a 
-                    href={`mailto:${COMPANY_INFO.emails.collections}`}
+                  <button 
+                    onClick={() => navigate("/contact?intent=demo")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {COMPANY_INFO.emails.collections}
-                  </a>
+                    Request a Demo
+                  </button>
                 </li>
               </ul>
               <Button 
@@ -221,7 +229,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           </div>
           <div className="text-center pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName}. All rights reserved.
+              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               AI-powered software as a service. Not a collection agency.
