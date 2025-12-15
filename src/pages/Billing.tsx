@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, RefreshCw } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -128,17 +128,10 @@ const Billing = () => {
   const accountHierarchy = useAccountHierarchy();
   
   const [loading, setLoading] = useState(true);
-  const [reconciling, setReconciling] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [stripeData, setStripeData] = useState<StripeSubscriptionData | null>(null);
-  const [billingDiscrepancy, setBillingDiscrepancy] = useState<{
-    dbSeats: number;
-    stripeSeats: number;
-    discrepancy: number;
-    needsReconciliation: boolean;
-  } | null>(null);
 
   useEffect(() => {
     // Wait for account hierarchy to load before loading billing data
@@ -146,42 +139,6 @@ const Billing = () => {
       loadBillingData();
     }
   }, [accountHierarchy.loading, accountHierarchy.effectiveAccountId]);
-
-  // Check for billing discrepancy on load
-  const checkBillingDiscrepancy = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-billing-reconcile', {
-        body: { action: 'preview' }
-      });
-      if (!error && data) {
-        setBillingDiscrepancy(data);
-      }
-    } catch (error) {
-      console.error('Error checking billing discrepancy:', error);
-    }
-  };
-
-  const handleReconcileBilling = async () => {
-    setReconciling(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-billing-reconcile', {
-        body: { action: 'reconcile' }
-      });
-      if (error) throw error;
-      
-      if (data?.success) {
-        toast.success(data.message || 'Billing synced successfully');
-        setBillingDiscrepancy(null);
-        loadBillingData();
-      } else {
-        toast.error(data?.error || 'Failed to sync billing');
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sync billing');
-    } finally {
-      setReconciling(false);
-    }
-  };
 
   const loadBillingData = async () => {
     try {
@@ -222,9 +179,6 @@ const Billing = () => {
       if (!syncError && syncData) {
         setStripeData(syncData);
       }
-
-      // Check for billing discrepancy after loading data
-      await checkBillingDiscrepancy();
     } catch (error) {
       console.error('Error loading billing data:', error);
       toast.error('Failed to load billing information');
@@ -296,7 +250,7 @@ const Billing = () => {
   const isTeamMember = !accountHierarchy.isAccountOwner;
   const canManageBilling = accountHierarchy.permissions.canManageBilling;
   const parentAccount = accountHierarchy.parentAccount;
-  const billableSeats = billingDiscrepancy?.dbSeats ?? accountHierarchy.billing.billableSeats;
+  const billableSeats = accountHierarchy.billing.billableSeats;
 
     // CRITICAL: Always prioritize DATABASE values (profile) as source of truth
     // Only use stripeData when it has a valid subscription (not from_database fallback)
@@ -407,28 +361,6 @@ const Billing = () => {
               Your payment is past due. Please update your payment method within 3 days to avoid account lockout.
               <Button variant="link" className="p-0 ml-2" onClick={openCustomerPortal}>
                 Update Payment Method
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Billing Discrepancy Warning */}
-        {billingDiscrepancy?.needsReconciliation && (
-          <Alert className="mb-6 border-amber-500/50 bg-amber-500/5">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-amber-700">
-                Billing discrepancy detected: {billingDiscrepancy.dbSeats} seats in database but {billingDiscrepancy.stripeSeats} in Stripe.
-              </span>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleReconcileBilling}
-                disabled={reconciling}
-                className="ml-4 border-amber-500 text-amber-700 hover:bg-amber-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
-                {reconciling ? 'Syncing...' : 'Sync Billing'}
               </Button>
             </AlertDescription>
           </Alert>
@@ -620,15 +552,6 @@ const Billing = () => {
                   title={!canManageBilling ? "Only the account owner can download invoices" : undefined}
                 >
                   Download Invoices
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleReconcileBilling}
-                  disabled={reconciling || !profile?.stripe_subscription_id || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can sync billing" : undefined}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
-                  {reconciling ? 'Syncing...' : 'Sync Billing'}
                 </Button>
               </div>
             </CardContent>
