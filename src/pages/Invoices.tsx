@@ -67,6 +67,8 @@ const Invoices = () => {
   });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
   const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
@@ -100,6 +102,7 @@ const Invoices = () => {
 
   useEffect(() => {
     filterInvoices();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, hideInactive]);
 
   const fetchData = async () => {
@@ -804,7 +807,7 @@ const Invoices = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedInvoices.slice(0, 25).map((invoice) => {
+                  {sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((invoice) => {
                     const daysPastDue = invoice.days_past_due;
                     const ageBucket = getAgeBucket(daysPastDue);
                     const activeWorkflow = invoice.ai_workflows?.find(w => w.is_active);
@@ -901,6 +904,36 @@ const Invoices = () => {
                   })}
                 </TableBody>
               </Table>
+            )}
+            
+            {/* Pagination */}
+            {sortedInvoices.length > itemsPerPage && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedInvoices.length)} of {sortedInvoices.length} invoices
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-2">
+                    Page {currentPage} of {Math.ceil(sortedInvoices.length / itemsPerPage)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(sortedInvoices.length / itemsPerPage), p + 1))}
+                    disabled={currentPage >= Math.ceil(sortedInvoices.length / itemsPerPage)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
