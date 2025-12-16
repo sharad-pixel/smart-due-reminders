@@ -804,7 +804,7 @@ const Invoices = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedInvoices.map((invoice) => {
+                  {sortedInvoices.slice(0, 25).map((invoice) => {
                     const daysPastDue = invoice.days_past_due;
                     const ageBucket = getAgeBucket(daysPastDue);
                     const activeWorkflow = invoice.ai_workflows?.find(w => w.is_active);
