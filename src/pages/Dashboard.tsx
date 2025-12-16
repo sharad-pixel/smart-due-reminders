@@ -2,18 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, AlertCircle, Eye, RefreshCw, Play, HeartPulse, Zap } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
 import { PaymentActivityCard } from "@/components/PaymentActivityCard";
-import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
+
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
@@ -76,13 +76,8 @@ const Dashboard = () => {
     { bucket: "91-120", count: 0, amount: 0 },
     { bucket: "121+", count: 0, amount: 0 },
   ]);
-  const [priorityOverdues, setPriorityOverdues] = useState<Invoice[]>([]);
   const [statusFilters, setStatusFilters] = useState<string[]>(["Open", "InPaymentPlan"]);
   const [tasksAssignedToMeOnly, setTasksAssignedToMeOnly] = useState(false);
-  
-  // Sorting state for Priority Overdues
-  const [overdueSortKey, setOverdueSortKey] = useState<string | null>("daysPastDue");
-  const [overdueSortDir, setOverdueSortDir] = useState<SortDirection>("desc");
 
   // Saved views
   const {
@@ -98,9 +93,8 @@ const Dashboard = () => {
 
   // Build current view config
   const currentConfig: ViewConfig = useMemo(() => ({
-    filters: { statusFilters },
-    sorting: overdueSortKey ? { column: overdueSortKey, direction: overdueSortDir || 'asc' } : undefined
-  }), [statusFilters, overdueSortKey, overdueSortDir]);
+    filters: { statusFilters }
+  }), [statusFilters]);
 
   // Apply loaded view config
   useEffect(() => {
@@ -109,35 +103,8 @@ const Dashboard = () => {
       if (config.filters) {
         if (config.filters.statusFilters !== undefined) setStatusFilters(config.filters.statusFilters);
       }
-      if (config.sorting) {
-        setOverdueSortKey(config.sorting.column);
-        setOverdueSortDir(config.sorting.direction as SortDirection);
-      }
     }
   }, [activeView]);
-  
-  const handleOverdueSort = (key: string) => {
-    if (overdueSortKey === key) {
-      if (overdueSortDir === "asc") setOverdueSortDir("desc");
-      else if (overdueSortDir === "desc") { setOverdueSortDir(null); setOverdueSortKey(null); }
-      else setOverdueSortDir("asc");
-    } else {
-      setOverdueSortKey(key);
-      setOverdueSortDir("asc");
-    }
-  };
-  
-  const sortedOverdues = useMemo(() => {
-    if (!overdueSortKey || !overdueSortDir) return priorityOverdues;
-    return [...priorityOverdues].sort((a: any, b: any) => {
-      let aVal = overdueSortKey === "debtors.name" ? a.debtors?.name : a[overdueSortKey];
-      let bVal = overdueSortKey === "debtors.name" ? b.debtors?.name : b[overdueSortKey];
-      if (aVal == null) return overdueSortDir === "asc" ? 1 : -1;
-      if (bVal == null) return overdueSortDir === "asc" ? -1 : 1;
-      if (typeof aVal === "string") return overdueSortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      return overdueSortDir === "asc" ? aVal - bVal : bVal - aVal;
-    });
-  }, [priorityOverdues, overdueSortKey, overdueSortDir]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -269,16 +236,6 @@ const Dashboard = () => {
         { bucket: "121+", count: buckets["121+"].count, amount: buckets["121+"].amount },
       ]);
 
-      // Get Priority Overdues (top 25 by days past due)
-      const overdues = openInvoices
-        .map((inv) => ({
-          ...inv,
-          daysPastDue: getDaysPastDue(inv.due_date),
-        }))
-        .sort((a, b) => b.daysPastDue - a.daysPastDue)
-        .slice(0, 25);
-
-      setPriorityOverdues(overdues);
     } catch (error: any) {
       console.error("Error fetching dashboard data:", error);
     }
@@ -625,158 +582,70 @@ const Dashboard = () => {
         {/* Invoice Collectability Report Widget */}
         <InvoiceCollectabilityReport />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center">
-                  <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
-                  Priority Overdues
-                </CardTitle>
-                <Button variant="outline" size="sm" onClick={() => navigate("/invoices")}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Open Tasks</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={tasksAssignedToMeOnly ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setTasksAssignedToMeOnly(!tasksAssignedToMeOnly)}
+                >
+                  Assigned to Me
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
                   View All
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {priorityOverdues.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No overdue invoices</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <SortableTableHead
-                        sortKey="invoice_number"
-                        currentSortKey={overdueSortKey}
-                        currentSortDirection={overdueSortDir}
-                        onSort={handleOverdueSort}
-                      >
-                        Invoice #
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="debtors.name"
-                        currentSortKey={overdueSortKey}
-                        currentSortDirection={overdueSortDir}
-                        onSort={handleOverdueSort}
-                      >
-                        Account
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="amount"
-                        currentSortKey={overdueSortKey}
-                        currentSortDirection={overdueSortDir}
-                        onSort={handleOverdueSort}
-                        className="text-right"
-                      >
-                        Amount
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="daysPastDue"
-                        currentSortKey={overdueSortKey}
-                        currentSortDirection={overdueSortDir}
-                        onSort={handleOverdueSort}
-                        className="text-right"
-                      >
-                        Days
-                      </SortableTableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedOverdues.map((invoice: any) => (
-                      <TableRow 
-                        key={invoice.id} 
-                        className="cursor-pointer hover:bg-accent/50"
-                        onClick={() => navigate(`/invoices/${invoice.id}`)}
-                      >
-                        <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                        <TableCell>{invoice.debtors?.name}</TableCell>
-                        <TableCell className="text-right">
-                          ${invoice.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-red-600 font-semibold">
-                            {invoice.daysPastDue}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Open Tasks</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant={tasksAssignedToMeOnly ? "default" : "outline"} 
-                    size="sm" 
-                    onClick={() => setTasksAssignedToMeOnly(!tasksAssignedToMeOnly)}
-                  >
-                    Assigned to Me
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
-                    View All
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const displayTasks = tasksAssignedToMeOnly 
-                  ? pendingTasks.filter(t => t.assigned_to === user?.id)
-                  : pendingTasks;
-                
-                if (displayTasks.length === 0) {
-                  return (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">
-                        {tasksAssignedToMeOnly ? "No tasks assigned to you" : "No open tasks"}
-                      </p>
-                    </div>
-                  );
-                }
-                
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const displayTasks = tasksAssignedToMeOnly 
+                ? pendingTasks.filter(t => t.assigned_to === user?.id)
+                : pendingTasks;
+              
+              if (displayTasks.length === 0) {
                 return (
-                  <div className="space-y-3">
-                    {displayTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
-                        onClick={() => handleTaskClick(task)}
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium line-clamp-1">
-                            {task.summary}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {task.debtors?.company_name || task.debtors?.name}
-                            {task.invoices?.invoice_number && ` • ${task.invoices.invoice_number}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
-                            {task.priority}
-                          </Badge>
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </div>
-                    ))}
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      {tasksAssignedToMeOnly ? "No tasks assigned to you" : "No open tasks"}
+                    </p>
                   </div>
                 );
-              })()}
-            </CardContent>
-          </Card>
-        </div>
+              }
+              
+              return (
+                <div className="space-y-3">
+                  {displayTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
+                      onClick={() => handleTaskClick(task)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium line-clamp-1">
+                          {task.summary}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {task.debtors?.company_name || task.debtors?.name}
+                          {task.invoices?.invoice_number && ` • ${task.invoices.invoice_number}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
+                          {task.priority}
+                        </Badge>
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
 
         {/* Payment Activity Section */}
         <PaymentActivityCard limit={5} />
