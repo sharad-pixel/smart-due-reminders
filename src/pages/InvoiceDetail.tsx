@@ -497,7 +497,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const { data, error } = await supabase.functions.invoke("process-persona-command", {
         body: {
           command,
-          contextInvoiceId: invoice?.invoice_number,
+          contextInvoiceId: invoice?.id,
           contextType: "invoice"
         }
       });

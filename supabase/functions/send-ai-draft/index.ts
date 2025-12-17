@@ -82,8 +82,18 @@ serve(async (req) => {
     if (draftError || !draft) throw new Error("Draft not found");
 
     const invoice = draft.invoices;
-    const debtor = invoice.debtors;
+    if (!invoice) {
+      throw new Error(
+        "Draft is not linked to an invoice. Please regenerate the message from the invoice page and try again."
+      );
+    }
 
+    const debtor = invoice.debtors;
+    if (!debtor) {
+      throw new Error(
+        "Invoice is missing its linked account. Please refresh the invoice and try again."
+      );
+    }
     // Fetch all outreach-enabled contacts with fallback to debtor record
     const outreachContacts = await getOutreachContacts(supabaseClient, debtor?.id, debtor);
     const allEmails = outreachContacts.emails;
