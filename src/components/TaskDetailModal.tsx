@@ -378,6 +378,25 @@ export const TaskDetailModal = ({
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
+          {/* Status Change Section */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Status</Label>
+            <Select 
+              value={task.status} 
+              onValueChange={(value) => onStatusChange(task.id, value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="done">Done</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {task.details && (
             <div>
               <h4 className="font-semibold text-sm mb-2">Details</h4>
