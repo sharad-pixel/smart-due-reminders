@@ -33,7 +33,7 @@ interface ParsedCommand {
 
 function parseCommand(commandText: string, contextInvoiceId?: string): ParsedCommand {
   const lowerCommand = commandText.toLowerCase();
-  
+
   // Detect persona
   let personaName: string | undefined;
   for (const [key, persona] of Object.entries(PERSONAS)) {
@@ -42,7 +42,7 @@ function parseCommand(commandText: string, contextInvoiceId?: string): ParsedCom
       break;
     }
   }
-  
+
   // Detect action type
   let action = "draft_message";
   if (lowerCommand.includes("remind") || lowerCommand.includes("reminder")) {
@@ -52,14 +52,30 @@ function parseCommand(commandText: string, contextInvoiceId?: string): ParsedCom
   } else if (lowerCommand.includes("escalate")) {
     action = "escalate";
   }
-  
+
   // Detect channel
   const channel = lowerCommand.includes("sms") || lowerCommand.includes("text") ? "sms" : "email";
-  
-  // Extract invoice ID from command or use context
-  const invoiceMatch = commandText.match(/#?(\d+)/);
-  const invoiceId = invoiceMatch ? invoiceMatch[1] : contextInvoiceId;
-  
+
+  // Extract invoice identifier
+  // IMPORTANT: if caller supplies a UUID invoice ID, always prefer it (prevents accidentally extracting trailing digits like "0069").
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const hasUuidContext = !!(contextInvoiceId && uuidRe.test(contextInvoiceId));
+
+  let invoiceId: string | undefined;
+  if (hasUuidContext) {
+    invoiceId = contextInvoiceId;
+  } else {
+    // Try to capture invoice numbers like "TEST-INV-0069" first
+    const invoiceLabelMatch = commandText.match(/invoice\s*#?\s*([A-Za-z0-9][A-Za-z0-9\-_/]{2,})/i);
+    if (invoiceLabelMatch?.[1]) {
+      invoiceId = invoiceLabelMatch[1];
+    } else {
+      // Fall back to any numeric reference
+      const digitsMatch = commandText.match(/#?(\d{3,})/);
+      invoiceId = digitsMatch ? digitsMatch[1] : contextInvoiceId;
+    }
+  }
+
   return { action, personaName, invoiceId, channel };
 }
 
