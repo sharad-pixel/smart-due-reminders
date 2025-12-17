@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue, personaConfig } from "@/lib/personaConfig";
-import { Calendar, Mail, MessageSquare, Clock, CalendarClock, ArrowRight, ListTodo, MessageCircle, Brain, Zap } from "lucide-react";
+import { Calendar, Mail, MessageSquare, Clock, CalendarClock, ArrowRight, ListTodo, MessageCircle, Brain, Zap, AlertTriangle } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -283,37 +283,68 @@ export const InvoiceWorkflowCard = ({
           </div>
         </div>
 
-        {/* Next Outreach - Use actual draft date if available */}
+        {/* Next Outreach - Show actual date or Bad Debt Write-Off suggestion */}
         {workflow && (
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-accent/20 border border-accent/30">
-            <CalendarClock className="h-4 w-4 text-accent-foreground shrink-0" />
-            <div className="flex-1 min-w-0">
-              {nextDraftDate ? (
-                <>
-                  <p className="text-xs font-medium">Next Outreach</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(nextDraftDate), 'MMM d, yyyy')} · {nextDraftStep}
-                  </p>
-                </>
-              ) : nextOutreach?.isComplete ? (
-                <p className="text-xs font-medium">All outreach complete</p>
-              ) : nextOutreach?.date ? (
-                <>
-                  <p className="text-xs font-medium">Next Outreach</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(nextOutreach.date, 'MMM d')} · {nextOutreach.step.label}
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">No outreach scheduled</p>
-              )}
-            </div>
-            {nextDraftDate && (
-              <Badge variant="outline" className="text-[10px] shrink-0">
-                {Math.max(0, Math.ceil((new Date(nextDraftDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}d
-              </Badge>
-            )}
-          </div>
+          (() => {
+            // Check if at Rocco stage (150+ DPD) and all outreach steps completed
+            const isAtRoccoStage = currentPersonaIndex === personaProgression.length - 1; // Index 5 = Rocco
+            const allStepsCompleted = outreachCount >= sortedSteps.length && sortedSteps.length > 0;
+            const isSuggestedBadDebt = isAtRoccoStage && allStepsCompleted;
+
+            if (isSuggestedBadDebt) {
+              return (
+                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-destructive">Suggested: Bad Debt Write-Off</p>
+                    <p className="text-xs text-muted-foreground">
+                      All {sortedSteps.length} outreach steps completed · {daysPastDue} days past due
+                    </p>
+                  </div>
+                  <Badge variant="destructive" className="text-[10px] shrink-0">
+                    Review
+                  </Badge>
+                </div>
+              );
+            }
+
+            // Calculate actual outreach date
+            const outreachDate = nextDraftDate 
+              ? new Date(nextDraftDate)
+              : nextOutreach?.date;
+            const outreachLabel = nextDraftStep || nextOutreach?.step?.label;
+            const daysUntil = outreachDate 
+              ? Math.max(0, Math.ceil((outreachDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              : 0;
+
+            return (
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-accent/20 border border-accent/30">
+                <CalendarClock className="h-4 w-4 text-accent-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  {outreachDate ? (
+                    <>
+                      <p className="text-xs font-medium">Next Outreach</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(outreachDate, 'MMM d, yyyy')} · {outreachLabel}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-medium">Next Outreach</p>
+                      <p className="text-xs text-muted-foreground">
+                        Pending workflow assignment
+                      </p>
+                    </>
+                  )}
+                </div>
+                {outreachDate && (
+                  <Badge variant="outline" className="text-[10px] shrink-0">
+                    {daysUntil === 0 ? 'Today' : `${daysUntil}d`}
+                  </Badge>
+                )}
+              </div>
+            );
+          })()
         )}
 
         {/* Activity Summary */}
