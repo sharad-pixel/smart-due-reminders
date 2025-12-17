@@ -443,7 +443,8 @@ serve(async (req) => {
         
         if (user.email && digestEmailEnabled && !emailAlreadySent && !skipEmail) {
           try {
-            const emailBody = generateEmailHtml({
+            // Log the exact data being sent to email generator
+            const emailData = {
               name: user.name || 'there',
               openTasksCount,
               overdueTasksCount,
@@ -453,6 +454,22 @@ serve(async (req) => {
               highRiskCustomersCount,
               healthScore,
               healthLabel,
+            };
+            
+            logStep('Email data prepared for user', {
+              userId: user.id,
+              email: user.email,
+              emailData: emailData
+            });
+
+            const emailBody = generateEmailHtml(emailData);
+            
+            // Log a preview of the generated email body to verify data interpolation
+            logStep('Email body preview', {
+              userId: user.id,
+              bodyPreview: emailBody.substring(0, 500),
+              containsHealthScore: emailBody.includes(String(healthScore)),
+              containsTotalAR: emailBody.includes(String(totalArOutstanding))
             });
 
             const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -466,7 +483,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                   from: 'Recouply.ai <notifications@send.inbound.services.recouply.ai>',
                   to: [user.email],
-                  subject: 'Recouply.ai – Your Daily Collections Health Summary',
+                  subject: `📊 Daily Collections Health: ${emailData.healthLabel} (${emailData.healthScore}/100) - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(emailData.totalArOutstanding)} AR Outstanding`,
                   html: emailBody,
                 }),
               });
