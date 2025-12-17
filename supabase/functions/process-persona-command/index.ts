@@ -128,7 +128,7 @@ serve(async (req) => {
       );
     }
     
-    const { command, contextInvoiceId, contextDebtorId, contextType, senderEmail, emailSubject } = await req.json();
+    const { command, contextInvoiceId, contextDebtorId, contextType, senderEmail, emailSubject, paymentContext, reasoning } = await req.json();
     
     // Basic input validation
     if (!command || typeof command !== 'string') {
@@ -141,6 +141,7 @@ serve(async (req) => {
     
     console.log('Processing command:', command);
     console.log('Context - invoiceId:', contextInvoiceId, 'debtorId:', contextDebtorId);
+    console.log('Payment context:', paymentContext);
     
     // Parse the command
     const parsed = parseCommand(command, contextInvoiceId);
@@ -158,6 +159,7 @@ serve(async (req) => {
     let debtor: any = null;
     let daysPastDue = 0;
     let taskContext = '';
+    let paymentActivityContext = '';
     
     // Try to get invoice context if available
     if (parsed.invoiceId) {
@@ -345,14 +347,36 @@ serve(async (req) => {
     // Resolve persona (default to Sam for general responses)
     const persona = resolvePersona(daysPastDue, parsed.personaName);
     
+    // Build payment activity context if provided
+    if (paymentContext) {
+      const { invoiceAmount, outstandingAmount, isPaidInFull, recentPayments, companyName } = paymentContext;
+      
+      if (recentPayments?.length > 0) {
+        const paymentDetails = recentPayments.map((p: any) => 
+          `- $${p.amount?.toLocaleString() || 0} on ${p.date || 'unknown date'}${p.method ? ` via ${p.method}` : ''}`
+        ).join('\n');
+        
+        paymentActivityContext = `\n\nPAYMENT CONTEXT - Use this to craft an appropriate payment acknowledgment:\n${isPaidInFull 
+          ? `Invoice has been PAID IN FULL. Customer ${companyName || 'the customer'} has completed payment of $${invoiceAmount?.toLocaleString() || 0}.`
+          : `Partial payment received. Original invoice: $${invoiceAmount?.toLocaleString() || 0}. Remaining balance: $${outstandingAmount?.toLocaleString() || 0}.`
+        }\n\nRecent payment activity:\n${paymentDetails}\n\n${reasoning ? 'REASONING REQUIRED: Think through why this customer paid and how to maintain the positive relationship. Consider thanking them appropriately based on their payment behavior.' : ''}`;
+      }
+    }
+    
     // Build AI prompt based on available context
     let systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
 Your tone is: ${persona.tone}\n
-Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}`;
+Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}${paymentActivityContext}`;
 
     let userPrompt: string;
     
-    if (invoice) {
+    if (paymentContext) {
+      // Payment acknowledgment mode - use warmer, thankful tone
+      const { isPaidInFull, companyName, invoiceAmount, outstandingAmount } = paymentContext;
+      userPrompt = isPaidInFull
+        ? `Generate a warm, professional thank-you email acknowledging that ${companyName || 'the customer'} has paid their invoice in full. Express genuine gratitude for the payment of $${invoiceAmount?.toLocaleString() || 0}. Reinforce the positive business relationship and invite future collaboration. Keep it concise but heartfelt.`
+        : `Generate a professional email acknowledging a partial payment from ${companyName || 'the customer'}. Thank them for their payment and gently remind them of the remaining balance of $${outstandingAmount?.toLocaleString() || 0}. Maintain a positive tone while making the remaining balance clear. Offer to discuss payment options if needed.`;
+    } else if (invoice) {
       userPrompt = `Generate a ${parsed.channel} response for:
 
 Invoice: #${invoice.invoice_number}
