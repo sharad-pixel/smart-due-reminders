@@ -107,14 +107,20 @@ serve(async (req) => {
         continue;
       }
 
-      // Check if draft already exists for this invoice
-      const { data: existingDraft } = await supabase
+      // Check if a draft already exists for this invoice:
+      // - pending_approval / approved (in enum)
+      // - OR any draft that has already been sent (sent_at is not null)
+      const { data: existingDraft, error: existingDraftError } = await supabase
         .from('ai_drafts')
         .select('id')
         .eq('invoice_id', invoice.id)
-        .in('status', ['pending_approval', 'approved', 'sent'])
+        .or('status.in.(pending_approval,approved),sent_at.not.is.null')
         .limit(1)
         .maybeSingle();
+
+      if (existingDraftError) {
+        console.error(`[APPLY-WORKFLOW-TO-INVOICES] Error checking existing draft for ${invoice.invoice_number}:`, existingDraftError);
+      }
 
       if (existingDraft) {
         skippedExisting++;

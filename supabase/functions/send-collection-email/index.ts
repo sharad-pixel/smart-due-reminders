@@ -150,19 +150,19 @@ serve(async (req) => {
       }
     }
 
-    // Update draft status if provided
+    // Mark draft as sent by setting sent_at timestamp
+    // Keep status as-is since draft_status enum does not include 'sent'
     if (draftId) {
       const { error: draftError } = await supabaseClient
         .from("ai_drafts")
-        .update({ 
-          status: "sent",
+        .update({
           sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", draftId);
 
       if (draftError) {
-        console.error("Failed to update draft status:", draftError);
+        console.error("Failed to update draft sent_at:", draftError);
       }
     }
 
