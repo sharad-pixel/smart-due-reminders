@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users, Calendar, AlertTriangle, DollarSign, Send, FileText, CheckCircle, Eye } from "lucide-react";
+import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users, Calendar, AlertTriangle, DollarSign, Send, FileText, CheckCircle, Eye, Trash2, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { personaConfig, getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const AGING_BUCKETS = [
   { key: "current", label: "Current", color: "bg-green-500", minDays: 0, maxDays: 0 },
@@ -36,6 +37,9 @@ const Outreach = () => {
   const [bucketFilter, setBucketFilter] = useState<string>("all");
   const [personaFilter, setPersonaFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // Bulk selection state for drafts
+  const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
 
   // Mutation for toggling invoice outreach pause
   const toggleInvoicePause = useMutation({
@@ -54,6 +58,40 @@ const Outreach = () => {
       queryClient.invalidateQueries({ queryKey: ["outreach-invoices-with-drafts"] });
     },
     onError: () => toast.error("Failed to update outreach status"),
+  });
+
+  // Mutation for bulk approving drafts
+  const bulkApproveDrafts = useMutation({
+    mutationFn: async (draftIds: string[]) => {
+      const { error } = await supabase
+        .from("ai_drafts")
+        .update({ status: "approved" })
+        .in("id", draftIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${selectedDraftIds.size} draft(s) approved`);
+      setSelectedDraftIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["pending-drafts-list"] });
+    },
+    onError: () => toast.error("Failed to approve drafts"),
+  });
+
+  // Mutation for bulk rejecting/deleting drafts
+  const bulkRejectDrafts = useMutation({
+    mutationFn: async (draftIds: string[]) => {
+      const { error } = await supabase
+        .from("ai_drafts")
+        .delete()
+        .in("id", draftIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${selectedDraftIds.size} draft(s) deleted`);
+      setSelectedDraftIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["pending-drafts-list"] });
+    },
+    onError: () => toast.error("Failed to delete drafts"),
   });
 
   // Fetch invoices with next scheduled outreach
@@ -781,51 +819,127 @@ const Outreach = () => {
               </Card>
             ) : (
               <div className="space-y-3">
-                {pendingDrafts.map((draft: any) => (
-                  <Card 
-                    key={draft.id} 
-                    className="hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <Badge variant={draft.status === "approved" ? "default" : "outline"} className="text-xs">
-                              {draft.status === "approved" ? "Approved" : "Pending Review"}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
-                            </Badge>
-                          </div>
-                          <p className="font-medium text-sm truncate">
-                            {draft.subject || "No subject"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {draft.invoices?.debtors?.company_name || "Unknown"} • #{draft.invoices?.invoice_number}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            {draft.recommended_send_date && (
-                              <p className="text-sm text-primary font-medium">
-                                {formatDate(draft.recommended_send_date)}
-                              </p>
-                            )}
-                            {draft.invoices?.amount && (
-                              <p className="text-xs text-muted-foreground">
-                                ${draft.invoices.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                              </p>
-                            )}
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
+                {/* Bulk Actions Bar */}
+                <Card className="border-primary/20 bg-muted/30">
+                  <CardContent className="py-3 px-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="select-all-drafts"
+                          checked={selectedDraftIds.size === pendingDrafts.length && pendingDrafts.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedDraftIds(new Set(pendingDrafts.map((d: any) => d.id)));
+                            } else {
+                              setSelectedDraftIds(new Set());
+                            }
+                          }}
+                        />
+                        <label htmlFor="select-all-drafts" className="text-sm font-medium cursor-pointer">
+                          {selectedDraftIds.size > 0 
+                            ? `${selectedDraftIds.size} selected`
+                            : "Select all"
+                          }
+                        </label>
+                      </div>
+                      
+                      {selectedDraftIds.size > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
+                            disabled={bulkApproveDrafts.isPending}
+                            className="gap-1"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            Approve ({selectedDraftIds.size})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
+                            disabled={bulkRejectDrafts.isPending}
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete ({selectedDraftIds.size})
                           </Button>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Draft Cards */}
+                {pendingDrafts.map((draft: any) => {
+                  const isSelected = selectedDraftIds.has(draft.id);
+                  return (
+                    <Card 
+                      key={draft.id} 
+                      className={`hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedDraftIds);
+                              if (checked) {
+                                newSet.add(draft.id);
+                              } else {
+                                newSet.delete(draft.id);
+                              }
+                              setSelectedDraftIds(newSet);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1"
+                          />
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <Badge variant={draft.status === "approved" ? "default" : "outline"} className="text-xs">
+                                    {draft.status === "approved" ? "Approved" : "Pending Review"}
+                                  </Badge>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
+                                  </Badge>
+                                </div>
+                                <p className="font-medium text-sm truncate">
+                                  {draft.subject || "No subject"}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {draft.invoices?.debtors?.company_name || "Unknown"} • #{draft.invoices?.invoice_number}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  {draft.recommended_send_date && (
+                                    <p className="text-sm text-primary font-medium">
+                                      {formatDate(draft.recommended_send_date)}
+                                    </p>
+                                  )}
+                                  {draft.invoices?.amount && (
+                                    <p className="text-xs text-muted-foreground">
+                                      ${draft.invoices.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
