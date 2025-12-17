@@ -101,7 +101,7 @@ const AIWorkflows = () => {
   const [regenerateTone, setRegenerateTone] = useState<string>("standard");
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
-
+  const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
   const toneOptions = [
     { value: "standard", label: "Standard", description: "Default persona tone" },
     { value: "more_friendly", label: "More Friendly", description: "Warmer, more conversational" },
@@ -727,6 +727,38 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleGenerateAllAITemplates = async () => {
+    setGeneratingAllTemplates(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-all-workflow-templates', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(
+          `Generated ${data.templates_created} AI-powered templates across ${data.results?.length || 0} workflows`,
+          { duration: 6000 }
+        );
+        
+        // Refresh all data
+        await Promise.all([
+          fetchWorkflows(),
+          fetchDraftsByPersona(),
+          fetchStepDraftCounts()
+        ]);
+      } else {
+        throw new Error(data?.error || 'Failed to generate templates');
+      }
+    } catch (error: any) {
+      console.error('Generate all templates error:', error);
+      toast.error(error.message || "Failed to generate AI templates");
+    } finally {
+      setGeneratingAllTemplates(false);
+    }
+  };
+
   const handleGeneratePersonaDrafts = async (personaName: string) => {
     const persona = Object.values(personaConfig).find(p => p.name === personaName);
     if (!persona) return;
@@ -1097,6 +1129,19 @@ const AIWorkflows = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
+              variant="default" 
+              onClick={handleGenerateAllAITemplates}
+              disabled={generatingAllTemplates}
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
+            >
+              {generatingAllTemplates ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              <span className="text-sm">{generatingAllTemplates ? "Generating..." : "Generate AI Templates"}</span>
+            </Button>
+            <Button 
               variant="outline" 
               onClick={handleAutoSendApprovedDrafts}
               disabled={autoSending}
@@ -1105,7 +1150,7 @@ const AIWorkflows = () => {
               <Mail className="h-4 w-4" />
               <span className="text-sm">{autoSending ? "Sending..." : "Send Templates"}</span>
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               onClick={handleManualReassignment}
               disabled={reassigning}
