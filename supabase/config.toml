@@ -263,3 +263,9 @@ verify_jwt = false
 
 [functions.ensure-invoice-workflows]
 verify_jwt = false
+
+[functions.generate-workflow-templates]
+verify_jwt = true
+
+[functions.generate-all-workflow-templates]
+verify_jwt = true

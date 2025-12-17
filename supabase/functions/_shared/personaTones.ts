@@ -140,8 +140,13 @@ export function getPersonaToneByBucket(bucket: string): PersonaToneConfig | null
       return personaTones.jimmy;
     case 'dpd_150_plus':
     case 'dpd_151_plus':
-    default:
       return personaTones.rocco;
+    default:
+      // Handle any other bucket that starts with dpd_150 or dpd_151
+      if (bucket.startsWith('dpd_150') || bucket.startsWith('dpd_151')) {
+        return personaTones.rocco;
+      }
+      return null;
   }
 }
 
