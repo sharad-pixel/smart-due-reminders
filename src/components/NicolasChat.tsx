@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   MessageCircle, 
   X, 
@@ -13,13 +14,16 @@ import {
   ThumbsDown,
   ExternalLink,
   Calendar,
-  Mail
+  Mail,
+  Settings2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { founderConfig } from "@/lib/founderConfig";
+import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
+import { getPageOnboardingContent } from "@/lib/onboardingContent";
 
 interface Message {
   id: string;
@@ -683,6 +687,15 @@ export default function NicolasChat() {
     setIsOpen(false);
   };
 
+  const { preferences, isLoaded, toggleAssistant, resetOnboarding } = useNicolasPreferences();
+  const [showSettings, setShowSettings] = useState(false);
+  const pageContent = getPageOnboardingContent(location.pathname);
+
+  // Don't render if assistant is disabled
+  if (isLoaded && !preferences.assistantEnabled) {
+    return null;
+  }
+
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50 animate-float">
@@ -718,13 +731,57 @@ export default function NicolasChat() {
           </div>
           <div>
             <h3 className="font-semibold text-sm">Nicolas</h3>
-            <p className="text-xs text-muted-foreground">Knowledge Base Agent</p>
+            <p className="text-xs text-muted-foreground">
+              {pageContent ? `Helping with ${pageContent.title}` : 'Knowledge Base Agent'}
+            </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setShowSettings(!showSettings)}
+            className="h-8 w-8"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Settings panel */}
+      {showSettings && (
+        <div className="p-4 border-b bg-muted/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Assistant Enabled</p>
+              <p className="text-xs text-muted-foreground">Show Nicolas on all pages</p>
+            </div>
+            <Switch
+              checked={preferences.assistantEnabled}
+              onCheckedChange={(checked) => {
+                toggleAssistant(checked);
+                if (!checked) {
+                  toast.info("Nicolas disabled. Re-enable in Settings → Profile.");
+                }
+              }}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              resetOnboarding();
+              toast.success("Onboarding reset! Refresh to see the welcome tour.");
+            }}
+          >
+            Restart Onboarding Tour
+          </Button>
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>

@@ -59,6 +59,8 @@ import BillingSection from "@/components/BillingSection";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { AccountHierarchy } from "@/components/AccountHierarchy";
 import { ProfileAvatarEditor } from "@/components/ProfileAvatarEditor";
+import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
+import nicolasAvatar from "@/assets/personas/nicolas.png";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
@@ -105,6 +107,70 @@ interface PlanInfo {
   invoice_limit: number | null;
   feature_flags: any;
 }
+
+// Nicolas Assistant Card Component
+const NicolasAssistantCard = () => {
+  const { preferences, toggleAssistant, resetOnboarding } = useNicolasPreferences();
+  const { toast } = useToast();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <img src={nicolasAvatar} alt="Nicolas" className="h-5 w-5 rounded-full" />
+          Nicolas Assistant
+        </CardTitle>
+        <CardDescription>
+          Configure your AI assistant and onboarding preferences
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-base font-medium">Assistant Enabled</Label>
+            <p className="text-sm text-muted-foreground">
+              Show Nicolas chat helper on all pages
+            </p>
+          </div>
+          <Switch
+            checked={preferences.assistantEnabled}
+            onCheckedChange={(checked) => {
+              toggleAssistant(checked);
+              toast({
+                title: checked ? "Nicolas Enabled" : "Nicolas Disabled",
+                description: checked 
+                  ? "Nicolas will appear on all pages to help you." 
+                  : "Nicolas has been hidden. You can re-enable anytime.",
+              });
+            }}
+          />
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-base font-medium">Restart Onboarding</Label>
+            <p className="text-sm text-muted-foreground">
+              See the welcome tour and page tips again
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              resetOnboarding();
+              toast({
+                title: "Onboarding Reset",
+                description: "Refresh the page to see the welcome tour.",
+              });
+            }}
+          >
+            Restart Tour
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -1099,6 +1165,9 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Nicolas Assistant Section */}
+        <NicolasAssistantCard />
 
         {/* Account Deletion Request */}
         <Card className="border-destructive/20">

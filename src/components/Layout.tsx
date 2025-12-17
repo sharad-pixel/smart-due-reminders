@@ -42,6 +42,8 @@ import { DigestNotificationBanner } from "@/components/DigestNotificationBanner"
 import { logAuditEvent } from "@/lib/auditLog";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
+import { NicolasPageTip } from "@/components/NicolasPageTip";
+import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
@@ -503,6 +505,8 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </footer>
       
+      <OnboardingWelcome />
+      <NicolasPageTip />
       <NicolasChat />
     </div>
   );
