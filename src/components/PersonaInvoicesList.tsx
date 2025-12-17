@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,6 +27,12 @@ interface Invoice {
   last_outreach_date?: string;
 }
 
+interface CachedCount {
+  count: number;
+  totalAmount: number;
+  timestamp: number;
+}
+
 interface PersonaInvoicesListProps {
   persona: PersonaConfig;
   agingBucket: string;
@@ -34,18 +40,96 @@ interface PersonaInvoicesListProps {
   onViewInvoice?: (invoiceId: string) => void;
 }
 
+const CACHE_KEY_PREFIX = "persona_invoice_counts_";
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }: PersonaInvoicesListProps) => {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [draftCounts, setDraftCounts] = useState<Record<string, number>>({});
+  const [cachedCount, setCachedCount] = useState<number>(0);
+  const [cachedTotalAmount, setCachedTotalAmount] = useState<number>(0);
+  const [countLoading, setCountLoading] = useState(true);
 
+  // Load cached count on mount
   useEffect(() => {
-    if (expanded) {
+    loadCachedCount();
+    fetchInvoiceCount();
+  }, [agingBucket]);
+
+  // Fetch full invoices when expanded
+  useEffect(() => {
+    if (expanded && invoices.length === 0) {
       fetchInvoices();
     }
-  }, [expanded, agingBucket]);
+  }, [expanded]);
+
+  const getCacheKey = useCallback(() => {
+    return `${CACHE_KEY_PREFIX}${agingBucket}`;
+  }, [agingBucket]);
+
+  const loadCachedCount = useCallback(() => {
+    try {
+      const cached = localStorage.getItem(getCacheKey());
+      if (cached) {
+        const data: CachedCount = JSON.parse(cached);
+        const now = Date.now();
+        // Use cache if still valid (within 24 hours)
+        if (now - data.timestamp < CACHE_DURATION_MS) {
+          setCachedCount(data.count);
+          setCachedTotalAmount(data.totalAmount);
+          setCountLoading(false);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error("Error loading cached count:", e);
+    }
+    return false;
+  }, [getCacheKey]);
+
+  const saveCachedCount = useCallback((count: number, totalAmount: number) => {
+    try {
+      const data: CachedCount = {
+        count,
+        totalAmount,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(getCacheKey(), JSON.stringify(data));
+    } catch (e) {
+      console.error("Error saving cached count:", e);
+    }
+  }, [getCacheKey]);
+
+  const fetchInvoiceCount = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch count and total amount for this aging bucket
+      const { data: invoiceData, error, count } = await supabase
+        .from('invoices')
+        .select('amount', { count: 'exact', head: false })
+        .eq('user_id', user.id)
+        .eq('aging_bucket', agingBucket)
+        .in('status', ['Open', 'InPaymentPlan']);
+
+      if (error) throw error;
+
+      const totalAmount = invoiceData?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+      const invoiceCount = count || 0;
+
+      setCachedCount(invoiceCount);
+      setCachedTotalAmount(totalAmount);
+      saveCachedCount(invoiceCount, totalAmount);
+    } catch (error) {
+      console.error("Error fetching invoice count:", error);
+    } finally {
+      setCountLoading(false);
+    }
+  };
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -85,7 +169,7 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
           id: inv.id,
           invoice_number: inv.invoice_number,
           amount: inv.amount,
-          outstanding_amount: inv.amount, // Using amount as outstanding for now
+          outstanding_amount: inv.amount,
           due_date: inv.due_date,
           status: inv.status,
           debtors: inv.debtors,
@@ -123,6 +207,10 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
 
   const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
 
+  // Use cached count for display, or expanded invoices count
+  const displayCount = expanded ? invoices.length : cachedCount;
+  const displayTotal = expanded ? totalOutstanding : cachedTotalAmount;
+
   return (
     <Card className="border-l-4" style={{ borderLeftColor: persona.color }}>
       <CardHeader className="pb-2">
@@ -146,9 +234,15 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-semibold">{invoices.length} invoices</p>
-              {totalOutstanding > 0 && (
-                <p className="text-xs text-muted-foreground">{formatCurrency(totalOutstanding)}</p>
+              {countLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <p className="text-sm font-semibold">{displayCount} invoices</p>
+                  {displayTotal > 0 && (
+                    <p className="text-xs text-muted-foreground">{formatCurrency(displayTotal)}</p>
+                  )}
+                </>
               )}
             </div>
             <Button variant="ghost" size="sm">
