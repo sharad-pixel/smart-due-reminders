@@ -94,6 +94,26 @@ const Outreach = () => {
     onError: () => toast.error("Failed to delete drafts"),
   });
 
+  // Mutation for sending approved drafts
+  const sendApprovedDrafts = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("auto-send-approved-drafts");
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data?.sent > 0) {
+        toast.success(`${data.sent} email(s) sent successfully`);
+      } else if (data?.skipped > 0) {
+        toast.info(`No emails sent. ${data.skipped} draft(s) skipped (invoice status changed).`);
+      } else {
+        toast.info("No approved drafts ready to send");
+      }
+      queryClient.invalidateQueries({ queryKey: ["pending-drafts-list"] });
+    },
+    onError: () => toast.error("Failed to send approved drafts"),
+  });
+
   // Fetch invoices with next scheduled outreach
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
     queryKey: ["outreach-invoices-with-drafts"],
@@ -820,56 +840,77 @@ const Outreach = () => {
             ) : (
               <div className="space-y-3">
                 {/* Bulk Actions Bar */}
-                <Card className="border-primary/20 bg-muted/30">
-                  <CardContent className="py-3 px-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          id="select-all-drafts"
-                          checked={selectedDraftIds.size === pendingDrafts.length && pendingDrafts.length > 0}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedDraftIds(new Set(pendingDrafts.map((d: any) => d.id)));
-                            } else {
-                              setSelectedDraftIds(new Set());
-                            }
-                          }}
-                        />
-                        <label htmlFor="select-all-drafts" className="text-sm font-medium cursor-pointer">
-                          {selectedDraftIds.size > 0 
-                            ? `${selectedDraftIds.size} selected`
-                            : "Select all"
-                          }
-                        </label>
-                      </div>
-                      
-                      {selectedDraftIds.size > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
-                            disabled={bulkApproveDrafts.isPending}
-                            className="gap-1"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                            Approve ({selectedDraftIds.size})
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
-                            disabled={bulkRejectDrafts.isPending}
-                            className="gap-1"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete ({selectedDraftIds.size})
-                          </Button>
+                {(() => {
+                  const approvedCount = pendingDrafts.filter((d: any) => d.status === "approved").length;
+                  return (
+                    <Card className="border-primary/20 bg-muted/30">
+                      <CardContent className="py-3 px-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              id="select-all-drafts"
+                              checked={selectedDraftIds.size === pendingDrafts.length && pendingDrafts.length > 0}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDraftIds(new Set(pendingDrafts.map((d: any) => d.id)));
+                                } else {
+                                  setSelectedDraftIds(new Set());
+                                }
+                              }}
+                            />
+                            <label htmlFor="select-all-drafts" className="text-sm font-medium cursor-pointer">
+                              {selectedDraftIds.size > 0 
+                                ? `${selectedDraftIds.size} selected`
+                                : "Select all"
+                              }
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Send Approved Button - always visible when there are approved drafts */}
+                            {approvedCount > 0 && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => sendApprovedDrafts.mutate()}
+                                disabled={sendApprovedDrafts.isPending}
+                                className="gap-1 bg-green-600 hover:bg-green-700"
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                {sendApprovedDrafts.isPending ? "Sending..." : `Send Approved (${approvedCount})`}
+                              </Button>
+                            )}
+                            
+                            {selectedDraftIds.size > 0 && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
+                                  disabled={bulkApproveDrafts.isPending}
+                                  className="gap-1"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  Approve ({selectedDraftIds.size})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
+                                  disabled={bulkRejectDrafts.isPending}
+                                  className="gap-1"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete ({selectedDraftIds.size})
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* Draft Cards */}
                 {pendingDrafts.map((draft: any) => {
