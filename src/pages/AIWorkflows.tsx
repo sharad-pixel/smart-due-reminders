@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, Zap, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,7 @@ import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
+import PersonaInvoicesList from "@/components/PersonaInvoicesList";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
@@ -102,7 +103,6 @@ const AIWorkflows = () => {
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
-  const [applyingToInvoices, setApplyingToInvoices] = useState(false);
   const toneOptions = [
     { value: "standard", label: "Standard", description: "Default persona tone" },
     { value: "more_friendly", label: "More Friendly", description: "Warmer, more conversational" },
@@ -760,43 +760,6 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleApplyWorkflowsToInvoices = async () => {
-    setApplyingToInvoices(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('apply-workflows-to-invoices', {
-        body: {}
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        if (data.draftsCreated > 0) {
-          toast.success(
-            `Created ${data.draftsCreated} draft${data.draftsCreated !== 1 ? 's' : ''} for your invoices`,
-            { duration: 6000 }
-          );
-        } else if (data.skippedExisting > 0) {
-          toast.info(`All ${data.skippedExisting} invoices already have drafts`);
-        } else {
-          toast.info("No invoices found that need drafts");
-        }
-        
-        // Refresh data
-        await Promise.all([
-          fetchWorkflows(),
-          fetchDraftsByPersona()
-        ]);
-      } else {
-        throw new Error(data?.error || 'Failed to apply workflows');
-      }
-    } catch (error: any) {
-      console.error('Apply workflows error:', error);
-      toast.error(error.message || "Failed to apply workflows to invoices");
-    } finally {
-      setApplyingToInvoices(false);
-    }
-  };
-
   const handleGeneratePersonaDrafts = async (personaName: string) => {
     const persona = Object.values(personaConfig).find(p => p.name === personaName);
     if (!persona) return;
@@ -1197,19 +1160,6 @@ const AIWorkflows = () => {
               <Workflow className="h-4 w-4" />
               <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
             </Button>
-            <Button
-              variant="secondary"
-              onClick={handleApplyWorkflowsToInvoices}
-              disabled={applyingToInvoices}
-              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
-            >
-              {applyingToInvoices ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Zap className="h-4 w-4" />
-              )}
-              <span className="text-sm">{applyingToInvoices ? "Creating Drafts..." : "Create Invoice Drafts"}</span>
-            </Button>
           </div>
         </div>
 
@@ -1586,28 +1536,12 @@ const AIWorkflows = () => {
         <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <CardContent className="p-4">
             <div className="flex gap-3">
-              <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Template-Based Sending</h3>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   When you approve draft templates, they will automatically send personalized emails to all invoices in that aging bucket based on the cadence (days since invoice entered bucket). 
                   Templates are personalized with invoice-specific data for each debtor. Runs daily at 2 AM UTC.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-4">
-            <div className="flex gap-3">
-              <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Workflow Assignment</h3>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Invoices are automatically assigned to workflows based on their aging bucket when created. 
-                  Every day at 2 AM UTC, all invoices are checked and reassigned to the appropriate workflow as they age. 
-                  You can also manually trigger reassignment using the "Reassign All" button above.
                 </p>
               </div>
             </div>
@@ -1892,6 +1826,44 @@ const AIWorkflows = () => {
             )}
           </div>
         </div>
+
+        {/* Invoices by AI Agent */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Invoices by AI Collection Agent
+            </CardTitle>
+            <CardDescription>
+              Click to expand and view invoices assigned to each agent. Custom outreach can be initiated from individual invoice pages.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {Object.entries(personaConfig).map(([key, persona]) => {
+              const getPersonaBucket = (p: PersonaConfig) => {
+                if (p.bucketMin === 1 && p.bucketMax === 30) return "dpd_1_30";
+                if (p.bucketMin === 31 && p.bucketMax === 60) return "dpd_31_60";
+                if (p.bucketMin === 61 && p.bucketMax === 90) return "dpd_61_90";
+                if (p.bucketMin === 91 && p.bucketMax === 120) return "dpd_91_120";
+                if (p.bucketMin === 121 && p.bucketMax === 150) return "dpd_121_150";
+                if (p.bucketMin === 151 && p.bucketMax === null) return "dpd_150_plus";
+                return "dpd_1_30";
+              };
+              
+              const bucket = getPersonaBucket(persona);
+              const workflow = workflows.find(w => w.aging_bucket === bucket);
+              
+              return (
+                <PersonaInvoicesList
+                  key={key}
+                  persona={persona}
+                  agingBucket={bucket}
+                  workflowId={workflow?.id}
+                />
+              );
+            })}
+          </CardContent>
+        </Card>
       </div>
 
       <WorkflowStepEditor
