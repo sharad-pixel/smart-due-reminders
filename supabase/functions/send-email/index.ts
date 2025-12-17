@@ -21,6 +21,55 @@ interface SendEmailRequest {
   attachments?: EmailAttachment[];
 }
 
+// Retry configuration for transient failures
+const MAX_RETRIES = 3;
+const INITIAL_DELAY_MS = 500;
+
+// Sleep utility
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Exponential backoff retry wrapper
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  retries = MAX_RETRIES
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Don't retry client errors (4xx) except 429 (rate limit)
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        return response;
+      }
+      
+      // Retry on rate limit (429) or server errors (5xx)
+      if (response.status === 429 || response.status >= 500) {
+        if (attempt < retries) {
+          const delay = INITIAL_DELAY_MS * Math.pow(2, attempt);
+          console.log(`Resend API returned ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries + 1})`);
+          await sleep(delay);
+          continue;
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt < retries) {
+        const delay = INITIAL_DELAY_MS * Math.pow(2, attempt);
+        console.log(`Network error, retrying in ${delay}ms (attempt ${attempt + 1}/${retries + 1}):`, error);
+        await sleep(delay);
+      }
+    }
+  }
+  
+  throw lastError || new Error("Max retries exceeded");
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -76,8 +125,19 @@ serve(async (req) => {
     );
   }
 
-  // Normalize `to` to array
-  const toAddresses = Array.isArray(payload.to) ? payload.to : [payload.to];
+  // Normalize `to` to array and filter valid emails
+  const toAddresses = (Array.isArray(payload.to) ? payload.to : [payload.to])
+    .filter(email => email && email.includes("@"));
+
+  if (toAddresses.length === 0) {
+    return new Response(
+      JSON.stringify({ error: "No valid email addresses provided" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
   // Build Resend API payload
   const resendPayload: Record<string, unknown> = {
@@ -115,8 +175,10 @@ serve(async (req) => {
     attachmentCount: payload.attachments?.length ?? 0,
   });
 
+  const startTime = Date.now();
+
   try {
-    const resendResponse = await fetch("https://api.resend.com/emails", {
+    const resendResponse = await fetchWithRetry("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
@@ -126,9 +188,10 @@ serve(async (req) => {
     });
 
     const resendData = await resendResponse.json();
+    const duration = Date.now() - startTime;
 
     if (!resendResponse.ok) {
-      console.error("Resend API error", resendData);
+      console.error("Resend API error", { status: resendResponse.status, data: resendData, duration });
       return new Response(
         JSON.stringify({ error: "Failed to send email", details: resendData }),
         {
@@ -138,12 +201,13 @@ serve(async (req) => {
       );
     }
 
-    console.log("Email sent successfully", { messageId: resendData.id });
+    console.log("Email sent successfully", { messageId: resendData.id, duration });
 
     return new Response(
       JSON.stringify({
         status: "sent",
         message_id: resendData.id,
+        duration_ms: duration,
       }),
       {
         status: 200,
@@ -151,9 +215,10 @@ serve(async (req) => {
       }
     );
   } catch (err) {
-    console.error("Error calling Resend API", err);
+    const duration = Date.now() - startTime;
+    console.error("Error calling Resend API", { error: err, duration });
     return new Response(
-      JSON.stringify({ error: "Failed to send email" }),
+      JSON.stringify({ error: "Failed to send email after retries" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
