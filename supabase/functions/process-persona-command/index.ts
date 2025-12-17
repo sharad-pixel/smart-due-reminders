@@ -181,6 +181,8 @@ serve(async (req) => {
     if (parsed.invoiceId) {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.invoiceId || '');
       
+      console.log('Looking up invoice - isUUID:', isUUID, 'invoiceId:', parsed.invoiceId, 'userId:', user.id);
+      
       let invoiceQuery = supabaseAdmin
         .from('invoices')
         .select('*, debtors(id, name, email, company_name)')
@@ -192,7 +194,14 @@ serve(async (req) => {
         invoiceQuery = invoiceQuery.eq('invoice_number', parsed.invoiceId);
       }
       
-      const { data: invoiceData } = await invoiceQuery.single();
+      const { data: invoiceData, error: invoiceError } = await invoiceQuery.single();
+      
+      if (invoiceError) {
+        console.error('Invoice lookup error:', invoiceError);
+      } else {
+        console.log('Invoice found:', invoiceData?.id, invoiceData?.invoice_number);
+      }
+      
       invoice = invoiceData;
       debtor = invoice?.debtors;
       
@@ -529,6 +538,9 @@ Please craft a helpful, professional response. Since we don't have specific acco
     // Only add invoice_id if we have one
     if (invoice) {
       draftData.invoice_id = invoice.id;
+      console.log('Linking draft to invoice:', invoice.id, invoice.invoice_number);
+    } else {
+      console.warn('No invoice found to link draft - invoice_id will be null');
     }
     
     const { data: draft, error: draftError } = await supabaseAdmin
@@ -541,6 +553,8 @@ Please craft a helpful, professional response. Since we don't have specific acco
       console.error('Draft save error:', draftError);
       throw draftError;
     }
+    
+    console.log('Draft created successfully:', draft.id, 'with invoice_id:', draft.invoice_id);
     
     // Log command
     await supabaseAdmin
