@@ -269,3 +269,6 @@ verify_jwt = true
 
 [functions.generate-all-workflow-templates]
 verify_jwt = true
+
+[functions.apply-workflows-to-invoices]
+verify_jwt = true
