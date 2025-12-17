@@ -69,7 +69,7 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
         .eq('aging_bucket', agingBucket)
         .in('status', ['Open', 'InPaymentPlan'])
         .order('due_date', { ascending: true })
-        .limit(10);
+        .limit(25);
 
       if (error) throw error;
 
@@ -215,7 +215,7 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
                 </div>
               ))}
 
-              {invoices.length >= 10 && (
+              {invoices.length >= 25 && (
                 <Button
                   variant="outline"
                   size="sm"

@@ -4,7 +4,9 @@ import { format, addDays } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users, Calendar, AlertTriangle, DollarSign, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users, Calendar, AlertTriangle, DollarSign, Send, FileText, CheckCircle, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +28,9 @@ const AGING_BUCKETS = [
 const Outreach = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<string>("queue");
   
   // Filter state
   const [bucketFilter, setBucketFilter] = useState<string>("all");
@@ -217,6 +222,45 @@ const Outreach = () => {
     },
   });
 
+  // Fetch pending drafts for Drafts tab
+  const { data: pendingDrafts, isLoading: pendingDraftsLoading } = useQuery({
+    queryKey: ["pending-drafts-list"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("ai_drafts")
+        .select(`
+          id,
+          subject,
+          status,
+          step_number,
+          recommended_send_date,
+          created_at,
+          invoice_id,
+          invoices (
+            id,
+            invoice_number,
+            amount,
+            debtors (
+              id,
+              company_name
+            )
+          ),
+          collection_workflow_steps (
+            label
+          )
+        `)
+        .in("status", ["pending_approval", "approved"])
+        .order("recommended_send_date", { ascending: true })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Helper to get days past due
   const getDaysPastDue = (dueDate: string) => {
     const today = new Date();
@@ -387,286 +431,405 @@ const Outreach = () => {
           </div>
         )}
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="py-3 px-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filters:</span>
-              </div>
-              
-              <Select value={bucketFilter} onValueChange={setBucketFilter}>
-                <SelectTrigger className="w-[150px] h-8 text-sm">
-                  <SelectValue placeholder="All Buckets" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Buckets</SelectItem>
-                  {AGING_BUCKETS.map((bucket) => (
-                    <SelectItem key={bucket.key} value={bucket.key}>
-                      {bucket.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={personaFilter} onValueChange={setPersonaFilter}>
-                <SelectTrigger className="w-[140px] h-8 text-sm">
-                  <SelectValue placeholder="All Personas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Personas</SelectItem>
-                  {personaList.map(([key, persona]) => (
-                    <SelectItem key={key} value={key}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: persona.color }}
-                        />
-                        {persona.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[130px] h-8 text-sm">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {(bucketFilter !== "all" || personaFilter !== "all" || statusFilter !== "all") && (
-                <Badge 
-                  variant="secondary" 
-                  className="cursor-pointer" 
-                  onClick={() => {
-                    setBucketFilter("all");
-                    setPersonaFilter("all");
-                    setStatusFilter("all");
-                  }}
-                >
-                  Clear Filters
+        {/* Tabs for Queue and Drafts */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 max-w-[300px]">
+            <TabsTrigger value="queue" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Queue
+            </TabsTrigger>
+            <TabsTrigger value="drafts" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Drafts
+              {pendingDrafts && pendingDrafts.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {pendingDrafts.length}
                 </Badge>
               )}
-              
-              <span className="text-sm text-muted-foreground ml-auto">
-                {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Invoices by Aging Bucket */}
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-48 w-full" />
-            ))}
-          </div>
-        ) : invoicesByBucket.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                {filteredInvoices.length === 0 && invoicesData?.length ? "No invoices match your filters" : "No open invoices found"}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {invoicesByBucket.map((bucket) => (
-              <Card key={bucket.key}>
-                <CardHeader className="py-3 px-4 border-b">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-3">
-                      {bucket.persona ? (
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={bucket.persona.avatar} alt={bucket.persona.name} />
-                          <AvatarFallback style={{ backgroundColor: bucket.persona.color }}>
-                            {bucket.persona.name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                      ) : (
-                        <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
-                      )}
-                      {bucket.label}
-                      {bucket.persona && (
-                        <span className="text-sm font-normal text-muted-foreground">
-                          ({bucket.persona.name})
-                        </span>
-                      )}
-                      <Badge variant="secondary">{bucket.count} invoices</Badge>
-                    </CardTitle>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      ${bucket.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </span>
+          {/* Queue Tab Content */}
+          <TabsContent value="queue" className="mt-4 space-y-4">
+            {/* Filters */}
+            <Card>
+              <CardContent className="py-3 px-4">
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Filters:</span>
                   </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {bucket.stepGroups.map(([stepLabel, invoices]) => (
-                    <div key={stepLabel}>
-                      {/* Step subheader */}
-                      <div className="px-4 py-2 bg-muted/30 border-b flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-sm font-medium">{stepLabel}</span>
-                        <Badge variant="outline" className="text-xs">{invoices.length}</Badge>
-                      </div>
-                      {/* Column Headers */}
-                      <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground">
-                        <div className="col-span-3">Account / Invoice</div>
-                        <div className="col-span-2 text-right">Amount</div>
-                        <div className="col-span-2">Due Date</div>
-                        <div className="col-span-2">Last Outreach</div>
-                        <div className="col-span-3 text-right">Next Outreach</div>
-                      </div>
-                      <div className="divide-y">
-                      {invoices.map((invoice) => {
-                          const draftInfo = nextDrafts?.[invoice.id];
-                          const historyInfo = outreachHistory?.[invoice.id];
-                          const historyCount = historyInfo?.count || 0;
-                          const lastSentAt = historyInfo?.lastSentAt;
-                          const nextDate = draftInfo?.date ? formatDate(draftInfo.date) : null;
-                          const daysPastDue = getDaysPastDue(invoice.due_date);
-                          const invoiceAmount = invoice.amount || 0;
-
-                          const isPaused = invoice.outreach_paused || invoice.debtors?.outreach_paused;
-                          const isAccountPaused = invoice.debtors?.outreach_paused;
-                          const riskScore = invoice.debtors?.collections_risk_score;
-
-                          return (
-                            <div
-                              key={invoice.id}
-                              className={`grid grid-cols-12 gap-2 items-center p-3 px-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
-                            >
-                              {/* Account & Invoice Info - 3 cols */}
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={bucketFilter} onValueChange={setBucketFilter}>
+                      <SelectTrigger className="w-[140px] h-8 text-sm">
+                        <SelectValue placeholder="All Buckets" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Buckets</SelectItem>
+                        {AGING_BUCKETS.map((bucket) => (
+                          <SelectItem key={bucket.key} value={bucket.key}>
+                            {bucket.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={personaFilter} onValueChange={setPersonaFilter}>
+                      <SelectTrigger className="w-[130px] h-8 text-sm">
+                        <SelectValue placeholder="All Personas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Personas</SelectItem>
+                        {personaList.map(([key, persona]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center gap-2">
                               <div 
-                                className="col-span-3 min-w-0 cursor-pointer"
-                                onClick={() => navigate(`/invoices/${invoice.id}`)}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium truncate text-sm">
-                                    {invoice.debtors?.company_name || invoice.debtors?.name}
-                                  </p>
-                                  {isPaused && (
-                                    <Badge variant="outline" className="text-[10px] gap-0.5 text-orange-600 border-orange-300 shrink-0">
-                                      <PauseCircle className="h-2.5 w-2.5" />
-                                      {isAccountPaused ? "Acct" : "Inv"}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {invoice.invoice_number}
-                                </p>
-                              </div>
-
-                              {/* Amount & Outstanding - 2 cols */}
-                              <div className="col-span-2 text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <DollarSign className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-sm font-medium">
-                                    {invoiceAmount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Due Date & DPD - 2 cols */}
-                              <div className="col-span-2">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-xs">{format(new Date(invoice.due_date), "MMM d")}</span>
-                                </div>
-                                {daysPastDue > 0 && (
-                                  <div className="flex items-center gap-1 mt-0.5">
-                                    <AlertTriangle className={`h-3 w-3 ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`} />
-                                    <span className={`text-xs font-medium ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`}>
-                                      {daysPastDue}d overdue
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Last Outreach - 2 cols */}
-                              <div className="col-span-2">
-                                {lastSentAt ? (
-                                  <div className="flex items-center gap-1">
-                                    <Send className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">
-                                      {format(new Date(lastSentAt), "MMM d")}
-                                    </span>
-                                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                                      {historyCount}
-                                    </Badge>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">No outreach</span>
-                                )}
-                                {riskScore && riskScore >= 70 && (
-                                  <Badge variant="destructive" className="text-[10px] mt-0.5">
-                                    High Risk
-                                  </Badge>
-                                )}
-                              </div>
-
-                              {/* Next Outreach & Actions - 3 cols */}
-                              <div className="col-span-3 flex items-center justify-end gap-2">
-                                {!isPaused && nextDate ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <Clock className="h-3 w-3 text-primary" />
-                                    <span className="text-sm text-primary font-medium">{nextDate}</span>
-                                    <Badge 
-                                      variant={draftInfo?.status === "approved" ? "default" : "outline"} 
-                                      className="text-[10px]"
-                                    >
-                                      {draftInfo?.status === "approved" ? "Ready" : "Pending"}
-                                    </Badge>
-                                  </div>
-                                ) : !isPaused ? (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                ) : null}
-                                
-                                {/* Pause/Resume toggle for invoice (only if account not paused) */}
-                                {!isAccountPaused && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleInvoicePause.mutate({ 
-                                        invoiceId: invoice.id, 
-                                        paused: !invoice.outreach_paused 
-                                      });
-                                    }}
-                                    className="p-1 rounded hover:bg-muted"
-                                    title={invoice.outreach_paused ? "Resume outreach" : "Pause outreach"}
-                                  >
-                                    {invoice.outreach_paused ? (
-                                      <PlayCircle className="h-4 w-4 text-green-600" />
-                                    ) : (
-                                      <PauseCircle className="h-4 w-4 text-muted-foreground hover:text-orange-600" />
-                                    )}
-                                  </button>
-                                )}
-                                
-                                <ChevronRight 
-                                  className="h-4 w-4 text-muted-foreground cursor-pointer" 
-                                  onClick={() => navigate(`/invoices/${invoice.id}`)}
-                                />
-                              </div>
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: persona.color }}
+                              />
+                              {persona.name}
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-[120px] h-8 text-sm">
+                        <SelectValue placeholder="All Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="paused">Paused</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {(bucketFilter !== "all" || personaFilter !== "all" || statusFilter !== "all") && (
+                      <Badge 
+                        variant="secondary" 
+                        className="cursor-pointer h-8 flex items-center" 
+                        onClick={() => {
+                          setBucketFilter("all");
+                          setPersonaFilter("all");
+                          setStatusFilter("all");
+                        }}
+                      >
+                        Clear
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <span className="text-sm text-muted-foreground sm:ml-auto">
+                    {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoices by Aging Bucket */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-48 w-full" />
+                ))}
+              </div>
+            ) : invoicesByBucket.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    {filteredInvoices.length === 0 && invoicesData?.length ? "No invoices match your filters" : "No open invoices found"}
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-6">
+                {invoicesByBucket.map((bucket) => (
+                  <Card key={bucket.key}>
+                    <CardHeader className="py-3 px-4 border-b">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
+                          {bucket.persona ? (
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={bucket.persona.avatar} alt={bucket.persona.name} />
+                              <AvatarFallback style={{ backgroundColor: bucket.persona.color }}>
+                                {bucket.persona.name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
+                          )}
+                          <span>{bucket.label}</span>
+                          {bucket.persona && (
+                            <span className="text-sm font-normal text-muted-foreground">
+                              ({bucket.persona.name})
+                            </span>
+                          )}
+                          <Badge variant="secondary">{bucket.count}</Badge>
+                        </CardTitle>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          ${bucket.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {bucket.stepGroups.map(([stepLabel, invoices]) => (
+                        <div key={stepLabel}>
+                          {/* Step subheader */}
+                          <div className="px-4 py-2 bg-muted/30 border-b flex items-center gap-2">
+                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{stepLabel}</span>
+                            <Badge variant="outline" className="text-xs">{invoices.length}</Badge>
+                          </div>
+                          
+                          {/* Desktop Headers - Hidden on Mobile */}
+                          <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground">
+                            <div className="col-span-3">Account / Invoice</div>
+                            <div className="col-span-2 text-right">Amount</div>
+                            <div className="col-span-2">Due Date</div>
+                            <div className="col-span-2">Last Outreach</div>
+                            <div className="col-span-3 text-right">Next Outreach</div>
+                          </div>
+                          
+                          <div className="divide-y">
+                            {invoices.map((invoice) => {
+                              const draftInfo = nextDrafts?.[invoice.id];
+                              const historyInfo = outreachHistory?.[invoice.id];
+                              const historyCount = historyInfo?.count || 0;
+                              const lastSentAt = historyInfo?.lastSentAt;
+                              const nextDate = draftInfo?.date ? formatDate(draftInfo.date) : null;
+                              const daysPastDue = getDaysPastDue(invoice.due_date);
+                              const invoiceAmount = invoice.amount || 0;
+                              const isPaused = invoice.outreach_paused || invoice.debtors?.outreach_paused;
+                              const isAccountPaused = invoice.debtors?.outreach_paused;
+                              const riskScore = invoice.debtors?.collections_risk_score;
+
+                              return (
+                                <div key={invoice.id}>
+                                  {/* Desktop View */}
+                                  <div
+                                    className={`hidden md:grid grid-cols-12 gap-2 items-center p-3 px-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
+                                  >
+                                    <div 
+                                      className="col-span-3 min-w-0 cursor-pointer"
+                                      onClick={() => navigate(`/invoices/${invoice.id}`)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium truncate text-sm">
+                                          {invoice.debtors?.company_name || invoice.debtors?.name}
+                                        </p>
+                                        {isPaused && (
+                                          <Badge variant="outline" className="text-[10px] gap-0.5 text-orange-600 border-orange-300 shrink-0">
+                                            <PauseCircle className="h-2.5 w-2.5" />
+                                            {isAccountPaused ? "Acct" : "Inv"}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {invoice.invoice_number}
+                                      </p>
+                                    </div>
+
+                                    <div className="col-span-2 text-right">
+                                      <span className="text-sm font-medium">
+                                        ${invoiceAmount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                      </span>
+                                    </div>
+
+                                    <div className="col-span-2">
+                                      <span className="text-xs">{format(new Date(invoice.due_date), "MMM d")}</span>
+                                      {daysPastDue > 0 && (
+                                        <div className="flex items-center gap-1 mt-0.5">
+                                          <span className={`text-xs font-medium ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`}>
+                                            {daysPastDue}d overdue
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div className="col-span-2">
+                                      {lastSentAt ? (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-xs text-muted-foreground">
+                                            {format(new Date(lastSentAt), "MMM d")}
+                                          </span>
+                                          <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                                            {historyCount}
+                                          </Badge>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </div>
+
+                                    <div className="col-span-3 flex items-center justify-end gap-2">
+                                      {!isPaused && nextDate ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-sm text-primary font-medium">{nextDate}</span>
+                                          <Badge 
+                                            variant={draftInfo?.status === "approved" ? "default" : "outline"} 
+                                            className="text-[10px]"
+                                          >
+                                            {draftInfo?.status === "approved" ? "Ready" : "Pending"}
+                                          </Badge>
+                                        </div>
+                                      ) : !isPaused ? (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      ) : null}
+                                      
+                                      {!isAccountPaused && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleInvoicePause.mutate({ 
+                                              invoiceId: invoice.id, 
+                                              paused: !invoice.outreach_paused 
+                                            });
+                                          }}
+                                          className="p-1 rounded hover:bg-muted"
+                                        >
+                                          {invoice.outreach_paused ? (
+                                            <PlayCircle className="h-4 w-4 text-green-600" />
+                                          ) : (
+                                            <PauseCircle className="h-4 w-4 text-muted-foreground hover:text-orange-600" />
+                                          )}
+                                        </button>
+                                      )}
+                                      
+                                      <ChevronRight 
+                                        className="h-4 w-4 text-muted-foreground cursor-pointer" 
+                                        onClick={() => navigate(`/invoices/${invoice.id}`)}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Mobile View - Card Layout */}
+                                  <div
+                                    className={`md:hidden p-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
+                                    onClick={() => navigate(`/invoices/${invoice.id}`)}
+                                  >
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-sm truncate">
+                                          {invoice.debtors?.company_name || invoice.debtors?.name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          #{invoice.invoice_number}
+                                        </p>
+                                      </div>
+                                      <div className="text-right ml-3">
+                                        <p className="font-semibold">
+                                          ${invoiceAmount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                        </p>
+                                        {daysPastDue > 0 && (
+                                          <span className={`text-xs font-medium ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`}>
+                                            {daysPastDue}d overdue
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                      {isPaused && (
+                                        <Badge variant="outline" className="text-[10px] gap-0.5 text-orange-600 border-orange-300">
+                                          <PauseCircle className="h-2.5 w-2.5" />
+                                          {isAccountPaused ? "Account Paused" : "Paused"}
+                                        </Badge>
+                                      )}
+                                      {!isPaused && nextDate && (
+                                        <Badge variant={draftInfo?.status === "approved" ? "default" : "outline"} className="text-[10px]">
+                                          Next: {nextDate}
+                                        </Badge>
+                                      )}
+                                      {lastSentAt && (
+                                        <span>Last: {format(new Date(lastSentAt), "MMM d")}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Drafts Tab Content */}
+          <TabsContent value="drafts" className="mt-4 space-y-4">
+            {pendingDraftsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20 w-full" />
+                ))}
+              </div>
+            ) : !pendingDrafts || pendingDrafts.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
+                  <p className="text-muted-foreground">No pending drafts to review</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Generate drafts from AI Workflows to see them here
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {pendingDrafts.map((draft: any) => (
+                  <Card 
+                    key={draft.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <Badge variant={draft.status === "approved" ? "default" : "outline"} className="text-xs">
+                              {draft.status === "approved" ? "Approved" : "Pending Review"}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
+                            </Badge>
+                          </div>
+                          <p className="font-medium text-sm truncate">
+                            {draft.subject || "No subject"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {draft.invoices?.debtors?.company_name || "Unknown"} • #{draft.invoices?.invoice_number}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            {draft.recommended_send_date && (
+                              <p className="text-sm text-primary font-medium">
+                                {formatDate(draft.recommended_send_date)}
+                              </p>
+                            )}
+                            {draft.invoices?.amount && (
+                              <p className="text-xs text-muted-foreground">
+                                ${draft.invoices.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </p>
+                            )}
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
