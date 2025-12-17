@@ -742,7 +742,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           command: invoice.status === "Paid" || (invoice.amount_outstanding ?? invoice.amount) <= 0
             ? `Generate a warm thank-you email acknowledging full payment received for invoice #${invoice.invoice_number}. The customer has paid the full amount of $${invoice.amount.toLocaleString()}. Express gratitude for their prompt payment and maintaining a good business relationship.`
             : `Generate a professional email acknowledging a partial payment received for invoice #${invoice.invoice_number}. Current outstanding balance is $${(invoice.amount_outstanding ?? invoice.amount).toLocaleString()} out of original $${invoice.amount.toLocaleString()}. Thank them for the payment and gently remind about the remaining balance.`,
-          contextInvoiceId: invoice.invoice_number,
+          contextInvoiceId: invoice.id, // Pass UUID, not invoice_number
           contextType: "invoice",
           paymentContext: {
             invoiceAmount: invoice.amount,
@@ -751,7 +751,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             recentPayments: paymentContext,
             companyName: invoice.debtors?.company_name,
           },
-          reasoning: true, // Enable AI reasoning for payment context
+          reasoning: true,
         }
       });
 
