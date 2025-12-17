@@ -320,7 +320,9 @@ const ConsumptionTracker = () => {
                 </div>
                 <p className="text-3xl font-bold">{consumption.seats.billable}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  ${75 * consumption.seats.billable}/month
+                  {upcomingCharges?.breakdown.seatCharges 
+                    ? formatPrice(upcomingCharges.breakdown.seatCharges) + '/month'
+                    : formatPrice(75 * consumption.seats.billable) + '/month'}
                 </p>
               </div>
               <div className="p-4 rounded-lg border bg-muted/30">
