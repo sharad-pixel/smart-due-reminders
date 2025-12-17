@@ -16,27 +16,39 @@ interface ProcessRequest {
   isLastBatch?: boolean;
 }
 
+// Optimized date parsing with caching
+const dateCache = new Map<string, string | null>();
+
 function parseDate(value: any): string | null {
   if (!value) return null;
   
+  // Check cache first
+  const cacheKey = String(value);
+  if (dateCache.has(cacheKey)) {
+    return dateCache.get(cacheKey)!;
+  }
+  
+  let result: string | null = null;
+  
   if (value instanceof Date) {
-    return value.toISOString().split("T")[0];
-  }
-  
-  if (typeof value === "number") {
-    // Excel serial date
-    const date = new Date((value - 25569) * 86400 * 1000);
-    return date.toISOString().split("T")[0];
-  }
-  
-  if (typeof value === "string") {
+    result = value.toISOString().split("T")[0];
+  } else if (typeof value === "number") {
+    // Excel serial date - optimized calculation
+    const date = new Date((value - 25569) * 86400000);
+    result = date.toISOString().split("T")[0];
+  } else if (typeof value === "string") {
     const parsed = new Date(value);
     if (!isNaN(parsed.getTime())) {
-      return parsed.toISOString().split("T")[0];
+      result = parsed.toISOString().split("T")[0];
     }
   }
   
-  return null;
+  // Cache result (limit cache size to prevent memory issues)
+  if (dateCache.size < 10000) {
+    dateCache.set(cacheKey, result);
+  }
+  
+  return result;
 }
 
 function parseNumber(value: any): number {
@@ -53,10 +65,19 @@ function normalizeString(str: string): string {
   return (str || "").toLowerCase().trim();
 }
 
+// Generate unique reference ID with collision prevention
+function generateReferenceId(prefix: string, index: number): string {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+  return `${prefix}-${timestamp}-${index}-${random}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startTime = Date.now();
 
   try {
     const supabase = createClient(
@@ -76,23 +97,19 @@ serve(async (req) => {
 
     console.log(`Processing upload ${uploadId}: batch ${batchIndex + 1}/${totalBatches}, ${rows.length} rows, fileType: ${fileType}`);
 
-    // Get reverse mapping (field key -> file column)
+    // Build reverse mapping once
     const reverseMap: Record<string, string> = {};
     for (const [fileCol, fieldKey] of Object.entries(mappings)) {
       reverseMap[fieldKey] = fileCol;
     }
-    console.log(`Reverse map:`, JSON.stringify(reverseMap));
 
+    // Optimized getValue with pre-computed lowercase keys
     const getValue = (row: Record<string, any>, fieldKey: string): any => {
       const fileCol = reverseMap[fieldKey];
       if (!fileCol) return null;
       
-      // Try exact match first
-      if (row[fileCol] !== undefined) {
-        return row[fileCol];
-      }
+      if (row[fileCol] !== undefined) return row[fileCol];
       
-      // Try case-insensitive match
       const lowerFileCol = fileCol.toLowerCase();
       for (const key of Object.keys(row)) {
         if (key.toLowerCase() === lowerFileCol) {
@@ -102,33 +119,28 @@ serve(async (req) => {
       
       return null;
     };
-    
-    // Log mapping and first row for debugging
-    console.log(`Mappings (fileCol -> fieldKey):`, JSON.stringify(mappings));
-    console.log(`Reverse map (fieldKey -> fileCol):`, JSON.stringify(reverseMap));
-    if (rows.length > 0) {
-      console.log(`First row keys:`, Object.keys(rows[0]));
-      console.log(`First row values for invoice_number field:`, getValue(rows[0], "invoice_number"));
-    }
-    // Debug row 1 specifically
-    if (rows.length > 1) {
-      console.log(`Row 1 ALL data:`, JSON.stringify(rows[1]));
-      console.log(`Row 1 invoice_number lookup - fileCol:`, reverseMap["invoice_number"]);
-      console.log(`Row 1 direct access rows[1]["Invoice Number"]:`, rows[1]["Invoice Number"]);
-      console.log(`Row 1 getValue result:`, getValue(rows[1], "invoice_number"));
-    }
 
-    // Fetch existing customers for matching
-    const { data: existingCustomers } = await supabase
-      .from("debtors")
-      .select("id, company_name, external_customer_id, email, reference_id")
-      .eq("user_id", user.id);
+    // Parallel fetch of existing data
+    const [customersResult, invoicesResult] = await Promise.all([
+      supabase
+        .from("debtors")
+        .select("id, company_name, external_customer_id, email, reference_id")
+        .eq("user_id", user.id),
+      supabase
+        .from("invoices")
+        .select("id, invoice_number, reference_id, debtor_id, amount_outstanding, status")
+        .eq("user_id", user.id)
+    ]);
 
-    console.log(`Found ${existingCustomers?.length || 0} existing customers`);
+    const existingCustomers = customersResult.data || [];
+    const existingInvoices = invoicesResult.data || [];
 
+    console.log(`Loaded ${existingCustomers.length} customers, ${existingInvoices.length} invoices`);
+
+    // Build lookup maps
     const customerMap = new Map<string, string>();
-    const customerRefMap = new Map<string, string>(); // reference_id -> id
-    (existingCustomers || []).forEach(c => {
+    const customerRefMap = new Map<string, string>();
+    existingCustomers.forEach(c => {
       customerMap.set(normalizeString(c.company_name), c.id);
       if (c.external_customer_id) {
         customerMap.set(normalizeString(c.external_customer_id), c.id);
@@ -137,38 +149,23 @@ serve(async (req) => {
         customerRefMap.set(normalizeString(c.reference_id), c.id);
       }
     });
-    
-    // Log some sample reference IDs for debugging
-    const sampleRefs = Array.from(customerRefMap.keys()).slice(0, 5);
-    console.log(`Sample reference IDs in system:`, sampleRefs);
 
-    // Fetch existing invoices for payment matching
-    const { data: existingInvoices } = await supabase
-      .from("invoices")
-      .select("id, invoice_number, reference_id, debtor_id, amount_outstanding, status")
-      .eq("user_id", user.id);
-
-    // Maps for invoice matching: reference_id (primary) and invoice_number (fallback)
     const invoiceRefMap = new Map<string, { id: string; debtor_id: string; amount_outstanding: number; status: string }>();
     const invoiceNumMap = new Map<string, { id: string; debtor_id: string; amount_outstanding: number; status: string }>();
-    (existingInvoices || []).forEach(inv => {
+    existingInvoices.forEach(inv => {
       const invData = {
         id: inv.id,
         debtor_id: inv.debtor_id,
         amount_outstanding: inv.amount_outstanding || 0,
         status: inv.status,
       };
-      // Primary: reference_id (Recouply INV ID like INV-XXXXX)
       if (inv.reference_id) {
         invoiceRefMap.set(normalizeString(inv.reference_id), invData);
       }
-      // Fallback: invoice_number
       if (inv.invoice_number) {
         invoiceNumMap.set(normalizeString(inv.invoice_number), invData);
       }
     });
-    
-    console.log(`Invoice maps built: ${invoiceRefMap.size} by reference_id, ${invoiceNumMap.size} by invoice_number`);
 
     let processed = 0;
     let matched = 0;
@@ -181,7 +178,7 @@ serve(async (req) => {
     let invoicesPartiallyPaid = 0;
     const createdInvoiceIds: string[] = [];
 
-    // Only insert staging rows on first batch to reduce overhead
+    // Batch insert staging rows only on first batch
     if (batchIndex === 0) {
       const stagingRows = rows.map((row, index) => {
         const normalized: Record<string, any> = {};
@@ -197,7 +194,6 @@ serve(async (req) => {
         };
       });
 
-      // Batch insert staging rows
       const { error: stagingError } = await supabase
         .from("data_center_staging_rows")
         .insert(stagingRows);
@@ -207,170 +203,160 @@ serve(async (req) => {
       }
     }
 
-    // Process rows - client already batches, but we use internal batches for DB operations
     const BATCH_SIZE = 50;
     
     if (fileType === "invoice_aging") {
-      // INVOICES: Process in batches of 50
+      // Collect staging updates for batch processing
+      const stagingUpdates: { index: number; debtorId: string }[] = [];
+      
       for (let batchStart = 0; batchStart < rows.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, rows.length);
         const batchRows = rows.slice(batchStart, batchEnd);
         const invoicesToCreate: any[] = [];
+        const newDebtorsToCreate: any[] = [];
+        const newDebtorContacts: any[] = [];
+        const rowDebtorMap: Map<number, string | null> = new Map();
         
-        console.log(`Processing invoice batch ${batchStart}-${batchEnd} of ${rows.length}`);
-        
+        // First pass: identify existing vs new customers
         for (let j = 0; j < batchRows.length; j++) {
           const row = batchRows[j];
           const i = batchStart + j;
           
-          try {
-            // Get identifiers for matching
-            const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
-            const customerName = String(getValue(row, "customer_name") || "").trim();
-            const customerId = getValue(row, "customer_id");
+          const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
+          const customerName = String(getValue(row, "customer_name") || "").trim();
+          const customerId = getValue(row, "customer_id");
+          
+          let debtorId: string | null = null;
+          
+          if (recouplyAccountId) {
+            debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
+          }
+          if (!debtorId && customerId) {
+            debtorId = customerMap.get(normalizeString(String(customerId))) || null;
+          }
+          if (!debtorId && customerName) {
+            debtorId = customerMap.get(normalizeString(customerName)) || null;
+          }
+          
+          rowDebtorMap.set(i, debtorId);
+          
+          if (debtorId) {
+            existingCustomersCount++;
+            matched++;
+            stagingUpdates.push({ index: i, debtorId });
+          } else if (customerName) {
+            // Queue new debtor creation
+            const contactName = String(getValue(row, "contact_name") || customerName);
+            const contactEmail = String(getValue(row, "customer_email") || "");
+            const contactPhone = String(getValue(row, "customer_phone") || "");
+            const newRaid = generateReferenceId("RCPLY", i);
             
-            // Find or create customer
-            let debtorId: string | null = null;
-            
-            // PRIORITY 1: Match by Recouply Account ID (reference_id)
-            if (recouplyAccountId) {
-              debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
-            }
-            
-            // PRIORITY 2: Match by external customer ID
-            if (!debtorId && customerId) {
-              debtorId = customerMap.get(normalizeString(String(customerId))) || null;
-            }
-            
-            // PRIORITY 3: Match by company name
-            if (!debtorId && customerName) {
-              debtorId = customerMap.get(normalizeString(customerName)) || null;
-            }
-
-            if (debtorId) {
-              existingCustomersCount++;
-              matched++;
-              
-              // Update staging row with matched customer
-              await supabase
-                .from("data_center_staging_rows")
-                .update({
-                  matched_customer_id: debtorId,
-                  match_status: "matched_customer",
-                  match_confidence: 100,
-                })
-                .eq("upload_id", uploadId)
-                .eq("row_index", i);
-            } else {
-              // Need customer name to create new record
-              if (!customerName) {
-                console.error(`Row ${i}: No customer name and no matching account found`);
-                errors++;
-                continue;
-              }
-              
-              // Create new customer
-              const contactName = String(getValue(row, "contact_name") || customerName);
-              const contactEmail = String(getValue(row, "customer_email") || "");
-              const contactPhone = String(getValue(row, "customer_phone") || "");
-              
-              const { data: newDebtor, error: debtorError } = await supabase
-                .from("debtors")
-                .insert({
-                  user_id: user.id,
-                  company_name: customerName,
-                  name: customerName,
-                  contact_name: contactName,
-                  email: contactEmail,
-                  phone: contactPhone,
-                  external_customer_id: customerId ? String(customerId) : null,
-                  reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-                })
-                .select()
-                .single();
-
-              if (debtorError) {
-                console.error("Debtor creation error:", debtorError);
-                errors++;
-                continue;
-              }
-
-              debtorId = newDebtor.id;
-              customerMap.set(normalizeString(customerName), debtorId!);
-              if (newDebtor.reference_id) {
-                customerRefMap.set(normalizeString(newDebtor.reference_id), debtorId!);
-              }
-              newCustomers++;
-              
-              // Create primary contact for the new debtor
-              if (contactEmail) {
-                await supabase.from("debtor_contacts").insert({
-                  debtor_id: debtorId,
-                  user_id: user.id,
-                  name: contactName || customerName,
-                  email: contactEmail,
-                  phone: contactPhone || null,
-                  is_primary: true,
-                  outreach_enabled: true,
-                });
-              }
-              
-              // Update staging row for newly created customer
-              await supabase
-                .from("data_center_staging_rows")
-                .update({
-                  matched_customer_id: debtorId,
-                  match_status: "matched_customer",
-                  match_confidence: 100,
-                })
-                .eq("upload_id", uploadId)
-                .eq("row_index", i);
-            }
-
-            // Create invoice
-            const invoiceNumber = String(getValue(row, "invoice_number") || "");
-            const invoiceDate = parseDate(getValue(row, "invoice_date"));
-            const dueDate = parseDate(getValue(row, "due_date"));
-            const amount = parseNumber(getValue(row, "amount_original") || getValue(row, "amount_outstanding"));
-            const amountOutstanding = parseNumber(getValue(row, "amount_outstanding") || getValue(row, "amount_original"));
-
-            if (!invoiceNumber || !invoiceDate || !dueDate) {
-              console.error(`Row ${i}: Missing required invoice fields`);
-              errors++;
-              continue;
-            }
-
-            // Generate unique reference_id for invoice
-            const referenceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
-
-            invoicesToCreate.push({
+            newDebtorsToCreate.push({
               user_id: user.id,
-              debtor_id: debtorId,
-              invoice_number: invoiceNumber,
-              issue_date: invoiceDate,
-              due_date: dueDate,
-              amount: amount,
-              amount_original: amount,
-              amount_outstanding: amountOutstanding,
-              currency: String(getValue(row, "currency") || "USD"),
-              status: "Open",
-              reference_id: referenceId,
-              external_invoice_id: getValue(row, "external_invoice_id") ? String(getValue(row, "external_invoice_id")) : null,
-              product_description: getValue(row, "product_description") ? String(getValue(row, "product_description")) : null,
-              notes: getValue(row, "notes") ? String(getValue(row, "notes")) : null,
-              data_center_upload_id: uploadId,
+              company_name: customerName,
+              name: customerName,
+              contact_name: contactName,
+              email: contactEmail,
+              phone: contactPhone,
+              external_customer_id: customerId ? String(customerId) : null,
+              reference_id: newRaid,
+              _row_index: i, // Track for post-insert mapping
             });
-            
-            processed++;
-          } catch (rowError: any) {
-            console.error(`Error processing row ${i}:`, rowError);
+            newCustomers++;
+          } else {
             errors++;
           }
         }
         
+        // Batch create new debtors
+        if (newDebtorsToCreate.length > 0) {
+          const debtorsForInsert = newDebtorsToCreate.map(({ _row_index, ...debtor }) => debtor);
+          const { data: createdDebtors, error: debtorError } = await supabase
+            .from("debtors")
+            .insert(debtorsForInsert)
+            .select("id, reference_id, contact_name, email, phone");
+          
+          if (debtorError) {
+            console.error("Batch debtor creation error:", debtorError);
+            errors += newDebtorsToCreate.length;
+            newCustomers -= newDebtorsToCreate.length;
+          } else if (createdDebtors) {
+            // Map new debtors back to rows
+            for (let k = 0; k < createdDebtors.length; k++) {
+              const debtor = createdDebtors[k];
+              const originalData = newDebtorsToCreate[k];
+              const rowIndex = originalData._row_index;
+              
+              rowDebtorMap.set(rowIndex, debtor.id);
+              customerMap.set(normalizeString(debtor.reference_id || ""), debtor.id);
+              if (debtor.reference_id) {
+                customerRefMap.set(normalizeString(debtor.reference_id), debtor.id);
+              }
+              stagingUpdates.push({ index: rowIndex, debtorId: debtor.id });
+              
+              // Queue contact creation
+              if (debtor.email) {
+                newDebtorContacts.push({
+                  debtor_id: debtor.id,
+                  user_id: user.id,
+                  name: debtor.contact_name || originalData.company_name,
+                  email: debtor.email,
+                  phone: debtor.phone || null,
+                  is_primary: true,
+                  outreach_enabled: true,
+                });
+              }
+            }
+          }
+        }
+        
+        // Batch create contacts
+        if (newDebtorContacts.length > 0) {
+          await supabase.from("debtor_contacts").insert(newDebtorContacts);
+        }
+        
+        // Create invoices for all rows with valid debtors
+        for (let j = 0; j < batchRows.length; j++) {
+          const row = batchRows[j];
+          const i = batchStart + j;
+          const debtorId = rowDebtorMap.get(i);
+          
+          if (!debtorId) continue;
+          
+          const invoiceNumber = String(getValue(row, "invoice_number") || "");
+          const invoiceDate = parseDate(getValue(row, "invoice_date"));
+          const dueDate = parseDate(getValue(row, "due_date"));
+          const amount = parseNumber(getValue(row, "amount_original") || getValue(row, "amount_outstanding"));
+          const amountOutstanding = parseNumber(getValue(row, "amount_outstanding") || getValue(row, "amount_original"));
+
+          if (!invoiceNumber || !invoiceDate || !dueDate) {
+            errors++;
+            continue;
+          }
+
+          invoicesToCreate.push({
+            user_id: user.id,
+            debtor_id: debtorId,
+            invoice_number: invoiceNumber,
+            issue_date: invoiceDate,
+            due_date: dueDate,
+            amount: amount,
+            amount_original: amount,
+            amount_outstanding: amountOutstanding,
+            currency: String(getValue(row, "currency") || "USD"),
+            status: "Open",
+            reference_id: generateReferenceId("INV", i),
+            external_invoice_id: getValue(row, "external_invoice_id") ? String(getValue(row, "external_invoice_id")) : null,
+            product_description: getValue(row, "product_description") ? String(getValue(row, "product_description")) : null,
+            notes: getValue(row, "notes") ? String(getValue(row, "notes")) : null,
+            data_center_upload_id: uploadId,
+          });
+          
+          processed++;
+        }
+        
         // Batch insert invoices
         if (invoicesToCreate.length > 0) {
-          console.log(`Inserting batch of ${invoicesToCreate.length} invoices`);
           const { data: createdInvoices, error: createError } = await supabase
             .from("invoices")
             .insert(invoicesToCreate)
@@ -379,23 +365,39 @@ serve(async (req) => {
           if (createError) {
             console.error("Batch invoice creation error:", createError);
             errors += invoicesToCreate.length;
-          } else {
-            newRecords += invoicesToCreate.length;
-            if (createdInvoices) {
-              createdInvoiceIds.push(...createdInvoices.map(inv => inv.id));
-            }
+          } else if (createdInvoices) {
+            newRecords += createdInvoices.length;
+            createdInvoiceIds.push(...createdInvoices.map(inv => inv.id));
           }
         }
       }
+      
+      // Batch update staging rows
+      if (stagingUpdates.length > 0) {
+        const updatePromises = stagingUpdates.map(({ index, debtorId }) =>
+          supabase
+            .from("data_center_staging_rows")
+            .update({
+              matched_customer_id: debtorId,
+              match_status: "matched_customer",
+              match_confidence: 100,
+            })
+            .eq("upload_id", uploadId)
+            .eq("row_index", index)
+        );
+        
+        // Execute in parallel batches of 10
+        for (let i = 0; i < updatePromises.length; i += 10) {
+          await Promise.all(updatePromises.slice(i, i + 10));
+        }
+      }
+      
     } else if (fileType === "payments") {
-      // PAYMENTS: Process in batches of 50
       for (let batchStart = 0; batchStart < rows.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, rows.length);
         const batchRows = rows.slice(batchStart, batchEnd);
         const paymentsToCreate: any[] = [];
         const paymentLinks: { paymentIndex: number; invoiceData: any; paymentAmount: number }[] = [];
-        
-        console.log(`Processing payment batch ${batchStart}-${batchEnd} of ${rows.length}`);
         
         for (let j = 0; j < batchRows.length; j++) {
           const row = batchRows[j];
@@ -410,22 +412,17 @@ serve(async (req) => {
             
             const invoiceIdentifier = recouplyInvoiceId || paymentInvoiceNumber;
 
-            // Validate required fields
             if (!recouplyAccountId || !invoiceIdentifier || !paymentDate || paymentAmount <= 0) {
-              console.error(`Row ${i}: Missing required payment fields`);
               errors++;
               continue;
             }
 
-            // Find debtor by reference_id
             const debtorId = customerRefMap.get(normalizeString(recouplyAccountId));
             if (!debtorId) {
-              console.error(`Row ${i}: Account not found for: ${recouplyAccountId}`);
               errors++;
               continue;
             }
 
-            // Find invoice
             let invoiceData = null;
             if (recouplyInvoiceId) {
               invoiceData = invoiceRefMap.get(normalizeString(recouplyInvoiceId));
@@ -435,13 +432,7 @@ serve(async (req) => {
                            invoiceNumMap.get(normalizeString(paymentInvoiceNumber));
             }
             
-            if (!invoiceData) {
-              console.error(`Row ${i}: Invoice not found`);
-              errors++;
-              continue;
-            }
-
-            if (invoiceData.debtor_id !== debtorId || invoiceData.status === "Paid") {
+            if (!invoiceData || invoiceData.debtor_id !== debtorId || invoiceData.status === "Paid") {
               errors++;
               continue;
             }
@@ -474,7 +465,6 @@ serve(async (req) => {
         
         // Batch insert payments
         if (paymentsToCreate.length > 0) {
-          console.log(`Inserting batch of ${paymentsToCreate.length} payments`);
           const { data: createdPayments, error: createError } = await supabase
             .from("payments")
             .insert(paymentsToCreate)
@@ -487,50 +477,58 @@ serve(async (req) => {
             newRecords += createdPayments.length;
             matched += createdPayments.length;
             
-            // Create payment-invoice links and update invoices
-            for (const link of paymentLinks) {
-              const payment = createdPayments[link.paymentIndex];
-              if (!payment) continue;
-              
-              // Create link
-              await supabase.from("payment_invoice_links").insert({
-                payment_id: payment.id,
-                invoice_id: link.invoiceData.id,
-                applied_amount: link.paymentAmount,
-                match_confidence: 1.0,
-                match_method: "manual_upload",
-                status: "confirmed",
-              });
-              
-              // Update invoice
+            // Batch create payment-invoice links
+            const linksToCreate = paymentLinks.map(link => ({
+              payment_id: createdPayments[link.paymentIndex].id,
+              invoice_id: link.invoiceData.id,
+              applied_amount: link.paymentAmount,
+              match_confidence: 1.0,
+              match_method: "manual_upload",
+              status: "confirmed",
+            }));
+            
+            if (linksToCreate.length > 0) {
+              await supabase.from("payment_invoice_links").insert(linksToCreate);
+            }
+            
+            // Batch update invoices
+            const invoiceUpdates = paymentLinks.map(link => {
               const newOutstanding = Math.max(0, link.invoiceData.amount_outstanding - link.paymentAmount);
               const newStatus = newOutstanding <= 0 ? "Paid" : "PartiallyPaid";
               
               if (newStatus === "Paid") invoicesPaid++;
               else invoicesPartiallyPaid++;
               
-              await supabase.from("invoices").update({
+              return {
+                id: link.invoiceData.id,
                 amount_outstanding: newOutstanding,
                 status: newStatus,
                 payment_date: newStatus === "Paid" ? paymentsToCreate[link.paymentIndex].payment_date : null,
-                updated_at: new Date().toISOString(),
-              }).eq("id", link.invoiceData.id);
-              
-              // Update local cache
-              link.invoiceData.amount_outstanding = newOutstanding;
-              link.invoiceData.status = newStatus;
-            }
+              };
+            });
+            
+            // Execute invoice updates in parallel
+            await Promise.all(
+              invoiceUpdates.map(update =>
+                supabase.from("invoices")
+                  .update({
+                    amount_outstanding: update.amount_outstanding,
+                    status: update.status,
+                    payment_date: update.payment_date,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", update.id)
+              )
+            );
           }
         }
       }
     } else if (fileType === "accounts") {
-      // ACCOUNTS: Process in small chunks to avoid memory limits
       for (let batchStart = 0; batchStart < rows.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, rows.length);
         const batchRows = rows.slice(batchStart, batchEnd);
         const accountsToCreate: any[] = [];
-        
-        console.log(`Processing batch ${batchStart}-${batchEnd} of ${rows.length}`);
+        const accountUpdates: { id: string; data: any }[] = [];
         
         for (let j = 0; j < batchRows.length; j++) {
           const row = batchRows[j];
@@ -553,51 +551,45 @@ serve(async (req) => {
           const industry = String(getValue(row, "industry") || "").trim();
           const notes = String(getValue(row, "notes") || "").trim();
           
-          // Validate required fields
           if (!companyName || !contactName || !contactEmail) {
-            console.error(`Row ${i}: Missing required fields`);
             errors++;
             continue;
           }
           
           const parsedType = accountType.toUpperCase() === "B2B" ? "B2B" : "B2C";
           
-          // Check if this is an update (RAID provided) or new account (no RAID)
           let debtorId: string | null = null;
           if (recouplyAccountId) {
             debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
           }
           
           if (debtorId) {
-            // Update existing account one at a time (rare case)
-            const updateData: any = {
-              updated_at: new Date().toISOString(),
-              company_name: companyName,
-              name: companyName,
-              contact_name: contactName,
-              email: contactEmail,
-              type: parsedType,
-            };
-            
-            if (contactPhone) updateData.phone = contactPhone;
-            if (addressLine1) updateData.address_line1 = addressLine1;
-            if (addressLine2) updateData.address_line2 = addressLine2;
-            if (city) updateData.city = city;
-            if (state) updateData.state = state;
-            if (postalCode) updateData.postal_code = postalCode;
-            if (country) updateData.country = country;
-            if (externalCustomerId) updateData.external_customer_id = externalCustomerId;
-            if (crmId) updateData.crm_account_id_external = crmId;
-            if (industry) updateData.industry = industry;
-            if (notes) updateData.notes = notes;
-            
-            await supabase.from("debtors").update(updateData).eq("id", debtorId);
+            // Queue update
+            accountUpdates.push({
+              id: debtorId,
+              data: {
+                updated_at: new Date().toISOString(),
+                company_name: companyName,
+                name: companyName,
+                contact_name: contactName,
+                email: contactEmail,
+                type: parsedType,
+                phone: contactPhone || undefined,
+                address_line1: addressLine1 || undefined,
+                address_line2: addressLine2 || undefined,
+                city: city || undefined,
+                state: state || undefined,
+                postal_code: postalCode || undefined,
+                country: country || undefined,
+                external_customer_id: externalCustomerId || undefined,
+                crm_account_id_external: crmId || undefined,
+                industry: industry || undefined,
+                notes: notes || undefined,
+              },
+            });
             existingCustomersCount++;
             matched++;
           } else {
-            // Queue for batch insert
-            const newRaid = `RCPLY-ACCT-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-            
             accountsToCreate.push({
               user_id: user.id,
               company_name: companyName,
@@ -616,7 +608,7 @@ serve(async (req) => {
               crm_account_id_external: crmId || null,
               industry: industry || null,
               notes: notes || null,
-              reference_id: newRaid,
+              reference_id: generateReferenceId("RCPLY-ACCT", i),
             });
             newCustomers++;
           }
@@ -624,9 +616,17 @@ serve(async (req) => {
           processed++;
         }
         
-        // Insert this batch of new accounts
+        // Execute account updates in parallel
+        if (accountUpdates.length > 0) {
+          await Promise.all(
+            accountUpdates.map(update =>
+              supabase.from("debtors").update(update.data).eq("id", update.id)
+            )
+          );
+        }
+        
+        // Batch insert new accounts
         if (accountsToCreate.length > 0) {
-          console.log(`Inserting batch of ${accountsToCreate.length} accounts`);
           const { data: createdAccounts, error: createError } = await supabase
             .from("debtors")
             .insert(accountsToCreate)
@@ -640,7 +640,7 @@ serve(async (req) => {
             newRecords += createdAccounts.length;
             matched += createdAccounts.length;
             
-            // Create primary contacts for all new accounts
+            // Batch create primary contacts
             const contactsToCreate = createdAccounts
               .filter((acc: any) => acc.email)
               .map((acc: any) => ({
@@ -654,20 +654,14 @@ serve(async (req) => {
               }));
             
             if (contactsToCreate.length > 0) {
-              const { error: contactError } = await supabase
-                .from("debtor_contacts")
-                .insert(contactsToCreate);
-              
-              if (contactError) {
-                console.error("Batch contact creation error:", contactError);
-              }
+              await supabase.from("debtor_contacts").insert(contactsToCreate);
             }
           }
         }
       }
     }
 
-    // Only update upload status on last batch
+    // Update upload status on last batch
     if (isLastBatch) {
       const finalStatus = errors > 0 ? "needs_review" : "processed";
       await supabase
@@ -681,39 +675,39 @@ serve(async (req) => {
         .eq("id", uploadId);
     }
 
-    // Only track invoice usage on last batch to avoid duplicate tracking
+    // Batch track invoice usage on last batch
     if (isLastBatch && fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
       console.log(`Tracking usage for ${createdInvoiceIds.length} new invoices`);
       
-      for (const invoiceId of createdInvoiceIds) {
-        try {
-          await supabase.functions.invoke('track-invoice-usage', {
-            body: { invoice_id: invoiceId }
-          });
-        } catch (usageError: any) {
-          console.log(`Usage tracking error for ${invoiceId} (non-blocking):`, usageError?.message);
-        }
+      // Process in parallel batches of 5 to avoid overwhelming the function
+      const USAGE_BATCH_SIZE = 5;
+      for (let i = 0; i < createdInvoiceIds.length; i += USAGE_BATCH_SIZE) {
+        const batch = createdInvoiceIds.slice(i, i + USAGE_BATCH_SIZE);
+        await Promise.all(
+          batch.map(invoiceId =>
+            supabase.functions.invoke('track-invoice-usage', {
+              body: { invoice_id: invoiceId }
+            }).catch(err => console.log(`Usage tracking error for ${invoiceId}:`, err?.message))
+          )
+        );
       }
     }
 
-    // Skip AI workflow triggering until last batch to avoid duplicate drafts
+    // Trigger AI workflow on last batch
     let draftsGenerated = 0;
     let workflowErrors: string[] = [];
     
     if (isLastBatch && fileType === "invoice_aging" && createdInvoiceIds.length > 0) {
       console.log(`Triggering AI workflow for ${createdInvoiceIds.length} new invoices`);
       
-      // Fetch the created invoices with their aging buckets
       const { data: newInvoices } = await supabase
         .from("invoices")
         .select("id, aging_bucket, due_date")
         .in("id", createdInvoiceIds);
       
-      // Group invoices by aging bucket
       const bucketInvoices: Record<string, string[]> = {};
       
       for (const inv of newInvoices || []) {
-        // Calculate aging bucket from due date if not set
         let bucket = inv.aging_bucket;
         if (!bucket) {
           const today = new Date();
@@ -729,20 +723,15 @@ serve(async (req) => {
           else bucket = 'dpd_150_plus';
         }
         
-        // Include ALL invoices including 'current' for immediate outreach on upload
         if (bucket) {
           if (!bucketInvoices[bucket]) bucketInvoices[bucket] = [];
           bucketInvoices[bucket].push(inv.id);
         }
       }
       
-      console.log(`Invoice buckets:`, JSON.stringify(bucketInvoices));
-      
-      // Trigger draft generation for each bucket with invoices
-      for (const [bucket, invoiceIds] of Object.entries(bucketInvoices)) {
+      // Trigger draft generation in parallel
+      const draftPromises = Object.entries(bucketInvoices).map(async ([bucket]) => {
         try {
-          console.log(`Generating drafts for bucket ${bucket} with ${invoiceIds.length} invoices`);
-          
           const response = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-bucket-drafts`,
             {
@@ -757,20 +746,30 @@ serve(async (req) => {
           
           if (response.ok) {
             const result = await response.json();
-            draftsGenerated += result.drafts_created || 0;
-            console.log(`Generated ${result.drafts_created || 0} drafts for bucket ${bucket}`);
+            return { bucket, drafts: result.drafts_created || 0 };
           } else {
             const errorText = await response.text();
             console.error(`Failed to generate drafts for bucket ${bucket}:`, errorText);
-            workflowErrors.push(`Failed to generate drafts for ${bucket}`);
+            return { bucket, error: true };
           }
         } catch (error: any) {
           console.error(`Error generating drafts for bucket ${bucket}:`, error);
-          workflowErrors.push(`Error generating drafts for ${bucket}: ${error.message}`);
+          return { bucket, error: true };
+        }
+      });
+      
+      const draftResults = await Promise.all(draftPromises);
+      
+      for (const result of draftResults) {
+        if (result.error) {
+          workflowErrors.push(`Failed to generate drafts for ${result.bucket}`);
+        } else {
+          draftsGenerated += result.drafts || 0;
         }
       }
     }
 
+    const duration = Date.now() - startTime;
     const result = {
       totalRows: rows.length,
       processed,
@@ -785,6 +784,7 @@ serve(async (req) => {
       invoicesPartiallyPaid,
       draftsGenerated,
       workflowErrors: workflowErrors.length > 0 ? workflowErrors : undefined,
+      processingTimeMs: duration,
     };
 
     console.log("Processing complete:", result);
