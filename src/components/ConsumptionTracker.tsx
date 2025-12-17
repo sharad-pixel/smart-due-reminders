@@ -8,7 +8,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { 
   FileText, 
-  Users, 
   TrendingUp, 
   AlertTriangle, 
   RefreshCw,
@@ -32,11 +31,6 @@ interface ConsumptionData {
     percentUsed: number;
     planName: string;
     overageRate: number;
-  };
-  seats: {
-    billable: number;
-    active: number;
-    pending: number;
   };
   period: string;
 }
@@ -94,11 +88,6 @@ const ConsumptionTracker = () => {
             planName: usageData.plan_name || 'Unknown',
             overageRate,
           },
-          seats: {
-            billable: 0,
-            active: 0,
-            pending: 0,
-          },
           period: usageData.month || new Date().toISOString().slice(0, 7),
         });
       }
@@ -124,18 +113,6 @@ const ConsumptionTracker = () => {
             ...chargesData.breakdown.prorations.items,
           ],
         });
-
-        // Update seat data from charges response
-        if (chargesData.consumption?.seats) {
-          setConsumption(prev => prev ? {
-            ...prev,
-            seats: {
-              billable: chargesData.consumption.seats.billable || 0,
-              active: chargesData.breakdown.seat_charges.seat_count || 0,
-              pending: 0,
-            }
-          } : null);
-        }
       } else {
         setUpcomingCharges({
           hasUpcoming: false,
@@ -298,43 +275,6 @@ const ConsumptionTracker = () => {
                   </p>
                 </div>
               )}
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Seat Consumption */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-semibold">Team Seat Usage</h3>
-          </div>
-          
-          {consumption && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg border bg-muted/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium">Billable Seats</span>
-                </div>
-                <p className="text-3xl font-bold">{consumption.seats.billable}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {upcomingCharges?.breakdown.seatCharges 
-                    ? formatPrice(upcomingCharges.breakdown.seatCharges) + '/month'
-                    : formatPrice(75 * consumption.seats.billable) + '/month'}
-                </p>
-              </div>
-              <div className="p-4 rounded-lg border bg-muted/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium">Active Members</span>
-                </div>
-                <p className="text-3xl font-bold text-green-600">{consumption.seats.active}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Owner seat is free
-                </p>
-              </div>
             </div>
           )}
         </div>
