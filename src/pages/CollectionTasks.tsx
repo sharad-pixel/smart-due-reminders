@@ -277,14 +277,25 @@ export default function CollectionTasks() {
 
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
+      const completedAt = status === 'done' ? new Date().toISOString() : null;
       const { error } = await supabase
         .from("collection_tasks")
-        .update({ status, completed_at: status === 'done' ? new Date().toISOString() : null })
+        .update({ status, completed_at: completedAt })
         .eq("id", taskId);
 
       if (error) throw error;
+      
+      // Update local state immediately for responsive UI
+      setTasks(prev => prev.map(t => 
+        t.id === taskId ? { ...t, status, completed_at: completedAt } : t
+      ));
+      
+      // Update selected task if it's the one being changed
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(prev => prev ? { ...prev, status, completed_at: completedAt } as CollectionTask : null);
+      }
+      
       toast.success("Task status updated");
-      loadTasks();
     } catch (error) {
       console.error("Error updating task:", error);
       toast.error("Failed to update task");
