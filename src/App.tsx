@@ -117,7 +117,9 @@ const App = () => (
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/invoices/:id" element={<InvoiceDetail />} />
           <Route path="/settings" element={<Settings />} />
-          
+
+          {/* Backwards-compatible alias */}
+          <Route path="/ai-workflows" element={<AIWorkflows />} />
           <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
           <Route path="/tasks" element={<CollectionTasks />} />
           <Route path="/inbound" element={<InboundCommandCenter />} />
