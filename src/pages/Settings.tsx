@@ -7,12 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, Shield, ExternalLink, Loader2, Users, Palette, UserPlus, Lock, Crown, Building2 } from "lucide-react";
-import { LogoUpload } from "@/components/LogoUpload";
+import { Save, Mail, Phone, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2 } from "lucide-react";
 import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
@@ -26,14 +24,8 @@ interface ProfileData {
   business_postal_code: string;
   business_country: string;
   business_phone: string;
-  from_name: string;
-  from_email: string;
-  reply_to_email: string;
-  email_signature: string;
-  email_footer: string;
   stripe_payment_link_url: string;
   email: string;
-  logo_url: string | null;
 }
 
 interface CredentialsStatus {
@@ -79,14 +71,8 @@ const Settings = () => {
     business_postal_code: "",
     business_country: "",
     business_phone: "",
-    from_name: "",
-    from_email: "",
-    reply_to_email: "",
-    email_signature: "",
-    email_footer: "",
     stripe_payment_link_url: "",
     email: "",
-    logo_url: null,
   });
 
   // Get effective account info to determine if child account
@@ -109,14 +95,8 @@ const Settings = () => {
         business_postal_code: effectiveAccount.ownerBusinessPostalCode || "",
         business_country: effectiveAccount.ownerBusinessCountry || "",
         business_phone: effectiveAccount.ownerBusinessPhone || "",
-        from_name: effectiveAccount.ownerFromName || "",
-        from_email: effectiveAccount.ownerFromEmail || "",
-        reply_to_email: effectiveAccount.ownerReplyToEmail || "",
-        email_signature: effectiveAccount.ownerEmailSignature || "",
-        email_footer: effectiveAccount.ownerEmailFooter || "",
         stripe_payment_link_url: effectiveAccount.ownerStripePaymentLinkUrl || "",
         email: effectiveAccount.ownerEmail || "",
-        logo_url: effectiveAccount.ownerLogoUrl || null,
       });
       setLoading(false);
     } else {
@@ -152,13 +132,6 @@ const Settings = () => {
 
       if (error) throw error;
 
-      // Also fetch branding settings
-      const { data: brandingData } = await supabase
-        .from("branding_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
       setProfile({
         business_name: data.business_name || "",
         business_address: data.business_address || "",
@@ -169,14 +142,8 @@ const Settings = () => {
         business_postal_code: data.business_postal_code || "",
         business_country: data.business_country || "",
         business_phone: data.business_phone || "",
-        from_name: brandingData?.from_name || "",
-        from_email: brandingData?.from_email || "",
-        reply_to_email: brandingData?.reply_to_email || "",
-        email_signature: brandingData?.email_signature || "",
-        email_footer: brandingData?.email_footer || "",
         stripe_payment_link_url: data.stripe_payment_link_url || "",
         email: data.email || "",
-        logo_url: brandingData?.logo_url || null,
       });
     } catch (error: any) {
       toast.error("Failed to load profile");
@@ -191,7 +158,7 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Update profiles (without credentials - those are handled separately)
+      // Update profiles
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -209,22 +176,6 @@ const Settings = () => {
         .eq("id", user.id);
 
       if (profileError) throw profileError;
-
-      // Upsert branding settings
-      const { error: brandingError } = await supabase
-        .from("branding_settings")
-        .upsert({
-          user_id: user.id,
-          business_name: profile.business_name,
-          from_name: profile.from_name,
-          from_email: profile.from_email,
-          reply_to_email: profile.reply_to_email,
-          email_signature: profile.email_signature,
-          email_footer: profile.email_footer,
-          logo_url: profile.logo_url,
-        }, { onConflict: 'user_id' });
-
-      if (brandingError) throw brandingError;
       toast.success("Settings saved successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to save settings");
@@ -542,46 +493,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Palette className="h-5 w-5 text-primary" />
-                <CardTitle>Company Logo</CardTitle>
-              </div>
-              {isChildAccount && (
-                <Badge variant="secondary" className="text-xs">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Read Only
-                </Badge>
-              )}
-            </div>
-            <CardDescription>
-              {isChildAccount 
-                ? "Logo inherited from parent account"
-                : "Upload your company logo to appear in the signature of all outbound messages"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isChildAccount ? (
-              <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-                {profile.logo_url ? (
-                  <img src={profile.logo_url} alt="Company Logo" className="h-16 w-auto max-w-[200px] object-contain" />
-                ) : (
-                  <div className="h-16 w-32 bg-muted-foreground/10 rounded flex items-center justify-center text-sm text-muted-foreground">
-                    No logo set
-                  </div>
-                )}
-              </div>
-            ) : (
-              <LogoUpload
-                currentLogoUrl={profile.logo_url}
-                onLogoChange={(url) => setProfile({ ...profile, logo_url: url })}
-              />
-            )}
-          </CardContent>
-        </Card>
 
         {!isChildAccount && (
           <Card className="border-primary/20 bg-primary/5">
@@ -612,93 +523,6 @@ const Settings = () => {
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Mail className="h-5 w-5 text-primary" />
-                <CardTitle>Branding & White-Label Settings</CardTitle>
-              </div>
-              {isChildAccount && (
-                <Badge variant="secondary" className="text-xs">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Read Only
-                </Badge>
-              )}
-            </div>
-            <CardDescription>
-              {isChildAccount 
-                ? "Branding settings inherited from parent account"
-                : "Configure how your business appears in all outreach messages"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="from_name">From Name</Label>
-              <Input
-                id="from_name"
-                value={profile.from_name}
-                onChange={(e) => setProfile({ ...profile, from_name: e.target.value })}
-                placeholder="Acme AR Team"
-                disabled={isChildAccount}
-                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
-              />
-              <p className="text-sm text-muted-foreground">
-                This name appears as the sender in emails
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="from_email">From Email</Label>
-              <Input
-                id="from_email"
-                type="email"
-                value={profile.from_email}
-                onChange={(e) => setProfile({ ...profile, from_email: e.target.value })}
-                placeholder="collections@acme.com"
-                disabled={isChildAccount}
-                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reply_to_email">Reply-To Email</Label>
-              <Input
-                id="reply_to_email"
-                type="email"
-                value={profile.reply_to_email}
-                onChange={(e) => setProfile({ ...profile, reply_to_email: e.target.value })}
-                placeholder="support@acme.com"
-                disabled={isChildAccount}
-                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email_signature">Email Signature</Label>
-              <Input
-                id="email_signature"
-                value={profile.email_signature}
-                onChange={(e) => setProfile({ ...profile, email_signature: e.target.value })}
-                placeholder="Best regards,\nThe Acme Team"
-                disabled={isChildAccount}
-                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email_footer">Email Footer</Label>
-              <Input
-                id="email_footer"
-                value={profile.email_footer}
-                onChange={(e) => setProfile({ ...profile, email_footer: e.target.value })}
-                placeholder="Acme Inc. | 123 Main St | contact@acme.com"
-                disabled={isChildAccount}
-                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
-              />
-              <p className="text-sm text-muted-foreground">
-                Legal text or company information at the bottom of emails
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
 
         <Card>
