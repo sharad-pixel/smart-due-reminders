@@ -102,6 +102,7 @@ const AIWorkflows = () => {
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
+  const [applyingToInvoices, setApplyingToInvoices] = useState(false);
   const toneOptions = [
     { value: "standard", label: "Standard", description: "Default persona tone" },
     { value: "more_friendly", label: "More Friendly", description: "Warmer, more conversational" },
@@ -759,6 +760,43 @@ const AIWorkflows = () => {
     }
   };
 
+  const handleApplyWorkflowsToInvoices = async () => {
+    setApplyingToInvoices(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('apply-workflows-to-invoices', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        if (data.draftsCreated > 0) {
+          toast.success(
+            `Created ${data.draftsCreated} draft${data.draftsCreated !== 1 ? 's' : ''} for your invoices`,
+            { duration: 6000 }
+          );
+        } else if (data.skippedExisting > 0) {
+          toast.info(`All ${data.skippedExisting} invoices already have drafts`);
+        } else {
+          toast.info("No invoices found that need drafts");
+        }
+        
+        // Refresh data
+        await Promise.all([
+          fetchWorkflows(),
+          fetchDraftsByPersona()
+        ]);
+      } else {
+        throw new Error(data?.error || 'Failed to apply workflows');
+      }
+    } catch (error: any) {
+      console.error('Apply workflows error:', error);
+      toast.error(error.message || "Failed to apply workflows to invoices");
+    } finally {
+      setApplyingToInvoices(false);
+    }
+  };
+
   const handleGeneratePersonaDrafts = async (personaName: string) => {
     const persona = Object.values(personaConfig).find(p => p.name === personaName);
     if (!persona) return;
@@ -1158,6 +1196,19 @@ const AIWorkflows = () => {
             >
               <Workflow className="h-4 w-4" />
               <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleApplyWorkflowsToInvoices}
+              disabled={applyingToInvoices}
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
+            >
+              {applyingToInvoices ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              <span className="text-sm">{applyingToInvoices ? "Creating Drafts..." : "Create Invoice Drafts"}</span>
             </Button>
           </div>
         </div>
