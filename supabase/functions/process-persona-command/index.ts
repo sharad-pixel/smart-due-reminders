@@ -398,9 +398,10 @@ Rules:\n- Act in this persona's tone and style\n- Write as the business, using f
     if (paymentContext) {
       // Payment acknowledgment mode - use warmer, thankful tone
       const { isPaidInFull, companyName, invoiceAmount, outstandingAmount } = paymentContext;
+      const customerName = companyName || 'the customer';
       userPrompt = isPaidInFull
-        ? `Generate a warm, professional thank-you email acknowledging that ${companyName || 'the customer'} has paid their invoice in full. Express genuine gratitude for the payment of $${invoiceAmount?.toLocaleString() || 0}. Reinforce the positive business relationship and invite future collaboration. Keep it concise but heartfelt.`
-        : `Generate a professional email acknowledging a partial payment from ${companyName || 'the customer'}. Thank them for their payment and gently remind them of the remaining balance of $${outstandingAmount?.toLocaleString() || 0}. Maintain a positive tone while making the remaining balance clear. Offer to discuss payment options if needed.`;
+        ? `Generate a warm, professional thank-you email acknowledging that ${customerName} has paid their invoice in full. Express genuine gratitude for the payment of $${invoiceAmount?.toLocaleString() || 0}. Reinforce the positive business relationship and invite future collaboration. Keep it concise but heartfelt.\n\nIMPORTANT: The email subject line MUST include "${customerName}" - for example "Thank You for Your Payment, ${customerName}" or "Payment Received - Thank You, ${customerName}!"`
+        : `Generate a professional email acknowledging a partial payment from ${customerName}. Thank them for their payment and gently remind them of the remaining balance of $${outstandingAmount?.toLocaleString() || 0}. Maintain a positive tone while making the remaining balance clear. Offer to discuss payment options if needed.\n\nIMPORTANT: The email subject line MUST include "${customerName}" - for example "Payment Received - Thank You, ${customerName}" or "Thank You for Your Payment, ${customerName}"`;
     } else if (invoice) {
       userPrompt = `Generate a ${parsed.channel} response for:
 
