@@ -120,6 +120,28 @@ serve(async (req) => {
         workflowId = existingWorkflow.id;
       }
 
+      // Resolve agent persona id for this bucket (for storing user templates)
+      const minDaysByBucket: Record<string, number> = {
+        dpd_1_30: 1,
+        dpd_31_60: 31,
+        dpd_61_90: 61,
+        dpd_91_120: 91,
+        dpd_121_150: 121,
+        dpd_150_plus: 151,
+      };
+      const minDays = minDaysByBucket[bucket] ?? 1;
+
+      const { data: personaRow } = await supabase
+        .from('ai_agent_personas')
+        .select('id')
+        .lte('bucket_min', minDays)
+        .or(`bucket_max.is.null,bucket_max.gte.${minDays}`)
+        .order('bucket_min', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const agentPersonaId = personaRow?.id ?? null;
+
       // Generate AI templates for each step
       for (const step of steps) {
         try {
@@ -141,7 +163,10 @@ serve(async (req) => {
             .eq('step_order', step.step_order)
             .maybeSingle();
 
+          let stepId: string;
+
           if (existingStep) {
+            stepId = existingStep.id;
             await supabase
               .from('collection_workflow_steps')
               .update({
@@ -153,7 +178,7 @@ serve(async (req) => {
               })
               .eq('id', existingStep.id);
           } else {
-            await supabase
+            const { data: insertedStep, error: insertStepError } = await supabase
               .from('collection_workflow_steps')
               .insert({
                 workflow_id: workflowId,
@@ -167,6 +192,57 @@ serve(async (req) => {
                 requires_review: false,
                 subject_template: template.subject,
                 body_template: template.body,
+              })
+              .select('id')
+              .single();
+
+            if (insertStepError || !insertedStep) {
+              console.error(`[GENERATE-ALL-TEMPLATES] Error inserting step for ${bucket} step ${step.step_order}:`, insertStepError);
+              continue;
+            }
+
+            stepId = insertedStep.id;
+          }
+
+          // Ensure a stored template exists per user (source-of-truth for UI + approval flow)
+          const { data: existingTemplate } = await supabase
+            .from('draft_templates')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('workflow_step_id', stepId)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingTemplate?.id) {
+            await supabase
+              .from('draft_templates')
+              .update({
+                workflow_id: workflowId,
+                agent_persona_id: agentPersonaId,
+                aging_bucket: bucket,
+                channel: 'email',
+                subject_template: template.subject,
+                message_body_template: template.body,
+                step_number: step.step_order,
+                day_offset: step.day_offset,
+                status: 'approved',
+              })
+              .eq('id', existingTemplate.id);
+          } else {
+            await supabase
+              .from('draft_templates')
+              .insert({
+                user_id: user.id,
+                workflow_id: workflowId,
+                workflow_step_id: stepId,
+                agent_persona_id: agentPersonaId,
+                aging_bucket: bucket,
+                channel: 'email',
+                subject_template: template.subject,
+                message_body_template: template.body,
+                step_number: step.step_order,
+                day_offset: step.day_offset,
+                status: 'approved',
               });
           }
 

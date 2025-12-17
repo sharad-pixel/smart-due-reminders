@@ -1253,7 +1253,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => navigate("/ai-workflows")}
+                    onClick={() => navigate("/settings/ai-workflows")}
                   >
                     View All Workflows
                   </Button>
@@ -1266,7 +1266,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => navigate("/ai-workflows")}
+                  onClick={() => navigate("/settings/ai-workflows")}
                 >
                   Configure Workflows
                 </Button>
