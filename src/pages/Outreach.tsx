@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Clock, Brain, ChevronRight, PauseCircle, PlayCircle, Filter, Users, Calendar, AlertTriangle, DollarSign, Send, FileText, CheckCircle, Eye, Trash2, Check, X } from "lucide-react";
+import { Mail, Clock, Brain, PauseCircle, PlayCircle, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,8 @@ import { personaConfig, getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AGING_BUCKETS = [
   { key: "current", label: "Current", color: "bg-green-500", minDays: 0, maxDays: 0 },
@@ -30,35 +32,10 @@ const Outreach = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Tab state
-  const [activeTab, setActiveTab] = useState<string>("queue");
-  
-  // Filter state
-  const [bucketFilter, setBucketFilter] = useState<string>("all");
-  const [personaFilter, setPersonaFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  
-  // Bulk selection state for drafts
+  const [activeTab, setActiveTab] = useState<string>("overview");
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
-
-  // Mutation for toggling invoice outreach pause
-  const toggleInvoicePause = useMutation({
-    mutationFn: async ({ invoiceId, paused }: { invoiceId: string; paused: boolean }) => {
-      const { error } = await supabase
-        .from("invoices")
-        .update({ 
-          outreach_paused: paused,
-          outreach_paused_at: paused ? new Date().toISOString() : null
-        })
-        .eq("id", invoiceId);
-      if (error) throw error;
-    },
-    onSuccess: (_, { paused }) => {
-      toast.success(paused ? "Outreach paused for invoice" : "Outreach resumed for invoice");
-      queryClient.invalidateQueries({ queryKey: ["outreach-invoices-with-drafts"] });
-    },
-    onError: () => toast.error("Failed to update outreach status"),
-  });
+  const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
+  const [draftFilter, setDraftFilter] = useState<string>("pending");
 
   // Mutation for bulk approving drafts
   const bulkApproveDrafts = useMutation({
@@ -72,7 +49,7 @@ const Outreach = () => {
     onSuccess: () => {
       toast.success(`${selectedDraftIds.size} draft(s) approved`);
       setSelectedDraftIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ["pending-drafts-list"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
     },
     onError: () => toast.error("Failed to approve drafts"),
   });
@@ -89,7 +66,7 @@ const Outreach = () => {
     onSuccess: () => {
       toast.success(`${selectedDraftIds.size} draft(s) deleted`);
       setSelectedDraftIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ["pending-drafts-list"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
     },
     onError: () => toast.error("Failed to delete drafts"),
   });
@@ -105,928 +82,562 @@ const Outreach = () => {
       if (data?.sent > 0) {
         toast.success(`${data.sent} email(s) sent successfully`);
       } else if (data?.skipped > 0) {
-        toast.info(`No emails sent. ${data.skipped} draft(s) skipped (invoice status changed).`);
+        toast.info(`No emails sent. ${data.skipped} draft(s) skipped.`);
       } else {
         toast.info("No approved drafts ready to send");
       }
-      queryClient.invalidateQueries({ queryKey: ["pending-drafts-list"] });
+      if (data?.errors?.length > 0) {
+        toast.error(`${data.errors.length} email(s) failed to send`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-summary"] });
     },
-    onError: () => toast.error("Failed to send approved drafts"),
+    onError: (error) => {
+      console.error("Send error:", error);
+      toast.error("Failed to send approved drafts");
+    },
   });
 
-  // Fetch invoices with next scheduled outreach
-  const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
-    queryKey: ["outreach-invoices-with-drafts"],
+  // Fetch summary stats
+  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+    queryKey: ["outreach-summary"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      // Get all open invoices with debtor info
+      const { data: invoices, error: invError } = await supabase
+        .from("invoices")
+        .select(`
+          id, amount, due_date, aging_bucket, status, outreach_paused,
+          debtors (id, company_name, outreach_paused)
+        `)
+        .in("status", ["Open", "InPaymentPlan"]);
+
+      if (invError) throw invError;
+
+      // Get draft counts by status
+      const { data: drafts, error: draftError } = await supabase
+        .from("ai_drafts")
+        .select("id, status, sent_at")
+        .in("status", ["pending_approval", "approved"]);
+
+      if (draftError) throw draftError;
+
+      // Calculate summary
+      const totalInvoices = invoices?.length || 0;
+      const totalAR = invoices?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+      const pausedCount = invoices?.filter(inv => inv.outreach_paused || inv.debtors?.outreach_paused).length || 0;
+      
+      // Drafts: pending = pending_approval status, approved = approved status with no sent_at
+      const pendingDrafts = drafts?.filter(d => d.status === "pending_approval").length || 0;
+      const approvedDrafts = drafts?.filter(d => d.status === "approved" && !d.sent_at).length || 0;
+
+      // Bucket breakdown
+      const bucketStats = AGING_BUCKETS.map(bucket => {
+        const bucketInvoices = invoices?.filter(inv => inv.aging_bucket === bucket.key) || [];
+        const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
+        const persona = getPersonaByDaysPastDue(midDays);
+        
+        return {
+          ...bucket,
+          count: bucketInvoices.length,
+          amount: bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0),
+          persona,
+        };
+      }).filter(b => b.count > 0);
+
+      return {
+        totalInvoices,
+        totalAR,
+        pausedCount,
+        pendingDrafts,
+        approvedDrafts,
+        bucketStats,
+      };
+    },
+  });
+
+  // Fetch drafts for management
+  const { data: draftsData, isLoading: draftsLoading, refetch: refetchDrafts } = useQuery({
+    queryKey: ["outreach-drafts"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await supabase
-        .from("invoices")
+        .from("ai_drafts")
         .select(`
-          id,
-          invoice_number,
-          amount,
-          due_date,
-          aging_bucket,
-          status,
-          debtor_id,
-          outreach_paused,
-          debtors (
-            id,
-            name,
-            company_name,
-            outreach_paused,
-            collections_risk_score
-          )
+          id, subject, message_body, status, step_number, 
+          recommended_send_date, created_at, sent_at,
+          invoices (
+            id, invoice_number, amount,
+            debtors (id, company_name, name)
+          ),
+          collection_workflow_steps (label)
         `)
-        .in("status", ["Open", "InPaymentPlan"])
-        .order("due_date", { ascending: true });
+        .in("status", ["pending_approval", "approved"])
+        .order("recommended_send_date", { ascending: true })
+        .limit(100);
 
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Fetch next scheduled draft per invoice OR calculate from workflow steps
-  const { data: nextDrafts, isLoading: draftsLoading } = useQuery({
-    queryKey: ["next-drafts-per-invoice", invoicesData],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return {};
-
-      // Get existing pending/approved drafts
-      const { data: drafts, error: draftsError } = await supabase
-        .from("ai_drafts")
-        .select(`
-          invoice_id, 
-          recommended_send_date, 
-          status, 
-          step_number,
-          workflow_step_id,
-          collection_workflow_steps (
-            label
-          )
-        `)
-        .in("status", ["pending_approval", "approved"])
-        .order("recommended_send_date", { ascending: true });
-
-      if (draftsError) throw draftsError;
-
-      // Get earliest draft per invoice
-      const nextPerInvoice: Record<string, { date: string; status: string; step: number; stepLabel: string }> = {};
-      (drafts || []).forEach((draft: any) => {
-        if (draft.invoice_id && !nextPerInvoice[draft.invoice_id]) {
-          nextPerInvoice[draft.invoice_id] = {
-            date: draft.recommended_send_date || "",
-            status: draft.status || "",
-            step: draft.step_number,
-            stepLabel: draft.collection_workflow_steps?.label || `Step ${draft.step_number}`,
-          };
-        }
-      });
-
-      // For invoices without drafts, calculate next outreach from workflow steps
-      const invoicesWithoutDrafts = (invoicesData || []).filter(inv => !nextPerInvoice[inv.id]);
-      
-      if (invoicesWithoutDrafts.length > 0) {
-        // Get outreach counts per invoice to determine which step is next
-        const { data: activities } = await supabase
-          .from("collection_activities")
-          .select("invoice_id")
-          .eq("direction", "outbound")
-          .not("invoice_id", "is", null);
-        
-        const outreachCountMap: Record<string, number> = {};
-        (activities || []).forEach((a: any) => {
-          outreachCountMap[a.invoice_id] = (outreachCountMap[a.invoice_id] || 0) + 1;
-        });
-
-        // Get all active workflows with their steps
-        const { data: workflows } = await supabase
-          .from("collection_workflows")
-          .select(`
-            id, aging_bucket,
-            collection_workflow_steps (id, step_order, day_offset, label, is_active)
-          `)
-          .eq("is_active", true);
-
-        const workflowsByBucket: Record<string, any> = {};
-        (workflows || []).forEach((w: any) => {
-          workflowsByBucket[w.aging_bucket] = w;
-        });
-
-        // Calculate next outreach for each invoice without drafts
-        for (const invoice of invoicesWithoutDrafts) {
-          const bucket = invoice.aging_bucket || "current";
-          const workflow = workflowsByBucket[bucket];
-          if (!workflow?.collection_workflow_steps?.length) continue;
-
-          const steps = [...workflow.collection_workflow_steps]
-            .filter((s: any) => s.is_active)
-            .sort((a: any, b: any) => a.step_order - b.step_order);
-          
-          if (steps.length === 0) continue;
-
-          const outreachCount = outreachCountMap[invoice.id] || 0;
-          const nextStepIndex = Math.min(outreachCount, steps.length - 1);
-          const nextStep = steps[nextStepIndex];
-          
-          if (nextStep && invoice.due_date) {
-            const dueDate = new Date(invoice.due_date);
-            const nextDate = addDays(dueDate, nextStep.day_offset);
-            
-            nextPerInvoice[invoice.id] = {
-              date: nextDate.toISOString().split('T')[0],
-              status: "scheduled",
-              step: nextStep.step_order,
-              stepLabel: nextStep.label || `Step ${nextStep.step_order}`,
-            };
-          }
-        }
-      }
-
-      return nextPerInvoice;
-    },
-    enabled: !!invoicesData,
-  });
-
-  // Fetch outreach history counts and last outreach date per invoice
-  const { data: outreachHistory, isLoading: historyLoading } = useQuery({
-    queryKey: ["outreach-history"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return {};
-
-      const { data, error } = await supabase
-        .from("collection_activities")
-        .select("invoice_id, sent_at")
-        .eq("direction", "outbound")
-        .not("invoice_id", "is", null)
-        .order("sent_at", { ascending: false });
-
-      if (error) throw error;
-
-      const info: Record<string, { count: number; lastSentAt: string | null }> = {};
-      (data || []).forEach((activity) => {
-        if (activity.invoice_id) {
-          if (!info[activity.invoice_id]) {
-            info[activity.invoice_id] = { count: 0, lastSentAt: activity.sent_at };
-          }
-          info[activity.invoice_id].count += 1;
-        }
-      });
-      return info;
-    },
-  });
-
-  // Fetch pending and sent drafts for Drafts tab
-  const { data: pendingDrafts, isLoading: pendingDraftsLoading } = useQuery({
-    queryKey: ["pending-drafts-list"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      // Fetch recent drafts including sent ones
-      const { data, error } = await supabase
-        .from("ai_drafts")
-        .select(`
-          id,
-          subject,
-          status,
-          step_number,
-          recommended_send_date,
-          created_at,
-          sent_at,
-          invoice_id,
-          invoices (
-            id,
-            invoice_number,
-            amount,
-            debtors (
-              id,
-              company_name
-            )
-          ),
-          collection_workflow_steps (
-            label
-          )
-        `)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      
-      // Filter to show pending, approved, and sent (filter client-side to avoid type issues)
-      return (data || []).filter((d: any) => 
-        ['pending_approval', 'approved', 'sent'].includes(d.status)
-      );
-    },
-  });
-
-  // Helper to get days past due
-  const getDaysPastDue = (dueDate: string) => {
-    const today = new Date();
-    const due = new Date(dueDate);
-    const diffTime = today.getTime() - due.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
-
-  // Summary stats per bucket and persona
-  const summaryStats = useMemo(() => {
-    if (!invoicesData) return [];
+  // Filter drafts based on selection
+  const filteredDrafts = useMemo(() => {
+    if (!draftsData) return [];
     
-    return AGING_BUCKETS.map((bucket) => {
-      const bucketInvoices = invoicesData.filter((inv) => inv.aging_bucket === bucket.key);
-      const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-      const pausedCount = bucketInvoices.filter((inv) => inv.outreach_paused || inv.debtors?.outreach_paused).length;
-      
-      // Get persona for this bucket based on days
-      const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
-      const persona = getPersonaByDaysPastDue(midDays);
-      
-      return {
-        ...bucket,
-        count: bucketInvoices.length,
-        totalAmount,
-        pausedCount,
-        persona,
-      };
-    }).filter((b) => b.count > 0);
-  }, [invoicesData]);
-
-  // Apply filters
-  const filteredInvoices = useMemo(() => {
-    if (!invoicesData) return [];
-    
-    return invoicesData.filter((inv) => {
-      // Bucket filter
-      if (bucketFilter !== "all" && inv.aging_bucket !== bucketFilter) return false;
-      
-      // Persona filter
-      if (personaFilter !== "all") {
-        const dpd = getDaysPastDue(inv.due_date);
-        const persona = getPersonaByDaysPastDue(dpd);
-        if (!persona || persona.name.toLowerCase() !== personaFilter) return false;
-      }
-      
-      // Status filter (paused/active)
-      if (statusFilter === "paused" && !inv.outreach_paused && !inv.debtors?.outreach_paused) return false;
-      if (statusFilter === "active" && (inv.outreach_paused || inv.debtors?.outreach_paused)) return false;
-      
+    return draftsData.filter(draft => {
+      const isSent = !!draft.sent_at;
+      if (draftFilter === "pending") return draft.status === "pending_approval";
+      if (draftFilter === "approved") return draft.status === "approved" && !isSent;
+      if (draftFilter === "sent") return isSent;
       return true;
     });
-  }, [invoicesData, bucketFilter, personaFilter, statusFilter]);
+  }, [draftsData, draftFilter]);
 
-  // Group filtered invoices by aging bucket, then by next email step
-  const invoicesByBucket = useMemo(() => {
-    return AGING_BUCKETS.map((bucket) => {
-      const bucketInvoices = filteredInvoices.filter((inv) => inv.aging_bucket === bucket.key);
-      
-      // Group by next step label within the bucket
-      const byStep: Record<string, typeof bucketInvoices> = {};
-      bucketInvoices.forEach((inv) => {
-        const draft = nextDrafts?.[inv.id];
-        const stepKey = draft?.stepLabel || "No Outreach Scheduled";
-        if (!byStep[stepKey]) byStep[stepKey] = [];
-        byStep[stepKey].push(inv);
-      });
+  // Count drafts by status
+  const draftCounts = useMemo(() => {
+    if (!draftsData) return { pending: 0, approved: 0, sent: 0 };
+    
+    return {
+      pending: draftsData.filter(d => d.status === "pending_approval").length,
+      approved: draftsData.filter(d => d.status === "approved" && !d.sent_at).length,
+      sent: draftsData.filter(d => !!d.sent_at).length,
+    };
+  }, [draftsData]);
 
-      // Sort steps: scheduled first (by step number), then "No Outreach Scheduled" last
-      const sortedSteps = Object.entries(byStep).sort(([a], [b]) => {
-        if (a === "No Outreach Scheduled") return 1;
-        if (b === "No Outreach Scheduled") return -1;
-        return a.localeCompare(b);
-      });
-
-      const totalAmount = bucketInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-      
-      // Get persona for this bucket
-      const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
-      const persona = getPersonaByDaysPastDue(midDays);
-      
-      return {
-        ...bucket,
-        stepGroups: sortedSteps,
-        totalAmount,
-        count: bucketInvoices.length,
-        persona,
-      };
-    }).filter((bucket) => bucket.count > 0);
-  }, [filteredInvoices, nextDrafts]);
-
-  const isLoading = invoicesLoading || draftsLoading || historyLoading;
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Tomorrow";
-    if (diffDays < 7) return format(date, "EEEE");
-    return format(date, "MMM d");
+  const toggleBucket = (bucketKey: string) => {
+    const newExpanded = new Set(expandedBuckets);
+    if (newExpanded.has(bucketKey)) {
+      newExpanded.delete(bucketKey);
+    } else {
+      newExpanded.add(bucketKey);
+    }
+    setExpandedBuckets(newExpanded);
   };
 
-  const personaList = Object.entries(personaConfig);
+  const toggleDraftSelection = (draftId: string) => {
+    const newSelected = new Set(selectedDraftIds);
+    if (newSelected.has(draftId)) {
+      newSelected.delete(draftId);
+    } else {
+      newSelected.add(draftId);
+    }
+    setSelectedDraftIds(newSelected);
+  };
+
+  const selectAllDrafts = () => {
+    if (selectedDraftIds.size === filteredDrafts.length) {
+      setSelectedDraftIds(new Set());
+    } else {
+      setSelectedDraftIds(new Set(filteredDrafts.map(d => d.id)));
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Outreach Command Center</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Brain className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold">Outreach Command Center</h1>
+            </div>
+            <p className="text-muted-foreground mt-1">
+              Manage AI-generated collection emails and track outreach status.
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            View all invoices by aging bucket with scheduled outreach dates.
-          </p>
+          
+          {summaryData && summaryData.approvedDrafts > 0 && (
+            <Button 
+              onClick={() => sendApprovedDrafts.mutate()}
+              disabled={sendApprovedDrafts.isPending}
+              className="gap-2"
+            >
+              {sendApprovedDrafts.isPending ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send {summaryData.approvedDrafts} Approved
+            </Button>
+          )}
         </div>
 
-        {/* Summary Cards by Bucket with Persona */}
-        {!isLoading && summaryStats.length > 0 && (
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-            {summaryStats.map((stat) => (
-              <Card 
-                key={stat.key} 
-                className={`cursor-pointer hover:shadow-md transition-shadow ${bucketFilter === stat.key ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => setBucketFilter(bucketFilter === stat.key ? "all" : stat.key)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    {stat.persona ? (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={stat.persona.avatar} alt={stat.persona.name} />
-                        <AvatarFallback style={{ backgroundColor: stat.persona.color }}>
-                          {stat.persona.name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <div className={`w-8 h-8 rounded-full ${stat.color} flex items-center justify-center`}>
-                        <Users className="h-4 w-4 text-white" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{stat.label}</p>
-                      {stat.persona && (
-                        <p className="text-[10px] text-muted-foreground truncate">{stat.persona.name}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-lg font-bold">{stat.count}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ${stat.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </p>
-                    {stat.pausedCount > 0 && (
-                      <Badge variant="outline" className="text-[10px] gap-1 text-orange-600 border-orange-300">
-                        <PauseCircle className="h-2.5 w-2.5" />
-                        {stat.pausedCount} paused
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Tabs for Queue and Drafts */}
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 max-w-[300px]">
-            <TabsTrigger value="queue" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsTrigger value="overview" className="gap-2">
               <Mail className="h-4 w-4" />
-              Queue
+              Overview
             </TabsTrigger>
-            <TabsTrigger value="drafts" className="flex items-center gap-2">
+            <TabsTrigger value="drafts" className="gap-2">
               <FileText className="h-4 w-4" />
               Drafts
-              {pendingDrafts && pendingDrafts.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {pendingDrafts.length}
+              {draftCounts.pending > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {draftCounts.pending}
                 </Badge>
               )}
             </TabsTrigger>
           </TabsList>
 
-          {/* Queue Tab Content */}
-          <TabsContent value="queue" className="mt-4 space-y-4">
-            {/* Filters */}
-            <Card>
-              <CardContent className="py-3 px-4">
-                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Filters:</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <Select value={bucketFilter} onValueChange={setBucketFilter}>
-                      <SelectTrigger className="w-[140px] h-8 text-sm">
-                        <SelectValue placeholder="All Buckets" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Buckets</SelectItem>
-                        {AGING_BUCKETS.map((bucket) => (
-                          <SelectItem key={bucket.key} value={bucket.key}>
-                            {bucket.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    <Select value={personaFilter} onValueChange={setPersonaFilter}>
-                      <SelectTrigger className="w-[130px] h-8 text-sm">
-                        <SelectValue placeholder="All Personas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Personas</SelectItem>
-                        {personaList.map(([key, persona]) => (
-                          <SelectItem key={key} value={key}>
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: persona.color }}
-                              />
-                              {persona.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[120px] h-8 text-sm">
-                        <SelectValue placeholder="All Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="paused">Paused</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {(bucketFilter !== "all" || personaFilter !== "all" || statusFilter !== "all") && (
-                      <Badge 
-                        variant="secondary" 
-                        className="cursor-pointer h-8 flex items-center" 
-                        onClick={() => {
-                          setBucketFilter("all");
-                          setPersonaFilter("all");
-                          setStatusFilter("all");
-                        }}
-                      >
-                        Clear
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <span className="text-sm text-muted-foreground sm:ml-auto">
-                    {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Invoices by Aging Bucket */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-48 w-full" />
-                ))}
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            {summaryLoading ? (
+              <div className="grid gap-4 md:grid-cols-4">
+                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
               </div>
-            ) : invoicesByBucket.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    {filteredInvoices.length === 0 && invoicesData?.length ? "No invoices match your filters" : "No open invoices found"}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {invoicesByBucket.map((bucket) => (
-                  <Card key={bucket.key}>
-                    <CardHeader className="py-3 px-4 border-b">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
-                          {bucket.persona ? (
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={bucket.persona.avatar} alt={bucket.persona.name} />
-                              <AvatarFallback style={{ backgroundColor: bucket.persona.color }}>
-                                {bucket.persona.name[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                          ) : (
-                            <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
-                          )}
-                          <span>{bucket.label}</span>
-                          {bucket.persona && (
-                            <span className="text-sm font-normal text-muted-foreground">
-                              ({bucket.persona.name})
-                            </span>
-                          )}
-                          <Badge variant="secondary">{bucket.count}</Badge>
-                        </CardTitle>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          ${bucket.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {bucket.stepGroups.map(([stepLabel, invoices]) => (
-                        <div key={stepLabel}>
-                          {/* Step subheader */}
-                          <div className="px-4 py-2 bg-muted/30 border-b flex items-center gap-2">
-                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-sm font-medium">{stepLabel}</span>
-                            <Badge variant="outline" className="text-xs">{invoices.length}</Badge>
-                          </div>
-                          
-                          {/* Desktop Headers - Hidden on Mobile */}
-                          <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground">
-                            <div className="col-span-3">Account / Invoice</div>
-                            <div className="col-span-2 text-right">Amount</div>
-                            <div className="col-span-2">Due Date</div>
-                            <div className="col-span-2">Last Outreach</div>
-                            <div className="col-span-3 text-right">Next Outreach</div>
-                          </div>
-                          
-                          <div className="divide-y">
-                            {invoices.map((invoice) => {
-                              const draftInfo = nextDrafts?.[invoice.id];
-                              const historyInfo = outreachHistory?.[invoice.id];
-                              const historyCount = historyInfo?.count || 0;
-                              const lastSentAt = historyInfo?.lastSentAt;
-                              const nextDate = draftInfo?.date ? formatDate(draftInfo.date) : null;
-                              const daysPastDue = getDaysPastDue(invoice.due_date);
-                              const invoiceAmount = invoice.amount || 0;
-                              const isPaused = invoice.outreach_paused || invoice.debtors?.outreach_paused;
-                              const isAccountPaused = invoice.debtors?.outreach_paused;
-                              const riskScore = invoice.debtors?.collections_risk_score;
-
-                              return (
-                                <div key={invoice.id}>
-                                  {/* Desktop View */}
-                                  <div
-                                    className={`hidden md:grid grid-cols-12 gap-2 items-center p-3 px-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
-                                  >
-                                    <div 
-                                      className="col-span-3 min-w-0 cursor-pointer"
-                                      onClick={() => navigate(`/invoices/${invoice.id}`)}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <p className="font-medium truncate text-sm">
-                                          {invoice.debtors?.company_name || invoice.debtors?.name}
-                                        </p>
-                                        {isPaused && (
-                                          <Badge variant="outline" className="text-[10px] gap-0.5 text-orange-600 border-orange-300 shrink-0">
-                                            <PauseCircle className="h-2.5 w-2.5" />
-                                            {isAccountPaused ? "Acct" : "Inv"}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        {invoice.invoice_number}
-                                      </p>
-                                    </div>
-
-                                    <div className="col-span-2 text-right">
-                                      <span className="text-sm font-medium">
-                                        ${invoiceAmount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                      </span>
-                                    </div>
-
-                                    <div className="col-span-2">
-                                      <span className="text-xs">{format(new Date(invoice.due_date), "MMM d")}</span>
-                                      {daysPastDue > 0 && (
-                                        <div className="flex items-center gap-1 mt-0.5">
-                                          <span className={`text-xs font-medium ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`}>
-                                            {daysPastDue}d overdue
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <div className="col-span-2">
-                                      {lastSentAt ? (
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-xs text-muted-foreground">
-                                            {format(new Date(lastSentAt), "MMM d")}
-                                          </span>
-                                          <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                                            {historyCount}
-                                          </Badge>
-                                        </div>
-                                      ) : (
-                                        <span className="text-xs text-muted-foreground">—</span>
-                                      )}
-                                    </div>
-
-                                    <div className="col-span-3 flex items-center justify-end gap-2">
-                                      {!isPaused && nextDate ? (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-sm text-primary font-medium">{nextDate}</span>
-                                          <Badge 
-                                            variant={draftInfo?.status === "approved" ? "default" : "outline"} 
-                                            className="text-[10px]"
-                                          >
-                                            {draftInfo?.status === "approved" ? "Ready" : "Pending"}
-                                          </Badge>
-                                        </div>
-                                      ) : !isPaused ? (
-                                        <span className="text-xs text-muted-foreground">—</span>
-                                      ) : null}
-                                      
-                                      {!isAccountPaused && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleInvoicePause.mutate({ 
-                                              invoiceId: invoice.id, 
-                                              paused: !invoice.outreach_paused 
-                                            });
-                                          }}
-                                          className="p-1 rounded hover:bg-muted"
-                                        >
-                                          {invoice.outreach_paused ? (
-                                            <PlayCircle className="h-4 w-4 text-green-600" />
-                                          ) : (
-                                            <PauseCircle className="h-4 w-4 text-muted-foreground hover:text-orange-600" />
-                                          )}
-                                        </button>
-                                      )}
-                                      
-                                      <ChevronRight 
-                                        className="h-4 w-4 text-muted-foreground cursor-pointer" 
-                                        onClick={() => navigate(`/invoices/${invoice.id}`)}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* Mobile View - Card Layout */}
-                                  <div
-                                    className={`md:hidden p-4 hover:bg-muted/50 transition-colors ${isPaused ? "opacity-60" : ""}`}
-                                    onClick={() => navigate(`/invoices/${invoice.id}`)}
-                                  >
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-sm truncate">
-                                          {invoice.debtors?.company_name || invoice.debtors?.name}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          #{invoice.invoice_number}
-                                        </p>
-                                      </div>
-                                      <div className="text-right ml-3">
-                                        <p className="font-semibold">
-                                          ${invoiceAmount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                        </p>
-                                        {daysPastDue > 0 && (
-                                          <span className={`text-xs font-medium ${daysPastDue > 60 ? 'text-destructive' : daysPastDue > 30 ? 'text-orange-500' : 'text-yellow-500'}`}>
-                                            {daysPastDue}d overdue
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                      {isPaused && (
-                                        <Badge variant="outline" className="text-[10px] gap-0.5 text-orange-600 border-orange-300">
-                                          <PauseCircle className="h-2.5 w-2.5" />
-                                          {isAccountPaused ? "Account Paused" : "Paused"}
-                                        </Badge>
-                                      )}
-                                      {!isPaused && nextDate && (
-                                        <Badge variant={draftInfo?.status === "approved" ? "default" : "outline"} className="text-[10px]">
-                                          Next: {nextDate}
-                                        </Badge>
-                                      )}
-                                      {lastSentAt && (
-                                        <span>Last: {format(new Date(lastSentAt), "MMM d")}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+            ) : summaryData ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Mail className="h-5 w-5 text-primary" />
                         </div>
-                      ))}
+                        <div>
+                          <p className="text-2xl font-bold">{summaryData.totalInvoices}</p>
+                          <p className="text-sm text-muted-foreground">Active Invoices</p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
+
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-yellow-500/10">
+                          <Clock className="h-5 w-5 text-yellow-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold">{summaryData.pendingDrafts}</p>
+                          <p className="text-sm text-muted-foreground">Pending Review</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-500/10">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold">{summaryData.approvedDrafts}</p>
+                          <p className="text-sm text-muted-foreground">Ready to Send</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-orange-500/10">
+                          <PauseCircle className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold">{summaryData.pausedCount}</p>
+                          <p className="text-sm text-muted-foreground">Paused</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Action Alert */}
+                {summaryData.pendingDrafts > 0 && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="flex items-center justify-between">
+                      <span>
+                        You have <strong>{summaryData.pendingDrafts}</strong> draft{summaryData.pendingDrafts !== 1 ? 's' : ''} waiting for review.
+                      </span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setActiveTab("drafts")}
+                      >
+                        Review Drafts
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Bucket Breakdown */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Outreach by Aging Bucket</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {summaryData.bucketStats.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">
+                        No active invoices to display.
+                      </p>
+                    ) : (
+                      summaryData.bucketStats.map(bucket => (
+                        <Collapsible 
+                          key={bucket.key}
+                          open={expandedBuckets.has(bucket.key)}
+                          onOpenChange={() => toggleBucket(bucket.key)}
+                        >
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors">
+                              <div className="flex items-center gap-3">
+                                {bucket.persona && (
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={bucket.persona.avatar} />
+                                    <AvatarFallback style={{ backgroundColor: bucket.persona.color }}>
+                                      {bucket.persona.name[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                )}
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{bucket.label}</span>
+                                    {bucket.persona && (
+                                      <span className="text-sm text-muted-foreground">
+                                        ({bucket.persona.name})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {bucket.count} invoice{bucket.count !== 1 ? 's' : ''} • {formatCurrency(bucket.amount)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary">{bucket.count}</Badge>
+                                {expandedBuckets.has(bucket.key) ? (
+                                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="p-4 pt-2 text-sm text-muted-foreground">
+                              <p>
+                                Click "Review Drafts" above to manage emails for this bucket.
+                              </p>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            ) : null}
           </TabsContent>
 
-          {/* Drafts Tab Content */}
-          <TabsContent value="drafts" className="mt-4 space-y-4">
-            {pendingDraftsLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-20 w-full" />
-                ))}
+          {/* Drafts Tab */}
+          <TabsContent value="drafts" className="mt-6 space-y-4">
+            {/* Draft Actions Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Select value={draftFilter} onValueChange={setDraftFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">
+                      Pending Review ({draftCounts.pending})
+                    </SelectItem>
+                    <SelectItem value="approved">
+                      Approved ({draftCounts.approved})
+                    </SelectItem>
+                    <SelectItem value="sent">
+                      Sent ({draftCounts.sent})
+                    </SelectItem>
+                    <SelectItem value="all">All Drafts</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refetchDrafts()}
+                  className="gap-1"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
               </div>
-            ) : !pendingDrafts || pendingDrafts.length === 0 ? (
+
+              {/* Bulk Actions */}
+              {selectedDraftIds.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedDraftIds.size} selected
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
+                    disabled={bulkApproveDrafts.isPending}
+                    className="gap-1"
+                  >
+                    <Check className="h-4 w-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
+                    disabled={bulkRejectDrafts.isPending}
+                    className="gap-1 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Drafts List */}
+            {draftsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
+              </div>
+            ) : filteredDrafts.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                  <p className="text-muted-foreground">No pending drafts to review</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Generate drafts from AI Workflows to see them here
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    {draftFilter === "pending" && "No drafts pending review"}
+                    {draftFilter === "approved" && "No approved drafts ready to send"}
+                    {draftFilter === "sent" && "No sent drafts"}
+                    {draftFilter === "all" && "No drafts found"}
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
-                {/* Bulk Actions Bar */}
-                {(() => {
-                  const actionableDrafts = pendingDrafts.filter((d: any) => d.status !== 'sent');
-                  const approvedCount = pendingDrafts.filter((d: any) => d.status === "approved").length;
-                  const sentCount = pendingDrafts.filter((d: any) => d.status === "sent").length;
-                  const pendingCount = pendingDrafts.filter((d: any) => d.status === "pending_approval").length;
-                  
-                  return (
-                    <Card className="border-primary/20 bg-muted/30">
-                      <CardContent className="py-3 px-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <Checkbox
-                              id="select-all-drafts"
-                              checked={selectedDraftIds.size === actionableDrafts.length && actionableDrafts.length > 0}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  // Only select non-sent drafts
-                                  setSelectedDraftIds(new Set(actionableDrafts.map((d: any) => d.id)));
-                                } else {
-                                  setSelectedDraftIds(new Set());
-                                }
-                              }}
-                            />
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                              <label htmlFor="select-all-drafts" className="text-sm font-medium cursor-pointer">
-                                {selectedDraftIds.size > 0 
-                                  ? `${selectedDraftIds.size} selected`
-                                  : "Select all"
-                                }
-                              </label>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                                  {pendingCount} pending
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                  {approvedCount} approved
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                  {sentCount} sent
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {/* Send Approved Button - always visible when there are approved drafts */}
-                            {approvedCount > 0 && (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => sendApprovedDrafts.mutate()}
-                                disabled={sendApprovedDrafts.isPending}
-                                className="gap-1 bg-green-600 hover:bg-green-700"
-                              >
-                                <Send className="h-3.5 w-3.5" />
-                                {sendApprovedDrafts.isPending ? "Sending..." : `Send Approved (${approvedCount})`}
-                              </Button>
+              <>
+                {/* Select All */}
+                <div className="flex items-center gap-2 px-1">
+                  <Checkbox
+                    checked={selectedDraftIds.size === filteredDrafts.length && filteredDrafts.length > 0}
+                    onCheckedChange={selectAllDrafts}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    Select all ({filteredDrafts.length})
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {filteredDrafts.map(draft => {
+                    const invoice = draft.invoices as any;
+                    const isSent = !!draft.sent_at;
+                    const isApproved = draft.status === "approved" && !isSent;
+                    
+                    return (
+                      <Card 
+                        key={draft.id} 
+                        className={`transition-colors ${isSent ? 'opacity-60' : ''} ${selectedDraftIds.has(draft.id) ? 'ring-2 ring-primary' : ''}`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-4">
+                            {!isSent && (
+                              <Checkbox
+                                checked={selectedDraftIds.has(draft.id)}
+                                onCheckedChange={() => toggleDraftSelection(draft.id)}
+                                className="mt-1"
+                              />
                             )}
                             
-                            {selectedDraftIds.size > 0 && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
-                                  disabled={bulkApproveDrafts.isPending}
-                                  className="gap-1"
-                                >
-                                  <Check className="h-3.5 w-3.5" />
-                                  Approve ({selectedDraftIds.size})
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
-                                  disabled={bulkRejectDrafts.isPending}
-                                  className="gap-1"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Delete ({selectedDraftIds.size})
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-
-                {/* Draft Cards */}
-                {pendingDrafts.map((draft: any) => {
-                  const isSelected = selectedDraftIds.has(draft.id);
-                  const isSent = draft.status === 'sent';
-                  
-                  return (
-                    <Card 
-                      key={draft.id} 
-                      className={`hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''} ${isSent ? 'opacity-75' : ''}`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          {!isSent && (
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={(checked) => {
-                                const newSet = new Set(selectedDraftIds);
-                                if (checked) {
-                                  newSet.add(draft.id);
-                                } else {
-                                  newSet.delete(draft.id);
-                                }
-                                setSelectedDraftIds(newSet);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="mt-1"
-                            />
-                          )}
-                          {isSent && (
-                            <div className="mt-1 w-4 h-4 flex items-center justify-center">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                            </div>
-                          )}
-                          <div 
-                            className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
-                          >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4 mb-2">
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">
+                                    {invoice?.debtors?.company_name || invoice?.debtors?.name || 'Unknown'}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Invoice #{invoice?.invoice_number} • {formatCurrency(invoice?.amount || 0)}
+                                  </p>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 shrink-0">
                                   {isSent ? (
-                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Sent {draft.sent_at && format(new Date(draft.sent_at), "MMM d, h:mm a")}
+                                    <Badge variant="secondary" className="gap-1">
+                                      <CheckCircle className="h-3 w-3" />
+                                      Sent {draft.sent_at && format(new Date(draft.sent_at), "MMM d")}
+                                    </Badge>
+                                  ) : isApproved ? (
+                                    <Badge variant="default" className="gap-1">
+                                      <CheckCircle className="h-3 w-3" />
+                                      Approved
                                     </Badge>
                                   ) : (
-                                    <Badge 
-                                      variant={draft.status === "approved" ? "default" : "outline"} 
-                                      className={`text-xs ${draft.status === "approved" ? "bg-blue-600" : ""}`}
-                                    >
-                                      {draft.status === "approved" ? "Approved - Ready to Send" : "Pending Review"}
+                                    <Badge variant="outline" className="gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      Pending
                                     </Badge>
                                   )}
-                                  <Badge variant="secondary" className="text-xs">
-                                    {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
-                                  </Badge>
                                 </div>
-                                <p className="font-medium text-sm truncate">
-                                  {draft.subject || "No subject"}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {draft.invoices?.debtors?.company_name || "Unknown"} • #{draft.invoices?.invoice_number}
-                                </p>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <div className="text-right">
-                                  {!isSent && draft.recommended_send_date && (
-                                    <p className="text-sm text-primary font-medium">
-                                      {formatDate(draft.recommended_send_date)}
-                                    </p>
-                                  )}
-                                  {draft.invoices?.amount && (
-                                    <p className="text-xs text-muted-foreground">
-                                      ${draft.invoices.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                    </p>
+                              
+                              <p className="text-sm font-medium mb-1">{draft.subject}</p>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {draft.message_body?.replace(/<[^>]*>/g, '').slice(0, 150)}...
+                              </p>
+                              
+                              <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                                <span>
+                                  Step: {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
+                                </span>
+                                {draft.recommended_send_date && !isSent && (
+                                  <span>
+                                    Scheduled: {format(new Date(draft.recommended_send_date), "MMM d, yyyy")}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {!isSent && (
+                                <div className="flex items-center gap-2 mt-3">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigate(`/invoices/${invoice?.id}`)}
+                                  >
+                                    View Invoice
+                                  </Button>
+                                  {!isApproved && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => bulkApproveDrafts.mutate([draft.id])}
+                                      disabled={bulkApproveDrafts.isPending}
+                                    >
+                                      Approve
+                                    </Button>
                                   )}
                                 </div>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </TabsContent>
         </Tabs>

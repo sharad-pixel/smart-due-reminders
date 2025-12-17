@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     );
 
     // Get all approved drafts that haven't been sent yet
-    // Double-check both status AND sent_at to prevent any duplicate sends
+    // Use sent_at IS NULL to identify unsent drafts (NOT status='sent' which is invalid enum)
     const { data: approvedDrafts, error: draftsError } = await supabaseAdmin
       .from('ai_drafts')
       .select(`
@@ -46,8 +46,7 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('status', 'approved')
-      .is('sent_at', null)
-      .neq('status', 'sent');
+      .is('sent_at', null);
 
     if (draftsError) {
       console.error('Error fetching approved drafts:', draftsError);
@@ -98,11 +97,11 @@ Deno.serve(async (req) => {
         console.log(`Successfully sent draft ${draft.id} for invoice ${invoice.invoice_number}`);
         sentCount++;
 
-        // Update draft status to sent (the send-ai-draft function should handle this, but double-check)
+        // Mark draft as sent by setting sent_at timestamp
+        // Keep status as 'approved' since 'sent' is not a valid enum value
         await supabaseAdmin
           .from('ai_drafts')
           .update({ 
-            status: 'sent',
             sent_at: new Date().toISOString()
           })
           .eq('id', draft.id);
