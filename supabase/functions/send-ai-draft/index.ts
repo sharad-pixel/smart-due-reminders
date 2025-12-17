@@ -82,14 +82,15 @@ serve(async (req) => {
     if (draftError || !draft) throw new Error("Draft not found");
 
     // CRITICAL: Prevent duplicate sends - check if already sent
-    if (draft.status === 'sent' || draft.sent_at) {
+    // NOTE: draft_status enum does NOT include 'sent'; use sent_at as the source of truth.
+    if (draft.sent_at) {
       console.log(`Draft ${draft_id} already sent at ${draft.sent_at}, skipping`);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: "Draft already sent",
           sent_at: draft.sent_at,
-          already_sent: true
+          already_sent: true,
         }),
         {
           status: 400,
@@ -286,12 +287,13 @@ serve(async (req) => {
       .update({ last_contact_date: new Date().toISOString().split('T')[0] })
       .eq("id", invoice.id);
 
-    // Update draft status to sent (use admin client for team member access)
+    // Mark draft as sent by setting sent_at timestamp (use admin client for team member access)
+    // Keep status as-is (approved/pending_approval) since draft_status enum does not include 'sent'
     await supabaseAdmin
       .from("ai_drafts")
-      .update({ 
-        status: "sent",
+      .update({
         sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq("id", draft_id);
 
