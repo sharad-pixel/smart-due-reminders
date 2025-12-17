@@ -280,13 +280,14 @@ const Outreach = () => {
     },
   });
 
-  // Fetch pending drafts for Drafts tab
+  // Fetch pending and sent drafts for Drafts tab
   const { data: pendingDrafts, isLoading: pendingDraftsLoading } = useQuery({
     queryKey: ["pending-drafts-list"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Fetch recent drafts including sent ones
       const { data, error } = await supabase
         .from("ai_drafts")
         .select(`
@@ -296,6 +297,7 @@ const Outreach = () => {
           step_number,
           recommended_send_date,
           created_at,
+          sent_at,
           invoice_id,
           invoices (
             id,
@@ -310,12 +312,15 @@ const Outreach = () => {
             label
           )
         `)
-        .in("status", ["pending_approval", "approved"])
-        .order("recommended_send_date", { ascending: true })
-        .limit(50);
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (error) throw error;
-      return data || [];
+      
+      // Filter to show pending, approved, and sent (filter client-side to avoid type issues)
+      return (data || []).filter((d: any) => 
+        ['pending_approval', 'approved', 'sent'].includes(d.status)
+      );
     },
   });
 
@@ -841,7 +846,11 @@ const Outreach = () => {
               <div className="space-y-3">
                 {/* Bulk Actions Bar */}
                 {(() => {
+                  const actionableDrafts = pendingDrafts.filter((d: any) => d.status !== 'sent');
                   const approvedCount = pendingDrafts.filter((d: any) => d.status === "approved").length;
+                  const sentCount = pendingDrafts.filter((d: any) => d.status === "sent").length;
+                  const pendingCount = pendingDrafts.filter((d: any) => d.status === "pending_approval").length;
+                  
                   return (
                     <Card className="border-primary/20 bg-muted/30">
                       <CardContent className="py-3 px-4">
@@ -849,21 +858,38 @@ const Outreach = () => {
                           <div className="flex items-center gap-3">
                             <Checkbox
                               id="select-all-drafts"
-                              checked={selectedDraftIds.size === pendingDrafts.length && pendingDrafts.length > 0}
+                              checked={selectedDraftIds.size === actionableDrafts.length && actionableDrafts.length > 0}
                               onCheckedChange={(checked) => {
                                 if (checked) {
-                                  setSelectedDraftIds(new Set(pendingDrafts.map((d: any) => d.id)));
+                                  // Only select non-sent drafts
+                                  setSelectedDraftIds(new Set(actionableDrafts.map((d: any) => d.id)));
                                 } else {
                                   setSelectedDraftIds(new Set());
                                 }
                               }}
                             />
-                            <label htmlFor="select-all-drafts" className="text-sm font-medium cursor-pointer">
-                              {selectedDraftIds.size > 0 
-                                ? `${selectedDraftIds.size} selected`
-                                : "Select all"
-                              }
-                            </label>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                              <label htmlFor="select-all-drafts" className="text-sm font-medium cursor-pointer">
+                                {selectedDraftIds.size > 0 
+                                  ? `${selectedDraftIds.size} selected`
+                                  : "Select all"
+                                }
+                              </label>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                  {pendingCount} pending
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                  {approvedCount} approved
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                  {sentCount} sent
+                                </span>
+                              </div>
+                            </div>
                           </div>
                           
                           <div className="flex items-center gap-2 flex-wrap">
@@ -915,27 +941,36 @@ const Outreach = () => {
                 {/* Draft Cards */}
                 {pendingDrafts.map((draft: any) => {
                   const isSelected = selectedDraftIds.has(draft.id);
+                  const isSent = draft.status === 'sent';
+                  
                   return (
                     <Card 
                       key={draft.id} 
-                      className={`hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                      className={`hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''} ${isSent ? 'opacity-75' : ''}`}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
-                              const newSet = new Set(selectedDraftIds);
-                              if (checked) {
-                                newSet.add(draft.id);
-                              } else {
-                                newSet.delete(draft.id);
-                              }
-                              setSelectedDraftIds(newSet);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-1"
-                          />
+                          {!isSent && (
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                const newSet = new Set(selectedDraftIds);
+                                if (checked) {
+                                  newSet.add(draft.id);
+                                } else {
+                                  newSet.delete(draft.id);
+                                }
+                                setSelectedDraftIds(newSet);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-1"
+                            />
+                          )}
+                          {isSent && (
+                            <div className="mt-1 w-4 h-4 flex items-center justify-center">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            </div>
+                          )}
                           <div 
                             className="flex-1 min-w-0 cursor-pointer"
                             onClick={() => navigate(`/invoices/${draft.invoice_id}`)}
@@ -943,9 +978,19 @@ const Outreach = () => {
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <Badge variant={draft.status === "approved" ? "default" : "outline"} className="text-xs">
-                                    {draft.status === "approved" ? "Approved" : "Pending Review"}
-                                  </Badge>
+                                  {isSent ? (
+                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Sent {draft.sent_at && format(new Date(draft.sent_at), "MMM d, h:mm a")}
+                                    </Badge>
+                                  ) : (
+                                    <Badge 
+                                      variant={draft.status === "approved" ? "default" : "outline"} 
+                                      className={`text-xs ${draft.status === "approved" ? "bg-blue-600" : ""}`}
+                                    >
+                                      {draft.status === "approved" ? "Approved - Ready to Send" : "Pending Review"}
+                                    </Badge>
+                                  )}
                                   <Badge variant="secondary" className="text-xs">
                                     {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
                                   </Badge>
@@ -959,7 +1004,7 @@ const Outreach = () => {
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="text-right">
-                                  {draft.recommended_send_date && (
+                                  {!isSent && draft.recommended_send_date && (
                                     <p className="text-sm text-primary font-medium">
                                       {formatDate(draft.recommended_send_date)}
                                     </p>

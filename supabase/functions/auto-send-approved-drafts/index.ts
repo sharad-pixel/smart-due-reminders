@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
     );
 
     // Get all approved drafts that haven't been sent yet
+    // Double-check both status AND sent_at to prevent any duplicate sends
     const { data: approvedDrafts, error: draftsError } = await supabaseAdmin
       .from('ai_drafts')
       .select(`
@@ -45,7 +46,8 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('status', 'approved')
-      .is('sent_at', null);
+      .is('sent_at', null)
+      .neq('status', 'sent');
 
     if (draftsError) {
       console.error('Error fetching approved drafts:', draftsError);

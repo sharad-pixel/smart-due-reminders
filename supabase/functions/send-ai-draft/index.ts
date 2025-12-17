@@ -81,6 +81,23 @@ serve(async (req) => {
 
     if (draftError || !draft) throw new Error("Draft not found");
 
+    // CRITICAL: Prevent duplicate sends - check if already sent
+    if (draft.status === 'sent' || draft.sent_at) {
+      console.log(`Draft ${draft_id} already sent at ${draft.sent_at}, skipping`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Draft already sent",
+          sent_at: draft.sent_at,
+          already_sent: true
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const invoice = draft.invoices;
     if (!invoice) {
       throw new Error(
