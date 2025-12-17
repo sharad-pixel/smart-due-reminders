@@ -230,29 +230,29 @@ const AIWorkflows = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch all approved templates with workflow info
-      const { data: templates, error } = await supabase
-        .from('draft_templates')
+      // Fetch workflow steps that have templates (subject_template or body_template populated)
+      const { data: steps, error } = await supabase
+        .from('collection_workflow_steps')
         .select(`
           id,
-          workflow_step_id,
-          aging_bucket,
-          status,
-          collection_workflow_steps!inner(workflow_id)
+          workflow_id,
+          subject_template,
+          body_template,
+          collection_workflows!inner(aging_bucket, user_id)
         `)
-        .eq('user_id', user.id)
-        .eq('channel', 'email')
-        .eq('status', 'approved');
+        .or(`user_id.eq.${user.id},user_id.is.null`, { foreignTable: 'collection_workflows' });
 
       if (error) throw error;
 
-      // Count approved templates per bucket per workflow_step_id
-      // Store as { bucket: { workflow_id: { step_id: count } } }
+      // Count steps with templates per bucket per workflow
       const draftCounts: Record<string, Record<string, Record<string, number>>> = {};
 
-      templates?.forEach(template => {
-        const bucket = template.aging_bucket;
-        const workflowId = template.collection_workflow_steps?.workflow_id;
+      steps?.forEach(step => {
+        // Only count if template content exists
+        if (!step.subject_template && !step.body_template) return;
+        
+        const bucket = (step.collection_workflows as any)?.aging_bucket;
+        const workflowId = step.workflow_id;
         
         if (!bucket || !workflowId) return;
         
@@ -263,8 +263,7 @@ const AIWorkflows = () => {
           draftCounts[bucket][workflowId] = {};
         }
 
-        const stepId = template.workflow_step_id;
-        draftCounts[bucket][workflowId][stepId] = (draftCounts[bucket][workflowId][stepId] || 0) + 1;
+        draftCounts[bucket][workflowId][step.id] = 1;
       });
 
       setStepDraftCounts(draftCounts);
@@ -339,35 +338,90 @@ const AIWorkflows = () => {
   const fetchDraftsByPersona = async () => {
     setLoadingDrafts(true);
     try {
-      const { data: templates, error } = await supabase
-        .from('draft_templates')
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoadingDrafts(false);
+        return;
+      }
+
+      // Fetch workflow steps with templates from collection_workflow_steps
+      const { data: steps, error } = await supabase
+        .from('collection_workflow_steps')
         .select(`
-          *,
-          ai_agent_personas(id, name, persona_summary, bucket_min, bucket_max),
-          collection_workflow_steps!inner(label, step_order, day_offset, workflow_id)
+          id,
+          workflow_id,
+          step_order,
+          day_offset,
+          label,
+          subject_template,
+          body_template,
+          channel,
+          ai_template_type,
+          is_active,
+          collection_workflows!inner(id, aging_bucket, name, user_id)
         `)
-        .eq('channel', 'email')
-        .in('status', ['pending_approval', 'approved'])
-        .order('created_at', { ascending: false });
+        .or(`user_id.eq.${user.id},user_id.is.null`, { foreignTable: 'collection_workflows' })
+        .order('step_order', { ascending: true });
 
       if (error) throw error;
 
-      // Group templates by persona and workflow
+      // Group templates by persona (derived from aging_bucket)
       const grouped: DraftsByPersona = {};
-      templates?.forEach(template => {
-        if (template.agent_persona_id && template.ai_agent_personas) {
-          if (!grouped[template.agent_persona_id]) {
-            grouped[template.agent_persona_id] = {
-              persona: template.ai_agent_personas,
-              drafts: []
-            };
-          }
-          // Store template with workflow_id from the step
-          grouped[template.agent_persona_id].drafts.push({
-            ...template,
-            step_workflow_id: template.collection_workflow_steps?.workflow_id
-          });
+      
+      steps?.forEach(step => {
+        // Only include steps with template content
+        if (!step.subject_template && !step.body_template) return;
+        
+        const bucket = (step.collection_workflows as any)?.aging_bucket;
+        if (!bucket) return;
+        
+        // Find persona for this bucket based on bucket name mapping
+        const bucketToPersona: Record<string, string> = {
+          'dpd_1_30': 'sam',
+          'dpd_31_60': 'james',
+          'dpd_61_90': 'katy',
+          'dpd_91_120': 'troy',
+          'dpd_121_150': 'jimmy',
+          'dpd_150_plus': 'rocco',
+        };
+        
+        const personaKey = bucketToPersona[bucket];
+        if (!personaKey || !personaConfig[personaKey]) return;
+        
+        const persona = personaConfig[personaKey];
+        
+        if (!grouped[personaKey]) {
+          grouped[personaKey] = {
+            persona: {
+              id: personaKey,
+              name: persona.name,
+              persona_summary: persona.tone,
+              bucket_min: persona.bucketMin,
+              bucket_max: persona.bucketMax,
+            },
+            drafts: []
+          };
         }
+        
+        grouped[personaKey].drafts.push({
+          id: step.id,
+          workflow_step_id: step.id,
+          subject: step.subject_template,
+          message_body: step.body_template,
+          channel: step.channel,
+          step_order: step.step_order,
+          day_offset: step.day_offset,
+          label: step.label,
+          aging_bucket: bucket,
+          step_workflow_id: step.workflow_id,
+          status: 'approved', // Templates in workflow steps are considered approved
+          collection_workflow_steps: {
+            label: step.label,
+            step_order: step.step_order,
+            day_offset: step.day_offset,
+            workflow_id: step.workflow_id,
+          }
+        });
       });
 
       setDraftsByPersona(grouped);
