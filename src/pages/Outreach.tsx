@@ -71,30 +71,55 @@ const Outreach = () => {
     onError: () => toast.error("Failed to delete drafts"),
   });
 
-  // Mutation for sending approved drafts
-  const sendApprovedDrafts = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("auto-send-approved-drafts");
-      if (error) throw error;
-      return data;
+  // Mutation for sending drafts (uses send-ai-draft so it works with user auth)
+  const sendDrafts = useMutation({
+    mutationFn: async (draftIds: string[]) => {
+      const results = {
+        sent: 0,
+        failed: 0,
+        alreadySent: 0,
+        errors: [] as string[],
+      };
+
+      for (const draftId of draftIds) {
+        const { data, error } = await supabase.functions.invoke("send-ai-draft", {
+          body: { draft_id: draftId },
+        });
+
+        if (error) {
+          results.failed++;
+          results.errors.push(`Draft ${draftId}: ${error.message}`);
+          continue;
+        }
+
+        if ((data as any)?.already_sent) {
+          results.alreadySent++;
+          continue;
+        }
+
+        if ((data as any)?.error) {
+          results.failed++;
+          results.errors.push(`Draft ${draftId}: ${(data as any).error}`);
+          continue;
+        }
+
+        results.sent++;
+      }
+
+      return results;
     },
     onSuccess: (data) => {
-      if (data?.sent > 0) {
-        toast.success(`${data.sent} email(s) sent successfully`);
-      } else if (data?.skipped > 0) {
-        toast.info(`No emails sent. ${data.skipped} draft(s) skipped.`);
-      } else {
-        toast.info("No approved drafts ready to send");
-      }
-      if (data?.errors?.length > 0) {
-        toast.error(`${data.errors.length} email(s) failed to send`);
-      }
+      if (data.sent > 0) toast.success(`${data.sent} email(s) sent successfully`);
+      if (data.alreadySent > 0) toast.info(`${data.alreadySent} draft(s) already sent`);
+      if (data.failed > 0) toast.error(`${data.failed} email(s) failed to send`);
+
+      setSelectedDraftIds(new Set());
       queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
       queryClient.invalidateQueries({ queryKey: ["outreach-summary"] });
     },
     onError: (error) => {
       console.error("Send error:", error);
-      const message = error instanceof Error ? error.message : "Failed to send approved drafts";
+      const message = error instanceof Error ? error.message : "Failed to send drafts";
       toast.error(message);
     },
   });
@@ -218,6 +243,21 @@ const Outreach = () => {
       sent: draftsData.filter(d => !!d.sent_at).length,
     };
   }, [draftsData]);
+
+  const approvedUnsentDraftIds = useMemo(() => {
+    return (draftsData || [])
+      .filter((d: any) => d.status === "approved" && !d.sent_at)
+      .map((d: any) => d.id as string);
+  }, [draftsData]);
+
+  const selectedApprovedDraftIds = useMemo(() => {
+    if (!draftsData) return [] as string[];
+    const byId = new Map((draftsData as any[]).map((d) => [d.id, d]));
+    return Array.from(selectedDraftIds).filter((id) => {
+      const d = byId.get(id);
+      return d && d.status === "approved" && !d.sent_at;
+    });
+  }, [draftsData, selectedDraftIds]);
 
   const personaSchedule = useMemo(() => {
     const today = new Date();
@@ -346,18 +386,18 @@ const Outreach = () => {
             </p>
           </div>
           
-          {summaryData && summaryData.approvedDrafts > 0 && (
+          {draftCounts.approved > 0 && (
             <Button 
-              onClick={() => sendApprovedDrafts.mutate()}
-              disabled={sendApprovedDrafts.isPending}
+              onClick={() => sendDrafts.mutate(approvedUnsentDraftIds)}
+              disabled={sendDrafts.isPending || approvedUnsentDraftIds.length === 0}
               className="gap-2"
             >
-              {sendApprovedDrafts.isPending ? (
+              {sendDrafts.isPending ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              Send {summaryData.approvedDrafts} Approved
+              Send {draftCounts.approved} Approved
             </Button>
           )}
         </div>
@@ -627,6 +667,17 @@ const Outreach = () => {
                   <span className="text-sm text-muted-foreground">
                     {selectedDraftIds.size} selected
                   </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => sendDrafts.mutate(selectedApprovedDraftIds)}
+                    disabled={sendDrafts.isPending || selectedApprovedDraftIds.length === 0}
+                    className="gap-1"
+                    title={selectedApprovedDraftIds.length === 0 ? "Select approved drafts to send" : undefined}
+                  >
+                    <Send className="h-4 w-4" />
+                    Send
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
