@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addDays } from "date-fns";
+import { format, addDays, differenceInCalendarDays } from "date-fns";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -94,13 +94,18 @@ const Outreach = () => {
     },
     onError: (error) => {
       console.error("Send error:", error);
-      toast.error("Failed to send approved drafts");
+      const message = error instanceof Error ? error.message : "Failed to send approved drafts";
+      toast.error(message);
     },
   });
 
   // Fetch summary stats
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
     queryKey: ["outreach-summary"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -128,7 +133,7 @@ const Outreach = () => {
       const totalInvoices = invoices?.length || 0;
       const totalAR = invoices?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
       const pausedCount = invoices?.filter(inv => inv.outreach_paused || inv.debtors?.outreach_paused).length || 0;
-      
+
       // Drafts: pending = pending_approval status, approved = approved status with no sent_at
       const pendingDrafts = drafts?.filter(d => d.status === "pending_approval").length || 0;
       const approvedDrafts = drafts?.filter(d => d.status === "approved" && !d.sent_at).length || 0;
@@ -138,7 +143,7 @@ const Outreach = () => {
         const bucketInvoices = invoices?.filter(inv => inv.aging_bucket === bucket.key) || [];
         const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
         const persona = getPersonaByDaysPastDue(midDays);
-        
+
         return {
           ...bucket,
           count: bucketInvoices.length,
@@ -161,6 +166,10 @@ const Outreach = () => {
   // Fetch drafts for management
   const { data: draftsData, isLoading: draftsLoading, refetch: refetchDrafts } = useQuery({
     queryKey: ["outreach-drafts"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -168,17 +177,18 @@ const Outreach = () => {
       const { data, error } = await supabase
         .from("ai_drafts")
         .select(`
-          id, subject, message_body, status, step_number, 
+          id, subject, message_body, status, step_number,
           recommended_send_date, created_at, sent_at,
+          days_past_due,
           invoices (
-            id, invoice_number, amount,
+            id, invoice_number, amount, due_date,
             debtors (id, company_name, name)
           ),
           collection_workflow_steps (label)
         `)
         .in("status", ["pending_approval", "approved"])
         .order("recommended_send_date", { ascending: true })
-        .limit(100);
+        .limit(250);
 
       if (error) throw error;
       return data || [];
@@ -207,6 +217,82 @@ const Outreach = () => {
       approved: draftsData.filter(d => d.status === "approved" && !d.sent_at).length,
       sent: draftsData.filter(d => !!d.sent_at).length,
     };
+  }, [draftsData]);
+
+  const personaSchedule = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const safeScheduledDateTime = (recommendedSendDate?: string | null) => {
+      if (!recommendedSendDate) return null;
+      // If it's a plain date (YYYY-MM-DD), assume 9:00 AM local.
+      const isoLike = recommendedSendDate.includes("T")
+        ? recommendedSendDate
+        : `${recommendedSendDate}T09:00:00`;
+      const dt = new Date(isoLike);
+      return Number.isNaN(dt.getTime()) ? null : dt;
+    };
+
+    const getDraftPersonaKey = (draft: any): keyof typeof personaConfig | null => {
+      const invoice = draft.invoices as any;
+      const dueDateRaw = invoice?.due_date as string | undefined;
+
+      let daysPastDue: number | null = typeof draft.days_past_due === "number" ? draft.days_past_due : null;
+      if (daysPastDue === null && dueDateRaw) {
+        const dueDate = new Date(dueDateRaw);
+        if (!Number.isNaN(dueDate.getTime())) {
+          daysPastDue = differenceInCalendarDays(today, dueDate);
+        }
+      }
+
+      // Current invoices (0 DPD) should still route to the earliest persona.
+      if (daysPastDue !== null && daysPastDue <= 0) return "sam";
+
+      const persona = typeof daysPastDue === "number" ? getPersonaByDaysPastDue(daysPastDue) : null;
+      return (persona?.name?.toLowerCase() as keyof typeof personaConfig) || null;
+    };
+
+    const upcoming = (draftsData || []).filter((d: any) => !d.sent_at);
+
+    const byPersona: Record<string, { key: string; nextApproved: Date | null; nextAny: Date | null; approvedCount: number; pendingCount: number; total: number; }> = {};
+
+    for (const key of Object.keys(personaConfig)) {
+      byPersona[key] = {
+        key,
+        nextApproved: null,
+        nextAny: null,
+        approvedCount: 0,
+        pendingCount: 0,
+        total: 0,
+      };
+    }
+
+    for (const draft of upcoming) {
+      const personaKey = getDraftPersonaKey(draft);
+      if (!personaKey || !byPersona[personaKey]) continue;
+
+      const scheduled = safeScheduledDateTime(draft.recommended_send_date) || safeScheduledDateTime(draft.created_at);
+      if (!scheduled) continue;
+
+      byPersona[personaKey].total += 1;
+      if (draft.status === "approved") {
+        byPersona[personaKey].approvedCount += 1;
+        if (!byPersona[personaKey].nextApproved || scheduled < byPersona[personaKey].nextApproved) {
+          byPersona[personaKey].nextApproved = scheduled;
+        }
+      } else if (draft.status === "pending_approval") {
+        byPersona[personaKey].pendingCount += 1;
+      }
+
+      if (!byPersona[personaKey].nextAny || scheduled < byPersona[personaKey].nextAny) {
+        byPersona[personaKey].nextAny = scheduled;
+      }
+    }
+
+    return Object.keys(personaConfig).map((key) => ({
+      persona: personaConfig[key],
+      ...byPersona[key],
+    }));
   }, [draftsData]);
 
   const toggleBucket = (bucketKey: string) => {
@@ -359,9 +445,62 @@ const Outreach = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                 </div>
 
-                {/* Action Alert */}
+                 {/* Scheduled by Persona */}
+                 <Card>
+                   <CardHeader>
+                     <CardTitle className="text-lg">Next Scheduled Outreach by Persona</CardTitle>
+                   </CardHeader>
+                   <CardContent>
+                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                       {personaSchedule.map((row) => {
+                         const next = row.nextApproved || row.nextAny;
+                         const nextLabel = row.nextApproved ? "Next approved" : row.nextAny ? "Next pending" : "No upcoming";
+                         return (
+                           <div key={row.key} className="rounded-lg border p-3">
+                             <div className="flex items-center gap-3">
+                               <Avatar className="h-9 w-9">
+                                 <AvatarImage src={row.persona.avatar} alt={`${row.persona.name} persona`} />
+                                 <AvatarFallback style={{ backgroundColor: row.persona.color }}>
+                                   {row.persona.name[0]}
+                                 </AvatarFallback>
+                               </Avatar>
+                               <div className="min-w-0 flex-1">
+                                 <div className="flex items-center justify-between gap-2">
+                                   <p className="font-medium truncate">{row.persona.name}</p>
+                                   <Badge variant="secondary">{row.total}</Badge>
+                                 </div>
+                                 <p className="text-xs text-muted-foreground">{row.persona.description}</p>
+                               </div>
+                             </div>
+
+                             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                               <div className="rounded-md bg-muted p-2">
+                                 <p className="text-muted-foreground">Approved</p>
+                                 <p className="font-medium">{row.approvedCount}</p>
+                               </div>
+                               <div className="rounded-md bg-muted p-2">
+                                 <p className="text-muted-foreground">Pending</p>
+                                 <p className="font-medium">{row.pendingCount}</p>
+                               </div>
+                             </div>
+
+                             <div className="mt-3 flex items-center justify-between gap-2">
+                               <p className="text-xs text-muted-foreground">{nextLabel}</p>
+                               <p className="text-xs font-medium">
+                                 {next ? format(next, "MMM d, yyyy • h:mm a") : "—"}
+                               </p>
+                             </div>
+                             <p className="mt-1 text-[11px] text-muted-foreground">Times shown in your local timezone.</p>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   </CardContent>
+                 </Card>
+
+                 {/* Action Alert */}
                 {summaryData.pendingDrafts > 0 && (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
