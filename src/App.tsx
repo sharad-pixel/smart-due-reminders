@@ -5,8 +5,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import { CookieConsentProvider } from "./components/CookieConsentProvider";
 import Home from "./pages/Home";
+import Index from "./pages/Index";
 import Features from "./pages/Features";
-import CollectionIntelligence from "./pages/CollectionIntelligence";
 import Pricing from "./pages/Pricing";
 import Solutions from "./pages/Solutions";
 import SmallBusinesses from "./pages/solutions/SmallBusinesses";
@@ -81,7 +81,7 @@ const App = () => (
         <Sonner />
         <Routes>
           {/* HOMEPAGE: Main marketing landing page */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Index />} />
           <Route path="/home" element={<Home />} />
           <Route path="/design-partners" element={<ComingSoon />} />
           <Route path="/features" element={<Features />} />
