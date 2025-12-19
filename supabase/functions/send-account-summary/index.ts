@@ -355,16 +355,26 @@ Provide your analysis as a JSON object.`;
       }
 
       // Now generate the outreach email using the intelligence report
-      const totalOutstanding = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
+      // CRITICAL: Use database-fetched invoices (invoicesData) NOT request body invoices
+      // This ensures consistency between intelligence report and outreach email
+      const openInvoicesForOutreach = invoicesData?.filter(i => 
+        ["Open", "PartiallyPaid", "InPaymentPlan", "Overdue"].includes(i.status)
+      ) || [];
+      const totalOutstanding = openInvoicesForOutreach.reduce((sum, inv) => 
+        sum + (inv.outstanding_amount || inv.amount || 0), 0
+      );
       const highPriorityTasks = openTasks?.filter(t => t.priority === "high") || [];
 
       // Build context summary including intelligence insights
-      const contextSummary = {
+      contextSummary = {
         accountName: debtor.company_name,
         contactName: debtor.name,
         totalOutstanding,
-        invoiceCount: invoices?.length || 0,
-        oldestInvoiceDue: invoices?.length > 0 ? invoices[invoices.length - 1]?.due_date : null,
+        invoiceCount: openInvoicesForOutreach.length,
+        allInvoicesCount: invoicesData?.length || 0,
+        oldestInvoiceDue: openInvoicesForOutreach.length > 0 
+          ? openInvoicesForOutreach.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0]?.due_date 
+          : null,
         openTaskCount: openTasks?.length || 0,
         highPriorityTaskCount: highPriorityTasks.length,
         taskTypes: [...new Set(openTasks?.map(t => t.task_type) || [])],
@@ -374,7 +384,9 @@ Provide your analysis as a JSON object.`;
         paymentScore: debtor.payment_score || null,
         avgDaysToPay: debtor.avg_days_to_pay || null,
         // Add intelligence report insights
-        intelligence: intelligenceReport
+        intelligence: intelligenceReport,
+        // Store actual invoices for prompt
+        invoices: openInvoicesForOutreach
       };
 
       logStep("Context for AI outreach", { hasIntelligence: !!intelligenceReport });
@@ -429,7 +441,7 @@ ACCOUNT DETAILS:
 - Avg Days to Pay: ${contextSummary.avgDaysToPay || "Unknown"}
 
 OPEN INVOICES:
-${invoices?.map(inv => `- Invoice #${inv.invoice_number}: $${inv.amount.toLocaleString()} (Due: ${inv.due_date}, Status: ${inv.status})`).join('\n') || "None"}
+${contextSummary.invoices?.map((inv: any) => `- Invoice #${inv.invoice_number}: $${(inv.outstanding_amount || inv.amount || 0).toLocaleString()} (Due: ${inv.due_date}, Status: ${inv.status})`).join('\n') || "None"}
 
 OPEN TASKS/ISSUES:
 ${openTasks?.map(t => `- [${t.priority.toUpperCase()}] ${t.task_type}: ${t.summary}`).join('\n') || "None"}
@@ -439,6 +451,12 @@ ${payments?.map(p => `- $${p.amount.toLocaleString()} on ${p.payment_date}`).joi
 
 RECENT COMMUNICATIONS:
 ${inboundEmails?.map(e => `- ${e.subject}: ${e.ai_summary || "No summary"} (Sentiment: ${e.sentiment || "neutral"})`).join('\n') || "No recent communications"}
+
+IMPORTANT INSTRUCTIONS:
+- Use the ACCOUNT DETAILS above as the source of truth for financial data
+- Generate a professional collection email based on the risk level and data provided
+- Do NOT refuse to generate the email or claim data inconsistencies
+- Adjust tone based on risk tier: low=friendly, medium=professional, high=firm, critical=urgent
 
 Generate a JSON response with:
 {
