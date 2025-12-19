@@ -1786,6 +1786,8 @@ export type Database = {
       }
       debtors: {
         Row: {
+          account_outreach_enabled: boolean | null
+          account_outreach_persona: string | null
           address: string | null
           address_line1: string | null
           address_line2: string | null
@@ -1833,15 +1835,19 @@ export type Database = {
           intelligence_report_generated_at: string | null
           is_active: boolean | null
           is_archived: boolean | null
+          last_outreach_date: string | null
           last_score_change_reason: string | null
           latitude: number | null
           longitude: number | null
           max_days_past_due: number | null
           max_risk_score: number | null
           name: string
+          next_outreach_date: string | null
           notes: string | null
           open_invoices_count: number | null
           organization_id: string | null
+          outreach_frequency: string | null
+          outreach_frequency_days: number | null
           outreach_paused: boolean | null
           outreach_paused_at: string | null
           outreach_paused_reason: string | null
@@ -1869,6 +1875,8 @@ export type Database = {
           written_off_invoices_count: number | null
         }
         Insert: {
+          account_outreach_enabled?: boolean | null
+          account_outreach_persona?: string | null
           address?: string | null
           address_line1?: string | null
           address_line2?: string | null
@@ -1916,15 +1924,19 @@ export type Database = {
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          last_outreach_date?: string | null
           last_score_change_reason?: string | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
           max_risk_score?: number | null
           name: string
+          next_outreach_date?: string | null
           notes?: string | null
           open_invoices_count?: number | null
           organization_id?: string | null
+          outreach_frequency?: string | null
+          outreach_frequency_days?: number | null
           outreach_paused?: boolean | null
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
@@ -1952,6 +1964,8 @@ export type Database = {
           written_off_invoices_count?: number | null
         }
         Update: {
+          account_outreach_enabled?: boolean | null
+          account_outreach_persona?: string | null
           address?: string | null
           address_line1?: string | null
           address_line2?: string | null
@@ -1999,15 +2013,19 @@ export type Database = {
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          last_outreach_date?: string | null
           last_score_change_reason?: string | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
           max_risk_score?: number | null
           name?: string
+          next_outreach_date?: string | null
           notes?: string | null
           open_invoices_count?: number | null
           organization_id?: string | null
+          outreach_frequency?: string | null
+          outreach_frequency_days?: number | null
           outreach_paused?: boolean | null
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
