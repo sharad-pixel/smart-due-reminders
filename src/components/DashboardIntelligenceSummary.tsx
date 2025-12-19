@@ -39,32 +39,56 @@ export function DashboardIntelligenceSummary() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<AccountWithIntelligence[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
-    fetchAccountsWithIntelligence();
+    void fetchAccountsWithIntelligence();
   }, []);
 
   const fetchAccountsWithIntelligence = async () => {
+    setLoading(true);
+    setLoadError(null);
+
+    const timeoutMs = 12000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error("Request timed out. Please try again."));
+      }, timeoutMs);
+    });
+
     try {
       console.log("[DashboardIntelligenceSummary] Fetching accounts with intelligence...");
-      const { data, error } = await supabase
+
+      const queryPromise = supabase
         .from("debtors")
-        .select("id, company_name, name, total_open_balance, intelligence_report, intelligence_report_generated_at")
+        .select(
+          "id, company_name, name, total_open_balance, intelligence_report, intelligence_report_generated_at",
+        )
         .neq("is_archived", true)
         .not("intelligence_report", "is", null)
-        .order("intelligence_report_generated_at", { ascending: false, nullsFirst: false });
+        .order("intelligence_report_generated_at", { ascending: false, nullsFirst: false })
+        .limit(50);
+
+      const { data, error } = await Promise.race([
+        queryPromise,
+        timeoutPromise,
+      ]);
 
       if (error) {
         console.error("[DashboardIntelligenceSummary] Query error:", error);
         throw error;
       }
-      
+
       console.log("[DashboardIntelligenceSummary] Found accounts:", data?.length || 0);
       setAccounts(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("[DashboardIntelligenceSummary] Error fetching intelligence data:", error);
+      setLoadError(error?.message || "Failed to load intelligence.");
+      setAccounts([]);
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -127,6 +151,34 @@ export function DashboardIntelligenceSummary() {
             <Skeleton className="h-20" />
           </div>
           <Skeleton className="h-32" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card className="border border-destructive/20 bg-destructive/5">
+        <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
+          <div className="p-4 rounded-full bg-destructive/10">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-semibold text-lg">Collection Intelligence</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              {loadError}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => void fetchAccountsWithIntelligence()} variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+            <Button onClick={() => navigate("/debtors")} className="gap-2">
+              <ChevronRight className="h-4 w-4" />
+              Add Accounts
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
