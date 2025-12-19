@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
           id,
           name,
           company_name,
-          outreach_paused
+          outreach_paused,
+          account_outreach_enabled
         )
       `)
       .in('status', ['Open', 'InPaymentPlan'])
@@ -70,6 +71,13 @@ Deno.serve(async (req) => {
         const debtor = Array.isArray(invoice.debtors) ? invoice.debtors[0] : invoice.debtors;
         if (debtor?.outreach_paused) {
           console.log(`Skipping invoice ${invoice.invoice_number}: account outreach is paused`);
+          skipped++;
+          continue;
+        }
+
+        // Skip if account-level outreach is enabled (invoice workflows are bypassed)
+        if (debtor?.account_outreach_enabled) {
+          console.log(`Skipping invoice ${invoice.invoice_number}: account-level outreach is enabled, individual invoice workflows bypassed`);
           skipped++;
           continue;
         }

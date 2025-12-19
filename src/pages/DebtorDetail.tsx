@@ -29,6 +29,7 @@ import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/CustomerCaseFeed";
 import { AccountIntelligenceCard } from "@/components/AccountIntelligenceCard";
+import { AccountOutreachSettings } from "@/components/AccountOutreachSettings";
 
 interface Debtor {
   id: string;
@@ -62,6 +63,13 @@ interface Debtor {
   risk_last_calculated_at: string | null;
   outreach_paused: boolean | null;
   outreach_paused_at: string | null;
+  // Account-level outreach settings
+  account_outreach_enabled: boolean | null;
+  outreach_frequency: string | null;
+  outreach_frequency_days: number | null;
+  next_outreach_date: string | null;
+  last_outreach_date: string | null;
+  account_outreach_persona: string | null;
 }
 
 interface DebtorContact {
@@ -688,6 +696,21 @@ const DebtorDetail = () => {
 
         {/* Collection Intelligence Report */}
         <AccountIntelligenceCard debtorId={debtor.id} />
+
+        {/* Account Outreach Settings */}
+        <AccountOutreachSettings
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+          initialSettings={{
+            account_outreach_enabled: debtor.account_outreach_enabled || false,
+            outreach_frequency: debtor.outreach_frequency || "weekly",
+            outreach_frequency_days: debtor.outreach_frequency_days || 7,
+            next_outreach_date: debtor.next_outreach_date,
+            last_outreach_date: debtor.last_outreach_date,
+            account_outreach_persona: debtor.account_outreach_persona || "sam",
+          }}
+          onSettingsChange={fetchDebtor}
+        />
 
         {/* Risk Assessment Card */}
         <RiskEngineCard
