@@ -47,18 +47,23 @@ export function DashboardIntelligenceSummary() {
 
   const fetchAccountsWithIntelligence = async () => {
     try {
+      console.log("[DashboardIntelligenceSummary] Fetching accounts with intelligence...");
       const { data, error } = await supabase
         .from("debtors")
         .select("id, company_name, name, total_open_balance, intelligence_report, intelligence_report_generated_at")
-        .eq("is_archived", false)
-        .eq("is_active", true)
+        .neq("is_archived", true)
         .not("intelligence_report", "is", null)
         .order("intelligence_report_generated_at", { ascending: false, nullsFirst: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[DashboardIntelligenceSummary] Query error:", error);
+        throw error;
+      }
+      
+      console.log("[DashboardIntelligenceSummary] Found accounts:", data?.length || 0);
       setAccounts(data || []);
     } catch (error) {
-      console.error("Error fetching intelligence data:", error);
+      console.error("[DashboardIntelligenceSummary] Error fetching intelligence data:", error);
     } finally {
       setLoading(false);
     }
