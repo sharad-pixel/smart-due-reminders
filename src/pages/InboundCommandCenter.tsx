@@ -739,14 +739,18 @@ const InboundCommandCenter = () => {
 
     setIsGeneratingAI(true);
     try {
+      // Pass email body separately to avoid command length limit issues
+      const emailContent = email.text_body || email.html_body || '';
+      
       const { data, error } = await supabase.functions.invoke("process-persona-command", {
         body: {
-          command: `Respond to this customer email: "${email.subject || 'No subject'}"\n\nEmail content:\n${email.text_body || email.html_body || 'No content'}`,
+          command: `Respond to this customer email: "${email.subject || 'No subject'}"`,
           contextInvoiceId: invoiceId || undefined,
           contextDebtorId: debtorId || undefined,
           contextType: "inbound_email",
           senderEmail: email.from_email,
           emailSubject: email.subject,
+          emailBody: emailContent.slice(0, 3000), // Truncate to avoid excessive payload
         },
       });
 
