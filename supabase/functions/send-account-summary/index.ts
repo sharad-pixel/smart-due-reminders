@@ -131,9 +131,17 @@ serve(async (req) => {
       stripe_payment_link: null,
     };
 
-    // If generateOnly, use AI to create the outreach content
-    if (generateOnly) {
-      logStep("Generating AI outreach content with intelligence report");
+    // Check if we need to generate AI content (either generateOnly OR no subject/message provided)
+    const needsAIGeneration = generateOnly || (!subject && !message);
+    
+    let generatedSubject = subject;
+    let generatedMessage = message;
+    let intelligenceReport: any = null;
+    let intelligenceGeneratedAt: string | null = null;
+    let contextSummary: any = null;
+    
+    if (needsAIGeneration) {
+      logStep("Generating AI outreach content with intelligence report", { generateOnly, hasSubject: !!subject, hasMessage: !!message });
       
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) {
@@ -142,9 +150,7 @@ serve(async (req) => {
 
       // First, check if we have a cached intelligence report that's less than 24 hours old
       const CACHE_DURATION_HOURS = 24;
-      let intelligenceReport: any = null;
       let usedCachedReport = false;
-      let intelligenceGeneratedAt: string | null = null;
 
       const cachedReport = debtor.intelligence_report;
       const cachedAt = debtor.intelligence_report_generated_at;
@@ -478,30 +484,39 @@ Generate a JSON response with:
       logStep("AI outreach response received", { contentLength: content?.length });
 
       // Parse the AI response
-      let generatedSubject = `Account Outreach - ${debtor.company_name}`;
-      let generatedMessage = "";
+      let parsedSubject = `Account Outreach - ${debtor.company_name}`;
+      let parsedMessage = "";
 
       try {
         // Try to parse as JSON first
         const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const parsed = JSON.parse(cleanedContent);
-        generatedSubject = parsed.subject || generatedSubject;
-        generatedMessage = parsed.message || content;
+        parsedSubject = parsed.subject || parsedSubject;
+        parsedMessage = parsed.message || content;
       } catch {
         // If not JSON, use the raw content
-        generatedMessage = content;
+        parsedMessage = content;
       }
 
-      return new Response(
-        JSON.stringify({ 
-          subject: generatedSubject, 
-          message: generatedMessage,
-          context: contextSummary,
-          intelligence: intelligenceReport,
-          intelligenceGeneratedAt
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Assign to outer variables
+      generatedSubject = parsedSubject;
+      generatedMessage = parsedMessage;
+
+      // If generateOnly, return the generated content without sending
+      if (generateOnly) {
+        return new Response(
+          JSON.stringify({ 
+            subject: generatedSubject, 
+            message: generatedMessage,
+            context: contextSummary,
+            intelligence: intelligenceReport,
+            intelligenceGeneratedAt
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      logStep("AI content generated, proceeding to send", { subject: generatedSubject?.substring(0, 50) });
     }
 
     // If not generateOnly, proceed with sending the email
@@ -585,7 +600,7 @@ Generate a JSON response with:
     // Build email content body with message, invoice table, and links
     const emailContent = `
       <div style="white-space: pre-wrap; line-height: 1.6; color: #374151;">
-        ${(message || "").replace(/\n/g, '<br>')}
+        ${(generatedMessage || "").replace(/\n/g, '<br>')}
       </div>
       ${invoiceTableHtml}
       ${linksHtml}
@@ -616,7 +631,7 @@ Generate a JSON response with:
           to: allEmails, // Send to all outreach-enabled contacts
           from: fromEmail,
           reply_to: replyToAddress,
-          subject: subject,
+          subject: generatedSubject,
           html: emailHtml,
         }),
       }
@@ -637,8 +652,8 @@ Generate a JSON response with:
       activity_type: "ai_outreach",
       channel: "email",
       direction: "outbound",
-      subject: subject,
-      message_body: message,
+      subject: generatedSubject,
+      message_body: generatedMessage,
       sent_at: new Date().toISOString(),
       metadata: {
         invoice_count: invoices?.length || 0,
