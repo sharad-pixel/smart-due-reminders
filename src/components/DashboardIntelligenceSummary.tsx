@@ -141,18 +141,20 @@ export function DashboardIntelligenceSummary() {
           </div>
           <div className="text-center">
             <h3 className="font-semibold text-lg">Collection Intelligence</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              AI-powered intelligence reports are generated daily at 5 AM PT
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              Add accounts and invoices to unlock AI-powered collection insights and risk analysis
             </p>
           </div>
-          <Button onClick={runIntelligenceReports} disabled={regenerating} className="gap-2">
-            {regenerating ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Zap className="h-4 w-4" />
-            )}
-            Generate Reports Now
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate("/debtors")} variant="outline" className="gap-2">
+              <ChevronRight className="h-4 w-4" />
+              Add Accounts
+            </Button>
+            <Button onClick={() => navigate("/invoices")} className="gap-2">
+              <ChevronRight className="h-4 w-4" />
+              Import Invoices
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
