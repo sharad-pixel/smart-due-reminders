@@ -52,15 +52,30 @@ export function useAIAnalytics(options: UseAIAnalyticsOptions = {}) {
   return useQuery({
     queryKey: ["ai-analytics", scope, context],
     queryFn: async (): Promise<AIAnalyticsResult> => {
-      const { data, error } = await supabase.functions.invoke("ai-analytics", {
-        body: { scope, context },
+      const timeoutMs = 12000;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error("AI insights timed out. Please try again."));
+        }, timeoutMs);
       });
 
-      if (error) throw error;
-      return data;
+      try {
+        const invokePromise = supabase.functions.invoke("ai-analytics", {
+          body: { scope, context },
+        });
+
+        const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
+
+        if (error) throw error;
+        return data;
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
     },
     enabled,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
     refetchOnWindowFocus: false,
+    retry: 0,
   });
 }

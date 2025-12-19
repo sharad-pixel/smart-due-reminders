@@ -39,8 +39,28 @@ export function AIInsightsCard({
   showTabs = true,
   className 
 }: AIInsightsCardProps) {
-  const { data, isLoading, refetch, isRefetching } = useAIAnalytics({ scope, context });
+  const { data, isLoading, isError, error, refetch, isRefetching } = useAIAnalytics({ scope, context });
   const [expanded, setExpanded] = useState(!compact);
+
+  if (isError) {
+    const message = error instanceof Error ? error.message : "Failed to load AI insights.";
+    return (
+      <Card className={className}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">AI Insights</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isRefetching}>
+              <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+            </Button>
+          </div>
+          <CardDescription>{message}</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -117,7 +137,7 @@ export function AIInsightsCard({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Collection Intelligence</CardTitle>
+                <CardTitle className="text-lg">AI Insights</CardTitle>
               </div>
               <div className="flex items-center gap-2">
                 {data.riskAlerts.filter(a => a.severity === "critical").length > 0 && (
@@ -345,7 +365,7 @@ export function AIInsightsCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Collection Intelligence</CardTitle>
+            <CardTitle className="text-lg">AI Insights</CardTitle>
           </div>
           <Button 
             variant="ghost" 

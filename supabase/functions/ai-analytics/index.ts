@@ -160,101 +160,157 @@ serve(async (req) => {
       });
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert financial analyst specializing in accounts receivable and collections analytics. 
+    const aiStartedAt = Date.now();
+
+    const controller = new AbortController();
+    const aiTimeoutMs = 8000;
+    const aiTimeout = setTimeout(() => controller.abort(), aiTimeoutMs);
+
+    let aiResponse: Response | null = null;
+
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: "openai/gpt-5-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert financial analyst specializing in accounts receivable and collections analytics. 
             Analyze the provided data and return actionable insights in the specified JSON format.
             Be specific with account names and amounts. Focus on high-impact recommendations.
-            Always provide concrete next steps, not generic advice.`
-          },
-          { role: "user", content: analysisPrompt }
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "provide_analytics",
-              description: "Provide comprehensive AR analytics including trends, recommendations, and predictions",
-              parameters: {
-                type: "object",
-                properties: {
-                  summary: {
-                    type: "string",
-                    description: "2-3 sentence executive summary of AR health"
-                  },
-                  trends: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        metric: { type: "string" },
-                        direction: { type: "string", enum: ["up", "down", "stable"] },
-                        change: { type: "number" },
-                        insight: { type: "string" },
-                        timeframe: { type: "string" }
+            Always provide concrete next steps, not generic advice.`,
+            },
+            { role: "user", content: analysisPrompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "provide_analytics",
+                description:
+                  "Provide comprehensive AR analytics including trends, recommendations, and predictions",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    summary: {
+                      type: "string",
+                      description: "2-3 sentence executive summary of AR health",
+                    },
+                    trends: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          metric: { type: "string" },
+                          direction: {
+                            type: "string",
+                            enum: ["up", "down", "stable"],
+                          },
+                          change: { type: "number" },
+                          insight: { type: "string" },
+                          timeframe: { type: "string" },
+                        },
+                        required: [
+                          "metric",
+                          "direction",
+                          "change",
+                          "insight",
+                          "timeframe",
+                        ],
                       },
-                      required: ["metric", "direction", "change", "insight", "timeframe"]
-                    }
-                  },
-                  recommendations: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        priority: { type: "string", enum: ["high", "medium", "low"] },
-                        action: { type: "string" },
-                        impact: { type: "string" },
-                        accountId: { type: "string", description: "The debtor/account ID if this recommendation is account-specific" },
-                        accountName: { type: "string" }
+                    },
+                    recommendations: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          priority: {
+                            type: "string",
+                            enum: ["high", "medium", "low"],
+                          },
+                          action: { type: "string" },
+                          impact: { type: "string" },
+                          accountId: {
+                            type: "string",
+                            description:
+                              "The debtor/account ID if this recommendation is account-specific",
+                          },
+                          accountName: { type: "string" },
+                        },
+                        required: ["priority", "action", "impact"],
                       },
-                      required: ["priority", "action", "impact"]
-                    }
-                  },
-                  predictions: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        metric: { type: "string" },
-                        value: { type: "string" },
-                        confidence: { type: "string", enum: ["high", "medium", "low"] },
-                        rationale: { type: "string" }
+                    },
+                    predictions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          metric: { type: "string" },
+                          value: { type: "string" },
+                          confidence: {
+                            type: "string",
+                            enum: ["high", "medium", "low"],
+                          },
+                          rationale: { type: "string" },
+                        },
+                        required: ["metric", "value", "confidence", "rationale"],
                       },
-                      required: ["metric", "value", "confidence", "rationale"]
-                    }
-                  },
-                  riskAlerts: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        severity: { type: "string", enum: ["critical", "warning", "info"] },
-                        message: { type: "string" },
-                        accountId: { type: "string", description: "The debtor/account ID if this alert is account-specific" },
-                        accountName: { type: "string" },
-                        amount: { type: "number" }
+                    },
+                    riskAlerts: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          severity: {
+                            type: "string",
+                            enum: ["critical", "warning", "info"],
+                          },
+                          message: { type: "string" },
+                          accountId: {
+                            type: "string",
+                            description:
+                              "The debtor/account ID if this alert is account-specific",
+                          },
+                          accountName: { type: "string" },
+                          amount: { type: "number" },
+                        },
+                        required: ["severity", "message"],
                       },
-                      required: ["severity", "message"]
-                    }
-                  }
+                    },
+                  },
+                  required: [
+                    "summary",
+                    "trends",
+                    "recommendations",
+                    "predictions",
+                    "riskAlerts",
+                  ],
                 },
-                required: ["summary", "trends", "recommendations", "predictions", "riskAlerts"]
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "provide_analytics" } }
-      }),
-    });
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "provide_analytics" } },
+        }),
+      });
+    } catch (err) {
+      const aborted = err instanceof Error && err.name === "AbortError";
+      console.warn(
+        `[AI-ANALYTICS] AI request ${aborted ? "timed out" : "failed"}; falling back to rule-based analysis`,
+      );
+      const ruleBasedAnalysis = performRuleBasedAnalysis(analyticsData, digests);
+      return new Response(JSON.stringify(ruleBasedAnalysis), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } finally {
+      clearTimeout(aiTimeout);
+      console.info(`[AI-ANALYTICS] AI elapsed_ms=${Date.now() - aiStartedAt}`);
+    }
 
     if (!aiResponse.ok) {
       console.error("AI gateway error:", aiResponse.status);
