@@ -197,7 +197,7 @@ serve(async (req) => {
       mode: 'subscription',
       subscription_data: subscriptionData,
       success_url: `${req.headers.get('origin')}/dashboard?checkout=success`,
-      cancel_url: `${req.headers.get('origin')}/pricing`,
+      cancel_url: `${req.headers.get('origin')}/dashboard?checkout=cancelled`,
       metadata: {
         user_id: user.id,
         plan: planId,
