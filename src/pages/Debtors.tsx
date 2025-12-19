@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
@@ -59,6 +61,8 @@ interface Debtor {
   credit_limit: number | null;
   payment_terms_default: string | null;
   created_at: string | null;
+  account_outreach_enabled: boolean | null;
+  outreach_frequency: string | null;
   contacts?: DebtorContact[];
 }
 
@@ -71,9 +75,12 @@ const Debtors = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { name: "", title: "", email: "", phone: "", outreach_enabled: true }
   ]);
@@ -100,7 +107,7 @@ const Debtors = () => {
   useEffect(() => {
     filterDebtors();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [debtors, searchTerm, typeFilter]);
+  }, [debtors, searchTerm, typeFilter, outreachFilter]);
 
   const fetchDebtors = async () => {
     try {
@@ -113,6 +120,7 @@ const Debtors = () => {
           payment_score, avg_days_to_pay, primary_contact_name,
           ar_contact_name, ar_contact_email, city, state,
           credit_limit, payment_terms_default, created_at,
+          account_outreach_enabled, outreach_frequency,
           debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
         `)
         .eq("is_archived", false)
@@ -152,7 +160,61 @@ const Debtors = () => {
       filtered = filtered.filter((d) => d.type === typeFilter);
     }
 
+    if (outreachFilter === "enabled") {
+      filtered = filtered.filter((d) => d.account_outreach_enabled === true);
+    } else if (outreachFilter === "disabled") {
+      filtered = filtered.filter((d) => !d.account_outreach_enabled);
+    }
+
     setFilteredDebtors(filtered);
+  };
+
+  // Selection helpers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedData.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedData.map(d => d.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleBulkOutreachToggle = async (enable: boolean) => {
+    if (selectedIds.size === 0) {
+      toast.error("No accounts selected");
+      return;
+    }
+
+    setBulkUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("debtors")
+        .update({ 
+          account_outreach_enabled: enable,
+          outreach_frequency: enable ? "weekly" : null,
+          next_outreach_date: enable ? new Date().toISOString().split('T')[0] : null
+        })
+        .in("id", Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`${enable ? "Enabled" : "Disabled"} Account Level Outreach for ${selectedIds.size} accounts`);
+      setSelectedIds(new Set());
+      fetchDebtors();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update accounts");
+    } finally {
+      setBulkUpdating(false);
+    }
   };
 
   // Sorting hook for the table
@@ -503,44 +565,104 @@ const Debtors = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by Recouply ID, name, company, or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by Recouply ID, name, company, or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full md:w-[140px]">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="B2B">B2B</SelectItem>
+                    <SelectItem value="B2C">B2C</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={outreachFilter} onValueChange={setOutreachFilter}>
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectValue placeholder="Account Outreach" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Outreach Settings</SelectItem>
+                    <SelectItem value="enabled">
+                      <div className="flex items-center gap-2">
+                        <Radio className="h-3 w-3 text-green-500" />
+                        Account Outreach ON
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="disabled">
+                      <div className="flex items-center gap-2">
+                        <Radio className="h-3 w-3 text-muted-foreground" />
+                        Account Outreach OFF
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex border rounded-lg overflow-hidden">
+                  <Button
+                    variant={viewMode === "card" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("card")}
+                    className="rounded-none"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "table" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("table")}
+                    className="rounded-none"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="B2B">B2B</SelectItem>
-                  <SelectItem value="B2C">B2C</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex border rounded-lg overflow-hidden">
-                <Button
-                  variant={viewMode === "card" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("card")}
-                  className="rounded-none"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "table" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("table")}
-                  className="rounded-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
+              
+              {/* Bulk Actions Bar */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <span className="text-sm font-medium">
+                    {selectedIds.size} account{selectedIds.size > 1 ? 's' : ''} selected
+                  </span>
+                  <div className="flex gap-2 ml-auto">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleBulkOutreachToggle(true)}
+                      disabled={bulkUpdating}
+                      className="gap-2"
+                    >
+                      <Zap className="h-4 w-4 text-green-500" />
+                      Enable Account Outreach
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleBulkOutreachToggle(false)}
+                      disabled={bulkUpdating}
+                      className="gap-2"
+                    >
+                      <Radio className="h-4 w-4 text-muted-foreground" />
+                      Disable Account Outreach
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedIds(new Set())}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -557,30 +679,54 @@ const Debtors = () => {
                 {paginatedData.map((debtor) => (
                   <div
                     key={debtor.id}
-                    className="group border rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card"
-                    onClick={() => navigate(`/debtors/${debtor.id}`)}
+                    className={`group border rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card relative ${
+                      selectedIds.has(debtor.id) ? 'border-primary ring-2 ring-primary/20' : ''
+                    }`}
                   >
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    {/* Selection Checkbox */}
+                    <div 
+                      className="absolute top-3 right-3 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(debtor.id);
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedIds.has(debtor.id)}
+                        onCheckedChange={() => toggleSelect(debtor.id)}
+                      />
+                    </div>
+                    
+                    <div onClick={() => navigate(`/debtors/${debtor.id}`)}>
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3 pr-8">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                          }`}>
+                            {debtor.type === "B2B" ? <Building2 className="h-5 w-5" /> : <User className="h-5 w-5" />}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                              {debtor.company_name || debtor.name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
+                              {debtor.account_outreach_enabled && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-700 border-green-200">
+                                  <Zap className="h-2.5 w-2.5 mr-0.5" />
+                                  AI Outreach
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                           debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
                         }`}>
-                          {debtor.type === "B2B" ? <Building2 className="h-5 w-5" /> : <User className="h-5 w-5" />}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                            {debtor.company_name || debtor.name}
-                          </h3>
-                          <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
-                        </div>
+                          {debtor.type || "N/A"}
+                        </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
-                      }`}>
-                        {debtor.type || "N/A"}
-                      </span>
-                    </div>
 
                     {/* Contacts */}
                     <div className="space-y-2 mb-3">
@@ -691,6 +837,7 @@ const Debtors = () => {
                         <span title="Avg Days to Pay">~{Math.round(debtor.avg_days_to_pay)}d avg</span>
                       )}
                     </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -699,6 +846,12 @@ const Debtors = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={paginatedData.length > 0 && selectedIds.size === paginatedData.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <SortableTableHead
                         sortKey="company_name"
                         currentSortKey={sortKey}
@@ -708,6 +861,7 @@ const Debtors = () => {
                         Account
                       </SortableTableHead>
                       <TableHead>Contacts</TableHead>
+                      <TableHead className="text-center">Outreach</TableHead>
                       <SortableTableHead
                         sortKey="type"
                         currentSortKey={sortKey}
@@ -758,10 +912,15 @@ const Debtors = () => {
                     {paginatedData.map((debtor) => (
                       <TableRow
                         key={debtor.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/debtors/${debtor.id}`)}
+                        className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(debtor.id) ? 'bg-primary/5' : ''}`}
                       >
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(debtor.id)}
+                            onCheckedChange={() => toggleSelect(debtor.id)}
+                          />
+                        </TableCell>
+                        <TableCell onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <div className="flex items-center gap-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                               debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
@@ -774,7 +933,7 @@ const Debtors = () => {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <div className="space-y-1 max-w-xs">
                             {debtor.contacts && debtor.contacts.length > 0 ? (
                               debtor.contacts.slice(0, 3).map((contact, idx) => (
@@ -804,20 +963,30 @@ const Debtors = () => {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
+                          {debtor.account_outreach_enabled ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <Zap className="h-3 w-3 mr-1" />
+                              ON
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                             debtor.type === "B2B" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
                           }`}>
                             {debtor.type || "N/A"}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right font-medium tabular-nums">
+                        <TableCell className="text-right font-medium tabular-nums" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           ${(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-center tabular-nums">
+                        <TableCell className="text-center tabular-nums" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           {debtor.open_invoices_count || 0}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <span className={`font-medium tabular-nums ${
                             (debtor.max_days_past_due || 0) > 90 ? "text-destructive" :
                             (debtor.max_days_past_due || 0) > 30 ? "text-orange-500" : ""
@@ -825,7 +994,7 @@ const Debtors = () => {
                             {debtor.max_days_past_due || 0}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <span className={`font-medium tabular-nums ${
                             (debtor.payment_score || 50) >= 70 ? "text-green-600" :
                             (debtor.payment_score || 50) >= 40 ? "text-orange-500" : "text-destructive"
