@@ -663,28 +663,42 @@ Generate a JSON response with:
 
     logStep("Email sent via platform", emailResult);
 
-    // Log to collection_activities for audit trail
+    // Log to collection_activities for audit trail - classified as account_level_outreach
     const { data: activity, error: logError } = await supabase.from("collection_activities").insert({
       user_id: user.id,
       debtor_id: debtorId,
-      activity_type: "ai_outreach",
+      activity_type: "account_level_outreach",
       channel: "email",
       direction: "outbound",
       subject: generatedSubject,
       message_body: generatedMessage,
       sent_at: new Date().toISOString(),
       metadata: {
+        outreach_type: "account_level_outreach",
         invoice_count: invoices?.length || 0,
         total_amount: totalAmount,
+        invoices_included: invoices?.map(inv => ({
+          invoice_number: inv.invoice_number,
+          amount: inv.amount,
+          due_date: inv.due_date,
+          status: inv.status
+        })) || [],
         task_count: openTasks?.length || 0,
         attached_links: attachedLinks?.length || 0,
         reply_to: replyToAddress,
+        sent_to: allEmails,
+        from_email: fromEmail,
         platform_send: true,
         branding_applied: !!branding,
         from_name: brandingSettings.business_name || 'Recouply.ai',
         payment_url: paymentUrl || null,
         ai_generated: true,
         branded: true,
+        intelligence_report: intelligenceReport ? {
+          risk_level: intelligenceReport.riskLevel,
+          risk_score: intelligenceReport.riskScore,
+          strategy: intelligenceReport.collectionStrategy
+        } : null,
       },
     }).select().single();
 
@@ -707,15 +721,15 @@ Generate a JSON response with:
           debtor_id: debtorId,
           invoice_id: invoice.id,
           channel: "email",
-          subject: subject,
-          message_body: message,
+          subject: generatedSubject,
+          message_body: generatedMessage,
           sent_to: allEmails.join(', '),
           sent_from: fromEmail,
           sent_at: new Date().toISOString(),
           status: "sent",
           delivery_metadata: {
             activity_id: activity?.id,
-            type: "ai_outreach",
+            type: "account_level_outreach",
             invoice_count: invoices?.length || 0,
             task_count: openTasks?.length || 0,
             reply_to: replyToAddress,
