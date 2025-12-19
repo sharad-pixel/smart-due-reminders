@@ -144,18 +144,24 @@ serve(async (req) => {
       );
     }
     
-    const { command, contextInvoiceId, contextDebtorId, contextType, senderEmail, emailSubject, paymentContext, reasoning } = await req.json();
+    const { command, contextInvoiceId, contextDebtorId, contextType, senderEmail, emailSubject, emailBody, paymentContext, reasoning } = await req.json();
     
     // Basic input validation
     if (!command || typeof command !== 'string') {
       throw new Error('Command is required');
     }
     
-    if (command.length > 2000) {
-      throw new Error('Command too long (max 2000 characters)');
+    // Allow longer commands when email body is passed separately, but still cap at reasonable limit
+    const maxCommandLength = emailBody ? 500 : 2000;
+    if (command.length > maxCommandLength) {
+      throw new Error(`Command too long (max ${maxCommandLength} characters)`);
     }
     
+    // Truncate email body if too long
+    const truncatedEmailBody = emailBody ? emailBody.slice(0, 3000) : null;
+    
     console.log('Processing command:', command);
+    console.log('Email body length:', truncatedEmailBody?.length || 0);
     console.log('Context - invoiceId:', contextInvoiceId, 'debtorId:', contextDebtorId);
     console.log('Payment context:', paymentContext);
     
@@ -411,14 +417,24 @@ Due Date: ${invoice.due_date}
 Days Past Due: ${daysPastDue}
 Customer: ${debtor?.company_name || debtor?.name || 'Customer'}
 Email: ${contactEmail}
-Action requested: ${parsed.action}`;
+Action requested: ${parsed.action}${truncatedEmailBody ? `
+
+CUSTOMER EMAIL CONTENT TO RESPOND TO:
+${truncatedEmailBody}
+
+Please craft a helpful response that directly addresses the customer's email content above while maintaining ${persona.name}'s ${persona.tone} tone.` : ''}`;
     } else if (debtor) {
       userPrompt = `Generate a ${parsed.channel} response for a customer inquiry:
 
 Customer: ${debtor.company_name || debtor.name}
 Email: ${contactEmail}
 Total Outstanding Balance: $${debtor.total_open_balance || 0}
-Open Invoices: ${debtor.open_invoices_count || 0}
+Open Invoices: ${debtor.open_invoices_count || 0}${truncatedEmailBody ? `
+
+CUSTOMER EMAIL CONTENT TO RESPOND TO:
+${truncatedEmailBody}
+
+Please craft a helpful response that directly addresses the customer's email content above.` : ''}
 
 Please craft a helpful response addressing their inquiry. If they have outstanding invoices, you may politely reference their account status.`;
     } else {
@@ -426,7 +442,12 @@ Please craft a helpful response addressing their inquiry. If they have outstandi
       userPrompt = `Generate a professional ${parsed.channel} response to a customer inquiry.
 
 Sender Email: ${senderEmail || 'Unknown'}
-Subject: ${emailSubject || 'Customer Inquiry'}
+Subject: ${emailSubject || 'Customer Inquiry'}${truncatedEmailBody ? `
+
+CUSTOMER EMAIL CONTENT TO RESPOND TO:
+${truncatedEmailBody}
+
+Please craft a helpful response that directly addresses the customer's email content above.` : ''}
 
 Please craft a helpful, professional response. Since we don't have specific account details, keep the response general but offer to help with their inquiry. Ask for clarification if needed to better assist them.`;
     }
