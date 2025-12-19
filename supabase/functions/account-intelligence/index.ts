@@ -35,6 +35,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    console.log(`[ACCOUNT-INTELLIGENCE] Starting for debtor_id: ${debtor_id}, force_regenerate: ${force_regenerate}`);
+
     // Fetch debtor details
     const { data: debtor, error: debtorError } = await supabase
       .from("debtors")
@@ -43,11 +45,14 @@ serve(async (req) => {
       .single();
 
     if (debtorError || !debtor) {
+      console.error(`[ACCOUNT-INTELLIGENCE] Debtor not found: ${debtorError?.message}`);
       return new Response(JSON.stringify({ error: "Account not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    console.log(`[ACCOUNT-INTELLIGENCE] Found debtor: ${debtor.company_name || debtor.name}`);
 
     // Check if we have a cached report that's less than 24 hours old
     const cachedReport = debtor.intelligence_report;

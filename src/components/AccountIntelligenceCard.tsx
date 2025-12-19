@@ -85,16 +85,31 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
 
   const loadCachedReport = async () => {
     setLoading(true);
+    console.log("[AccountIntelligenceCard] Loading cached report for debtor:", debtorId);
     try {
-      const { data: debtor } = await supabase
+      const { data: debtor, error } = await supabase
         .from("debtors")
         .select("intelligence_report, intelligence_report_generated_at")
         .eq("id", debtorId)
         .single();
 
+      if (error) {
+        console.error("[AccountIntelligenceCard] Error fetching debtor:", error);
+        setLoading(false);
+        setInitialLoadDone(true);
+        return;
+      }
+
+      console.log("[AccountIntelligenceCard] Debtor data:", {
+        hasReport: !!debtor?.intelligence_report,
+        generatedAt: debtor?.intelligence_report_generated_at
+      });
+
       if (debtor?.intelligence_report && debtor?.intelligence_report_generated_at) {
         const cacheAge = Date.now() - new Date(debtor.intelligence_report_generated_at).getTime();
         const cacheAgeHours = cacheAge / (1000 * 60 * 60);
+
+        console.log("[AccountIntelligenceCard] Cache age:", cacheAgeHours.toFixed(1), "hours");
 
         if (cacheAgeHours < 24) {
           setIntelligence(debtor.intelligence_report as unknown as Intelligence);
@@ -108,10 +123,11 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
       }
       
       // No valid cached report - show the generate button
+      console.log("[AccountIntelligenceCard] No valid cache, showing generate button");
       setLoading(false);
       setInitialLoadDone(true);
     } catch (error) {
-      console.error("Error loading cached report:", error);
+      console.error("[AccountIntelligenceCard] Error loading cached report:", error);
       setLoading(false);
       setInitialLoadDone(true);
     }
