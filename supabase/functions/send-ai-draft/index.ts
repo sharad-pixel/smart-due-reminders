@@ -112,6 +112,23 @@ serve(async (req) => {
         "Invoice is missing its linked account. Please refresh the invoice and try again."
       );
     }
+
+    // Replace template variables in subject and body
+    const replaceTemplateVars = (text: string): string => {
+      if (!text) return text;
+      return text
+        .replace(/\{\{debtor_name\}\}/gi, debtor.name || 'Valued Customer')
+        .replace(/\{\{invoice_number\}\}/gi, invoice.invoice_number || invoice.reference_id || '')
+        .replace(/\{\{invoice_Number\}\}/gi, invoice.invoice_number || invoice.reference_id || '')
+        .replace(/\{\{amount\}\}/gi, `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`)
+        .replace(/\{\{due_date\}\}/gi, invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '')
+        .replace(/\{\{company_name\}\}/gi, debtor.name || '')
+        .replace(/\{\{balance\}\}/gi, `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+    };
+
+    // Apply template replacement to draft content
+    const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder');
+    const processedBody = replaceTemplateVars(draft.message_body);
     // Fetch all outreach-enabled contacts with fallback to debtor record
     const outreachContacts = await getOutreachContacts(supabaseClient, debtor?.id, debtor);
     const allEmails = outreachContacts.emails;
@@ -148,7 +165,7 @@ serve(async (req) => {
       console.log(`Sending email via platform from ${fromEmail} to ${allEmails.join(', ')} with reply-to: ${replyToAddress}`);
 
       // Format message body with line breaks
-      const formattedBody = draft.message_body.replace(/\n/g, "<br>");
+      const formattedBody = processedBody.replace(/\n/g, "<br>");
 
       // Build fully branded email with signature and payment link
       const emailHtml = generateBrandedEmail(
@@ -173,7 +190,7 @@ serve(async (req) => {
             to: allEmails, // Send to all outreach-enabled contacts
             from: fromEmail,
             reply_to: replyToAddress,
-            subject: draft.subject || "Payment Reminder",
+            subject: processedSubject,
             html: emailHtml,
           }),
         }
@@ -238,7 +255,7 @@ serve(async (req) => {
               body: new URLSearchParams({
                 To: phone,
                 From: twilioProfile.twilio_from_number,
-                Body: draft.message_body,
+                Body: processedBody,
               }),
             }
           );
