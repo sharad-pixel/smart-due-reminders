@@ -49,6 +49,7 @@ interface InvoiceWorkflowCardProps {
   isActiveInvoice: boolean;
   dueDate: string;
   invoiceId: string;
+  accountOutreachEnabled?: boolean;
 }
 
 // Define the persona progression for active invoices
@@ -67,7 +68,8 @@ export const InvoiceWorkflowCard = ({
   workflowSteps,
   isActiveInvoice,
   dueDate,
-  invoiceId
+  invoiceId,
+  accountOutreachEnabled = false
 }: InvoiceWorkflowCardProps) => {
   const currentPersona = getPersonaByDaysPastDue(daysPastDue);
   const sortedSteps = [...workflowSteps].sort((a, b) => a.step_order - b.step_order);
@@ -206,10 +208,18 @@ export const InvoiceWorkflowCard = ({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Brain className="h-4 w-4" />
-          Collection Intelligence
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Brain className="h-4 w-4" />
+            Collection Intelligence
+          </CardTitle>
+          {accountOutreachEnabled && (
+            <Badge variant="secondary" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
+              <Zap className="h-3 w-3" />
+              Account Outreach
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Current Agent & Next Agent Row */}

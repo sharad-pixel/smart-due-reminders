@@ -67,6 +67,7 @@ interface Invoice {
     email: string;
     crm_account_id: string | null;
     outreach_paused?: boolean | null;
+    account_outreach_enabled?: boolean | null;
   };
 }
 
@@ -184,7 +185,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const [invoiceRes, outreachLogsRes, activitiesRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(company_name, email, crm_account_id, outreach_paused)")
+          .select("*, debtors(company_name, email, crm_account_id, outreach_paused, account_outreach_enabled)")
           .eq("id", id)
           .single(),
         supabase
@@ -1038,6 +1039,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               isActiveInvoice={invoice.status === 'Open' || invoice.status === 'InPaymentPlan'}
               dueDate={invoice.due_date}
               invoiceId={invoice.id}
+              accountOutreachEnabled={invoice.debtors?.account_outreach_enabled ?? false}
             />
           </div>
         </div>
