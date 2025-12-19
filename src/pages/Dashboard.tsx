@@ -20,6 +20,7 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useLatestDigest } from "@/hooks/useDailyDigest";
 import { AIInsightsCard } from "@/components/AIInsightsCard";
+import { DashboardIntelligenceSummary } from "@/components/DashboardIntelligenceSummary";
 
 interface Invoice {
   id: string;
@@ -524,6 +525,9 @@ const Dashboard = () => {
 
         {/* AI Insights */}
         <AIInsightsCard scope="dashboard" compact />
+
+        {/* Collection Intelligence Summary */}
+        <DashboardIntelligenceSummary />
 
         <Card>
           <CardHeader className="p-4 sm:p-6">
