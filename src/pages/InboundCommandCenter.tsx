@@ -565,11 +565,21 @@ const InboundCommandCenter = () => {
       groups.get(key)!.emails.push(email);
     });
 
-    // Sort groups: linked invoices first, then unlinked
+    // Sort emails within each group by created_at (newest first)
+    groups.forEach(group => {
+      group.emails.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
+
+    // Sort groups: linked invoices first, then unlinked, then by most recent email
     return Array.from(groups.values()).sort((a, b) => {
       if (a.invoiceId && !b.invoiceId) return -1;
       if (!a.invoiceId && b.invoiceId) return 1;
-      return (b.emails.length - a.emails.length);
+      // Sort by most recent email in group
+      const aLatest = a.emails[0]?.created_at || '';
+      const bLatest = b.emails[0]?.created_at || '';
+      return new Date(bLatest).getTime() - new Date(aLatest).getTime();
     });
   }, [emails]);
 

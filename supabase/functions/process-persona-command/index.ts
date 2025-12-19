@@ -182,6 +182,7 @@ serve(async (req) => {
     let daysPastDue = 0;
     let taskContext = '';
     let paymentActivityContext = '';
+    let historicalEngagementContext = '';
     
     // Try to get invoice context if available
     if (parsed.invoiceId) {
@@ -359,6 +360,79 @@ serve(async (req) => {
       }
     }
     
+    // Fetch historical engagement context for this email thread/customer
+    if (debtor?.id || invoice?.id || senderEmail) {
+      try {
+        // Fetch previous inbound emails (conversation history)
+        let inboundQuery = supabaseAdmin
+          .from('inbound_emails')
+          .select('subject, ai_summary, ai_category, ai_sentiment, created_at, from_email')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (debtor?.id) {
+          inboundQuery = inboundQuery.eq('debtor_id', debtor.id);
+        } else if (invoice?.id) {
+          inboundQuery = inboundQuery.eq('invoice_id', invoice.id);
+        } else if (senderEmail) {
+          inboundQuery = inboundQuery.ilike('from_email', senderEmail);
+        }
+        
+        const { data: previousEmails } = await inboundQuery;
+        
+        // Fetch outbound collection activities
+        let outboundQuery = supabaseAdmin
+          .from('collection_activities')
+          .select('activity_type, channel, subject, created_at, direction, sent_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (debtor?.id) {
+          outboundQuery = outboundQuery.eq('debtor_id', debtor.id);
+        } else if (invoice?.id) {
+          outboundQuery = outboundQuery.eq('invoice_id', invoice.id);
+        }
+        
+        const { data: previousOutreach } = await outboundQuery;
+        
+        // Build historical engagement context
+        const engagementHistory: string[] = [];
+        
+        if (previousEmails && previousEmails.length > 0) {
+          const emailSummaries = previousEmails.map((e: any) => {
+            const date = new Date(e.created_at).toLocaleDateString();
+            const summary = e.ai_summary || e.subject || 'No summary';
+            const sentiment = e.ai_sentiment ? ` (${e.ai_sentiment} sentiment)` : '';
+            const category = e.ai_category ? ` [${e.ai_category}]` : '';
+            return `- ${date}: INBOUND${category}${sentiment} - ${summary.slice(0, 100)}`;
+          });
+          engagementHistory.push('Previous emails from customer:\n' + emailSummaries.join('\n'));
+        }
+        
+        if (previousOutreach && previousOutreach.length > 0) {
+          const outreachSummaries = previousOutreach.map((a: any) => {
+            const date = new Date(a.created_at).toLocaleDateString();
+            const type = a.activity_type || 'outreach';
+            const channel = a.channel || 'email';
+            const subject = a.subject || 'No subject';
+            const direction = a.direction === 'inbound' ? 'RECEIVED' : 'SENT';
+            return `- ${date}: ${direction} ${channel.toUpperCase()} (${type}) - ${subject.slice(0, 60)}`;
+          });
+          engagementHistory.push('Previous outreach/communication:\n' + outreachSummaries.join('\n'));
+        }
+        
+        if (engagementHistory.length > 0) {
+          historicalEngagementContext = `\n\nHISTORICAL ENGAGEMENT CONTEXT - Use this to craft a contextually aware response that acknowledges the ongoing conversation:\n${engagementHistory.join('\n\n')}\n\nIMPORTANT: Reference relevant previous interactions naturally in your response. Show awareness of the conversation history. If this is a follow-up to previous discussions, acknowledge that continuity.`;
+          console.log('Historical engagement context added');
+        }
+      } catch (historyError) {
+        console.error('Error fetching historical engagement:', historyError);
+        // Continue without historical context - non-critical
+      }
+    }
+    
     // Get contact email from debtor_contacts for prompt context
     let contactEmail = senderEmail || 'Unknown';
     if (debtor?.id) {
@@ -397,7 +471,7 @@ serve(async (req) => {
     // Build AI prompt based on available context
     let systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
 Your tone is: ${persona.tone}\n
-Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them${taskContext}${paymentActivityContext}`;
+Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them\n- If there is historical engagement context, use it to craft a more informed and contextually relevant response${taskContext}${paymentActivityContext}${historicalEngagementContext}`;
 
     let userPrompt: string;
     
