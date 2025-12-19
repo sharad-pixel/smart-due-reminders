@@ -6,11 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Calendar, Settings, Users, Zap, AlertCircle } from "lucide-react";
-import { personaConfig } from "@/lib/personaConfig";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles } from "lucide-react";
 
 interface AccountOutreachSettingsProps {
   debtorId: string;
@@ -21,7 +18,6 @@ interface AccountOutreachSettingsProps {
     outreach_frequency_days: number;
     next_outreach_date: string | null;
     last_outreach_date: string | null;
-    account_outreach_persona: string;
   };
   onSettingsChange?: () => void;
 }
@@ -42,7 +38,6 @@ export const AccountOutreachSettings = ({
   const [enabled, setEnabled] = useState(initialSettings?.account_outreach_enabled || false);
   const [frequency, setFrequency] = useState(initialSettings?.outreach_frequency || "weekly");
   const [customDays, setCustomDays] = useState(initialSettings?.outreach_frequency_days || 7);
-  const [selectedPersona, setSelectedPersona] = useState(initialSettings?.account_outreach_persona || "sam");
   const [nextDate, setNextDate] = useState(initialSettings?.next_outreach_date || "");
   const [saving, setSaving] = useState(false);
 
@@ -51,7 +46,6 @@ export const AccountOutreachSettings = ({
       setEnabled(initialSettings.account_outreach_enabled || false);
       setFrequency(initialSettings.outreach_frequency || "weekly");
       setCustomDays(initialSettings.outreach_frequency_days || 7);
-      setSelectedPersona(initialSettings.account_outreach_persona || "sam");
       setNextDate(initialSettings.next_outreach_date || "");
     }
   }, [initialSettings]);
@@ -78,7 +72,6 @@ export const AccountOutreachSettings = ({
           outreach_frequency: frequency,
           outreach_frequency_days: frequencyDays,
           next_outreach_date: enabled ? calculatedNextDate : null,
-          account_outreach_persona: selectedPersona,
         })
         .eq("id", debtorId);
 
@@ -130,19 +123,17 @@ export const AccountOutreachSettings = ({
     }
   };
 
-  const persona = personaConfig[selectedPersona];
-
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Account Outreach Settings
+              <Brain className="h-5 w-5" />
+              AI Collection Intelligence Outreach
             </CardTitle>
             <CardDescription>
-              Manage outreach at the account level instead of individual invoices
+              AI-generated account summaries based on invoice activity, communication history & risk analysis
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -166,6 +157,21 @@ export const AccountOutreachSettings = ({
                 <p className="font-medium">Individual invoice workflows will be bypassed</p>
                 <p className="text-amber-700">When account-level outreach is enabled, AI persona-based workflows for individual invoices will be excluded. All outreach will be managed at the account level on your schedule.</p>
               </div>
+            </div>
+
+            {/* AI Intelligence Features */}
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="font-medium text-primary">AI-Powered Collection Intelligence</span>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-2 ml-7">
+                <li>• Analyzes all open invoices and aging buckets</li>
+                <li>• Reviews prior communication history and sentiment</li>
+                <li>• Considers payment patterns and risk scores</li>
+                <li>• Dynamically adjusts tone based on account risk level</li>
+                <li>• References outstanding tasks (disputes, payment plans)</li>
+              </ul>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -217,39 +223,17 @@ export const AccountOutreachSettings = ({
                 )}
               </div>
 
-              {/* Persona Selection */}
+              {/* AI Intelligence Summary */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Outreach Persona</Label>
-                  <Select value={selectedPersona} onValueChange={setSelectedPersona}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select persona" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(personaConfig).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          <div className="flex items-center gap-2">
-                            <span>{config.name}</span>
-                            <span className="text-xs text-muted-foreground">({config.tone})</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {persona && (
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <Avatar className="h-10 w-10 border-2" style={{ borderColor: persona.color }}>
-                      <AvatarImage src={persona.avatar} alt={persona.name} />
-                      <AvatarFallback>{persona.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{persona.name}</p>
-                      <p className="text-xs text-muted-foreground">{persona.description}</p>
-                    </div>
+                  <Label>How AI Determines Tone</Label>
+                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-2">
+                    <p><strong className="text-foreground">Low Risk:</strong> Friendly, appreciative reminders</p>
+                    <p><strong className="text-foreground">Medium Risk:</strong> Professional, balanced requests</p>
+                    <p><strong className="text-foreground">High Risk:</strong> Firm but courteous urgency</p>
+                    <p><strong className="text-foreground">Critical:</strong> Direct, resolution-focused</p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </>
@@ -276,8 +260,8 @@ export const AccountOutreachSettings = ({
                 onClick={handleTriggerOutreach}
                 disabled={saving}
               >
-                <Calendar className="h-4 w-4 mr-2" />
-                Send Now
+                <Brain className="h-4 w-4 mr-2" />
+                Generate & Send AI Outreach
               </Button>
             )}
             <Button onClick={handleSave} disabled={saving}>
