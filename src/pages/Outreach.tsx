@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Clock, Brain, PauseCircle, PlayCircle, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from "lucide-react";
+import { Mail, Clock, Brain, PauseCircle, PlayCircle, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Zap, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 
 const AGING_BUCKETS = [
   { key: "current", label: "Current", color: "bg-green-500", minDays: 0, maxDays: 0 },
@@ -36,6 +37,7 @@ const Outreach = () => {
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
   const [draftFilter, setDraftFilter] = useState<string>("pending");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Mutation for bulk approving drafts
   const bulkApproveDrafts = useMutation({
@@ -220,18 +222,86 @@ const Outreach = () => {
     },
   });
 
-  // Filter drafts based on selection
+  // Fetch account level outreach activities
+  const { data: accountOutreachData, isLoading: accountOutreachLoading, refetch: refetchAccountOutreach } = useQuery({
+    queryKey: ["account-outreach-activities"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("collection_activities")
+        .select(`
+          id, activity_type, channel, direction, subject, message_body, 
+          sent_at, delivered_at, opened_at, responded_at, created_at,
+          metadata,
+          debtors (id, company_name, name, email)
+        `)
+        .eq("activity_type", "account_level_outreach")
+        .order("created_at", { ascending: false })
+        .limit(250);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Filter drafts based on selection and search
   const filteredDrafts = useMemo(() => {
     if (!draftsData) return [];
     
-    return draftsData.filter(draft => {
+    let filtered = draftsData.filter(draft => {
       const isSent = !!draft.sent_at;
       if (draftFilter === "pending") return draft.status === "pending_approval";
       if (draftFilter === "approved") return draft.status === "approved" && !isSent;
       if (draftFilter === "sent") return isSent;
       return true;
     });
-  }, [draftsData, draftFilter]);
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(draft => {
+        const invoice = draft.invoices as any;
+        const companyName = invoice?.debtors?.company_name?.toLowerCase() || "";
+        const debtorName = invoice?.debtors?.name?.toLowerCase() || "";
+        const invoiceNumber = invoice?.invoice_number?.toLowerCase() || "";
+        const subject = draft.subject?.toLowerCase() || "";
+        
+        return companyName.includes(query) || 
+               debtorName.includes(query) || 
+               invoiceNumber.includes(query) ||
+               subject.includes(query);
+      });
+    }
+
+    return filtered;
+  }, [draftsData, draftFilter, searchQuery]);
+
+  // Filter account outreach based on search
+  const filteredAccountOutreach = useMemo(() => {
+    if (!accountOutreachData) return [];
+    
+    if (!searchQuery.trim()) return accountOutreachData;
+
+    const query = searchQuery.toLowerCase();
+    return accountOutreachData.filter((activity: any) => {
+      const debtor = activity.debtors as any;
+      const companyName = debtor?.company_name?.toLowerCase() || "";
+      const debtorName = debtor?.name?.toLowerCase() || "";
+      const email = debtor?.email?.toLowerCase() || "";
+      const subject = activity.subject?.toLowerCase() || "";
+      
+      return companyName.includes(query) || 
+             debtorName.includes(query) || 
+             email.includes(query) ||
+             subject.includes(query);
+    });
+  }, [accountOutreachData, searchQuery]);
 
   // Count drafts by status
   const draftCounts = useMemo(() => {
@@ -404,7 +474,7 @@ const Outreach = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+          <TabsList className="grid w-full grid-cols-3 max-w-[550px]">
             <TabsTrigger value="overview" className="gap-2">
               <Mail className="h-4 w-4" />
               Overview
@@ -418,7 +488,31 @@ const Outreach = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="account-outreach" className="gap-2">
+              <Zap className="h-4 w-4" />
+              Account
+              {accountOutreachData && accountOutreachData.length > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {accountOutreachData.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
+
+          {/* Search Bar - visible on drafts and account-outreach tabs */}
+          {(activeTab === "drafts" || activeTab === "account-outreach") && (
+            <div className="mt-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by company, invoice, or subject..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="mt-6 space-y-6">
@@ -828,6 +922,144 @@ const Outreach = () => {
                   })}
                 </div>
               </>
+            )}
+          </TabsContent>
+
+          {/* Account Outreach Tab */}
+          <TabsContent value="account-outreach" className="mt-6 space-y-4">
+            {/* Account Outreach Actions Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refetchAccountOutreach()}
+                  className="gap-1"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredAccountOutreach.length} account-level outreach record{filteredAccountOutreach.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Account Outreach List */}
+            {accountOutreachLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
+              </div>
+            ) : filteredAccountOutreach.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Zap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    {searchQuery ? "No matching account outreach records" : "No account-level outreach records yet"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Account-level outreach emails will appear here when sent from accounts with Account Level Outreach enabled.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredAccountOutreach.map((activity: any) => {
+                  const debtor = activity.debtors as any;
+                  const metadata = activity.metadata as any || {};
+                  const invoicesIncluded = metadata.invoices_included || [];
+                  const totalAmount = metadata.total_amount || 0;
+                  const invoiceCount = metadata.invoice_count || invoicesIncluded.length || 0;
+                  
+                  return (
+                    <Card key={activity.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                            <Zap className="h-5 w-5 text-primary" />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4 mb-2">
+                              <div className="min-w-0">
+                                <p className="font-medium truncate">
+                                  {debtor?.company_name || debtor?.name || 'Unknown Account'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {invoiceCount} invoice{invoiceCount !== 1 ? 's' : ''} • ${totalAmount.toLocaleString()}
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Badge variant="default" className="gap-1 bg-primary/80">
+                                  <Zap className="h-3 w-3" />
+                                  Account Level
+                                </Badge>
+                                {activity.sent_at && (
+                                  <Badge variant="secondary" className="gap-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Sent
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <p className="text-sm font-medium mb-1">{activity.subject || 'No Subject'}</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {activity.message_body?.replace(/<[^>]*>/g, '').slice(0, 150)}...
+                            </p>
+                            
+                            {/* Included Invoices */}
+                            {invoicesIncluded.length > 0 && (
+                              <div className="mt-3">
+                                <p className="text-xs text-muted-foreground mb-1">Invoices included:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {invoicesIncluded.slice(0, 5).map((inv: any, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      #{inv.invoice_number} - ${inv.amount?.toLocaleString()}
+                                    </Badge>
+                                  ))}
+                                  {invoicesIncluded.length > 5 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{invoicesIncluded.length - 5} more
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                              <span>
+                                Sent: {activity.sent_at ? format(new Date(activity.sent_at), "MMM d, yyyy h:mm a") : 'N/A'}
+                              </span>
+                              {metadata.sent_to && (
+                                <span>
+                                  To: {Array.isArray(metadata.sent_to) ? metadata.sent_to.join(', ') : metadata.sent_to}
+                                </span>
+                              )}
+                              {metadata.intelligence_report?.risk_level && (
+                                <Badge variant="outline" className="text-xs">
+                                  Risk: {metadata.intelligence_report.risk_level}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/debtors/${debtor?.id}`)}
+                              >
+                                View Account
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </TabsContent>
         </Tabs>
