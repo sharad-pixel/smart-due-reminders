@@ -163,12 +163,14 @@ serve(async (req) => {
     const aiStartedAt = Date.now();
 
     const controller = new AbortController();
-    const aiTimeoutMs = 8000;
+    const aiTimeoutMs = 25000; // Increased timeout for GPT-5-mini
     const aiTimeout = setTimeout(() => controller.abort(), aiTimeoutMs);
 
     let aiResponse: Response | null = null;
 
     try {
+      console.info("[AI-ANALYTICS] Calling Lovable AI with google/gemini-2.5-flash");
+      
       aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -177,7 +179,7 @@ serve(async (req) => {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: "openai/gpt-5-mini",
+          model: "google/gemini-2.5-flash", // Using Gemini for faster, more reliable responses
           messages: [
             {
               role: "system",
@@ -298,10 +300,13 @@ serve(async (req) => {
           tool_choice: { type: "function", function: { name: "provide_analytics" } },
         }),
       });
+
+      console.info(`[AI-ANALYTICS] AI response status: ${aiResponse.status}`);
     } catch (err) {
       const aborted = err instanceof Error && err.name === "AbortError";
       console.warn(
         `[AI-ANALYTICS] AI request ${aborted ? "timed out" : "failed"}; falling back to rule-based analysis`,
+        err instanceof Error ? err.message : String(err)
       );
       const ruleBasedAnalysis = performRuleBasedAnalysis(analyticsData, digests);
       return new Response(JSON.stringify(ruleBasedAnalysis), {

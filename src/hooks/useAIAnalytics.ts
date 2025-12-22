@@ -52,7 +52,7 @@ export function useAIAnalytics(options: UseAIAnalyticsOptions = {}) {
   return useQuery({
     queryKey: ["ai-analytics", scope, context],
     queryFn: async (): Promise<AIAnalyticsResult> => {
-      const timeoutMs = 12000;
+      const timeoutMs = 30000; // Increased to match backend timeout
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
