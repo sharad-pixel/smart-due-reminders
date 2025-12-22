@@ -168,14 +168,36 @@ serve(async (req) => {
     // Parse the command
     const parsed = parseCommand(command, contextInvoiceId);
     
-    // Get business info
+    // Get effective account ID for team member support
+    const { data: effectiveAccountId } = await supabaseAdmin.rpc('get_effective_account_id', { p_user_id: user.id });
+    const brandingOwnerId = effectiveAccountId || user.id;
+    
+    // Get business info from profile
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('business_name, email')
-      .eq('id', user.id)
+      .eq('id', brandingOwnerId)
       .single();
     
-    const businessName = profile?.business_name || "Your Business";
+    // Get branding settings for email customization
+    const { data: brandingSettings } = await supabaseAdmin
+      .from('branding_settings')
+      .select('business_name, from_name, email_signature, email_footer, primary_color, logo_url, ar_page_public_token, ar_page_enabled')
+      .eq('user_id', brandingOwnerId)
+      .single();
+    
+    // Use branding business_name first, then profile, then default
+    const businessName = brandingSettings?.business_name || profile?.business_name || "Your Business";
+    const fromName = brandingSettings?.from_name || businessName;
+    
+    // Build branding context for AI prompt
+    const brandingContext = brandingSettings ? `
+BRANDING GUIDELINES - Use these to ensure consistent brand voice:
+- Business Name: ${businessName}
+- Sender Name: ${fromName}
+${brandingSettings.email_signature ? `- Include this signature at the end of the email: "${brandingSettings.email_signature}"` : ''}
+${brandingSettings.email_footer ? `- Include this footer note: "${brandingSettings.email_footer}"` : ''}
+- Maintain professional brand consistency throughout the message` : '';
     
     let invoice: any = null;
     let debtor: any = null;
@@ -470,8 +492,8 @@ serve(async (req) => {
     
     // Build AI prompt based on available context
     let systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
-Your tone is: ${persona.tone}\n
-Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them\n- If there is historical engagement context, use it to craft a more informed and contextually relevant response${taskContext}${paymentActivityContext}${historicalEngagementContext}`;
+Your tone is: ${persona.tone}\n${brandingContext}
+Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them\n- If there is historical engagement context, use it to craft a more informed and contextually relevant response\n- If branding signature/footer is provided, incorporate it naturally into your email closing${taskContext}${paymentActivityContext}${historicalEngagementContext}`;
 
     let userPrompt: string;
     
