@@ -473,33 +473,101 @@ serve(async (req) => {
             });
 
             const resendApiKey = Deno.env.get('RESEND_API_KEY');
-            if (resendApiKey) {
-              const emailRes = await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${resendApiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  from: 'Recouply.ai <notifications@send.inbound.services.recouply.ai>',
-                  to: [user.email],
-                  subject: `📊 Daily Collections Health: ${emailData.healthLabel} (${emailData.healthScore}/100) - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(emailData.totalArOutstanding)} AR Outstanding`,
-                  html: emailBody,
-                }),
-              });
+            if (!resendApiKey) {
+              logStep('RESEND_API_KEY not configured, skipping email', { userId: user.id });
+            } else {
+              // Retry logic for transient failures
+              const maxRetries = 3;
+              let lastError: string | null = null;
+              let emailSent = false;
 
-              if (emailRes.ok) {
-                await supabase
-                  .from('daily_digests')
-                  .update({ email_sent_at: new Date().toISOString() })
-                  .eq('user_id', user.id)
-                  .eq('digest_date', today);
-                emailsSent.push(user.id);
-                logStep('Email sent to user', { userId: user.id });
+              for (let attempt = 1; attempt <= maxRetries && !emailSent; attempt++) {
+                try {
+                  logStep('Attempting to send email', { userId: user.id, attempt, maxRetries });
+                  
+                  const emailRes = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${resendApiKey}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      from: 'Recouply.ai <notifications@send.inbound.services.recouply.ai>',
+                      to: [user.email],
+                      subject: `📊 Daily Collections Health: ${emailData.healthLabel} (${emailData.healthScore}/100) - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(emailData.totalArOutstanding)} AR Outstanding`,
+                      html: emailBody,
+                    }),
+                  });
+
+                  if (emailRes.ok) {
+                    const { error: updateError } = await supabase
+                      .from('daily_digests')
+                      .update({ email_sent_at: new Date().toISOString() })
+                      .eq('user_id', user.id)
+                      .eq('digest_date', today);
+                    
+                    if (updateError) {
+                      logStep('Email sent but failed to update digest record', { 
+                        userId: user.id, 
+                        error: updateError.message 
+                      });
+                    }
+                    
+                    emailsSent.push(user.id);
+                    emailSent = true;
+                    logStep('Email sent successfully', { userId: user.id, attempt });
+                  } else {
+                    // Log the actual error response from Resend
+                    const errorBody = await emailRes.text();
+                    lastError = `HTTP ${emailRes.status}: ${errorBody}`;
+                    logStep('Email send failed', { 
+                      userId: user.id, 
+                      attempt,
+                      status: emailRes.status,
+                      error: errorBody
+                    });
+                    
+                    // Only retry on 5xx errors or rate limits (429)
+                    if (emailRes.status >= 500 || emailRes.status === 429) {
+                      // Exponential backoff: 1s, 2s, 4s
+                      const delayMs = Math.pow(2, attempt - 1) * 1000;
+                      logStep('Retrying after delay', { userId: user.id, delayMs });
+                      await new Promise(resolve => setTimeout(resolve, delayMs));
+                    } else {
+                      // Don't retry on 4xx errors (except 429)
+                      break;
+                    }
+                  }
+                } catch (fetchError) {
+                  lastError = String(fetchError);
+                  logStep('Email fetch error', { 
+                    userId: user.id, 
+                    attempt,
+                    error: lastError 
+                  });
+                  
+                  // Retry on network errors
+                  if (attempt < maxRetries) {
+                    const delayMs = Math.pow(2, attempt - 1) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                  }
+                }
+              }
+
+              if (!emailSent) {
+                logStep('EMAIL SEND FAILED AFTER ALL RETRIES', { 
+                  userId: user.id, 
+                  email: user.email,
+                  lastError 
+                });
               }
             }
           } catch (emailError) {
-            logStep('Error sending email', { error: String(emailError) });
+            logStep('Critical error in email sending block', { 
+              userId: user.id, 
+              error: String(emailError),
+              stack: emailError instanceof Error ? emailError.stack : undefined
+            });
           }
         } else {
           logStep('Skipping email', { 
