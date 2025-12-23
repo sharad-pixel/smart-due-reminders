@@ -243,22 +243,50 @@ async function calculatePaymentScore(
   };
 
   // Aging mix scoring (higher = riskier)
+  // 121+ days is CRITICAL - heavily weight this
+  if (agingMix.dpd_121_plus_pct > 0) {
+    // Any amount in 121+ is a major red flag
+    if (agingMix.dpd_121_plus_pct >= 50) {
+      score += 40;
+      breakdown.push(`${agingMix.dpd_121_plus_pct.toFixed(0)}% of balance is 121+ days past due (+40 risk - critical)`);
+    } else if (agingMix.dpd_121_plus_pct >= 25) {
+      score += 30;
+      breakdown.push(`${agingMix.dpd_121_plus_pct.toFixed(0)}% of balance is 121+ days past due (+30 risk - severe)`);
+    } else {
+      score += 20;
+      breakdown.push(`${agingMix.dpd_121_plus_pct.toFixed(0)}% of balance is 121+ days past due (+20 risk)`);
+    }
+  }
+
+  // 91-120 days is also high risk
+  if (agingMix.dpd_91_120_pct > 0) {
+    if (agingMix.dpd_91_120_pct >= 30) {
+      score += 20;
+      breakdown.push(`${agingMix.dpd_91_120_pct.toFixed(0)}% of balance is 91-120 days past due (+20 risk)`);
+    } else {
+      score += 10;
+      breakdown.push(`${agingMix.dpd_91_120_pct.toFixed(0)}% of balance is 91-120 days past due (+10 risk)`);
+    }
+  }
+  
+  // 61-90 days moderate risk
+  if (agingMix.dpd_61_90_pct > 20) {
+    score += 10;
+    breakdown.push(`${agingMix.dpd_61_90_pct.toFixed(0)}% of balance is 61-90 days past due (+10 risk)`);
+  }
+
+  // 31-60 days early warning
+  if (agingMix.dpd_31_60_pct > 30) {
+    score += 5;
+    breakdown.push(`${agingMix.dpd_31_60_pct.toFixed(0)}% of balance is 31-60 days past due (+5 risk)`);
+  }
+  
+  // Low current percentage is a warning sign
   if (agingMix.current_pct > 70) {
-    // Good - mostly current, reduce risk
     breakdown.push(`${agingMix.current_pct.toFixed(0)}% of balance is current (low risk)`);
-  } else if (agingMix.current_pct < 30) {
+  } else if (agingMix.current_pct < 10 && openInvoicesCount > 0) {
     score += 10;
     breakdown.push(`Only ${agingMix.current_pct.toFixed(0)}% of balance is current (+10 risk)`);
-  }
-  
-  if (agingMix.dpd_31_60_pct + agingMix.dpd_61_90_pct > 30) {
-    score += 15;
-    breakdown.push(`${(agingMix.dpd_31_60_pct + agingMix.dpd_61_90_pct).toFixed(0)}% of balance is 31+ days past due (+15 risk)`);
-  }
-  
-  if (agingMix.dpd_61_90_pct + agingMix.dpd_91_120_pct + agingMix.dpd_121_plus_pct > 50) {
-    score += 25;
-    breakdown.push(`Over 50% of balance is 61+ days past due (+25 risk)`);
   }
 
   // Status-based scoring (higher = riskier)
