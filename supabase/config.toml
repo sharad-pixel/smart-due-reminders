@@ -272,3 +272,6 @@ verify_jwt = true
 
 [functions.apply-workflows-to-invoices]
 verify_jwt = true
+
+[functions.daily-recalculate-scores]
+verify_jwt = false
