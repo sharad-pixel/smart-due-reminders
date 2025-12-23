@@ -127,8 +127,8 @@ async function calculatePaymentScore(
   if (!invoices || invoices.length === 0) {
     return {
       debtor_id: debtorId,
-      payment_score: 50,
-      payment_risk_tier: "medium",
+      payment_score: 50, // Medium risk when no data
+      payment_risk_tier: "Medium",
       avg_days_to_pay: null,
       max_days_past_due: 0,
       open_invoices_count: 0,
@@ -143,12 +143,13 @@ async function calculatePaymentScore(
         dpd_91_120_pct: 0,
         dpd_121_plus_pct: 0,
       },
-      breakdown: ["No invoice history available"],
+      breakdown: ["No invoice history available - defaulting to medium risk"],
     };
   }
 
-  // Start with base score
-  let score = 80;
+  // CONSISTENT MODEL: Higher score = Higher risk (riskier)
+  // Start with base risk score of 20 (low risk baseline)
+  let score = 20;
 
   // Calculate days to pay for paid invoices
   const paidInvoices = invoices.filter((inv: any) => 
@@ -167,21 +168,22 @@ async function calculatePaymentScore(
     
     avgDaysToPay = totalDaysToPay / paidInvoices.length;
     
-    // Score adjustment based on avg days to pay
+    // Score adjustment based on avg days to pay (higher = riskier)
     if (avgDaysToPay <= 5) {
-      score += 10;
-      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (excellent - +10 points)`);
+      // Excellent payer - keep risk low
+      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (excellent - low risk)`);
     } else if (avgDaysToPay <= 15) {
-      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (good - no impact)`);
+      score += 5;
+      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (good - +5 risk)`);
     } else if (avgDaysToPay <= 30) {
-      score -= 10;
-      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (fair - -10 points)`);
+      score += 15;
+      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (fair - +15 risk)`);
     } else if (avgDaysToPay <= 60) {
-      score -= 20;
-      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (poor - -20 points)`);
+      score += 25;
+      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (poor - +25 risk)`);
     } else {
-      score -= 30;
-      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (very poor - -30 points)`);
+      score += 35;
+      breakdown.push(`Average days to pay: ${avgDaysToPay.toFixed(1)} (very poor - +35 risk)`);
     }
   }
 
@@ -240,56 +242,62 @@ async function calculatePaymentScore(
     dpd_121_plus_pct: totalOutstanding > 0 ? (agingBuckets.dpd_121_plus / totalOutstanding) * 100 : 0,
   };
 
-  // Aging mix scoring
+  // Aging mix scoring (higher = riskier)
   if (agingMix.current_pct > 70) {
+    // Good - mostly current, reduce risk
+    breakdown.push(`${agingMix.current_pct.toFixed(0)}% of balance is current (low risk)`);
+  } else if (agingMix.current_pct < 30) {
     score += 10;
-    breakdown.push(`${agingMix.current_pct.toFixed(0)}% of balance is current (+10 points)`);
+    breakdown.push(`Only ${agingMix.current_pct.toFixed(0)}% of balance is current (+10 risk)`);
   }
   
   if (agingMix.dpd_31_60_pct + agingMix.dpd_61_90_pct > 30) {
-    score -= 10;
-    breakdown.push(`${(agingMix.dpd_31_60_pct + agingMix.dpd_61_90_pct).toFixed(0)}% of balance is 31+ days past due (-10 points)`);
+    score += 15;
+    breakdown.push(`${(agingMix.dpd_31_60_pct + agingMix.dpd_61_90_pct).toFixed(0)}% of balance is 31+ days past due (+15 risk)`);
   }
   
   if (agingMix.dpd_61_90_pct + agingMix.dpd_91_120_pct + agingMix.dpd_121_plus_pct > 50) {
-    score -= 20;
-    breakdown.push(`Over 50% of balance is 61+ days past due (-20 points)`);
+    score += 25;
+    breakdown.push(`Over 50% of balance is 61+ days past due (+25 risk)`);
   }
 
-  // Status-based scoring
+  // Status-based scoring (higher = riskier)
   const disputedCount = invoices.filter((inv: any) => inv.status === "Disputed").length;
   const inPaymentPlanCount = invoices.filter((inv: any) => inv.status === "InPaymentPlan").length;
   const writtenOffCount = invoices.filter((inv: any) => inv.status === "Canceled").length;
 
   if (disputedCount >= 2) {
-    score -= 10;
-    breakdown.push(`${disputedCount} disputed invoices (-10 points)`);
+    score += 15;
+    breakdown.push(`${disputedCount} disputed invoices (+15 risk)`);
   } else if (disputedCount === 1) {
-    breakdown.push(`1 disputed invoice (monitored)`);
+    score += 5;
+    breakdown.push(`1 disputed invoice (+5 risk)`);
   }
 
   if (inPaymentPlanCount > 0) {
-    // Simplified: assume on track if in payment plan
-    score += 5;
-    breakdown.push(`${inPaymentPlanCount} invoice(s) in payment plan (+5 points)`);
+    // Payment plan is neutral/slightly positive - shows willingness to pay
+    breakdown.push(`${inPaymentPlanCount} invoice(s) in payment plan (monitored)`);
   }
 
   if (writtenOffCount > 0) {
-    score -= 15;
-    breakdown.push(`${writtenOffCount} written-off invoice(s) (-15 points)`);
+    score += 20;
+    breakdown.push(`${writtenOffCount} written-off invoice(s) (+20 risk)`);
   }
 
-  // Clamp score
+  // Clamp score between 0-100
   score = Math.max(0, Math.min(100, score));
 
-  // Determine risk tier
+  // Determine risk tier - CONSISTENT with risk-engine
+  // Higher score = higher risk
   let riskTier: string;
-  if (score >= 80) {
-    riskTier = "low";
-  } else if (score >= 50) {
-    riskTier = "medium";
+  if (score <= 30) {
+    riskTier = "Low";
+  } else if (score <= 55) {
+    riskTier = "Medium";
+  } else if (score <= 75) {
+    riskTier = "High";
   } else {
-    riskTier = "high";
+    riskTier = "Critical";
   }
 
   return {
