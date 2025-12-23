@@ -275,3 +275,6 @@ verify_jwt = true
 
 [functions.daily-recalculate-scores]
 verify_jwt = false
+
+[functions.generate-campaign-strategy]
+verify_jwt = true

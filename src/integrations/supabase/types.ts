@@ -579,6 +579,66 @@ export type Database = {
           },
         ]
       }
+      campaign_accounts: {
+        Row: {
+          amount_collected: number | null
+          balance_at_assignment: number | null
+          campaign_id: string
+          created_at: string
+          debtor_id: string
+          id: string
+          last_action_at: string | null
+          notes: string | null
+          risk_score_at_assignment: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_collected?: number | null
+          balance_at_assignment?: number | null
+          campaign_id: string
+          created_at?: string
+          debtor_id: string
+          id?: string
+          last_action_at?: string | null
+          notes?: string | null
+          risk_score_at_assignment?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_collected?: number | null
+          balance_at_assignment?: number | null
+          campaign_id?: string
+          created_at?: string
+          debtor_id?: string
+          id?: string
+          last_action_at?: string | null
+          notes?: string | null
+          risk_score_at_assignment?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_accounts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "collection_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_accounts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_activities: {
         Row: {
           activity_type: string
@@ -677,6 +737,104 @@ export type Database = {
           },
           {
             foreignKeyName: "collection_activities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_campaigns: {
+        Row: {
+          accounts_collected: number | null
+          accounts_contacted: number | null
+          ai_confidence_score: number | null
+          ai_recommended_channel: string | null
+          ai_recommended_tone: string | null
+          ai_strategy: string | null
+          amount_collected: number | null
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          max_balance: number | null
+          max_days_past_due: number | null
+          max_risk_score: number | null
+          min_balance: number | null
+          min_days_past_due: number | null
+          min_risk_score: number | null
+          name: string
+          organization_id: string | null
+          priority: number | null
+          starts_at: string | null
+          status: string
+          target_risk_tier: string
+          total_accounts: number | null
+          total_balance: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accounts_collected?: number | null
+          accounts_contacted?: number | null
+          ai_confidence_score?: number | null
+          ai_recommended_channel?: string | null
+          ai_recommended_tone?: string | null
+          ai_strategy?: string | null
+          amount_collected?: number | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          max_balance?: number | null
+          max_days_past_due?: number | null
+          max_risk_score?: number | null
+          min_balance?: number | null
+          min_days_past_due?: number | null
+          min_risk_score?: number | null
+          name: string
+          organization_id?: string | null
+          priority?: number | null
+          starts_at?: string | null
+          status?: string
+          target_risk_tier: string
+          total_accounts?: number | null
+          total_balance?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accounts_collected?: number | null
+          accounts_contacted?: number | null
+          ai_confidence_score?: number | null
+          ai_recommended_channel?: string | null
+          ai_recommended_tone?: string | null
+          ai_strategy?: string | null
+          amount_collected?: number | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          max_balance?: number | null
+          max_days_past_due?: number | null
+          max_risk_score?: number | null
+          min_balance?: number | null
+          min_days_past_due?: number | null
+          min_risk_score?: number | null
+          name?: string
+          organization_id?: string | null
+          priority?: number | null
+          starts_at?: string | null
+          status?: string
+          target_risk_tier?: string
+          total_accounts?: number | null
+          total_balance?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_campaigns_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
