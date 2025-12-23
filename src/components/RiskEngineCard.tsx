@@ -34,19 +34,20 @@ export const RiskEngineCard = ({
 
   const isStillLearning = riskTier === "Still learning" || !riskTier;
 
+  // CONSISTENT MODEL: Higher score = Higher risk (worse)
   const getScoreColor = (score: number | null) => {
     if (score === null) return "text-muted-foreground";
-    if (score >= 85) return "text-green-600";
-    if (score >= 70) return "text-yellow-600";
-    if (score >= 50) return "text-orange-500";
-    return "text-red-600";
+    if (score <= 30) return "text-green-600";   // Low risk
+    if (score <= 55) return "text-yellow-600";  // Medium risk
+    if (score <= 75) return "text-orange-500";  // High risk
+    return "text-red-600";                       // Critical risk
   };
 
   const getScoreBg = (score: number | null) => {
     if (score === null) return "bg-muted";
-    if (score >= 85) return "bg-green-500";
-    if (score >= 70) return "bg-yellow-500";
-    if (score >= 50) return "bg-orange-500";
+    if (score <= 30) return "bg-green-500";
+    if (score <= 55) return "bg-yellow-500";
+    if (score <= 75) return "bg-orange-500";
     return "bg-red-500";
   };
 
@@ -110,10 +111,10 @@ export const RiskEngineCard = ({
           {getRiskBadge(riskTier)}
         </div>
 
-        {/* Payment Score */}
+        {/* Risk Score - Higher = Riskier */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Payment Score</span>
+            <span className="text-sm text-muted-foreground">Risk Score</span>
             <span className={`text-2xl font-bold ${getScoreColor(paymentScore)}`}>
               {paymentScore !== null ? paymentScore : "—"}
               <span className="text-sm font-normal text-muted-foreground">/100</span>
@@ -121,8 +122,9 @@ export const RiskEngineCard = ({
           </div>
           <Progress 
             value={paymentScore ?? 0} 
-            className={`h-2 ${isStillLearning ? "[&>div]:bg-muted" : ""}`}
+            className={`h-2 ${isStillLearning ? "[&>div]:bg-muted" : `[&>div]:${getScoreBg(paymentScore)}`}`}
           />
+          <p className="text-xs text-muted-foreground">Lower score = lower risk</p>
         </div>
 
         {/* Status Note */}
