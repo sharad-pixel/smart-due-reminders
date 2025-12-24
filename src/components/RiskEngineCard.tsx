@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle, Shield, ShieldAlert, ShieldCheck, HelpCircle } from "lucide-react";
 import { usePaymentScore } from "@/hooks/usePaymentScore";
 import { format } from "date-fns";
+import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 
 interface RiskEngineCardProps {
   debtorId: string;
@@ -86,6 +87,7 @@ export const RiskEngineCard = ({
           <CardTitle className="text-lg flex items-center gap-2">
             {getRiskIcon(riskTier)}
             Risk Assessment
+            <ScoringModelTooltip />
           </CardTitle>
           <TooltipProvider>
             <Tooltip>

@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle } from "lucide-react";
+import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
@@ -794,25 +795,27 @@ const Debtors = () => {
                       <div className="bg-muted/50 rounded-md p-2">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
                           <Clock className="h-3 w-3" />
-                          <span>Max DPD</span>
+                          <span>Avg DPD</span>
                         </div>
                         <p className={`font-semibold text-sm tabular-nums ${
-                          (debtor.max_days_past_due || 0) > 90 ? "text-destructive" :
-                          (debtor.max_days_past_due || 0) > 30 ? "text-orange-500" : "text-foreground"
+                          (debtor.avg_days_to_pay || 0) > 60 ? "text-destructive" :
+                          (debtor.avg_days_to_pay || 0) > 30 ? "text-orange-500" : "text-foreground"
                         }`}>
-                          {debtor.max_days_past_due || 0} days
+                          {debtor.avg_days_to_pay ? `${Math.round(debtor.avg_days_to_pay)} days` : "—"}
                         </p>
                       </div>
                       <div className="bg-muted/50 rounded-md p-2">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
                           <TrendingUp className="h-3 w-3" />
-                          <span>Pay Score</span>
+                          <span>Risk Score</span>
                         </div>
+                        {/* Risk Score: Higher = Riskier (inverted colors) */}
                         <p className={`font-semibold text-sm tabular-nums ${
-                          (debtor.payment_score || 50) >= 70 ? "text-green-600" :
-                          (debtor.payment_score || 50) >= 40 ? "text-orange-500" : "text-destructive"
+                          (debtor.payment_score || 50) <= 30 ? "text-green-600" :
+                          (debtor.payment_score || 50) <= 55 ? "text-yellow-600" :
+                          (debtor.payment_score || 50) <= 75 ? "text-orange-500" : "text-destructive"
                         }`}>
-                          {debtor.payment_score || 50}/100
+                          {debtor.payment_score ?? "—"}/100
                         </p>
                       </div>
                     </div>
@@ -889,13 +892,13 @@ const Debtors = () => {
                         Invoices
                       </SortableTableHead>
                       <SortableTableHead
-                        sortKey="max_days_past_due"
+                        sortKey="avg_days_to_pay"
                         currentSortKey={sortKey}
                         currentSortDirection={sortDirection}
                         onSort={handleSort}
                         className="text-center"
                       >
-                        Max DPD
+                        Avg DPD
                       </SortableTableHead>
                       <SortableTableHead
                         sortKey="payment_score"
@@ -904,7 +907,10 @@ const Debtors = () => {
                         onSort={handleSort}
                         className="text-center"
                       >
-                        Score
+                        <div className="flex items-center justify-center gap-1">
+                          Risk Score
+                          <ScoringModelTooltip />
+                        </div>
                       </SortableTableHead>
                     </TableRow>
                   </TableHeader>
@@ -988,18 +994,20 @@ const Debtors = () => {
                         </TableCell>
                         <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <span className={`font-medium tabular-nums ${
-                            (debtor.max_days_past_due || 0) > 90 ? "text-destructive" :
-                            (debtor.max_days_past_due || 0) > 30 ? "text-orange-500" : ""
+                            (debtor.avg_days_to_pay || 0) > 60 ? "text-destructive" :
+                            (debtor.avg_days_to_pay || 0) > 30 ? "text-orange-500" : ""
                           }`}>
-                            {debtor.max_days_past_due || 0}
+                            {debtor.avg_days_to_pay ? Math.round(debtor.avg_days_to_pay) : "—"}
                           </span>
                         </TableCell>
                         <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
+                          {/* Risk Score: Higher = Riskier (inverted colors) */}
                           <span className={`font-medium tabular-nums ${
-                            (debtor.payment_score || 50) >= 70 ? "text-green-600" :
-                            (debtor.payment_score || 50) >= 40 ? "text-orange-500" : "text-destructive"
+                            (debtor.payment_score || 50) <= 30 ? "text-green-600" :
+                            (debtor.payment_score || 50) <= 55 ? "text-yellow-600" :
+                            (debtor.payment_score || 50) <= 75 ? "text-orange-500" : "text-destructive"
                           }`}>
-                            {debtor.payment_score || 50}
+                            {debtor.payment_score ?? "—"}
                           </span>
                         </TableCell>
                       </TableRow>
