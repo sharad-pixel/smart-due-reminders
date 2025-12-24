@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,12 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const locationRef = useRef<string>(location.pathname);
+
+  useEffect(() => {
+    locationRef.current = location.pathname;
+  }, [location.pathname]);
+
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -65,20 +71,22 @@ const Layout = ({ children }: LayoutProps) => {
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
-  const { 
-    isTeamMember, 
-    ownerName, 
-    ownerEmail, 
+  const {
+    isTeamMember,
+    ownerName,
+    ownerEmail,
     ownerCompanyName,
-    ownerPlanType, 
+    ownerPlanType,
     ownerSubscriptionStatus,
     memberRole,
-    loading: accountLoading 
+    loading: accountLoading,
   } = useEffectiveAccount();
-  
+
   // Use owner's plan for team members, with proper fallback
-  const displayPlanType = isTeamMember ? (ownerPlanType || 'free') : planType;
-  const displaySubscriptionStatus = isTeamMember ? (ownerSubscriptionStatus || 'inactive') : subscriptionStatus;
+  const displayPlanType = isTeamMember ? (ownerPlanType || "free") : planType;
+  const displaySubscriptionStatus = isTeamMember
+    ? (ownerSubscriptionStatus || "inactive")
+    : subscriptionStatus;
   const canUpgrade = !isTeamMember; // Only account owners can upgrade
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
@@ -86,36 +94,66 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     let cancelled = false;
 
-    const redirectToLogin = () => {
-      // Preserve the intended destination so Login can send the user back.
-      navigate("/login", { replace: true, state: { from: location.pathname } });
+    const redirectToLogin = (from?: string) => {
+      navigate("/login", {
+        replace: true,
+        state: { from: from ?? locationRef.current },
+      });
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
-      // Avoid redirecting on INITIAL_SESSION; only redirect on explicit sign-out.
       if (event === "SIGNED_OUT" && !cancelled) {
         redirectToLogin();
       }
-    });
 
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      if (cancelled) return;
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      setAuthChecked(true);
-      if (!initialSession?.user) {
-        redirectToLogin();
+      // Once we receive any auth event, we know auth is initialized.
+      if (!cancelled) {
+        setAuthChecked(true);
       }
     });
+
+    (async () => {
+      try {
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
+
+        if (cancelled) return;
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        setAuthChecked(true);
+
+        if (!initialSession?.user) {
+          // getSession can occasionally be null transiently; confirm via getUser before redirecting.
+          const {
+            data: { user: confirmedUser },
+          } = await supabase.auth.getUser();
+
+          if (cancelled) return;
+          if (confirmedUser) {
+            setUser(confirmedUser);
+            return;
+          }
+
+          redirectToLogin(locationRef.current);
+        }
+      } catch {
+        if (cancelled) return;
+        setAuthChecked(true);
+        redirectToLogin(locationRef.current);
+      }
+    })();
 
     return () => {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   const handleSignOut = async () => {
     if (user) {
@@ -229,7 +267,13 @@ const Layout = ({ children }: LayoutProps) => {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const coreNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
