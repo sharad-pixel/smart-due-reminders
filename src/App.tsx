@@ -137,7 +137,8 @@ const App = () => (
           <Route path="/data-center" element={<DataCenter />} />
           <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
           <Route path="/daily-digest" element={<DailyDigest />} />
-          <Route path="/outreach" element={<Outreach />} />
+          {/* Redirect /outreach to /ai-workflows - merged functionality */}
+          <Route path="/outreach" element={<AIWorkflows />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/user-management" element={<AdminUserManagement />} />
           <Route path="/admin/activity" element={<AdminActivityLogs />} />
