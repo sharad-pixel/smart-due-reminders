@@ -437,6 +437,17 @@ async function calculateCreditRiskScore(
       score_components: result.score_components,
       last_score_change_reason: changeReason,
       
+      // Calculated metrics
+      avg_days_to_pay: result.score_components.avg_dpd_last_6_months || null,
+      max_days_past_due: result.score_components.max_dpd || null,
+      open_invoices_count: result.basis_invoices_count,
+      
+      // Aging mix percentages
+      aging_mix_current_pct: 100 - (result.score_components.pct_over_30_days || 0),
+      aging_mix_31_60_pct: (result.score_components.pct_over_30_days || 0) - (result.score_components.pct_over_60_days || 0),
+      aging_mix_61_90_pct: (result.score_components.pct_over_60_days || 0) - (result.score_components.pct_over_90_days || 0),
+      aging_mix_91_120_pct: result.score_components.pct_over_90_days || 0,
+      
       // Legacy fields for backward compatibility
       // IMPORTANT: payment_score stores RISK (higher = riskier) for consistency with calculate-payment-score
       payment_score: result.credit_risk_score,

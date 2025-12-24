@@ -205,12 +205,15 @@ async function calculatePaymentScore(
   };
 
   let maxDaysPastDue = 0;
+  let totalDaysPastDue = 0;
 
   openInvoices.forEach((inv: any) => {
-    const daysPastDue = Math.floor(
+    const daysPastDue = Math.max(0, Math.floor(
       (new Date().getTime() - new Date(inv.due_date).getTime()) / 
       (1000 * 60 * 60 * 24)
-    );
+    ));
+    
+    totalDaysPastDue += daysPastDue;
     
     if (daysPastDue > maxDaysPastDue) {
       maxDaysPastDue = daysPastDue;
@@ -328,11 +331,14 @@ async function calculatePaymentScore(
     riskTier = "Critical";
   }
 
+  // Calculate average DPD for open invoices
+  const avgDpd = openInvoicesCount > 0 ? totalDaysPastDue / openInvoicesCount : null;
+
   return {
     debtor_id: debtorId,
     payment_score: Math.round(score),
     payment_risk_tier: riskTier,
-    avg_days_to_pay: avgDaysToPay,
+    avg_days_to_pay: avgDpd, // Average DPD across open invoices
     max_days_past_due: maxDaysPastDue,
     open_invoices_count: openInvoicesCount,
     disputed_invoices_count: disputedCount,

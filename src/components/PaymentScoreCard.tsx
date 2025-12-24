@@ -5,6 +5,7 @@ import { RefreshCw, TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle } 
 import { Progress } from "@/components/ui/progress";
 import { usePaymentScore } from "@/hooks/usePaymentScore";
 import { format } from "date-fns";
+import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 
 interface PaymentScoreCardProps {
   debtorId: string;
@@ -137,8 +138,9 @@ export const PaymentScoreCard = ({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              Payment Score
+              Risk Score
               {getRiskIcon()}
+              <ScoringModelTooltip />
             </CardTitle>
             <CardDescription>
               Based on payment history, aging, and status
