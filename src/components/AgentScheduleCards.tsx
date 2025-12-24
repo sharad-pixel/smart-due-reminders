@@ -9,8 +9,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { personaConfig, getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { Clock, Mail, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-const AgentScheduleCards = () => {
+interface AgentScheduleCardsProps {
+  selectedPersona?: string | null;
+  onPersonaSelect?: (personaKey: string | null) => void;
+}
+
+const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleCardsProps) => {
   // Fetch drafts data for persona schedule
   const { data: draftsData, isLoading } = useQuery({
     queryKey: ["agent-schedule-drafts"],
@@ -131,12 +137,28 @@ const AgentScheduleCards = () => {
     );
   }
 
+  const handleCardClick = (personaKey: string) => {
+    if (!onPersonaSelect) return;
+    
+    // Toggle - if already selected, clear selection
+    if (selectedPersona === personaKey) {
+      onPersonaSelect(null);
+    } else {
+      onPersonaSelect(personaKey);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Mail className="h-5 w-5" />
           AI Collection Agents - Scheduled Outreach
+          {onPersonaSelect && (
+            <span className="text-xs font-normal text-muted-foreground ml-2">
+              (Click to filter)
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -144,11 +166,24 @@ const AgentScheduleCards = () => {
           {personaSchedule.map((row) => {
             const next = row.nextApproved || row.nextAny;
             const nextLabel = row.nextApproved ? "Next approved" : row.nextAny ? "Next pending" : "No upcoming";
+            const isSelected = selectedPersona === row.key;
+            
             return (
-              <div key={row.key} className="rounded-lg border p-3 bg-card hover:bg-accent/30 transition-colors">
+              <div 
+                key={row.key} 
+                className={cn(
+                  "rounded-lg border p-3 bg-card transition-all",
+                  onPersonaSelect && "cursor-pointer hover:bg-accent/30",
+                  isSelected && "ring-2 ring-primary bg-primary/5"
+                )}
+                onClick={() => handleCardClick(row.key)}
+              >
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-offset-background" style={{ 
-                    '--tw-ring-color': row.persona.color 
+                  <Avatar className={cn(
+                    "h-10 w-10 ring-2 ring-offset-2 ring-offset-background",
+                    isSelected && "ring-primary"
+                  )} style={{ 
+                    '--tw-ring-color': isSelected ? undefined : row.persona.color 
                   } as React.CSSProperties}>
                     <AvatarImage src={row.persona.avatar} alt={`${row.persona.name} persona`} />
                     <AvatarFallback style={{ backgroundColor: row.persona.color }}>
@@ -188,7 +223,7 @@ const AgentScheduleCards = () => {
                   </div>
                   {next && (
                     <Badge variant="secondary" className="text-[10px]">
-                      {format(next, "MMM d")}
+                      {format(next, "MMM d h:mm a")}
                     </Badge>
                   )}
                 </div>
