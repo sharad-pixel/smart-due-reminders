@@ -1808,6 +1808,12 @@ const AIWorkflows = () => {
           </div>
         </div>
 
+        {/* Agent Summary Cards */}
+        <AgentSummaryCard />
+
+        {/* Pending Drafts Section */}
+        <PendingDraftsSection />
+
         {/* Upcoming Outreach Log */}
         <UpcomingOutreachLog />
 
