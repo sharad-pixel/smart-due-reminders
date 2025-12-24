@@ -92,26 +92,26 @@ const UpcomingOutreachLog = () => {
     }
     
     try {
-      // First, fetch approved draft templates to know which buckets/steps are enabled
+      // First, fetch approved draft templates to know which aging buckets have approved outreach
       const { data: approvedTemplates, error: templatesError } = await supabase
         .from('draft_templates')
-        .select('aging_bucket, day_offset, status')
+        .select('aging_bucket, status')
         .eq('user_id', effectiveAccountId)
         .eq('status', 'approved')
         .eq('channel', 'email');
 
       if (templatesError) throw templatesError;
 
-      // Build a lookup of approved bucket+day_offset combinations
-      const approvedBucketSteps = new Set<string>();
+      // Build a set of aging buckets that have at least one approved template
+      const approvedBuckets = new Set<string>();
       approvedTemplates?.forEach((template: any) => {
-        if (template.aging_bucket && template.day_offset !== null) {
-          approvedBucketSteps.add(`${template.aging_bucket}:${template.day_offset}`);
+        if (template.aging_bucket) {
+          approvedBuckets.add(template.aging_bucket);
         }
       });
 
       // If no approved templates, show empty state
-      if (approvedBucketSteps.size === 0) {
+      if (approvedBuckets.size === 0) {
         setOutreachItems([]);
         setTotalCount(0);
         setLoading(false);
@@ -154,6 +154,11 @@ const UpcomingOutreachLog = () => {
       const outreachList: OutreachItem[] = [];
 
       invoices?.forEach((invoice: any) => {
+        // Only include if there's an approved template for this aging bucket
+        if (!approvedBuckets.has(invoice.aging_bucket)) {
+          return; // Skip - no approved template for this bucket
+        }
+
         const dueDate = new Date(invoice.due_date);
         dueDate.setHours(0, 0, 0, 0);
         const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -181,12 +186,6 @@ const UpcomingOutreachLog = () => {
 
         if (currentSequence > STEP_DAY_OFFSETS.length) {
           currentSequence = STEP_DAY_OFFSETS.length;
-        }
-
-        // Only include if there's an approved template for this bucket+day_offset
-        const bucketStepKey = `${invoice.aging_bucket}:${nextOutreachDayOffset}`;
-        if (!approvedBucketSteps.has(bucketStepKey)) {
-          return; // Skip this invoice - no approved template for this step
         }
 
         const scheduledDate = addDays(bucketEnteredDate, nextOutreachDayOffset);
