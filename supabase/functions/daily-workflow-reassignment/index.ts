@@ -65,8 +65,28 @@ Deno.serve(async (req) => {
           agingBucket = 'dpd_61_90';
         } else if (daysPastDue <= 120) {
           agingBucket = 'dpd_91_120';
+        } else if (daysPastDue <= 150) {
+          agingBucket = 'dpd_121_150';
         } else {
-          agingBucket = 'dpd_120_plus';
+          agingBucket = 'dpd_150_plus';
+        }
+
+        // Update the invoice aging_bucket if changed
+        const { data: currentInvoice } = await supabase
+          .from('invoices')
+          .select('aging_bucket')
+          .eq('id', invoice.id)
+          .single();
+
+        if (currentInvoice && currentInvoice.aging_bucket !== agingBucket) {
+          await supabase
+            .from('invoices')
+            .update({ 
+              aging_bucket: agingBucket,
+              bucket_entered_at: new Date().toISOString()
+            })
+            .eq('id', invoice.id);
+          console.log(`[DAILY-WORKFLOW-REASSIGNMENT] Updated invoice ${invoice.id} aging_bucket from ${currentInvoice.aging_bucket} to ${agingBucket}`);
         }
 
         // Find the workflow for this aging bucket
