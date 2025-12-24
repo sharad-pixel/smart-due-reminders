@@ -49,6 +49,9 @@ const FeatureGrid = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             A complete platform designed to support predictable cash outcomes
           </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
+            Replace scattered inboxes and spreadsheets with centralized workflows and built-in audit trails
+          </p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">

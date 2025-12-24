@@ -121,6 +121,11 @@ const AnimatedHero = () => {
             <span className="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
             Collection Intelligence Platform
           </div>
+          
+          {/* Supporting tagline */}
+          <p className="text-sm text-muted-foreground mb-4 animate-fade-in">
+            All collection activities in one place — AI-powered, audit-ready, built for seamless handoffs
+          </p>
 
           {/* Typewriter Headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight min-h-[1.2em]">

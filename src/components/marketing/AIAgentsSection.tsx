@@ -31,6 +31,9 @@ const AIAgentsSection = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Each agent analyzes accounts, communications, payments, and tasks to maximize recovery
           </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
+            AI-driven workflows ensure consistency without manual follow-ups — context preserved across every interaction
+          </p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

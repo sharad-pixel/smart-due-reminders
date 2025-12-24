@@ -596,6 +596,9 @@ export default function CollectionTasks() {
           <p className="text-sm text-muted-foreground hidden sm:block">
             AI-extracted action items from customer responses
           </p>
+          <p className="text-xs text-muted-foreground/70 hidden sm:block">
+            All task activity is logged for team visibility and seamless handoffs
+          </p>
           <div className="flex gap-2 flex-wrap">
             <Badge variant="outline" className="text-xs sm:text-sm">
               {openCount} Open

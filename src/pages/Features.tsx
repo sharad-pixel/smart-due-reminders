@@ -39,8 +39,11 @@ const Features = () => {
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center mb-4">Six Specialized Agent Roles</h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-center text-muted-foreground mb-4 max-w-2xl mx-auto">
             Each agent learns from engagement, payment patterns, and sentiment—adapting tone and timing while you stay in control
+          </p>
+          <p className="text-center text-sm text-muted-foreground/80 mb-12 max-w-xl mx-auto">
+            All agent actions are automatically logged for team visibility and compliance
           </p>
           <AIAgentRoles />
         </div>
@@ -221,8 +224,11 @@ const Features = () => {
                 <Shield className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-2xl font-bold mb-3">Human-in-the-Loop Approvals</h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-2">
                 Review and approve every AI-generated message before it's sent. Edit, refine, or discard—you maintain complete control while intelligence scales behind the scenes.
+              </p>
+              <p className="text-sm text-muted-foreground/70">
+                Built to preserve context during team handoffs with full audit trails
               </p>
             </div>
           </div>

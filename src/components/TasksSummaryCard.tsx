@@ -111,6 +111,9 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
           <p className="text-sm text-muted-foreground">
             No action items at this time
           </p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Tasks are automatically created from customer interactions and AI analysis
+          </p>
         </CardContent>
       </Card>
     );

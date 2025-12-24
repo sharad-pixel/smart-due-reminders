@@ -1130,6 +1130,9 @@ const AIWorkflows = () => {
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               AI-powered workflows and campaigns to optimize collection strategies
             </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Centralized automation with built-in audit logs for every action
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
@@ -1174,7 +1177,7 @@ const AIWorkflows = () => {
               AI Collections Agents
             </CardTitle>
             <CardDescription className="text-base">
-              Your team of AI agents automatically adapts messaging based on invoice age
+              Your team of AI agents automatically adapts messaging based on invoice age — context preserved across team handoffs
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 pb-6">

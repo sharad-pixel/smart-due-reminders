@@ -90,6 +90,9 @@ const EmailDemo = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             See how our AI agents read, classify, and respond to customer emails in real-time
           </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
+            Designed to reduce reliance on email-based collection processes — every interaction logged automatically
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">

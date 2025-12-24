@@ -23,6 +23,9 @@ const WhyDifferent = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Signals from accounts, communications, and payments—guiding decisions, not just automating tasks
           </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
+            Your single system of record for all collection activities
+          </p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

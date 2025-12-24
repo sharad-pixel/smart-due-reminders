@@ -388,6 +388,9 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               Welcome back! Here's your collection overview.
             </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              All activity tracked in one place for visibility and compliance
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -426,6 +429,9 @@ const Dashboard = () => {
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Set up automated collection sequences for your invoices
                   </p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    AI automation reduces manual follow-ups while preserving context
+                  </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Button 
@@ -462,6 +468,9 @@ const Dashboard = () => {
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     View your daily collections health summary and AR metrics
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    Every action logged for handoffs and audit trails
                   </p>
                 </div>
                 <Button 

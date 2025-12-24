@@ -48,6 +48,9 @@ const ScrollPipeline = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             A streamlined pipeline that handles everything from invoice upload to payment capture
           </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
+            Every action is automatically logged for visibility, compliance, and seamless team handoffs
+          </p>
         </div>
 
         {/* Pipeline Steps */}
