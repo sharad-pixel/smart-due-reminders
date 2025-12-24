@@ -112,7 +112,9 @@ const UpcomingOutreachLog = () => {
         `, { count: 'exact' })
         .eq('user_id', user.id)
         .in('status', ['Open', 'InPaymentPlan'])
-        .not('aging_bucket', 'in', '("current","paid")')
+        .not('aging_bucket', 'is', null)
+        .neq('aging_bucket', 'current')
+        .neq('aging_bucket', 'paid')
         .order('due_date', { ascending: true });
 
       if (error) throw error;
