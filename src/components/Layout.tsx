@@ -311,16 +311,13 @@ const Layout = ({ children }: LayoutProps) => {
                     {aiToolsItems.map((item) => {
                       const Icon = item.icon;
                       return (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link
-                            to={item.path}
-                            className={`flex items-center gap-2 cursor-pointer ${
-                              isActive(item.path) ? "bg-accent" : ""
-                            }`}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </Link>
+                        <DropdownMenuItem
+                          key={item.path}
+                          onSelect={() => navigate(item.path)}
+                          className={isActive(item.path) ? "bg-accent" : ""}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
                         </DropdownMenuItem>
                       );
                     })}
