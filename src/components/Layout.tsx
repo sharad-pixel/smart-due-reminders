@@ -82,22 +82,27 @@ const Layout = ({ children }: LayoutProps) => {
   const FOUNDER_EMAIL = "sharad@recouply.ai";
 
   useEffect(() => {
+    const redirectToLogin = () => {
+      // Preserve the intended destination so Login can send the user back.
+      navigate("/login", { replace: true, state: { from: location.pathname } });
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
-        navigate("/login");
+        redirectToLogin();
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
-        navigate("/login");
+        redirectToLogin();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const handleSignOut = async () => {
     if (user) {

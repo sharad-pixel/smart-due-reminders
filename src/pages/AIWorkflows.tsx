@@ -386,7 +386,10 @@ const AIWorkflows = () => {
   const fetchWorkflows = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        // Layout will handle redirecting to /login; avoid flashing an error toast.
+        return;
+      }
 
       const { data: workflowsData, error } = await supabase
         .from("collection_workflows")

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,14 @@ import { Sparkles, Zap, Users, Mail, ArrowRight, Eye, EyeOff } from "lucide-reac
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import SEO from "@/components/SEO";
 
+type LoginLocationState = {
+  from?: string;
+};
+
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = (location.state as LoginLocationState | null)?.from || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,24 +36,20 @@ const Login = () => {
   const [requestingAccess, setRequestingAccess] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener for OAuth callbacks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          navigate("/dashboard");
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        navigate(redirectTo, { replace: true });
       }
-    );
+    });
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        navigate("/dashboard");
+        navigate(redirectTo, { replace: true });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +117,7 @@ const Login = () => {
       }
       
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      navigate(redirectTo, { replace: true });
     } catch (error: any) {
       toast.error(error.message || "Login failed");
     } finally {
