@@ -1171,6 +1171,7 @@ const AIWorkflows = () => {
               <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
             </Button>
           </div>
+        </div>
 
         {/* Main Tabs: Workflows vs Campaigns */}
         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "workflows" | "campaigns")} className="w-full">
@@ -1925,7 +1926,8 @@ const AIWorkflows = () => {
             })}
           </CardContent>
         </Card>
-      </div>
+          </TabsContent>
+        </Tabs>
 
       <WorkflowStepEditor
         step={editingStep}
@@ -2067,8 +2069,7 @@ const AIWorkflows = () => {
         open={showCreateCampaignModal} 
         onOpenChange={setShowCreateCampaignModal} 
       />
-          </TabsContent>
-        </Tabs>
+      </div>
     </Layout>
   );
 };
