@@ -35,7 +35,6 @@ import Profile from "./pages/Profile";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import AIWorkflows from "./pages/AIWorkflows";
 import CollectionTasks from "./pages/CollectionTasks";
-import CollectionCampaigns from "./pages/CollectionCampaigns";
 import Personas from "./pages/Personas";
 import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
@@ -122,7 +121,6 @@ const App = () => (
           {/* Backwards-compatible alias */}
           <Route path="/ai-workflows" element={<AIWorkflows />} />
           <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
-          <Route path="/campaigns" element={<CollectionCampaigns />} />
           <Route path="/tasks" element={<CollectionTasks />} />
           <Route path="/inbound" element={<InboundCommandCenter />} />
           <Route path="/team" element={<Team />} />

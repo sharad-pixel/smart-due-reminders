@@ -100,8 +100,22 @@ Deno.serve(async (req) => {
           agingBucket = 'dpd_61_90';
         } else if (daysPastDue >= 91 && daysPastDue <= 120) {
           agingBucket = 'dpd_91_120';
+        } else if (daysPastDue >= 121 && daysPastDue <= 150) {
+          agingBucket = 'dpd_121_150';
         } else {
-          agingBucket = 'dpd_121_plus';
+          agingBucket = 'dpd_150_plus';
+        }
+
+        // Update the invoice aging_bucket if changed
+        if (invoice.aging_bucket !== agingBucket) {
+          await supabaseAdmin
+            .from('invoices')
+            .update({ 
+              aging_bucket: agingBucket,
+              bucket_entered_at: new Date().toISOString()
+            })
+            .eq('id', invoice.id);
+          console.log(`Updated invoice ${invoice.id} aging_bucket to ${agingBucket}`);
         }
 
         // Find active collection workflow for this bucket and user
