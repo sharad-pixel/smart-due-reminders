@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { 
   LayoutDashboard, 
@@ -57,6 +57,8 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
@@ -82,26 +84,37 @@ const Layout = ({ children }: LayoutProps) => {
   const FOUNDER_EMAIL = "sharad@recouply.ai";
 
   useEffect(() => {
+    let cancelled = false;
+
     const redirectToLogin = () => {
       // Preserve the intended destination so Login can send the user back.
       navigate("/login", { replace: true, state: { from: location.pathname } });
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      // Avoid redirecting on INITIAL_SESSION; only redirect on explicit sign-out.
+      if (event === "SIGNED_OUT" && !cancelled) {
         redirectToLogin();
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) {
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (cancelled) return;
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      setAuthChecked(true);
+      if (!initialSession?.user) {
         redirectToLogin();
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [navigate, location.pathname]);
 
   const handleSignOut = async () => {
@@ -207,6 +220,14 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/profile", label: userName || "Profile", icon: UserIcon },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 
