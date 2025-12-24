@@ -93,6 +93,7 @@ const AIWorkflows = () => {
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [autoSending, setAutoSending] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+  const [outreachFilterPersona, setOutreachFilterPersona] = useState<string | null>(null);
   const [generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
   const [expandedDrafts, setExpandedDrafts] = useState<Set<string>>(new Set());
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
@@ -1591,10 +1592,16 @@ const AIWorkflows = () => {
             )}
           </div>
         {/* AI Collection Agents Schedule Cards */}
-        <AgentScheduleCards />
+        <AgentScheduleCards 
+          selectedPersona={outreachFilterPersona}
+          onPersonaSelect={setOutreachFilterPersona}
+        />
 
         {/* Upcoming Outreach Log */}
-        <UpcomingOutreachLog />
+        <UpcomingOutreachLog 
+          selectedPersona={outreachFilterPersona}
+          onPersonaFilterClear={() => setOutreachFilterPersona(null)}
+        />
       <WorkflowStepEditor
         step={editingStep}
         open={!!editingStep}
