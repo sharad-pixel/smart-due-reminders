@@ -10,16 +10,31 @@ import {
   Sparkles,
   Clock,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp,
+  DollarSign,
+  Zap
 } from "lucide-react";
-import type { CampaignStrategy, CampaignSummary } from "@/hooks/useCollectionCampaigns";
+import { CampaignAccountsList } from "./CampaignAccountsList";
+import type { CampaignStrategy, CampaignSummary, AccountSummary } from "@/hooks/useCollectionCampaigns";
 
 interface CampaignStrategyCardProps {
   strategy: CampaignStrategy;
   summary: CampaignSummary;
+  accounts?: AccountSummary[];
+  onGenerateDraft?: (accountId: string) => void;
+  onInitiateOutreach?: (accountId: string, channel: string) => void;
+  isGenerating?: boolean;
 }
 
-export function CampaignStrategyCard({ strategy, summary }: CampaignStrategyCardProps) {
+export function CampaignStrategyCard({ 
+  strategy, 
+  summary, 
+  accounts = [],
+  onGenerateDraft,
+  onInitiateOutreach,
+  isGenerating
+}: CampaignStrategyCardProps) {
   const getToneBadge = (tone: string) => {
     const styles = {
       friendly: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
@@ -45,6 +60,27 @@ export function CampaignStrategyCard({ strategy, summary }: CampaignStrategyCard
     if (score >= 60) return "text-yellow-600";
     return "text-orange-600";
   };
+
+  // Calculate payment prediction based on accounts
+  const calculatePaymentPrediction = () => {
+    if (accounts.length === 0) return null;
+    
+    const avgRisk = summary.avgRiskScore;
+    const totalBalance = summary.totalBalance;
+    
+    // Estimate based on risk - inverse relationship
+    const expectedRecoveryRate = Math.max(0.2, Math.min(0.85, (100 - avgRisk) / 100));
+    const expectedAmount = totalBalance * expectedRecoveryRate;
+    const expectedDays = avgRisk <= 30 ? 30 : avgRisk <= 55 ? 45 : avgRisk <= 75 ? 60 : 90;
+    
+    return {
+      expectedAmount: Math.round(expectedAmount),
+      expectedDays,
+      probability: Math.round((100 - avgRisk) * 0.9),
+    };
+  };
+
+  const paymentPrediction = calculatePaymentPrediction();
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
@@ -89,6 +125,36 @@ export function CampaignStrategyCard({ strategy, summary }: CampaignStrategyCard
           </div>
         </div>
 
+        {/* Payment Prediction */}
+        {paymentPrediction && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              <span className="font-semibold text-green-800 dark:text-green-200">AI Payment Prediction</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-green-600 dark:text-green-400">Expected Recovery</p>
+                <p className="text-xl font-bold text-green-700 dark:text-green-300">
+                  ${paymentPrediction.expectedAmount.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-green-600 dark:text-green-400">Expected Timeline</p>
+                <p className="text-xl font-bold text-green-700 dark:text-green-300">
+                  {paymentPrediction.expectedDays} days
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-green-600 dark:text-green-400">Success Probability</p>
+                <p className="text-xl font-bold text-green-700 dark:text-green-300">
+                  {paymentPrediction.probability}%
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recommendations */}
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-3">
@@ -110,6 +176,32 @@ export function CampaignStrategyCard({ strategy, summary }: CampaignStrategyCard
             </Badge>
           </div>
         </div>
+
+        {/* Multi-Channel Sequence (if applicable) */}
+        {strategy.recommendedChannel === "multi-channel" && (
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="font-medium">Recommended Channel Sequence</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1">
+                <Mail className="h-3 w-3" /> Email
+              </Badge>
+              <span className="text-muted-foreground">→</span>
+              <Badge variant="outline" className="gap-1">
+                <Phone className="h-3 w-3" /> Phone
+              </Badge>
+              <span className="text-muted-foreground">→</span>
+              <Badge variant="outline" className="gap-1">
+                <Smartphone className="h-3 w-3" /> SMS
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Start with email, follow up with phone after 3 days if no response, then SMS for final reminder
+            </p>
+          </div>
+        )}
 
         {/* Strategy Points */}
         <div className="space-y-3">
@@ -173,6 +265,18 @@ export function CampaignStrategyCard({ strategy, summary }: CampaignStrategyCard
             </div>
           </div>
         </div>
+
+        {/* Expandable Accounts List */}
+        {accounts.length > 0 && (
+          <CampaignAccountsList
+            accounts={accounts}
+            recommendedTone={strategy.recommendedTone}
+            recommendedChannel={strategy.recommendedChannel}
+            onGenerateDraft={onGenerateDraft}
+            onInitiateOutreach={onInitiateOutreach}
+            isGenerating={isGenerating}
+          />
+        )}
       </CardContent>
     </Card>
   );

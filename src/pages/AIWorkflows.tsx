@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Target, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +22,9 @@ import PersonaInvoicesList from "@/components/PersonaInvoicesList";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
+import { useCollectionCampaigns } from "@/hooks/useCollectionCampaigns";
+import { EnhancedCampaignCard } from "@/components/campaigns/EnhancedCampaignCard";
+import { CreateCampaignModal } from "@/components/campaigns/CreateCampaignModal";
 
 interface WorkflowStep {
   id: string;
@@ -1119,14 +1122,20 @@ const AIWorkflows = () => {
     );
   }
 
+  // Campaign state
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
+  const [mainTab, setMainTab] = useState<"workflows" | "campaigns">("workflows");
+  const { campaigns, isLoading: campaignsLoading, updateCampaignStatus, deleteCampaign, generateCampaignDrafts } = useCollectionCampaigns();
+  const [generatingDraftsForCampaign, setGeneratingDraftsForCampaign] = useState<string | null>(null);
+
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">AI Workflows</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">AI Collection Intelligence</h1>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-              Configure automated AI-powered collection outreach by aging bucket
+              AI-powered workflows and campaigns to optimize collection strategies
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -1162,7 +1171,86 @@ const AIWorkflows = () => {
               <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
             </Button>
           </div>
-        </div>
+
+        {/* Main Tabs: Workflows vs Campaigns */}
+        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "workflows" | "campaigns")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="workflows" className="flex items-center gap-2">
+              <Workflow className="h-4 w-4" />
+              <span>Workflows</span>
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span>AI Campaigns</span>
+              {campaigns.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{campaigns.length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Campaigns Tab */}
+          <TabsContent value="campaigns" className="mt-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">AI Collection Campaigns</h2>
+                <p className="text-sm text-muted-foreground">
+                  Risk-based campaigns with AI-driven strategies, payment predictions, and multi-channel outreach
+                </p>
+              </div>
+              <Button onClick={() => setShowCreateCampaignModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Campaign
+              </Button>
+            </div>
+
+            {campaigns.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center space-y-4">
+                  <Target className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="font-semibold">No campaigns yet</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create AI-powered campaigns based on risk scores to optimize your collection strategy
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowCreateCampaignModal(true)}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Create Your First Campaign
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {campaigns.map((campaign) => (
+                  <EnhancedCampaignCard
+                    key={campaign.id}
+                    campaign={campaign}
+                    onStatusChange={(status) => updateCampaignStatus.mutate({ id: campaign.id, status })}
+                    onDelete={() => deleteCampaign.mutate(campaign.id)}
+                    onGenerateDrafts={async () => {
+                      setGeneratingDraftsForCampaign(campaign.id);
+                      try {
+                        await generateCampaignDrafts.mutateAsync({ campaignId: campaign.id });
+                      } finally {
+                        setGeneratingDraftsForCampaign(null);
+                      }
+                    }}
+                    isGeneratingDrafts={generatingDraftsForCampaign === campaign.id}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="bg-muted/50 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">
+                <strong>How it works:</strong> AI analyzes accounts by risk score, generates personalized outreach strategies, 
+                and tracks all communications in the Inbound Command Center for response monitoring.
+              </p>
+            </div>
+          </TabsContent>
+
+          {/* Workflows Tab - Original content */}
+          <TabsContent value="workflows" className="mt-6">
 
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
@@ -1973,6 +2061,14 @@ const AIWorkflows = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Campaign Modal */}
+      <CreateCampaignModal 
+        open={showCreateCampaignModal} 
+        onOpenChange={setShowCreateCampaignModal} 
+      />
+          </TabsContent>
+        </Tabs>
     </Layout>
   );
 };
