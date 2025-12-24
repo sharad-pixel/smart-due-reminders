@@ -18,7 +18,7 @@ import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import PersonaInvoicesList from "@/components/PersonaInvoicesList";
+import UpcomingOutreachLog from "@/components/UpcomingOutreachLog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
@@ -1806,43 +1806,8 @@ const AIWorkflows = () => {
           </div>
         </div>
 
-        {/* Invoices by AI Agent */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Invoices by AI Collection Agent
-            </CardTitle>
-            <CardDescription>
-              Click to expand and view invoices assigned to each agent. Custom outreach can be initiated from individual invoice pages.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {Object.entries(personaConfig).map(([key, persona]) => {
-              const getPersonaBucket = (p: PersonaConfig) => {
-                if (p.bucketMin === 1 && p.bucketMax === 30) return "dpd_1_30";
-                if (p.bucketMin === 31 && p.bucketMax === 60) return "dpd_31_60";
-                if (p.bucketMin === 61 && p.bucketMax === 90) return "dpd_61_90";
-                if (p.bucketMin === 91 && p.bucketMax === 120) return "dpd_91_120";
-                if (p.bucketMin === 121 && p.bucketMax === 150) return "dpd_121_150";
-                if (p.bucketMin === 151 && p.bucketMax === null) return "dpd_150_plus";
-                return "dpd_1_30";
-              };
-              
-              const bucket = getPersonaBucket(persona);
-              const workflow = workflows.find(w => w.aging_bucket === bucket);
-              
-              return (
-                <PersonaInvoicesList
-                  key={key}
-                  persona={persona}
-                  agingBucket={bucket}
-                  workflowId={workflow?.id}
-                />
-              );
-            })}
-          </CardContent>
-        </Card>
+        {/* Upcoming Outreach Log */}
+        <UpcomingOutreachLog />
 
 
       <WorkflowStepEditor
