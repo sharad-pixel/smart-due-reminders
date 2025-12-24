@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { 
   Mail, 
   Clock, 
@@ -73,6 +74,7 @@ const getPersonaForBucket = (agingBucket: string): { key: string; persona: Perso
 
 const UpcomingOutreachLog = () => {
   const navigate = useNavigate();
+  const { effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
   const [outreachItems, setOutreachItems] = useState<OutreachItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +83,8 @@ const UpcomingOutreachLog = () => {
   const [previewItem, setPreviewItem] = useState<OutreachItem | null>(null);
 
   const fetchUpcomingOutreach = useCallback(async (showRefreshing = false) => {
+    if (accountLoading || !effectiveAccountId) return;
+    
     if (showRefreshing) {
       setRefreshing(true);
     } else {
@@ -88,10 +92,7 @@ const UpcomingOutreachLog = () => {
     }
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Fetch all open invoices with their debtor info
+      // Fetch all open invoices with their debtor info using effective account ID
       const { data: invoices, error, count } = await supabase
         .from('invoices')
         .select(`
@@ -110,7 +111,7 @@ const UpcomingOutreachLog = () => {
             account_outreach_persona
           )
         `, { count: 'exact' })
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveAccountId)
         .in('status', ['Open', 'InPaymentPlan'])
         .not('aging_bucket', 'is', null)
         .neq('aging_bucket', 'current')
@@ -199,7 +200,7 @@ const UpcomingOutreachLog = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentPage]);
+  }, [currentPage, effectiveAccountId, accountLoading]);
 
   useEffect(() => {
     fetchUpcomingOutreach();
