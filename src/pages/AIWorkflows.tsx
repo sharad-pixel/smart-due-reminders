@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useCollectionCampaigns } from "@/hooks/useCollectionCampaigns";
 import { EnhancedCampaignCard } from "@/components/campaigns/EnhancedCampaignCard";
 import { CreateCampaignModal } from "@/components/campaigns/CreateCampaignModal";
+import { AccountAllocationManager } from "@/components/campaigns/AccountAllocationManager";
 
 interface WorkflowStep {
   id: string;
@@ -109,7 +110,7 @@ const AIWorkflows = () => {
   
   // Campaign state
   const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
-  const [mainTab, setMainTab] = useState<"workflows" | "campaigns">("workflows");
+  const [mainTab, setMainTab] = useState<"workflows" | "campaigns" | "allocation">("workflows");
   const { campaigns, isLoading: campaignsLoading, updateCampaignStatus, deleteCampaign, generateCampaignDrafts } = useCollectionCampaigns();
   const [generatingDraftsForCampaign, setGeneratingDraftsForCampaign] = useState<string | null>(null);
   const toneOptions = [
@@ -1176,17 +1177,21 @@ const AIWorkflows = () => {
 
         {/* Main Tabs: Workflows vs Campaigns */}
         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "workflows" | "campaigns")} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="workflows" className="flex items-center gap-2">
               <Workflow className="h-4 w-4" />
               <span>Workflows</span>
             </TabsTrigger>
             <TabsTrigger value="campaigns" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
-              <span>AI Campaigns</span>
+              <span>Campaigns</span>
               {campaigns.length > 0 && (
                 <Badge variant="secondary" className="ml-1">{campaigns.length}</Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="allocation" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span>Allocation</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1249,6 +1254,11 @@ const AIWorkflows = () => {
                 and tracks all communications in the Inbound Command Center for response monitoring.
               </p>
             </div>
+          </TabsContent>
+
+          {/* Allocation Tab */}
+          <TabsContent value="allocation" className="mt-6">
+            <AccountAllocationManager />
           </TabsContent>
 
           {/* Workflows Tab - Original content */}

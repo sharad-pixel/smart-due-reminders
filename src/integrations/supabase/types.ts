@@ -1960,6 +1960,7 @@ export type Database = {
           ar_contact_email: string | null
           ar_contact_name: string | null
           ar_contact_phone: string | null
+          assigned_campaign_id: string | null
           avg_days_to_pay: number | null
           avg_risk_score: number | null
           billing_address_line1: string | null
@@ -2009,6 +2010,7 @@ export type Database = {
           outreach_paused: boolean | null
           outreach_paused_at: string | null
           outreach_paused_reason: string | null
+          outreach_type: string | null
           payment_risk_tier: string | null
           payment_score: number | null
           payment_score_last_calculated: string | null
@@ -2049,6 +2051,7 @@ export type Database = {
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
+          assigned_campaign_id?: string | null
           avg_days_to_pay?: number | null
           avg_risk_score?: number | null
           billing_address_line1?: string | null
@@ -2098,6 +2101,7 @@ export type Database = {
           outreach_paused?: boolean | null
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
+          outreach_type?: string | null
           payment_risk_tier?: string | null
           payment_score?: number | null
           payment_score_last_calculated?: string | null
@@ -2138,6 +2142,7 @@ export type Database = {
           ar_contact_email?: string | null
           ar_contact_name?: string | null
           ar_contact_phone?: string | null
+          assigned_campaign_id?: string | null
           avg_days_to_pay?: number | null
           avg_risk_score?: number | null
           billing_address_line1?: string | null
@@ -2187,6 +2192,7 @@ export type Database = {
           outreach_paused?: boolean | null
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
+          outreach_type?: string | null
           payment_risk_tier?: string | null
           payment_score?: number | null
           payment_score_last_calculated?: string | null
@@ -2211,6 +2217,13 @@ export type Database = {
           written_off_invoices_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "debtors_assigned_campaign_id_fkey"
+            columns: ["assigned_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "collection_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "debtors_crm_account_id_fkey"
             columns: ["crm_account_id"]

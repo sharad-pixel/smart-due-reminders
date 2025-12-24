@@ -21,18 +21,18 @@ import {
   Pause,
   MoreVertical,
   Users,
-  Send
+  Send,
+  AlertCircle
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CampaignAccountsList } from "./CampaignAccountsList";
 import { CampaignOutreachList } from "./CampaignOutreachList";
-import type { CampaignStrategy, CampaignSummary, AccountSummary, CollectionCampaign } from "@/hooks/useCollectionCampaigns";
+import { useCollectionCampaigns, type CampaignStrategy, type CampaignSummary, type AccountSummary, type CollectionCampaign } from "@/hooks/useCollectionCampaigns";
 
 interface EnhancedCampaignCardProps {
   campaign: CollectionCampaign;
   strategy?: CampaignStrategy;
   summary?: CampaignSummary;
-  accounts?: AccountSummary[];
   onStatusChange: (status: string) => void;
   onDelete: () => void;
   onGenerateDrafts?: () => void;
@@ -44,7 +44,6 @@ export function EnhancedCampaignCard({
   campaign,
   strategy,
   summary,
-  accounts = [],
   onStatusChange,
   onDelete,
   onGenerateDrafts,
@@ -52,6 +51,8 @@ export function EnhancedCampaignCard({
   isGeneratingDrafts
 }: EnhancedCampaignCardProps) {
   const [showAccounts, setShowAccounts] = useState(false);
+  const { useAssignedCampaignAccounts } = useCollectionCampaigns();
+  const { data: assignedAccounts = [], isLoading: loadingAccounts } = useAssignedCampaignAccounts(campaign.id);
 
   const getToneBadge = (tone: string | null) => {
     const styles = {
@@ -256,7 +257,7 @@ export function EnhancedCampaignCard({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="accounts" className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
-              Accounts ({accounts.length || campaign.total_accounts})
+              Accounts ({loadingAccounts ? "..." : assignedAccounts.length})
             </TabsTrigger>
             <TabsTrigger value="outreach" className="flex items-center gap-1.5">
               <Send className="h-4 w-4" />
@@ -265,9 +266,13 @@ export function EnhancedCampaignCard({
           </TabsList>
           
           <TabsContent value="accounts" className="mt-4">
-            {accounts.length > 0 ? (
+            {loadingAccounts ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : assignedAccounts.length > 0 ? (
               <CampaignAccountsList
-                accounts={accounts}
+                accounts={assignedAccounts}
                 recommendedTone={campaign.ai_recommended_tone || "firm"}
                 recommendedChannel={campaign.ai_recommended_channel || "email"}
                 onGenerateDraft={(accountId) => console.log("Generate draft for:", accountId)}
@@ -276,9 +281,9 @@ export function EnhancedCampaignCard({
               />
             ) : (
               <div className="text-center py-8 text-muted-foreground border rounded-lg">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No accounts assigned yet</p>
-                <p className="text-sm">Accounts matching the campaign criteria will appear here</p>
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No accounts assigned to this campaign</p>
+                <p className="text-sm mt-1">Go to the <strong>Allocation</strong> tab to assign accounts</p>
               </div>
             )}
           </TabsContent>

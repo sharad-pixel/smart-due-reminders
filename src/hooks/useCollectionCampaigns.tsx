@@ -127,7 +127,7 @@ export function useCollectionCampaigns() {
     },
   });
 
-  // Fetch campaign accounts for a specific campaign
+  // Fetch campaign accounts for a specific campaign (from campaign_accounts table)
   const useCampaignAccounts = (campaignId: string | null) => {
     return useQuery({
       queryKey: ["campaign-accounts", campaignId],
@@ -156,6 +156,66 @@ export function useCollectionCampaigns() {
 
         if (error) throw error;
         return data;
+      },
+      enabled: !!campaignId,
+    });
+  };
+
+  // Fetch accounts assigned to a campaign via the outreach_type field
+  const useAssignedCampaignAccounts = (campaignId: string | null) => {
+    return useQuery({
+      queryKey: ["assigned-campaign-accounts", campaignId],
+      queryFn: async () => {
+        if (!campaignId) return [];
+        
+        const { data, error } = await supabase
+          .from("debtors")
+          .select(`
+            id,
+            name,
+            company_name,
+            email,
+            phone,
+            collections_risk_score,
+            risk_tier,
+            total_open_balance,
+            avg_days_to_pay,
+            open_invoices_count,
+            max_days_past_due,
+            aging_mix_current_pct,
+            aging_mix_1_30_pct,
+            aging_mix_31_60_pct,
+            aging_mix_61_90_pct,
+            aging_mix_91_120_pct,
+            aging_mix_121_plus_pct
+          `)
+          .eq("assigned_campaign_id", campaignId)
+          .eq("outreach_type", "campaign")
+          .order("collections_risk_score", { ascending: false });
+
+        if (error) throw error;
+        
+        // Transform to AccountSummary format
+        return (data || []).map(d => ({
+          id: d.id,
+          name: d.company_name || d.name,
+          riskScore: d.collections_risk_score || 0,
+          riskTier: d.risk_tier || "Unknown",
+          totalBalance: d.total_open_balance || 0,
+          avgDaysToPay: d.avg_days_to_pay || 0,
+          openInvoicesCount: d.open_invoices_count || 0,
+          maxDaysPastDue: d.max_days_past_due || 0,
+          email: d.email,
+          phone: d.phone,
+          agingMix: {
+            current: d.aging_mix_current_pct || 0,
+            dpd_1_30: d.aging_mix_1_30_pct || 0,
+            dpd_31_60: d.aging_mix_31_60_pct || 0,
+            dpd_61_90: d.aging_mix_61_90_pct || 0,
+            dpd_91_120: d.aging_mix_91_120_pct || 0,
+            dpd_121_plus: d.aging_mix_121_plus_pct || 0,
+          }
+        })) as AccountSummary[];
       },
       enabled: !!campaignId,
     });
@@ -539,6 +599,7 @@ export function useCollectionCampaigns() {
     isLoading: campaignsQuery.isLoading,
     refetch: campaignsQuery.refetch,
     useCampaignAccounts,
+    useAssignedCampaignAccounts,
     generateStrategy,
     createCampaign,
     updateCampaignStatus,
