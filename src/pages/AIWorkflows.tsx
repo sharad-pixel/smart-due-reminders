@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Sparkles, BarChart3, Eye, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,7 +79,6 @@ const AIWorkflows = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [generatingContent, setGeneratingContent] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "graph">("list");
   const [previewStep, setPreviewStep] = useState<{
     stepId: string;
     channel: "email" | "sms";
@@ -1531,200 +1530,44 @@ const AIWorkflows = () => {
         {/* Workflow Configuration */}
         <div className="space-y-6">
             {selectedWorkflow ? (
-              <>
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "graph")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="list" className="text-xs sm:text-sm">
-                      List View
-                    </TabsTrigger>
-                    <TabsTrigger value="graph" className="text-xs sm:text-sm">
-                      <BarChart3 className="h-4 w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Graph View</span>
-                      <span className="sm:hidden">Graph</span>
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="list" className="mt-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Workflow Steps</CardTitle>
-                        <CardDescription>
-                          AI will generate drafts at these intervals for human review
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {/* Show selected persona */}
-                        {(() => {
-                          const persona = Object.entries(personaConfig).find(([_, p]) => {
-                            const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
-                            return bucketLabel === selectedBucket || 
-                                   (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
-                                   (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
-                                   (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
-                                   (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
-                                   (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
-                                   (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
-                          });
-                          
-                          return persona && (
-                            <div className="mb-6 p-4 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <PersonaAvatar persona={persona[1]} size="md" />
-                                <div>
-                                  <p className="font-semibold text-lg">{persona[1].name}</p>
-                                  <p className="text-sm text-muted-foreground">{persona[1].description}</p>
-                                  <Badge variant="outline" className="mt-1">
-                                    {persona[1].bucketMin}-{persona[1].bucketMax || "+"} Days Past Due
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        <div className="space-y-4">
-                          {selectedWorkflow.steps
-                            ?.sort((a, b) => a.step_order - b.step_order)
-                            .filter((step) => {
-                              // Only show steps that have approved templates
-                              const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
-                              return stepDraftCount > 0;
-                            })
-                            .map((step) => {
-                            // Check if this step has an approved template for the SELECTED workflow
-                            const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
-                            const hasApprovedTemplate = stepDraftCount > 0;
-                            const isExpanded = expandedSteps.has(step.id);
-                            const invoices = stepInvoices[step.id] || [];
-                            
-                            return (
-                            <div
-                              key={step.id}
-                              className="border rounded-lg"
-                            >
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 hover:bg-accent/50 transition-colors gap-3">
-                                <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold shrink-0">
-                                    {step.step_order}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                      <p className="font-medium text-sm sm:text-base">{step.label}</p>
-                                      {hasApprovedTemplate && (
-                                        <Badge variant="default" className="text-xs self-start">
-                                          <Check className="h-3 w-3 mr-1" />
-                                          Template Ready
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
-                                      <div className="flex items-center space-x-1 text-xs sm:text-sm text-muted-foreground">
-                                        <Clock className="h-3 w-3" />
-                                        <span>Day {step.day_offset}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-1 text-xs sm:text-sm text-muted-foreground">
-                                        {step.channel === "email" ? (
-                                          <>
-                                            <Mail className="h-3 w-3" />
-                                            <span>Email</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <MessageSquare className="h-3 w-3" />
-                                            <span>SMS</span>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0">
-                                  <Badge variant={step.is_active ? "default" : "secondary"} className="text-xs">
-                                    {step.is_active ? "Active" : "Inactive"}
-                                  </Badge>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleStepExpansion(step.id, step.day_offset)}
-                                    className="tap-target"
-                                  >
-                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                  </Button>
-                                </div>
-                              </div>
-                              
-                              {/* Expanded invoices section */}
-                              {isExpanded && (
-                                <div className="border-t px-3 sm:px-4 py-3 bg-muted/30">
-                                  <p className="text-xs sm:text-sm font-medium mb-3">
-                                    View invoices for this collection stage
-                                  </p>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full tap-target"
-                                    onClick={() => navigate(`/invoices?bucket=${selectedBucket}&step=${step.step_order}`)}
-                                  >
-                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                    <span className="text-xs sm:text-sm">View Invoices at Day {step.day_offset}</span>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                           )})}
-                          
-                          {selectedWorkflow.steps?.filter((step) => {
-                            const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
-                            return stepDraftCount > 0;
-                          }).length === 0 && (
-                            <div className="text-center py-8">
-                              <p className="text-muted-foreground">
-                                No workflow steps with approved templates yet. Click on a persona above to create templates.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="mt-6 p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground">
-                            <strong>How it works:</strong> When an invoice reaches the specified days past due,
-                            the AI will generate a draft message using your branding settings. All drafts require
-                            human review before sending.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="graph" className="mt-6">
-                    <WorkflowGraph 
-                      steps={selectedWorkflow.steps?.filter((step) => {
-                        // Only show steps with approved templates in graph view
-                        const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
-                        return stepDraftCount > 0;
-                      }) || []}
-                      onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
-                      onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
-                      isGenerating={generatingContent}
-                      stepInvoiceCounts={(() => {
-                        // Find persona key based on aging bucket
-                        const persona = Object.entries(personaConfig).find(([_, p]) => {
-                          const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
-                          return bucketLabel === selectedBucket || 
-                                 (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
-                                 (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
-                                 (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
-                                 (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
-                                 (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
-                                 (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
-                        });
-                        return persona ? stepInvoiceCounts[persona[0]] || {} : {};
-                      })()}
-                      stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Workflow Timeline
+                  </CardTitle>
+                  <CardDescription>
+                    Visual representation of collection steps for this aging bucket
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WorkflowGraph 
+                    steps={selectedWorkflow.steps?.filter((step) => {
+                      // Only show steps with approved templates in graph view
+                      const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
+                      return stepDraftCount > 0;
+                    }) || []}
+                    onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
+                    onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
+                    isGenerating={generatingContent}
+                    stepInvoiceCounts={(() => {
+                      // Find persona key based on aging bucket
+                      const persona = Object.entries(personaConfig).find(([_, p]) => {
+                        const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
+                        return bucketLabel === selectedBucket || 
+                               (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
+                               (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
+                               (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
+                               (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
+                               (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
+                               (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
+                      });
+                      return persona ? stepInvoiceCounts[persona[0]] || {} : {};
+                    })()}
+                    stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
+                  />
+                </CardContent>
+              </Card>
             ) : (
               <Card>
                 <CardContent className="py-8 sm:py-12 text-center space-y-3 px-4">
