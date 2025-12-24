@@ -1528,66 +1528,8 @@ const AIWorkflows = () => {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          {/* Invoice Count by Collection Agent */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">Invoices by Collection Agent</CardTitle>
-              <CardDescription>Open invoices grouped by AI agent</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Object.entries(personaConfig).map(([key, persona]) => {
-                const invoiceCount = bucketCounts[key] || 0;
-                const bucket = agingBuckets.find(b => {
-                  if (persona.bucketMin === 1 && persona.bucketMax === 30) return b.value === 'dpd_1_30';
-                  if (persona.bucketMin === 31 && persona.bucketMax === 60) return b.value === 'dpd_31_60';
-                  if (persona.bucketMin === 61 && persona.bucketMax === 90) return b.value === 'dpd_61_90';
-                  if (persona.bucketMin === 91 && persona.bucketMax === 120) return b.value === 'dpd_91_120';
-                  if (persona.bucketMin === 121 && persona.bucketMax === 150) return b.value === 'dpd_121_150';
-                  if (persona.bucketMin === 151) return b.value === 'dpd_150_plus';
-                  return false;
-                });
-
-                return (
-                  <div
-                    key={key}
-                    className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <PersonaAvatar persona={persona} size="sm" className="shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm">{persona.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs shrink-0 self-start sm:self-center">
-                        {invoiceCount} {invoiceCount === 1 ? "invoice" : "invoices"}
-                      </Badge>
-                    </div>
-                    {bucket && (
-                      <button
-                        onClick={() => setSelectedBucket(bucket.value)}
-                        className={cn(
-                          "w-full text-xs py-2 px-3 rounded border transition-colors mt-2 tap-target",
-                          selectedBucket === bucket.value
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted hover:bg-muted/70"
-                        )}
-                      >
-                        View {bucket.label} Workflow
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Workflow Configuration */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Workflow Configuration */}
+        <div className="space-y-6">
             {selectedWorkflow ? (
               <>
                 <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "graph")} className="w-full">
@@ -1805,8 +1747,6 @@ const AIWorkflows = () => {
               </Card>
             )}
           </div>
-        </div>
-
         {/* AI Collection Agents Schedule Cards */}
         <AgentScheduleCards />
 
