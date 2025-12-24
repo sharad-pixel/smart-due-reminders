@@ -19,6 +19,7 @@ import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import UpcomingOutreachLog from "@/components/UpcomingOutreachLog";
+import AgentScheduleCards from "@/components/AgentScheduleCards";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
@@ -1806,10 +1807,11 @@ const AIWorkflows = () => {
           </div>
         </div>
 
+        {/* AI Collection Agents Schedule Cards */}
+        <AgentScheduleCards />
+
         {/* Upcoming Outreach Log */}
         <UpcomingOutreachLog />
-
-
       <WorkflowStepEditor
         step={editingStep}
         open={!!editingStep}

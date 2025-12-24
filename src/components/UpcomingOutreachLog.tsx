@@ -16,10 +16,11 @@ import {
   User,
   Building2,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, addDays, isToday, isTomorrow, isPast, isBefore, isAfter } from "date-fns";
+import { format, addDays, isToday, isTomorrow, isPast } from "date-fns";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import OutreachMessagePreview from "./OutreachMessagePreview";
 
 interface OutreachItem {
   id: string;
@@ -54,12 +56,12 @@ const STEP_DAY_OFFSETS = [3, 7, 14, 21, 30];
 
 const getPersonaForBucket = (agingBucket: string): { key: string; persona: PersonaConfig } | null => {
   const mapping: Record<string, string> = {
-    'dpd_1_30': 'james',
-    'dpd_31_60': 'katy',
-    'dpd_61_90': 'troy',
-    'dpd_91_120': 'rocco',
-    'dpd_121_150': 'nicolas',
-    'dpd_150_plus': 'jimmy'
+    'dpd_1_30': 'sam',
+    'dpd_31_60': 'james',
+    'dpd_61_90': 'katy',
+    'dpd_91_120': 'troy',
+    'dpd_121_150': 'jimmy',
+    'dpd_150_plus': 'rocco'
   };
   
   const key = mapping[agingBucket];
@@ -76,6 +78,7 @@ const UpcomingOutreachLog = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [previewItem, setPreviewItem] = useState<OutreachItem | null>(null);
 
   const fetchUpcomingOutreach = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) {
@@ -276,7 +279,7 @@ const UpcomingOutreachLog = () => {
                     <TableHead className="text-center">DPD</TableHead>
                     <TableHead className="text-center">Sequence</TableHead>
                     <TableHead>Assigned Agent</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[100px] text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -349,8 +352,33 @@ const UpcomingOutreachLog = () => {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewItem(item);
+                              }}
+                              title="Preview message"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(item.invoice_id);
+                              }}
+                              title="View invoice"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -368,8 +396,7 @@ const UpcomingOutreachLog = () => {
                 return (
                   <div
                     key={item.id}
-                    className="flex flex-col p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                    onClick={() => handleRowClick(item.invoice_id)}
+                    className="flex flex-col p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <Badge 
@@ -379,12 +406,25 @@ const UpcomingOutreachLog = () => {
                         <Clock className="h-3 w-3 mr-1" />
                         {scheduleInfo.label}
                       </Badge>
-                      <Badge variant="outline" className="text-xs font-mono">
-                        #{item.invoice_number}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => setPreviewItem(item)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Badge variant="outline" className="text-xs font-mono">
+                          #{item.invoice_number}
+                        </Badge>
+                      </div>
                     </div>
                     
-                    <p className="font-medium text-sm mb-2 truncate">
+                    <p 
+                      className="font-medium text-sm mb-2 truncate cursor-pointer hover:text-primary"
+                      onClick={() => handleRowClick(item.invoice_id)}
+                    >
                       {item.company_name}
                     </p>
                     
@@ -442,6 +482,21 @@ const UpcomingOutreachLog = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Message Preview Modal */}
+      {previewItem && (
+        <OutreachMessagePreview
+          open={!!previewItem}
+          onOpenChange={(open) => !open && setPreviewItem(null)}
+          invoiceId={previewItem.invoice_id}
+          invoiceNumber={previewItem.invoice_number}
+          companyName={previewItem.company_name}
+          amount={previewItem.amount}
+          dueDate={previewItem.due_date}
+          personaKey={previewItem.persona_key}
+          outreachSequence={previewItem.outreach_sequence}
+        />
+      )}
     </Card>
   );
 };
