@@ -381,6 +381,9 @@ export function AIInsightsCard({
           <span className="block text-xs text-muted-foreground/70 mt-1 italic">
             More interactions = more accurate insights
           </span>
+          <span className="block text-xs text-muted-foreground/60 mt-0.5">
+            AI synthesizes signals across all collection activities in one centralized view
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent>

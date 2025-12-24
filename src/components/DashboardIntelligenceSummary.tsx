@@ -336,9 +336,12 @@ export function DashboardIntelligenceSummary() {
         </div>
 
         {/* Auto-refresh Notice */}
-        <div className="text-center pt-2 border-t">
+        <div className="text-center pt-2 border-t space-y-1">
           <p className="text-xs text-muted-foreground/70">
             Intelligence reports auto-refresh daily at 5 AM PT
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            All insights logged for team visibility and seamless handoffs
           </p>
         </div>
       </CardContent>

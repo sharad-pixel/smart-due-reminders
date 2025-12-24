@@ -19,6 +19,9 @@ const ValuePropositions = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Risk-aware intelligence that scales with your business—from startup to enterprise
           </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
+            Centralized workflows replace scattered tools and disconnected inboxes
+          </p>
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
