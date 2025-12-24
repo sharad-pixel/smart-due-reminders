@@ -39,6 +39,7 @@ import Personas from "./pages/Personas";
 import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
+import CollectionIntelligence from "./pages/CollectionIntelligence";
 import WhyCollectionsMatter from "./pages/WhyCollectionsMatter";
 import Documents from "./pages/Documents";
 import Startups from "./pages/Startups";
@@ -85,7 +86,7 @@ const App = () => (
           <Route path="/home" element={<Home />} />
           <Route path="/design-partners" element={<ComingSoon />} />
           <Route path="/features" element={<Features />} />
-          <Route path="/collection-intelligence" element={<ComingSoon />} />
+          <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/personas" element={<Personas />} />
           <Route path="/ai-command-center" element={<AICommandCenter />} />
