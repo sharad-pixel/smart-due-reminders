@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Target, 
   MessageSquare, 
@@ -18,10 +19,13 @@ import {
   Loader2,
   Play,
   Pause,
-  MoreVertical
+  MoreVertical,
+  Users,
+  Send
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CampaignAccountsList } from "./CampaignAccountsList";
+import { CampaignOutreachList } from "./CampaignOutreachList";
 import type { CampaignStrategy, CampaignSummary, AccountSummary, CollectionCampaign } from "@/hooks/useCollectionCampaigns";
 
 interface EnhancedCampaignCardProps {
@@ -247,17 +251,46 @@ export function EnhancedCampaignCard({
           </div>
         )}
 
-        {/* Expandable Accounts List */}
-        {accounts.length > 0 && (
-          <CampaignAccountsList
-            accounts={accounts}
-            recommendedTone={campaign.ai_recommended_tone || "firm"}
-            recommendedChannel={campaign.ai_recommended_channel || "email"}
-            onGenerateDraft={(accountId) => console.log("Generate draft for:", accountId)}
-            onInitiateOutreach={onInitiateOutreach}
-            isGenerating={isGeneratingDrafts}
-          />
-        )}
+        {/* Tabbed Content: Accounts & Outreach */}
+        <Tabs defaultValue="accounts" className="mt-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="accounts" className="flex items-center gap-1.5">
+              <Users className="h-4 w-4" />
+              Accounts ({accounts.length || campaign.total_accounts})
+            </TabsTrigger>
+            <TabsTrigger value="outreach" className="flex items-center gap-1.5">
+              <Send className="h-4 w-4" />
+              Outreach
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="accounts" className="mt-4">
+            {accounts.length > 0 ? (
+              <CampaignAccountsList
+                accounts={accounts}
+                recommendedTone={campaign.ai_recommended_tone || "firm"}
+                recommendedChannel={campaign.ai_recommended_channel || "email"}
+                onGenerateDraft={(accountId) => console.log("Generate draft for:", accountId)}
+                onInitiateOutreach={onInitiateOutreach}
+                isGenerating={isGeneratingDrafts}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No accounts assigned yet</p>
+                <p className="text-sm">Accounts matching the campaign criteria will appear here</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="outreach" className="mt-4">
+            <CampaignOutreachList 
+              campaignId={campaign.id}
+              onViewDraft={(draft) => console.log("View draft:", draft)}
+              onRegenerateDraft={(draftId) => console.log("Regenerate draft:", draftId)}
+            />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
