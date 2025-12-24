@@ -438,7 +438,8 @@ async function calculateCreditRiskScore(
       last_score_change_reason: changeReason,
       
       // Legacy fields for backward compatibility
-      payment_score: result.risk_payment_score,
+      // IMPORTANT: payment_score stores RISK (higher = riskier) for consistency with calculate-payment-score
+      payment_score: result.credit_risk_score,
       payment_risk_tier: result.risk_tier,
       risk_status_note: result.risk_status_note,
       risk_last_calculated_at: new Date().toISOString()

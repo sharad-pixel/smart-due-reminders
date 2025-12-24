@@ -46,28 +46,37 @@ export const PaymentScoreCard = ({
   const score = paymentScore || 50;
   const tier = paymentRiskTier || "medium";
 
+  // RISK SCORE: Higher = Riskier (inverted color logic)
   const getScoreColor = () => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 50) return "text-yellow-600";
-    return "text-red-600";
+    if (score <= 30) return "text-green-600"; // Low risk
+    if (score <= 55) return "text-yellow-600"; // Medium risk
+    if (score <= 75) return "text-orange-600"; // High risk
+    return "text-red-600"; // Critical risk
   };
 
   const getScoreBg = () => {
-    if (score >= 80) return "bg-green-100";
-    if (score >= 50) return "bg-yellow-100";
+    if (score <= 30) return "bg-green-100";
+    if (score <= 55) return "bg-yellow-100";
+    if (score <= 75) return "bg-orange-100";
     return "bg-red-100";
   };
 
   const getRiskBadge = () => {
-    if (tier === "low") return <Badge className="bg-green-500">Low Risk</Badge>;
-    if (tier === "medium") return <Badge className="bg-yellow-500">Medium Risk</Badge>;
-    return <Badge className="bg-red-500">High Risk</Badge>;
+    const tierLower = tier.toLowerCase();
+    if (tierLower === "low") return <Badge className="bg-green-500">Low Risk</Badge>;
+    if (tierLower === "medium") return <Badge className="bg-yellow-500">Medium Risk</Badge>;
+    if (tierLower === "high") return <Badge className="bg-orange-500">High Risk</Badge>;
+    if (tierLower === "critical") return <Badge className="bg-red-500">Critical Risk</Badge>;
+    return <Badge variant="secondary">Still Learning</Badge>;
   };
 
   const getRiskIcon = () => {
-    if (tier === "low") return <TrendingUp className="h-5 w-5 text-green-600" />;
-    if (tier === "medium") return <Minus className="h-5 w-5 text-yellow-600" />;
-    return <TrendingDown className="h-5 w-5 text-red-600" />;
+    const tierLower = tier.toLowerCase();
+    if (tierLower === "low") return <TrendingUp className="h-5 w-5 text-green-600" />;
+    if (tierLower === "medium") return <Minus className="h-5 w-5 text-yellow-600" />;
+    if (tierLower === "high") return <TrendingDown className="h-5 w-5 text-orange-600" />;
+    if (tierLower === "critical") return <AlertCircle className="h-5 w-5 text-red-600" />;
+    return <Minus className="h-5 w-5 text-muted-foreground" />;
   };
 
   const getBreakdown = () => {
@@ -163,13 +172,13 @@ export const PaymentScoreCard = ({
           </div>
         </div>
 
-        {/* Score Progress Bar */}
+        {/* Risk Score Progress Bar */}
         <div>
           <Progress value={score} className="h-3" />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>High Risk</span>
-            <span>Medium</span>
-            <span>Low Risk</span>
+            <span>Low Risk (0)</span>
+            <span>Medium (55)</span>
+            <span>Critical (100)</span>
           </div>
         </div>
 
@@ -236,9 +245,11 @@ export const PaymentScoreCard = ({
         {/* Risk Explanation */}
         <div className={`p-4 rounded-lg ${getScoreBg()}`}>
           <p className="text-sm font-medium">
-            {tier === "low" && "This account consistently pays on time with minimal risk."}
-            {tier === "medium" && "This account occasionally pays late but is generally reliable."}
-            {tier === "high" && "This account has a history of late payments and requires close monitoring."}
+            {tier.toLowerCase() === "low" && "This account consistently pays on time with minimal risk."}
+            {tier.toLowerCase() === "medium" && "This account occasionally pays late but is generally reliable."}
+            {tier.toLowerCase() === "high" && "This account has a history of late payments and requires close monitoring."}
+            {tier.toLowerCase() === "critical" && "This account requires immediate attention - severe payment issues detected."}
+            {!["low", "medium", "high", "critical"].includes(tier.toLowerCase()) && "Still learning this account's payment behavior."}
           </p>
         </div>
       </CardContent>
