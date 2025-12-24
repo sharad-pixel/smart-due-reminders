@@ -92,6 +92,33 @@ const UpcomingOutreachLog = () => {
     }
     
     try {
+      // First, fetch approved draft templates to know which buckets/steps are enabled
+      const { data: approvedTemplates, error: templatesError } = await supabase
+        .from('draft_templates')
+        .select('aging_bucket, day_offset, status')
+        .eq('user_id', effectiveAccountId)
+        .eq('status', 'approved')
+        .eq('channel', 'email');
+
+      if (templatesError) throw templatesError;
+
+      // Build a lookup of approved bucket+day_offset combinations
+      const approvedBucketSteps = new Set<string>();
+      approvedTemplates?.forEach((template: any) => {
+        if (template.aging_bucket && template.day_offset !== null) {
+          approvedBucketSteps.add(`${template.aging_bucket}:${template.day_offset}`);
+        }
+      });
+
+      // If no approved templates, show empty state
+      if (approvedBucketSteps.size === 0) {
+        setOutreachItems([]);
+        setTotalCount(0);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       // Fetch all open invoices with their debtor info using effective account ID
       const { data: invoices, error, count } = await supabase
         .from('invoices')
@@ -154,6 +181,12 @@ const UpcomingOutreachLog = () => {
 
         if (currentSequence > STEP_DAY_OFFSETS.length) {
           currentSequence = STEP_DAY_OFFSETS.length;
+        }
+
+        // Only include if there's an approved template for this bucket+day_offset
+        const bucketStepKey = `${invoice.aging_bucket}:${nextOutreachDayOffset}`;
+        if (!approvedBucketSteps.has(bucketStepKey)) {
+          return; // Skip this invoice - no approved template for this step
         }
 
         const scheduledDate = addDays(bucketEnteredDate, nextOutreachDayOffset);
