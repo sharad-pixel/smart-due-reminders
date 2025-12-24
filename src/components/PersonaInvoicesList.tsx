@@ -6,9 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { PersonaConfig } from "@/lib/personaConfig";
-import { ExternalLink, Mail, AlertCircle, CheckCircle, Clock, DollarSign, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Mail, CheckCircle, Clock, DollarSign, ChevronDown, ChevronUp, Loader2, Calendar, Hash, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Invoice {
   id: string;
@@ -18,6 +26,8 @@ interface Invoice {
   due_date: string;
   days_past_due?: number;
   status: string;
+  bucket_entered_at?: string;
+  created_at?: string;
   debtors?: {
     company_name: string;
     email: string;
@@ -25,6 +35,8 @@ interface Invoice {
   };
   draft_count?: number;
   last_outreach_date?: string;
+  outreach_sequence?: number;
+  next_outreach_date?: string;
 }
 
 interface CachedCount {
@@ -42,6 +54,10 @@ interface PersonaInvoicesListProps {
 
 const CACHE_KEY_PREFIX = "persona_invoice_counts_";
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PAGE_SIZE = 25;
+
+// Day offsets for workflow steps
+const STEP_DAY_OFFSETS = [3, 7, 14, 21, 30];
 
 const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }: PersonaInvoicesListProps) => {
   const navigate = useNavigate();
@@ -52,6 +68,8 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
   const [cachedCount, setCachedCount] = useState<number>(0);
   const [cachedTotalAmount, setCachedTotalAmount] = useState<number>(0);
   const [countLoading, setCountLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Load cached count on mount
   useEffect(() => {
@@ -59,12 +77,12 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
     fetchInvoiceCount();
   }, [agingBucket]);
 
-  // Fetch full invoices when expanded
+  // Fetch full invoices when expanded or page changes
   useEffect(() => {
-    if (expanded && invoices.length === 0) {
+    if (expanded) {
       fetchInvoices();
     }
-  }, [expanded]);
+  }, [expanded, currentPage]);
 
   const getCacheKey = useCallback(() => {
     return `${CACHE_KEY_PREFIX}${agingBucket}`;
@@ -123,6 +141,7 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
 
       setCachedCount(invoiceCount);
       setCachedTotalAmount(totalAmount);
+      setTotalCount(invoiceCount);
       saveCachedCount(invoiceCount, totalAmount);
     } catch (error) {
       console.error("Error fetching invoice count:", error);
@@ -131,14 +150,58 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
     }
   };
 
+  const calculateOutreachInfo = (invoice: Invoice) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const bucketEnteredDate = new Date(invoice.bucket_entered_at || invoice.created_at || invoice.due_date);
+    bucketEnteredDate.setHours(0, 0, 0, 0);
+    
+    const daysSinceEntered = Math.floor((today.getTime() - bucketEnteredDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Determine current sequence based on days since entering bucket
+    let currentSequence = 1;
+    let nextOutreachDayOffset = STEP_DAY_OFFSETS[0];
+    
+    for (let i = STEP_DAY_OFFSETS.length - 1; i >= 0; i--) {
+      if (daysSinceEntered >= STEP_DAY_OFFSETS[i]) {
+        currentSequence = i + 2; // Next sequence after the passed one
+        nextOutreachDayOffset = STEP_DAY_OFFSETS[Math.min(i + 1, STEP_DAY_OFFSETS.length - 1)];
+        break;
+      }
+    }
+    
+    // If we haven't passed any step yet
+    if (daysSinceEntered < STEP_DAY_OFFSETS[0]) {
+      currentSequence = 1;
+      nextOutreachDayOffset = STEP_DAY_OFFSETS[0];
+    }
+    
+    // Cap at max sequence
+    if (currentSequence > STEP_DAY_OFFSETS.length) {
+      currentSequence = STEP_DAY_OFFSETS.length;
+    }
+    
+    // Calculate next outreach date
+    const nextOutreachDate = addDays(bucketEnteredDate, nextOutreachDayOffset);
+    
+    return {
+      outreachSequence: currentSequence,
+      nextOutreachDate: nextOutreachDate
+    };
+  };
+
   const fetchInvoices = async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch invoices for this aging bucket
-      const { data: invoiceData, error } = await supabase
+      const from = (currentPage - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      // Fetch invoices for this aging bucket with pagination
+      const { data: invoiceData, error, count } = await supabase
         .from('invoices')
         .select(`
           id,
@@ -147,17 +210,23 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
           due_date,
           status,
           aging_bucket,
+          bucket_entered_at,
+          created_at,
           debtors(id, company_name, email)
-        `)
+        `, { count: 'exact' })
         .eq('user_id', user.id)
         .eq('aging_bucket', agingBucket)
         .in('status', ['Open', 'InPaymentPlan'])
         .order('due_date', { ascending: true })
-        .limit(25);
+        .range(from, to);
 
       if (error) throw error;
 
-      // Calculate days past due
+      if (count !== null) {
+        setTotalCount(count);
+      }
+
+      // Calculate days past due and outreach info
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -165,6 +234,13 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
         const dueDate = new Date(inv.due_date);
         dueDate.setHours(0, 0, 0, 0);
         const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        const outreachInfo = calculateOutreachInfo({
+          ...inv,
+          outstanding_amount: inv.amount,
+          days_past_due: daysPastDue
+        } as Invoice);
+        
         return { 
           id: inv.id,
           invoice_number: inv.invoice_number,
@@ -172,8 +248,12 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
           outstanding_amount: inv.amount,
           due_date: inv.due_date,
           status: inv.status,
+          bucket_entered_at: inv.bucket_entered_at,
+          created_at: inv.created_at,
           debtors: inv.debtors,
-          days_past_due: daysPastDue 
+          days_past_due: daysPastDue,
+          outreach_sequence: outreachInfo.outreachSequence,
+          next_outreach_date: outreachInfo.nextOutreachDate.toISOString()
         } as Invoice;
       });
 
@@ -208,15 +288,26 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
   const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
 
   // Use cached count for display, or expanded invoices count
-  const displayCount = expanded ? invoices.length : cachedCount;
+  const displayCount = cachedCount;
   const displayTotal = expanded ? totalOutstanding : cachedTotalAmount;
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const handleRowClick = (invoiceId: string) => {
+    navigate(`/invoices/${invoiceId}`);
+  };
 
   return (
     <Card className="border-l-4" style={{ borderLeftColor: persona.color }}>
       <CardHeader className="pb-2">
         <div 
           className="flex items-center justify-between cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            if (!expanded) {
+              setCurrentPage(1);
+            }
+            setExpanded(!expanded);
+          }}
         >
           <div className="flex items-center gap-3">
             <PersonaAvatar persona={persona} size="sm" />
@@ -264,61 +355,179 @@ const PersonaInvoicesList = ({ persona, agingBucket, workflowId, onViewInvoice }
               <p>No invoices in this aging bucket</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm truncate">
+            <div className="space-y-3">
+              {/* Desktop Table View */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-center">DPD</TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Hash className="h-3 w-3" />
+                          Sequence
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Next Outreach
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">Drafts</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoices.map((invoice) => (
+                      <TableRow
+                        key={invoice.id}
+                        className="cursor-pointer hover:bg-accent/50"
+                        onClick={() => handleRowClick(invoice.id)}
+                      >
+                        <TableCell className="font-medium">
                           {invoice.debtors?.company_name || "Unknown Account"}
-                        </p>
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          #{invoice.invoice_number}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            #{invoice.invoice_number}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           {formatCurrency(invoice.outstanding_amount || invoice.amount)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {invoice.days_past_due} days past due
-                        </span>
-                        {draftCounts[invoice.id] > 0 && (
-                          <span className="flex items-center gap-1 text-blue-600">
-                            <Mail className="h-3 w-3" />
-                            {draftCounts[invoice.id]} draft{draftCounts[invoice.id] > 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(`/invoices/${invoice.id}`)}
-                    className="shrink-0"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant="secondary"
+                            className={cn(
+                              "text-xs",
+                              (invoice.days_past_due || 0) > 90 && "bg-destructive/10 text-destructive",
+                              (invoice.days_past_due || 0) > 60 && (invoice.days_past_due || 0) <= 90 && "bg-orange-100 text-orange-700",
+                              (invoice.days_past_due || 0) > 30 && (invoice.days_past_due || 0) <= 60 && "bg-yellow-100 text-yellow-700"
+                            )}
+                          >
+                            {invoice.days_past_due} days
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs bg-primary/5"
+                          >
+                            Step {invoice.outreach_sequence}/{STEP_DAY_OFFSETS.length}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {invoice.next_outreach_date ? (
+                            <span className={cn(
+                              new Date(invoice.next_outreach_date) <= new Date() && "text-primary font-medium"
+                            )}>
+                              {format(new Date(invoice.next_outreach_date), "MMM d, yyyy")}
+                            </span>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {draftCounts[invoice.id] > 0 ? (
+                            <Badge variant="secondary" className="text-xs">
+                              <Mail className="h-3 w-3 mr-1" />
+                              {draftCounts[invoice.id]}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-              {invoices.length >= 25 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                  onClick={() => navigate(`/invoices?bucket=${agingBucket}`)}
-                >
-                  View All Invoices in {persona.name}'s Queue
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </Button>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2">
+                {invoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="flex flex-col p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => handleRowClick(invoice.id)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-sm truncate flex-1">
+                        {invoice.debtors?.company_name || "Unknown Account"}
+                      </p>
+                      <Badge variant="outline" className="text-xs shrink-0 ml-2">
+                        #{invoice.invoice_number}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        {formatCurrency(invoice.outstanding_amount || invoice.amount)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {invoice.days_past_due} DPD
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        Step {invoice.outreach_sequence}/{STEP_DAY_OFFSETS.length}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {invoice.next_outreach_date 
+                          ? format(new Date(invoice.next_outreach_date), "MMM d")
+                          : "-"}
+                      </span>
+                    </div>
+                    {draftCounts[invoice.id] > 0 && (
+                      <div className="mt-2 pt-2 border-t">
+                        <span className="flex items-center gap-1 text-xs text-blue-600">
+                          <Mail className="h-3 w-3" />
+                          {draftCounts[invoice.id]} draft{draftCounts[invoice.id] > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {((currentPage - 1) * PAGE_SIZE) + 1}-{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentPage(p => Math.max(1, p - 1));
+                      }}
+                      disabled={currentPage === 1 || loading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="sr-only">Previous</span>
+                    </Button>
+                    <span className="text-sm px-2">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentPage(p => Math.min(totalPages, p + 1));
+                      }}
+                      disabled={currentPage === totalPages || loading}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="sr-only">Next</span>
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           )}
