@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, ArrowRight, Check } from "lucide-react";
+import { Loader2, Sparkles, ArrowRight, Check, Users, AlertCircle } from "lucide-react";
 import { useCollectionCampaigns, CampaignStrategy, CampaignSummary, AccountSummary } from "@/hooks/useCollectionCampaigns";
 import { CampaignStrategyCard } from "./CampaignStrategyCard";
+import { toast } from "sonner";
 
 interface CreateCampaignModalProps {
   open: boolean;
@@ -26,10 +27,13 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
   const [campaignName, setCampaignName] = useState("");
   const [campaignDescription, setCampaignDescription] = useState("");
+  const [noAccountsMessage, setNoAccountsMessage] = useState<string | null>(null);
 
   const { generateStrategy, createCampaign } = useCollectionCampaigns();
 
   const handleGenerateStrategy = async () => {
+    setNoAccountsMessage(null);
+    
     const result = await generateStrategy.mutateAsync({
       targetRiskTier,
       minBalance: minBalance ? parseFloat(minBalance) : undefined,
@@ -43,6 +47,9 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
       setCampaignName(result.strategy.campaignName);
       setCampaignDescription(result.strategy.executiveSummary);
       setStep("strategy");
+    } else if (result.message) {
+      setNoAccountsMessage(result.message);
+      toast.info(result.message);
     }
   };
 
@@ -61,6 +68,7 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
       max_balance: maxBalance ? parseFloat(maxBalance) : undefined,
       total_accounts: summary.totalAccounts,
       total_balance: summary.totalBalance,
+      accountIds: accounts.map(a => a.id), // Assign all matching accounts
     });
 
     handleClose();
@@ -75,20 +83,21 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
     setCampaignDescription("");
     setMinBalance("");
     setMaxBalance("");
+    setNoAccountsMessage(null);
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Create Collection Campaign
+            Create AI Collection Campaign
           </DialogTitle>
           <DialogDescription>
-            {step === "select" && "Select target criteria and let AI recommend the optimal collection strategy"}
-            {step === "strategy" && "Review the AI-generated strategy and customize as needed"}
+            {step === "select" && "Select target criteria and let AI recommend the optimal collection strategy with risk-based prioritization"}
+            {step === "strategy" && "Review the AI-generated strategy, payment predictions, and qualifying accounts"}
             {step === "confirm" && "Confirm campaign details and launch"}
           </DialogDescription>
         </DialogHeader>
@@ -104,14 +113,14 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Risk Tiers</SelectItem>
-                  <SelectItem value="Low">Low Risk (≤30)</SelectItem>
-                  <SelectItem value="Medium">Medium Risk (31-55)</SelectItem>
-                  <SelectItem value="High">High Risk (56-75)</SelectItem>
-                  <SelectItem value="Critical">Critical Risk (&gt;75)</SelectItem>
+                  <SelectItem value="Low">Low Risk (≤30) - Gentle Reminders</SelectItem>
+                  <SelectItem value="Medium">Medium Risk (31-55) - Proactive Outreach</SelectItem>
+                  <SelectItem value="High">High Risk (56-75) - Urgent Collection</SelectItem>
+                  <SelectItem value="Critical">Critical Risk (&gt;75) - Escalation</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Higher risk scores indicate accounts more likely to become bad debt
+                Higher risk scores indicate accounts more likely to become bad debt. AI will tailor the strategy accordingly.
               </p>
             </div>
 
@@ -138,27 +147,47 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
             </div>
 
             {/* Risk Tier Explanation */}
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <h4 className="font-medium">Risk Tier Guide</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span><strong>Low:</strong> Good payers, gentle reminders</span>
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <h4 className="font-medium">AI Campaign Features</h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-primary mt-0.5" />
+                  <div>
+                    <span className="font-medium">Auto-Generate Drafts</span>
+                    <p className="text-xs text-muted-foreground">AI creates personalized outreach for each account</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <span><strong>Medium:</strong> Some delays, proactive outreach</span>
+                <div className="flex items-start gap-2">
+                  <Users className="h-4 w-4 text-primary mt-0.5" />
+                  <div>
+                    <span className="font-medium">Risk-Based Priority</span>
+                    <p className="text-xs text-muted-foreground">Accounts ranked by collection likelihood</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
-                  <span><strong>High:</strong> Significant issues, urgent action</span>
+                <div className="flex items-start gap-2">
+                  <ArrowRight className="h-4 w-4 text-primary mt-0.5" />
+                  <div>
+                    <span className="font-medium">Multi-Channel Sequencing</span>
+                    <p className="text-xs text-muted-foreground">Optimal contact order: email → phone → SMS</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <span><strong>Critical:</strong> Severe delinquency, escalation</span>
+                <div className="flex items-start gap-2">
+                  <Check className="h-4 w-4 text-primary mt-0.5" />
+                  <div>
+                    <span className="font-medium">Payment Prediction</span>
+                    <p className="text-xs text-muted-foreground">AI estimates recovery amount and timeline</p>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* No Accounts Warning */}
+            {noAccountsMessage && (
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-800 dark:text-yellow-200">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">{noAccountsMessage}</span>
+              </div>
+            )}
 
             <Button 
               className="w-full" 
@@ -168,7 +197,7 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
               {generateStrategy.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing Accounts...
+                  Analyzing Accounts & Generating Strategy...
                 </>
               ) : (
                 <>
@@ -182,7 +211,11 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
 
         {step === "strategy" && strategy && summary && (
           <div className="space-y-6">
-            <CampaignStrategyCard strategy={strategy} summary={summary} />
+            <CampaignStrategyCard 
+              strategy={strategy} 
+              summary={summary} 
+              accounts={accounts}
+            />
 
             {/* Customize Name */}
             <div className="space-y-2">
@@ -204,6 +237,32 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
               />
             </div>
 
+            {/* Summary before creation */}
+            <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+              <h4 className="font-medium mb-2">Campaign Summary</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Accounts to assign:</span>
+                  <span className="ml-2 font-medium">{accounts.length}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Total balance:</span>
+                  <span className="ml-2 font-medium">${summary.totalBalance.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Recommended tone:</span>
+                  <span className="ml-2 font-medium capitalize">{strategy.recommendedTone}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Primary channel:</span>
+                  <span className="ml-2 font-medium capitalize">{strategy.recommendedChannel.replace("-", " ")}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                All outreach will be tracked in the Inbound Command Center for response monitoring.
+              </p>
+            </div>
+
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep("select")} className="flex-1">
                 Back
@@ -216,12 +275,12 @@ export function CreateCampaignModal({ open, onOpenChange }: CreateCampaignModalP
                 {createCampaign.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
+                    Creating Campaign...
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
-                    Create Campaign
+                    Create Campaign ({accounts.length} accounts)
                   </>
                 )}
               </Button>
