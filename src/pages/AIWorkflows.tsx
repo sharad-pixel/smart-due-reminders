@@ -106,6 +106,12 @@ const AIWorkflows = () => {
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
+  
+  // Campaign state
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
+  const [mainTab, setMainTab] = useState<"workflows" | "campaigns">("workflows");
+  const { campaigns, isLoading: campaignsLoading, updateCampaignStatus, deleteCampaign, generateCampaignDrafts } = useCollectionCampaigns();
+  const [generatingDraftsForCampaign, setGeneratingDraftsForCampaign] = useState<string | null>(null);
   const toneOptions = [
     { value: "standard", label: "Standard", description: "Default persona tone" },
     { value: "more_friendly", label: "More Friendly", description: "Warmer, more conversational" },
@@ -1122,11 +1128,6 @@ const AIWorkflows = () => {
     );
   }
 
-  // Campaign state
-  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
-  const [mainTab, setMainTab] = useState<"workflows" | "campaigns">("workflows");
-  const { campaigns, isLoading: campaignsLoading, updateCampaignStatus, deleteCampaign, generateCampaignDrafts } = useCollectionCampaigns();
-  const [generatingDraftsForCampaign, setGeneratingDraftsForCampaign] = useState<string | null>(null);
 
   return (
     <Layout>
