@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Calendar, FileText } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Pencil, Settings, Sparkles, Trash2, BarChart3, Eye, PlayCircle, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,8 +19,6 @@ import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import UpcomingOutreachLog from "@/components/UpcomingOutreachLog";
-import PendingDraftsSection from "@/components/PendingDraftsSection";
-import AgentSummaryCard from "@/components/AgentSummaryCard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
@@ -386,10 +384,7 @@ const AIWorkflows = () => {
   const fetchWorkflows = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        // Layout will handle redirecting to /login; avoid flashing an error toast.
-        return;
-      }
+      if (!user) throw new Error("Not authenticated");
 
       const { data: workflowsData, error } = await supabase
         .from("collection_workflows")
@@ -1810,12 +1805,6 @@ const AIWorkflows = () => {
             )}
           </div>
         </div>
-
-        {/* Agent Summary Cards */}
-        <AgentSummaryCard />
-
-        {/* Pending Drafts Section */}
-        <PendingDraftsSection />
 
         {/* Upcoming Outreach Log */}
         <UpcomingOutreachLog />

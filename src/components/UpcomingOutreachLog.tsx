@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Mail, 
   Clock, 
@@ -17,11 +16,10 @@ import {
   User,
   Building2,
   ExternalLink,
-  RefreshCw,
-  Eye
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, addDays, isToday, isTomorrow, isPast } from "date-fns";
+import { format, addDays, isToday, isTomorrow, isPast, isBefore, isAfter } from "date-fns";
 import {
   Table,
   TableBody,
@@ -30,7 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import OutreachEmailPreview from "@/components/OutreachEmailPreview";
 
 interface OutreachItem {
   id: string;
@@ -38,7 +35,6 @@ interface OutreachItem {
   invoice_number: string;
   debtor_id: string;
   company_name: string;
-  debtor_name: string;
   amount: number;
   due_date: string;
   days_past_due: number;
@@ -80,7 +76,6 @@ const UpcomingOutreachLog = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [previewItem, setPreviewItem] = useState<OutreachItem | null>(null);
 
   const fetchUpcomingOutreach = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) {
@@ -94,7 +89,7 @@ const UpcomingOutreachLog = () => {
       if (!user) return;
 
       // Fetch all open invoices with their debtor info
-      const { data: invoices, error } = await supabase
+      const { data: invoices, error, count } = await supabase
         .from('invoices')
         .select(`
           id,
@@ -107,12 +102,11 @@ const UpcomingOutreachLog = () => {
           status,
           debtors!inner(
             id,
-            name,
             company_name,
             account_outreach_enabled,
             account_outreach_persona
           )
-        `)
+        `, { count: 'exact' })
         .eq('user_id', user.id)
         .in('status', ['Open', 'InPaymentPlan'])
         .not('aging_bucket', 'in', '("current","paid")')
@@ -171,7 +165,6 @@ const UpcomingOutreachLog = () => {
           invoice_number: invoice.invoice_number,
           debtor_id: invoice.debtors?.id,
           company_name: invoice.debtors?.company_name || 'Unknown',
-          debtor_name: invoice.debtors?.name || invoice.debtors?.company_name || 'Unknown',
           amount: invoice.amount,
           due_date: invoice.due_date,
           days_past_due: daysPastDue,
@@ -234,305 +227,222 @@ const UpcomingOutreachLog = () => {
     fetchUpcomingOutreach(true);
   };
 
-  const handlePreviewClick = (e: React.MouseEvent, item: OutreachItem) => {
-    e.stopPropagation();
-    setPreviewItem(item);
-  };
-
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Upcoming Outreach Schedule
-              </CardTitle>
-              <CardDescription>
-                Real-time log of scheduled collection outreach. Click any row to view invoice details or preview/edit the email.
-              </CardDescription>
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                >
-                  <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-                  Refresh
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Reload outreach schedule</TooltipContent>
-            </Tooltip>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Upcoming Outreach Schedule
+            </CardTitle>
+            <CardDescription>
+              Real-time log of scheduled collection outreach. Click any row to view invoice details.
+            </CardDescription>
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : outreachItems.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No upcoming outreach scheduled</p>
-              <p className="text-sm mt-1">All invoices are either current or have completed their outreach sequences.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Desktop Table View */}
-              <div className="hidden md:block rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-[140px]">Scheduled</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Invoice</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-center">DPD</TableHead>
-                      <TableHead className="text-center">Sequence</TableHead>
-                      <TableHead>Assigned Agent</TableHead>
-                      <TableHead className="w-[100px] text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {outreachItems.map((item) => {
-                      const scheduleInfo = getScheduleLabel(item.scheduled_date);
-                      const persona = personaConfig[item.persona_key];
-                      
-                      return (
-                        <TableRow
-                          key={item.id}
-                          className="cursor-pointer hover:bg-accent/50 transition-colors"
-                          onClick={() => handleRowClick(item.invoice_id)}
-                        >
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={cn("text-xs font-medium", scheduleInfo.className)}
-                            >
-                              <Clock className="h-3 w-3 mr-1" />
-                              {scheduleInfo.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <span className="font-medium truncate max-w-[200px]">
-                                {item.company_name}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs font-mono">
-                              #{item.invoice_number}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(item.amount)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge 
-                              variant="secondary"
-                              className={cn(
-                                "text-xs",
-                                item.days_past_due > 90 && "bg-destructive/10 text-destructive",
-                                item.days_past_due > 60 && item.days_past_due <= 90 && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-                                item.days_past_due > 30 && item.days_past_due <= 60 && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              )}
-                            >
-                              {item.days_past_due}d
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline" className="text-xs bg-primary/5">
-                              Step {item.outreach_sequence}/{STEP_DAY_OFFSETS.length}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {persona && <PersonaAvatar persona={persona} size="xs" />}
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium">
-                                  {persona?.name || 'Unknown'}
-                                </span>
-                                {item.is_account_level && (
-                                  <Badge variant="secondary" className="text-[10px] px-1 py-0 w-fit">
-                                    <User className="h-2 w-2 mr-0.5" />
-                                    Account Level
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => handlePreviewClick(e, item)}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Preview & Edit Email</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRowClick(item.invoice_id);
-                                    }}
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>View Invoice Details</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="md:hidden space-y-2">
-                {outreachItems.map((item) => {
-                  const scheduleInfo = getScheduleLabel(item.scheduled_date);
-                  const persona = personaConfig[item.persona_key];
-                  
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex flex-col p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge 
-                          variant="outline" 
-                          className={cn("text-xs font-medium", scheduleInfo.className)}
-                        >
-                          <Clock className="h-3 w-3 mr-1" />
-                          {scheduleInfo.label}
-                        </Badge>
-                        <div className="flex items-center gap-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => handlePreviewClick(e, item)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Preview Email</TooltipContent>
-                          </Tooltip>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : outreachItems.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">No upcoming outreach scheduled</p>
+            <p className="text-sm mt-1">All invoices are either current or have completed their outreach sequences.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[140px]">Scheduled</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">DPD</TableHead>
+                    <TableHead className="text-center">Sequence</TableHead>
+                    <TableHead>Assigned Agent</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {outreachItems.map((item) => {
+                    const scheduleInfo = getScheduleLabel(item.scheduled_date);
+                    const persona = personaConfig[item.persona_key];
+                    
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors"
+                        onClick={() => handleRowClick(item.invoice_id)}
+                      >
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={cn("text-xs font-medium", scheduleInfo.className)}
+                          >
+                            <Clock className="h-3 w-3 mr-1" />
+                            {scheduleInfo.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium truncate max-w-[200px]">
+                              {item.company_name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="outline" className="text-xs font-mono">
                             #{item.invoice_number}
                           </Badge>
-                        </div>
-                      </div>
-                      
-                      <p 
-                        className="font-medium text-sm mb-2 truncate cursor-pointer"
-                        onClick={() => handleRowClick(item.invoice_id)}
-                      >
-                        {item.company_name}
-                      </p>
-                      
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{formatCurrency(item.amount)}</span>
-                        <span>{item.days_past_due} DPD</span>
-                        <div className="flex items-center gap-1">
-                          {persona && <PersonaAvatar persona={persona} size="xs" />}
-                          <span>{persona?.name}</span>
-                          {item.is_account_level && (
-                            <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                              <User className="h-2 w-2" />
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * PAGE_SIZE) + 1}-{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Previous
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Go to previous page</TooltipContent>
-                    </Tooltip>
-                    <div className="flex items-center gap-1 px-2">
-                      <span className="text-sm font-medium">{currentPage}</span>
-                      <span className="text-sm text-muted-foreground">of</span>
-                      <span className="text-sm font-medium">{totalPages}</span>
-                    </div>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                        >
-                          Next
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Go to next page</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(item.amount)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant="secondary"
+                            className={cn(
+                              "text-xs",
+                              item.days_past_due > 90 && "bg-destructive/10 text-destructive",
+                              item.days_past_due > 60 && item.days_past_due <= 90 && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                              item.days_past_due > 30 && item.days_past_due <= 60 && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            )}
+                          >
+                            {item.days_past_due}d
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-xs bg-primary/5">
+                            Step {item.outreach_sequence}/{STEP_DAY_OFFSETS.length}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {persona && <PersonaAvatar persona={persona} size="xs" />}
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">
+                                {persona?.name || 'Unknown'}
+                              </span>
+                              {item.is_account_level && (
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0 w-fit">
+                                  <User className="h-2 w-2 mr-0.5" />
+                                  Account Level
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Email Preview Modal */}
-      {previewItem && (
-        <OutreachEmailPreview
-          open={!!previewItem}
-          onOpenChange={(open) => !open && setPreviewItem(null)}
-          invoiceId={previewItem.invoice_id}
-          invoiceNumber={previewItem.invoice_number}
-          companyName={previewItem.company_name}
-          debtorName={previewItem.debtor_name}
-          amount={previewItem.amount}
-          dueDate={previewItem.due_date}
-          agingBucket={previewItem.aging_bucket}
-          outreachSequence={previewItem.outreach_sequence}
-          onSaved={() => fetchUpcomingOutreach(true)}
-        />
-      )}
-    </>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-2">
+              {outreachItems.map((item) => {
+                const scheduleInfo = getScheduleLabel(item.scheduled_date);
+                const persona = personaConfig[item.persona_key];
+                
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => handleRowClick(item.invoice_id)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-xs font-medium", scheduleInfo.className)}
+                      >
+                        <Clock className="h-3 w-3 mr-1" />
+                        {scheduleInfo.label}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-mono">
+                        #{item.invoice_number}
+                      </Badge>
+                    </div>
+                    
+                    <p className="font-medium text-sm mb-2 truncate">
+                      {item.company_name}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{formatCurrency(item.amount)}</span>
+                      <span>{item.days_past_due} DPD</span>
+                      <div className="flex items-center gap-1">
+                        {persona && <PersonaAvatar persona={persona} size="xs" />}
+                        <span>{persona?.name}</span>
+                        {item.is_account_level && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                            <User className="h-2 w-2" />
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * PAGE_SIZE) + 1}-{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1 px-2">
+                    <span className="text-sm font-medium">{currentPage}</span>
+                    <span className="text-sm text-muted-foreground">of</span>
+                    <span className="text-sm font-medium">{totalPages}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
