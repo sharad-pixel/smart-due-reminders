@@ -13,6 +13,7 @@ interface GenerateDraftRequest {
   tone?: "friendly" | "firm" | "neutral";
   step_number: number;
   use_ai_generation?: boolean; // If true, use AI instead of template
+  preview_only?: boolean; // If true, generate content but DO NOT create an ai_drafts row
 }
 
 serve(async (req) => {
@@ -40,7 +41,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { invoice_id, tone, step_number, use_ai_generation }: GenerateDraftRequest = await req.json();
+    const { invoice_id, tone, step_number, use_ai_generation, preview_only }: GenerateDraftRequest = await req.json();
 
     if (!invoice_id || step_number === undefined) {
       throw new Error("Missing required parameters: invoice_id, step_number");
@@ -65,6 +66,9 @@ serve(async (req) => {
       console.error("Invoice fetch error:", invoiceError);
       throw new Error("Invoice not found");
     }
+
+    // Use the invoice owner as the source of truth for templates/branding (supports team members)
+    const templateOwnerId: string = invoice.user_id || user.id;
 
     // Fetch primary contact from debtor_contacts table
     let contactName = invoice.debtors.name;
@@ -93,11 +97,11 @@ serve(async (req) => {
     const totalPaid = paymentLinks?.reduce((sum, link) => sum + (link.amount_applied || 0), 0) || 0;
     const amountOutstanding = invoice.amount_outstanding ?? (invoice.amount - totalPaid);
 
-    // Fetch user profile
+    // Fetch profile + branding settings for the template owner
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("business_name, stripe_payment_link_url")
-      .eq("id", user.id)
+      .eq("id", templateOwnerId)
       .single();
 
     if (profileError || !profile) {
@@ -105,11 +109,10 @@ serve(async (req) => {
       throw new Error("User profile not found");
     }
 
-    // Fetch branding settings
     const { data: branding } = await supabaseClient
       .from("branding_settings")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", templateOwnerId)
       .maybeSingle();
 
     // Calculate days past due
@@ -172,7 +175,7 @@ serve(async (req) => {
           steps:collection_workflow_steps(*)
         `)
         .eq('aging_bucket', agingBucket)
-        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .or(`user_id.eq.${templateOwnerId},user_id.is.null`)
         .eq('is_active', true)
         .order('user_id', { ascending: false })
         .limit(1)
@@ -187,7 +190,7 @@ serve(async (req) => {
           .from('draft_templates')
           .select('*')
           .eq('workflow_step_id', workflowStep.id)
-          .eq('user_id', user.id)
+          .eq('user_id', templateOwnerId)
           .eq('status', 'approved')
           .maybeSingle();
         
@@ -200,7 +203,7 @@ serve(async (req) => {
           .from('draft_templates')
           .select('*')
           .eq('aging_bucket', agingBucket)
-          .eq('user_id', user.id)
+          .eq('user_id', templateOwnerId)
           .eq('status', 'approved')
           .eq('step_number', step_number)
           .maybeSingle();
@@ -377,6 +380,23 @@ Return JSON with email_subject and email_body fields.`,
 
     if (!email_subject || !email_body) {
       throw new Error("Invalid response format - missing subject or body");
+    }
+
+    // If this is just a preview, do not create a draft row
+    if (preview_only) {
+      console.log(`Preview-only generation using ${templateSource}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          email_subject,
+          email_body,
+          template_source: templateSource,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
     }
 
     const today_date = new Date().toISOString().split("T")[0];
