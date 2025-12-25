@@ -3302,6 +3302,8 @@ export type Database = {
           bucket_entered_at: string | null
           created_at: string | null
           currency: string | null
+          custom_template_body: string | null
+          custom_template_subject: string | null
           data_center_upload_id: string | null
           debtor_id: string
           due_date: string
@@ -3336,6 +3338,7 @@ export type Database = {
           tax_amount: number | null
           total_amount: number | null
           updated_at: string | null
+          use_custom_template: boolean | null
           user_id: string
         }
         Insert: {
@@ -3346,6 +3349,8 @@ export type Database = {
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
+          custom_template_body?: string | null
+          custom_template_subject?: string | null
           data_center_upload_id?: string | null
           debtor_id: string
           due_date: string
@@ -3380,6 +3385,7 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
+          use_custom_template?: boolean | null
           user_id: string
         }
         Update: {
@@ -3390,6 +3396,8 @@ export type Database = {
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
+          custom_template_body?: string | null
+          custom_template_subject?: string | null
           data_center_upload_id?: string | null
           debtor_id?: string
           due_date?: string
@@ -3424,6 +3432,7 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
+          use_custom_template?: boolean | null
           user_id?: string
         }
         Relationships: [

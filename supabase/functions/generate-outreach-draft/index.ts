@@ -10,8 +10,9 @@ const corsHeaders = {
 
 interface GenerateDraftRequest {
   invoice_id: string;
-  tone?: "friendly" | "firm" | "neutral"; // Optional, will use persona if not provided
+  tone?: "friendly" | "firm" | "neutral";
   step_number: number;
+  use_ai_generation?: boolean; // If true, use AI instead of template
 }
 
 serve(async (req) => {
@@ -39,7 +40,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { invoice_id, tone, step_number }: GenerateDraftRequest = await req.json();
+    const { invoice_id, tone, step_number, use_ai_generation }: GenerateDraftRequest = await req.json();
 
     if (!invoice_id || step_number === undefined) {
       throw new Error("Missing required parameters: invoice_id, step_number");
@@ -65,8 +66,8 @@ serve(async (req) => {
       throw new Error("Invoice not found");
     }
 
-    // Fetch primary contact from debtor_contacts table (source of truth for contact names)
-    let contactName = invoice.debtors.name; // fallback
+    // Fetch primary contact from debtor_contacts table
+    let contactName = invoice.debtors.name;
     if (invoice.debtors.id) {
       const { data: contacts } = await supabaseClient
         .from('debtor_contacts')
@@ -76,7 +77,6 @@ serve(async (req) => {
         .order('is_primary', { ascending: false });
       
       if (contacts && contacts.length > 0) {
-        // Use primary contact or first outreach-enabled contact
         const primaryContact = contacts.find((c: any) => c.is_primary);
         contactName = primaryContact?.name || contacts[0]?.name || contactName;
         console.log(`Using contact name from debtor_contacts: ${contactName}`);
@@ -105,20 +105,12 @@ serve(async (req) => {
       throw new Error("User profile not found");
     }
 
-    // Fetch CRM account if linked
-    let crmAccount = null;
-    if (invoice.debtors.crm_account_id) {
-      const { data: crmData, error: crmError } = await supabaseClient
-        .from("crm_accounts")
-        .select("*")
-        .eq("id", invoice.debtors.crm_account_id)
-        .single();
-      
-      if (!crmError && crmData) {
-        crmAccount = crmData;
-        console.log("CRM account found:", crmAccount.name);
-      }
-    }
+    // Fetch branding settings
+    const { data: branding } = await supabaseClient
+      .from("branding_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     // Calculate days past due
     const today = new Date();
@@ -126,14 +118,28 @@ serve(async (req) => {
     const diffTime = today.getTime() - dueDate.getTime();
     const daysPastDue = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
-    // Get persona-specific tone based on days past due (using shared persona system)
+    // Determine aging bucket
+    let agingBucket = 'current';
+    if (daysPastDue >= 151) {
+      agingBucket = 'dpd_150_plus';
+    } else if (daysPastDue >= 121) {
+      agingBucket = 'dpd_121_150';
+    } else if (daysPastDue >= 91) {
+      agingBucket = 'dpd_91_120';
+    } else if (daysPastDue >= 61) {
+      agingBucket = 'dpd_61_90';
+    } else if (daysPastDue >= 31) {
+      agingBucket = 'dpd_31_60';
+    } else if (daysPastDue >= 1) {
+      agingBucket = 'dpd_1_30';
+    }
+
+    // Get persona-specific tone based on days past due
     const persona = getPersonaToneByDaysPastDue(daysPastDue === 0 ? 1 : daysPastDue);
     const personaName = persona?.name || 'Collections Agent';
     const personaGuidelines = persona?.systemPromptGuidelines || '';
-    
-    console.log(`Using persona ${personaName} for ${daysPastDue} days past due`);
 
-    // Also fetch AI agent persona from database for agent_persona_id
+    // Get agent persona from database
     const { data: agentPersona } = await supabaseClient
       .from("ai_agent_personas")
       .select("id, name")
@@ -143,66 +149,156 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    // Fetch any open tasks for this invoice
-    const { data: openTasks } = await supabaseClient
-      .from('collection_tasks')
-      .select('*')
-      .eq('invoice_id', invoice_id)
-      .in('status', ['open', 'in_progress'])
-      .order('priority', { ascending: false });
-    
-    // Build task context
-    let taskContext = '';
-    if (openTasks && openTasks.length > 0) {
-      const taskLabels: Record<string, string> = {
-        w9_request: 'W9 tax form request',
-        payment_plan_needed: 'payment arrangement request',
-        incorrect_po: 'dispute about wrong PO number',
-        dispute_charges: 'dispute about incorrect charges',
-        invoice_copy_request: 'request to resend invoice',
-        billing_address_update: 'billing address correction needed',
-        payment_method_update: 'payment details update needed',
-        service_not_delivered: 'claim that service/product not received',
-        overpayment_inquiry: 'question about double charge or overpayment',
-        paid_verification: 'claim that invoice already paid',
-        extension_request: 'request for payment deadline extension',
-        callback_required: 'request for phone call or meeting'
-      };
+    // PRIORITY: Check for invoice-level custom template override first
+    let email_subject: string;
+    let email_body: string;
+    let templateSource: string;
 
-      const taskDescriptions = openTasks.map(task => {
-        const label = taskLabels[task.task_type] || task.task_type;
-        return `- ${label}: ${task.summary}${task.recommended_action ? ` (Action needed: ${task.recommended_action})` : ''}`;
-      }).join('\n');
+    const businessName = branding?.business_name || profile.business_name || "Our Business";
 
-      taskContext = `\n\nCRITICAL: The customer has made the following requests or raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these items in your message. Handle them professionally based on ${personaName}'s tone.`;
-    }
+    if (invoice.use_custom_template && invoice.custom_template_body) {
+      // Use invoice-level custom template
+      email_subject = invoice.custom_template_subject || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+      email_body = invoice.custom_template_body;
+      templateSource = 'invoice-level override';
+      console.log(`Using invoice-level custom template for ${invoice.invoice_number}`);
+    } else if (!use_ai_generation) {
+      // Look for approved draft template
+      // First, get the workflow step for this aging bucket and step number
+      const { data: workflow } = await supabaseClient
+        .from('collection_workflows')
+        .select(`
+          id,
+          steps:collection_workflow_steps(*)
+        `)
+        .eq('aging_bucket', agingBucket)
+        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .eq('is_active', true)
+        .order('user_id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    // Prepare prompt data - use contactName from debtor_contacts (source of truth)
-    const promptData = {
-      business_name: profile.business_name || "Our Business",
-      debtor_name: contactName,
-      debtor_company: invoice.debtors.company_name,
-      invoice_number: invoice.invoice_number,
-      amount: invoice.amount,
-      amount_outstanding: amountOutstanding,
-      total_paid: totalPaid,
-      currency: invoice.currency || "USD",
-      due_date: new Date(invoice.due_date).toLocaleDateString(),
-      days_past_due: daysPastDue,
-      payment_link: profile.stripe_payment_link_url || "Please contact us for payment options",
-      step_number: step_number,
-      task_context: taskContext,
-    };
+      const workflowStep = workflow?.steps?.find((s: any) => s.step_order === step_number);
 
-    console.log("Generating draft for invoice:", invoice_id, "persona:", personaName, "step:", step_number, "contact:", contactName, "outstanding:", amountOutstanding);
+      // Look for approved template matching this step
+      let approvedTemplate = null;
+      if (workflowStep) {
+        const { data: stepTemplate } = await supabaseClient
+          .from('draft_templates')
+          .select('*')
+          .eq('workflow_step_id', workflowStep.id)
+          .eq('user_id', user.id)
+          .eq('status', 'approved')
+          .maybeSingle();
+        
+        approvedTemplate = stepTemplate;
+      }
 
-    // Call Lovable AI API (using persona-specific tone)
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
+      // Fallback: Check for approved template for this aging bucket
+      if (!approvedTemplate) {
+        const { data: bucketTemplate } = await supabaseClient
+          .from('draft_templates')
+          .select('*')
+          .eq('aging_bucket', agingBucket)
+          .eq('user_id', user.id)
+          .eq('status', 'approved')
+          .eq('step_number', step_number)
+          .maybeSingle();
+        
+        approvedTemplate = bucketTemplate;
+      }
 
-    const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${promptData.business_name} to send to their customer about an overdue invoice.
+      if (approvedTemplate) {
+        // Use approved template with variable replacement
+        const templateVars: Record<string, string> = {
+          '{{debtor_name}}': contactName,
+          '{{company_name}}': invoice.debtors.company_name || contactName,
+          '{{invoice_number}}': invoice.invoice_number,
+          '{{amount}}': invoice.amount?.toString() || '0',
+          '{{amount_outstanding}}': amountOutstanding?.toString() || '0',
+          '{{currency}}': invoice.currency || 'USD',
+          '{{due_date}}': new Date(invoice.due_date).toLocaleDateString(),
+          '{{days_past_due}}': daysPastDue.toString(),
+          '{{business_name}}': businessName,
+          '{{payment_link}}': profile.stripe_payment_link_url || 'Please contact us for payment options',
+        };
+
+        email_subject = approvedTemplate.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+        email_body = approvedTemplate.message_body_template;
+
+        for (const [key, value] of Object.entries(templateVars)) {
+          email_subject = email_subject.replace(new RegExp(key, 'g'), value);
+          email_body = email_body.replace(new RegExp(key, 'g'), value);
+        }
+
+        // Add signature if available
+        if (branding?.email_signature) {
+          email_body += `\n\n${branding.email_signature}`;
+        }
+
+        templateSource = `approved template (ID: ${approvedTemplate.id})`;
+        console.log(`Using approved draft template: ${approvedTemplate.id}`);
+      } else {
+        // No approved template found - return error requiring template
+        throw new Error(`No approved template found for ${agingBucket} step ${step_number}. Please create and approve a template first, or enable AI generation.`);
+      }
+    } else {
+      // AI generation requested - generate with AI
+      console.log(`AI generation requested for invoice ${invoice_id}, step ${step_number}`);
+      
+      // Fetch CRM account if linked
+      let crmAccount = null;
+      if (invoice.debtors.crm_account_id) {
+        const { data: crmData } = await supabaseClient
+          .from("crm_accounts")
+          .select("*")
+          .eq("id", invoice.debtors.crm_account_id)
+          .single();
+        
+        if (crmData) {
+          crmAccount = crmData;
+        }
+      }
+
+      // Fetch open tasks
+      const { data: openTasks } = await supabaseClient
+        .from('collection_tasks')
+        .select('*')
+        .eq('invoice_id', invoice_id)
+        .in('status', ['open', 'in_progress'])
+        .order('priority', { ascending: false });
+      
+      let taskContext = '';
+      if (openTasks && openTasks.length > 0) {
+        const taskLabels: Record<string, string> = {
+          w9_request: 'W9 tax form request',
+          payment_plan_needed: 'payment arrangement request',
+          incorrect_po: 'dispute about wrong PO number',
+          dispute_charges: 'dispute about incorrect charges',
+          invoice_copy_request: 'request to resend invoice',
+          billing_address_update: 'billing address correction needed',
+          payment_method_update: 'payment details update needed',
+          service_not_delivered: 'claim that service/product not received',
+          overpayment_inquiry: 'question about double charge or overpayment',
+          paid_verification: 'claim that invoice already paid',
+          extension_request: 'request for payment deadline extension',
+          callback_required: 'request for phone call or meeting'
+        };
+
+        const taskDescriptions = openTasks.map(task => {
+          const label = taskLabels[task.task_type] || task.task_type;
+          return `- ${label}: ${task.summary}${task.recommended_action ? ` (Action needed: ${task.recommended_action})` : ''}`;
+        }).join('\n');
+
+        taskContext = `\n\nCRITICAL: The customer has made the following requests or raised these issues:\n${taskDescriptions}\n\nYou MUST acknowledge and address these items in your message.`;
+      }
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        throw new Error("LOVABLE_API_KEY not configured");
+      }
+
+      const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
 ${personaGuidelines}
 
@@ -211,15 +307,10 @@ CRITICAL COMPLIANCE RULES:
 - Be respectful and non-threatening
 - NEVER claim to be or act as a "collection agency" or legal authority
 - NEVER use harassment or intimidation
-- Write as if you are ${promptData.business_name}, NOT a third party
+- Write as if you are ${businessName}, NOT a third party
 - Always include the payment link once in the email
 - Encourage the customer to pay or reply if there is a dispute or issue
-${promptData.task_context}
-
-${crmAccount ? `Use the CRM account context to adjust tone and recommendations:
-- For high-value or at-risk accounts, be more empathetic and relationship-preserving.
-- Prefer offering payment plans or gentle reminders over aggressive language.
-- Never mention Salesforce, CRM, or any underlying systems.` : ""}
+${taskContext}
 
 You must respond in JSON format with the following structure:
 {
@@ -227,85 +318,65 @@ You must respond in JSON format with the following structure:
   "email_body": "string (in English)"
 }`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-          {
-            role: "user",
-            content: `Generate a collection message with the following details:
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: `Generate a collection message with the following details:
 
-Business name: ${promptData.business_name}
-Customer name: ${promptData.debtor_name}
-Customer company: ${promptData.debtor_company}
-Invoice number: ${promptData.invoice_number}
-Original Amount: $${promptData.amount} ${promptData.currency}
-Amount Already Paid: $${promptData.total_paid} ${promptData.currency}
-BALANCE DUE: $${promptData.amount_outstanding} ${promptData.currency}
-Due date: ${promptData.due_date}
-Days past due: ${promptData.days_past_due}
-Payment link: ${promptData.payment_link}
-Step number in cadence: ${promptData.step_number}
-${crmAccount ? `
-CRM Account Context:
-- Segment: ${crmAccount.segment || "N/A"}
-- Monthly Recurring Revenue (MRR): $${crmAccount.mrr?.toLocaleString() || "N/A"}
-- Lifetime Value: $${crmAccount.lifetime_value?.toLocaleString() || "N/A"}
-- Customer Since: ${crmAccount.customer_since ? new Date(crmAccount.customer_since).toLocaleDateString() : "N/A"}
-- Health Score: ${crmAccount.health_score || "N/A"}
-- Status: ${crmAccount.status || "N/A"}
-` : ""}
-Please generate:
-1. An email subject line
-2. An email body that:
-   - Clearly states the BALANCE DUE ($${promptData.amount_outstanding}) - not the original amount if payments have been made
-   - ${promptData.total_paid > 0 ? `Acknowledge the partial payment of $${promptData.total_paid} already received` : "States the full amount due"}
-   - Includes the payment link once
-   - Invites the customer to contact us if there are any issues or disputes
-   - Uses ${personaName}'s ${persona?.tone || 'professional'} tone${crmAccount ? "\n   - Takes into account the customer's value and relationship status" : ""}
+Business name: ${businessName}
+Customer name: ${contactName}
+Customer company: ${invoice.debtors.company_name}
+Invoice number: ${invoice.invoice_number}
+Original Amount: $${invoice.amount} ${invoice.currency || 'USD'}
+Amount Already Paid: $${totalPaid} ${invoice.currency || 'USD'}
+BALANCE DUE: $${amountOutstanding} ${invoice.currency || 'USD'}
+Due date: ${new Date(invoice.due_date).toLocaleDateString()}
+Days past due: ${daysPastDue}
+Payment link: ${profile.stripe_payment_link_url || "Please contact us for payment options"}
+Step number in cadence: ${step_number}
+${crmAccount ? `CRM Account: ${crmAccount.name}, Segment: ${crmAccount.segment || 'N/A'}, Health: ${crmAccount.health_score || 'N/A'}` : ''}
 
-Return the response as JSON with fields: email_subject, email_body`,
-          },
-        ],
-      }),
-    });
+Return JSON with email_subject and email_body fields.`,
+            },
+          ],
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI API error:", errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("AI API error:", errorText);
+        throw new Error(`AI API error: ${aiResponse.status}`);
+      }
+
+      const aiData = await aiResponse.json();
+      const content = aiData.choices[0].message.content;
+      
+      let parsedContent;
+      try {
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/);
+        const jsonString = jsonMatch ? jsonMatch[1] : content;
+        parsedContent = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error("Failed to parse AI response:", content);
+        throw new Error("Failed to parse AI response. Please try again.");
+      }
+
+      email_subject = parsedContent.email_subject;
+      email_body = parsedContent.email_body;
+      templateSource = 'AI generated';
     }
-
-    const aiData = await aiResponse.json();
-    console.log("AI response:", JSON.stringify(aiData, null, 2));
-
-    const content = aiData.choices[0].message.content;
-    
-    // Parse the JSON response from AI
-    let parsedContent;
-    try {
-      // Try to extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : content;
-      parsedContent = JSON.parse(jsonString);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
-      throw new Error("Failed to parse AI response. Please try again.");
-    }
-
-    const { email_subject, email_body } = parsedContent;
 
     if (!email_subject || !email_body) {
-      throw new Error("Invalid AI response format");
+      throw new Error("Invalid response format - missing subject or body");
     }
 
     const today_date = new Date().toISOString().split("T")[0];
@@ -333,12 +404,13 @@ Return the response as JSON with fields: email_subject, email_body`,
       throw new Error("Failed to create email draft");
     }
 
-    console.log("Draft created successfully:", emailDraft.id);
+    console.log(`Draft created successfully using ${templateSource}: ${emailDraft.id}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         email_draft: emailDraft,
+        template_source: templateSource,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
