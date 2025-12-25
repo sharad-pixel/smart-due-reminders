@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
         aging_bucket,
         bucket_entered_at,
         outreach_paused,
+        use_custom_template,
+        custom_template_subject,
+        custom_template_body,
         debtors(
           id,
           name,
@@ -190,8 +193,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         // Fetch primary contact from debtor_contacts (source of truth for contact names)
-        // Reuse debtor variable from earlier in the loop (line 70)
-        let debtorName = 'Customer'; // Default fallback
+        let debtorName = 'Customer';
         let companyName = debtor?.company_name || debtor?.name || 'Customer';
         
         if (debtor?.id) {
@@ -203,12 +205,10 @@ Deno.serve(async (req) => {
             .order('is_primary', { ascending: false });
           
           if (contacts && contacts.length > 0) {
-            // Use primary contact or first outreach-enabled contact (this is the source of truth)
             const primaryContact = contacts.find((c: any) => c.is_primary);
             debtorName = primaryContact?.name || contacts[0]?.name || companyName;
             console.log(`Using contact name from debtor_contacts: ${debtorName}`);
           } else {
-            // No outreach-enabled contacts found, use company name
             debtorName = companyName;
             console.log(`No outreach-enabled contacts, using company name: ${debtorName}`);
           }
@@ -224,86 +224,112 @@ Deno.serve(async (req) => {
         const persona = getPersonaToneByDaysPastDue(daysPastDue);
         const personaGuidelines = persona?.systemPromptGuidelines || '';
         const personaName = persona?.name || 'Collections Agent';
-        
-        const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
-${personaGuidelines}
+        // PRIORITY: Check for invoice-level custom template override first
+        let subjectTemplate: string;
+        let bodyTemplate: string;
+        let templateSource: string;
 
-CRITICAL COMPLIANCE RULES:
-- ALWAYS write in English. Never use any other language.
-- Be respectful and non-threatening
-- NEVER claim to be or act as a "collection agency" or legal authority
-- NEVER use harassment or intimidation
-- Write as if you are ${businessName}, NOT a third party
-- Encourage the customer to pay or reply if there is a dispute or issue`;
+        if (invoice.use_custom_template && invoice.custom_template_body) {
+          // Use invoice-level custom override
+          subjectTemplate = invoice.custom_template_subject || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+          bodyTemplate = invoice.custom_template_body;
+          templateSource = 'invoice-level override';
+          console.log(`Using invoice-level custom template for ${invoice.invoice_number}`);
+        } else {
+          // Look for approved draft template matching this workflow step
+          const { data: approvedTemplate } = await supabaseAdmin
+            .from('draft_templates')
+            .select('*')
+            .eq('workflow_step_id', nextStep.id)
+            .eq('user_id', invoice.user_id)
+            .eq('status', 'approved')
+            .maybeSingle();
 
-        const userPrompt = nextStep.body_template || getDefaultTemplate(agingBucket);
-        
-        const contextualPrompt = `${userPrompt}
+          if (approvedTemplate) {
+            // Use the approved draft template
+            subjectTemplate = approvedTemplate.subject_template || nextStep.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+            bodyTemplate = approvedTemplate.message_body_template;
+            templateSource = `approved template (ID: ${approvedTemplate.id})`;
+            console.log(`Using approved draft template for step ${nextStep.step_order}: ${approvedTemplate.id}`);
+          } else {
+            // Fallback: Check for any approved template for this aging bucket and user
+            const { data: bucketTemplate } = await supabaseAdmin
+              .from('draft_templates')
+              .select('*')
+              .eq('aging_bucket', agingBucket)
+              .eq('user_id', invoice.user_id)
+              .eq('status', 'approved')
+              .eq('step_number', nextStep.step_order)
+              .maybeSingle();
 
-Context:
-- Business: ${businessName}
-- From: ${fromName}
-- Customer: ${debtorName}
-- Invoice Number: ${invoice.invoice_number}
-- Amount: $${invoice.amount} ${invoice.currency || 'USD'}
-- Original Due Date: ${invoice.due_date}
-- Days Past Due: ${daysPastDue}
-- Aging Bucket: ${agingBucket}
-- This is outreach step ${nextStep.step_order} of ${activeSteps.length}
-
-${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}`;
-
-        // Generate draft using Lovable AI
-        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-        console.log(`Generating AI draft for invoice ${invoice.invoice_number}, step ${nextStep.step_order}...`);
-        
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: contextualPrompt }
-            ],
-            temperature: 0.7,
-          }),
-        });
-
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error('AI API error:', aiResponse.status, errorText);
-          continue;
+            if (bucketTemplate) {
+              subjectTemplate = bucketTemplate.subject_template || nextStep.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+              bodyTemplate = bucketTemplate.message_body_template;
+              templateSource = `approved bucket template (ID: ${bucketTemplate.id})`;
+              console.log(`Using approved bucket template for ${agingBucket} step ${nextStep.step_order}`);
+            } else {
+              // No approved template found - skip this invoice (require approved templates)
+              console.log(`No approved template found for invoice ${invoice.invoice_number}, bucket ${agingBucket}, step ${nextStep.step_order}. Skipping - approved templates required.`);
+              skipped++;
+              continue;
+            }
+          }
         }
 
-        const aiData = await aiResponse.json();
-        const generatedContent = aiData.choices?.[0]?.message?.content || '';
+        // Replace template variables
+        const templateVars: Record<string, string> = {
+          '{{debtor_name}}': debtorName,
+          '{{company_name}}': companyName,
+          '{{invoice_number}}': invoice.invoice_number,
+          '{{amount}}': invoice.amount?.toString() || '0',
+          '{{currency}}': invoice.currency || 'USD',
+          '{{due_date}}': invoice.due_date,
+          '{{days_past_due}}': daysPastDue.toString(),
+          '{{business_name}}': businessName,
+          '{{from_name}}': fromName,
+        };
 
-        // Generate subject line
-        const subjectPrompt = nextStep.subject_template || 
-          `Invoice ${invoice.invoice_number} - Payment Reminder`;
+        let processedBody = bodyTemplate;
+        let processedSubject = subjectTemplate;
+        
+        for (const [key, value] of Object.entries(templateVars)) {
+          processedBody = processedBody.replace(new RegExp(key, 'g'), value);
+          processedSubject = processedSubject.replace(new RegExp(key, 'g'), value);
+        }
+
+        // Add signature if available
+        if (branding?.email_signature) {
+          processedBody += `\n\n${branding.email_signature}`;
+        }
 
         // Calculate recommended send date based on due date + step day_offset
-        // If already past the step's trigger date, use today
         const stepTriggerDate = new Date(dueDate);
         stepTriggerDate.setDate(stepTriggerDate.getDate() + nextStep.day_offset);
         const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
 
-        // Create draft in database
+        // Get agent persona ID
+        const { data: agentPersona } = await supabaseAdmin
+          .from('ai_agent_personas')
+          .select('id')
+          .lte('bucket_min', daysPastDue === 0 ? 1 : daysPastDue)
+          .or(`bucket_max.is.null,bucket_max.gte.${daysPastDue === 0 ? 1 : daysPastDue}`)
+          .order('bucket_min', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Create draft in database using the approved template
         const { error: draftError } = await supabaseAdmin
           .from('ai_drafts')
           .insert({
             user_id: invoice.user_id,
             invoice_id: invoice.id,
             workflow_step_id: nextStep.id,
+            agent_persona_id: agentPersona?.id || null,
             channel: nextStep.channel,
             step_number: nextStep.step_order,
-            subject: subjectPrompt,
-            message_body: generatedContent,
+            subject: processedSubject,
+            message_body: processedBody,
             status: 'pending_approval',
             recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
             days_past_due: daysPastDue,
@@ -312,7 +338,7 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
         if (draftError) {
           console.error(`Error creating draft for invoice ${invoice.id}:`, draftError);
         } else {
-          console.log(`✓ Created draft for invoice ${invoice.invoice_number}, step ${nextStep.step_order} (${nextStep.label})`);
+          console.log(`✓ Created draft for invoice ${invoice.invoice_number}, step ${nextStep.step_order} (${nextStep.label}) using ${templateSource}`);
           draftsCreated++;
         }
 
@@ -347,16 +373,3 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
     );
   }
 });
-
-function getDefaultTemplate(bucket: string): string {
-  const templates: Record<string, string> = {
-    current: 'Generate a friendly reminder that payment is coming due soon. Keep tone positive and helpful.',
-    dpd_1_30: 'Generate a warm, friendly follow-up about the outstanding invoice. Use soft language and offer help. Do NOT use urgent or pressure language.',
-    dpd_31_60: 'Generate a professional, direct message about the overdue invoice. Be clear about expectations while offering solutions.',
-    dpd_61_90: 'Generate a serious, assertive message about the significantly overdue invoice. Emphasize urgency and the need for immediate attention.',
-    dpd_91_120: 'Generate a very firm, formal message about the long-overdue invoice. Use final notice language and mention potential escalation.',
-    dpd_121_150: 'Generate a legal-tone message about the critically overdue invoice. Reference potential legal remedies while remaining compliant.',
-    dpd_150_plus: 'Generate a final internal collections message. Be authoritative and firm, demanding immediate resolution. Do not threaten legal action or third-party collections.',
-  };
-  return templates[bucket] || templates.current;
-}
