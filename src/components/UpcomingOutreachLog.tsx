@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -20,7 +21,11 @@ import {
   RefreshCw,
   Eye,
   History,
-  X
+  X,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -34,6 +39,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import OutreachMessagePreview from "./OutreachMessagePreview";
 
 interface OutreachItem {
@@ -81,6 +93,9 @@ const getPersonaForBucket = (agingBucket: string): { key: string; persona: Perso
   return null;
 };
 
+type SortField = 'scheduled_date' | 'company_name' | 'amount' | 'days_past_due';
+type SortDirection = 'asc' | 'desc';
+
 const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: UpcomingOutreachLogProps) => {
   const navigate = useNavigate();
   const { effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
@@ -94,6 +109,17 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
   const [showHistory, setShowHistory] = useState(false);
   const [historicalActivities, setHistoricalActivities] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  
+  // New filter + sort state
+  const [accountFilter, setAccountFilter] = useState("");
+  const [sortField, setSortField] = useState<SortField>('scheduled_date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Unique account names for dropdown
+  const uniqueAccounts = useMemo(() => {
+    const names = allOutreachItems.map(item => item.company_name);
+    return Array.from(new Set(names)).sort();
+  }, [allOutreachItems]);
 
   const fetchUpcomingOutreach = useCallback(async (showRefreshing = false) => {
     if (accountLoading || !effectiveAccountId) return;
@@ -229,31 +255,63 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
         });
       });
 
-      // Sort by scheduled date (soonest first)
+      // Sort by scheduled date (soonest first) - initial default
       outreachList.sort((a, b) => a.scheduled_date.getTime() - b.scheduled_date.getTime());
 
       // Store all items before filtering
       setAllOutreachItems(outreachList);
-
-      // Apply persona filter if selected
-      const filteredList = selectedPersona 
-        ? outreachList.filter(item => item.persona_key === selectedPersona)
-        : outreachList;
-
-      setTotalCount(filteredList.length);
-
-      // Apply pagination
-      const startIndex = (currentPage - 1) * PAGE_SIZE;
-      const paginatedItems = filteredList.slice(startIndex, startIndex + PAGE_SIZE);
-
-      setOutreachItems(paginatedItems);
     } catch (error) {
       console.error("Error fetching outreach schedule:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentPage, effectiveAccountId, accountLoading, selectedPersona]);
+  }, [effectiveAccountId, accountLoading]);
+
+  // Apply filters + sorting + pagination
+  useEffect(() => {
+    let filtered = [...allOutreachItems];
+
+    // Persona filter
+    if (selectedPersona) {
+      filtered = filtered.filter(item => item.persona_key === selectedPersona);
+    }
+
+    // Account name filter
+    if (accountFilter) {
+      filtered = filtered.filter(item => 
+        item.company_name.toLowerCase().includes(accountFilter.toLowerCase())
+      );
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'scheduled_date':
+          comparison = a.scheduled_date.getTime() - b.scheduled_date.getTime();
+          break;
+        case 'company_name':
+          comparison = a.company_name.localeCompare(b.company_name);
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        case 'days_past_due':
+          comparison = a.days_past_due - b.days_past_due;
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    setTotalCount(filtered.length);
+
+    // Pagination
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const paginatedItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+    setOutreachItems(paginatedItems);
+  }, [allOutreachItems, selectedPersona, accountFilter, sortField, sortDirection, currentPage]);
 
   useEffect(() => {
     fetchUpcomingOutreach();
@@ -326,6 +384,31 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
 
   // Get the selected persona config for display
   const selectedPersonaConfig = selectedPersona ? personaConfig[selectedPersona] : null;
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1" /> 
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const clearFilters = () => {
+    setAccountFilter("");
+    setSortField('scheduled_date');
+    setSortDirection('asc');
+    setCurrentPage(1);
+    if (onPersonaFilterClear) onPersonaFilterClear();
+  };
 
   return (
     <Card>
@@ -545,7 +628,7 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : outreachItems.length === 0 ? (
+        ) : outreachItems.length === 0 && !accountFilter ? (
           <div className="text-center py-12 text-muted-foreground">
             <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="font-medium">No upcoming outreach scheduled</p>
@@ -558,21 +641,118 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Desktop Table View */}
-            <div className="hidden md:block rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[140px]">Scheduled</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-center">DPD</TableHead>
-                    <TableHead className="text-center">Sequence</TableHead>
-                    <TableHead>Assigned Agent</TableHead>
-                    <TableHead className="w-[100px] text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+            {/* Filter and Sort Controls */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              <div className="flex items-center gap-2 flex-1 max-w-md">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Filter by account name..."
+                    value={accountFilter}
+                    onChange={(e) => {
+                      setAccountFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-8 h-9"
+                  />
+                </div>
+                {(accountFilter || selectedPersona) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-9 px-2"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Sort by:</span>
+                <Select
+                  value={sortField}
+                  onValueChange={(value: SortField) => {
+                    setSortField(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scheduled_date">Schedule Date</SelectItem>
+                    <SelectItem value="company_name">Account Name</SelectItem>
+                    <SelectItem value="amount">Amount</SelectItem>
+                    <SelectItem value="days_past_due">Days Past Due</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 p-0"
+                  onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {outreachItems.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Search className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">No results found</p>
+                <p className="text-sm mt-1">Try adjusting your filter criteria.</p>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead 
+                          className="w-[140px] cursor-pointer hover:bg-muted"
+                          onClick={() => handleSort('scheduled_date')}
+                        >
+                          <span className="flex items-center">
+                            Scheduled
+                            {getSortIcon('scheduled_date')}
+                          </span>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => handleSort('company_name')}
+                        >
+                          <span className="flex items-center">
+                            Account
+                            {getSortIcon('company_name')}
+                          </span>
+                        </TableHead>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted"
+                          onClick={() => handleSort('amount')}
+                        >
+                          <span className="flex items-center justify-end">
+                            Amount
+                            {getSortIcon('amount')}
+                          </span>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted"
+                          onClick={() => handleSort('days_past_due')}
+                        >
+                          <span className="flex items-center justify-center">
+                            DPD
+                            {getSortIcon('days_past_due')}
+                          </span>
+                        </TableHead>
+                        <TableHead className="text-center">Sequence</TableHead>
+                        <TableHead>Assigned Agent</TableHead>
+                        <TableHead className="w-[100px] text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                 <TableBody>
                   {outreachItems.map((item) => {
                     const scheduleInfo = getScheduleLabel(item.scheduled_date);
@@ -682,8 +862,6 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
                 </TableBody>
               </Table>
             </div>
-
-            {/* Mobile Card View */}
             <div className="md:hidden space-y-2">
               {outreachItems.map((item) => {
                 const scheduleInfo = getScheduleLabel(item.scheduled_date);
@@ -779,6 +957,8 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
                   </Button>
                 </div>
               </div>
+            )}
+              </>
             )}
           </div>
         )}
