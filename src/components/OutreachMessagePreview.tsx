@@ -61,34 +61,27 @@ const OutreachMessagePreview = ({
   const fetchExistingDraft = async () => {
     setLoading(true);
     try {
-      // Try to find existing draft for this invoice
-      const { data: existingDraft, error } = await supabase
-        .from("ai_drafts")
-        .select("id, subject, message_body, status, step_number")
-        .eq("invoice_id", invoiceId)
-        .in("status", ["pending_approval", "approved"])
-        .order("step_number", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      // Always preview from approved templates (or invoice-level override), without creating a draft.
+      const { data, error } = await supabase.functions.invoke('generate-outreach-draft', {
+        body: {
+          invoice_id: invoiceId,
+          step_number: outreachSequence,
+          preview_only: true,
+          use_ai_generation: false,
+        }
+      });
 
       if (error) throw error;
 
-      if (existingDraft) {
-        setDraft(existingDraft);
-        setEditedSubject(existingDraft.subject || "");
-        setEditedBody(existingDraft.message_body || "");
-      } else {
-        // Generate sample content based on persona and invoice
-        const generatedContent = generateSampleContent();
-        setEditedSubject(generatedContent.subject);
-        setEditedBody(generatedContent.body);
-        setDraft(null);
-      }
+      setDraft(null);
+      setEditedSubject(data?.email_subject || "");
+      setEditedBody(data?.email_body || "");
     } catch (error) {
-      console.error("Error fetching draft:", error);
+      console.error("Error loading approved template preview:", error);
       const generatedContent = generateSampleContent();
       setEditedSubject(generatedContent.subject);
       setEditedBody(generatedContent.body);
+      setDraft(null);
     } finally {
       setLoading(false);
     }
@@ -132,22 +125,23 @@ const OutreachMessagePreview = ({
   const handleEnhanceWithAI = async () => {
     setIsGenerating(true);
     try {
+      // Reload preview strictly from approved templates (or invoice override)
       const { data, error } = await supabase.functions.invoke('generate-outreach-draft', {
-        body: { 
+        body: {
           invoice_id: invoiceId,
-          tone: persona?.tone || 'professional'
+          step_number: outreachSequence,
+          preview_only: true,
+          use_ai_generation: false,
         }
       });
 
       if (error) throw error;
 
-      if (data?.subject) setEditedSubject(data.subject);
-      if (data?.body) setEditedBody(data.body);
-      
-      toast.success("Content enhanced with AI");
+      setEditedSubject(data?.email_subject || "");
+      setEditedBody(data?.email_body || "");
+      toast.success("Loaded approved template preview");
     } catch (error) {
-      console.error('Error enhancing with AI:', error);
-      // Generate locally as fallback
+      console.error('Error loading approved template preview:', error);
       const generated = generateSampleContent();
       setEditedSubject(generated.subject);
       setEditedBody(generated.body);
@@ -163,42 +157,25 @@ const OutreachMessagePreview = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      if (draft?.id) {
-        // Update existing draft
-        const { error } = await supabase
-          .from('ai_drafts')
-          .update({
-            subject: editedSubject,
-            message_body: editedBody,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', draft.id);
+      // Saving here means: invoice-level template override (no draft row is created).
+      const { error } = await supabase
+        .from('invoices')
+        .update({
+          use_custom_template: true,
+          custom_template_subject: editedSubject,
+          custom_template_body: editedBody,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', invoiceId);
 
-        if (error) throw error;
-      } else {
-        // Create new draft
-        const { error } = await supabase
-          .from('ai_drafts')
-          .insert({
-            user_id: user.id,
-            invoice_id: invoiceId,
-            subject: editedSubject,
-            message_body: editedBody,
-            channel: 'email',
-            step_number: outreachSequence,
-            status: 'pending_approval',
-            recommended_send_date: new Date().toISOString().split('T')[0]
-          });
+      if (error) throw error;
 
-        if (error) throw error;
-      }
-
-      toast.success("Changes saved successfully");
+      toast.success("Saved invoice-level template override");
       setIsEditing(false);
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving changes:', error);
-      toast.error("Failed to save changes");
+      console.error('Error saving invoice-level override:', error);
+      toast.error("Failed to save override");
     } finally {
       setIsSaving(false);
     }
@@ -264,7 +241,7 @@ const OutreachMessagePreview = ({
                 disabled={isGenerating}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                {isGenerating ? "Generating..." : "Generate with AI"}
+                {isGenerating ? "Loading..." : "Reload approved template"}
               </Button>
             </div>
 
@@ -312,14 +289,6 @@ const OutreachMessagePreview = ({
               </CardContent>
             </Card>
 
-            {draft && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant={draft.status === 'approved' ? 'default' : 'secondary'}>
-                  {draft.status === 'approved' ? 'Approved' : 'Pending Approval'}
-                </Badge>
-                <span>Existing draft loaded</span>
-              </div>
-            )}
           </div>
         )}
 
