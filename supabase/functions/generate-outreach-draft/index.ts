@@ -156,14 +156,16 @@ serve(async (req) => {
     let email_subject: string;
     let email_body: string;
     let templateSource: string;
+    let autoApprove = false; // Drafts from approved templates should be auto-approved
 
     const businessName = branding?.business_name || profile.business_name || "Our Business";
 
     if (invoice.use_custom_template && invoice.custom_template_body) {
-      // Use invoice-level custom template
+      // Use invoice-level custom template - auto-approve since user explicitly set it
       email_subject = invoice.custom_template_subject || `Invoice ${invoice.invoice_number} - Payment Reminder`;
       email_body = invoice.custom_template_body;
       templateSource = 'invoice-level override';
+      autoApprove = true;
       console.log(`Using invoice-level custom template for ${invoice.invoice_number}`);
     } else if (!use_ai_generation) {
       // Look for approved draft template
@@ -240,6 +242,7 @@ serve(async (req) => {
         }
 
         templateSource = `approved template (ID: ${approvedTemplate.id})`;
+        autoApprove = true; // Auto-approve since we're using an approved template
         console.log(`Using approved draft template: ${approvedTemplate.id}`);
       } else {
         // No approved template found - return error requiring template
@@ -376,6 +379,7 @@ Return JSON with email_subject and email_body fields.`,
       email_subject = parsedContent.email_subject;
       email_body = parsedContent.email_body;
       templateSource = 'AI generated';
+      // AI-generated content requires human review - do not auto-approve
     }
 
     if (!email_subject || !email_body) {
@@ -401,7 +405,8 @@ Return JSON with email_subject and email_body fields.`,
 
     const today_date = new Date().toISOString().split("T")[0];
 
-    // Create email draft
+    // Create email draft - auto-approve if using approved template or invoice override
+    const draftStatus = autoApprove ? "approved" : "pending_approval";
     const { data: emailDraft, error: emailError } = await supabaseClient
       .from("ai_drafts")
       .insert({
@@ -412,7 +417,7 @@ Return JSON with email_subject and email_body fields.`,
         subject: email_subject,
         message_body: email_body,
         recommended_send_date: today_date,
-        status: "pending_approval",
+        status: draftStatus,
         agent_persona_id: agentPersona?.id || null,
         days_past_due: daysPastDue,
       })
