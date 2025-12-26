@@ -605,7 +605,7 @@ Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SM
           stepTriggerDate.setDate(stepTriggerDate.getDate() + step.day_offset);
           const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
 
-          // Insert draft
+          // Insert draft (auto-approved for scheduled workflow outreach)
           const { error: draftError } = await supabase
             .from('ai_drafts')
             .insert({
@@ -618,7 +618,7 @@ Generate ${step.channel === 'email' ? 'a complete email message' : 'a concise SM
               message_body: messageBody,
               step_number: step.step_order,
               days_past_due: daysPastDue,
-              status: 'pending_approval',
+              status: 'approved',
               recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
             });
 

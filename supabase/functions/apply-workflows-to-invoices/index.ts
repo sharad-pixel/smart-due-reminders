@@ -149,7 +149,7 @@ serve(async (req) => {
         body = body.replace(regex, value);
       });
 
-      // Create the draft in ai_drafts table
+      // Create the draft in ai_drafts table (auto-approved for scheduled workflow outreach)
       const { error: insertError } = await supabase
         .from('ai_drafts')
         .insert({
@@ -160,7 +160,7 @@ serve(async (req) => {
           channel: step.channel || 'email',
           subject: subject,
           message_body: body,
-          status: 'pending_approval',
+          status: 'approved',
           recommended_send_date: new Date().toISOString().split('T')[0],
           days_past_due: daysPastDue,
         });
