@@ -113,17 +113,66 @@ serve(async (req) => {
       );
     }
 
+    // Calculate days past due for template replacement
+    const invoiceDueDate = new Date(invoice.due_date);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const daysPastDue = Math.max(0, Math.floor((todayDate.getTime() - invoiceDueDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Fetch branding first so we can use stripe_payment_link in template vars
+    // Get effective account ID (for team member support)
+    const { data: effectiveAccountId } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
+    const brandingOwnerId = effectiveAccountId || user.id;
+
+    // Fetch branding settings for signature and From name (using effective account)
+    const { data: branding } = await supabaseClient
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .eq("user_id", brandingOwnerId)
+      .single();
+
     // Replace template variables in subject and body
     const replaceTemplateVars = (text: string): string => {
       if (!text) return text;
+      
+      const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
+      const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
+      const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+      const paymentLink = branding?.stripe_payment_link || '';
+      
       return text
-        .replace(/\{\{debtor_name\}\}/gi, debtor.name || 'Valued Customer')
-        .replace(/\{\{invoice_number\}\}/gi, invoice.invoice_number || invoice.reference_id || '')
-        .replace(/\{\{invoice_Number\}\}/gi, invoice.invoice_number || invoice.reference_id || '')
-        .replace(/\{\{amount\}\}/gi, `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`)
-        .replace(/\{\{due_date\}\}/gi, invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '')
-        .replace(/\{\{company_name\}\}/gi, debtor.name || '')
-        .replace(/\{\{balance\}\}/gi, `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+        // Customer/Debtor name variations
+        .replace(/\{\{customer_name\}\}/gi, customerName)
+        .replace(/\{\{customer name\}\}/gi, customerName)
+        .replace(/\{\{debtor_name\}\}/gi, customerName)
+        .replace(/\{\{debtor name\}\}/gi, customerName)
+        .replace(/\{\{company_name\}\}/gi, customerName)
+        .replace(/\{\{company name\}\}/gi, customerName)
+        .replace(/\{\{name\}\}/gi, customerName)
+        // Invoice number variations
+        .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
+        .replace(/\{\{invoice number\}\}/gi, invoiceNumber)
+        .replace(/\{\{invoiceNumber\}\}/gi, invoiceNumber)
+        // Amount variations
+        .replace(/\{\{amount\}\}/gi, amount)
+        .replace(/\{\{balance\}\}/gi, amount)
+        .replace(/\{\{total\}\}/gi, amount)
+        .replace(/\{\{invoice_amount\}\}/gi, amount)
+        // Due date variations
+        .replace(/\{\{due_date\}\}/gi, dueDate)
+        .replace(/\{\{due date\}\}/gi, dueDate)
+        .replace(/\{\{dueDate\}\}/gi, dueDate)
+        // Days past due
+        .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
+        .replace(/\{\{days past due\}\}/gi, String(daysPastDue))
+        .replace(/\{\{daysPastDue\}\}/gi, String(daysPastDue))
+        // Payment link variations
+        .replace(/\{\{payment_link\}\}/gi, paymentLink)
+        .replace(/\{\{payment link\}\}/gi, paymentLink)
+        .replace(/\{\{paymentLink\}\}/gi, paymentLink)
+        .replace(/\{\{pay_link\}\}/gi, paymentLink)
+        .replace(/\{\{stripe_link\}\}/gi, paymentLink);
     };
 
     // Apply template replacement to draft content
@@ -135,17 +184,6 @@ serve(async (req) => {
     const allPhones = outreachContacts.phones;
     
     console.log(`Outreach contacts: ${allEmails.length} emails, ${allPhones.length} phones`);
-
-    // Get effective account ID (for team member support)
-    const { data: effectiveAccountId } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
-    const brandingOwnerId = effectiveAccountId || user.id;
-
-    // Fetch branding settings for signature and From name (using effective account)
-    const { data: branding } = await supabaseClient
-      .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
-      .eq("user_id", brandingOwnerId)
-      .single();
 
     // Generate the From address using company name
     const fromEmail = getEmailFromAddress(branding || {});
