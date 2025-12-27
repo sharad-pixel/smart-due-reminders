@@ -21,6 +21,7 @@ import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useLatestDigest } from "@/hooks/useDailyDigest";
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 import { DashboardIntelligenceSummary } from "@/components/DashboardIntelligenceSummary";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface Invoice {
   id: string;
@@ -55,6 +56,7 @@ interface DashboardTask {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const accountInfo = useEffectiveAccount();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -383,14 +385,23 @@ const Dashboard = () => {
     <Layout>
       <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
-            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-              Welcome back! Here's your collection overview.
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              All activity tracked in one place for visibility and compliance
-            </p>
+          <div className="flex items-center gap-4">
+            {accountInfo.ownerLogoUrl && (
+              <img 
+                src={accountInfo.ownerLogoUrl}
+                alt="Company logo" 
+                className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 object-contain rounded-lg border border-border/50 bg-background/50 p-1"
+              />
+            )}
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
+              <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
+                Welcome back! Here's your collection overview.
+              </p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                All activity tracked in one place for visibility and compliance
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button 
