@@ -145,11 +145,24 @@ export const useEffectiveAccount = () => {
             ownerEmailFooter: brandingSettings?.email_footer || null,
           });
         } else {
+          // Non-team member (account owner) - fetch their own branding
+          const { data: ownBranding } = await supabase
+            .from('branding_settings')
+            .select('logo_url, from_name, from_email, reply_to_email, email_signature, email_footer')
+            .eq('user_id', effectiveAccountId)
+            .single();
+
           setAccountInfo(prev => ({
             ...prev,
             effectiveAccountId,
             isTeamMember: false,
             ownerAvatarUrl: null,
+            ownerLogoUrl: ownBranding?.logo_url || null,
+            ownerFromName: ownBranding?.from_name || null,
+            ownerFromEmail: ownBranding?.from_email || null,
+            ownerReplyToEmail: ownBranding?.reply_to_email || null,
+            ownerEmailSignature: ownBranding?.email_signature || null,
+            ownerEmailFooter: ownBranding?.email_footer || null,
             loading: false,
           }));
         }
