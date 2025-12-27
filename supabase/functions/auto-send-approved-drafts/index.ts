@@ -13,16 +13,53 @@ const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 /**
  * Replace template variables in subject and body
  */
-function replaceTemplateVars(text: string, invoice: any, debtor: any): string {
+function replaceTemplateVars(
+  text: string, 
+  invoice: any, 
+  debtor: any, 
+  branding: any,
+  daysPastDue: number
+): string {
   if (!text) return text;
+  
+  const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
+  const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
+  const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+  const paymentLink = branding?.stripe_payment_link || '';
+  
   return text
-    .replace(/\{\{debtor_name\}\}/gi, debtor?.name || 'Valued Customer')
-    .replace(/\{\{invoice_number\}\}/gi, invoice?.invoice_number || invoice?.reference_id || '')
-    .replace(/\{\{invoice_Number\}\}/gi, invoice?.invoice_number || invoice?.reference_id || '')
-    .replace(/\{\{amount\}\}/gi, `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`)
-    .replace(/\{\{due_date\}\}/gi, invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '')
-    .replace(/\{\{company_name\}\}/gi, debtor?.name || '')
-    .replace(/\{\{balance\}\}/gi, `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+    // Customer/Debtor name variations
+    .replace(/\{\{customer_name\}\}/gi, customerName)
+    .replace(/\{\{customer name\}\}/gi, customerName)
+    .replace(/\{\{debtor_name\}\}/gi, customerName)
+    .replace(/\{\{debtor name\}\}/gi, customerName)
+    .replace(/\{\{company_name\}\}/gi, customerName)
+    .replace(/\{\{company name\}\}/gi, customerName)
+    .replace(/\{\{name\}\}/gi, customerName)
+    // Invoice number variations
+    .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
+    .replace(/\{\{invoice number\}\}/gi, invoiceNumber)
+    .replace(/\{\{invoiceNumber\}\}/gi, invoiceNumber)
+    // Amount variations
+    .replace(/\{\{amount\}\}/gi, amount)
+    .replace(/\{\{balance\}\}/gi, amount)
+    .replace(/\{\{total\}\}/gi, amount)
+    .replace(/\{\{invoice_amount\}\}/gi, amount)
+    // Due date variations
+    .replace(/\{\{due_date\}\}/gi, dueDate)
+    .replace(/\{\{due date\}\}/gi, dueDate)
+    .replace(/\{\{dueDate\}\}/gi, dueDate)
+    // Days past due
+    .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
+    .replace(/\{\{days past due\}\}/gi, String(daysPastDue))
+    .replace(/\{\{daysPastDue\}\}/gi, String(daysPastDue))
+    // Payment link variations
+    .replace(/\{\{payment_link\}\}/gi, paymentLink)
+    .replace(/\{\{payment link\}\}/gi, paymentLink)
+    .replace(/\{\{paymentLink\}\}/gi, paymentLink)
+    .replace(/\{\{pay_link\}\}/gi, paymentLink)
+    .replace(/\{\{stripe_link\}\}/gi, paymentLink);
 }
 
 Deno.serve(async (req) => {
@@ -140,9 +177,15 @@ Deno.serve(async (req) => {
         // Reply-to is based on invoice for routing inbound responses
         const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
 
+        // Calculate days past due for template replacement
+        const dueDate = new Date(invoice.due_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+
         // Replace template variables in draft content
-        const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor);
-        const processedBody = replaceTemplateVars(draft.message_body, invoice, debtor);
+        const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue);
+        const processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
 
         // Format message body with line breaks
         const formattedBody = processedBody.replace(/\n/g, "<br>");
