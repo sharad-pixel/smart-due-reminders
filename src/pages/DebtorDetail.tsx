@@ -108,14 +108,15 @@ interface OutreachLog {
   sent_to: string;
   sent_from: string | null;
   status: string;
-  invoice_id: string;
+  invoice_id: string | null;
   delivery_metadata: any;
   created_at: string;
+  activity_type?: string;
   invoices: {
     invoice_number: string;
     amount: number;
     due_date: string;
-  };
+  } | null;
 }
 
 const DebtorDetail = () => {
@@ -347,11 +348,12 @@ const DebtorDetail = () => {
 
   const fetchOutreach = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch from outreach_logs (invoice-level outreach)
+      const { data: logsData, error: logsError } = await supabase
         .from("outreach_logs")
         .select(`
           *,
-          invoices!inner(
+          invoices(
             invoice_number,
             amount,
             due_date
@@ -360,8 +362,91 @@ const DebtorDetail = () => {
         .eq("debtor_id", id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setOutreach(data || []);
+      if (logsError) throw logsError;
+
+      // Fetch from collection_activities (account-level and all outbound activities)
+      const { data: activitiesData, error: activitiesError } = await supabase
+        .from("collection_activities")
+        .select(`
+          id,
+          channel,
+          subject,
+          message_body,
+          sent_at,
+          created_at,
+          activity_type,
+          direction,
+          metadata,
+          invoice_id,
+          invoices(
+            invoice_number,
+            amount,
+            due_date
+          )
+        `)
+        .eq("debtor_id", id)
+        .eq("direction", "outbound")
+        .order("created_at", { ascending: false });
+
+      if (activitiesError) throw activitiesError;
+
+      // Transform outreach_logs to common format
+      const logsFormatted: OutreachLog[] = (logsData || []).map((log: any) => ({
+        id: log.id,
+        channel: log.channel,
+        subject: log.subject,
+        message_body: log.message_body,
+        sent_at: log.sent_at,
+        sent_to: log.sent_to,
+        sent_from: log.sent_from,
+        status: log.status,
+        invoice_id: log.invoice_id,
+        delivery_metadata: log.delivery_metadata,
+        created_at: log.created_at,
+        activity_type: "invoice_outreach",
+        invoices: log.invoices,
+      }));
+
+      // Transform collection_activities to common format
+      const activitiesFormatted: OutreachLog[] = (activitiesData || []).map((activity: any) => ({
+        id: activity.id,
+        channel: activity.channel,
+        subject: activity.subject,
+        message_body: activity.message_body,
+        sent_at: activity.sent_at,
+        sent_to: activity.metadata?.sent_to?.[0] || activity.metadata?.sent_to || "Unknown",
+        sent_from: activity.metadata?.from_email || activity.metadata?.from_name || null,
+        status: activity.sent_at ? "sent" : "pending",
+        invoice_id: activity.invoice_id,
+        delivery_metadata: activity.metadata,
+        created_at: activity.created_at,
+        activity_type: activity.activity_type,
+        invoices: activity.invoices,
+      }));
+
+      // Combine and deduplicate by id, then sort by date
+      const combinedMap = new Map<string, OutreachLog>();
+      
+      // Add activities first (they may be more comprehensive)
+      activitiesFormatted.forEach(a => combinedMap.set(a.id, a));
+      
+      // Add logs - but check if this is a duplicate (linked via activity)
+      logsFormatted.forEach(log => {
+        // Check if already in combined from activities
+        if (!combinedMap.has(log.id)) {
+          combinedMap.set(log.id, log);
+        }
+      });
+
+      // Sort combined by date (most recent first)
+      const combined = Array.from(combinedMap.values())
+        .sort((a, b) => {
+          const dateA = new Date(a.sent_at || a.created_at).getTime();
+          const dateB = new Date(b.sent_at || b.created_at).getTime();
+          return dateB - dateA;
+        });
+
+      setOutreach(combined);
     } catch (error: any) {
       console.error("Error fetching outreach:", error);
     }
@@ -920,14 +1005,16 @@ const DebtorDetail = () => {
                 ) : (
                   <div className="space-y-4">
                     {outreach.map((log) => (
-                      <Card key={log.id} className="border-l-4 border-l-primary/30">
+                      <Card key={log.id} className={`border-l-4 ${log.activity_type === 'account_level_outreach' ? 'border-l-purple-500' : 'border-l-primary/30'}`}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <div className={`p-2 rounded-full ${
-                                log.channel === 'email' 
-                                  ? 'bg-blue-100 text-blue-600' 
-                                  : 'bg-green-100 text-green-600'
+                                log.activity_type === 'account_level_outreach'
+                                  ? 'bg-purple-100 text-purple-600'
+                                  : log.channel === 'email' 
+                                    ? 'bg-blue-100 text-blue-600' 
+                                    : 'bg-green-100 text-green-600'
                               }`}>
                                 {log.channel === 'email' ? (
                                   <Mail className="h-4 w-4" />
@@ -938,6 +1025,11 @@ const DebtorDetail = () => {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold capitalize">{log.channel}</span>
+                                  {log.activity_type === 'account_level_outreach' && (
+                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
+                                      Account-Level
+                                    </Badge>
+                                  )}
                                   <span
                                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                       log.status === "sent"
@@ -959,11 +1051,22 @@ const DebtorDetail = () => {
                               </div>
                             </div>
                             <div className="text-right text-sm">
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <FileText className="h-3 w-3" />
-                                <span className="font-mono">{log.invoices.invoice_number}</span>
-                              </div>
-                              <div className="font-medium">${log.invoices.amount.toLocaleString()}</div>
+                              {log.invoices ? (
+                                <>
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <FileText className="h-3 w-3" />
+                                    <span className="font-mono">{log.invoices.invoice_number}</span>
+                                  </div>
+                                  <div className="font-medium">${log.invoices.amount.toLocaleString()}</div>
+                                </>
+                              ) : log.activity_type === 'account_level_outreach' ? (
+                                <div className="flex items-center gap-1 text-purple-600">
+                                  <Building className="h-3 w-3" />
+                                  <span className="text-xs font-medium">Account Summary</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">No invoice linked</span>
+                              )}
                             </div>
                           </div>
 
