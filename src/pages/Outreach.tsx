@@ -38,6 +38,9 @@ const Outreach = () => {
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
   const [draftFilter, setDraftFilter] = useState<string>("pending");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [accountOutreachSearch, setAccountOutreachSearch] = useState<string>("");
+  const [accountOutreachPage, setAccountOutreachPage] = useState<number>(1);
+  const ACCOUNT_OUTREACH_PAGE_SIZE = 10;
 
   // Mutation for bulk approving drafts
   const bulkApproveDrafts = useMutation({
@@ -282,13 +285,13 @@ const Outreach = () => {
     return filtered;
   }, [draftsData, draftFilter, searchQuery]);
 
-  // Filter account outreach based on search
+  // Filter account outreach based on dedicated search
   const filteredAccountOutreach = useMemo(() => {
     if (!accountOutreachData) return [];
     
-    if (!searchQuery.trim()) return accountOutreachData;
+    if (!accountOutreachSearch.trim()) return accountOutreachData;
 
-    const query = searchQuery.toLowerCase();
+    const query = accountOutreachSearch.toLowerCase();
     return accountOutreachData.filter((activity: any) => {
       const debtor = activity.debtors as any;
       const companyName = debtor?.company_name?.toLowerCase() || "";
@@ -301,7 +304,15 @@ const Outreach = () => {
              email.includes(query) ||
              subject.includes(query);
     });
-  }, [accountOutreachData, searchQuery]);
+  }, [accountOutreachData, accountOutreachSearch]);
+
+  // Paginated account outreach
+  const paginatedAccountOutreach = useMemo(() => {
+    const startIndex = (accountOutreachPage - 1) * ACCOUNT_OUTREACH_PAGE_SIZE;
+    return filteredAccountOutreach.slice(startIndex, startIndex + ACCOUNT_OUTREACH_PAGE_SIZE);
+  }, [filteredAccountOutreach, accountOutreachPage]);
+
+  const totalAccountOutreachPages = Math.ceil(filteredAccountOutreach.length / ACCOUNT_OUTREACH_PAGE_SIZE);
 
   // Count drafts by status
   const draftCounts = useMemo(() => {
@@ -930,6 +941,18 @@ const Outreach = () => {
             {/* Account Outreach Actions Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search accounts..."
+                    value={accountOutreachSearch}
+                    onChange={(e) => {
+                      setAccountOutreachSearch(e.target.value);
+                      setAccountOutreachPage(1);
+                    }}
+                    className="pl-9 w-64"
+                  />
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -941,7 +964,7 @@ const Outreach = () => {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Showing {filteredAccountOutreach.length} account-level outreach record{filteredAccountOutreach.length !== 1 ? 's' : ''}
+                Showing {paginatedAccountOutreach.length} of {filteredAccountOutreach.length} record{filteredAccountOutreach.length !== 1 ? 's' : ''}
               </p>
             </div>
 
@@ -955,7 +978,7 @@ const Outreach = () => {
                 <CardContent className="py-12 text-center">
                   <Zap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
-                    {searchQuery ? "No matching account outreach records" : "No account-level outreach records yet"}
+                    {accountOutreachSearch ? "No matching account outreach records" : "No account-level outreach records yet"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     Account-level outreach emails will appear here when sent from accounts with Account Level Outreach enabled.
@@ -964,7 +987,7 @@ const Outreach = () => {
               </Card>
             ) : (
               <div className="space-y-3">
-                {filteredAccountOutreach.map((activity: any) => {
+                {paginatedAccountOutreach.map((activity: any) => {
                   const debtor = activity.debtors as any;
                   const metadata = activity.metadata as any || {};
                   const invoicesIncluded = metadata.invoices_included || [];
@@ -1059,6 +1082,31 @@ const Outreach = () => {
                     </Card>
                   );
                 })}
+
+                {/* Pagination */}
+                {totalAccountOutreachPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAccountOutreachPage(p => Math.max(1, p - 1))}
+                      disabled={accountOutreachPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground px-4">
+                      Page {accountOutreachPage} of {totalAccountOutreachPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAccountOutreachPage(p => Math.min(totalAccountOutreachPages, p + 1))}
+                      disabled={accountOutreachPage === totalAccountOutreachPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
