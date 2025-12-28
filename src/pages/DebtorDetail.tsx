@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2, PauseCircle, PlayCircle } from "lucide-react";
+import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2, PauseCircle, PlayCircle, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ContactCard } from "@/components/ContactCard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -144,6 +144,9 @@ const DebtorDetail = () => {
   const [contacts, setContacts] = useState<DebtorContact[]>([]);
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", title: "", email: "", phone: "", outreach_enabled: true });
+  const [outreachSearch, setOutreachSearch] = useState("");
+  const [outreachPage, setOutreachPage] = useState(1);
+  const OUTREACH_PAGE_SIZE = 10;
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -154,6 +157,25 @@ const DebtorDetail = () => {
     address: "",
     notes: "",
   });
+
+  // Filter and paginate outreach
+  const filteredOutreach = useMemo(() => {
+    if (!outreachSearch.trim()) return outreach;
+    const query = outreachSearch.toLowerCase();
+    return outreach.filter(log => 
+      log.subject?.toLowerCase().includes(query) ||
+      log.message_body?.toLowerCase().includes(query) ||
+      log.sent_to?.toLowerCase().includes(query) ||
+      log.invoices?.invoice_number?.toLowerCase().includes(query)
+    );
+  }, [outreach, outreachSearch]);
+
+  const paginatedOutreach = useMemo(() => {
+    const start = (outreachPage - 1) * OUTREACH_PAGE_SIZE;
+    return filteredOutreach.slice(start, start + OUTREACH_PAGE_SIZE);
+  }, [filteredOutreach, outreachPage]);
+
+  const totalOutreachPages = Math.ceil(filteredOutreach.length / OUTREACH_PAGE_SIZE);
 
   useEffect(() => {
     if (id) {
@@ -992,19 +1014,44 @@ const DebtorDetail = () => {
           <TabsContent value="outreach">
             <Card>
               <CardHeader>
-                <CardTitle>Communication Audit Trail</CardTitle>
-                <p className="text-sm text-muted-foreground">Complete history of all communications with this account</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Communication Audit Trail</CardTitle>
+                    <p className="text-sm text-muted-foreground">Complete history of all communications with this account</p>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search outreach..."
+                      value={outreachSearch}
+                      onChange={(e) => {
+                        setOutreachSearch(e.target.value);
+                        setOutreachPage(1);
+                      }}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                {filteredOutreach.length > 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Showing {paginatedOutreach.length} of {filteredOutreach.length} record{filteredOutreach.length !== 1 ? 's' : ''}
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="pt-6">
-                {outreach.length === 0 ? (
+                {filteredOutreach.length === 0 ? (
                   <div className="text-center py-12">
                     <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <p className="text-muted-foreground">No outreach history for this account yet.</p>
-                    <p className="text-sm text-muted-foreground mt-2">Communications will appear here once sent.</p>
+                    <p className="text-muted-foreground">
+                      {outreachSearch ? "No matching outreach records" : "No outreach history for this account yet."}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {outreachSearch ? "Try a different search term." : "Communications will appear here once sent."}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {outreach.map((log) => (
+                    {paginatedOutreach.map((log) => (
                       <Card key={log.id} className={`border-l-4 ${log.activity_type === 'account_level_outreach' ? 'border-l-purple-500' : 'border-l-primary/30'}`}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
@@ -1108,6 +1155,31 @@ const DebtorDetail = () => {
                         </CardContent>
                       </Card>
                     ))}
+
+                    {/* Pagination */}
+                    {totalOutreachPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOutreachPage(p => Math.max(1, p - 1))}
+                          disabled={outreachPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm text-muted-foreground px-4">
+                          Page {outreachPage} of {totalOutreachPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOutreachPage(p => Math.min(totalOutreachPages, p + 1))}
+                          disabled={outreachPage === totalOutreachPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
