@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle, Search, MessageSquare } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -23,6 +23,8 @@ import { TasksSummaryCard } from "@/components/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetailModal";
+import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 
 import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
 
@@ -98,13 +100,15 @@ interface OutreachLog {
   sent_at: string | null;
   status: string;
   message_body: string;
-  sent_to?: string;
-  sent_from?: string | null;
+  sent_to: string;
+  sent_from: string | null;
   delivery_metadata?: any;
   metadata?: any;
   direction?: string;
   activity_type?: string;
   source: 'outreach_logs' | 'collection_activities';
+  invoice_id: string | null;
+  created_at: string;
 }
 
 interface AIDraft {
@@ -155,14 +159,35 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedOutreach, setSelectedOutreach] = useState<OutreachLog | null>(null);
+  const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
+  const [outreachSearch, setOutreachSearch] = useState("");
+  const [outreachPage, setOutreachPage] = useState(1);
+  const OUTREACH_PAGE_SIZE = 10;
   const [applyPaymentOpen, setApplyPaymentOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
   const [applyingPayment, setApplyingPayment] = useState(false);
+
+  // Filtered and paginated outreach
+  const filteredOutreach = useMemo(() => {
+    if (!outreachSearch.trim()) return outreach;
+    const search = outreachSearch.toLowerCase();
+    return outreach.filter(log => 
+      log.subject?.toLowerCase().includes(search) ||
+      log.message_body?.toLowerCase().includes(search) ||
+      log.sent_to?.toLowerCase().includes(search)
+    );
+  }, [outreach, outreachSearch]);
+
+  const paginatedOutreach = useMemo(() => {
+    const start = (outreachPage - 1) * OUTREACH_PAGE_SIZE;
+    return filteredOutreach.slice(start, start + OUTREACH_PAGE_SIZE);
+  }, [filteredOutreach, outreachPage]);
+
+  const totalOutreachPages = Math.ceil(filteredOutreach.length / OUTREACH_PAGE_SIZE);
 
   useEffect(() => {
     if (id) {
@@ -218,21 +243,32 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       // Combine outreach logs and collection activities
       const outreachFromLogs: OutreachLog[] = (outreachLogsRes.data || []).map(log => ({
         ...log,
-        source: 'outreach_logs' as const
+        source: 'outreach_logs' as const,
+        sent_to: log.sent_to || '',
+        sent_from: log.sent_from || null,
+        invoice_id: log.invoice_id || id || null,
+        created_at: log.created_at || log.sent_at || new Date().toISOString()
       }));
       
-      const outreachFromActivities: OutreachLog[] = (activitiesRes.data || []).map(activity => ({
-        id: activity.id,
-        channel: activity.channel,
-        subject: activity.subject,
-        sent_at: activity.sent_at,
-        status: 'sent',
-        message_body: activity.message_body,
-        metadata: activity.metadata,
-        direction: activity.direction,
-        activity_type: activity.activity_type,
-        source: 'collection_activities' as const
-      }));
+      const outreachFromActivities: OutreachLog[] = (activitiesRes.data || []).map(activity => {
+        const metadata = activity.metadata as Record<string, any> | null;
+        return {
+          id: activity.id,
+          channel: activity.channel,
+          subject: activity.subject,
+          sent_at: activity.sent_at,
+          status: 'sent',
+          message_body: activity.message_body,
+          sent_to: metadata?.recipient || '',
+          sent_from: metadata?.sender || null,
+          delivery_metadata: metadata,
+          direction: activity.direction,
+          activity_type: activity.activity_type,
+          source: 'collection_activities' as const,
+          invoice_id: id || null,
+          created_at: activity.created_at || activity.sent_at || new Date().toISOString()
+        };
+      });
       
       // Combine and deduplicate (prefer collection_activities if both exist)
       const allOutreach = [...outreachFromActivities, ...outreachFromLogs]
@@ -1330,60 +1366,74 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="history" className="mt-4">
-                {outreach.length === 0 ? (
+              <TabsContent value="history" className="mt-4 space-y-3">
+                {outreach.length > 0 && (
+                  <div className="relative">
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search outreach..."
+                      value={outreachSearch}
+                      onChange={(e) => {
+                        setOutreachSearch(e.target.value);
+                        setOutreachPage(1);
+                      }}
+                      className="pl-9"
+                    />
+                  </div>
+                )}
+                
+                {filteredOutreach.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No outreach history yet</p>
-                    <p className="text-xs mt-1">Generate a draft to get started</p>
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">
+                      {outreachSearch ? "No matching outreach records" : "No outreach history yet"}
+                    </p>
+                    <p className="text-xs mt-1">
+                      {outreachSearch ? "Try a different search term" : "Generate a draft to get started"}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {outreach.map((log) => (
-                      <div
+                    {paginatedOutreach.map((log) => (
+                      <OutreachSummaryRow
                         key={log.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                        channel={log.channel}
+                        subject={log.subject}
+                        status={log.status}
+                        sentAt={log.sent_at}
+                        createdAt={log.created_at}
+                        activityType={log.activity_type}
                         onClick={() => {
-                          setSelectedOutreach(log);
+                          setSelectedOutreach(log as OutreachRecord);
                           setOutreachDetailOpen(true);
                         }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`p-2 rounded-full ${
-                            log.status === 'sent' ? 'bg-green-100 text-green-600' :
-                            log.status === 'failed' ? 'bg-red-100 text-red-600' :
-                            'bg-yellow-100 text-yellow-600'
-                          }`}>
-                            <Mail className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {log.subject || "No subject"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {log.sent_at ? new Date(log.sent_at).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }) : "Not sent"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            log.status === "sent"
-                              ? "bg-green-100 text-green-700"
-                              : log.status === "failed"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}>
-                            {log.status}
-                          </span>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </div>
+                      />
                     ))}
+
+                    {/* Pagination */}
+                    {totalOutreachPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOutreachPage(p => Math.max(1, p - 1))}
+                          disabled={outreachPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm text-muted-foreground px-3">
+                          {outreachPage} / {totalOutreachPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOutreachPage(p => Math.min(totalOutreachPages, p + 1))}
+                          disabled={outreachPage === totalOutreachPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -1690,88 +1740,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           onTaskCreated={() => fetchData()}
         />
 
-        <Dialog open={outreachDetailOpen} onOpenChange={setOutreachDetailOpen}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Outreach Details</DialogTitle>
-              <DialogDescription>
-                View the full message and delivery information
-              </DialogDescription>
-            </DialogHeader>
-            {selectedOutreach && (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Channel</Label>
-                    <p className="font-medium capitalize">{selectedOutreach.channel}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Status</Label>
-                    <div className="mt-1">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          selectedOutreach.status === "sent"
-                            ? "bg-green-100 text-green-800"
-                            : selectedOutreach.status === "failed"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {selectedOutreach.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Sent To</Label>
-                    <p className="font-medium">{selectedOutreach.sent_to}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Sent At</Label>
-                    <p className="font-medium">
-                      {selectedOutreach.sent_at ? new Date(selectedOutreach.sent_at).toLocaleString() : "Not sent"}
-                    </p>
-                  </div>
-                  {selectedOutreach.sent_from && (
-                    <div className="col-span-2">
-                      <Label className="text-sm text-muted-foreground">Sent From</Label>
-                      <p className="font-medium">{selectedOutreach.sent_from}</p>
-                    </div>
-                  )}
-                </div>
-
-                {selectedOutreach.subject && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Subject</Label>
-                    <p className="font-medium mt-1">{selectedOutreach.subject}</p>
-                  </div>
-                )}
-
-                <div>
-                  <Label className="text-sm text-muted-foreground">Message</Label>
-                  <div className="mt-2 p-4 bg-muted rounded-md">
-                    <p className="whitespace-pre-wrap text-sm">{selectedOutreach.message_body}</p>
-                  </div>
-                </div>
-
-                {selectedOutreach.delivery_metadata && Object.keys(selectedOutreach.delivery_metadata).length > 0 && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Delivery Information</Label>
-                    <div className="mt-2 p-4 bg-muted rounded-md">
-                      <pre className="text-xs overflow-auto">
-                        {JSON.stringify(selectedOutreach.delivery_metadata, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOutreachDetailOpen(false)}>
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <OutreachDetailModal
+          open={outreachDetailOpen}
+          onOpenChange={setOutreachDetailOpen}
+          outreach={selectedOutreach}
+          showInvoiceLink={false}
+        />
 
         <Dialog open={applyPaymentOpen} onOpenChange={setApplyPaymentOpen}>
           <DialogContent>
