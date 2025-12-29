@@ -30,6 +30,8 @@ import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/CustomerCaseFeed";
 import { AccountIntelligenceCard } from "@/components/AccountIntelligenceCard";
 import { AccountOutreachSettings } from "@/components/AccountOutreachSettings";
+import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetailModal";
+import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 
 interface Debtor {
   id: string;
@@ -147,6 +149,8 @@ const DebtorDetail = () => {
   const [outreachSearch, setOutreachSearch] = useState("");
   const [outreachPage, setOutreachPage] = useState(1);
   const OUTREACH_PAGE_SIZE = 10;
+  const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
+  const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -1050,110 +1054,23 @@ const DebtorDetail = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {paginatedOutreach.map((log) => (
-                      <Card key={log.id} className={`border-l-4 ${log.activity_type === 'account_level_outreach' ? 'border-l-purple-500' : 'border-l-primary/30'}`}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-full ${
-                                log.activity_type === 'account_level_outreach'
-                                  ? 'bg-purple-100 text-purple-600'
-                                  : log.channel === 'email' 
-                                    ? 'bg-blue-100 text-blue-600' 
-                                    : 'bg-green-100 text-green-600'
-                              }`}>
-                                {log.channel === 'email' ? (
-                                  <Mail className="h-4 w-4" />
-                                ) : (
-                                  <MessageSquare className="h-4 w-4" />
-                                )}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold capitalize">{log.channel}</span>
-                                  {log.activity_type === 'account_level_outreach' && (
-                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
-                                      Account-Level
-                                    </Badge>
-                                  )}
-                                  <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                      log.status === "sent"
-                                        ? "bg-green-100 text-green-800"
-                                        : log.status === "failed"
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {log.status}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                  <Clock className="h-3 w-3" />
-                                  {log.sent_at
-                                    ? new Date(log.sent_at).toLocaleString()
-                                    : new Date(log.created_at).toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right text-sm">
-                              {log.invoices ? (
-                                <>
-                                  <div className="flex items-center gap-1 text-muted-foreground">
-                                    <FileText className="h-3 w-3" />
-                                    <span className="font-mono">{log.invoices.invoice_number}</span>
-                                  </div>
-                                  <div className="font-medium">${log.invoices.amount.toLocaleString()}</div>
-                                </>
-                              ) : log.activity_type === 'account_level_outreach' ? (
-                                <div className="flex items-center gap-1 text-purple-600">
-                                  <Building className="h-3 w-3" />
-                                  <span className="text-xs font-medium">Account Summary</span>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">No invoice linked</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {log.subject && (
-                            <div className="mb-2">
-                              <span className="text-sm font-medium text-muted-foreground">Subject: </span>
-                              <span className="text-sm">{log.subject}</span>
-                            </div>
-                          )}
-
-                          <div className="mb-3">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                              <span className="font-medium">To:</span>
-                              <span>{log.sent_to}</span>
-                              {log.sent_from && (
-                                <>
-                                  <span className="mx-2">•</span>
-                                  <span className="font-medium">From:</span>
-                                  <span>{log.sent_from}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="bg-muted/30 p-3 rounded-lg">
-                            <p className="text-sm whitespace-pre-wrap">{log.message_body}</p>
-                          </div>
-
-                          {log.delivery_metadata && Object.keys(log.delivery_metadata).length > 0 && (
-                            <details className="mt-3">
-                              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                                Delivery Details
-                              </summary>
-                              <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto">
-                                {JSON.stringify(log.delivery_metadata, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                        </CardContent>
-                      </Card>
+                      <OutreachSummaryRow
+                        key={log.id}
+                        channel={log.channel}
+                        subject={log.subject}
+                        status={log.status}
+                        sentAt={log.sent_at}
+                        createdAt={log.created_at}
+                        activityType={log.activity_type}
+                        invoiceNumber={log.invoices?.invoice_number}
+                        invoiceAmount={log.invoices?.amount}
+                        onClick={() => {
+                          setSelectedOutreach(log as OutreachRecord);
+                          setOutreachDetailOpen(true);
+                        }}
+                      />
                     ))}
 
                     {/* Pagination */}
@@ -1186,6 +1103,13 @@ const DebtorDetail = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <OutreachDetailModal
+          open={outreachDetailOpen}
+          onOpenChange={setOutreachDetailOpen}
+          outreach={selectedOutreach}
+          showInvoiceLink={true}
+        />
 
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
