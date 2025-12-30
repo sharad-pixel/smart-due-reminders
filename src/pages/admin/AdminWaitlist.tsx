@@ -75,7 +75,18 @@ const AdminWaitlist = () => {
       });
 
       if (error) throw error;
-      toast({ title: "Added to whitelist", description: email });
+
+      // Send alert to support@recouply.ai
+      await supabase.functions.invoke("send-admin-alert", {
+        body: {
+          type: "admin_invite",
+          email: email.toLowerCase(),
+          inviterName: "Admin",
+          notes: "Added from waitlist",
+        },
+      });
+
+      toast({ title: "Added to whitelist", description: `${email} - alert sent to support` });
       fetchData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -89,12 +100,24 @@ const AdminWaitlist = () => {
       const { error } = await supabase.from("early_access_whitelist").insert({
         email: inviteEmail.toLowerCase(),
         invitee_name: inviteName || null,
-        inviter_name: "Sharad Chanana",
+        inviter_name: "Admin",
         notes: inviteNotes || null,
       });
 
       if (error) throw error;
-      toast({ title: "Invite sent", description: `${inviteEmail} added to whitelist` });
+
+      // Send alert to support@recouply.ai
+      await supabase.functions.invoke("send-admin-alert", {
+        body: {
+          type: "admin_invite",
+          email: inviteEmail.toLowerCase(),
+          name: inviteName || null,
+          inviterName: "Admin",
+          notes: inviteNotes || null,
+        },
+      });
+
+      toast({ title: "Invite sent", description: `${inviteEmail} added to whitelist and alert sent to support` });
       setShowInviteDialog(false);
       setInviteEmail("");
       setInviteName("");

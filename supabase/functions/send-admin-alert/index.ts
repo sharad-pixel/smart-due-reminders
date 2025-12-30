@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AdminAlertRequest {
-  type: "waitlist" | "signup" | "contact_request" | "design_partner_application";
+  type: "waitlist" | "signup" | "contact_request" | "design_partner_application" | "admin_invite";
   email: string;
   name?: string;
   company?: string;
@@ -15,6 +15,8 @@ interface AdminAlertRequest {
   billingSystem?: string;
   monthlyInvoices?: string;
   teamSize?: string;
+  inviterName?: string;
+  notes?: string;
 }
 
 serve(async (req) => {
@@ -42,10 +44,10 @@ serve(async (req) => {
   }
 
   try {
-    const { type, email, name, company, message, billingSystem, monthlyInvoices, teamSize }: AdminAlertRequest = await req.json();
+    const { type, email, name, company, message, billingSystem, monthlyInvoices, teamSize, inviterName, notes }: AdminAlertRequest = await req.json();
     console.log(`Processing admin alert for ${type}: ${email}`);
 
-    const adminEmail = "sharad@recouply.ai";
+    const adminEmail = "support@recouply.ai";
     let subject = "";
     let bodyContent = "";
 
@@ -299,6 +301,66 @@ serve(async (req) => {
         <div style="text-align: center; margin: 32px 0;">
           <a href="mailto:${email}?subject=Your Recouply.ai Design Partner Application" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">
             Reply to ${name || 'Applicant'} →
+          </a>
+        </div>
+      `;
+    } else if (type === "admin_invite") {
+      subject = "✉️ Admin User Invitation Sent - RecouplyAI Inc.";
+      bodyContent = `
+        <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
+          ✉️ New User Invited to Platform
+        </h2>
+        
+        <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+          A new user has been invited to Recouply.ai by an administrator.
+        </p>
+
+        <div style="background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); border-radius: 12px; padding: 28px; margin: 28px 0;">
+          <p style="margin: 0 0 8px; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
+            Invitation Details
+          </p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Email:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${email}</td>
+            </tr>
+            ${name ? `
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Name:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${name}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Invited By:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${inviterName || 'Admin'}</td>
+            </tr>
+            ${notes ? `
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px; border-bottom: 1px solid rgba(255,255,255,0.2);">Notes:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.2);">${notes}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td style="padding: 12px 0; color: rgba(255,255,255,0.7); font-size: 14px; width: 120px;">Invited At:</td>
+              <td style="padding: 12px 0; color: #ffffff; font-size: 16px; font-weight: 500;">${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <h3 style="margin: 0 0 12px; color: #1e3a5f; font-size: 16px; font-weight: 600;">
+            📋 Next Steps
+          </h3>
+          <ul style="margin: 0; padding: 0 0 0 20px; color: #475569; font-size: 14px; line-height: 2;">
+            <li>User has been added to the early access whitelist</li>
+            <li>They can now sign up using their email address</li>
+            <li>Monitor for signup completion in the Admin Dashboard</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="https://recouply.ai/admin/waitlist" style="display: inline-block; background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">
+            View in Admin Dashboard →
           </a>
         </div>
       `;
