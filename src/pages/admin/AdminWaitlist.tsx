@@ -32,6 +32,7 @@ interface WhitelistEntry {
   notes: string | null;
   invited_at: string;
   used_at: string | null;
+  has_signed_up?: boolean; // Derived from profiles check
 }
 
 const AdminWaitlist = () => {
@@ -52,13 +53,25 @@ const AdminWaitlist = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [{ data: waitlistData }, { data: whitelistData }] = await Promise.all([
+      const [{ data: waitlistData }, { data: whitelistData }, { data: profilesData }] = await Promise.all([
         supabase.from("waitlist_signups").select("*").order("created_at", { ascending: false }),
         supabase.from("early_access_whitelist").select("*").order("invited_at", { ascending: false }),
+        supabase.from("profiles").select("email"),
       ]);
 
+      // Create a set of signed-up emails for quick lookup
+      const signedUpEmails = new Set(
+        (profilesData || []).map((p: { email: string }) => p.email?.toLowerCase())
+      );
+
+      // Enrich whitelist with actual signup status
+      const enrichedWhitelist = (whitelistData || []).map((entry: WhitelistEntry) => ({
+        ...entry,
+        has_signed_up: entry.used_at !== null || signedUpEmails.has(entry.email?.toLowerCase()),
+      }));
+
       setWaitlist(waitlistData || []);
-      setWhitelist(whitelistData || []);
+      setWhitelist(enrichedWhitelist);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -242,7 +255,7 @@ const AdminWaitlist = () => {
                         Invited {format(new Date(entry.invited_at), "MMM d, yyyy")}
                       </p>
                     </div>
-                    {entry.used_at ? (
+                    {entry.has_signed_up ? (
                       <Badge variant="default">Signed Up</Badge>
                     ) : (
                       <Badge variant="outline">Pending</Badge>
