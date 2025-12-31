@@ -555,13 +555,44 @@ Extract summary and actions.`;
             };
           });
 
-          const { error: taskError } = await supabase.from("collection_tasks").insert(tasks);
+          const { data: createdTasks, error: taskError } = await supabase
+            .from("collection_tasks")
+            .insert(tasks)
+            .select("id");
+            
           if (taskError) {
             console.error(`[AI-PROCESS] Error creating tasks:`, taskError.message);
           } else {
             console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
+            
+            // Notify all account users about each created task
+            if (createdTasks && createdTasks.length > 0) {
+              for (const task of createdTasks) {
+                try {
+                  const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-task-created`;
+                  const notifyResponse = await fetch(notifyUrl, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                    },
+                    body: JSON.stringify({
+                      taskId: task.id,
+                      creatorUserId: email.user_id,
+                    }),
+                  });
+                  
+                  if (!notifyResponse.ok) {
+                    console.error(`[AI-PROCESS] Failed to notify for task ${task.id}:`, await notifyResponse.text());
+                  } else {
+                    console.log(`[AI-PROCESS] Notification sent for task ${task.id}`);
+                  }
+                } catch (notifyError: any) {
+                  console.error(`[AI-PROCESS] Error sending notification for task ${task.id}:`, notifyError.message);
+                }
+              }
+            }
           }
-          console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
         }
 
         // Trigger automatic workflow engagement for external emails linked to invoices
