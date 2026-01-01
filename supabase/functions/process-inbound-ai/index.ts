@@ -569,26 +569,29 @@ Extract summary and actions.`;
             if (createdTasks && createdTasks.length > 0) {
               for (const task of createdTasks) {
                 try {
-                  const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-task-created`;
-                  const notifyResponse = await fetch(notifyUrl, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                    },
-                    body: JSON.stringify({
-                      taskId: task.id,
-                      creatorUserId: email.user_id,
-                    }),
-                  });
-                  
-                  if (!notifyResponse.ok) {
-                    console.error(`[AI-PROCESS] Failed to notify for task ${task.id}:`, await notifyResponse.text());
+                  const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
+                    "notify-task-created",
+                    {
+                      body: {
+                        taskId: task.id,
+                        creatorUserId: email.user_id,
+                      },
+                    }
+                  );
+
+                  if (notifyError) {
+                    console.error(
+                      `[AI-PROCESS] Failed to notify for task ${task.id}:`,
+                      notifyError.message || notifyError
+                    );
                   } else {
-                    console.log(`[AI-PROCESS] Notification sent for task ${task.id}`);
+                    console.log(`[AI-PROCESS] Notification invoked for task ${task.id}`, notifyData);
                   }
                 } catch (notifyError: any) {
-                  console.error(`[AI-PROCESS] Error sending notification for task ${task.id}:`, notifyError.message);
+                  console.error(
+                    `[AI-PROCESS] Error invoking notification for task ${task.id}:`,
+                    notifyError?.message || notifyError
+                  );
                 }
               }
             }
