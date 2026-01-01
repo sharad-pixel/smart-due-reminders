@@ -282,7 +282,7 @@ serve(async (req) => {
     // Get all team members under this account (including the owner) with their profiles
     const { data: teamMembers, error: teamError } = await supabase
       .from("account_users")
-      .select("user_id, profiles!account_users_user_id_fkey(id, name, email)")
+      .select("user_id, email, profiles!account_users_user_id_fkey(id, name, email)")
       .eq("account_id", accountOwnerId)
       .eq("status", "active");
 
@@ -292,26 +292,23 @@ serve(async (req) => {
 
     console.log("[NOTIFY-TASK-CREATED] Team members found:", teamMembers?.length || 0);
 
-    // Collect all users to notify (team members + owner, excluding creator)
-    const usersToNotify: { userId: string; name: string; email: string }[] = [];
-    
+    // Collect all users to notify (excluding creator). Email is optional; in-app notifications should still be created.
+    const usersToNotify: { userId: string; name: string; email?: string }[] = [];
+
     // Add team members
     if (teamMembers) {
       for (const member of teamMembers) {
-        if (member.user_id && member.user_id !== creatorUserId) {
-          // deno-lint-ignore no-explicit-any
-          const profile = member.profiles as any;
-          if (profile?.email) {
-            usersToNotify.push({
-              userId: member.user_id,
-              name: profile.name || profile.email.split("@")[0],
-              email: profile.email,
-            });
-          }
-        }
+        if (!member.user_id || member.user_id === creatorUserId) continue;
+
+        // deno-lint-ignore no-explicit-any
+        const profile = (member as any).profiles as any;
+        const email = profile?.email || (member as any).email || undefined;
+        const name = profile?.name || (email ? email.split("@")[0] : "Team member");
+
+        usersToNotify.push({ userId: member.user_id, name, email });
       }
     }
-    
+
     // Add owner if not already included and not the creator
     if (accountOwnerId && accountOwnerId !== creatorUserId) {
       const ownerExists = usersToNotify.some((u) => u.userId === accountOwnerId);
@@ -321,18 +318,30 @@ serve(async (req) => {
           .select("id, name, email")
           .eq("id", accountOwnerId)
           .single();
-        
-        if (ownerProfile?.email) {
-          usersToNotify.push({
-            userId: accountOwnerId,
-            name: ownerProfile.name || ownerProfile.email.split("@")[0],
-            email: ownerProfile.email,
-          });
-        }
+
+        const { data: ownerAccount } = await supabase
+          .from("account_users")
+          .select("email")
+          .eq("user_id", accountOwnerId)
+          .eq("status", "active")
+          .limit(1)
+          .single();
+
+        const ownerEmail = ownerProfile?.email || ownerAccount?.email || undefined;
+        const ownerName = ownerProfile?.name || (ownerEmail ? ownerEmail.split("@")[0] : "Account owner");
+
+        usersToNotify.push({
+          userId: accountOwnerId,
+          name: ownerName,
+          email: ownerEmail,
+        });
       }
     }
 
-    console.log("[NOTIFY-TASK-CREATED] Users to notify:", usersToNotify.map((u) => u.email));
+    console.log(
+      "[NOTIFY-TASK-CREATED] Users to notify:",
+      usersToNotify.map((u) => ({ userId: u.userId, email: u.email }))
+    );
 
     if (usersToNotify.length === 0) {
       return new Response(
@@ -369,14 +378,19 @@ serve(async (req) => {
       console.error("[NOTIFY-TASK-CREATED] Error creating notifications:", insertError);
     }
 
-    // Send email notifications to all users
+    // Send email notifications (only to users with an email)
     let emailsSent = 0;
     const emailErrors: string[] = [];
 
     for (const user of usersToNotify) {
+      if (!user.email) {
+        console.log(`[NOTIFY-TASK-CREATED] Skipping email (no email on file) for user_id=${user.userId}`);
+        continue;
+      }
+
       try {
         console.log(`[NOTIFY-TASK-CREATED] Sending email to ${user.email}`);
-        
+
         const emailHtml = generateTaskEmailHtml({
           recipientName: user.name,
           creatorName,
@@ -403,6 +417,20 @@ serve(async (req) => {
         emailErrors.push(`${user.email}: ${errorMsg}`);
       }
     }
+
+    console.log(
+      `[NOTIFY-TASK-CREATED] Successfully created ${notifications.length} notifications and sent ${emailsSent} emails`
+    );
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        notified: notifications.length,
+        emailsSent,
+        emailErrors: emailErrors.length > 0 ? emailErrors : undefined,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
     console.log(`[NOTIFY-TASK-CREATED] Successfully created ${notifications.length} notifications and sent ${emailsSent} emails`);
 
