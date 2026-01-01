@@ -326,22 +326,75 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
     
     setHistoryLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('collection_activities')
+      // Fetch from outreach_logs table (primary source for sent emails)
+      const { data: outreachLogs, error: logsError } = await supabase
+        .from('outreach_logs')
         .select(`
-          id, activity_type, channel, direction, subject, message_body,
-          sent_at, delivered_at, opened_at, responded_at, created_at,
+          id, channel, subject, message_body, sent_at, sent_from, sent_to, status, created_at,
           invoices!inner(id, invoice_number, amount, due_date),
           debtors!inner(id, company_name, name)
         `)
         .eq('user_id', effectiveAccountId)
-        .eq('direction', 'outbound')
-        .in('activity_type', ['ai_outreach', 'manual_outreach', 'account_level_outreach'])
+        .eq('status', 'sent')
         .order('sent_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
-      if (error) throw error;
-      setHistoricalActivities(data || []);
+      if (logsError) throw logsError;
+
+      // Also fetch from collection_activities for any additional outreach
+      const { data: activities, error: activitiesError } = await supabase
+        .from('collection_activities')
+        .select(`
+          id, activity_type, channel, direction, subject, message_body,
+          sent_at, delivered_at, opened_at, responded_at, created_at,
+          invoices(id, invoice_number, amount, due_date),
+          debtors!inner(id, company_name, name)
+        `)
+        .eq('user_id', effectiveAccountId)
+        .eq('direction', 'outbound')
+        .not('sent_at', 'is', null)
+        .order('sent_at', { ascending: false })
+        .limit(200);
+
+      if (activitiesError) throw activitiesError;
+
+      // Merge and deduplicate by matching on sent_at + debtor_id
+      const seen = new Set<string>();
+      const merged: any[] = [];
+
+      // Add outreach logs first (primary source)
+      outreachLogs?.forEach((log: any) => {
+        const key = `${log.sent_at}-${log.debtors?.id}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push({
+            ...log,
+            source: 'outreach_logs',
+            activity_type: 'ai_outreach'
+          });
+        }
+      });
+
+      // Add collection activities that aren't duplicates
+      activities?.forEach((activity: any) => {
+        const key = `${activity.sent_at}-${activity.debtors?.id}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push({
+            ...activity,
+            source: 'collection_activities'
+          });
+        }
+      });
+
+      // Sort by sent_at descending
+      merged.sort((a, b) => {
+        const dateA = new Date(a.sent_at || a.created_at).getTime();
+        const dateB = new Date(b.sent_at || b.created_at).getTime();
+        return dateB - dateA;
+      });
+
+      setHistoricalActivities(merged);
     } catch (error) {
       console.error("Error fetching historical outreach:", error);
     } finally {

@@ -139,12 +139,37 @@ Deno.serve(async (req) => {
 
     console.log(`Scheduler completed: ${draftsCreated} drafts created, ${skipped} invoices skipped`);
 
+    // Now automatically send all approved drafts that are ready
+    console.log('Triggering auto-send-approved-drafts...');
+    let sentCount = 0;
+    let sendErrors: string[] = [];
+    
+    try {
+      const { data: sendResult, error: sendError } = await supabaseAdmin.functions.invoke(
+        'auto-send-approved-drafts',
+        { body: {} }
+      );
+      
+      if (sendError) {
+        console.error('Error calling auto-send-approved-drafts:', sendError);
+        sendErrors.push(sendError.message || 'Failed to send approved drafts');
+      } else {
+        sentCount = sendResult?.sent || 0;
+        console.log(`Auto-send result: ${sentCount} drafts sent`);
+      }
+    } catch (err) {
+      console.error('Exception calling auto-send-approved-drafts:', err);
+      sendErrors.push(err instanceof Error ? err.message : 'Unknown error');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         draftsCreated,
+        draftsSent: sentCount,
         skipped,
-        message: `Processed ${workflows?.length || 0} workflows, created ${draftsCreated} drafts`
+        sendErrors: sendErrors.length > 0 ? sendErrors : undefined,
+        message: `Processed ${workflows?.length || 0} workflows, created ${draftsCreated} drafts, sent ${sentCount} emails`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
