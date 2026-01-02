@@ -83,42 +83,53 @@ serve(async (req) => {
 
     logStep("Profile found", { userId: profile.id, stripeCustomerId: profile.stripe_customer_id });
 
-    // Get current month
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-    // Count all countable invoices for the current month
-    const monthStart = `${currentMonth}-01`;
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const monthEnd = nextMonth.toISOString().split('T')[0];
-
+    // Count ALL countable invoices for this user (not filtered by month)
+    // When subscription expires, we charge for all invoices above the free tier limit
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select('id, created_at, is_overage')
       .eq('user_id', profile.id)
-      .in('status', ['Open', 'InPaymentPlan', 'Paid', 'Closed'])
-      .gte('created_at', monthStart)
-      .lt('created_at', monthEnd);
+      .in('status', ['Open', 'InPaymentPlan', 'Paid', 'PartiallyPaid', 'Settled'])
+      .eq('is_overage', false) // Only count invoices not already marked as overage
+      .order('created_at', { ascending: true });
 
     if (invoicesError) {
       throw new Error(`Error fetching invoices: ${invoicesError.message}`);
     }
 
     const totalInvoices = invoices?.length || 0;
-    const overageCount = Math.max(0, totalInvoices - FREE_TIER_LIMIT);
+    
+    // Check if overages have already been processed by looking at invoice_usage
+    // Get the most recent usage record
+    const { data: existingUsage } = await supabase
+      .from('invoice_usage')
+      .select('*')
+      .eq('user_id', profile.id)
+      .order('month', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Calculate how many invoices have already been charged for
+    const alreadyChargedOverages = existingUsage?.overage_invoices || 0;
+    const includedUsed = existingUsage?.included_invoices_used || 0;
+    
+    // Calculate the overage: total invoices minus free tier, minus already charged overages
+    const overageCount = Math.max(0, totalInvoices - FREE_TIER_LIMIT - alreadyChargedOverages);
 
     logStep("Invoice count calculated", { 
       totalInvoices, 
       freeTierLimit: FREE_TIER_LIMIT, 
+      alreadyChargedOverages,
       overageCount 
     });
 
     if (overageCount === 0) {
-      logStep("No overage invoices - nothing to charge");
+      logStep("No new overage invoices - nothing to charge");
       return new Response(JSON.stringify({
         success: true,
-        message: "No overage invoices",
+        message: "No new overage invoices",
         totalInvoices,
+        alreadyChargedOverages,
         overageCount: 0,
         chargeAmount: 0
       }), {
@@ -126,6 +137,10 @@ serve(async (req) => {
         status: 200,
       });
     }
+    
+    // Get current month for usage record
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     // Calculate charge amount in cents
     const chargeAmountCents = Math.round(overageCount * OVERAGE_RATE * 100);
@@ -183,21 +198,24 @@ serve(async (req) => {
         amount: chargeAmountDollars
       });
 
-      // Update usage record
+      // Update usage record - add to existing overages
+      const newTotalOverages = alreadyChargedOverages + overageCount;
+      const existingCharges = existingUsage?.overage_charges_total || 0;
       await supabase
         .from('invoice_usage')
         .upsert({
           user_id: profile.id,
           month: currentMonth,
           included_invoices_used: FREE_TIER_LIMIT,
-          overage_invoices: overageCount,
-          overage_charges_total: chargeAmountDollars,
+          overage_invoices: newTotalOverages,
+          overage_charges_total: existingCharges + chargeAmountDollars,
           last_updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,month' });
 
-      // Mark overage invoices
+      // Mark the newly charged overage invoices (those beyond free tier + already charged)
+      const startIndex = FREE_TIER_LIMIT + alreadyChargedOverages;
       const overageInvoiceIds = invoices
-        ?.slice(FREE_TIER_LIMIT)
+        ?.slice(startIndex, startIndex + overageCount)
         .map(inv => inv.id) || [];
 
       if (overageInvoiceIds.length > 0) {
@@ -205,6 +223,7 @@ serve(async (req) => {
           .from('invoices')
           .update({ is_overage: true })
           .in('id', overageInvoiceIds);
+        logStep("Marked invoices as overage", { count: overageInvoiceIds.length });
       }
 
       return new Response(JSON.stringify({
@@ -245,28 +264,32 @@ serve(async (req) => {
         status: paymentIntent.status
       });
 
-      // Update usage record
+      // Update usage record - add to existing overages
+      const newTotalOverages2 = alreadyChargedOverages + overageCount;
+      const existingCharges2 = existingUsage?.overage_charges_total || 0;
       await supabase
         .from('invoice_usage')
         .upsert({
           user_id: profile.id,
           month: currentMonth,
           included_invoices_used: FREE_TIER_LIMIT,
-          overage_invoices: overageCount,
-          overage_charges_total: chargeAmountDollars,
+          overage_invoices: newTotalOverages2,
+          overage_charges_total: existingCharges2 + chargeAmountDollars,
           last_updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,month' });
 
-      // Mark overage invoices
-      const overageInvoiceIds = invoices
-        ?.slice(FREE_TIER_LIMIT)
+      // Mark the newly charged overage invoices
+      const startIndex2 = FREE_TIER_LIMIT + alreadyChargedOverages;
+      const overageInvoiceIds2 = invoices
+        ?.slice(startIndex2, startIndex2 + overageCount)
         .map(inv => inv.id) || [];
 
-      if (overageInvoiceIds.length > 0) {
+      if (overageInvoiceIds2.length > 0) {
         await supabase
           .from('invoices')
           .update({ is_overage: true })
-          .in('id', overageInvoiceIds);
+          .in('id', overageInvoiceIds2);
+        logStep("Marked invoices as overage", { count: overageInvoiceIds2.length });
       }
 
       return new Response(JSON.stringify({
@@ -310,17 +333,33 @@ serve(async (req) => {
       const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
       await stripe.invoices.sendInvoice(invoice.id);
 
-      // Update usage record
+      // Update usage record - add to existing overages
+      const newTotalOverages3 = alreadyChargedOverages + overageCount;
+      const existingCharges3 = existingUsage?.overage_charges_total || 0;
       await supabase
         .from('invoice_usage')
         .upsert({
           user_id: profile.id,
           month: currentMonth,
           included_invoices_used: FREE_TIER_LIMIT,
-          overage_invoices: overageCount,
-          overage_charges_total: chargeAmountDollars,
+          overage_invoices: newTotalOverages3,
+          overage_charges_total: existingCharges3 + chargeAmountDollars,
           last_updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,month' });
+
+      // Mark the newly charged overage invoices
+      const startIndex3 = FREE_TIER_LIMIT + alreadyChargedOverages;
+      const overageInvoiceIds3 = invoices
+        ?.slice(startIndex3, startIndex3 + overageCount)
+        .map(inv => inv.id) || [];
+
+      if (overageInvoiceIds3.length > 0) {
+        await supabase
+          .from('invoices')
+          .update({ is_overage: true })
+          .in('id', overageInvoiceIds3);
+        logStep("Marked invoices as overage", { count: overageInvoiceIds3.length });
+      }
 
       return new Response(JSON.stringify({
         success: true,

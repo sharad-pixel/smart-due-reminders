@@ -278,3 +278,6 @@ verify_jwt = false
 
 [functions.generate-campaign-strategy]
 verify_jwt = true
+
+[functions.process-subscription-expiry-overages]
+verify_jwt = false
