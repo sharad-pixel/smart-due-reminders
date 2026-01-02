@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { OVERAGE_RATE } from '@/lib/planGating';
 
 interface InvoiceLimitModalProps {
   open: boolean;
@@ -33,9 +34,9 @@ export function InvoiceLimitModal({ open, onOpenChange, onContinue }: InvoiceLim
       const { data } = await supabase.functions.invoke('get-monthly-usage');
       if (data) {
         setUsage({
-          includedUsed: data.includedUsed,
-          invoiceAllowance: data.invoiceAllowance,
-          overageRate: data.overageRate,
+          includedUsed: data.includedUsed ?? data.included_invoices_used ?? 0,
+          invoiceAllowance: data.invoiceAllowance ?? data.included_allowance ?? 15,
+          overageRate: OVERAGE_RATE,
         });
       }
     } catch (error) {

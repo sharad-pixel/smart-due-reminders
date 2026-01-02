@@ -257,6 +257,27 @@ serve(async (req) => {
         } else {
           logStep("Profile downgraded to free", { customerId });
         }
+
+        // Process overage charges for invoices above the free tier limit
+        // This charges $1.99 per invoice for any invoices above the 15 free tier limit
+        try {
+          logStep("Processing subscription expiry overages", { customerId });
+          
+          const { data: overageResult, error: overageError } = await supabase.functions.invoke(
+            'process-subscription-expiry-overages',
+            { body: { stripe_customer_id: customerId } }
+          );
+          
+          if (overageError) {
+            logStep("Error processing overages (non-blocking)", { error: overageError.message });
+          } else {
+            logStep("Overage processing complete", { result: overageResult });
+          }
+        } catch (overageErr) {
+          logStep("Exception processing overages (non-blocking)", { 
+            error: overageErr instanceof Error ? overageErr.message : String(overageErr) 
+          });
+        }
         break;
       }
 
