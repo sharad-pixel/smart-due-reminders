@@ -94,6 +94,8 @@ serve(async (req) => {
     }
 
     // Fallback to hardcoded plan limits if no database plan found
+    const OVERAGE_RATE = 1.99; // $1.99 per invoice overage
+    
     if (!plan) {
       const planTypeLimits: Record<string, number> = {
         'free': 15,
@@ -108,11 +110,13 @@ serve(async (req) => {
       plan = {
         name: planType,
         invoice_limit: planTypeLimits[planType] ?? 15,
-        overage_amount: 1.50
+        overage_amount: OVERAGE_RATE
       };
       
       logStep("Using fallback plan limits", { planName: plan.name, limit: plan.invoice_limit });
     } else {
+      // Override overage amount to always use $1.99
+      plan.overage_amount = OVERAGE_RATE;
       logStep("Plan loaded from database", { planName: plan.name, limit: plan.invoice_limit });
     }
 

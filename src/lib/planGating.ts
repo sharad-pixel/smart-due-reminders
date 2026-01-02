@@ -62,9 +62,15 @@ export function getRequiredPlanForFeature(feature: keyof typeof PLAN_FEATURES.fr
 }
 
 export function getInvoiceLimit(planType: PlanType | 'pro' | null): number {
-  // All users get 15 invoice limit (Stripe disconnected)
-  return 15;
+  if (!planType || planType === 'free') return 15;
+  
+  // Map 'pro' to 'professional' for backwards compatibility
+  const normalizedPlan = planType === 'pro' ? 'professional' : planType;
+  
+  return PLAN_FEATURES[normalizedPlan as keyof typeof PLAN_FEATURES]?.invoice_limit ?? 15;
 }
+
+export const OVERAGE_RATE = 1.99; // $1.99 per invoice overage
 
 export function getMaxAgents(planType: PlanType | 'pro' | null): number {
   // All users get access to all 6 agents (Stripe disconnected)
