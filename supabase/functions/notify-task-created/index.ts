@@ -292,51 +292,50 @@ serve(async (req) => {
 
     console.log("[NOTIFY-TASK-CREATED] Team members found:", teamMembers?.length || 0);
 
-    // Collect all users to notify (excluding creator). Email is optional; in-app notifications should still be created.
-    const usersToNotify: { userId: string; name: string; email?: string }[] = [];
+    // Collect all users to notify (including creator). Email is optional; in-app notifications require user_id.
+    type NotifyRecipient = { userId?: string; name: string; email?: string };
+    const recipientMap = new Map<string, NotifyRecipient>();
 
-    // Add team members
     if (teamMembers) {
       for (const member of teamMembers) {
-        if (!member.user_id || member.user_id === creatorUserId) continue;
-
+        // deno-lint-ignore no-explicit-any
+        const memberUserId = (member as any).user_id as string | null;
         // deno-lint-ignore no-explicit-any
         const profile = (member as any).profiles as any;
+
         const email = profile?.email || (member as any).email || undefined;
         const name = profile?.name || (email ? email.split("@")[0] : "Team member");
 
-        usersToNotify.push({ userId: member.user_id, name, email });
+        const key = memberUserId || email;
+        if (!key) continue;
+
+        recipientMap.set(key, { userId: memberUserId || undefined, name, email });
       }
     }
 
-    // Add owner if not already included and not the creator
-    if (accountOwnerId && accountOwnerId !== creatorUserId) {
-      const ownerExists = usersToNotify.some((u) => u.userId === accountOwnerId);
-      if (!ownerExists) {
-        const { data: ownerProfile } = await supabase
-          .from("profiles")
-          .select("id, name, email")
-          .eq("id", accountOwnerId)
-          .single();
+    // Ensure owner is included (covers edge cases where the owner row is missing in account_users)
+    if (accountOwnerId && !recipientMap.has(accountOwnerId)) {
+      const { data: ownerProfile } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .eq("id", accountOwnerId)
+        .single();
 
-        const { data: ownerAccount } = await supabase
-          .from("account_users")
-          .select("email")
-          .eq("user_id", accountOwnerId)
-          .eq("status", "active")
-          .limit(1)
-          .single();
+      const { data: ownerAccount } = await supabase
+        .from("account_users")
+        .select("email")
+        .eq("user_id", accountOwnerId)
+        .eq("status", "active")
+        .limit(1)
+        .single();
 
-        const ownerEmail = ownerProfile?.email || ownerAccount?.email || undefined;
-        const ownerName = ownerProfile?.name || (ownerEmail ? ownerEmail.split("@")[0] : "Account owner");
+      const ownerEmail = ownerProfile?.email || ownerAccount?.email || undefined;
+      const ownerName = ownerProfile?.name || (ownerEmail ? ownerEmail.split("@")[0] : "Account owner");
 
-        usersToNotify.push({
-          userId: accountOwnerId,
-          name: ownerName,
-          email: ownerEmail,
-        });
-      }
+      recipientMap.set(accountOwnerId, { userId: accountOwnerId, name: ownerName, email: ownerEmail });
     }
+
+    const usersToNotify = Array.from(recipientMap.values());
 
     console.log(
       "[NOTIFY-TASK-CREATED] Users to notify:",
@@ -355,8 +354,12 @@ serve(async (req) => {
     const debtorName = debtorInfo?.company_name || debtorInfo?.name || "Unknown Account";
     const taskTypeName = formatTaskType(task.task_type);
 
-    // Create in-app notifications for all users
-    const notifications = usersToNotify.map((user) => ({
+    // Create in-app notifications (only for recipients that have a userId)
+    const inAppRecipients = usersToNotify.filter((u) => !!u.userId) as Array<
+      { userId: string; name: string; email?: string }
+    >;
+
+    const notifications = inAppRecipients.map((user) => ({
       user_id: user.userId,
       type: "task_created",
       title: "New Task Created",
@@ -368,14 +371,17 @@ serve(async (req) => {
       sender_name: creatorName,
     }));
 
-    console.log("[NOTIFY-TASK-CREATED] Inserting notifications:", JSON.stringify(notifications, null, 2));
+    if (notifications.length > 0) {
+      console.log("[NOTIFY-TASK-CREATED] Inserting notifications:", JSON.stringify(notifications, null, 2));
+      const { error: insertError } = await supabase
+        .from("user_notifications")
+        .insert(notifications);
 
-    const { error: insertError } = await supabase
-      .from("user_notifications")
-      .insert(notifications);
-
-    if (insertError) {
-      console.error("[NOTIFY-TASK-CREATED] Error creating notifications:", insertError);
+      if (insertError) {
+        console.error("[NOTIFY-TASK-CREATED] Error creating notifications:", insertError);
+      }
+    } else {
+      console.log("[NOTIFY-TASK-CREATED] No in-app recipients (user_id missing for all recipients)");
     }
 
     // Send email notifications (only to users with an email)
@@ -384,7 +390,7 @@ serve(async (req) => {
 
     for (const user of usersToNotify) {
       if (!user.email) {
-        console.log(`[NOTIFY-TASK-CREATED] Skipping email (no email on file) for user_id=${user.userId}`);
+        console.log(`[NOTIFY-TASK-CREATED] Skipping email (no email on file) for recipient=${user.userId || 'no_user_id'}`);
         continue;
       }
 
@@ -425,18 +431,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        notified: notifications.length,
-        emailsSent,
-        emailErrors: emailErrors.length > 0 ? emailErrors : undefined,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
-    console.log(`[NOTIFY-TASK-CREATED] Successfully created ${notifications.length} notifications and sent ${emailsSent} emails`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
         notified: notifications.length,
         emailsSent,
         emailErrors: emailErrors.length > 0 ? emailErrors : undefined,

@@ -114,7 +114,12 @@ const CreateTaskModal = ({
     setCreating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!user) throw new Error("Not authenticated");
+
+      const authHeaders = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : undefined;
 
       const { data: newTask, error } = await supabase
         .from("collection_tasks")
@@ -136,10 +141,11 @@ const CreateTaskModal = ({
 
       if (error) throw error;
 
-      // Notify all team members about the new task
+      // Notify all account users about the new task
       if (newTask) {
         try {
           await supabase.functions.invoke("notify-task-created", {
+            headers: authHeaders,
             body: {
               taskId: newTask.id,
               creatorUserId: user.id,
@@ -154,6 +160,7 @@ const CreateTaskModal = ({
       if (assignedTo && assignedTo !== "unassigned" && newTask) {
         try {
           const { error: emailError } = await supabase.functions.invoke("send-task-assignment", {
+            headers: authHeaders,
             body: {
               taskId: newTask.id,
               userId: assignedTo, // This is the profile.id / user_id

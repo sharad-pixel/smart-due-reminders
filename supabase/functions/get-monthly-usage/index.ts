@@ -57,7 +57,7 @@ serve(async (req) => {
     // Get account owner's profile and plan (use effective account ID)
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('plan_id, plan_type')
+      .select('plan_id, plan_type, subscription_status')
       .eq('id', accountId)
       .single();
 
@@ -151,6 +151,51 @@ serve(async (req) => {
       }
       usage = newUsage;
       logStep("Created new usage record");
+    }
+
+    // IMPORTANT: If subscription is inactive and we have a populated usage record (e.g. subscription expired billing),
+    // treat invoice_usage as the source of truth so the UI can show account-level overages.
+    const subscriptionStatus = profile?.subscription_status || 'inactive';
+    const isInactiveSubscription = !['active', 'trialing'].includes(subscriptionStatus);
+    const planType = profile?.plan_type || 'free';
+    const isFreeTier = planType === 'free';
+
+    if (
+      isInactiveSubscription &&
+      isFreeTier &&
+      ((usage.included_invoices_used ?? 0) > 0 || (usage.overage_invoices ?? 0) > 0)
+    ) {
+      const includedAllowance = plan.invoice_limit || 15;
+      const includedInvoicesUsed = usage.included_invoices_used ?? 0;
+      const overageInvoices = usage.overage_invoices ?? 0;
+      const totalInvoicesUsed = includedInvoicesUsed + overageInvoices;
+      const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
+      const isOverLimit = overageInvoices > 0;
+
+      logStep("Using invoice_usage record for account-level overages", {
+        subscriptionStatus,
+        includedInvoicesUsed,
+        overageInvoices,
+        overageChargesTotal: usage.overage_charges_total,
+      });
+
+      return new Response(JSON.stringify({
+        month: currentMonth,
+        included_allowance: includedAllowance,
+        included_invoices_used: includedInvoicesUsed,
+        overage_invoices: overageInvoices,
+        overage_charges_total: usage.overage_charges_total,
+        total_invoices_used: totalInvoicesUsed,
+        remaining_quota: remaining,
+        is_over_limit: isOverLimit,
+        plan_name: plan.name,
+        overage_rate: plan.overage_amount || 0,
+        is_team_member: isTeamMember,
+        billing_mode: 'account_overages'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     // Count actual Open and InPaymentPlan invoices created this month (use effective account ID)

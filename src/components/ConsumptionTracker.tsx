@@ -37,6 +37,9 @@ interface ConsumptionData {
 
 interface UpcomingCharges {
   hasUpcoming: boolean;
+  invoiceType: 'upcoming' | 'open' | 'none';
+  invoiceStatus?: string;
+  invoiceUrl?: string | null;
   amountDue: number;
   nextPaymentDate: string | null;
   breakdown: {
@@ -92,12 +95,15 @@ const ConsumptionTracker = () => {
         });
       }
 
-      // Fetch upcoming charges
+      // Fetch upcoming charges (or open invoice on account)
       const { data: chargesData, error: chargesError } = await supabase.functions.invoke('get-upcoming-charges');
       
       if (!chargesError && chargesData?.has_upcoming_invoice) {
         setUpcomingCharges({
           hasUpcoming: true,
+          invoiceType: 'upcoming',
+          invoiceStatus: 'upcoming',
+          invoiceUrl: null,
           amountDue: chargesData.upcoming_invoice.amount_due,
           nextPaymentDate: chargesData.upcoming_invoice.next_payment_attempt,
           breakdown: {
@@ -113,9 +119,26 @@ const ConsumptionTracker = () => {
             ...chargesData.breakdown.prorations.items,
           ],
         });
+      } else if (!chargesError && chargesData?.has_open_invoice && chargesData?.open_invoice) {
+        setUpcomingCharges({
+          hasUpcoming: true,
+          invoiceType: 'open',
+          invoiceStatus: chargesData.open_invoice.status,
+          invoiceUrl: chargesData.open_invoice.hosted_invoice_url || null,
+          amountDue: chargesData.open_invoice.amount_due,
+          nextPaymentDate: chargesData.open_invoice.due_date || chargesData.open_invoice.created_at,
+          breakdown: {
+            baseSubscription: 0,
+            seatCharges: 0,
+            overageCharges: 0,
+            prorations: 0,
+          },
+          lineItems: [],
+        });
       } else {
         setUpcomingCharges({
           hasUpcoming: false,
+          invoiceType: 'none',
           amountDue: 0,
           nextPaymentDate: null,
           breakdown: {
@@ -285,7 +308,9 @@ const ConsumptionTracker = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-semibold">Upcoming Invoice</h3>
+            <h3 className="font-semibold">
+              {upcomingCharges?.invoiceType === 'open' ? 'Invoice on Account' : 'Upcoming Invoice'}
+            </h3>
           </div>
 
           {upcomingCharges?.hasUpcoming ? (
@@ -294,7 +319,9 @@ const ConsumptionTracker = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Next Payment</span>
+                    <span className="font-semibold">
+                      {upcomingCharges.invoiceType === 'open' ? 'Amount Due' : 'Next Payment'}
+                    </span>
                   </div>
                   {upcomingCharges.nextPaymentDate && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -310,6 +337,14 @@ const ConsumptionTracker = () => {
                 <p className="text-4xl font-bold text-primary">
                   {formatPrice(upcomingCharges.amountDue)}
                 </p>
+
+                {upcomingCharges.invoiceUrl && (
+                  <Button asChild variant="outline" size="sm" className="mt-3">
+                    <a href={upcomingCharges.invoiceUrl} target="_blank" rel="noreferrer">
+                      View invoice
+                    </a>
+                  </Button>
+                )}
               </div>
 
               {/* Breakdown */}

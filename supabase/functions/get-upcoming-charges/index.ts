@@ -108,10 +108,46 @@ serve(async (req) => {
         customer: customerId,
       });
     } catch (err: any) {
-      // No upcoming invoice is normal for customers without active subscriptions
+      // No upcoming invoice is normal for customers without active subscriptions.
+      // For expired subscriptions we may still have an OPEN/DRAFT invoice "on account" (e.g. overage invoice).
       if (err.code === 'invoice_upcoming_none' || err.message?.includes('No upcoming invoices')) {
+        logStep("No upcoming invoice; checking for open invoices", { customerId });
+
+        const openInvoices = await stripe.invoices.list({ customer: customerId, status: 'open', limit: 1 });
+        const draftInvoices = openInvoices.data.length === 0
+          ? await stripe.invoices.list({ customer: customerId, status: 'draft', limit: 1 })
+          : { data: [] as Stripe.Invoice[] };
+
+        const invoiceOnAccount = openInvoices.data[0] || draftInvoices.data[0] || null;
+
+        if (invoiceOnAccount) {
+          return new Response(JSON.stringify({
+            has_upcoming_invoice: false,
+            has_open_invoice: true,
+            open_invoice: {
+              id: invoiceOnAccount.id,
+              status: invoiceOnAccount.status,
+              amount_due: (invoiceOnAccount.amount_due || invoiceOnAccount.total || 0) / 100,
+              currency: invoiceOnAccount.currency?.toUpperCase() || 'USD',
+              hosted_invoice_url: invoiceOnAccount.hosted_invoice_url || null,
+              invoice_pdf: invoiceOnAccount.invoice_pdf || null,
+              due_date: invoiceOnAccount.due_date
+                ? new Date(invoiceOnAccount.due_date * 1000).toISOString()
+                : null,
+              created_at: invoiceOnAccount.created
+                ? new Date(invoiceOnAccount.created * 1000).toISOString()
+                : null,
+            },
+            message: "Invoice on account"
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+
         return new Response(JSON.stringify({
           has_upcoming_invoice: false,
+          has_open_invoice: false,
           message: "No upcoming invoice"
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

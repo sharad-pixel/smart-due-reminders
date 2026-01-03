@@ -439,18 +439,40 @@ const InboundCommandCenter = () => {
       
       if (existingTask) return; // Task already exists
       
-      await supabase.from("collection_tasks").insert({
-        user_id: user.id,
-        debtor_id: email.debtor_id,
-        invoice_id: email.invoice_id,
-        inbound_email_id: email.id,
-        task_type: "pending_response",
-        priority: "high",
-        status: "open",
-        summary: `Response pending: ${email.subject || 'No subject'}`,
-        details: `AI response was generated but not sent for email from ${email.from_email}. Review and send the response.`,
-        source: "ai_generated",
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const { data: newTask, error: insertError } = await supabase
+        .from("collection_tasks")
+        .insert({
+          user_id: user.id,
+          debtor_id: email.debtor_id,
+          invoice_id: email.invoice_id,
+          inbound_email_id: email.id,
+          task_type: "pending_response",
+          priority: "high",
+          status: "open",
+          summary: `Response pending: ${email.subject || 'No subject'}`,
+          details: `AI response was generated but not sent for email from ${email.from_email}. Review and send the response.`,
+          source: "ai_generated",
+        })
+        .select('id')
+        .single();
+
+      if (insertError) throw insertError;
+
+      if (newTask?.id && session?.access_token) {
+        try {
+          await supabase.functions.invoke('notify-task-created', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            body: {
+              taskId: newTask.id,
+              creatorUserId: user.id,
+            },
+          });
+        } catch (notifyErr) {
+          console.error('Task notification error (pending response task):', notifyErr);
+        }
+      }
     } catch (err) {
       console.error("Error creating pending response task:", err);
     }
