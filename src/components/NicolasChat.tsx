@@ -540,8 +540,8 @@ export default function NicolasChat() {
     setIsLoading(true);
     
     const questionToEscalate = pendingEscalationQuestion || "User requested human help";
+    // Capture full conversation transcript (no limit)
     const transcript = messages
-      .slice(-8)
       .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
       .join("\n");
     
