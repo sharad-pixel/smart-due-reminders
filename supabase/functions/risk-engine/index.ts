@@ -7,71 +7,66 @@ const corsHeaders = {
 };
 
 // ============================================
-// CREDIT RISK INTELLIGENCE ENGINE
+// AI-POWERED CREDIT RISK INTELLIGENCE ENGINE
 // ============================================
-// Modeled after: FICO SBSS, D&B PAYDEX, Experian Intelliscore, Moody's
+// Uses GPT-4o-mini to analyze all account data and provide
+// intelligent risk assessments based on:
 // 
-// Risk Score (1-100): Higher = Riskier
-// Risk Tier: Low / Medium / High / Critical
-//
-// SCORING WEIGHTS:
 // A. Invoice Behavior (50%)
 //    - Average DPD last 6 months
 //    - % of invoices >30, >60, >90 days
-//    - Outstanding balance vs historical average
-//    - Frequency of partial payments
 //    - Broken promises-to-pay
-//    - Month-to-month volatility
+//    - Partial payments frequency
 //
 // B. Payment Patterns & Trends (20%)
 //    - Early vs late payment ratio
 //    - Payment disputes count
 //    - Recency & consistency of payments
-//    - Largest overdue invoice amount
-//    - Payment method reliability
 //
 // C. Customer Health Indicators (15%)
-//    - Industry risk (B2B vs B2C)
-//    - Customer size/type
-//    - Concentration risk (>15% of AR?)
-//    - Seasonality/revenue fluctuations
+//    - Customer type (B2B vs B2C)
+//    - Concentration risk
 //
 // D. Operational Signals (15%)
-//    - Email sentiment
+//    - Email sentiment from inbound communications
 //    - Response time to outreach
-//    - Engagement pattern (opens, replies)
+//    - Engagement patterns
 //    - Escalations, disputes, stalled conversations
-//    - Missing docs (W9, PO requirements)
+//    - Task history (W9 requests, payment plan requests, etc.)
+//
+// E. AI Analysis
+//    - GPT-4o-mini analyzes all data holistically
+//    - Provides risk reasoning and recommendations
 
 interface CreditRiskResult {
-  // Risk scoring (1-100, higher = riskier)
   credit_risk_score: number | null;
   risk_tier: string;
-  
-  // Legacy health score for UI compatibility (0-100, higher = healthier)
   collections_health_score: number | null;
   health_tier: string;
-  
-  // AI Sentiment
   ai_sentiment_score: number | null;
   ai_sentiment_category: string | null;
-  
-  // Legacy fields for backward compatibility
   collections_risk_score: number | null;
   risk_tier_detailed: string;
   risk_payment_score: number | null;
   risk_status_note: string;
-  
-  // Metadata
   basis_invoices_count: number;
   basis_payments_count: number;
   basis_days_observed: number;
   score_components: ScoreComponents;
   last_score_change_reason: string;
+  ai_risk_analysis?: AIRiskAnalysis | null;
+}
+
+interface AIRiskAnalysis {
+  riskAssessment: string;
+  keyRiskFactors: string[];
+  recommendations: string[];
+  predictedPaymentBehavior: string;
+  confidenceLevel: string;
+  analysisTimestamp: string;
 }
 
 interface ScoreComponents {
-  // A. Invoice Behavior (50%)
   invoice_behavior_score: number;
   avg_dpd_last_6_months: number;
   pct_over_30_days: number;
@@ -80,33 +75,23 @@ interface ScoreComponents {
   partial_payment_frequency: number;
   broken_promises_count: number;
   volatility_score: number;
-  
-  // B. Payment Patterns (20%)
   payment_patterns_score: number;
   early_vs_late_ratio: number;
   payment_disputes_count: number;
   payment_recency_days: number;
   largest_overdue_amount: number;
-  
-  // C. Customer Health (15%)
   customer_health_score: number;
   customer_type: string;
   concentration_risk_pct: number;
-  
-  // D. Operational Signals (15%)
   operational_signals_score: number;
   email_sentiment_score: number;
   response_time_avg_days: number;
   engagement_rate: number;
   escalation_count: number;
   missing_docs_count: number;
-  
-  // Raw data
   data_sufficient: boolean;
   max_dpd: number;
   total_outstanding: number;
-  
-  // Detailed breakdown for explainability
   penalties: { reason: string; amount: number; category: string }[];
   factors: { factor: string; impact: string; value: string }[];
 }
@@ -130,6 +115,8 @@ interface Debtor {
   collections_health_score: number | null;
   collections_risk_score: number | null;
   health_tier: string | null;
+  company_name?: string;
+  name?: string;
 }
 
 interface InboundEmail {
@@ -137,6 +124,8 @@ interface InboundEmail {
   ai_sentiment_category: string | null;
   ai_sentiment_score: number | null;
   created_at: string;
+  subject?: string;
+  ai_summary?: string;
 }
 
 interface CollectionActivity {
@@ -163,6 +152,8 @@ interface CollectionTask {
   status: string;
   priority: string;
   level: string | null;
+  summary?: string;
+  ai_reasoning?: string;
 }
 
 interface SentimentConfig {
@@ -171,12 +162,17 @@ interface SentimentConfig {
   risk_score_value: number;
 }
 
-// Data sufficiency thresholds
+interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method?: string;
+}
+
 const MIN_INVOICES = 3;
 const MIN_PAYMENTS = 2;
 const MIN_DAYS_OBSERVED = 60;
 
-// Tier thresholds (Risk Score based - higher is worse)
 const RISK_TIERS = {
   LOW: { max: 30, label: 'Low', color: 'green' },
   MEDIUM: { max: 55, label: 'Medium', color: 'yellow' },
@@ -184,7 +180,6 @@ const RISK_TIERS = {
   CRITICAL: { max: 100, label: 'Critical', color: 'red' }
 };
 
-// Health tiers (inverted from risk - higher is better)
 const HEALTH_TIERS = {
   HEALTHY: { min: 70, label: 'Healthy', color: 'green' },
   WATCH: { min: 45, label: 'Watch', color: 'yellow' },
@@ -202,7 +197,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { debtor_id, recalculate_all, user_id, analyze_sentiment } = await req.json();
+    const { debtor_id, recalculate_all, user_id, use_ai = true } = await req.json();
 
     // Load sentiment configuration
     const { data: sentimentConfigs } = await supabase
@@ -230,7 +225,6 @@ serve(async (req) => {
       if (error) throw error;
       targetDebtorIds = debtors?.map(d => d.id) || [];
       
-      // Calculate total AR for this user
       const totalAR = debtors?.reduce((sum, d) => sum + (d.total_open_balance || 0), 0) || 0;
       totalARByUser.set(user_id, totalAR);
     } else if (debtor_id) {
@@ -245,7 +239,6 @@ serve(async (req) => {
       if (debtor) {
         targetUserId = debtor.user_id;
         
-        // Get total AR for this user
         const { data: allDebtors } = await supabase
           .from('debtors')
           .select('total_open_balance')
@@ -264,23 +257,22 @@ serve(async (req) => {
       if (error) throw error;
       targetDebtorIds = debtors?.map(d => d.id) || [];
       
-      // Calculate total AR per user
       for (const d of debtors || []) {
         const current = totalARByUser.get(d.user_id) || 0;
         totalARByUser.set(d.user_id, current + (d.total_open_balance || 0));
       }
     }
 
-    console.log(`[CREDIT-RISK-ENGINE] Processing ${targetDebtorIds.length} accounts with credit bureau methodology`);
+    console.log(`[RISK-ENGINE] Processing ${targetDebtorIds.length} accounts with AI-powered risk analysis`);
 
     const results: CreditRiskResult[] = [];
 
     for (const debtorId of targetDebtorIds) {
       try {
-        const result = await calculateCreditRiskScore(supabase, debtorId, sentimentConfigMap, totalARByUser);
+        const result = await calculateCreditRiskScore(supabase, debtorId, sentimentConfigMap, totalARByUser, use_ai);
         results.push(result);
       } catch (err) {
-        console.error(`[CREDIT-RISK-ENGINE] Error processing debtor ${debtorId}:`, err);
+        console.error(`[RISK-ENGINE] Error processing debtor ${debtorId}:`, err);
       }
     }
 
@@ -290,7 +282,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('[CREDIT-RISK-ENGINE] Error:', error);
+    console.error('[RISK-ENGINE] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -298,16 +290,13 @@ serve(async (req) => {
   }
 });
 
-/**
- * Main credit risk scoring calculation for a single account
- */
 async function calculateCreditRiskScore(
   supabase: any,
   debtorId: string,
   sentimentConfigMap: Map<string, SentimentConfig>,
-  totalARByUser: Map<string, number>
+  totalARByUser: Map<string, number>,
+  useAI: boolean = true
 ): Promise<CreditRiskResult> {
-  // Get debtor info with previous scores for change tracking
   const { data: debtor, error: debtorError } = await supabase
     .from('debtors')
     .select('*')
@@ -322,38 +311,49 @@ async function calculateCreditRiskScore(
   const previousRiskScore = debtor.collections_risk_score;
   const previousHealthTier = debtor.health_tier;
 
-  // Get all invoices
+  // Fetch all related data
   const { data: invoices } = await supabase
     .from('invoices')
     .select('*')
     .eq('debtor_id', debtorId)
     .order('invoice_date', { ascending: true });
 
-  // Get collection activities
   const { data: activities } = await supabase
     .from('collection_activities')
     .select('*')
-    .eq('debtor_id', debtorId);
+    .eq('debtor_id', debtorId)
+    .order('created_at', { ascending: false })
+    .limit(50);
 
-  // Get collection outcomes (for broken promises tracking)
   const { data: outcomes } = await supabase
     .from('collection_outcomes')
     .select('*')
     .eq('debtor_id', debtorId);
 
-  // Get collection tasks (for escalations, missing docs)
   const { data: tasks } = await supabase
     .from('collection_tasks')
     .select('*')
-    .eq('debtor_id', debtorId);
+    .eq('debtor_id', debtorId)
+    .order('created_at', { ascending: false })
+    .limit(30);
 
-  // Get inbound emails for sentiment analysis
   const { data: inboundEmails } = await supabase
     .from('inbound_emails')
-    .select('id, ai_sentiment_category, ai_sentiment_score, created_at')
+    .select('id, ai_sentiment_category, ai_sentiment_score, created_at, subject, ai_summary')
     .eq('debtor_id', debtorId)
     .order('created_at', { ascending: false })
     .limit(20);
+
+  // Fetch payment history
+  const invoiceIds = (invoices || []).map((i: any) => i.id);
+  let payments: Payment[] = [];
+  if (invoiceIds.length > 0) {
+    const { data: paymentLinks } = await supabase
+      .from('payment_invoice_links')
+      .select('*, payments(*)')
+      .in('invoice_id', invoiceIds);
+    payments = (paymentLinks || []).map((pl: any) => pl.payments).filter(Boolean);
+  }
 
   // Calculate data sufficiency
   const invoiceCount = invoices?.length || 0;
@@ -386,6 +386,7 @@ async function calculateCreditRiskScore(
       outcomes || [],
       tasks || [],
       inboundEmails || [],
+      payments,
       sentimentConfigMap,
       debtor,
       totalUserAR,
@@ -393,6 +394,39 @@ async function calculateCreditRiskScore(
       paymentCount,
       daysObserved
     );
+
+    // Run AI analysis if enabled
+    if (useAI) {
+      try {
+        const aiAnalysis = await runAIRiskAnalysis(
+          debtor,
+          invoices || [],
+          activities || [],
+          tasks || [],
+          inboundEmails || [],
+          payments,
+          result.score_components
+        );
+        result.ai_risk_analysis = aiAnalysis;
+        
+        // Use AI insights to potentially adjust the risk assessment
+        if (aiAnalysis && aiAnalysis.confidenceLevel === 'high') {
+          // AI can add up to 10 points for hidden risks or subtract for positive signals
+          const aiAdjustment = calculateAIAdjustment(aiAnalysis, result.credit_risk_score || 50);
+          if (result.credit_risk_score !== null) {
+            result.credit_risk_score = clamp(result.credit_risk_score + aiAdjustment, 1, 100);
+            result.collections_health_score = 100 - result.credit_risk_score;
+            result.collections_risk_score = result.credit_risk_score;
+            result.risk_tier = getRiskTier(result.credit_risk_score);
+            result.health_tier = getHealthTier(result.collections_health_score);
+            result.risk_tier_detailed = result.risk_tier;
+          }
+        }
+      } catch (aiError) {
+        console.error(`[RISK-ENGINE] AI analysis failed for ${debtorId}:`, aiError);
+        // Continue without AI analysis
+      }
+    }
   }
 
   // Determine change reason
@@ -404,7 +438,9 @@ async function calculateCreditRiskScore(
     if (Math.abs(healthDiff) >= 5 || Math.abs(riskDiff) >= 5) {
       const reasons: string[] = [];
       
-      if (result.score_components.penalties.length > 0) {
+      if (result.ai_risk_analysis?.keyRiskFactors?.length) {
+        reasons.push(...result.ai_risk_analysis.keyRiskFactors.slice(0, 2));
+      } else if (result.score_components.penalties.length > 0) {
         const topPenalties = result.score_components.penalties
           .sort((a, b) => b.amount - a.amount)
           .slice(0, 3)
@@ -427,7 +463,6 @@ async function calculateCreditRiskScore(
   await supabase
     .from('debtors')
     .update({
-      // New credit risk fields
       collections_health_score: result.collections_health_score,
       collections_risk_score: result.collections_risk_score,
       health_tier: result.health_tier,
@@ -436,20 +471,14 @@ async function calculateCreditRiskScore(
       ai_sentiment_category: result.ai_sentiment_category,
       score_components: result.score_components,
       last_score_change_reason: changeReason,
-      
-      // Calculated metrics
+      ai_risk_analysis: result.ai_risk_analysis,
       avg_days_to_pay: result.score_components.avg_dpd_last_6_months || null,
       max_days_past_due: result.score_components.max_dpd || null,
       open_invoices_count: result.basis_invoices_count,
-      
-      // Aging mix percentages
       aging_mix_current_pct: 100 - (result.score_components.pct_over_30_days || 0),
       aging_mix_31_60_pct: (result.score_components.pct_over_30_days || 0) - (result.score_components.pct_over_60_days || 0),
       aging_mix_61_90_pct: (result.score_components.pct_over_60_days || 0) - (result.score_components.pct_over_90_days || 0),
       aging_mix_91_120_pct: result.score_components.pct_over_90_days || 0,
-      
-      // Legacy fields for backward compatibility
-      // IMPORTANT: payment_score stores RISK (higher = riskier) for consistency with calculate-payment-score
       payment_score: result.credit_risk_score,
       payment_risk_tier: result.risk_tier,
       risk_status_note: result.risk_status_note,
@@ -474,7 +503,10 @@ async function calculateCreditRiskScore(
       basis_invoices_count: result.basis_invoices_count,
       basis_payments_count: result.basis_payments_count,
       basis_days_observed: result.basis_days_observed,
-      calculation_details: result.score_components
+      calculation_details: {
+        ...result.score_components,
+        ai_risk_analysis: result.ai_risk_analysis
+      }
     });
 
   // Log significant score changes
@@ -498,14 +530,210 @@ async function calculateCreditRiskScore(
       });
   }
 
-  console.log(`[CREDIT-RISK-ENGINE] Account ${debtorId}: Risk=${result.credit_risk_score}, Health=${result.collections_health_score}, Tier=${result.risk_tier}`);
+  console.log(`[RISK-ENGINE] Account ${debtorId}: Risk=${result.credit_risk_score}, Health=${result.collections_health_score}, Tier=${result.risk_tier}${result.ai_risk_analysis ? ' (AI-enhanced)' : ''}`);
 
   return result;
 }
 
 /**
- * Create result for accounts with insufficient history
+ * Run AI-powered risk analysis using GPT-4o-mini
  */
+async function runAIRiskAnalysis(
+  debtor: Debtor,
+  invoices: Invoice[],
+  activities: CollectionActivity[],
+  tasks: CollectionTask[],
+  inboundEmails: InboundEmail[],
+  payments: Payment[],
+  scoreComponents: ScoreComponents
+): Promise<AIRiskAnalysis | null> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.log("[RISK-ENGINE] LOVABLE_API_KEY not configured, skipping AI analysis");
+    return null;
+  }
+
+  // Prepare account data summary for AI
+  const openInvoices = invoices.filter(inv => 
+    inv.status === 'Open' || inv.status === 'InPaymentPlan' || inv.status === 'PartiallyPaid'
+  );
+  const disputedInvoices = invoices.filter(inv => inv.status === 'Disputed');
+  
+  const recentTasks = tasks.slice(0, 10).map(t => ({
+    type: t.task_type,
+    status: t.status,
+    priority: t.priority,
+    summary: t.summary?.substring(0, 100)
+  }));
+
+  const recentEmails = inboundEmails.slice(0, 5).map(e => ({
+    sentiment: e.ai_sentiment_category,
+    sentimentScore: e.ai_sentiment_score,
+    subject: e.subject?.substring(0, 50),
+    summary: e.ai_summary?.substring(0, 100)
+  }));
+
+  const recentPayments = payments.slice(0, 5).map(p => ({
+    date: p.payment_date,
+    amount: p.amount,
+    method: p.payment_method
+  }));
+
+  const outboundCount = activities.filter(a => a.activity_type === 'outbound').length;
+  const responseCount = activities.filter(a => a.responded_at).length;
+
+  const accountData = {
+    accountName: debtor.company_name || debtor.name,
+    accountType: debtor.type || 'B2B',
+    totalOpenBalance: debtor.total_open_balance || 0,
+    openInvoicesCount: openInvoices.length,
+    totalInvoicesCount: invoices.length,
+    disputedInvoicesCount: disputedInvoices.length,
+    avgDaysPastDue: scoreComponents.avg_dpd_last_6_months,
+    maxDaysPastDue: scoreComponents.max_dpd,
+    pctOver30Days: scoreComponents.pct_over_30_days,
+    pctOver60Days: scoreComponents.pct_over_60_days,
+    pctOver90Days: scoreComponents.pct_over_90_days,
+    brokenPromisesCount: scoreComponents.broken_promises_count,
+    earlyPaymentRatio: scoreComponents.early_vs_late_ratio,
+    engagementRate: scoreComponents.engagement_rate,
+    escalationCount: scoreComponents.escalation_count,
+    emailSentimentScore: scoreComponents.email_sentiment_score,
+    recentTasks,
+    recentEmails,
+    recentPayments,
+    outboundOutreachCount: outboundCount,
+    responseCount,
+    concentrationRisk: scoreComponents.concentration_risk_pct
+  };
+
+  const systemPrompt = `You are a Collection Risk Analyst AI for an accounts receivable platform. Analyze account data to assess collection risk.
+
+Your analysis should consider:
+1. Invoice aging and payment history patterns
+2. Communication sentiment and engagement levels
+3. Task history (W9 requests, payment plans, disputes)
+4. Broken promises and collection difficulties
+5. Payment behavior trends
+
+Provide your analysis as JSON with these exact fields:
+- riskAssessment: 1-2 sentence summary of overall risk
+- keyRiskFactors: array of 2-4 specific risk factors
+- recommendations: array of 2-3 actionable next steps
+- predictedPaymentBehavior: brief prediction of future payment behavior
+- confidenceLevel: "low", "medium", or "high" based on data quality`;
+
+  const userPrompt = `Analyze this account's collection risk:
+
+${JSON.stringify(accountData, null, 2)}
+
+Current calculated risk components:
+- Invoice Behavior Score: ${scoreComponents.invoice_behavior_score}/100
+- Payment Patterns Score: ${scoreComponents.payment_patterns_score}/100
+- Operational Signals Score: ${scoreComponents.operational_signals_score}/100
+
+Provide your risk analysis as JSON.`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-5-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_completion_tokens: 500
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.log("[RISK-ENGINE] AI rate limited, skipping analysis");
+        return null;
+      }
+      if (response.status === 402) {
+        console.log("[RISK-ENGINE] AI credits exhausted, skipping analysis");
+        return null;
+      }
+      const errorText = await response.text();
+      console.error("[RISK-ENGINE] AI error:", response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+
+    // Parse AI response
+    let analysis: Partial<AIRiskAnalysis>;
+    try {
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
+                        content.match(/```\s*([\s\S]*?)\s*```/) ||
+                        [null, content];
+      analysis = JSON.parse(jsonMatch[1] || content);
+    } catch (parseError) {
+      console.error("[RISK-ENGINE] Failed to parse AI response:", parseError);
+      analysis = {
+        riskAssessment: content.slice(0, 200),
+        keyRiskFactors: ["Analysis parsing failed"],
+        recommendations: ["Manual review recommended"],
+        predictedPaymentBehavior: "Unable to predict",
+        confidenceLevel: "low"
+      };
+    }
+
+    return {
+      riskAssessment: analysis.riskAssessment || "Analysis unavailable",
+      keyRiskFactors: analysis.keyRiskFactors || [],
+      recommendations: analysis.recommendations || [],
+      predictedPaymentBehavior: analysis.predictedPaymentBehavior || "Unknown",
+      confidenceLevel: analysis.confidenceLevel || "low",
+      analysisTimestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error("[RISK-ENGINE] AI analysis error:", error);
+    return null;
+  }
+}
+
+/**
+ * Calculate score adjustment based on AI analysis
+ */
+function calculateAIAdjustment(aiAnalysis: AIRiskAnalysis, currentScore: number): number {
+  let adjustment = 0;
+
+  // Check for hidden risk factors
+  const riskKeywords = ['critical', 'severe', 'high risk', 'unlikely to pay', 'avoid', 'escalate'];
+  const positiveKeywords = ['reliable', 'consistent', 'improving', 'likely to pay', 'low risk'];
+
+  const assessmentLower = (aiAnalysis.riskAssessment || '').toLowerCase();
+  const predictedBehaviorLower = (aiAnalysis.predictedPaymentBehavior || '').toLowerCase();
+
+  // Check for risk indicators
+  for (const keyword of riskKeywords) {
+    if (assessmentLower.includes(keyword) || predictedBehaviorLower.includes(keyword)) {
+      adjustment += 5;
+      break;
+    }
+  }
+
+  // Check for positive indicators
+  for (const keyword of positiveKeywords) {
+    if (assessmentLower.includes(keyword) || predictedBehaviorLower.includes(keyword)) {
+      adjustment -= 5;
+      break;
+    }
+  }
+
+  // Cap adjustment to prevent dramatic swings
+  return clamp(adjustment, -10, 10);
+}
+
 function createInsufficientDataResult(
   invoiceCount: number,
   paymentCount: number,
@@ -554,19 +782,18 @@ function createInsufficientDataResult(
       penalties: [],
       factors: []
     },
-    last_score_change_reason: 'Insufficient data for scoring'
+    last_score_change_reason: 'Insufficient data for scoring',
+    ai_risk_analysis: null
   };
 }
 
-/**
- * Calculate full credit risk score with all components
- */
 function calculateFullCreditRiskScore(
   invoices: Invoice[],
   activities: CollectionActivity[],
   outcomes: CollectionOutcome[],
   tasks: CollectionTask[],
   inboundEmails: InboundEmail[],
+  payments: Payment[],
   sentimentConfigMap: Map<string, SentimentConfig>,
   debtor: Debtor,
   totalUserAR: number,
@@ -579,7 +806,6 @@ function calculateFullCreditRiskScore(
   const now = Date.now();
   const sixMonthsAgo = now - (180 * 24 * 60 * 60 * 1000);
 
-  // Categorize invoices
   const paidInvoices = invoices.filter(inv => 
     inv.status === 'Paid' || inv.status === 'Settled' || inv.payment_date
   );
@@ -587,11 +813,7 @@ function calculateFullCreditRiskScore(
     inv.status === 'Open' || inv.status === 'InPaymentPlan' || inv.status === 'PartiallyPaid'
   );
 
-  // =============================================
-  // A. INVOICE BEHAVIOR (50% of total score)
-  // =============================================
-  
-  // A1. Calculate average DPD for last 6 months
+  // A. INVOICE BEHAVIOR (50%)
   let avgDpdLast6Months = 0;
   let totalDpdSum = 0;
   let dpdCount = 0;
@@ -607,7 +829,6 @@ function calculateFullCreditRiskScore(
   }
   avgDpdLast6Months = dpdCount > 0 ? totalDpdSum / dpdCount : 0;
   
-  // A2. Calculate % of invoices by aging
   const totalOpenCount = openInvoices.length;
   let over30Count = 0, over60Count = 0, over90Count = 0;
   let maxDPD = 0;
@@ -626,16 +847,13 @@ function calculateFullCreditRiskScore(
   const pctOver60 = totalOpenCount > 0 ? (over60Count / totalOpenCount) * 100 : 0;
   const pctOver90 = totalOpenCount > 0 ? (over90Count / totalOpenCount) * 100 : 0;
   
-  // A3. Outstanding balance relative to historical average
   const totalOutstanding = openInvoices.reduce((sum, inv) => 
     sum + (inv.outstanding_amount || inv.amount || 0), 0
   );
   
-  // A4. Partial payments frequency
   const partialPaymentInvoices = invoices.filter(inv => inv.status === 'PartiallyPaid');
   const partialPaymentFrequency = invoiceCount > 0 ? (partialPaymentInvoices.length / invoiceCount) * 100 : 0;
   
-  // A5. Broken promises-to-pay
   const brokenPromises = (outcomes || []).filter(o => 
     o.outcome_type === 'promise_to_pay' && 
     o.promise_to_pay_date && 
@@ -643,7 +861,6 @@ function calculateFullCreditRiskScore(
     new Date(o.promise_to_pay_date) < new Date()
   ).length;
   
-  // A6. Volatility score (month-to-month payment variation)
   let volatilityScore = 0;
   if (paidInvoices.length >= 3) {
     const monthlyPayments = new Map<string, number>();
@@ -663,10 +880,8 @@ function calculateFullCreditRiskScore(
     }
   }
   
-  // Calculate Invoice Behavior Risk Score (0-100, higher = riskier)
   let invoiceBehaviorScore = 0;
   
-  // Avg DPD contribution (0-35 points based on severity)
   if (avgDpdLast6Months >= 150) {
     invoiceBehaviorScore += 35;
     penalties.push({ reason: `Severely delinquent (avg ${Math.round(avgDpdLast6Months)} DPD)`, amount: 35, category: 'invoice_behavior' });
@@ -685,7 +900,6 @@ function calculateFullCreditRiskScore(
     factors.push({ factor: 'Average Days Past Due', impact: 'positive', value: `${Math.round(avgDpdLast6Months)} days` });
   }
   
-  // % over 30/60/90 contribution (0-25 points)
   if (pctOver90 >= 50) {
     invoiceBehaviorScore += 25;
     penalties.push({ reason: `${Math.round(pctOver90)}% invoices >90 days past due`, amount: 25, category: 'invoice_behavior' });
@@ -696,7 +910,6 @@ function calculateFullCreditRiskScore(
     invoiceBehaviorScore += 10;
   }
   
-  // Broken promises (0-20 points)
   if (brokenPromises >= 3) {
     invoiceBehaviorScore += 20;
     penalties.push({ reason: `${brokenPromises} broken payment promises`, amount: 20, category: 'invoice_behavior' });
@@ -705,14 +918,12 @@ function calculateFullCreditRiskScore(
     penalties.push({ reason: `${brokenPromises} broken payment promise(s)`, amount: brokenPromises * 7, category: 'invoice_behavior' });
   }
   
-  // Volatility (0-10 points)
   if (volatilityScore > 50) {
     invoiceBehaviorScore += 10;
   } else if (volatilityScore > 25) {
     invoiceBehaviorScore += 5;
   }
   
-  // Partial payments frequency (0-10 points) - not necessarily bad, but indicates cash flow issues
   if (partialPaymentFrequency > 30) {
     invoiceBehaviorScore += 10;
   } else if (partialPaymentFrequency > 15) {
@@ -721,11 +932,7 @@ function calculateFullCreditRiskScore(
   
   invoiceBehaviorScore = clamp(invoiceBehaviorScore, 0, 100);
 
-  // =============================================
-  // B. PAYMENT PATTERNS & TRENDS (20% of total score)
-  // =============================================
-  
-  // B1. Early vs late payment ratio
+  // B. PAYMENT PATTERNS (20%)
   let earlyPayments = 0, latePayments = 0;
   for (const inv of paidInvoices) {
     if (inv.payment_date && inv.due_date) {
@@ -742,11 +949,9 @@ function calculateFullCreditRiskScore(
     ? earlyPayments / (earlyPayments + latePayments) 
     : 0.5;
   
-  // B2. Payment disputes
   const disputedInvoices = invoices.filter(inv => inv.status === 'Disputed');
   const paymentDisputesCount = disputedInvoices.length;
   
-  // B3. Payment recency (days since last payment)
   let paymentRecencyDays = 999;
   const sortedPaidInvoices = paidInvoices
     .filter(inv => inv.payment_date)
@@ -757,7 +962,6 @@ function calculateFullCreditRiskScore(
     paymentRecencyDays = Math.floor((now - lastPaymentDate.getTime()) / (1000 * 60 * 60 * 24));
   }
   
-  // B4. Largest overdue invoice amount
   let largestOverdueAmount = 0;
   for (const inv of openInvoices) {
     const dueDate = new Date(inv.due_date);
@@ -767,10 +971,8 @@ function calculateFullCreditRiskScore(
     }
   }
   
-  // Calculate Payment Patterns Risk Score (0-100)
   let paymentPatternsScore = 0;
   
-  // Early vs late ratio (0-35 points)
   if (earlyVsLateRatio < 0.2) {
     paymentPatternsScore += 35;
     penalties.push({ reason: `Only ${Math.round(earlyVsLateRatio * 100)}% payments on time`, amount: 35, category: 'payment_patterns' });
@@ -788,7 +990,6 @@ function calculateFullCreditRiskScore(
     factors.push({ factor: 'On-Time Payment Rate', impact: 'positive', value: `${Math.round(earlyVsLateRatio * 100)}%` });
   }
   
-  // Payment disputes (0-25 points)
   if (paymentDisputesCount >= 3) {
     paymentPatternsScore += 25;
     penalties.push({ reason: `${paymentDisputesCount} disputed invoices`, amount: 25, category: 'payment_patterns' });
@@ -796,7 +997,6 @@ function calculateFullCreditRiskScore(
     paymentPatternsScore += paymentDisputesCount * 8;
   }
   
-  // Payment recency (0-25 points)
   if (paymentRecencyDays >= 180) {
     paymentPatternsScore += 25;
     penalties.push({ reason: `No payment in ${paymentRecencyDays} days`, amount: 25, category: 'payment_patterns' });
@@ -806,7 +1006,6 @@ function calculateFullCreditRiskScore(
     paymentPatternsScore += 8;
   }
   
-  // Largest overdue (0-15 points based on relative size)
   if (largestOverdueAmount > 50000) {
     paymentPatternsScore += 15;
   } else if (largestOverdueAmount > 20000) {
@@ -817,21 +1016,13 @@ function calculateFullCreditRiskScore(
   
   paymentPatternsScore = clamp(paymentPatternsScore, 0, 100);
 
-  // =============================================
-  // C. CUSTOMER HEALTH INDICATORS (15% of total score)
-  // =============================================
-  
-  // C1. Customer type (B2B vs B2C)
+  // C. CUSTOMER HEALTH (15%)
   const customerType = debtor.type || 'B2B';
-  
-  // C2. Concentration risk
   const accountBalance = debtor.total_open_balance || 0;
   const concentrationRiskPct = totalUserAR > 0 ? (accountBalance / totalUserAR) * 100 : 0;
   
-  // Calculate Customer Health Risk Score (0-100)
   let customerHealthScore = 0;
   
-  // Customer type risk (B2C slightly higher risk for collections)
   if (customerType === 'B2C') {
     customerHealthScore += 10;
     factors.push({ factor: 'Customer Type', impact: 'low', value: 'B2C' });
@@ -839,7 +1030,6 @@ function calculateFullCreditRiskScore(
     factors.push({ factor: 'Customer Type', impact: 'positive', value: 'B2B' });
   }
   
-  // Concentration risk (0-50 points)
   if (concentrationRiskPct > 30) {
     customerHealthScore += 50;
     penalties.push({ reason: `High concentration risk (${Math.round(concentrationRiskPct)}% of AR)`, amount: 50, category: 'customer_health' });
@@ -853,12 +1043,8 @@ function calculateFullCreditRiskScore(
   
   customerHealthScore = clamp(customerHealthScore, 0, 100);
 
-  // =============================================
-  // D. OPERATIONAL SIGNALS (15% of total score)
-  // =============================================
-  
-  // D1. Email sentiment
-  let emailSentimentScore = 50; // Default neutral (0-100, higher = riskier)
+  // D. OPERATIONAL SIGNALS (15%)
+  let emailSentimentScore = 50;
   let latestSentimentCategory: string | null = null;
   let latestSentimentValue: number | null = null;
   
@@ -892,7 +1078,6 @@ function calculateFullCreditRiskScore(
     }
   }
   
-  // D2. Response time (average days to respond to outreach)
   let responseTimeAvgDays = 0;
   const outboundActivities = (activities || []).filter(a => 
     a.activity_type === 'outbound' && a.sent_at
@@ -909,18 +1094,15 @@ function calculateFullCreditRiskScore(
     responseTimeAvgDays = totalResponseDays / respondedActivities.length;
   }
   
-  // D3. Engagement rate
   const engagementRate = outboundActivities.length > 0 
     ? (respondedActivities.length / outboundActivities.length) * 100 
-    : 50; // Default 50% if no outreach
+    : 50;
   
-  // D4. Escalations count
   const escalationTasks = (tasks || []).filter(t => 
     t.level === 'escalation' || t.priority === 'urgent' || t.priority === 'high'
   );
   const escalationCount = escalationTasks.length;
   
-  // D5. Missing docs
   const missingDocsTasks = (tasks || []).filter(t => 
     t.task_type === 'W9_REQUEST' || 
     t.task_type === 'DOCUMENT_REQUEST' ||
@@ -928,10 +1110,8 @@ function calculateFullCreditRiskScore(
   );
   const missingDocsCount = missingDocsTasks.length;
   
-  // Calculate Operational Signals Risk Score (0-100)
   let operationalSignalsScore = 0;
   
-  // Sentiment (0-35 points)
   if (emailSentimentScore >= 70) {
     operationalSignalsScore += 35;
     penalties.push({ reason: `Negative sentiment detected (${latestSentimentCategory})`, amount: 35, category: 'operational' });
@@ -943,7 +1123,6 @@ function calculateFullCreditRiskScore(
     factors.push({ factor: 'Communication Sentiment', impact: 'positive', value: latestSentimentCategory || 'positive' });
   }
   
-  // Engagement rate (0-25 points)
   if (engagementRate < 20) {
     operationalSignalsScore += 25;
     penalties.push({ reason: `Very low engagement rate (${Math.round(engagementRate)}%)`, amount: 25, category: 'operational' });
@@ -953,7 +1132,6 @@ function calculateFullCreditRiskScore(
     operationalSignalsScore += 5;
   }
   
-  // Escalations (0-20 points)
   if (escalationCount >= 3) {
     operationalSignalsScore += 20;
     penalties.push({ reason: `${escalationCount} escalations/high-priority issues`, amount: 20, category: 'operational' });
@@ -961,14 +1139,12 @@ function calculateFullCreditRiskScore(
     operationalSignalsScore += escalationCount * 7;
   }
   
-  // Missing docs (0-10 points)
   if (missingDocsCount >= 2) {
     operationalSignalsScore += 10;
   } else if (missingDocsCount === 1) {
     operationalSignalsScore += 5;
   }
   
-  // Response time (0-10 points)
   if (responseTimeAvgDays > 14) {
     operationalSignalsScore += 10;
   } else if (responseTimeAvgDays > 7) {
@@ -977,36 +1153,25 @@ function calculateFullCreditRiskScore(
   
   operationalSignalsScore = clamp(operationalSignalsScore, 0, 100);
 
-  // =============================================
-  // CALCULATE FINAL CREDIT RISK SCORE
-  // =============================================
-  
-  // Weighted calculation (higher = riskier)
+  // FINAL SCORE
   let creditRiskScore = Math.round(
-    (0.50 * invoiceBehaviorScore) +    // A. Invoice Behavior (50%)
-    (0.20 * paymentPatternsScore) +    // B. Payment Patterns (20%)
-    (0.15 * customerHealthScore) +     // C. Customer Health (15%)
-    (0.15 * operationalSignalsScore)   // D. Operational Signals (15%)
+    (0.50 * invoiceBehaviorScore) +
+    (0.20 * paymentPatternsScore) +
+    (0.15 * customerHealthScore) +
+    (0.15 * operationalSignalsScore)
   );
   
-  // Apply severe adjustments for extreme DPD cases
-  // Accounts with 150+ DPD should ALWAYS be high risk
   if (maxDPD >= 150) {
-    creditRiskScore = Math.max(creditRiskScore, 80); // Floor at 80 (Critical)
+    creditRiskScore = Math.max(creditRiskScore, 80);
     factors.push({ factor: 'Extreme Delinquency Override', impact: 'critical', value: `${maxDPD} days past due` });
   } else if (maxDPD >= 120) {
-    creditRiskScore = Math.max(creditRiskScore, 70); // Floor at 70 (High)
+    creditRiskScore = Math.max(creditRiskScore, 70);
   } else if (maxDPD >= 90) {
-    creditRiskScore = Math.max(creditRiskScore, 60); // Floor at 60 (High)
+    creditRiskScore = Math.max(creditRiskScore, 60);
   }
   
-  // Clamp final score
   creditRiskScore = clamp(creditRiskScore, 1, 100);
-  
-  // Calculate health score (inverse of risk)
   const collectionsHealthScore = 100 - creditRiskScore;
-  
-  // Determine tiers
   const riskTier = getRiskTier(creditRiskScore);
   const healthTier = getHealthTier(collectionsHealthScore);
 
@@ -1053,7 +1218,8 @@ function calculateFullCreditRiskScore(
       penalties,
       factors
     },
-    last_score_change_reason: ''
+    last_score_change_reason: '',
+    ai_risk_analysis: null
   };
 }
 
