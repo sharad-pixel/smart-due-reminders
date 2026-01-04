@@ -255,12 +255,12 @@ serve(async (req) => {
               user_id: user.id,
               company_name: customerName,
               name: customerName,
-              contact_name: contactName,
               email: contactEmail,
               phone: contactPhone,
               external_customer_id: customerId ? String(customerId) : null,
               reference_id: newRaid,
               _row_index: i, // Track for post-insert mapping
+              _contact_name: contactName, // Store for contact creation
             });
             newCustomers++;
           } else {
@@ -270,11 +270,11 @@ serve(async (req) => {
         
         // Batch create new debtors
         if (newDebtorsToCreate.length > 0) {
-          const debtorsForInsert = newDebtorsToCreate.map(({ _row_index, ...debtor }) => debtor);
+          const debtorsForInsert = newDebtorsToCreate.map(({ _row_index, _contact_name, ...debtor }) => debtor);
           const { data: createdDebtors, error: debtorError } = await supabase
             .from("debtors")
             .insert(debtorsForInsert)
-            .select("id, reference_id, contact_name, email, phone");
+            .select("id, reference_id, email, phone");
           
           if (debtorError) {
             console.error("Batch debtor creation error:", debtorError);
@@ -299,7 +299,7 @@ serve(async (req) => {
                 newDebtorContacts.push({
                   debtor_id: debtor.id,
                   user_id: user.id,
-                  name: debtor.contact_name || originalData.company_name,
+                  name: originalData._contact_name || originalData.company_name,
                   email: debtor.email,
                   phone: debtor.phone || null,
                   is_primary: true,
@@ -528,7 +528,7 @@ serve(async (req) => {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, rows.length);
         const batchRows = rows.slice(batchStart, batchEnd);
         const accountsToCreate: any[] = [];
-        const accountUpdates: { id: string; data: any }[] = [];
+        const accountUpdates: { id: string; data: any; _contact_name?: string }[] = [];
         
         for (let j = 0; j < batchRows.length; j++) {
           const row = batchRows[j];
@@ -571,7 +571,6 @@ serve(async (req) => {
                 updated_at: new Date().toISOString(),
                 company_name: companyName,
                 name: companyName,
-                contact_name: contactName,
                 email: contactEmail,
                 type: parsedType,
                 phone: contactPhone || undefined,
@@ -586,6 +585,7 @@ serve(async (req) => {
                 industry: industry || undefined,
                 notes: notes || undefined,
               },
+              _contact_name: contactName, // Store for contact update
             });
             existingCustomersCount++;
             matched++;
@@ -594,7 +594,6 @@ serve(async (req) => {
               user_id: user.id,
               company_name: companyName,
               name: companyName,
-              contact_name: contactName,
               email: contactEmail,
               phone: contactPhone || null,
               type: parsedType,
@@ -609,6 +608,7 @@ serve(async (req) => {
               industry: industry || null,
               notes: notes || null,
               reference_id: generateReferenceId("RCPLY-ACCT", i),
+              _contact_name: contactName, // Store for contact creation
             });
             newCustomers++;
           }
@@ -627,10 +627,11 @@ serve(async (req) => {
         
         // Batch insert new accounts
         if (accountsToCreate.length > 0) {
+          const accountsForInsert = accountsToCreate.map(({ _contact_name, ...account }) => account);
           const { data: createdAccounts, error: createError } = await supabase
             .from("debtors")
-            .insert(accountsToCreate)
-            .select("id, contact_name, email, phone");
+            .insert(accountsForInsert)
+            .select("id, email, phone");
           
           if (createError) {
             console.error("Batch account creation error:", createError);
@@ -643,10 +644,10 @@ serve(async (req) => {
             // Batch create primary contacts
             const contactsToCreate = createdAccounts
               .filter((acc: any) => acc.email)
-              .map((acc: any) => ({
+              .map((acc: any, index: number) => ({
                 debtor_id: acc.id,
                 user_id: user.id,
-                name: acc.contact_name || "Primary Contact",
+                name: accountsToCreate[index]._contact_name || "Primary Contact",
                 email: acc.email,
                 phone: acc.phone || null,
                 is_primary: true,

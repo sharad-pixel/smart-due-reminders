@@ -72,7 +72,6 @@ serve(async (req) => {
           user_id: user.id,
           name: debtor_data.name || debtor_data.company_name,
           company_name: debtor_data.company_name || debtor_data.name,
-          contact_name: debtor_data.name || "",
           email: debtor_data.email || "",
           phone: debtor_data.phone || "",
           notes: debtor_data.notes || ""
@@ -87,6 +86,21 @@ serve(async (req) => {
 
       debtorId = newDebtor.id;
       logStep("New debtor created", { debtorId });
+      
+      // Create contact entry in debtor_contacts
+      if (debtor_data.email) {
+        await supabaseClient
+          .from("debtor_contacts")
+          .insert({
+            debtor_id: debtorId,
+            user_id: user.id,
+            name: debtor_data.name || debtor_data.company_name || "Primary Contact",
+            email: debtor_data.email,
+            phone: debtor_data.phone || null,
+            is_primary: true,
+            outreach_enabled: true
+          });
+      }
     }
 
     // Get user's plan to check for line item permission

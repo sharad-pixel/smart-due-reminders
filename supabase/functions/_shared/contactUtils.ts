@@ -31,7 +31,7 @@ export interface OutreachResult {
 export async function getOutreachContacts(
   supabaseClient: any,
   debtorId: string,
-  debtor?: { email?: string | null; phone?: string | null; name?: string | null; company_name?: string | null }
+  debtor?: { email?: string | null; phone?: string | null; company_name?: string | null }
 ): Promise<OutreachResult> {
   const result: OutreachResult = {
     emails: [],
@@ -42,7 +42,7 @@ export async function getOutreachContacts(
     contacts: [],
   };
 
-  // Fetch all contacts with outreach_enabled=true
+  // Fetch all contacts with outreach_enabled=true from debtor_contacts
   const { data: contacts } = await supabaseClient
     .from("debtor_contacts")
     .select("name, email, phone, is_primary, outreach_enabled")
@@ -89,7 +89,7 @@ export async function getOutreachContacts(
     }
   }
 
-  // Fallback to debtor record if no contacts found
+  // Fallback to debtor record email/phone only if no contacts exist
   if (result.emails.length === 0 && debtor?.email) {
     console.log(`[contactUtils] Using fallback email from debtor record: ${debtor.email}`);
     result.emails.push(debtor.email);
@@ -97,7 +97,7 @@ export async function getOutreachContacts(
     result.contacts.push({
       email: debtor.email,
       phone: debtor.phone || null,
-      name: debtor.name || debtor.company_name || null,
+      name: debtor.company_name || null,
       isPrimary: true,
       source: 'debtor_record',
     });
@@ -110,7 +110,7 @@ export async function getOutreachContacts(
   }
 
   if (!result.primaryName && debtor) {
-    result.primaryName = debtor.name || debtor.company_name || null;
+    result.primaryName = debtor.company_name || null;
   }
 
   console.log(`[contactUtils] Found ${result.emails.length} email(s), ${result.phones.length} phone(s) for debtor ${debtorId}`);

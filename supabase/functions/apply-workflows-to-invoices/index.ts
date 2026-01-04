@@ -36,7 +36,7 @@ serve(async (req) => {
       .from('invoices')
       .select(`
         id, invoice_number, amount, due_date, aging_bucket, status,
-        debtors(id, company_name, email, contact_name)
+        debtors(id, company_name, email)
       `)
       .eq('user_id', user.id)
       .in('status', ['Open', 'InPaymentPlan'])
@@ -129,14 +129,14 @@ serve(async (req) => {
 
       // Replace placeholders in templates
       const replacements: Record<string, string> = {
-        '{{customer_name}}': debtor?.contact_name || debtor?.company_name || 'Valued Customer',
+        '{{customer_name}}': debtor?.company_name || 'Valued Customer',
         '{{company_name}}': debtor?.company_name || 'Customer',
         '{{invoice_number}}': invoice.invoice_number || '',
         '{{amount}}': `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
         '{{due_date}}': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US') : '',
         '{{days_past_due}}': daysPastDue.toString(),
         '{{payment_link}}': '[Payment Link]',
-        '{{debtor_name}}': debtor?.contact_name || debtor?.company_name || 'Valued Customer',
+        '{{debtor_name}}': debtor?.company_name || 'Valued Customer',
         '{{currency}}': 'USD',
       };
 

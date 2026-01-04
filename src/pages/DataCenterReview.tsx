@@ -255,20 +255,36 @@ const DataCenterReview = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const contactName = rawJson.contact_name || rawJson.customer_name || "Primary Contact";
+      const contactEmail = rawJson.email || rawJson.customer_email || "";
+      
       const { data: newDebtor, error: debtorError } = await supabase
         .from("debtors")
         .insert({
           user_id: user.id,
           name: rawJson.customer_name || rawJson.company_name || "Unknown Customer",
           company_name: rawJson.company_name || rawJson.customer_name || "Unknown Company",
-          contact_name: rawJson.contact_name || rawJson.customer_name || "Unknown",
-          email: rawJson.email || rawJson.customer_email || "",
+          email: contactEmail,
           reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         })
         .select()
         .single();
 
       if (debtorError) throw debtorError;
+
+      // Create contact entry in debtor_contacts
+      if (contactEmail) {
+        await supabase
+          .from("debtor_contacts")
+          .insert({
+            debtor_id: newDebtor.id,
+            user_id: user.id,
+            name: contactName,
+            email: contactEmail,
+            is_primary: true,
+            outreach_enabled: true
+          });
+      }
 
       const { error: updateError } = await supabase
         .from("data_center_staging_rows")
