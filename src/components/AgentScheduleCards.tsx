@@ -27,19 +27,20 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Fetch all unsent drafts (pending or approved) - no limit to get accurate counts
       const { data, error } = await supabase
         .from("ai_drafts")
         .select(`
-          id, subject, status, step_number,
+          id, status, step_number,
           recommended_send_date, created_at, sent_at,
           days_past_due,
           invoices (
-            id, invoice_number, due_date
+            id, due_date
           )
         `)
         .in("status", ["pending_approval", "approved"])
-        .order("recommended_send_date", { ascending: true })
-        .limit(250);
+        .is("sent_at", null)
+        .order("recommended_send_date", { ascending: true });
 
       if (error) throw error;
       return data || [];
@@ -71,10 +72,24 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
         }
       }
 
+      // Handle current/pre-due invoices - assign to Sam (0-30 DPD agent)
       if (daysPastDue !== null && daysPastDue <= 0) return "sam";
+      
+      // Handle past due invoices by finding matching persona bucket
+      if (daysPastDue !== null && daysPastDue > 0) {
+        // Find the persona that matches this DPD range
+        for (const [key, config] of Object.entries(personaConfig)) {
+          if (config.bucketMax === null) {
+            if (daysPastDue >= config.bucketMin) return key as keyof typeof personaConfig;
+          } else {
+            if (daysPastDue >= config.bucketMin && daysPastDue <= config.bucketMax) {
+              return key as keyof typeof personaConfig;
+            }
+          }
+        }
+      }
 
-      const persona = typeof daysPastDue === "number" ? getPersonaByDaysPastDue(daysPastDue) : null;
-      return (persona?.name?.toLowerCase() as keyof typeof personaConfig) || null;
+      return null;
     };
 
     const upcoming = (draftsData || []).filter((d: any) => !d.sent_at);

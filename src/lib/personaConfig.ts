@@ -85,7 +85,8 @@ export const getPersonaByName = (name: string): PersonaConfig | null => {
 };
 
 export const getPersonaByDaysPastDue = (daysPastDue: number): PersonaConfig | null => {
-  if (daysPastDue === 0) return null;
+  // Handle 0 or negative DPD - assign to Sam (friendly reminder agent)
+  if (daysPastDue <= 0) return personaConfig.sam;
   
   const personas = Object.values(personaConfig);
   return personas.find(persona => {
