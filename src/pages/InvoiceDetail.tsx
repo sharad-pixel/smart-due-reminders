@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle, Search, MessageSquare } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX } from "lucide-react";
+import { InvoiceTransactionLog } from "@/components/InvoiceTransactionLog";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/PersonaCommandInput";
@@ -170,6 +171,15 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
   const [applyingPayment, setApplyingPayment] = useState(false);
+  
+  // Credit/Write-Off state
+  const [creditWriteOffOpen, setCreditWriteOffOpen] = useState(false);
+  const [creditWriteOffType, setCreditWriteOffType] = useState<'credit' | 'write_off'>('credit');
+  const [creditWriteOffAmount, setCreditWriteOffAmount] = useState("");
+  const [creditWriteOffReason, setCreditWriteOffReason] = useState("");
+  const [creditWriteOffNotes, setCreditWriteOffNotes] = useState("");
+  const [applyingCreditWriteOff, setApplyingCreditWriteOff] = useState(false);
+  const [transactionRefreshKey, setTransactionRefreshKey] = useState(0);
 
   // Filtered and paginated outreach
   const filteredOutreach = useMemo(() => {
@@ -516,6 +526,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       InPaymentPlan: "bg-purple-100 text-purple-800",
       Canceled: "bg-gray-100 text-gray-800",
       PartiallyPaid: "bg-amber-100 text-amber-800",
+      Credited: "bg-cyan-100 text-cyan-800",
+      WrittenOff: "bg-orange-100 text-orange-800",
+      Partial: "bg-amber-100 text-amber-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -729,6 +742,22 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           sent_at: new Date().toISOString(),
         });
 
+      // Create transaction record
+      await supabase
+        .from("invoice_transactions")
+        .insert({
+          invoice_id: invoice.id,
+          user_id: user.id,
+          transaction_type: "payment",
+          amount: amount,
+          balance_after: newOutstanding,
+          payment_method: paymentMethod || null,
+          reference_number: paymentReference || null,
+          transaction_date: paymentDate,
+          notes: `Payment applied. ${newOutstanding <= 0 ? 'Invoice fully paid.' : `Remaining: $${newOutstanding.toLocaleString()}`}`,
+          created_by: user.id,
+        });
+
       toast.success(
         newOutstanding <= 0 
           ? "Payment applied - Invoice marked as Paid" 
@@ -739,11 +768,111 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       setPaymentAmount("");
       setPaymentMethod("");
       setPaymentReference("");
+      setTransactionRefreshKey(prev => prev + 1);
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to apply payment");
     } finally {
       setApplyingPayment(false);
+    }
+  };
+
+  const handleApplyCreditWriteOff = async () => {
+    if (!invoice) return;
+    
+    const amount = parseFloat(creditWriteOffAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (!creditWriteOffReason.trim()) {
+      toast.error("Please enter a reason");
+      return;
+    }
+
+    setApplyingCreditWriteOff(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Calculate new outstanding amount
+      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
+      const newOutstanding = Math.max(0, currentOutstanding - amount);
+      
+      // Determine new invoice status
+      let newStatus = invoice.status;
+      if (newOutstanding <= 0) {
+        newStatus = creditWriteOffType === 'credit' ? 'Credited' : 'WrittenOff';
+      }
+
+      // Create transaction record
+      const { error: txError } = await supabase
+        .from("invoice_transactions")
+        .insert({
+          invoice_id: invoice.id,
+          user_id: user.id,
+          transaction_type: creditWriteOffType,
+          amount: amount,
+          balance_after: newOutstanding,
+          reason: creditWriteOffReason,
+          notes: creditWriteOffNotes || null,
+          transaction_date: new Date().toISOString().split("T")[0],
+          created_by: user.id,
+        });
+
+      if (txError) throw txError;
+
+      // Update invoice
+      const { error: invoiceError } = await supabase
+        .from("invoices")
+        .update({
+          amount_outstanding: newOutstanding,
+          status: newStatus as any,
+          notes: `${invoice.notes || ''}\n[${new Date().toLocaleDateString()}] ${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'}: $${amount.toLocaleString()} - ${creditWriteOffReason}${creditWriteOffNotes ? `. ${creditWriteOffNotes}` : ''}`.trim(),
+        })
+        .eq("id", invoice.id);
+
+      if (invoiceError) throw invoiceError;
+
+      // Log activity
+      await supabase
+        .from("collection_activities")
+        .insert({
+          user_id: user.id,
+          debtor_id: invoice.debtor_id,
+          invoice_id: invoice.id,
+          activity_type: creditWriteOffType === 'credit' ? 'credit_applied' : 'write_off_applied',
+          channel: "system",
+          direction: "inbound",
+          subject: `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()} applied`,
+          message_body: `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} applied for Invoice #${invoice.invoice_number}. Amount: $${amount.toLocaleString()}. Reason: ${creditWriteOffReason}${creditWriteOffNotes ? `. Notes: ${creditWriteOffNotes}` : ''}. ${newOutstanding <= 0 ? 'Invoice balance cleared.' : `Remaining balance: $${newOutstanding.toLocaleString()}`}`,
+          metadata: {
+            transaction_type: creditWriteOffType,
+            amount: amount,
+            reason: creditWriteOffReason,
+            notes: creditWriteOffNotes || null,
+            previous_outstanding: currentOutstanding,
+            new_outstanding: newOutstanding,
+            invoice_status: newStatus,
+          },
+          sent_at: new Date().toISOString(),
+        });
+
+      toast.success(
+        `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()} applied${newOutstanding <= 0 ? ' - Invoice balance cleared' : ` - $${newOutstanding.toLocaleString()} remaining`}`
+      );
+      
+      setCreditWriteOffOpen(false);
+      setCreditWriteOffAmount("");
+      setCreditWriteOffReason("");
+      setCreditWriteOffNotes("");
+      setTransactionRefreshKey(prev => prev + 1);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || `Failed to apply ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'}`);
+    } finally {
+      setApplyingCreditWriteOff(false);
     }
   };
 
@@ -989,6 +1118,32 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   variant="outline"
                   size="sm"
                   className="justify-start"
+                  onClick={() => {
+                    setCreditWriteOffType('credit');
+                    setCreditWriteOffOpen(true);
+                  }}
+                  disabled={invoice.status === "Paid" || invoice.status === "Credited"}
+                >
+                  <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+                  Apply Credit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => {
+                    setCreditWriteOffType('write_off');
+                    setCreditWriteOffOpen(true);
+                  }}
+                  disabled={invoice.status === "Paid" || invoice.status === "WrittenOff"}
+                >
+                  <FileX className="h-3.5 w-3.5 mr-1.5" />
+                  Write Off
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
                   onClick={() => handleStatusChange("Disputed")}
                   disabled={invoice.status === "Disputed"}
                 >
@@ -1018,12 +1173,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <Button
                   variant="outline"
                   size="sm"
-                  className="justify-start"
+                  className="justify-start col-span-2"
                   onClick={() => handleStatusChange("Canceled")}
                   disabled={invoice.status === "Canceled"}
                 >
                   <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Cancel
+                  Cancel Invoice
                 </Button>
               </CardContent>
             </Card>
@@ -1211,6 +1366,13 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             </CardContent>
           </Card>
         </div>
+
+        {/* Transaction History Log */}
+        <InvoiceTransactionLog 
+          invoiceId={invoice.id} 
+          currency={invoice.currency || 'USD'}
+          key={transactionRefreshKey}
+        />
 
         <Alert className="border-muted">
           <Info className="h-4 w-4" />
@@ -1815,6 +1977,110 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               </Button>
               <Button onClick={handleApplyPayment} disabled={applyingPayment || !paymentAmount}>
                 {applyingPayment ? "Applying..." : "Apply Payment"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Credit/Write-Off Dialog */}
+        <Dialog open={creditWriteOffOpen} onOpenChange={setCreditWriteOffOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {creditWriteOffType === 'credit' ? 'Apply Credit' : 'Write Off Invoice'}
+              </DialogTitle>
+              <DialogDescription>
+                {creditWriteOffType === 'credit' 
+                  ? `Apply a credit to Invoice #${invoice?.invoice_number}` 
+                  : `Write off amount for Invoice #${invoice?.invoice_number}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted rounded-md">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Invoice Amount:</span>
+                  <span className="font-medium">${invoice?.amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-muted-foreground">Outstanding:</span>
+                  <span className="font-medium">
+                    ${(invoice?.amount_outstanding ?? invoice?.amount)?.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="credit-amount">
+                  {creditWriteOffType === 'credit' ? 'Credit Amount' : 'Write-Off Amount'} *
+                </Label>
+                <Input
+                  id="credit-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={(invoice?.amount_outstanding ?? invoice?.amount) || undefined}
+                  value={creditWriteOffAmount}
+                  onChange={(e) => setCreditWriteOffAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="credit-reason">Reason *</Label>
+                <Select value={creditWriteOffReason} onValueChange={setCreditWriteOffReason}>
+                  <SelectTrigger id="credit-reason">
+                    <SelectValue placeholder="Select reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {creditWriteOffType === 'credit' ? (
+                      <>
+                        <SelectItem value="Pricing adjustment">Pricing Adjustment</SelectItem>
+                        <SelectItem value="Service credit">Service Credit</SelectItem>
+                        <SelectItem value="Billing error">Billing Error</SelectItem>
+                        <SelectItem value="Promotional credit">Promotional Credit</SelectItem>
+                        <SelectItem value="Customer goodwill">Customer Goodwill</SelectItem>
+                        <SelectItem value="Duplicate charge">Duplicate Charge</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="Uncollectible">Uncollectible</SelectItem>
+                        <SelectItem value="Customer bankruptcy">Customer Bankruptcy</SelectItem>
+                        <SelectItem value="Customer out of business">Customer Out of Business</SelectItem>
+                        <SelectItem value="Statute of limitations">Statute of Limitations</SelectItem>
+                        <SelectItem value="Cost exceeds recovery">Cost Exceeds Recovery</SelectItem>
+                        <SelectItem value="Settlement agreed">Settlement Agreed</SelectItem>
+                        <SelectItem value="Disputed - unresolved">Disputed - Unresolved</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="credit-notes">Additional Notes</Label>
+                <Textarea
+                  id="credit-notes"
+                  value={creditWriteOffNotes}
+                  onChange={(e) => setCreditWriteOffNotes(e.target.value)}
+                  placeholder={`Add any additional notes about this ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'}...`}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreditWriteOffOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleApplyCreditWriteOff} 
+                disabled={applyingCreditWriteOff || !creditWriteOffAmount || !creditWriteOffReason}
+                variant={creditWriteOffType === 'write_off' ? 'destructive' : 'default'}
+              >
+                {applyingCreditWriteOff 
+                  ? "Applying..." 
+                  : creditWriteOffType === 'credit' ? 'Apply Credit' : 'Write Off'}
               </Button>
             </DialogFooter>
           </DialogContent>
