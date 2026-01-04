@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, Zap } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +18,6 @@ import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { useLatestDigest } from "@/hooks/useDailyDigest";
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 import { DashboardIntelligenceSummary } from "@/components/DashboardIntelligenceSummary";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -64,8 +63,6 @@ const Dashboard = () => {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
-  const [syncingDigest, setSyncingDigest] = useState(false);
-  const { refetch: refetchDigest } = useLatestDigest();
   const [stats, setStats] = useState({
     totalOutstanding: 0,
     totalRecovered: 0,
@@ -274,23 +271,6 @@ const Dashboard = () => {
     }
   };
 
-  const syncDigest = async () => {
-    setSyncingDigest(true);
-    try {
-      const { error } = await supabase.functions.invoke('daily-digest-runner', {
-        body: { force: true, userId: user?.id, skipEmail: true }
-      });
-      if (error) throw error;
-      toast.success('Digest synced with latest data');
-      refetchDigest();
-      fetchDashboardData();
-    } catch (err: any) {
-      console.error('Error syncing digest:', err);
-      toast.error(err.message || 'Failed to sync digest');
-    } finally {
-      setSyncingDigest(false);
-    }
-  };
 
   const handleTaskClick = (task: DashboardTask) => {
     setSelectedTask({
@@ -403,28 +383,17 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={syncDigest} 
-              disabled={syncingDigest}
-              className="gap-2"
-            >
-              <Zap className={`h-4 w-4 ${syncingDigest ? 'animate-pulse' : ''}`} />
-              {syncingDigest ? 'Syncing...' : 'Sync All Activity'}
-            </Button>
-            <SavedViewsManager
-              savedViews={savedViews}
-              activeView={activeView}
-              currentConfig={currentConfig}
-              onSave={saveView}
-              onUpdate={updateView}
-              onDelete={deleteView}
-              onSetDefault={setDefaultView}
-              onLoad={loadView}
-              onClear={clearActiveView}
-            />
-          </div>
+          <SavedViewsManager
+            savedViews={savedViews}
+            activeView={activeView}
+            currentConfig={currentConfig}
+            onSave={saveView}
+            onUpdate={updateView}
+            onDelete={deleteView}
+            onSetDefault={setDefaultView}
+            onLoad={loadView}
+            onClear={clearActiveView}
+          />
         </div>
 
         {/* Usage Indicator */}

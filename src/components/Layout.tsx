@@ -38,7 +38,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { SecurityAlert } from "@/components/SecurityAlert";
-import { DigestNotificationBanner } from "@/components/DigestNotificationBanner";
 import { logAuditEvent } from "@/lib/auditLog";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
@@ -456,7 +455,6 @@ const Layout = ({ children }: LayoutProps) => {
       
       {/* Banners - placed after nav spacer so they flow with content */}
       <SecurityAlert />
-      <DigestNotificationBanner />
       
       {/* Team Member Banner */}
       {isTeamMember && !accountLoading && (
