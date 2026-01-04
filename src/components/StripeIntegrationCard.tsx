@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { 
@@ -16,7 +17,10 @@ import {
   CreditCard,
   Calendar,
   FileText,
-  Zap
+  Zap,
+  Key,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -31,12 +35,17 @@ interface StripeIntegration {
   sync_status: string;
   last_sync_error: string | null;
   invoices_synced_count: number;
+  stripe_secret_key_encrypted: string | null;
 }
 
 export const StripeIntegrationCard = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [savingKey, setSavingKey] = useState(false);
   const [integration, setIntegration] = useState<StripeIntegration | null>(null);
+  const [stripeKey, setStripeKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [showKeyInput, setShowKeyInput] = useState(false);
 
   useEffect(() => {
     fetchIntegration();
@@ -66,45 +75,34 @@ export const StripeIntegrationCard = () => {
     }
   };
 
-  const handleConnect = async () => {
-    setSyncing(true);
+  const handleSaveKey = async () => {
+    if (!stripeKey.trim()) {
+      toast.error("Please enter your Stripe secret key");
+      return;
+    }
+
+    if (!stripeKey.startsWith('sk_')) {
+      toast.error("Invalid key format. Stripe secret keys start with 'sk_'");
+      return;
+    }
+
+    setSavingKey(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Get effective account ID
-      const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
-      const accountId = effectiveAccountId || user.id;
-
-      // Create/update integration record
-      const { error: upsertError } = await supabase
-        .from('stripe_integrations')
-        .upsert({
-          user_id: accountId,
-          is_connected: true,
-          auto_sync_enabled: true,
-          sync_status: 'syncing'
-        }, { onConflict: 'user_id' });
-
-      if (upsertError) throw upsertError;
-
-      // Trigger sync
-      const { data, error } = await supabase.functions.invoke('sync-stripe-invoices');
-      
-      if (error) throw error;
-
-      toast.success(`Synced ${data.synced_count} invoices from Stripe!`, {
-        description: data.created_debtors > 0 
-          ? `Created ${data.created_debtors} new accounts` 
-          : undefined
+      const { data, error } = await supabase.functions.invoke('save-stripe-credentials', {
+        body: { stripe_secret_key: stripeKey }
       });
 
+      if (error) throw error;
+
+      toast.success("Stripe API key saved successfully!");
+      setStripeKey("");
+      setShowKeyInput(false);
       await fetchIntegration();
     } catch (error: any) {
-      console.error("Sync error:", error);
-      toast.error(error.message || "Failed to sync Stripe invoices");
+      console.error("Save key error:", error);
+      toast.error(error.message || "Failed to save Stripe API key");
     } finally {
-      setSyncing(false);
+      setSavingKey(false);
     }
   };
 
@@ -142,7 +140,8 @@ export const StripeIntegrationCard = () => {
         .from('stripe_integrations')
         .update({ 
           is_connected: false, 
-          auto_sync_enabled: false 
+          auto_sync_enabled: false,
+          stripe_secret_key_encrypted: null
         })
         .eq('user_id', accountId);
 
@@ -176,6 +175,8 @@ export const StripeIntegrationCard = () => {
       toast.error("Failed to update setting");
     }
   };
+
+  const hasStripeKey = integration?.stripe_secret_key_encrypted;
 
   const getSyncStatusBadge = () => {
     if (!integration) return null;
@@ -249,50 +250,91 @@ export const StripeIntegrationCard = () => {
             <div>
               <CardTitle>Stripe Invoices</CardTitle>
               <CardDescription>
-                Import open and past due invoices from Stripe for collection outreach
+                Connect your Stripe account to import invoices for collection
               </CardDescription>
             </div>
           </div>
-          {integration?.is_connected && getSyncStatusBadge()}
+          {hasStripeKey && integration?.is_connected && getSyncStatusBadge()}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!integration?.is_connected ? (
+        {!hasStripeKey ? (
           <>
             <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
-              <Zap className="h-5 w-5 text-amber-500 mt-0.5" />
+              <Key className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium">Automatic Invoice Import</p>
+                <p className="font-medium">Connect Your Stripe Account</p>
                 <p className="text-muted-foreground mt-1">
-                  Connect to automatically sync open and past due invoices from your Stripe account. 
-                  New accounts will be created for Stripe customers not yet in Recouply.
+                  Enter your Stripe secret API key to sync open and past due invoices. 
+                  Your key is encrypted and stored securely.
                 </p>
               </div>
             </div>
-            <Button 
-              onClick={handleConnect} 
-              disabled={syncing}
-              className="w-full gap-2"
-            >
-              {syncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Connecting & Syncing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4" />
-                  Connect & Sync Stripe Invoices
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Uses your existing Stripe API key configured in Lovable Cloud
-            </p>
+            
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="stripe-key">Stripe Secret Key</Label>
+                <div className="relative">
+                  <Input
+                    id="stripe-key"
+                    type={showKey ? "text" : "password"}
+                    placeholder="sk_live_..."
+                    value={stripeKey}
+                    onChange={(e) => setStripeKey(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowKey(!showKey)}
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Find your API key in{" "}
+                  <a 
+                    href="https://dashboard.stripe.com/apikeys" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Stripe Dashboard → Developers → API Keys
+                  </a>
+                </p>
+              </div>
+              
+              <Button 
+                onClick={handleSaveKey} 
+                disabled={savingKey || !stripeKey.trim()}
+                className="w-full gap-2"
+              >
+                {savingKey ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4" />
+                    Connect Stripe Account
+                  </>
+                )}
+              </Button>
+            </div>
           </>
         ) : (
           <>
             {/* Connected State */}
+            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
+              <Check className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                Stripe API key configured
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -300,7 +342,7 @@ export const StripeIntegrationCard = () => {
                   Invoices Synced
                 </div>
                 <p className="text-2xl font-bold mt-1">
-                  {integration.invoices_synced_count || 0}
+                  {integration?.invoices_synced_count || 0}
                 </p>
               </div>
               <div className="p-3 bg-muted/50 rounded-lg">
@@ -309,7 +351,7 @@ export const StripeIntegrationCard = () => {
                   Last Sync
                 </div>
                 <p className="text-sm font-medium mt-1">
-                  {integration.last_sync_at 
+                  {integration?.last_sync_at 
                     ? format(new Date(integration.last_sync_at), 'MMM d, h:mm a')
                     : 'Never'
                   }
@@ -318,7 +360,7 @@ export const StripeIntegrationCard = () => {
             </div>
 
             {/* Error Alert */}
-            {integration.last_sync_error && (
+            {integration?.last_sync_error && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
@@ -337,7 +379,7 @@ export const StripeIntegrationCard = () => {
               </div>
               <Switch
                 id="auto-sync"
-                checked={integration.auto_sync_enabled}
+                checked={integration?.auto_sync_enabled || false}
                 onCheckedChange={handleToggleAutoSync}
               />
             </div>
@@ -370,6 +412,44 @@ export const StripeIntegrationCard = () => {
                 Disconnect
               </Button>
             </div>
+
+            {/* Update key option */}
+            {showKeyInput ? (
+              <div className="space-y-3 pt-2 border-t">
+                <Label htmlFor="new-stripe-key">New Stripe Secret Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="new-stripe-key"
+                    type="password"
+                    placeholder="sk_live_..."
+                    value={stripeKey}
+                    onChange={(e) => setStripeKey(e.target.value)}
+                  />
+                  <Button 
+                    onClick={handleSaveKey} 
+                    disabled={savingKey || !stripeKey.trim()}
+                  >
+                    {savingKey ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => { setShowKeyInput(false); setStripeKey(""); }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowKeyInput(true)}
+                className="w-full text-muted-foreground"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Update API Key
+              </Button>
+            )}
           </>
         )}
       </CardContent>
