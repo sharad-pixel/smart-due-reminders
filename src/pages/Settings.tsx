@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Save, Mail, Phone, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2, Plug } from "lucide-react";
+import { Save, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2, Plug } from "lucide-react";
 import StripeIntegrationCard from "@/components/StripeIntegrationCard";
 import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -29,39 +29,12 @@ interface ProfileData {
   email: string;
 }
 
-interface CredentialsStatus {
-  sendgrid_configured: boolean;
-  twilio_configured: boolean;
-  twilio_from_number: string | null;
-}
-
-interface CredentialsInput {
-  sendgrid_api_key: string;
-  twilio_account_sid: string;
-  twilio_auth_token: string;
-  twilio_from_number: string;
-}
-
 const Settings = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingCredentials, setSavingCredentials] = useState(false);
-  const [testingEmail, setTestingEmail] = useState(false);
-  const [testingSMS, setTestingSMS] = useState(false);
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
-  const [credentialsStatus, setCredentialsStatus] = useState<CredentialsStatus>({
-    sendgrid_configured: false,
-    twilio_configured: false,
-    twilio_from_number: null,
-  });
-  const [credentials, setCredentials] = useState<CredentialsInput>({
-    sendgrid_api_key: "",
-    twilio_account_sid: "",
-    twilio_auth_token: "",
-    twilio_from_number: "",
-  });
   const [profile, setProfile] = useState<ProfileData>({
     business_name: "",
     business_address: "",
@@ -104,21 +77,7 @@ const Settings = () => {
       fetchProfile();
     }
     fetchSubscriptionInfo();
-    fetchCredentialsStatus();
   }, [effectiveAccount.loading, isChildAccount]);
-
-  const fetchCredentialsStatus = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("get-credentials-status");
-      if (error) throw error;
-      setCredentialsStatus(data);
-      if (data.twilio_from_number) {
-        setCredentials(prev => ({ ...prev, twilio_from_number: data.twilio_from_number }));
-      }
-    } catch (error: any) {
-      console.error("Failed to fetch credentials status:", error);
-    }
-  };
 
   const fetchProfile = async () => {
     try {
@@ -182,97 +141,6 @@ const Settings = () => {
       toast.error(error.message || "Failed to save settings");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleTestEmail = async () => {
-    if (!credentialsStatus.sendgrid_configured) {
-      toast.error("Please configure your SendGrid API key first");
-      return;
-    }
-
-    setTestingEmail(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("test-email", {
-        body: { email: profile.email },
-      });
-
-      if (error) throw error;
-      toast.success("Test email sent successfully! Check your inbox.");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send test email");
-    } finally {
-      setTestingEmail(false);
-    }
-  };
-
-  const handleTestSMS = async () => {
-    if (!credentialsStatus.twilio_configured || !credentials.twilio_from_number) {
-      toast.error("Please configure all Twilio settings first");
-      return;
-    }
-
-    if (!profile.business_phone) {
-      toast.error("Please add your business phone number first");
-      return;
-    }
-
-    setTestingSMS(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("test-sms", {
-        body: { to: profile.business_phone },
-      });
-
-      if (error) throw error;
-      toast.success("Test SMS sent successfully! Check your phone.");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send test SMS");
-    } finally {
-      setTestingSMS(false);
-    }
-  };
-
-  const handleSaveCredentials = async () => {
-    setSavingCredentials(true);
-    try {
-      // Only send credentials that have been entered (not empty)
-      const credentialsToSave: Record<string, string | undefined> = {};
-      
-      if (credentials.sendgrid_api_key) {
-        credentialsToSave.sendgrid_api_key = credentials.sendgrid_api_key;
-      }
-      if (credentials.twilio_account_sid) {
-        credentialsToSave.twilio_account_sid = credentials.twilio_account_sid;
-      }
-      if (credentials.twilio_auth_token) {
-        credentialsToSave.twilio_auth_token = credentials.twilio_auth_token;
-      }
-      if (credentials.twilio_from_number) {
-        credentialsToSave.twilio_from_number = credentials.twilio_from_number;
-      }
-
-      const { error } = await supabase.functions.invoke("save-credentials", {
-        body: credentialsToSave,
-      });
-
-      if (error) throw error;
-
-      // Refresh credentials status
-      await fetchCredentialsStatus();
-      
-      // Clear the input fields after save
-      setCredentials({
-        sendgrid_api_key: "",
-        twilio_account_sid: "",
-        twilio_auth_token: "",
-        twilio_from_number: credentials.twilio_from_number, // Keep phone number visible
-      });
-
-      toast.success("API credentials saved securely");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save credentials");
-    } finally {
-      setSavingCredentials(false);
     }
   };
 
@@ -468,16 +336,17 @@ const Settings = () => {
                   className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="business_country">Country</Label>
-                <Input
-                  id="business_country"
-                  value={profile.business_country}
-                  onChange={(e) => setProfile({ ...profile, business_country: e.target.value })}
-                  disabled={isChildAccount}
-                  className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
-                />
-              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="business_country">Country</Label>
+              <Input
+                id="business_country"
+                value={profile.business_country}
+                onChange={(e) => setProfile({ ...profile, business_country: e.target.value })}
+                placeholder="United States"
+                disabled={isChildAccount}
+                className={isChildAccount ? "bg-muted cursor-not-allowed" : ""}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="business_phone">Business Phone</Label>
@@ -494,94 +363,70 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-
+        {/* Team Management Link - Only for owners */}
         {!isChildAccount && (
-          <Card className="border-primary/20 bg-primary/5">
+          <Card>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-primary" />
-                <CardTitle>Team Members</CardTitle>
+                <CardTitle>Team Management</CardTitle>
               </div>
               <CardDescription>
-                Manage your team and purchase additional user seats
+                Invite team members and manage access to your account
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Add team members to collaborate on collections. Each additional active user is billed at {formatPrice(SEAT_PRICING.monthlyPrice)} per month.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => navigate("/team?invite=true")} className="gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Add Team Members
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/billing")} className="gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Manage Billing
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Manage Your Team</p>
+                    <p className="text-sm text-muted-foreground">
+                      Add team members, set roles, and manage permissions
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={() => navigate("/team")}>
+                  Go to Team
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Additional team members cost {formatPrice(SEAT_PRICING.monthlyPrice)}/month or {formatPrice(SEAT_PRICING.annualPrice)}/year per seat.
+              </p>
             </CardContent>
           </Card>
         )}
 
-
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Email Infrastructure</CardTitle>
-            </div>
-            <CardDescription>
-              Recouply.ai sends and receives emails through its own secure infrastructure
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  ✓ Platform Email Active
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                All collection emails are sent from our verified Recouply.ai address with SPF, DKIM, and DMARC authentication. 
-                No email setup required - start sending immediately.
-              </p>
-              <Button variant="outline" size="sm" onClick={() => navigate("/settings/email-accounts")}>
-                <Mail className="h-4 w-4 mr-2" />
-                View Email Details
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {!isChildAccount && subscriptionInfo && subscriptionInfo.stripe_subscription_id && (
+        {/* Subscription Section */}
+        {!isChildAccount && subscriptionInfo && (
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <CreditCard className="h-5 w-5 text-primary" />
-                <CardTitle>Subscription Management</CardTitle>
+                <CardTitle>Subscription</CardTitle>
               </div>
               <CardDescription>
-                Manage your subscription, payment method, or cancel at end of term
+                Manage your subscription and billing
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {subscriptionInfo.plans && (
-                <div className="rounded-lg border border-border bg-muted/50 p-4">
-                  <p className="text-sm font-medium mb-1">Current Plan</p>
-                  <p className="text-lg font-semibold capitalize">{subscriptionInfo.plan_type}</p>
-                  {subscriptionInfo.plans.monthly_price && (
-                    <p className="text-sm text-muted-foreground">
-                      ${subscriptionInfo.plans.monthly_price}/month
-                    </p>
-                  )}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium capitalize">{subscriptionInfo.plan_type || 'Free'} Plan</p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscriptionInfo.plans?.name || 'Basic features'}
+                  </p>
                 </div>
-              )}
-              <Button
+                <Badge variant={subscriptionInfo.stripe_subscription_id ? "default" : "secondary"}>
+                  {subscriptionInfo.stripe_subscription_id ? "Active" : "Free Tier"}
+                </Badge>
+              </div>
+              <Button 
+                variant="outline" 
                 onClick={handleManageSubscription}
-                disabled={managingSubscription}
-                variant="outline"
+                disabled={managingSubscription || !subscriptionInfo.stripe_subscription_id}
               >
                 {managingSubscription ? (
                   <>
@@ -601,144 +446,6 @@ const Settings = () => {
             </CardContent>
           </Card>
         )}
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <CardTitle>Email Service (SendGrid) - Legacy</CardTitle>
-            </div>
-            <CardDescription>
-              Configure email delivery for automated messages
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {credentialsStatus.sendgrid_configured && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                ✓ SendGrid API key configured
-              </Badge>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="sendgrid_api_key">
-                {credentialsStatus.sendgrid_configured ? "Update SendGrid API Key" : "SendGrid API Key"}
-              </Label>
-              <Input
-                id="sendgrid_api_key"
-                type="password"
-                value={credentials.sendgrid_api_key}
-                onChange={(e) => setCredentials({ ...credentials, sendgrid_api_key: e.target.value })}
-                placeholder={credentialsStatus.sendgrid_configured ? "••••••••••••••••" : "SG.xxxxxxxxxxx"}
-              />
-              <p className="text-sm text-muted-foreground">
-                Get your API key from{" "}
-                <a
-                  href="https://app.sendgrid.com/settings/api_keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  SendGrid Dashboard
-                </a>
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {credentials.sendgrid_api_key && (
-                <Button onClick={handleSaveCredentials} disabled={savingCredentials}>
-                  {savingCredentials ? "Saving..." : "Save SendGrid Key"}
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                onClick={handleTestEmail} 
-                disabled={testingEmail || !credentialsStatus.sendgrid_configured}
-              >
-                {testingEmail ? "Sending..." : "Send Test Email"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Phone className="h-5 w-5 text-primary" />
-              <CardTitle>SMS Setup</CardTitle>
-            </div>
-            <CardDescription>
-              Configure Twilio for SMS reminders to debtors
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {credentialsStatus.twilio_configured && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                ✓ Twilio credentials configured
-              </Badge>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="twilio_account_sid">
-                {credentialsStatus.twilio_configured ? "Update Twilio Account SID" : "Twilio Account SID"}
-              </Label>
-              <Input
-                id="twilio_account_sid"
-                type="password"
-                value={credentials.twilio_account_sid}
-                onChange={(e) => setCredentials({ ...credentials, twilio_account_sid: e.target.value })}
-                placeholder={credentialsStatus.twilio_configured ? "••••••••••••••••" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="twilio_auth_token">
-                {credentialsStatus.twilio_configured ? "Update Twilio Auth Token" : "Twilio Auth Token"}
-              </Label>
-              <Input
-                id="twilio_auth_token"
-                type="password"
-                value={credentials.twilio_auth_token}
-                onChange={(e) => setCredentials({ ...credentials, twilio_auth_token: e.target.value })}
-                placeholder={credentialsStatus.twilio_configured ? "••••••••••••••••" : "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="twilio_from_number">Twilio Phone Number</Label>
-              <Input
-                id="twilio_from_number"
-                type="tel"
-                value={credentials.twilio_from_number}
-                onChange={(e) => setCredentials({ ...credentials, twilio_from_number: e.target.value })}
-                placeholder="+15551234567"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Get your credentials from{" "}
-              <a
-                href="https://console.twilio.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Twilio Console
-              </a>
-            </p>
-            <div className="flex gap-2">
-              {(credentials.twilio_account_sid || credentials.twilio_auth_token || credentials.twilio_from_number) && (
-                <Button onClick={handleSaveCredentials} disabled={savingCredentials}>
-                  {savingCredentials ? "Saving..." : "Save Twilio Settings"}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={handleTestSMS}
-                disabled={
-                  testingSMS ||
-                  !credentialsStatus.twilio_configured ||
-                  !credentials.twilio_from_number
-                }
-              >
-                {testingSMS ? "Sending..." : "Send Test SMS"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
