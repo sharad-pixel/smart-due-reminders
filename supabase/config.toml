@@ -284,3 +284,6 @@ verify_jwt = false
 
 [functions.sync-stripe-invoices]
 verify_jwt = true
+
+[functions.send-agent-test-emails]
+verify_jwt = false
