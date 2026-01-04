@@ -5,10 +5,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface WorkflowResult {
+  assigned: number;
+  fixed: number;
+  skipped: number;
+  skippedCurrent: number;
+  errors: number;
+  errorDetails: Array<{ invoiceId: string; error: string }>;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const result: WorkflowResult = {
+    assigned: 0,
+    fixed: 0,
+    skipped: 0,
+    skippedCurrent: 0,
+    errors: 0,
+    errorDetails: [],
+  };
 
   try {
     console.log('Starting ensure-invoice-workflows process...');
@@ -24,8 +42,10 @@ Deno.serve(async (req) => {
       }
     );
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     // Fetch all open/in-payment-plan invoices that are NOT paused
-    // and whose parent debtor is NOT paused
     const { data: invoices, error: invoicesError } = await supabaseAdmin
       .from('invoices')
       .select(`
@@ -78,16 +98,10 @@ Deno.serve(async (req) => {
 
     console.log(`${invoicesNeedingWorkflows.length} invoices need workflow assignments`);
 
-    let assigned = 0;
-    let skipped = 0;
-    let errors = 0;
-
     for (const invoice of invoicesNeedingWorkflows) {
       try {
         // Determine aging bucket based on due date
         const dueDate = new Date(invoice.due_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
         dueDate.setHours(0, 0, 0, 0);
         
         const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -96,7 +110,6 @@ Deno.serve(async (req) => {
         if (daysPastDue < 0) {
           agingBucket = 'current';
         } else if (daysPastDue >= 0 && daysPastDue <= 30) {
-          // Day 0 (due today but not paid) starts as 1-30 bucket
           agingBucket = 'dpd_1_30';
         } else if (daysPastDue >= 31 && daysPastDue <= 60) {
           agingBucket = 'dpd_31_60';
@@ -108,6 +121,24 @@ Deno.serve(async (req) => {
           agingBucket = 'dpd_121_150';
         } else {
           agingBucket = 'dpd_150_plus';
+        }
+
+        // Skip 'current' bucket invoices - they're not past due yet
+        if (agingBucket === 'current') {
+          console.log(`Skipping invoice ${invoice.id}: aging_bucket is 'current' (not past due yet)`);
+          result.skippedCurrent++;
+          
+          // Still update the aging_bucket if needed
+          if (invoice.aging_bucket !== agingBucket) {
+            await supabaseAdmin
+              .from('invoices')
+              .update({ 
+                aging_bucket: agingBucket,
+                bucket_entered_at: new Date().toISOString()
+              })
+              .eq('id', invoice.id);
+          }
+          continue;
         }
 
         // Update the invoice aging_bucket if changed
@@ -123,53 +154,46 @@ Deno.serve(async (req) => {
         }
 
         // Find active collection workflow for this bucket and user
-        // If no workflow found for 'current', try 'dpd_1_30' as fallback
-        let workflow: any = null;
-        let workflowError: any = null;
-        
-        const bucketsToTry = agingBucket === 'current' ? ['current', 'dpd_1_30'] : [agingBucket];
-        
-        for (const bucketToTry of bucketsToTry) {
-          const { data, error } = await supabaseAdmin
-            .from('collection_workflows')
-            .select(`
+        const { data: workflow, error: workflowError } = await supabaseAdmin
+          .from('collection_workflows')
+          .select(`
+            id,
+            collection_workflow_steps (
               id,
-              collection_workflow_steps (
-                id,
-                day_offset,
-                step_order
-              )
-            `)
-            .eq('aging_bucket', bucketToTry)
-            .eq('is_active', true)
-            .or(`user_id.eq.${invoice.user_id},user_id.is.null`)
-            .order('user_id', { ascending: false, nullsFirst: false })
-            .limit(1)
-            .single();
-          
-          if (!error && data) {
-            workflow = data;
-            break;
-          }
-          workflowError = error;
+              day_offset,
+              step_order
+            )
+          `)
+          .eq('aging_bucket', agingBucket)
+          .eq('is_active', true)
+          .or(`user_id.eq.${invoice.user_id},user_id.is.null`)
+          .order('user_id', { ascending: false, nullsFirst: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (workflowError) {
+          console.error(`Error finding workflow for bucket ${agingBucket}:`, workflowError);
+          result.errors++;
+          result.errorDetails.push({ invoiceId: invoice.id, error: workflowError.message });
+          continue;
         }
 
         if (!workflow) {
-          console.log(`No workflow found for bucket ${agingBucket} (or fallback), invoice ${invoice.id}`);
-          skipped++;
+          console.log(`No workflow found for bucket ${agingBucket}, invoice ${invoice.id}`);
+          result.skipped++;
           continue;
         }
 
         // Create cadence_days array from workflow steps
         const steps = (workflow.collection_workflow_steps as any[]) || [];
-        const cadenceDays = steps
+        let cadenceDays = steps
           .sort((a, b) => a.step_order - b.step_order)
           .map(s => s.day_offset);
 
+        // Ensure cadence_days is not empty (trigger will also handle this)
         if (cadenceDays.length === 0) {
-          console.log(`Workflow ${workflow.id} has no steps, skipping invoice ${invoice.id}`);
-          skipped++;
-          continue;
+          cadenceDays = [0, 3, 7, 14, 21]; // Default cadence
+          console.log(`Workflow ${workflow.id} has no steps, using default cadence`);
         }
 
         // Create ai_workflow entry
@@ -185,22 +209,24 @@ Deno.serve(async (req) => {
 
         if (insertError) {
           console.error(`Error creating workflow for invoice ${invoice.id}:`, insertError);
-          errors++;
+          result.errors++;
+          result.errorDetails.push({ invoiceId: invoice.id, error: insertError.message });
           continue;
         }
 
         console.log(`Created workflow for invoice ${invoice.id} with bucket ${agingBucket}`);
-        assigned++;
+        result.assigned++;
 
       } catch (err) {
-        console.error(`Error processing invoice ${invoice.id}:`, err);
-        errors++;
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error(`Error processing invoice ${invoice.id}:`, errorMsg);
+        result.errors++;
+        result.errorDetails.push({ invoiceId: invoice.id, error: errorMsg });
       }
     }
 
     // Fix existing workflows with empty cadence_days
     console.log('Checking for workflows with empty cadence_days...');
-    let fixedWorkflows = 0;
     
     const { data: emptyWorkflows } = await supabaseAdmin
       .from('ai_workflows')
@@ -210,7 +236,8 @@ Deno.serve(async (req) => {
         user_id,
         invoices!inner (
           due_date,
-          status
+          status,
+          aging_bucket
         )
       `)
       .eq('is_active', true)
@@ -225,76 +252,80 @@ Deno.serve(async (req) => {
         
         // Determine aging bucket
         const dueDate = new Date(invoice.due_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
         dueDate.setHours(0, 0, 0, 0);
         const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
         
-        let agingBucket: string;
-        if (daysPastDue < 0) {
-          agingBucket = 'current';
-        } else if (daysPastDue >= 0 && daysPastDue <= 30) {
-          agingBucket = 'dpd_1_30';
-        } else if (daysPastDue >= 31 && daysPastDue <= 60) {
-          agingBucket = 'dpd_31_60';
-        } else if (daysPastDue >= 61 && daysPastDue <= 90) {
-          agingBucket = 'dpd_61_90';
-        } else if (daysPastDue >= 91 && daysPastDue <= 120) {
-          agingBucket = 'dpd_91_120';
-        } else if (daysPastDue >= 121 && daysPastDue <= 150) {
-          agingBucket = 'dpd_121_150';
-        } else {
-          agingBucket = 'dpd_150_plus';
-        }
-        
-        // Find workflow with steps
-        const bucketsToTry = agingBucket === 'current' ? ['current', 'dpd_1_30'] : [agingBucket];
-        let cadenceDays: number[] = [];
-        
-        for (const bucketToTry of bucketsToTry) {
-          const { data: wf } = await supabaseAdmin
-            .from('collection_workflows')
-            .select(`
-              collection_workflow_steps (day_offset, step_order)
-            `)
-            .eq('aging_bucket', bucketToTry)
-            .eq('is_active', true)
-            .or(`user_id.eq.${aw.user_id},user_id.is.null`)
-            .order('user_id', { ascending: false, nullsFirst: false })
-            .limit(1)
-            .single();
-          
-          if (wf) {
-            const steps = (wf.collection_workflow_steps as any[]) || [];
-            cadenceDays = steps
-              .sort((a, b) => a.step_order - b.step_order)
-              .map(s => s.day_offset);
-            
-            if (cadenceDays.length > 0) break;
+        let agingBucket = invoice.aging_bucket;
+        if (!agingBucket || agingBucket === 'current') {
+          if (daysPastDue < 0) {
+            agingBucket = 'current';
+          } else if (daysPastDue >= 0 && daysPastDue <= 30) {
+            agingBucket = 'dpd_1_30';
+          } else if (daysPastDue >= 31 && daysPastDue <= 60) {
+            agingBucket = 'dpd_31_60';
+          } else if (daysPastDue >= 61 && daysPastDue <= 90) {
+            agingBucket = 'dpd_61_90';
+          } else if (daysPastDue >= 91 && daysPastDue <= 120) {
+            agingBucket = 'dpd_91_120';
+          } else if (daysPastDue >= 121 && daysPastDue <= 150) {
+            agingBucket = 'dpd_121_150';
+          } else {
+            agingBucket = 'dpd_150_plus';
           }
         }
         
-        if (cadenceDays.length > 0) {
-          await supabaseAdmin
-            .from('ai_workflows')
-            .update({ cadence_days: cadenceDays })
-            .eq('id', aw.id);
-          fixedWorkflows++;
-          console.log(`Fixed workflow ${aw.id} with cadence_days: ${JSON.stringify(cadenceDays)}`);
+        // Skip current bucket - can't outreach yet
+        if (agingBucket === 'current') {
+          console.log(`Skipping workflow fix for ${aw.id}: invoice is in 'current' bucket`);
+          continue;
         }
+        
+        // Find workflow with steps
+        const { data: wf } = await supabaseAdmin
+          .from('collection_workflows')
+          .select(`
+            collection_workflow_steps (day_offset, step_order)
+          `)
+          .eq('aging_bucket', agingBucket)
+          .eq('is_active', true)
+          .or(`user_id.eq.${aw.user_id},user_id.is.null`)
+          .order('user_id', { ascending: false, nullsFirst: false })
+          .limit(1)
+          .maybeSingle();
+        
+        let cadenceDays: number[] = [0, 3, 7, 14, 21]; // Default
+        
+        if (wf) {
+          const steps = (wf.collection_workflow_steps as any[]) || [];
+          const extractedDays = steps
+            .sort((a, b) => a.step_order - b.step_order)
+            .map(s => s.day_offset);
+          
+          if (extractedDays.length > 0) {
+            cadenceDays = extractedDays;
+          }
+        }
+        
+        await supabaseAdmin
+          .from('ai_workflows')
+          .update({ cadence_days: cadenceDays })
+          .eq('id', aw.id);
+        
+        result.fixed++;
+        console.log(`Fixed workflow ${aw.id} with cadence_days: ${JSON.stringify(cadenceDays)}`);
       } catch (e) {
         console.error(`Error fixing workflow ${aw.id}:`, e);
       }
     }
     
-    console.log(`Fixed ${fixedWorkflows} workflows with empty cadence_days`);
+    console.log(`Fixed ${result.fixed} workflows with empty cadence_days`);
 
-    // Now ensure all invoices with workflows have next outreach dates via ai_drafts
     // Trigger the daily cadence scheduler to generate drafts
-    console.log('Triggering draft generation for all workflows...');
+    console.log('Triggering draft generation...');
 
+    let schedulerResult: any = null;
     try {
-      const { error: schedulerError } = await supabaseAdmin.functions.invoke(
+      const { data, error: schedulerError } = await supabaseAdmin.functions.invoke(
         'daily-cadence-scheduler',
         { body: {} }
       );
@@ -302,7 +333,8 @@ Deno.serve(async (req) => {
       if (schedulerError) {
         console.error('Error running cadence scheduler:', schedulerError);
       } else {
-        console.log('Cadence scheduler completed');
+        schedulerResult = data;
+        console.log('Cadence scheduler completed:', schedulerResult);
       }
     } catch (err) {
       console.error('Exception running cadence scheduler:', err);
@@ -312,11 +344,18 @@ Deno.serve(async (req) => {
       success: true,
       totalEligibleInvoices: eligibleInvoices.length,
       invoicesAlreadyHadWorkflows: invoicesWithWorkflows.size,
-      workflowsCreated: assigned,
-      workflowsFixed: fixedWorkflows,
-      skipped,
-      errors,
-      message: `Processed ${eligibleInvoices.length} invoices, created ${assigned} new workflow assignments, fixed ${fixedWorkflows} workflows`
+      workflowsCreated: result.assigned,
+      workflowsFixed: result.fixed,
+      skipped: result.skipped,
+      skippedCurrent: result.skippedCurrent,
+      errors: result.errors,
+      errorDetails: result.errorDetails.slice(0, 10),
+      schedulerResult: schedulerResult ? {
+        drafted: schedulerResult.drafted,
+        sent: schedulerResult.draftsSent,
+        failed: schedulerResult.failed
+      } : null,
+      message: `Processed ${eligibleInvoices.length} invoices, created ${result.assigned} workflows, fixed ${result.fixed} workflows, skipped ${result.skippedCurrent} current-bucket invoices`
     };
 
     console.log('Summary:', summary);
@@ -332,7 +371,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in ensure-invoice-workflows:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        ...result
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
