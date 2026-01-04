@@ -3645,34 +3645,40 @@ export type Database = {
       mfa_settings: {
         Row: {
           backup_codes: string[] | null
+          backup_codes_encrypted: string | null
           created_at: string | null
           id: string
           mfa_enabled: boolean | null
           mfa_method: string | null
           phone_number: string | null
           totp_secret: string | null
+          totp_secret_encrypted: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           backup_codes?: string[] | null
+          backup_codes_encrypted?: string | null
           created_at?: string | null
           id?: string
           mfa_enabled?: boolean | null
           mfa_method?: string | null
           phone_number?: string | null
           totp_secret?: string | null
+          totp_secret_encrypted?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           backup_codes?: string[] | null
+          backup_codes_encrypted?: string | null
           created_at?: string | null
           id?: string
           mfa_enabled?: boolean | null
           mfa_method?: string | null
           phone_number?: string | null
           totp_secret?: string | null
+          totp_secret_encrypted?: string | null
           updated_at?: string | null
           user_id?: string
         }
