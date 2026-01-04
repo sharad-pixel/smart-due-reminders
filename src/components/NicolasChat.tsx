@@ -33,6 +33,17 @@ interface Message {
   isEscalated?: boolean;
   confidence?: number;
   links?: { label: string; path: string }[];
+  quickReplies?: string[];
+}
+
+type EscalationStep = 'idle' | 'ask_category' | 'ask_description' | 'ask_contact' | 'confirming';
+
+interface EscalationData {
+  category: string;
+  description: string;
+  urgency: string;
+  contactName: string;
+  contactEmail: string;
 }
 
 // Knowledge base for Nicolas with links
@@ -451,11 +462,26 @@ export default function NicolasChat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   
-  // Contact info collection for escalation
-  const [isCollectingContactInfo, setIsCollectingContactInfo] = useState(false);
+  // Enhanced escalation flow state
+  const [escalationStep, setEscalationStep] = useState<EscalationStep>('idle');
+  const [escalationData, setEscalationData] = useState<EscalationData>({
+    category: '',
+    description: '',
+    urgency: 'medium',
+    contactName: '',
+    contactEmail: ''
+  });
   const [pendingEscalationQuestion, setPendingEscalationQuestion] = useState<string | null>(null);
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+
+  // Issue categories for smart collection
+  const ISSUE_CATEGORIES = [
+    "Billing or Payments",
+    "Technical Issue / Bug",
+    "Account Access",
+    "Feature Question",
+    "Integration Help",
+    "Other"
+  ];
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -510,12 +536,18 @@ export default function NicolasChat() {
     return bestMatch;
   };
 
-  const escalateToSupport = async (question: string, transcript?: string, providedName?: string, providedEmail?: string) => {
+  const escalateToSupport = async () => {
     setIsLoading(true);
     
-    // Use provided contact info or fall back to logged-in user
-    const escalationEmail = providedEmail || user?.email || null;
-    const escalationName = providedName || null;
+    const questionToEscalate = pendingEscalationQuestion || "User requested human help";
+    const transcript = messages
+      .slice(-8)
+      .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
+      .join("\n");
+    
+    // Use collected contact info or fall back to logged-in user
+    const escalationEmail = escalationData.contactEmail || user?.email || null;
+    const escalationName = escalationData.contactName || null;
     
     try {
       const { error } = await supabase.functions.invoke('nicolas-escalate-support', {
@@ -523,20 +555,23 @@ export default function NicolasChat() {
           user_id: user?.id || null,
           organization_id: null,
           page_route: location.pathname,
-          question,
+          question: questionToEscalate,
           confidence_score: 0.2,
-          escalation_reason: "User requested human support or low confidence answer",
+          escalation_reason: escalationData.category || "User requested human support",
           transcript_excerpt: transcript,
           user_email: escalationEmail,
-          user_name: escalationName
+          user_name: escalationName,
+          issue_category: escalationData.category,
+          issue_description: escalationData.description,
+          urgency: escalationData.urgency
         }
       });
 
       if (error) throw error;
 
-      toast.success("Your question has been sent to Recouply.ai Support.");
+      toast.success("Your request has been sent to Recouply.ai Support!");
       
-      return `I'm still very new here and learning. Let me get you to the founder who can help. Sharad will get back to you as soon as possible once you fill out the form. Thanks — Nicolas`;
+      return `Thanks${escalationName ? ` ${escalationName.split(' ')[0]}` : ''}! I've sent your ${escalationData.category || 'question'} to our support team. ${escalationEmail ? `Sharad will reach out to you at ${escalationEmail}` : 'Someone will be in touch'} as soon as possible. In the meantime, feel free to schedule a call directly! — Nicolas`;
     } catch (err) {
       console.error('Escalation error:', err);
       return "I'm having trouble processing this right now — but you can reach our support team directly at support@recouply.ai.";
@@ -545,42 +580,129 @@ export default function NicolasChat() {
     }
   };
 
-  // Start escalation flow - collect contact info first
+  // Start the smart escalation flow
   const startEscalation = (question: string) => {
-    // If user is logged in, skip contact collection
-    if (user?.email) {
-      completeEscalation(question);
-      return;
-    }
-    
     setPendingEscalationQuestion(question);
-    setIsCollectingContactInfo(true);
+    setEscalationStep('ask_category');
     
-    // Add a message asking for contact info
+    // Add a message asking what kind of help they need
     setMessages(prev => [...prev, {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: "I'd be happy to connect you with our support team! To make sure Sharad can get back to you, please provide your contact information below.",
+      content: "I'd love to help connect you with the right person! What type of issue can I help you with today?",
       timestamp: new Date(),
-      confidence: 1
+      confidence: 1,
+      quickReplies: ISSUE_CATEGORIES
     }]);
   };
 
-  // Complete escalation with contact info
-  const completeEscalation = async (question?: string) => {
-    const questionToEscalate = question || pendingEscalationQuestion || "User requested human help";
-    const transcript = messages
-      .slice(-6)
-      .map(m => `${m.role === "user" ? "User" : "Nicolas"}: ${m.content}`)
-      .join("\n");
+  // Handle quick reply selection (for categories)
+  const handleQuickReply = (reply: string) => {
+    // Add user's selection as a message
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: reply,
+      timestamp: new Date()
+    }]);
 
-    const response = await escalateToSupport(
-      questionToEscalate,
-      transcript,
-      contactName || undefined,
-      contactEmail || user?.email || undefined
-    );
+    if (escalationStep === 'ask_category') {
+      setEscalationData(prev => ({ ...prev, category: reply }));
+      setEscalationStep('ask_description');
+      
+      // Personalized follow-up based on category
+      const followUpMessages: Record<string, string> = {
+        "Billing or Payments": "Got it! Can you briefly describe the billing issue? For example: incorrect charge, refund request, subscription question, etc.",
+        "Technical Issue / Bug": "Thanks for letting me know! Can you describe what's happening? Include any error messages you're seeing if possible.",
+        "Account Access": "I understand account issues can be frustrating. What specifically is happening with your account access?",
+        "Feature Question": "Great! What feature would you like to learn more about?",
+        "Integration Help": "Happy to help with integrations! Which integration are you working with, and what's the challenge?",
+        "Other": "No problem! Please describe what you need help with and I'll make sure the right person sees it."
+      };
 
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: followUpMessages[reply] || "Can you tell me more about what you need help with?",
+        timestamp: new Date(),
+        confidence: 1
+      }]);
+    }
+  };
+
+  // Handle text responses during escalation flow
+  const handleEscalationInput = async (userInput: string) => {
+    // Add user's message
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: userInput,
+      timestamp: new Date()
+    }]);
+
+    if (escalationStep === 'ask_description') {
+      setEscalationData(prev => ({ ...prev, description: userInput }));
+      
+      // Determine urgency based on keywords
+      const urgentKeywords = ['urgent', 'asap', 'immediately', 'emergency', 'critical', 'down', 'broken', 'not working'];
+      const isUrgent = urgentKeywords.some(kw => userInput.toLowerCase().includes(kw));
+      setEscalationData(prev => ({ ...prev, urgency: isUrgent ? 'high' : 'medium' }));
+
+      // If user is logged in, skip contact collection
+      if (user?.email) {
+        setEscalationStep('confirming');
+        const response = await escalateToSupport();
+        
+        setMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: response,
+          timestamp: new Date(),
+          isEscalated: true,
+          links: [
+            { label: "Schedule Meeting", path: "__CALENDLY__" },
+            { label: "Contact Form", path: "/contact" }
+          ]
+        }]);
+        
+        resetEscalationState();
+      } else {
+        // Ask for contact info
+        setEscalationStep('ask_contact');
+        setMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Perfect, I have all the details! To make sure our team can reach you, please provide your contact information below.",
+          timestamp: new Date(),
+          confidence: 1
+        }]);
+      }
+    }
+  };
+
+  // Reset escalation state
+  const resetEscalationState = () => {
+    setEscalationStep('idle');
+    setPendingEscalationQuestion(null);
+    setEscalationData({
+      category: '',
+      description: '',
+      urgency: 'medium',
+      contactName: '',
+      contactEmail: ''
+    });
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!escalationData.contactEmail.trim()) {
+      toast.error("Please provide your email address");
+      return;
+    }
+    
+    setEscalationStep('confirming');
+    const response = await escalateToSupport();
+    
     setMessages(prev => [...prev, {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -592,28 +714,12 @@ export default function NicolasChat() {
         { label: "Contact Form", path: "/contact" }
       ]
     }]);
-
-    // Reset state
-    setIsCollectingContactInfo(false);
-    setPendingEscalationQuestion(null);
-    setContactName("");
-    setContactEmail("");
+    
+    resetEscalationState();
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactEmail.trim()) {
-      toast.error("Please provide your email address");
-      return;
-    }
-    completeEscalation();
-  };
-
-  const cancelContactCollection = () => {
-    setIsCollectingContactInfo(false);
-    setPendingEscalationQuestion(null);
-    setContactName("");
-    setContactEmail("");
+  const cancelEscalation = () => {
+    resetEscalationState();
     
     setMessages(prev => [...prev, {
       id: crypto.randomUUID(),
@@ -845,6 +951,21 @@ export default function NicolasChat() {
                     })}
                   </div>
                 )}
+                {/* Quick Reply Buttons */}
+                {message.role === "assistant" && message.quickReplies && message.quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {message.quickReplies.map((reply, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleQuickReply(reply)}
+                        disabled={escalationStep !== 'ask_category'}
+                        className="text-xs px-2 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {message.isEscalated && (
                   <Badge variant="outline" className="mt-1 text-xs gap-1">
                     <AlertTriangle className="h-3 w-3" />
@@ -878,21 +999,21 @@ export default function NicolasChat() {
 
       {/* Footer */}
       <div className="p-4 border-t space-y-3">
-        {isCollectingContactInfo ? (
-          // Contact info collection form
+        {escalationStep === 'ask_contact' ? (
+          // Contact info collection form for non-logged in users
           <form onSubmit={handleContactSubmit} className="space-y-2">
             <p className="text-xs text-muted-foreground mb-2">Please provide your contact details:</p>
             <Input
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
+              value={escalationData.contactName}
+              onChange={(e) => setEscalationData(prev => ({ ...prev, contactName: e.target.value }))}
               placeholder="Your name (optional)"
               disabled={isLoading}
               className="text-sm"
             />
             <Input
               type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
+              value={escalationData.contactEmail}
+              onChange={(e) => setEscalationData(prev => ({ ...prev, contactEmail: e.target.value }))}
               placeholder="Your email (required)"
               disabled={isLoading}
               required
@@ -903,7 +1024,7 @@ export default function NicolasChat() {
                 type="button" 
                 variant="outline" 
                 size="sm" 
-                onClick={cancelContactCollection}
+                onClick={cancelEscalation}
                 disabled={isLoading}
                 className="flex-1"
               >
@@ -912,13 +1033,56 @@ export default function NicolasChat() {
               <Button 
                 type="submit" 
                 size="sm" 
-                disabled={isLoading || !contactEmail.trim()}
+                disabled={isLoading || !escalationData.contactEmail.trim()}
                 className="flex-1"
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send to Support"}
               </Button>
             </div>
           </form>
+        ) : escalationStep === 'ask_description' ? (
+          // Description input during escalation flow
+          <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (input.trim()) {
+                  handleEscalationInput(input.trim());
+                  setInput("");
+                }
+              }}
+              className="flex gap-2"
+            >
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Describe your issue..."
+                disabled={isLoading}
+                className="flex-1"
+                autoFocus
+              />
+              <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+            <button
+              onClick={cancelEscalation}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel and go back
+            </button>
+          </>
+        ) : escalationStep === 'ask_category' ? (
+          // Category selection - just show cancel option, quick replies are in messages
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-2">Select an option above, or</p>
+            <button
+              onClick={cancelEscalation}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel and go back
+            </button>
+          </div>
         ) : (
           // Normal chat input
           <>

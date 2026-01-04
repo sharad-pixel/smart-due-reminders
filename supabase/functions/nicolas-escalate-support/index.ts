@@ -17,6 +17,9 @@ interface EscalationRequest {
   transcript_excerpt?: string;
   user_email?: string;
   user_name?: string;
+  issue_category?: string;
+  issue_description?: string;
+  urgency?: string;
 }
 
 serve(async (req) => {
@@ -49,7 +52,10 @@ serve(async (req) => {
       escalation_reason,
       transcript_excerpt,
       user_email,
-      user_name
+      user_name,
+      issue_category,
+      issue_description,
+      urgency
     } = body;
 
     // Validate required fields
@@ -68,7 +74,11 @@ serve(async (req) => {
         confidence_score: confidence_score || null,
         escalation_reason,
         transcript_excerpt: transcript_excerpt || null,
-        email_sent: false
+        email_sent: false,
+        user_name: user_name || null,
+        user_email: user_email || null,
+        issue_category: issue_category || null,
+        urgency: urgency || 'medium'
       })
       .select()
       .single();
@@ -81,19 +91,44 @@ serve(async (req) => {
     // Format the email body
     const userType = user_id ? 'Authenticated User' : 'Public Website Visitor';
     const timestamp = new Date().toISOString();
+    const urgencyColor = urgency === 'high' ? '#dc2626' : urgency === 'medium' ? '#f59e0b' : '#10b981';
+    const urgencyLabel = urgency === 'high' ? '🔴 HIGH PRIORITY' : urgency === 'medium' ? '🟡 Medium Priority' : '🟢 Low Priority';
 
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1a1a1a; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
+        <h2 style="color: #1a1a1a; border-bottom: 2px solid ${urgencyColor}; padding-bottom: 10px;">
           🤖 Nicolas Support Escalation
         </h2>
+
+        ${urgency === 'high' ? `
+        <div style="background: #fef2f2; padding: 12px; border-radius: 8px; margin: 15px 0; border: 1px solid #fecaca;">
+          <p style="margin: 0; color: #991b1b; font-weight: bold;">${urgencyLabel} - Immediate attention requested</p>
+        </div>
+        ` : ''}
+
+        ${issue_category ? `
+        <div style="margin: 15px 0;">
+          <span style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 500;">
+            ${issue_category}
+          </span>
+        </div>
+        ` : ''}
         
         <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #374151;">User Question</h3>
-          <p style="font-size: 16px; color: #1f2937; background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">
+          <p style="font-size: 16px; color: #1f2937; background: white; padding: 15px; border-radius: 6px; border-left: 4px solid ${urgencyColor};">
             ${question}
           </p>
         </div>
+
+        ${issue_description ? `
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #374151;">Issue Details</h3>
+          <p style="font-size: 14px; color: #1f2937; background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #6366f1;">
+            ${issue_description}
+          </p>
+        </div>
+        ` : ''}
 
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr>
@@ -109,12 +144,8 @@ serve(async (req) => {
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${user_email || 'Not available'}</td>
           </tr>
           <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">User ID</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${user_id || 'Not logged in'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Organization ID</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${organization_id || 'N/A'}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Priority</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: ${urgencyColor}; font-weight: bold;">${urgencyLabel}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Page Route</td>
@@ -125,12 +156,8 @@ serve(async (req) => {
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${timestamp}</td>
           </tr>
           <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Confidence Score</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${confidence_score !== undefined ? `${(confidence_score * 100).toFixed(0)}%` : 'N/A'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Escalation Reason</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${escalation_reason}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">User ID</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${user_id || 'Not logged in'}</td>
           </tr>
         </table>
 
@@ -172,55 +199,101 @@ ${transcript_excerpt}
     
     if (slackWebhookUrl) {
       try {
-        const slackMessage = {
-          blocks: [
+        // Determine urgency emoji
+        const urgencyEmoji = urgency === 'high' ? '🔴' : urgency === 'medium' ? '🟡' : '🟢';
+        const urgencyLabel = urgency === 'high' ? 'HIGH PRIORITY' : urgency === 'medium' ? 'Medium' : 'Low';
+        
+        const slackBlocks: any[] = [
+          {
+            type: "header",
+            text: {
+              type: "plain_text",
+              text: `${urgencyEmoji} Nicolas Support Escalation`,
+              emoji: true
+            }
+          }
+        ];
+
+        // Add category if provided
+        if (issue_category) {
+          slackBlocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Category:* ${issue_category}`
+            }
+          });
+        }
+
+        // Add the user's original question
+        slackBlocks.push({
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*User Question:*\n>${question}`
+          }
+        });
+
+        // Add issue description if provided
+        if (issue_description) {
+          slackBlocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Issue Details:*\n>${issue_description}`
+            }
+          });
+        }
+
+        // Add user info fields
+        slackBlocks.push({
+          type: "section",
+          fields: [
             {
-              type: "header",
-              text: {
-                type: "plain_text",
-                text: "🤖 Nicolas Support Escalation",
-                emoji: true
-              }
+              type: "mrkdwn",
+              text: `*User:*\n${user_name || 'Not provided'}`
             },
             {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `*User Question:*\n>${question}`
-              }
+              type: "mrkdwn",
+              text: `*Email:*\n${user_email || 'Not available'}`
             },
             {
-              type: "section",
-              fields: [
-                {
-                  type: "mrkdwn",
-                  text: `*User:*\n${user_name || 'Not provided'}`
-                },
-                {
-                  type: "mrkdwn",
-                  text: `*Email:*\n${user_email || 'Not available'}`
-                },
-                {
-                  type: "mrkdwn",
-                  text: `*Page:*\n\`${page_route}\``
-                },
-                {
-                  type: "mrkdwn",
-                  text: `*Reason:*\n${escalation_reason}`
-                }
-              ]
+              type: "mrkdwn",
+              text: `*Page:*\n\`${page_route}\``
             },
             {
-              type: "context",
-              elements: [
-                {
-                  type: "mrkdwn",
-                  text: `Confidence: ${confidence_score !== undefined ? `${(confidence_score * 100).toFixed(0)}%` : 'N/A'} | ${timestamp}`
-                }
-              ]
+              type: "mrkdwn",
+              text: `*Priority:*\n${urgencyLabel}`
             }
           ]
-        };
+        });
+
+        // Add context footer
+        slackBlocks.push({
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `${timestamp} | ${user_id ? 'Logged-in user' : 'Public visitor'}`
+            }
+          ]
+        });
+
+        // Add transcript if available
+        if (transcript_excerpt) {
+          slackBlocks.push({
+            type: "divider"
+          });
+          slackBlocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Conversation:*\n\`\`\`${transcript_excerpt.substring(0, 2500)}\`\`\``
+            }
+          });
+        }
+
+        const slackMessage = { blocks: slackBlocks };
 
         const slackResponse = await fetch(slackWebhookUrl, {
           method: 'POST',

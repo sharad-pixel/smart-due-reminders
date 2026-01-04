@@ -3625,11 +3625,16 @@ export type Database = {
           email_sent: boolean | null
           escalation_reason: string | null
           id: string
+          issue_category: string | null
           organization_id: string | null
           page_route: string | null
           question: string
+          slack_sent: boolean | null
           transcript_excerpt: string | null
+          urgency: string | null
+          user_email: string | null
           user_id: string | null
+          user_name: string | null
         }
         Insert: {
           confidence_score?: number | null
@@ -3637,11 +3642,16 @@ export type Database = {
           email_sent?: boolean | null
           escalation_reason?: string | null
           id?: string
+          issue_category?: string | null
           organization_id?: string | null
           page_route?: string | null
           question: string
+          slack_sent?: boolean | null
           transcript_excerpt?: string | null
+          urgency?: string | null
+          user_email?: string | null
           user_id?: string | null
+          user_name?: string | null
         }
         Update: {
           confidence_score?: number | null
@@ -3649,11 +3659,16 @@ export type Database = {
           email_sent?: boolean | null
           escalation_reason?: string | null
           id?: string
+          issue_category?: string | null
           organization_id?: string | null
           page_route?: string | null
           question?: string
+          slack_sent?: boolean | null
           transcript_excerpt?: string | null
+          urgency?: string | null
+          user_email?: string | null
           user_id?: string | null
+          user_name?: string | null
         }
         Relationships: []
       }
