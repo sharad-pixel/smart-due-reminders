@@ -132,19 +132,23 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
     
     try {
       // First, fetch approved draft templates to know which aging buckets have approved outreach
+      // Check both user_id match AND templates linked via workflows
       const { data: approvedTemplates, error: templatesError } = await supabase
         .from('draft_templates')
-        .select('aging_bucket, status')
-        .eq('user_id', effectiveAccountId)
+        .select('aging_bucket, status, user_id, workflow_id, collection_workflows!inner(user_id)')
         .eq('status', 'approved')
         .eq('channel', 'email');
 
       if (templatesError) throw templatesError;
 
-      // Build a set of aging buckets that have at least one approved template
+      // Build a set of aging buckets that have at least one approved template for this user
       const approvedBuckets = new Set<string>();
       approvedTemplates?.forEach((template: any) => {
-        if (template.aging_bucket) {
+        // Include if template belongs to user directly OR workflow belongs to user
+        const templateUserId = template.user_id;
+        const workflowUserId = template.collection_workflows?.user_id;
+        
+        if (template.aging_bucket && (templateUserId === effectiveAccountId || workflowUserId === effectiveAccountId)) {
           approvedBuckets.add(template.aging_bucket);
         }
       });
