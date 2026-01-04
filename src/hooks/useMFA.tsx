@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { encryptField } from "@/lib/encryption";
 
 export interface MFASettings {
   id: string;
@@ -41,6 +42,14 @@ export function useMFA() {
         Math.random().toString(36).substring(2, 10).toUpperCase()
       );
 
+      // Encrypt backup codes for secure storage
+      let encryptedBackupCodes: string | null = null;
+      try {
+        encryptedBackupCodes = await encryptField(JSON.stringify(backupCodes));
+      } catch (e) {
+        console.warn("Encryption not available, storing backup codes in legacy format");
+      }
+
       const { data, error } = await supabase
         .from("mfa_settings")
         .upsert({
@@ -48,7 +57,8 @@ export function useMFA() {
           mfa_enabled: true,
           mfa_method: method,
           phone_number: phoneNumber || null,
-          backup_codes: backupCodes,
+          backup_codes: backupCodes, // Keep for backward compatibility
+          backup_codes_encrypted: encryptedBackupCodes,
         })
         .select()
         .single();
