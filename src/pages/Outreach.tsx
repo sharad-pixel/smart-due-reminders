@@ -41,6 +41,7 @@ const Outreach = () => {
   const [accountOutreachSearch, setAccountOutreachSearch] = useState<string>("");
   const [accountOutreachPage, setAccountOutreachPage] = useState<number>(1);
   const ACCOUNT_OUTREACH_PAGE_SIZE = 10;
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Mutation for bulk approving drafts
   const bulkApproveDrafts = useMutation({
@@ -128,6 +129,40 @@ const Outreach = () => {
       toast.error(message);
     },
   });
+
+  // Refresh outreach: ensure all invoices have workflows and generate drafts
+  const handleRefreshOutreach = async () => {
+    setIsRefreshing(true);
+    try {
+      toast.info("Scanning for new invoices and generating outreach...");
+      
+      const { data, error } = await supabase.functions.invoke("ensure-invoice-workflows", {
+        body: {},
+      });
+
+      if (error) {
+        console.error("Refresh error:", error);
+        toast.error("Failed to refresh outreach");
+        return;
+      }
+
+      const result = data as any;
+      if (result?.workflowsCreated > 0) {
+        toast.success(`Assigned ${result.workflowsCreated} new invoice(s) to outreach workflows`);
+      } else {
+        toast.success("All invoices are up to date");
+      }
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["outreach-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
+    } catch (err) {
+      console.error("Refresh exception:", err);
+      toast.error("Failed to refresh outreach");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Fetch summary stats
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
@@ -466,21 +501,32 @@ const Outreach = () => {
               Manage AI-generated collection emails and track outreach status.
             </p>
           </div>
-          
-          {draftCounts.approved > 0 && (
-            <Button 
-              onClick={() => sendDrafts.mutate(approvedUnsentDraftIds)}
-              disabled={sendDrafts.isPending || approvedUnsentDraftIds.length === 0}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleRefreshOutreach}
+              disabled={isRefreshing}
               className="gap-2"
             >
-              {sendDrafts.isPending ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Send {draftCounts.approved} Approved
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Outreach
             </Button>
-          )}
+            
+            {draftCounts.approved > 0 && (
+              <Button 
+                onClick={() => sendDrafts.mutate(approvedUnsentDraftIds)}
+                disabled={sendDrafts.isPending || approvedUnsentDraftIds.length === 0}
+                className="gap-2"
+              >
+                {sendDrafts.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Send {draftCounts.approved} Approved
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
