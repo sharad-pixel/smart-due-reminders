@@ -268,12 +268,45 @@ serve(async (req) => {
           paidDate = paidAt;
         }
 
-        // Check if invoice already exists
-        const { data: existingInvoice } = await supabaseClient
+        // Check if invoice already exists - match by stripe_invoice_id, invoice_number, or external_invoice_id
+        let existingInvoice: { id: string; status: string } | null = null;
+        
+        // First try to match by stripe_invoice_id
+        const { data: byStripeId } = await supabaseClient
           .from('invoices')
           .select('id, status')
           .eq('stripe_invoice_id', stripeInvoice.id)
+          .eq('user_id', effectiveAccountId)
           .maybeSingle();
+        
+        if (byStripeId) {
+          existingInvoice = byStripeId;
+        } else {
+          // Try to match by invoice_number (Stripe invoice number)
+          const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
+          const { data: byInvoiceNumber } = await supabaseClient
+            .from('invoices')
+            .select('id, status')
+            .eq('invoice_number', invoiceNumber)
+            .eq('user_id', effectiveAccountId)
+            .maybeSingle();
+          
+          if (byInvoiceNumber) {
+            existingInvoice = byInvoiceNumber;
+          } else {
+            // Try to match by external_invoice_id
+            const { data: byExternalId } = await supabaseClient
+              .from('invoices')
+              .select('id, status')
+              .eq('external_invoice_id', stripeInvoice.id)
+              .eq('user_id', effectiveAccountId)
+              .maybeSingle();
+            
+            if (byExternalId) {
+              existingInvoice = byExternalId;
+            }
+          }
+        }
 
         const invoiceData: Record<string, any> = {
           user_id: effectiveAccountId,
