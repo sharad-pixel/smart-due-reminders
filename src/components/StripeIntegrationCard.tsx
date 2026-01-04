@@ -113,11 +113,13 @@ export const StripeIntegrationCard = () => {
       
       if (error) throw error;
 
-      toast.success(`Synced ${data.synced_count} invoices from Stripe!`, {
-        description: data.created_debtors > 0 
-          ? `Created ${data.created_debtors} new accounts` 
-          : undefined
-      });
+       toast.success(`Synced ${data.synced_count} invoices from Stripe!`, {
+         description: data.transactions_logged > 0
+           ? `Imported ${data.transactions_logged} invoice transactions (payments/credits/refunds)`
+           : data.created_debtors > 0 
+             ? `Created ${data.created_debtors} new accounts` 
+             : 'No new invoice transactions found on this sync'
+       });
 
       await fetchIntegration();
     } catch (error: any) {
@@ -369,18 +371,19 @@ export const StripeIntegrationCard = () => {
               </Alert>
             )}
 
-            {/* Auto-sync toggle */}
+            {/* Auto-sync toggle (coming soon) */}
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div className="space-y-0.5">
-                <Label htmlFor="auto-sync">Auto-sync daily</Label>
+                <Label htmlFor="auto-sync">Auto-sync (coming soon)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Automatically import new invoices every day
+                  For now, use “Sync Now”. We’ll add scheduled daily sync next.
                 </p>
               </div>
               <Switch
                 id="auto-sync"
                 checked={integration?.auto_sync_enabled || false}
                 onCheckedChange={handleToggleAutoSync}
+                disabled
               />
             </div>
 
