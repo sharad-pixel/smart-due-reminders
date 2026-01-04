@@ -108,15 +108,11 @@ serve(async (req) => {
               user_id: effectiveAccountId,
               company_name: customerName,
               name: customerName,
-              contact_name: customerName,
               email: customerEmail,
               phone: customer.phone || null,
               external_customer_id: customer.id,
               external_system: 'stripe',
-              reference_id: `STRIPE-${customer.id.slice(-8).toUpperCase()}`,
-              primary_contact_name: customerName,
-              primary_email: customerEmail,
-              primary_phone: customer.phone || null
+              reference_id: `STRIPE-${customer.id.slice(-8).toUpperCase()}`
             })
             .select('id')
             .single();

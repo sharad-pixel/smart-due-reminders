@@ -356,19 +356,21 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
           user_id: user.id,
           company_name: customerName,
           name: customerName,
-          contact_name: customerName,
           email: "",
           reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         };
 
-        // Add contact details if available from mapped columns
+        // Get contact details if available from mapped columns
+        let contactName = customerName;
+        let contactEmail = "";
+        let contactPhone = "";
+        
         if (customerRow && columnMapping.contact_email && customerRow[columnMapping.contact_email]) {
-          debtorData.email = String(customerRow[columnMapping.contact_email]);
-          debtorData.ar_contact_email = String(customerRow[columnMapping.contact_email]);
+          contactEmail = String(customerRow[columnMapping.contact_email]);
+          debtorData.email = contactEmail;
         }
         if (customerRow && columnMapping.contact_name && customerRow[columnMapping.contact_name]) {
-          debtorData.contact_name = String(customerRow[columnMapping.contact_name]);
-          debtorData.ar_contact_name = String(customerRow[columnMapping.contact_name]);
+          contactName = String(customerRow[columnMapping.contact_name]);
         }
 
         const { data: newDebtor, error } = await supabase
@@ -379,6 +381,21 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
 
         if (!error && newDebtor) {
           customerIdMap.set(normalizeString(customerName), newDebtor.id);
+          
+          // Create contact entry in debtor_contacts
+          if (contactEmail) {
+            await supabase
+              .from("debtor_contacts")
+              .insert({
+                debtor_id: newDebtor.id,
+                user_id: user.id,
+                name: contactName,
+                email: contactEmail,
+                phone: contactPhone || null,
+                is_primary: true,
+                outreach_enabled: true
+              });
+          }
         }
       }
 

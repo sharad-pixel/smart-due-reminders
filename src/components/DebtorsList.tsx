@@ -12,13 +12,9 @@ import { Plus, Trash2 } from "lucide-react";
 interface Debtor {
   id: string;
   company_name: string;
-  contact_name: string;
   email: string;
   phone: string | null;
   address: string | null;
-  primary_contact_name: string | null;
-  primary_email: string | null;
-  primary_phone: string | null;
   external_customer_id: string | null;
   crm_account_id_external: string | null;
 }
@@ -69,11 +65,13 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       if (!user) throw new Error("Not authenticated");
 
       const { data: debtor, error } = await supabase.from("debtors").insert([{
-        ...formData,
+        company_name: formData.company_name,
         name: formData.contact_name || formData.company_name,
-        primary_contact_name: formData.contact_name,
-        primary_email: formData.email,
-        primary_phone: formData.phone,
+        email: formData.email,
+        phone: formData.phone || null,
+        address: formData.address || null,
+        external_customer_id: formData.external_customer_id || null,
+        crm_account_id_external: formData.crm_account_id_external || null,
         user_id: user.id,
       } as any]).select().single();
       
@@ -240,8 +238,8 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
               {debtors.map((debtor) => (
                 <TableRow key={debtor.id}>
                   <TableCell className="font-medium">{debtor.company_name}</TableCell>
-                  <TableCell>{debtor.primary_email || debtor.email}</TableCell>
-                  <TableCell>{debtor.primary_phone || debtor.phone || "—"}</TableCell>
+                  <TableCell>{debtor.email}</TableCell>
+                  <TableCell>{debtor.phone || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{debtor.external_customer_id || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{debtor.crm_account_id_external || "—"}</TableCell>
                   <TableCell className="text-right">

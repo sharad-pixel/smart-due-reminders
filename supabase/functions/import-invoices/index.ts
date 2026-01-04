@@ -109,7 +109,6 @@ Deno.serve(async (req) => {
                 name: row.customer_name || 'Unknown Customer',
                 company_name: row.customer_name || 'Unknown Company',
                 email: row.customer_email || `unknown-${Date.now()}@placeholder.com`,
-                contact_name: row.customer_name || 'Unknown',
                 reference_id: `RCPLY-${Math.random().toString(36).substring(7).toUpperCase()}`,
               })
               .select('id')
@@ -117,6 +116,20 @@ Deno.serve(async (req) => {
 
             if (debtorError) throw debtorError;
             debtorId = newDebtor.id;
+            
+            // Create contact entry
+            if (row.customer_email) {
+              await supabase
+                .from('debtor_contacts')
+                .insert({
+                  debtor_id: debtorId,
+                  user_id: user.id,
+                  name: row.customer_name || 'Unknown',
+                  email: row.customer_email,
+                  is_primary: true,
+                  outreach_enabled: true
+                });
+            }
           }
 
           // Prepare invoice data

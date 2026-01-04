@@ -54,9 +54,6 @@ interface Debtor {
   max_days_past_due: number | null;
   payment_score: number | null;
   avg_days_to_pay: number | null;
-  primary_contact_name: string | null;
-  ar_contact_name: string | null;
-  ar_contact_email: string | null;
   city: string | null;
   state: string | null;
   credit_limit: number | null;
@@ -118,8 +115,7 @@ const Debtors = () => {
           id, reference_id, name, company_name, email, phone, type,
           current_balance, total_open_balance, external_customer_id,
           crm_account_id_external, open_invoices_count, max_days_past_due,
-          payment_score, avg_days_to_pay, primary_contact_name,
-          ar_contact_name, ar_contact_email, city, state,
+          payment_score, avg_days_to_pay, city, state,
           credit_limit, payment_terms_default, created_at,
           account_outreach_enabled, outreach_frequency,
           debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)

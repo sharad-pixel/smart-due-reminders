@@ -1957,9 +1957,6 @@ export type Database = {
           aging_mix_current_pct: number | null
           ai_sentiment_category: string | null
           ai_sentiment_score: number | null
-          ar_contact_email: string | null
-          ar_contact_name: string | null
-          ar_contact_phone: string | null
           assigned_campaign_id: string | null
           avg_days_to_pay: number | null
           avg_risk_score: number | null
@@ -1973,7 +1970,6 @@ export type Database = {
           collections_health_score: number | null
           collections_risk_score: number | null
           company_name: string
-          contact_name: string
           country: string | null
           created_at: string | null
           credit_limit: number | null
@@ -2017,9 +2013,6 @@ export type Database = {
           payment_terms_default: string | null
           phone: string | null
           postal_code: string | null
-          primary_contact_name: string | null
-          primary_email: string | null
-          primary_phone: string | null
           reference_id: string
           risk_last_calculated_at: string | null
           risk_status_note: string | null
@@ -2048,9 +2041,6 @@ export type Database = {
           aging_mix_current_pct?: number | null
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
-          ar_contact_email?: string | null
-          ar_contact_name?: string | null
-          ar_contact_phone?: string | null
           assigned_campaign_id?: string | null
           avg_days_to_pay?: number | null
           avg_risk_score?: number | null
@@ -2064,7 +2054,6 @@ export type Database = {
           collections_health_score?: number | null
           collections_risk_score?: number | null
           company_name: string
-          contact_name: string
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -2108,9 +2097,6 @@ export type Database = {
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
-          primary_contact_name?: string | null
-          primary_email?: string | null
-          primary_phone?: string | null
           reference_id: string
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
@@ -2139,9 +2125,6 @@ export type Database = {
           aging_mix_current_pct?: number | null
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
-          ar_contact_email?: string | null
-          ar_contact_name?: string | null
-          ar_contact_phone?: string | null
           assigned_campaign_id?: string | null
           avg_days_to_pay?: number | null
           avg_risk_score?: number | null
@@ -2155,7 +2138,6 @@ export type Database = {
           collections_health_score?: number | null
           collections_risk_score?: number | null
           company_name?: string
-          contact_name?: string
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -2199,9 +2181,6 @@ export type Database = {
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
-          primary_contact_name?: string | null
-          primary_email?: string | null
-          primary_phone?: string | null
           reference_id?: string
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
