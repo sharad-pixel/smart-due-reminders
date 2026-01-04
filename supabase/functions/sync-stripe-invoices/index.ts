@@ -532,6 +532,54 @@ serve(async (req) => {
             }
           }
 
+          // Fetch and log Credit Notes from Stripe (this is how credits like $25k are applied)
+          try {
+            const creditNotes = await stripe.creditNotes.list({
+              invoice: stripeInvoice.id,
+              limit: 100
+            });
+            
+            logStep("Fetched credit notes for invoice", { 
+              invoiceId: stripeInvoice.id, 
+              creditNoteCount: creditNotes.data.length 
+            });
+            
+            for (const creditNote of creditNotes.data) {
+              const creditRef = `stripe_cn_${creditNote.id}`;
+              if (!existingRefs.has(creditRef)) {
+                const creditAmount = creditNote.amount / 100;
+                
+                await supabaseClient
+                  .from('invoice_transactions')
+                  .insert({
+                    invoice_id: invoiceRecordId,
+                    user_id: effectiveAccountId,
+                    transaction_type: 'credit',
+                    amount: creditAmount,
+                    balance_after: (stripeInvoice.amount_remaining || 0) / 100,
+                    reference_number: creditRef,
+                    reason: creditNote.reason || 'Credit applied in Stripe',
+                    transaction_date: new Date(creditNote.created * 1000).toISOString().split('T')[0],
+                    notes: creditNote.memo || `Credit Note #${creditNote.number || creditNote.id} via Stripe`,
+                    metadata: { 
+                      stripe_credit_note_id: creditNote.id,
+                      stripe_credit_note_number: creditNote.number,
+                      stripe_invoice_id: stripeInvoice.id,
+                      credit_note_status: creditNote.status,
+                      credit_note_reason: creditNote.reason,
+                      source: 'stripe_sync'
+                    }
+                  });
+                
+                transactionsLogged++;
+                existingRefs.add(creditRef);
+                logStep("Logged credit note", { creditNoteId: creditNote.id, amount: creditAmount });
+              }
+            }
+          } catch (cnError) {
+            logStep("Error fetching credit notes", { invoiceId: stripeInvoice.id, error: String(cnError) });
+          }
+
           // Check for partial payments via discount/credit applied in Stripe
           const discountAmount = (stripeInvoice.total_discount_amounts || []).reduce((sum: number, d: any) => sum + (d.amount || 0), 0);
           if (discountAmount > 0) {
