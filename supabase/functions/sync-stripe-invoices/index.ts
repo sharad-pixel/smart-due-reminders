@@ -147,6 +147,7 @@ serve(async (req) => {
     
     let syncedCount = 0;
     let createdDebtors = 0;
+    let transactionsLogged = 0;
     let statusUpdates = { paid: 0, partial: 0, credited: 0, writtenOff: 0, open: 0 };
     const errors: string[] = [];
 
@@ -347,6 +348,8 @@ serve(async (req) => {
           invoiceData.notes = `Paid in full via Stripe${paidDate ? ` on ${paidDate}` : ''}`;
         }
 
+        let invoiceRecordId: string;
+        
         if (existingInvoice) {
           // Update existing invoice
           const { error: updateError } = await supabaseClient
@@ -359,6 +362,8 @@ serve(async (req) => {
             continue;
           }
           
+          invoiceRecordId = existingInvoice.id;
+          
           // Log status change if different
           if (existingInvoice.status !== mappedStatus) {
             logStep("Status updated", { 
@@ -369,14 +374,193 @@ serve(async (req) => {
           }
         } else {
           // Create new invoice
-          const { error: insertError } = await supabaseClient
+          const { data: newInvoice, error: insertError } = await supabaseClient
             .from('invoices')
-            .insert(invoiceData);
+            .insert(invoiceData)
+            .select('id')
+            .single();
 
           if (insertError) {
             errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
             continue;
           }
+          invoiceRecordId = newInvoice.id;
+        }
+
+        // Sync transaction history from Stripe - payments, credits, refunds
+        try {
+          // Get existing transactions for this invoice to avoid duplicates
+          const { data: existingTxs } = await supabaseClient
+            .from('invoice_transactions')
+            .select('reference_number')
+            .eq('invoice_id', invoiceRecordId);
+          
+          const existingRefs = new Set((existingTxs || []).map(tx => tx.reference_number).filter(Boolean));
+
+          // Fetch payment intents associated with this invoice
+          if (stripeInvoice.payment_intent) {
+            const paymentIntentId = typeof stripeInvoice.payment_intent === 'string' 
+              ? stripeInvoice.payment_intent 
+              : stripeInvoice.payment_intent.id;
+            
+            try {
+              const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+              
+              // Log the payment if not already logged
+              if (paymentIntent.status === 'succeeded' && paymentIntent.amount_received > 0) {
+                const paymentRef = `stripe_pi_${paymentIntentId}`;
+                if (!existingRefs.has(paymentRef)) {
+                  const amountPaid = paymentIntent.amount_received / 100;
+                  const balanceAfter = (stripeInvoice.amount_remaining || 0) / 100;
+                  
+                  await supabaseClient
+                    .from('invoice_transactions')
+                    .insert({
+                      invoice_id: invoiceRecordId,
+                      user_id: effectiveAccountId,
+                      transaction_type: 'payment',
+                      amount: amountPaid,
+                      balance_after: balanceAfter,
+                      payment_method: paymentIntent.payment_method_types?.[0] || 'card',
+                      reference_number: paymentRef,
+                      transaction_date: new Date(paymentIntent.created * 1000).toISOString().split('T')[0],
+                      notes: `Payment via Stripe`,
+                      metadata: { 
+                        stripe_payment_intent_id: paymentIntentId,
+                        stripe_invoice_id: stripeInvoice.id,
+                        source: 'stripe_sync'
+                      }
+                    });
+                  
+                  transactionsLogged++;
+                  existingRefs.add(paymentRef);
+                }
+              }
+              
+              // Check for refunds on this payment intent
+              const refunds = await stripe.refunds.list({
+                payment_intent: paymentIntentId,
+                limit: 100
+              });
+              
+              for (const refund of refunds.data) {
+                const refundRef = `stripe_refund_${refund.id}`;
+                if (!existingRefs.has(refundRef)) {
+                  const refundAmount = refund.amount / 100;
+                  
+                  await supabaseClient
+                    .from('invoice_transactions')
+                    .insert({
+                      invoice_id: invoiceRecordId,
+                      user_id: effectiveAccountId,
+                      transaction_type: 'refund',
+                      amount: refundAmount,
+                      balance_after: null, // Refunds increase balance, but we don't track running balance
+                      reference_number: refundRef,
+                      reason: refund.reason || 'Refund from Stripe',
+                      transaction_date: new Date(refund.created * 1000).toISOString().split('T')[0],
+                      notes: `Refund processed via Stripe${refund.reason ? `: ${refund.reason}` : ''}`,
+                      metadata: { 
+                        stripe_refund_id: refund.id,
+                        stripe_payment_intent_id: paymentIntentId,
+                        source: 'stripe_sync'
+                      }
+                    });
+                  
+                  transactionsLogged++;
+                  existingRefs.add(refundRef);
+                }
+              }
+            } catch (piError) {
+              logStep("Error fetching payment intent", { paymentIntentId, error: String(piError) });
+            }
+          }
+
+          // Log credit notes / discounts if invoice is voided or has discounts
+          if (stripeInvoice.status === 'void') {
+            const voidRef = `stripe_void_${stripeInvoice.id}`;
+            if (!existingRefs.has(voidRef)) {
+              const voidAmount = (stripeInvoice.total || 0) / 100;
+              
+              await supabaseClient
+                .from('invoice_transactions')
+                .insert({
+                  invoice_id: invoiceRecordId,
+                  user_id: effectiveAccountId,
+                  transaction_type: 'credit',
+                  amount: voidAmount,
+                  balance_after: 0,
+                  reference_number: voidRef,
+                  reason: 'Invoice voided in Stripe',
+                  transaction_date: new Date().toISOString().split('T')[0],
+                  notes: 'Invoice voided/credited in Stripe',
+                  metadata: { 
+                    stripe_invoice_id: stripeInvoice.id,
+                    source: 'stripe_sync'
+                  }
+                });
+              
+              transactionsLogged++;
+            }
+          }
+
+          // Log write-off for uncollectible invoices
+          if (stripeInvoice.status === 'uncollectible') {
+            const uncollectibleRef = `stripe_uncollectible_${stripeInvoice.id}`;
+            if (!existingRefs.has(uncollectibleRef)) {
+              const writeOffAmount = (stripeInvoice.amount_remaining || stripeInvoice.amount_due || 0) / 100;
+              
+              await supabaseClient
+                .from('invoice_transactions')
+                .insert({
+                  invoice_id: invoiceRecordId,
+                  user_id: effectiveAccountId,
+                  transaction_type: 'write_off',
+                  amount: writeOffAmount,
+                  balance_after: 0,
+                  reference_number: uncollectibleRef,
+                  reason: 'Marked uncollectible in Stripe',
+                  transaction_date: new Date().toISOString().split('T')[0],
+                  notes: 'Invoice marked as uncollectible in Stripe',
+                  metadata: { 
+                    stripe_invoice_id: stripeInvoice.id,
+                    source: 'stripe_sync'
+                  }
+                });
+              
+              transactionsLogged++;
+            }
+          }
+
+          // Check for partial payments via discount/credit applied in Stripe
+          const discountAmount = (stripeInvoice.total_discount_amounts || []).reduce((sum: number, d: any) => sum + (d.amount || 0), 0);
+          if (discountAmount > 0) {
+            const discountRef = `stripe_discount_${stripeInvoice.id}`;
+            if (!existingRefs.has(discountRef)) {
+              await supabaseClient
+                .from('invoice_transactions')
+                .insert({
+                  invoice_id: invoiceRecordId,
+                  user_id: effectiveAccountId,
+                  transaction_type: 'credit',
+                  amount: discountAmount / 100,
+                  balance_after: (stripeInvoice.amount_remaining || 0) / 100,
+                  reference_number: discountRef,
+                  reason: 'Discount applied in Stripe',
+                  transaction_date: new Date(stripeInvoice.created * 1000).toISOString().split('T')[0],
+                  notes: 'Discount/coupon applied via Stripe',
+                  metadata: { 
+                    stripe_invoice_id: stripeInvoice.id,
+                    source: 'stripe_sync'
+                  }
+                });
+              
+              transactionsLogged++;
+            }
+          }
+
+        } catch (txError) {
+          logStep("Error syncing transactions", { invoiceId: stripeInvoice.id, error: String(txError) });
         }
 
         syncedCount++;
@@ -402,12 +586,13 @@ serve(async (req) => {
       })
       .eq('user_id', effectiveAccountId);
 
-    logStep("Sync completed", { syncedCount, createdDebtors, errorCount: errors.length });
+    logStep("Sync completed", { syncedCount, createdDebtors, transactionsLogged, errorCount: errors.length });
 
     return new Response(JSON.stringify({
       success: true,
       synced_count: syncedCount,
       created_debtors: createdDebtors,
+      transactions_logged: transactionsLogged,
       total_invoices: invoices.length,
       status_breakdown: statusUpdates,
       errors: errors.slice(0, 5)
