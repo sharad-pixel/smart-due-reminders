@@ -381,7 +381,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <Palette className="mr-2 h-4 w-4" />
                     Branding
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/security-settings")}>
+                  <DropdownMenuItem onClick={() => navigate("/security")}>
                     <Shield className="mr-2 h-4 w-4" />
                     Security Settings
                   </DropdownMenuItem>
