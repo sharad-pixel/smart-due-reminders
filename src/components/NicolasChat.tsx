@@ -698,7 +698,7 @@ export default function NicolasChat() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 animate-float">
+      <div className="fixed bottom-6 right-6 z-[60] animate-float">
         <div className="relative group cursor-pointer" onClick={() => setIsOpen(true)}>
           {/* Glow effect */}
           <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -718,7 +718,7 @@ export default function NicolasChat() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] bg-background border rounded-xl shadow-2xl z-50 flex flex-col max-h-[600px]">
+    <div className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] bg-background border rounded-xl shadow-2xl z-[60] flex flex-col max-h-[600px]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-primary/5 rounded-t-xl">
         <div className="flex items-center gap-3">
