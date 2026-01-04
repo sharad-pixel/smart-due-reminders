@@ -281,3 +281,6 @@ verify_jwt = true
 
 [functions.process-subscription-expiry-overages]
 verify_jwt = false
+
+[functions.sync-stripe-invoices]
+verify_jwt = true

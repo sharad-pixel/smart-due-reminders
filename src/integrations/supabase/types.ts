@@ -3334,6 +3334,9 @@ export type Database = {
           reference_id: string
           source_system: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
+          stripe_customer_id: string | null
+          stripe_hosted_url: string | null
+          stripe_invoice_id: string | null
           subtotal: number | null
           tax_amount: number | null
           total_amount: number | null
@@ -3381,6 +3384,9 @@ export type Database = {
           reference_id: string
           source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          stripe_customer_id?: string | null
+          stripe_hosted_url?: string | null
+          stripe_invoice_id?: string | null
           subtotal?: number | null
           tax_amount?: number | null
           total_amount?: number | null
@@ -3428,6 +3434,9 @@ export type Database = {
           reference_id?: string
           source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          stripe_customer_id?: string | null
+          stripe_hosted_url?: string | null
+          stripe_invoice_id?: string | null
           subtotal?: number | null
           tax_amount?: number | null
           total_amount?: number | null
@@ -4439,6 +4448,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      stripe_integrations: {
+        Row: {
+          auto_sync_enabled: boolean | null
+          created_at: string
+          id: string
+          invoices_synced_count: number | null
+          is_connected: boolean
+          last_sync_at: string | null
+          last_sync_error: string | null
+          organization_id: string | null
+          stripe_account_id: string | null
+          sync_frequency: string | null
+          sync_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          invoices_synced_count?: number | null
+          is_connected?: boolean
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          organization_id?: string | null
+          stripe_account_id?: string | null
+          sync_frequency?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          invoices_synced_count?: number | null
+          is_connected?: boolean
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          organization_id?: string | null
+          stripe_account_id?: string | null
+          sync_frequency?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suspicious_activity_log: {
         Row: {
