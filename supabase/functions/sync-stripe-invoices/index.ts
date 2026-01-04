@@ -106,10 +106,10 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Fetch open and past_due invoices from Stripe
+    // Fetch invoices from Stripe - all statuses for complete sync
     const invoices: Stripe.Invoice[] = [];
     
-    // Get open invoices
+    // Get open invoices (unpaid)
     const openInvoices = await stripe.invoices.list({
       status: 'open',
       limit: 100,
@@ -118,13 +118,64 @@ serve(async (req) => {
     invoices.push(...openInvoices.data);
     logStep("Fetched open invoices", { count: openInvoices.data.length });
 
-    // Get past_due invoices (uncollectible is past due in Stripe terms)
-    // In Stripe, invoices don't have a "past_due" status directly - they remain "open"
-    // but have a due_date in the past. We'll filter by due_date < today
+    // Get paid invoices to capture settlements
+    const paidInvoices = await stripe.invoices.list({
+      status: 'paid',
+      limit: 100,
+      expand: ['data.customer']
+    });
+    invoices.push(...paidInvoices.data);
+    logStep("Fetched paid invoices", { count: paidInvoices.data.length });
+
+    // Get void invoices (cancelled/credited)
+    const voidInvoices = await stripe.invoices.list({
+      status: 'void',
+      limit: 100,
+      expand: ['data.customer']
+    });
+    invoices.push(...voidInvoices.data);
+    logStep("Fetched void invoices", { count: voidInvoices.data.length });
+
+    // Get uncollectible invoices (written off)
+    const uncollectibleInvoices = await stripe.invoices.list({
+      status: 'uncollectible',
+      limit: 100,
+      expand: ['data.customer']
+    });
+    invoices.push(...uncollectibleInvoices.data);
+    logStep("Fetched uncollectible invoices", { count: uncollectibleInvoices.data.length });
     
     let syncedCount = 0;
     let createdDebtors = 0;
+    let statusUpdates = { paid: 0, partial: 0, credited: 0, writtenOff: 0, open: 0 };
     const errors: string[] = [];
+
+    // Helper function to map Stripe status to our invoice status
+    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): 'Open' | 'Paid' | 'Partial' | 'Credited' | 'Written Off' => {
+      const amountPaid = stripeInvoice.amount_paid || 0;
+      const amountDue = stripeInvoice.amount_due || 0;
+      const amountRemaining = stripeInvoice.amount_remaining || 0;
+
+      switch (stripeInvoice.status) {
+        case 'paid':
+          // Check if partially paid (amount_paid < total but marked as paid with forgiveness)
+          if (amountPaid > 0 && amountPaid < amountDue && amountRemaining === 0) {
+            return 'Partial'; // Settled for less than full amount
+          }
+          return 'Paid';
+        case 'void':
+          return 'Credited'; // Voided invoices are treated as credited
+        case 'uncollectible':
+          return 'Written Off';
+        case 'open':
+        default:
+          // Check if any payment has been made on open invoice
+          if (amountPaid > 0 && amountRemaining > 0) {
+            return 'Partial';
+          }
+          return 'Open';
+      }
+    };
 
     for (const stripeInvoice of invoices) {
       try {
@@ -198,14 +249,33 @@ serve(async (req) => {
           debtorId = existingDebtor.id;
         }
 
+        // Determine the correct status
+        const mappedStatus = mapStripeStatus(stripeInvoice);
+        
+        // Track status updates
+        if (mappedStatus === 'Paid') statusUpdates.paid++;
+        else if (mappedStatus === 'Partial') statusUpdates.partial++;
+        else if (mappedStatus === 'Credited') statusUpdates.credited++;
+        else if (mappedStatus === 'Written Off') statusUpdates.writtenOff++;
+        else statusUpdates.open++;
+
+        // Calculate payment date for paid/partial invoices
+        let paymentDate: string | null = null;
+        let paidDate: string | null = null;
+        if (stripeInvoice.status === 'paid' && stripeInvoice.status_transitions?.paid_at) {
+          const paidAt = new Date(stripeInvoice.status_transitions.paid_at * 1000).toISOString().split('T')[0];
+          paymentDate = paidAt;
+          paidDate = paidAt;
+        }
+
         // Check if invoice already exists
         const { data: existingInvoice } = await supabaseClient
           .from('invoices')
-          .select('id')
+          .select('id, status')
           .eq('stripe_invoice_id', stripeInvoice.id)
           .maybeSingle();
 
-        const invoiceData = {
+        const invoiceData: Record<string, any> = {
           user_id: effectiveAccountId,
           debtor_id: debtorId,
           invoice_number: stripeInvoice.number || stripeInvoice.id,
@@ -215,7 +285,7 @@ serve(async (req) => {
           currency: stripeInvoice.currency?.toUpperCase() || 'USD',
           issue_date: stripeInvoice.created ? new Date(stripeInvoice.created * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           due_date: stripeInvoice.due_date ? new Date(stripeInvoice.due_date * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          status: 'Open' as const,
+          status: mappedStatus,
           source_system: 'stripe',
           stripe_invoice_id: stripeInvoice.id,
           stripe_customer_id: customer.id,
@@ -223,8 +293,26 @@ serve(async (req) => {
           external_invoice_id: stripeInvoice.id,
           external_link: stripeInvoice.hosted_invoice_url || null,
           product_description: stripeInvoice.description || stripeInvoice.lines?.data?.[0]?.description || 'Stripe Invoice',
-          notes: `Imported from Stripe on ${new Date().toLocaleDateString()}`
+          reference_id: stripeInvoice.number || stripeInvoice.id
         };
+
+        // Add payment-related fields if applicable
+        if (paymentDate) {
+          invoiceData.payment_date = paymentDate;
+          invoiceData.paid_date = paidDate;
+        }
+
+        // Add notes based on status
+        if (mappedStatus === 'Credited') {
+          invoiceData.notes = `Voided/Credited in Stripe on ${new Date().toLocaleDateString()}`;
+        } else if (mappedStatus === 'Written Off') {
+          invoiceData.notes = `Marked uncollectible in Stripe on ${new Date().toLocaleDateString()}`;
+        } else if (mappedStatus === 'Partial') {
+          const amountPaid = (stripeInvoice.amount_paid || 0) / 100;
+          invoiceData.notes = `Partially settled - $${amountPaid.toFixed(2)} paid via Stripe`;
+        } else if (mappedStatus === 'Paid') {
+          invoiceData.notes = `Paid in full via Stripe${paidDate ? ` on ${paidDate}` : ''}`;
+        }
 
         if (existingInvoice) {
           // Update existing invoice
@@ -236,6 +324,15 @@ serve(async (req) => {
           if (updateError) {
             errors.push(`Failed to update invoice ${stripeInvoice.id}: ${updateError.message}`);
             continue;
+          }
+          
+          // Log status change if different
+          if (existingInvoice.status !== mappedStatus) {
+            logStep("Status updated", { 
+              invoiceId: stripeInvoice.id, 
+              oldStatus: existingInvoice.status, 
+              newStatus: mappedStatus 
+            });
           }
         } else {
           // Create new invoice
@@ -257,6 +354,8 @@ serve(async (req) => {
       }
     }
 
+    logStep("Status breakdown", statusUpdates);
+
     // Update integration status
     await supabaseClient
       .from('stripe_integrations')
@@ -277,6 +376,7 @@ serve(async (req) => {
       synced_count: syncedCount,
       created_debtors: createdDebtors,
       total_invoices: invoices.length,
+      status_breakdown: statusUpdates,
       errors: errors.slice(0, 5)
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
