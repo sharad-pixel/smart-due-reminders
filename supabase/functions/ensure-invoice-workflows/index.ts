@@ -87,12 +87,16 @@ Deno.serve(async (req) => {
         // Determine aging bucket based on due date
         const dueDate = new Date(invoice.due_date);
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        dueDate.setHours(0, 0, 0, 0);
+        
         const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
         
         let agingBucket: string;
         if (daysPastDue < 0) {
           agingBucket = 'current';
         } else if (daysPastDue >= 0 && daysPastDue <= 30) {
+          // Day 0 (due today but not paid) starts as 1-30 bucket
           agingBucket = 'dpd_1_30';
         } else if (daysPastDue >= 31 && daysPastDue <= 60) {
           agingBucket = 'dpd_31_60';
@@ -119,25 +123,39 @@ Deno.serve(async (req) => {
         }
 
         // Find active collection workflow for this bucket and user
-        const { data: workflow, error: workflowError } = await supabaseAdmin
-          .from('collection_workflows')
-          .select(`
-            id,
-            collection_workflow_steps (
+        // If no workflow found for 'current', try 'dpd_1_30' as fallback
+        let workflow: any = null;
+        let workflowError: any = null;
+        
+        const bucketsToTry = agingBucket === 'current' ? ['current', 'dpd_1_30'] : [agingBucket];
+        
+        for (const bucketToTry of bucketsToTry) {
+          const { data, error } = await supabaseAdmin
+            .from('collection_workflows')
+            .select(`
               id,
-              day_offset,
-              step_order
-            )
-          `)
-          .eq('aging_bucket', agingBucket)
-          .eq('is_active', true)
-          .or(`user_id.eq.${invoice.user_id},user_id.is.null`)
-          .order('user_id', { ascending: false, nullsFirst: false })
-          .limit(1)
-          .single();
+              collection_workflow_steps (
+                id,
+                day_offset,
+                step_order
+              )
+            `)
+            .eq('aging_bucket', bucketToTry)
+            .eq('is_active', true)
+            .or(`user_id.eq.${invoice.user_id},user_id.is.null`)
+            .order('user_id', { ascending: false, nullsFirst: false })
+            .limit(1)
+            .single();
+          
+          if (!error && data) {
+            workflow = data;
+            break;
+          }
+          workflowError = error;
+        }
 
-        if (workflowError || !workflow) {
-          console.log(`No workflow found for bucket ${agingBucket}, invoice ${invoice.id}`);
+        if (!workflow) {
+          console.log(`No workflow found for bucket ${agingBucket} (or fallback), invoice ${invoice.id}`);
           skipped++;
           continue;
         }
@@ -180,6 +198,97 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fix existing workflows with empty cadence_days
+    console.log('Checking for workflows with empty cadence_days...');
+    let fixedWorkflows = 0;
+    
+    const { data: emptyWorkflows } = await supabaseAdmin
+      .from('ai_workflows')
+      .select(`
+        id,
+        invoice_id,
+        user_id,
+        invoices!inner (
+          due_date,
+          status
+        )
+      `)
+      .eq('is_active', true)
+      .eq('cadence_days', '[]');
+    
+    for (const aw of emptyWorkflows || []) {
+      try {
+        const invoice = aw.invoices as any;
+        if (!invoice || (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan')) {
+          continue;
+        }
+        
+        // Determine aging bucket
+        const dueDate = new Date(invoice.due_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        dueDate.setHours(0, 0, 0, 0);
+        const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let agingBucket: string;
+        if (daysPastDue < 0) {
+          agingBucket = 'current';
+        } else if (daysPastDue >= 0 && daysPastDue <= 30) {
+          agingBucket = 'dpd_1_30';
+        } else if (daysPastDue >= 31 && daysPastDue <= 60) {
+          agingBucket = 'dpd_31_60';
+        } else if (daysPastDue >= 61 && daysPastDue <= 90) {
+          agingBucket = 'dpd_61_90';
+        } else if (daysPastDue >= 91 && daysPastDue <= 120) {
+          agingBucket = 'dpd_91_120';
+        } else if (daysPastDue >= 121 && daysPastDue <= 150) {
+          agingBucket = 'dpd_121_150';
+        } else {
+          agingBucket = 'dpd_150_plus';
+        }
+        
+        // Find workflow with steps
+        const bucketsToTry = agingBucket === 'current' ? ['current', 'dpd_1_30'] : [agingBucket];
+        let cadenceDays: number[] = [];
+        
+        for (const bucketToTry of bucketsToTry) {
+          const { data: wf } = await supabaseAdmin
+            .from('collection_workflows')
+            .select(`
+              collection_workflow_steps (day_offset, step_order)
+            `)
+            .eq('aging_bucket', bucketToTry)
+            .eq('is_active', true)
+            .or(`user_id.eq.${aw.user_id},user_id.is.null`)
+            .order('user_id', { ascending: false, nullsFirst: false })
+            .limit(1)
+            .single();
+          
+          if (wf) {
+            const steps = (wf.collection_workflow_steps as any[]) || [];
+            cadenceDays = steps
+              .sort((a, b) => a.step_order - b.step_order)
+              .map(s => s.day_offset);
+            
+            if (cadenceDays.length > 0) break;
+          }
+        }
+        
+        if (cadenceDays.length > 0) {
+          await supabaseAdmin
+            .from('ai_workflows')
+            .update({ cadence_days: cadenceDays })
+            .eq('id', aw.id);
+          fixedWorkflows++;
+          console.log(`Fixed workflow ${aw.id} with cadence_days: ${JSON.stringify(cadenceDays)}`);
+        }
+      } catch (e) {
+        console.error(`Error fixing workflow ${aw.id}:`, e);
+      }
+    }
+    
+    console.log(`Fixed ${fixedWorkflows} workflows with empty cadence_days`);
+
     // Now ensure all invoices with workflows have next outreach dates via ai_drafts
     // Trigger the daily cadence scheduler to generate drafts
     console.log('Triggering draft generation for all workflows...');
@@ -204,9 +313,10 @@ Deno.serve(async (req) => {
       totalEligibleInvoices: eligibleInvoices.length,
       invoicesAlreadyHadWorkflows: invoicesWithWorkflows.size,
       workflowsCreated: assigned,
+      workflowsFixed: fixedWorkflows,
       skipped,
       errors,
-      message: `Processed ${eligibleInvoices.length} invoices, created ${assigned} new workflow assignments`
+      message: `Processed ${eligibleInvoices.length} invoices, created ${assigned} new workflow assignments, fixed ${fixedWorkflows} workflows`
     };
 
     console.log('Summary:', summary);
