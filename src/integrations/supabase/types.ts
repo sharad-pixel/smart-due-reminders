@@ -3774,6 +3774,66 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_errors: {
+        Row: {
+          attempted_at: string
+          created_at: string
+          error_message: string
+          error_type: string
+          id: string
+          invoice_id: string | null
+          metadata: Json | null
+          resolved_at: string | null
+          retry_count: number | null
+          step_number: number | null
+          user_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          created_at?: string
+          error_message: string
+          error_type: string
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          retry_count?: number | null
+          step_number?: number | null
+          user_id: string
+          workflow_id?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          created_at?: string
+          error_message?: string
+          error_type?: string
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          retry_count?: number | null
+          step_number?: number | null
+          user_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_errors_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_errors_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "ai_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_logs: {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]

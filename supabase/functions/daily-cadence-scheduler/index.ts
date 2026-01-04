@@ -5,15 +5,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ProcessingResult {
+  processed: number;
+  drafted: number;
+  failed: number;
+  skipped: number;
+  errors: Array<{ invoiceId: string; error: string; stepNumber?: number }>;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    console.log('Starting daily cadence scheduler...');
+  const result: ProcessingResult = {
+    processed: 0,
+    drafted: 0,
+    failed: 0,
+    skipped: 0,
+    errors: [],
+  };
 
-    // Use service role for system-level operations
+  try {
+    console.log('Starting daily cadence scheduler (batch processing)...');
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -29,179 +44,244 @@ Deno.serve(async (req) => {
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
 
-    // Get active workflows for invoices that are due today or past due (prioritize these)
-    // This avoids the 1000 row limit issue by filtering first
-    const { data: workflows, error: workflowsError } = await supabaseAdmin
-      .from('ai_workflows')
-      .select(`
-        id,
-        invoice_id,
-        tone,
-        cadence_days,
-        user_id,
-        invoices!inner (
+    // Process workflows in batches to avoid 1000 row limit
+    const BATCH_SIZE = 500;
+    let offset = 0;
+    let hasMore = true;
+    let totalWorkflowsProcessed = 0;
+
+    while (hasMore) {
+      console.log(`Fetching workflows batch: offset=${offset}, limit=${BATCH_SIZE}`);
+
+      // Get active workflows for past-due invoices (NOT 'current' bucket)
+      // Prioritize past-due invoices first
+      const { data: workflows, error: workflowsError } = await supabaseAdmin
+        .from('ai_workflows')
+        .select(`
           id,
-          due_date,
-          status
-        )
-      `)
-      .eq('is_active', true)
-      .in('invoices.status', ['Open', 'InPaymentPlan'])
-      .lte('invoices.due_date', todayStr)
-      .limit(500);
+          invoice_id,
+          tone,
+          cadence_days,
+          user_id,
+          invoices!inner (
+            id,
+            due_date,
+            status,
+            aging_bucket
+          )
+        `)
+        .eq('is_active', true)
+        .in('invoices.status', ['Open', 'InPaymentPlan'])
+        .neq('invoices.aging_bucket', 'current')  // Skip 'current' bucket - not past due yet
+        .lte('invoices.due_date', todayStr)  // Only past due or due today
+        .range(offset, offset + BATCH_SIZE - 1)
+        .order('invoices(due_date)', { ascending: true });  // Process oldest first
 
-    if (workflowsError) {
-      console.error('Error fetching workflows:', workflowsError);
-      throw workflowsError;
-    }
-
-    console.log(`Found ${workflows?.length || 0} active workflows for past due invoices`);
-
-    let draftsCreated = 0;
-    let skipped = 0;
-
-    for (const workflow of workflows || []) {
-      const invoice = workflow.invoices as any;
-
-      // Only process Open or InPaymentPlan invoices
-      if (!invoice || (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan')) {
-        console.log(`Skipping invoice ${invoice?.id}: status is ${invoice?.status}`);
-        skipped++;
-        continue;
+      if (workflowsError) {
+        console.error('Error fetching workflows:', workflowsError);
+        throw workflowsError;
       }
 
-      const dueDate = new Date(invoice.due_date);
-      const cadenceDays = workflow.cadence_days as number[];
+      const batchCount = workflows?.length || 0;
+      console.log(`Processing batch of ${batchCount} workflows`);
 
-      console.log(`Processing workflow ${workflow.id} for invoice ${invoice.id}, cadence: ${JSON.stringify(cadenceDays)}`);
+      if (batchCount === 0) {
+        hasMore = false;
+        break;
+      }
 
-      for (let i = 0; i < cadenceDays.length; i++) {
-        const cadenceDay = cadenceDays[i];
-        const stepNumber = i + 1;
+      // Process each workflow in this batch
+      for (const workflow of workflows || []) {
+        const invoice = workflow.invoices as any;
+        result.processed++;
 
-        // Calculate target date for this step
-        const targetDate = new Date(dueDate);
-        targetDate.setDate(targetDate.getDate() + cadenceDay);
-        targetDate.setHours(0, 0, 0, 0);
+        // Skip non-eligible invoices
+        if (!invoice || (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan')) {
+          console.log(`Skipping invoice ${invoice?.id}: status is ${invoice?.status}`);
+          result.skipped++;
+          continue;
+        }
 
-        console.log(`Checking step ${stepNumber} (day ${cadenceDay}): target=${targetDate.toISOString()}, today=${today.toISOString()}`);
+        // Skip current bucket invoices - they're not past due yet
+        if (invoice.aging_bucket === 'current') {
+          console.log(`Skipping invoice ${invoice.id}: aging_bucket is 'current' (not past due)`);
+          result.skipped++;
+          continue;
+        }
 
-        // Check if target date is today OR in the past (to catch up on missed drafts)
-        // Only generate for the first step that hasn't been processed yet
-        if (targetDate.getTime() <= today.getTime()) {
-          console.log(`Target date is today or past for step ${stepNumber}`);
+        const dueDate = new Date(invoice.due_date);
+        const cadenceDays = workflow.cadence_days as number[];
 
-          // Check if draft already exists for this step
-          const { data: existingDrafts } = await supabaseAdmin
-            .from('ai_drafts')
-            .select('id')
-            .eq('invoice_id', invoice.id)
-            .eq('step_number', stepNumber)
-            .limit(1);
+        // Skip if no cadence days (shouldn't happen with trigger, but be safe)
+        if (!cadenceDays || cadenceDays.length === 0) {
+          console.log(`Skipping workflow ${workflow.id}: empty cadence_days`);
+          result.skipped++;
+          continue;
+        }
 
-          // Check if outreach was already sent for this invoice
-          const { data: existingLogs } = await supabaseAdmin
-            .from('outreach_logs')
-            .select('id, step_number')
-            .eq('invoice_id', invoice.id);
+        console.log(`Processing workflow ${workflow.id} for invoice ${invoice.id}, cadence: ${JSON.stringify(cadenceDays)}`);
 
-          if (existingDrafts && existingDrafts.length > 0) {
-            console.log(`Draft already exists for step ${stepNumber}`);
-            continue;
-          }
+        // Find the first step that needs a draft
+        for (let i = 0; i < cadenceDays.length; i++) {
+          const cadenceDay = cadenceDays[i];
+          const stepNumber = i + 1;
 
-          // Check if this step was already sent
-          const stepAlreadySent = existingLogs?.some(log => log.step_number === stepNumber);
-          if (stepAlreadySent) {
-            console.log(`Outreach already sent for step ${stepNumber}`);
-            continue;
-          }
+          // Calculate target date for this step
+          const targetDate = new Date(dueDate);
+          targetDate.setDate(targetDate.getDate() + cadenceDay);
+          targetDate.setHours(0, 0, 0, 0);
 
-          // Generate the draft directly instead of calling edge function
-          // This avoids auth issues when running as a scheduled job
-          console.log(`Generating draft for invoice ${invoice.id}, step ${stepNumber}, tone ${workflow.tone}`);
-
-          try {
-            // Fetch invoice details
-            const { data: invoiceData, error: invoiceError } = await supabaseAdmin
-              .from('invoices')
-              .select(`
-                id, invoice_number, amount, due_date, aging_bucket, user_id,
-                debtors (id, name, company_name, email)
-              `)
-              .eq('id', invoice.id)
-              .single();
-
-            if (invoiceError || !invoiceData) {
-              console.error(`Error fetching invoice ${invoice.id}:`, invoiceError);
-              continue;
-            }
-
-            const debtor = invoiceData.debtors as any;
-            const customerName = debtor?.company_name || debtor?.name || 'Customer';
-            const invoiceAmount = invoiceData.amount || 0;
-
-            // Try to get an approved template for this bucket and step
-            const { data: templates } = await supabaseAdmin
-              .from('draft_templates')
-              .select('*')
-              .eq('user_id', invoiceData.user_id)
-              .eq('aging_bucket', invoiceData.aging_bucket)
+          // Check if target date is today OR in the past
+          if (targetDate.getTime() <= today.getTime()) {
+            // Check if draft already exists for this step
+            const { data: existingDrafts } = await supabaseAdmin
+              .from('ai_drafts')
+              .select('id')
+              .eq('invoice_id', invoice.id)
               .eq('step_number', stepNumber)
-              .eq('status', 'approved')
               .limit(1);
 
-            let subject = '';
-            let body = '';
-            let useTemplate = false;
-
-            if (templates && templates.length > 0) {
-              const template = templates[0];
-              // Replace placeholders
-              subject = (template.subject || '').replace(/{{company_name}}/gi, customerName)
-                .replace(/{{invoice_number}}/gi, invoiceData.invoice_number || '')
-                .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`);
-              body = (template.body || '').replace(/{{company_name}}/gi, customerName)
-                .replace(/{{invoice_number}}/gi, invoiceData.invoice_number || '')
-                .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`);
-              useTemplate = true;
-            } else {
-              // Generate a simple default message
-              subject = `Payment Reminder: Invoice ${invoiceData.invoice_number}`;
-              body = `Dear ${customerName},\n\nThis is a reminder regarding invoice ${invoiceData.invoice_number} for $${invoiceAmount.toFixed(2)} which is past due.\n\nPlease arrange payment at your earliest convenience.\n\nThank you.`;
+            if (existingDrafts && existingDrafts.length > 0) {
+              continue; // Already has draft for this step
             }
 
-            // Create the draft
-            const { error: draftInsertError } = await supabaseAdmin
-              .from('ai_drafts')
-              .insert({
-                invoice_id: invoice.id,
-                user_id: invoiceData.user_id,
-                subject,
-                message_body: body,
-                step_number: stepNumber,
-                channel: 'email',
-                status: useTemplate ? 'approved' : 'pending_approval',
-                recommended_send_date: new Date().toISOString().split('T')[0]
+            // Check if outreach was already sent for this step
+            const { data: existingLogs } = await supabaseAdmin
+              .from('outreach_logs')
+              .select('id, step_number')
+              .eq('invoice_id', invoice.id);
+
+            const stepAlreadySent = existingLogs?.some(log => log.step_number === stepNumber);
+            if (stepAlreadySent) {
+              continue; // Already sent for this step
+            }
+
+            // Generate the draft
+            console.log(`Generating draft for invoice ${invoice.id}, step ${stepNumber}`);
+
+            try {
+              // Fetch invoice details
+              const { data: invoiceData, error: invoiceError } = await supabaseAdmin
+                .from('invoices')
+                .select(`
+                  id, invoice_number, amount, due_date, aging_bucket, user_id,
+                  debtors (id, name, company_name, email)
+                `)
+                .eq('id', invoice.id)
+                .single();
+
+              if (invoiceError || !invoiceData) {
+                throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
+              }
+
+              const debtor = invoiceData.debtors as any;
+              const customerName = debtor?.company_name || debtor?.name || 'Customer';
+              const invoiceAmount = invoiceData.amount || 0;
+
+              // Try to get an approved template for this bucket and step
+              const { data: templates } = await supabaseAdmin
+                .from('draft_templates')
+                .select('*')
+                .eq('user_id', invoiceData.user_id)
+                .eq('aging_bucket', invoiceData.aging_bucket)
+                .eq('step_number', stepNumber)
+                .eq('status', 'approved')
+                .limit(1);
+
+              let subject = '';
+              let body = '';
+              let useTemplate = false;
+
+              if (templates && templates.length > 0) {
+                const template = templates[0];
+                subject = (template.subject || '')
+                  .replace(/{{company_name}}/gi, customerName)
+                  .replace(/{{invoice_number}}/gi, invoiceData.invoice_number || '')
+                  .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`);
+                body = (template.body || '')
+                  .replace(/{{company_name}}/gi, customerName)
+                  .replace(/{{invoice_number}}/gi, invoiceData.invoice_number || '')
+                  .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`);
+                useTemplate = true;
+              } else {
+                // Generate a simple default message
+                subject = `Payment Reminder: Invoice ${invoiceData.invoice_number}`;
+                body = `Dear ${customerName},\n\nThis is a reminder regarding invoice ${invoiceData.invoice_number} for $${invoiceAmount.toFixed(2)} which is past due.\n\nPlease arrange payment at your earliest convenience.\n\nThank you.`;
+              }
+
+              // Create the draft
+              const { error: draftInsertError } = await supabaseAdmin
+                .from('ai_drafts')
+                .insert({
+                  invoice_id: invoice.id,
+                  user_id: invoiceData.user_id,
+                  subject,
+                  message_body: body,
+                  step_number: stepNumber,
+                  channel: 'email',
+                  status: useTemplate ? 'approved' : 'pending_approval',
+                  recommended_send_date: todayStr,
+                  days_past_due: Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+                });
+
+              if (draftInsertError) {
+                throw new Error(`Failed to create draft: ${draftInsertError.message}`);
+              }
+
+              console.log(`Created draft for invoice ${invoice.id}, step ${stepNumber}`);
+              result.drafted++;
+
+            } catch (err) {
+              const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+              console.error(`Error generating draft for invoice ${invoice.id}:`, errorMsg);
+              
+              result.failed++;
+              result.errors.push({
+                invoiceId: invoice.id,
+                error: errorMsg,
+                stepNumber
               });
 
-            if (draftInsertError) {
-              console.error(`Error creating draft for invoice ${invoice.id}:`, draftInsertError);
-            } else {
-              console.log(`Successfully created draft for invoice ${invoice.id}, step ${stepNumber}`);
-              draftsCreated++;
+              // Log error to outreach_errors table
+              try {
+                await supabaseAdmin
+                  .from('outreach_errors')
+                  .insert({
+                    invoice_id: invoice.id,
+                    workflow_id: workflow.id,
+                    user_id: workflow.user_id,
+                    error_type: 'draft_generation_failed',
+                    error_message: errorMsg,
+                    step_number: stepNumber,
+                    metadata: { cadence_day: cadenceDay, target_date: targetDate.toISOString() }
+                  });
+              } catch (logErr) {
+                console.error('Failed to log error:', logErr);
+              }
             }
-          } catch (err) {
-            console.error(`Exception generating draft for invoice ${invoice.id}:`, err);
+
+            // Only generate one draft per invoice per run
+            break;
           }
-          
-          // Only generate the first missing draft per invoice to avoid flooding
-          break;
         }
+      }
+
+      totalWorkflowsProcessed += batchCount;
+      offset += BATCH_SIZE;
+
+      // If we got less than batch size, we're done
+      if (batchCount < BATCH_SIZE) {
+        hasMore = false;
+      }
+
+      // Safety limit: don't process more than 10,000 workflows in one run
+      if (totalWorkflowsProcessed >= 10000) {
+        console.log('Reached maximum workflows limit (10,000), stopping');
+        hasMore = false;
       }
     }
 
-    console.log(`Scheduler completed: ${draftsCreated} drafts created, ${skipped} invoices skipped`);
+    console.log(`Scheduler completed: processed=${result.processed}, drafted=${result.drafted}, failed=${result.failed}, skipped=${result.skipped}`);
 
     // Now automatically send all approved drafts that are ready
     console.log('Triggering auto-send-approved-drafts...');
@@ -229,11 +309,14 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        draftsCreated,
+        processed: result.processed,
+        drafted: result.drafted,
+        failed: result.failed,
+        skipped: result.skipped,
         draftsSent: sentCount,
-        skipped,
+        errors: result.errors.slice(0, 20), // Limit error details in response
         sendErrors: sendErrors.length > 0 ? sendErrors : undefined,
-        message: `Processed ${workflows?.length || 0} workflows, created ${draftsCreated} drafts, sent ${sentCount} emails`
+        message: `Processed ${result.processed} workflows, created ${result.drafted} drafts, sent ${sentCount} emails, ${result.failed} errors`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -243,7 +326,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in daily-cadence-scheduler:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        ...result
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

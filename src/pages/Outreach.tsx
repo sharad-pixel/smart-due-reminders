@@ -2,11 +2,11 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Clock, Brain, PauseCircle, PlayCircle, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Zap, Search } from "lucide-react";
+import { Mail, Clock, Brain, PauseCircle, PlayCircle, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Zap, Search, AlertTriangle, RotateCcw, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,8 +16,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const AGING_BUCKETS = [
   { key: "current", label: "Current", color: "bg-green-500", minDays: 0, maxDays: 0 },
@@ -28,6 +29,17 @@ const AGING_BUCKETS = [
   { key: "dpd_121_150", label: "121-150 Days", color: "bg-red-600", minDays: 121, maxDays: 150 },
   { key: "dpd_150_plus", label: "150+ Days", color: "bg-red-700", minDays: 151, maxDays: null },
 ];
+
+interface RefreshResult {
+  workflowsCreated: number;
+  workflowsFixed: number;
+  skippedCurrent: number;
+  schedulerResult?: {
+    drafted: number;
+    sent: number;
+    failed: number;
+  };
+}
 
 const Outreach = () => {
   const navigate = useNavigate();
@@ -42,6 +54,8 @@ const Outreach = () => {
   const [accountOutreachPage, setAccountOutreachPage] = useState<number>(1);
   const ACCOUNT_OUTREACH_PAGE_SIZE = 10;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<RefreshResult | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Mutation for bulk approving drafts
   const bulkApproveDrafts = useMutation({
@@ -77,7 +91,7 @@ const Outreach = () => {
     onError: () => toast.error("Failed to delete drafts"),
   });
 
-  // Mutation for sending drafts (uses send-ai-draft so it works with user auth)
+  // Mutation for sending drafts
   const sendDrafts = useMutation({
     mutationFn: async (draftIds: string[]) => {
       const results = {
@@ -133,8 +147,9 @@ const Outreach = () => {
   // Refresh outreach: ensure all invoices have workflows and generate drafts
   const handleRefreshOutreach = async () => {
     setIsRefreshing(true);
+    setRefreshResult(null);
     try {
-      toast.info("Scanning for new invoices and generating outreach...");
+      toast.info("Scanning all invoices and generating outreach...");
       
       const { data, error } = await supabase.functions.invoke("ensure-invoice-workflows", {
         body: {},
@@ -146,9 +161,29 @@ const Outreach = () => {
         return;
       }
 
-      const result = data as any;
+      const result = data as RefreshResult;
+      setRefreshResult(result);
+
+      // Show detailed results
+      const messages: string[] = [];
       if (result?.workflowsCreated > 0) {
-        toast.success(`Assigned ${result.workflowsCreated} new invoice(s) to outreach workflows`);
+        messages.push(`${result.workflowsCreated} workflow(s) assigned`);
+      }
+      if (result?.workflowsFixed > 0) {
+        messages.push(`${result.workflowsFixed} workflow(s) fixed`);
+      }
+      if (result?.schedulerResult?.drafted > 0) {
+        messages.push(`${result.schedulerResult.drafted} draft(s) created`);
+      }
+      if (result?.schedulerResult?.sent > 0) {
+        messages.push(`${result.schedulerResult.sent} email(s) sent`);
+      }
+      if (result?.skippedCurrent > 0) {
+        messages.push(`${result.skippedCurrent} current-bucket invoice(s) skipped`);
+      }
+
+      if (messages.length > 0) {
+        toast.success(messages.join(", "));
       } else {
         toast.success("All invoices are up to date");
       }
@@ -156,6 +191,7 @@ const Outreach = () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["outreach-summary"] });
       queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-errors"] });
     } catch (err) {
       console.error("Refresh exception:", err);
       toast.error("Failed to refresh outreach");
@@ -163,6 +199,51 @@ const Outreach = () => {
       setIsRefreshing(false);
     }
   };
+
+  // Fetch outreach errors
+  const { data: outreachErrors, isLoading: errorsLoading, refetch: refetchErrors } = useQuery({
+    queryKey: ["outreach-errors"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("outreach_errors")
+        .select(`
+          id, error_type, error_message, step_number, attempted_at, resolved_at, retry_count,
+          invoices (id, invoice_number, debtors (company_name, name))
+        `)
+        .is("resolved_at", null)
+        .order("attempted_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Mutation to retry failed outreach
+  const retryError = useMutation({
+    mutationFn: async (errorId: string) => {
+      // Mark as resolved
+      await supabase
+        .from("outreach_errors")
+        .update({ resolved_at: new Date().toISOString() })
+        .eq("id", errorId);
+
+      // Trigger refresh to regenerate
+      await supabase.functions.invoke("daily-cadence-scheduler", { body: {} });
+    },
+    onSuccess: () => {
+      toast.success("Retrying outreach generation...");
+      queryClient.invalidateQueries({ queryKey: ["outreach-errors"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
+    },
+    onError: () => toast.error("Failed to retry"),
+  });
 
   // Fetch summary stats
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
@@ -175,7 +256,6 @@ const Outreach = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      // Get all open invoices with debtor info
       const { data: invoices, error: invError } = await supabase
         .from("invoices")
         .select(`
@@ -186,7 +266,6 @@ const Outreach = () => {
 
       if (invError) throw invError;
 
-      // Get draft counts by status
       const { data: drafts, error: draftError } = await supabase
         .from("ai_drafts")
         .select("id, status, sent_at")
@@ -194,16 +273,13 @@ const Outreach = () => {
 
       if (draftError) throw draftError;
 
-      // Calculate summary
       const totalInvoices = invoices?.length || 0;
       const totalAR = invoices?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
       const pausedCount = invoices?.filter(inv => inv.outreach_paused || inv.debtors?.outreach_paused).length || 0;
 
-      // Drafts: pending = pending_approval status, approved = approved status with no sent_at
       const pendingDrafts = drafts?.filter(d => d.status === "pending_approval").length || 0;
       const approvedDrafts = drafts?.filter(d => d.status === "approved" && !d.sent_at).length || 0;
 
-      // Bucket breakdown
       const bucketStats = AGING_BUCKETS.map(bucket => {
         const bucketInvoices = invoices?.filter(inv => inv.aging_bucket === bucket.key) || [];
         const midDays = bucket.maxDays ? Math.floor((bucket.minDays + bucket.maxDays) / 2) : bucket.minDays + 30;
@@ -300,7 +376,6 @@ const Outreach = () => {
       return true;
     });
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(draft => {
@@ -381,7 +456,6 @@ const Outreach = () => {
 
     const safeScheduledDateTime = (recommendedSendDate?: string | null) => {
       if (!recommendedSendDate) return null;
-      // If it's a plain date (YYYY-MM-DD), assume 9:00 AM local.
       const isoLike = recommendedSendDate.includes("T")
         ? recommendedSendDate
         : `${recommendedSendDate}T09:00:00`;
@@ -401,7 +475,6 @@ const Outreach = () => {
         }
       }
 
-      // Current invoices (0 DPD) should still route to the earliest persona.
       if (daysPastDue !== null && daysPastDue <= 0) return "sam";
 
       const persona = typeof daysPastDue === "number" ? getPersonaByDaysPastDue(daysPastDue) : null;
@@ -475,502 +548,598 @@ const Outreach = () => {
     if (selectedDraftIds.size === filteredDrafts.length) {
       setSelectedDraftIds(new Set());
     } else {
-      setSelectedDraftIds(new Set(filteredDrafts.map(d => d.id)));
+      setSelectedDraftIds(new Set(filteredDrafts.map((d: any) => d.id)));
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const errorCount = outreachErrors?.length || 0;
 
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold">Outreach Command Center</h1>
-            </div>
-            <p className="text-muted-foreground mt-1">
-              Manage AI-generated collection emails and track outreach status.
+              Outreach Command Center
+            </h1>
+            <p className="text-muted-foreground">
+              Manage AI-generated collection emails and account outreach
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleRefreshOutreach}
-              disabled={isRefreshing}
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh Outreach
-            </Button>
-            
-            {draftCounts.approved > 0 && (
-              <Button 
-                onClick={() => sendDrafts.mutate(approvedUnsentDraftIds)}
-                disabled={sendDrafts.isPending || approvedUnsentDraftIds.length === 0}
-                className="gap-2"
+            {errorCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowErrors(!showErrors)}
+                className="text-destructive border-destructive/50"
               >
-                {sendDrafts.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                Send {draftCounts.approved} Approved
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                {errorCount} Error{errorCount !== 1 ? "s" : ""}
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshOutreach}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Processing..." : "Refresh Outreach"}
+            </Button>
           </div>
         </div>
 
+        {/* Refresh Result Alert */}
+        {refreshResult && (
+          <Alert className="bg-primary/5 border-primary/20">
+            <Zap className="h-4 w-4" />
+            <AlertTitle>Outreach Refresh Complete</AlertTitle>
+            <AlertDescription>
+              <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                {refreshResult.workflowsCreated > 0 && (
+                  <span className="text-green-600">✓ {refreshResult.workflowsCreated} workflow(s) assigned</span>
+                )}
+                {refreshResult.workflowsFixed > 0 && (
+                  <span className="text-blue-600">✓ {refreshResult.workflowsFixed} workflow(s) fixed</span>
+                )}
+                {refreshResult.schedulerResult?.drafted > 0 && (
+                  <span className="text-purple-600">✓ {refreshResult.schedulerResult.drafted} draft(s) created</span>
+                )}
+                {refreshResult.schedulerResult?.sent > 0 && (
+                  <span className="text-green-600">✓ {refreshResult.schedulerResult.sent} email(s) sent</span>
+                )}
+                {refreshResult.schedulerResult?.failed > 0 && (
+                  <span className="text-red-600">✗ {refreshResult.schedulerResult.failed} failed</span>
+                )}
+                {refreshResult.skippedCurrent > 0 && (
+                  <span className="text-muted-foreground">{refreshResult.skippedCurrent} current-bucket skipped</span>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Errors Panel */}
+        {showErrors && errorCount > 0 && (
+          <Card className="border-destructive/50">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  Outreach Errors
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowErrors(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription>
+                These invoices failed to generate outreach drafts. Click retry to attempt again.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Error</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="w-[100px]">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {outreachErrors?.map((err: any) => {
+                    const invoice = err.invoices as any;
+                    return (
+                      <TableRow key={err.id}>
+                        <TableCell className="font-medium">
+                          {invoice?.invoice_number || "—"}
+                        </TableCell>
+                        <TableCell>
+                          {invoice?.debtors?.company_name || invoice?.debtors?.name || "—"}
+                        </TableCell>
+                        <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
+                          {err.error_message}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(err.attempted_at), "MMM d, h:mm a")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => retryError.mutate(err.id)}
+                            disabled={retryError.isPending}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Retry
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Summary Cards */}
+        {summaryLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+        ) : summaryData && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <FileText className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{summaryData.totalInvoices}</p>
+                    <p className="text-sm text-muted-foreground">Open Invoices</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <Zap className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{formatCurrency(summaryData.totalAR)}</p>
+                    <p className="text-sm text-muted-foreground">Total AR</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-yellow-500/10 rounded-lg">
+                    <Clock className="h-5 w-5 text-yellow-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{summaryData.pendingDrafts}</p>
+                    <p className="text-sm text-muted-foreground">Pending Review</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <CheckCircle className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{summaryData.approvedDrafts}</p>
+                    <p className="text-sm text-muted-foreground">Ready to Send</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 max-w-[550px]">
-            <TabsTrigger value="overview" className="gap-2">
-              <Mail className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="drafts" className="gap-2">
-              <FileText className="h-4 w-4" />
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="drafts" className="relative">
               Drafts
               {draftCounts.pending > 0 && (
-                <Badge variant="secondary" className="ml-1">
+                <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
                   {draftCounts.pending}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="account-outreach" className="gap-2">
-              <Zap className="h-4 w-4" />
-              Account
-              {accountOutreachData && accountOutreachData.length > 0 && (
-                <Badge variant="secondary" className="ml-1">
-                  {accountOutreachData.length}
-                </Badge>
-              )}
-            </TabsTrigger>
+            <TabsTrigger value="account-outreach">Account Outreach</TabsTrigger>
           </TabsList>
 
-          {/* Search Bar - visible on drafts and account-outreach tabs */}
-          {(activeTab === "drafts" || activeTab === "account-outreach") && (
-            <div className="mt-4">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by company, invoice, or subject..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Overview Tab */}
-          <TabsContent value="overview" className="mt-6 space-y-6">
-            {summaryLoading ? (
-              <div className="grid gap-4 md:grid-cols-4">
-                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
-              </div>
-            ) : summaryData ? (
-              <>
-                {/* Summary Cards */}
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Mail className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold">{summaryData.totalInvoices}</p>
-                          <p className="text-sm text-muted-foreground">Active Invoices</p>
-                        </div>
+          <TabsContent value="overview" className="space-y-6">
+            {/* Persona Schedule */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Scheduled Outreach by Persona
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {personaSchedule.map((item) => (
+                    <div
+                      key={item.key}
+                      className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={item.persona.avatar} alt={item.persona.name} />
+                        <AvatarFallback>{item.persona.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{item.persona.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.persona.tone}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-yellow-500/10">
-                          <Clock className="h-5 w-5 text-yellow-600" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold">{summaryData.pendingDrafts}</p>
-                          <p className="text-sm text-muted-foreground">Pending Review</p>
-                        </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">{item.total}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.approvedCount} ready
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-green-500/10">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
+            {/* Action Needed Alert */}
+            {summaryData && summaryData.pendingDrafts > 0 && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>
+                    You have <strong>{summaryData.pendingDrafts}</strong> draft(s) pending review.
+                  </span>
+                  <Button size="sm" onClick={() => setActiveTab("drafts")}>
+                    Review Drafts
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Bucket Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Outreach by Aging Bucket</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {summaryData?.bucketStats.map((bucket) => (
+                    <Collapsible
+                      key={bucket.key}
+                      open={expandedBuckets.has(bucket.key)}
+                      onOpenChange={() => toggleBucket(bucket.key)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
+                            <span className="font-medium">{bucket.label}</span>
+                            {bucket.persona && (
+                              <Badge variant="outline" className="text-xs">
+                                {bucket.persona.name}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm text-muted-foreground">
+                              {bucket.count} invoice{bucket.count !== 1 ? "s" : ""}
+                            </span>
+                            <span className="font-medium">{formatCurrency(bucket.amount)}</span>
+                            {expandedBuckets.has(bucket.key) ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-2xl font-bold">{summaryData.approvedDrafts}</p>
-                          <p className="text-sm text-muted-foreground">Ready to Send</p>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <div className="pl-6 pr-3 py-2 text-sm text-muted-foreground bg-muted/50 rounded-lg">
+                          {bucket.persona ? (
+                            <p>
+                              AI persona <strong>{bucket.persona.name}</strong> handles this bucket
+                              with a <strong>{bucket.persona.tone}</strong> approach.
+                            </p>
+                          ) : (
+                            <p>No persona configured for this bucket.</p>
+                          )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-orange-500/10">
-                          <PauseCircle className="h-5 w-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold">{summaryData.pausedCount}</p>
-                          <p className="text-sm text-muted-foreground">Paused</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                 </div>
-
-                 {/* Scheduled by Persona */}
-                 <Card>
-                   <CardHeader>
-                     <CardTitle className="text-lg">Next Scheduled Outreach by Persona</CardTitle>
-                   </CardHeader>
-                   <CardContent>
-                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                       {personaSchedule.map((row) => {
-                         const next = row.nextApproved || row.nextAny;
-                         const nextLabel = row.nextApproved ? "Next approved" : row.nextAny ? "Next pending" : "No upcoming";
-                         return (
-                           <div key={row.key} className="rounded-lg border p-3">
-                             <div className="flex items-center gap-3">
-                               <Avatar className="h-9 w-9">
-                                 <AvatarImage src={row.persona.avatar} alt={`${row.persona.name} persona`} />
-                                 <AvatarFallback style={{ backgroundColor: row.persona.color }}>
-                                   {row.persona.name[0]}
-                                 </AvatarFallback>
-                               </Avatar>
-                               <div className="min-w-0 flex-1">
-                                 <div className="flex items-center justify-between gap-2">
-                                   <p className="font-medium truncate">{row.persona.name}</p>
-                                   <Badge variant="secondary">{row.total}</Badge>
-                                 </div>
-                                 <p className="text-xs text-muted-foreground">{row.persona.description}</p>
-                               </div>
-                             </div>
-
-                             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                               <div className="rounded-md bg-muted p-2">
-                                 <p className="text-muted-foreground">Approved</p>
-                                 <p className="font-medium">{row.approvedCount}</p>
-                               </div>
-                               <div className="rounded-md bg-muted p-2">
-                                 <p className="text-muted-foreground">Pending</p>
-                                 <p className="font-medium">{row.pendingCount}</p>
-                               </div>
-                             </div>
-
-                             <div className="mt-3 flex items-center justify-between gap-2">
-                               <p className="text-xs text-muted-foreground">{nextLabel}</p>
-                               <p className="text-xs font-medium">
-                                 {next ? format(next, "MMM d, yyyy • h:mm a") : "—"}
-                               </p>
-                             </div>
-                             <p className="mt-1 text-[11px] text-muted-foreground">Times shown in your local timezone.</p>
-                           </div>
-                         );
-                       })}
-                     </div>
-                   </CardContent>
-                 </Card>
-
-                 {/* Action Alert */}
-                {summaryData.pendingDrafts > 0 && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="flex items-center justify-between">
-                      <span>
-                        You have <strong>{summaryData.pendingDrafts}</strong> draft{summaryData.pendingDrafts !== 1 ? 's' : ''} waiting for review.
-                      </span>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setActiveTab("drafts")}
-                      >
-                        Review Drafts
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Bucket Breakdown */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Outreach by Aging Bucket</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {summaryData.bucketStats.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        No active invoices to display.
-                      </p>
-                    ) : (
-                      summaryData.bucketStats.map(bucket => (
-                        <Collapsible 
-                          key={bucket.key}
-                          open={expandedBuckets.has(bucket.key)}
-                          onOpenChange={() => toggleBucket(bucket.key)}
-                        >
-                          <CollapsibleTrigger asChild>
-                            <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors">
-                              <div className="flex items-center gap-3">
-                                {bucket.persona && (
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage src={bucket.persona.avatar} />
-                                    <AvatarFallback style={{ backgroundColor: bucket.persona.color }}>
-                                      {bucket.persona.name[0]}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                )}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{bucket.label}</span>
-                                    {bucket.persona && (
-                                      <span className="text-sm text-muted-foreground">
-                                        ({bucket.persona.name})
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {bucket.count} invoice{bucket.count !== 1 ? 's' : ''} • {formatCurrency(bucket.amount)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary">{bucket.count}</Badge>
-                                {expandedBuckets.has(bucket.key) ? (
-                                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                            </div>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="p-4 pt-2 text-sm text-muted-foreground">
-                              <p>
-                                Click "Review Drafts" above to manage emails for this bucket.
-                              </p>
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            ) : null}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Drafts Tab */}
-          <TabsContent value="drafts" className="mt-6 space-y-4">
-            {/* Draft Actions Bar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Select value={draftFilter} onValueChange={setDraftFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">
-                      Pending Review ({draftCounts.pending})
-                    </SelectItem>
-                    <SelectItem value="approved">
-                      Approved ({draftCounts.approved})
-                    </SelectItem>
-                    <SelectItem value="sent">
-                      Sent ({draftCounts.sent})
-                    </SelectItem>
-                    <SelectItem value="all">All Drafts</SelectItem>
-                  </SelectContent>
-                </Select>
+          <TabsContent value="drafts" className="space-y-4">
+            {/* Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by customer, invoice, or subject..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={draftFilter} onValueChange={setDraftFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Drafts</SelectItem>
+                  <SelectItem value="pending">
+                    Pending ({draftCounts.pending})
+                  </SelectItem>
+                  <SelectItem value="approved">
+                    Ready to Send ({draftCounts.approved})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchDrafts()}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
 
+            {/* Bulk Actions */}
+            {selectedDraftIds.size > 0 && (
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">
+                  {selectedDraftIds.size} selected
+                </span>
+                <div className="flex-1" />
                 <Button
-                  variant="ghost"
                   size="sm"
-                  onClick={() => refetchDrafts()}
-                  className="gap-1"
+                  variant="outline"
+                  onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
+                  disabled={bulkApproveDrafts.isPending}
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
+                  <Check className="h-4 w-4 mr-1" />
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
+                  disabled={bulkRejectDrafts.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+                {selectedApprovedDraftIds.length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => sendDrafts.mutate(selectedApprovedDraftIds)}
+                    disabled={sendDrafts.isPending}
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    Send ({selectedApprovedDraftIds.length})
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Send All Approved Button */}
+            {approvedUnsentDraftIds.length > 0 && selectedDraftIds.size === 0 && (
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => sendDrafts.mutate(approvedUnsentDraftIds)}
+                  disabled={sendDrafts.isPending}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Send All Approved ({approvedUnsentDraftIds.length})
                 </Button>
               </div>
-
-              {/* Bulk Actions */}
-              {selectedDraftIds.size > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {selectedDraftIds.size} selected
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => sendDrafts.mutate(selectedApprovedDraftIds)}
-                    disabled={sendDrafts.isPending || selectedApprovedDraftIds.length === 0}
-                    className="gap-1"
-                    title={selectedApprovedDraftIds.length === 0 ? "Select approved drafts to send" : undefined}
-                  >
-                    <Send className="h-4 w-4" />
-                    Send
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => bulkApproveDrafts.mutate(Array.from(selectedDraftIds))}
-                    disabled={bulkApproveDrafts.isPending}
-                    className="gap-1"
-                  >
-                    <Check className="h-4 w-4" />
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => bulkRejectDrafts.mutate(Array.from(selectedDraftIds))}
-                    disabled={bulkRejectDrafts.isPending}
-                    className="gap-1 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Drafts List */}
             {draftsLoading ? (
               <div className="space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-20" />
+                ))}
               </div>
             ) : filteredDrafts.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    {draftFilter === "pending" && "No drafts pending review"}
-                    {draftFilter === "approved" && "No approved drafts ready to send"}
-                    {draftFilter === "sent" && "No sent drafts"}
-                    {draftFilter === "all" && "No drafts found"}
-                  </p>
+                  <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No drafts found</p>
                 </CardContent>
               </Card>
             ) : (
-              <>
+              <div className="space-y-2">
                 {/* Select All */}
-                <div className="flex items-center gap-2 px-1">
+                <div className="flex items-center gap-2 px-3 py-2">
                   <Checkbox
                     checked={selectedDraftIds.size === filteredDrafts.length && filteredDrafts.length > 0}
                     onCheckedChange={selectAllDrafts}
                   />
-                  <span className="text-sm text-muted-foreground">
-                    Select all ({filteredDrafts.length})
-                  </span>
+                  <span className="text-sm text-muted-foreground">Select all</span>
                 </div>
 
-                <div className="space-y-3">
-                  {filteredDrafts.map(draft => {
-                    const invoice = draft.invoices as any;
-                    const isSent = !!draft.sent_at;
-                    const isApproved = draft.status === "approved" && !isSent;
-                    
-                    return (
-                      <Card 
-                        key={draft.id} 
-                        className={`transition-colors ${isSent ? 'opacity-60' : ''} ${selectedDraftIds.has(draft.id) ? 'ring-2 ring-primary' : ''}`}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-4">
-                            {!isSent && (
-                              <Checkbox
-                                checked={selectedDraftIds.has(draft.id)}
-                                onCheckedChange={() => toggleDraftSelection(draft.id)}
-                                className="mt-1"
-                              />
-                            )}
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-4 mb-2">
-                                <div className="min-w-0">
-                                  <p className="font-medium truncate">
-                                    {invoice?.debtors?.company_name || invoice?.debtors?.name || 'Unknown'}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Invoice #{invoice?.invoice_number} • {formatCurrency(invoice?.amount || 0)}
-                                  </p>
-                                </div>
-                                
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {isSent ? (
-                                    <Badge variant="secondary" className="gap-1">
-                                      <CheckCircle className="h-3 w-3" />
-                                      Sent {draft.sent_at && format(new Date(draft.sent_at), "MMM d")}
-                                    </Badge>
-                                  ) : isApproved ? (
-                                    <Badge variant="default" className="gap-1">
-                                      <CheckCircle className="h-3 w-3" />
-                                      Approved
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="gap-1">
-                                      <Clock className="h-3 w-3" />
-                                      Pending
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <p className="text-sm font-medium mb-1">{draft.subject}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {draft.message_body?.replace(/<[^>]*>/g, '').slice(0, 150)}...
-                              </p>
-                              
-                              <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                                <span>
-                                  Step: {draft.collection_workflow_steps?.label || `Step ${draft.step_number}`}
+                {filteredDrafts.map((draft: any) => {
+                  const invoice = draft.invoices as any;
+                  const customerName = invoice?.debtors?.company_name || invoice?.debtors?.name || "Unknown";
+                  const daysPastDue = draft.days_past_due || 0;
+                  const persona = getPersonaByDaysPastDue(daysPastDue);
+
+                  return (
+                    <Card
+                      key={draft.id}
+                      className={`cursor-pointer hover:bg-accent/50 transition-colors ${
+                        selectedDraftIds.has(draft.id) ? "ring-2 ring-primary" : ""
+                      }`}
+                    >
+                      <CardContent className="py-3">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={selectedDraftIds.has(draft.id)}
+                            onCheckedChange={() => toggleDraftSelection(draft.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div
+                            className="flex-1 min-w-0"
+                            onClick={() => navigate(`/invoices/${invoice?.id}`)}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium truncate">{customerName}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {invoice?.invoice_number}
+                              </Badge>
+                              {draft.status === "approved" ? (
+                                <Badge className="bg-green-500/10 text-green-600 text-xs">
+                                  Approved
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-yellow-500/10 text-yellow-600 text-xs">
+                                  Pending
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {draft.subject || "No subject"}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              {persona && (
+                                <span className="flex items-center gap-1">
+                                  <Avatar className="h-4 w-4">
+                                    <AvatarImage src={persona.avatar} />
+                                    <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                                  </Avatar>
+                                  {persona.name}
                                 </span>
-                                {draft.recommended_send_date && !isSent && (
-                                  <span>
-                                    Scheduled: {format(new Date(draft.recommended_send_date), "MMM d, yyyy")}
-                                  </span>
+                              )}
+                              <span>Step {draft.step_number}</span>
+                              <span>{daysPastDue} days past due</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-medium">
+                              {formatCurrency(invoice?.amount || 0)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {draft.recommended_send_date
+                                ? format(new Date(draft.recommended_send_date), "MMM d")
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Account Outreach Tab */}
+          <TabsContent value="account-outreach" className="space-y-4">
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search account outreach..."
+                  value={accountOutreachSearch}
+                  onChange={(e) => {
+                    setAccountOutreachSearch(e.target.value);
+                    setAccountOutreachPage(1);
+                  }}
+                  className="pl-9"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => refetchAccountOutreach()}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {accountOutreachLoading ? (
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-16" />
+                ))}
+              </div>
+            ) : filteredAccountOutreach.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No account-level outreach found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {paginatedAccountOutreach.map((activity: any) => {
+                    const debtor = activity.debtors as any;
+                    return (
+                      <Card key={activity.id} className="hover:bg-accent/50 transition-colors">
+                        <CardContent className="py-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">
+                                {debtor?.company_name || debtor?.name || "Unknown"}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate max-w-md">
+                                {activity.subject || "No subject"}
+                              </p>
+                            </div>
+                            <div className="text-right text-sm">
+                              <p className="text-muted-foreground">
+                                {activity.sent_at
+                                  ? format(new Date(activity.sent_at), "MMM d, h:mm a")
+                                  : format(new Date(activity.created_at), "MMM d, h:mm a")}
+                              </p>
+                              <div className="flex gap-1 justify-end mt-1">
+                                {activity.delivered_at && (
+                                  <Badge variant="outline" className="text-xs">Delivered</Badge>
+                                )}
+                                {activity.opened_at && (
+                                  <Badge variant="outline" className="text-xs bg-blue-500/10">Opened</Badge>
+                                )}
+                                {activity.responded_at && (
+                                  <Badge variant="outline" className="text-xs bg-green-500/10">Replied</Badge>
                                 )}
                               </div>
-                              
-                              {!isSent && (
-                                <div className="flex items-center gap-2 mt-3">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => navigate(`/invoices/${invoice?.id}`)}
-                                  >
-                                    View Invoice
-                                  </Button>
-                                  {!isApproved && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => bulkApproveDrafts.mutate([draft.id])}
-                                      disabled={bulkApproveDrafts.isPending}
-                                    >
-                                      Approve
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -978,160 +1147,10 @@ const Outreach = () => {
                     );
                   })}
                 </div>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Account Outreach Tab */}
-          <TabsContent value="account-outreach" className="mt-6 space-y-4">
-            {/* Account Outreach Actions Bar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search accounts..."
-                    value={accountOutreachSearch}
-                    onChange={(e) => {
-                      setAccountOutreachSearch(e.target.value);
-                      setAccountOutreachPage(1);
-                    }}
-                    className="pl-9 w-64"
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => refetchAccountOutreach()}
-                  className="gap-1"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Showing {paginatedAccountOutreach.length} of {filteredAccountOutreach.length} record{filteredAccountOutreach.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-
-            {/* Account Outreach List */}
-            {accountOutreachLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
-              </div>
-            ) : filteredAccountOutreach.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Zap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    {accountOutreachSearch ? "No matching account outreach records" : "No account-level outreach records yet"}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Account-level outreach emails will appear here when sent from accounts with Account Level Outreach enabled.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {paginatedAccountOutreach.map((activity: any) => {
-                  const debtor = activity.debtors as any;
-                  const metadata = activity.metadata as any || {};
-                  const invoicesIncluded = metadata.invoices_included || [];
-                  const totalAmount = metadata.total_amount || 0;
-                  const invoiceCount = metadata.invoice_count || invoicesIncluded.length || 0;
-                  
-                  return (
-                    <Card key={activity.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                            <Zap className="h-5 w-5 text-primary" />
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div className="min-w-0">
-                                <p className="font-medium truncate">
-                                  {debtor?.company_name || debtor?.name || 'Unknown Account'}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {invoiceCount} invoice{invoiceCount !== 1 ? 's' : ''} • ${totalAmount.toLocaleString()}
-                                </p>
-                              </div>
-                              
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Badge variant="default" className="gap-1 bg-primary/80">
-                                  <Zap className="h-3 w-3" />
-                                  Account Level
-                                </Badge>
-                                {activity.sent_at && (
-                                  <Badge variant="secondary" className="gap-1">
-                                    <CheckCircle className="h-3 w-3" />
-                                    Sent
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <p className="text-sm font-medium mb-1">{activity.subject || 'No Subject'}</p>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {activity.message_body?.replace(/<[^>]*>/g, '').slice(0, 150)}...
-                            </p>
-                            
-                            {/* Included Invoices */}
-                            {invoicesIncluded.length > 0 && (
-                              <div className="mt-3">
-                                <p className="text-xs text-muted-foreground mb-1">Invoices included:</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {invoicesIncluded.slice(0, 5).map((inv: any, idx: number) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">
-                                      #{inv.invoice_number} - ${inv.amount?.toLocaleString()}
-                                    </Badge>
-                                  ))}
-                                  {invoicesIncluded.length > 5 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{invoicesIncluded.length - 5} more
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                              <span>
-                                Sent: {activity.sent_at ? format(new Date(activity.sent_at), "MMM d, yyyy h:mm a") : 'N/A'}
-                              </span>
-                              {metadata.sent_to && (
-                                <span>
-                                  To: {Array.isArray(metadata.sent_to) ? metadata.sent_to.join(', ') : metadata.sent_to}
-                                </span>
-                              )}
-                              {metadata.intelligence_report?.risk_level && (
-                                <Badge variant="outline" className="text-xs">
-                                  Risk: {metadata.intelligence_report.risk_level}
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex items-center gap-2 mt-3">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/debtors/${debtor?.id}`)}
-                              >
-                                View Account
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
 
                 {/* Pagination */}
                 {totalAccountOutreachPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-4">
+                  <div className="flex items-center justify-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1140,7 +1159,7 @@ const Outreach = () => {
                     >
                       Previous
                     </Button>
-                    <span className="text-sm text-muted-foreground px-4">
+                    <span className="text-sm text-muted-foreground">
                       Page {accountOutreachPage} of {totalAccountOutreachPages}
                     </span>
                     <Button
@@ -1153,7 +1172,7 @@ const Outreach = () => {
                     </Button>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </TabsContent>
         </Tabs>
