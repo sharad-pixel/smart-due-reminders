@@ -1955,6 +1955,7 @@ export type Database = {
           aging_mix_61_90_pct: number | null
           aging_mix_91_120_pct: number | null
           aging_mix_current_pct: number | null
+          ai_risk_analysis: Json | null
           ai_sentiment_category: string | null
           ai_sentiment_score: number | null
           assigned_campaign_id: string | null
@@ -2039,6 +2040,7 @@ export type Database = {
           aging_mix_61_90_pct?: number | null
           aging_mix_91_120_pct?: number | null
           aging_mix_current_pct?: number | null
+          ai_risk_analysis?: Json | null
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
           assigned_campaign_id?: string | null
@@ -2123,6 +2125,7 @@ export type Database = {
           aging_mix_61_90_pct?: number | null
           aging_mix_91_120_pct?: number | null
           aging_mix_current_pct?: number | null
+          ai_risk_analysis?: Json | null
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
           assigned_campaign_id?: string | null
