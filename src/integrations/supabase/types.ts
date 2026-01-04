@@ -4439,6 +4439,7 @@ export type Database = {
           last_sync_error: string | null
           organization_id: string | null
           stripe_account_id: string | null
+          stripe_secret_key_encrypted: string | null
           sync_frequency: string | null
           sync_status: string | null
           updated_at: string
@@ -4454,6 +4455,7 @@ export type Database = {
           last_sync_error?: string | null
           organization_id?: string | null
           stripe_account_id?: string | null
+          stripe_secret_key_encrypted?: string | null
           sync_frequency?: string | null
           sync_status?: string | null
           updated_at?: string
@@ -4469,6 +4471,7 @@ export type Database = {
           last_sync_error?: string | null
           organization_id?: string | null
           stripe_account_id?: string | null
+          stripe_secret_key_encrypted?: string | null
           sync_frequency?: string | null
           sync_status?: string | null
           updated_at?: string

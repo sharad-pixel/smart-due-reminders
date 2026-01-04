@@ -12,6 +12,38 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SYNC-STRIPE-INVOICES] ${step}${detailsStr}`);
 };
 
+// Decrypt a value using AES-GCM
+async function decryptValue(encryptedValue: string): Promise<string> {
+  const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
+  if (!encryptionKey) {
+    throw new Error('Encryption key not configured');
+  }
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  
+  const encryptedData = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+  const iv = encryptedData.slice(0, 12);
+  const data = encryptedData.slice(12);
+
+  const keyMaterial = encoder.encode(encryptionKey);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyMaterial.slice(0, 32),
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    data
+  );
+
+  return decoder.decode(decrypted);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,9 +57,6 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -43,6 +72,27 @@ serve(async (req) => {
     const { data: effectiveAccountData } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
     const effectiveAccountId = effectiveAccountData || user.id;
     logStep("Effective account ID", { effectiveAccountId });
+
+    // Get the user's Stripe credentials
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from('stripe_integrations')
+      .select('stripe_secret_key_encrypted')
+      .eq('user_id', effectiveAccountId)
+      .maybeSingle();
+
+    if (integrationError) {
+      throw new Error(`Failed to fetch Stripe integration: ${integrationError.message}`);
+    }
+
+    let stripeKey: string;
+    
+    if (integration?.stripe_secret_key_encrypted) {
+      // Use user's own Stripe key
+      stripeKey = await decryptValue(integration.stripe_secret_key_encrypted);
+      logStep("Using user-provided Stripe key");
+    } else {
+      throw new Error("No Stripe API key configured. Please add your Stripe secret key in Settings.");
+    }
 
     // Update sync status to 'syncing'
     await supabaseClient
