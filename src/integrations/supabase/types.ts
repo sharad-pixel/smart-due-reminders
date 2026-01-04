@@ -3239,6 +3239,75 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_transactions: {
+        Row: {
+          amount: number
+          balance_after: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          metadata: Json | null
+          notes: string | null
+          organization_id: string | null
+          payment_method: string | null
+          reason: string | null
+          reference_number: string | null
+          transaction_date: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          metadata?: Json | null
+          notes?: string | null
+          organization_id?: string | null
+          payment_method?: string | null
+          reason?: string | null
+          reference_number?: string | null
+          transaction_date?: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          metadata?: Json | null
+          notes?: string | null
+          organization_id?: string | null
+          payment_method?: string | null
+          reason?: string | null
+          reference_number?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_usage: {
         Row: {
           created_at: string | null
