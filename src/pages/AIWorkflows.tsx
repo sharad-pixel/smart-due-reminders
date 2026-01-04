@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Sparkles, BarChart3, Eye, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { Workflow, Mail, MessageSquare, Clock, Sparkles, BarChart3, Eye, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Pencil, Trash2, AlertTriangle, RotateCcw, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,8 +70,20 @@ interface DraftsByPersona {
   };
 }
 
+interface RefreshResult {
+  workflowsCreated: number;
+  workflowsFixed: number;
+  skippedCurrent: number;
+  schedulerResult?: {
+    drafted: number;
+    sent: number;
+    failed: number;
+  };
+}
+
 const AIWorkflows = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -104,6 +120,94 @@ const AIWorkflows = () => {
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<RefreshResult | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
+
+  // Fetch outreach errors
+  const { data: outreachErrors, refetch: refetchErrors } = useQuery({
+    queryKey: ["outreach-errors-workflows"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("outreach_errors")
+        .select(`
+          id, error_type, error_message, step_number, attempted_at, resolved_at, retry_count,
+          invoices (id, invoice_number, debtors (company_name, name))
+        `)
+        .is("resolved_at", null)
+        .order("attempted_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Mutation to retry failed outreach
+  const retryError = useMutation({
+    mutationFn: async (errorId: string) => {
+      await supabase
+        .from("outreach_errors")
+        .update({ resolved_at: new Date().toISOString() })
+        .eq("id", errorId);
+      await supabase.functions.invoke("daily-cadence-scheduler", { body: {} });
+    },
+    onSuccess: () => {
+      toast.success("Retrying outreach generation...");
+      refetchErrors();
+    },
+    onError: () => toast.error("Failed to retry"),
+  });
+
+  // Refresh outreach handler
+  const handleRefreshOutreach = async () => {
+    setIsRefreshing(true);
+    setRefreshResult(null);
+    try {
+      toast.info("Scanning all invoices and generating outreach...");
+      
+      const { data, error } = await supabase.functions.invoke("ensure-invoice-workflows", {
+        body: {},
+      });
+
+      if (error) {
+        console.error("Refresh error:", error);
+        toast.error("Failed to refresh outreach");
+        return;
+      }
+
+      const result = data as RefreshResult;
+      setRefreshResult(result);
+
+      const messages: string[] = [];
+      if (result?.workflowsCreated > 0) messages.push(`${result.workflowsCreated} workflow(s) assigned`);
+      if (result?.workflowsFixed > 0) messages.push(`${result.workflowsFixed} workflow(s) fixed`);
+      if (result?.schedulerResult?.drafted > 0) messages.push(`${result.schedulerResult.drafted} draft(s) created`);
+      if (result?.schedulerResult?.sent > 0) messages.push(`${result.schedulerResult.sent} email(s) sent`);
+      if (result?.skippedCurrent > 0) messages.push(`${result.skippedCurrent} current-bucket skipped`);
+
+      if (messages.length > 0) {
+        toast.success(messages.join(", "));
+      } else {
+        toast.success("All invoices are up to date");
+      }
+
+      refetchErrors();
+    } catch (err) {
+      console.error("Refresh exception:", err);
+      toast.error("Failed to refresh outreach");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const errorCount = outreachErrors?.length || 0;
   
   const toneOptions = [
     { value: "standard", label: "Standard", description: "Default persona tone" },
@@ -1591,6 +1695,141 @@ const AIWorkflows = () => {
               </Card>
             )}
           </div>
+        {/* Outreach Scheduler Controls */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Scheduled Outreach
+                </CardTitle>
+                <CardDescription>
+                  Manage AI-generated outreach and view scheduled communications
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {errorCount > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowErrors(!showErrors)}
+                    className="text-destructive border-destructive/50"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    {errorCount} Error{errorCount !== 1 ? "s" : ""}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshOutreach}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
+                  {isRefreshing ? "Processing..." : "Refresh Outreach"}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Refresh Result Alert */}
+            {refreshResult && (
+              <Alert className="bg-primary/5 border-primary/20">
+                <Zap className="h-4 w-4" />
+                <AlertTitle>Outreach Refresh Complete</AlertTitle>
+                <AlertDescription>
+                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                    {refreshResult.workflowsCreated > 0 && (
+                      <span className="text-green-600 dark:text-green-400">✓ {refreshResult.workflowsCreated} workflow(s) assigned</span>
+                    )}
+                    {refreshResult.workflowsFixed > 0 && (
+                      <span className="text-blue-600 dark:text-blue-400">✓ {refreshResult.workflowsFixed} workflow(s) fixed</span>
+                    )}
+                    {refreshResult.schedulerResult?.drafted > 0 && (
+                      <span className="text-purple-600 dark:text-purple-400">✓ {refreshResult.schedulerResult.drafted} draft(s) created</span>
+                    )}
+                    {refreshResult.schedulerResult?.sent > 0 && (
+                      <span className="text-green-600 dark:text-green-400">✓ {refreshResult.schedulerResult.sent} email(s) sent</span>
+                    )}
+                    {refreshResult.schedulerResult?.failed > 0 && (
+                      <span className="text-red-600 dark:text-red-400">✗ {refreshResult.schedulerResult.failed} failed</span>
+                    )}
+                    {refreshResult.skippedCurrent > 0 && (
+                      <span className="text-muted-foreground">{refreshResult.skippedCurrent} current-bucket skipped</span>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Errors Panel */}
+            {showErrors && errorCount > 0 && (
+              <Card className="border-destructive/50">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      Outreach Errors
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setShowErrors(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <CardDescription>
+                    These invoices failed to generate outreach drafts. Click retry to attempt again.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Error</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead className="w-[100px]">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {outreachErrors?.map((err: any) => {
+                        const invoice = err.invoices as any;
+                        return (
+                          <TableRow key={err.id}>
+                            <TableCell className="font-medium">
+                              {invoice?.invoice_number || "—"}
+                            </TableCell>
+                            <TableCell>
+                              {invoice?.debtors?.company_name || invoice?.debtors?.name || "—"}
+                            </TableCell>
+                            <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
+                              {err.error_message}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(err.attempted_at), "MMM d, h:mm a")}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => retryError.mutate(err.id)}
+                                disabled={retryError.isPending}
+                              >
+                                <RotateCcw className="h-3 w-3 mr-1" />
+                                Retry
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </CardContent>
+        </Card>
+
         {/* AI Collection Agents Schedule Cards */}
         <AgentScheduleCards 
           selectedPersona={outreachFilterPersona}
