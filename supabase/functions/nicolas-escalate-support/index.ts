@@ -166,11 +166,89 @@ ${transcript_excerpt}
 
     console.log('Email sent successfully:', emailResponse);
 
-    // Update escalation log to mark email as sent
+    // Send Slack notification
+    const slackWebhookUrl = Deno.env.get('SLACK_WEBHOOK_URL');
+    let slackSent = false;
+    
+    if (slackWebhookUrl) {
+      try {
+        const slackMessage = {
+          blocks: [
+            {
+              type: "header",
+              text: {
+                type: "plain_text",
+                text: "🤖 Nicolas Support Escalation",
+                emoji: true
+              }
+            },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `*User Question:*\n>${question}`
+              }
+            },
+            {
+              type: "section",
+              fields: [
+                {
+                  type: "mrkdwn",
+                  text: `*User:*\n${user_name || 'Not provided'}`
+                },
+                {
+                  type: "mrkdwn",
+                  text: `*Email:*\n${user_email || 'Not available'}`
+                },
+                {
+                  type: "mrkdwn",
+                  text: `*Page:*\n\`${page_route}\``
+                },
+                {
+                  type: "mrkdwn",
+                  text: `*Reason:*\n${escalation_reason}`
+                }
+              ]
+            },
+            {
+              type: "context",
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: `Confidence: ${confidence_score !== undefined ? `${(confidence_score * 100).toFixed(0)}%` : 'N/A'} | ${timestamp}`
+                }
+              ]
+            }
+          ]
+        };
+
+        const slackResponse = await fetch(slackWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(slackMessage)
+        });
+
+        if (slackResponse.ok) {
+          slackSent = true;
+          console.log('Slack notification sent successfully');
+        } else {
+          console.error('Slack webhook failed:', await slackResponse.text());
+        }
+      } catch (slackError) {
+        console.error('Error sending Slack notification:', slackError);
+      }
+    } else {
+      console.log('SLACK_WEBHOOK_URL not configured, skipping Slack notification');
+    }
+
+    // Update escalation log to mark notifications as sent
     if (escalationLog?.id) {
       await supabaseClient
         .from('nicolas_escalations')
-        .update({ email_sent: true })
+        .update({ 
+          email_sent: true,
+          slack_sent: slackSent
+        })
         .eq('id', escalationLog.id);
     }
 
