@@ -35,6 +35,7 @@ interface Invoice {
   invoice_number: string;
   amount: number;
   amount_outstanding: number | null;
+  amount_original: number | null;
   due_date: string;
   issue_date: string;
   status: string;
@@ -65,6 +66,8 @@ interface Invoice {
   updated_at: string | null;
   outreach_paused: boolean | null;
   outreach_paused_at: string | null;
+  stripe_invoice_id: string | null;
+  stripe_hosted_url: string | null;
   debtors?: { 
     company_name: string; 
     email: string;
@@ -650,6 +653,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       return;
     }
 
+    // Check if this is a Stripe-integrated invoice
+    const isStripeInvoice = invoice.source_system === 'stripe' || !!invoice.stripe_invoice_id;
+    if (isStripeInvoice) {
+      const confirmed = window.confirm(
+        "⚠️ This invoice is integrated with Stripe.\n\n" +
+        "For data consistency, payments should be recorded in Stripe and synced to Recouply rather than applied directly here.\n\n" +
+        "Do you still want to apply this payment manually?"
+      );
+      if (!confirmed) return;
+    }
+
     setApplyingPayment(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -789,6 +803,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     if (!creditWriteOffReason.trim()) {
       toast.error("Please enter a reason");
       return;
+    }
+
+    // Check if this is a Stripe-integrated invoice
+    const isStripeInvoice = invoice.source_system === 'stripe' || !!invoice.stripe_invoice_id;
+    if (isStripeInvoice) {
+      const confirmed = window.confirm(
+        `⚠️ This invoice is integrated with Stripe.\n\n` +
+        `For data consistency, ${creditWriteOffType === 'credit' ? 'credits' : 'write-offs'} should be applied in Stripe and synced to Recouply.\n\n` +
+        `Do you still want to apply this ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'} manually?`
+      );
+      if (!confirmed) return;
     }
 
     setApplyingCreditWriteOff(true);
@@ -1041,6 +1066,29 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           </div>
         )}
 
+        {/* Stripe Integration Banner */}
+        {(invoice.source_system === 'stripe' || invoice.stripe_invoice_id) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-blue-800">Stripe Integrated Invoice</p>
+              <p className="text-sm text-blue-700">
+                Payments, credits, and write-offs should be applied in Stripe for data consistency. Use "Sync Stripe" to pull the latest transaction history.
+              </p>
+            </div>
+            {invoice.stripe_hosted_url && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(invoice.stripe_hosted_url!, '_blank')}
+                className="shrink-0"
+              >
+                View in Stripe
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Main Content Grid - 3 columns on large screens */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Invoice Details & Status */}
@@ -1050,8 +1098,19 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <CardTitle>Invoice Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Show original amount if available and different from current */}
+                {invoice.amount_original && invoice.amount_original !== invoice.amount && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Original Amount</p>
+                    <p className="text-lg font-medium text-muted-foreground line-through">
+                      {invoice.currency || 'USD'} ${invoice.amount_original.toLocaleString()}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Amount</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    {invoice.amount_original && invoice.amount_original !== invoice.amount ? 'Current Amount' : 'Amount'}
+                  </p>
                   <p className="text-xl font-bold">
                     {invoice.currency || 'USD'} ${invoice.amount.toLocaleString()}
                   </p>
