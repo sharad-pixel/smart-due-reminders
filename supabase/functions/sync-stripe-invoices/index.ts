@@ -113,7 +113,10 @@ serve(async (req) => {
               phone: customer.phone || null,
               external_customer_id: customer.id,
               external_system: 'stripe',
-              reference_id: `STRIPE-${customer.id.slice(-8).toUpperCase()}`
+              reference_id: `STRIPE-${customer.id.slice(-8).toUpperCase()}`,
+              primary_contact_name: customerName,
+              primary_email: customerEmail,
+              primary_phone: customer.phone || null
             })
             .select('id')
             .single();
@@ -124,8 +127,27 @@ serve(async (req) => {
             continue;
           }
           debtorId = newDebtor.id;
+          
+          // Create a proper contact entry for outreach
+          const { error: contactError } = await supabaseClient
+            .from('debtor_contacts')
+            .insert({
+              debtor_id: debtorId,
+              user_id: effectiveAccountId,
+              name: customerName,
+              email: customerEmail,
+              phone: customer.phone || null,
+              is_primary: true,
+              outreach_enabled: true
+            });
+          
+          if (contactError) {
+            logStep("Error creating contact", { error: contactError.message, debtorId });
+            // Don't fail the whole sync for contact creation issues
+          }
+          
           createdDebtors++;
-          logStep("Created new debtor", { debtorId, customerEmail });
+          logStep("Created new debtor with contact", { debtorId, customerEmail });
         } else {
           debtorId = existingDebtor.id;
         }
