@@ -3171,6 +3171,50 @@ export type Database = {
           },
         ]
       }
+      invoice_override_log: {
+        Row: {
+          acknowledged_warning: boolean | null
+          created_at: string | null
+          field_name: string
+          id: string
+          integration_source: string | null
+          invoice_id: string
+          new_value: string | null
+          original_value: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_warning?: boolean | null
+          created_at?: string | null
+          field_name: string
+          id?: string
+          integration_source?: string | null
+          invoice_id: string
+          new_value?: string | null
+          original_value?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_warning?: boolean | null
+          created_at?: string | null
+          field_name?: string
+          id?: string
+          integration_source?: string | null
+          invoice_id?: string
+          new_value?: string | null
+          original_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_override_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_status_update_errors: {
         Row: {
           error_message: string
@@ -3242,12 +3286,57 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_sync_conflicts: {
+        Row: {
+          conflicts: Json
+          created_at: string | null
+          id: string
+          integration_source: string
+          invoice_id: string
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          user_id: string
+        }
+        Insert: {
+          conflicts?: Json
+          created_at?: string | null
+          id?: string
+          integration_source: string
+          invoice_id: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id: string
+        }
+        Update: {
+          conflicts?: Json
+          created_at?: string | null
+          id?: string
+          integration_source?: string
+          invoice_id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_sync_conflicts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_transactions: {
         Row: {
           amount: number
           balance_after: number | null
           created_at: string
           created_by: string | null
+          external_transaction_id: string | null
           id: string
           invoice_id: string
           metadata: Json | null
@@ -3256,6 +3345,7 @@ export type Database = {
           payment_method: string | null
           reason: string | null
           reference_number: string | null
+          source_system: string | null
           transaction_date: string
           transaction_type: string
           user_id: string
@@ -3265,6 +3355,7 @@ export type Database = {
           balance_after?: number | null
           created_at?: string
           created_by?: string | null
+          external_transaction_id?: string | null
           id?: string
           invoice_id: string
           metadata?: Json | null
@@ -3273,6 +3364,7 @@ export type Database = {
           payment_method?: string | null
           reason?: string | null
           reference_number?: string | null
+          source_system?: string | null
           transaction_date?: string
           transaction_type: string
           user_id: string
@@ -3282,6 +3374,7 @@ export type Database = {
           balance_after?: number | null
           created_at?: string
           created_by?: string | null
+          external_transaction_id?: string | null
           id?: string
           invoice_id?: string
           metadata?: Json | null
@@ -3290,6 +3383,7 @@ export type Database = {
           payment_method?: string | null
           reason?: string | null
           reference_number?: string | null
+          source_system?: string | null
           transaction_date?: string
           transaction_type?: string
           user_id?: string
@@ -3360,19 +3454,27 @@ export type Database = {
           due_date: string
           external_invoice_id: string | null
           external_link: string | null
+          has_local_overrides: boolean | null
           id: string
+          integration_id: string | null
+          integration_source: string | null
+          integration_url: string | null
           invoice_number: string
           is_archived: boolean | null
           is_overage: boolean | null
           issue_date: string
           last_contact_date: string | null
           last_contacted_at: string | null
+          last_synced_at: string | null
           next_contact_date: string | null
           notes: string | null
           organization_id: string | null
+          original_amount: number | null
+          original_due_date: string | null
           outreach_paused: boolean | null
           outreach_paused_at: string | null
           outreach_paused_reason: string | null
+          override_count: number | null
           paid_date: string | null
           payment_date: string | null
           payment_method: string | null
@@ -3410,19 +3512,27 @@ export type Database = {
           due_date: string
           external_invoice_id?: string | null
           external_link?: string | null
+          has_local_overrides?: boolean | null
           id?: string
+          integration_id?: string | null
+          integration_source?: string | null
+          integration_url?: string | null
           invoice_number: string
           is_archived?: boolean | null
           is_overage?: boolean | null
           issue_date: string
           last_contact_date?: string | null
           last_contacted_at?: string | null
+          last_synced_at?: string | null
           next_contact_date?: string | null
           notes?: string | null
           organization_id?: string | null
+          original_amount?: number | null
+          original_due_date?: string | null
           outreach_paused?: boolean | null
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
+          override_count?: number | null
           paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
@@ -3460,19 +3570,27 @@ export type Database = {
           due_date?: string
           external_invoice_id?: string | null
           external_link?: string | null
+          has_local_overrides?: boolean | null
           id?: string
+          integration_id?: string | null
+          integration_source?: string | null
+          integration_url?: string | null
           invoice_number?: string
           is_archived?: boolean | null
           is_overage?: boolean | null
           issue_date?: string
           last_contact_date?: string | null
           last_contacted_at?: string | null
+          last_synced_at?: string | null
           next_contact_date?: string | null
           notes?: string | null
           organization_id?: string | null
+          original_amount?: number | null
+          original_due_date?: string | null
           outreach_paused?: boolean | null
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
+          override_count?: number | null
           paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
