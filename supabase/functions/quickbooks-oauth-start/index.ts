@@ -39,12 +39,41 @@ serve(async (req) => {
       });
     }
 
-    // Create state with user ID (so callback knows which account to update)
-    const state = btoa(JSON.stringify({ 
-      userId: user.id,
-      timestamp: Date.now(),
-      nonce: crypto.randomUUID()
-    }));
+    // Generate cryptographically secure state token
+    const stateToken = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store state server-side for validation
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Clean up any existing unused states for this user/provider
+    await supabaseAdmin
+      .from('oauth_states')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('provider', 'quickbooks')
+      .is('used_at', null);
+
+    // Insert new state
+    const { error: insertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        user_id: user.id,
+        provider: 'quickbooks',
+        state: stateToken,
+        expires_at: expiresAt.toISOString()
+      });
+
+    if (insertError) {
+      console.error('Failed to store OAuth state:', insertError);
+      return new Response(JSON.stringify({ error: 'Failed to initialize OAuth flow' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Build OAuth URL
     const authUrl = 'https://appcenter.intuit.com/connect/oauth2?' + new URLSearchParams({
@@ -52,10 +81,10 @@ serve(async (req) => {
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'com.intuit.quickbooks.accounting',
-      state: state
+      state: stateToken
     }).toString();
 
-    console.log(`QuickBooks OAuth started for user ${user.id}`);
+    console.log(`QuickBooks OAuth started for user ${user.id}, state stored server-side`);
 
     return new Response(JSON.stringify({ authUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

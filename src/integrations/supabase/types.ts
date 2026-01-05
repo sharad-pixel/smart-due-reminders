@@ -3909,6 +3909,44 @@ export type Database = {
         }
         Relationships: []
       }
+      oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          provider: string
+          state: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          provider: string
+          state: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider?: string
+          state?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           accent_color: string | null
@@ -5216,6 +5254,7 @@ export type Database = {
         }[]
       }
       clean_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_invite_token: { Args: never; Returns: string }
       generate_reference_id: {

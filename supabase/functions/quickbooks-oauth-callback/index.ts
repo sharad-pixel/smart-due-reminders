@@ -24,20 +24,46 @@ serve(async (req) => {
       return Response.redirect(`${baseRedirect}/data-center?qb_error=missing_parameters`);
     }
 
-    // Decode state to get user ID
-    let stateData;
-    try {
-      stateData = JSON.parse(atob(state));
-    } catch (e) {
-      console.error('Failed to decode state:', e);
+    // Validate state server-side (prevents CSRF and state forgery)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Look up the state token
+    const { data: oauthState, error: stateError } = await supabaseAdmin
+      .from('oauth_states')
+      .select('id, user_id, expires_at, used_at')
+      .eq('state', state)
+      .eq('provider', 'quickbooks')
+      .single();
+
+    if (stateError || !oauthState) {
+      console.error('Invalid state token - not found in database:', stateError);
       return Response.redirect(`${baseRedirect}/data-center?qb_error=invalid_state`);
     }
 
-    const userId = stateData.userId;
-    if (!userId) {
-      console.error('No user ID in state');
-      return Response.redirect(`${baseRedirect}/data-center?qb_error=no_user_id`);
+    // Check if state was already used (replay attack prevention)
+    if (oauthState.used_at) {
+      console.error('State token already used (potential replay attack)');
+      return Response.redirect(`${baseRedirect}/data-center?qb_error=state_already_used`);
     }
+
+    // Check if state has expired
+    if (new Date(oauthState.expires_at) < new Date()) {
+      console.error('State token expired');
+      // Clean up expired state
+      await supabaseAdmin.from('oauth_states').delete().eq('id', oauthState.id);
+      return Response.redirect(`${baseRedirect}/data-center?qb_error=state_expired`);
+    }
+
+    const userId = oauthState.user_id;
+
+    // Mark state as used immediately (prevents replay)
+    await supabaseAdmin
+      .from('oauth_states')
+      .update({ used_at: new Date().toISOString() })
+      .eq('id', oauthState.id);
 
     // Exchange code for tokens using PLATFORM credentials
     const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
@@ -101,11 +127,6 @@ serve(async (req) => {
     }
 
     // Store tokens in THIS USER's profile
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
     const { error: updateError } = await supabaseAdmin
@@ -127,6 +148,9 @@ serve(async (req) => {
     }
 
     console.log(`QuickBooks connected for user ${userId}: ${companyName} (${realmId})`);
+
+    // Clean up used state (optional - could also rely on cleanup function)
+    await supabaseAdmin.from('oauth_states').delete().eq('id', oauthState.id);
 
     // Success! Redirect to Data Center
     return Response.redirect(`${baseRedirect}/data-center?qb_connected=true&company=${encodeURIComponent(companyName)}`);
