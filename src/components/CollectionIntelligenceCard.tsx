@@ -84,6 +84,7 @@ export function CollectionIntelligenceCard() {
           "id, company_name, name, total_open_balance, intelligence_report, intelligence_report_generated_at",
         )
         .neq("is_archived", true)
+        .gt("total_open_balance", 0) // Only show accounts with open balance
         .order("updated_at", { ascending: false })
         .limit(100);
 
@@ -91,7 +92,10 @@ export function CollectionIntelligenceCard() {
 
       if (error) throw error;
 
-      const accountsWithReports = (data || []).filter((a) => a.intelligence_report !== null);
+      // Filter to accounts with intelligence reports AND open balance > 0
+      const accountsWithReports = (data || []).filter(
+        (a) => a.intelligence_report !== null && (a.total_open_balance || 0) > 0
+      );
       accountsWithReports.sort((a, b) => {
         const aTime = a.intelligence_report_generated_at
           ? new Date(a.intelligence_report_generated_at).getTime()
