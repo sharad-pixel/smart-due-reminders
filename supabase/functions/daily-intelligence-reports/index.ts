@@ -27,12 +27,38 @@ serve(async (req) => {
 
     console.log("[DAILY-INTELLIGENCE] Starting daily intelligence report generation");
 
-    // Fetch all active debtors that have open invoices
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get effective account ID for team members
+    const { data: effectiveAccountId } = await supabase
+      .rpc("get_effective_account_id", { p_user_id: user.id });
+
+    const accountId = effectiveAccountId || user.id;
+
+    // Fetch active accounts for this user only
     const { data: debtors, error: debtorsError } = await supabase
       .from("debtors")
       .select("id, company_name, name, user_id, organization_id")
+      .eq("user_id", accountId)
       .eq("is_archived", false)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .limit(200);
 
     if (debtorsError) {
       console.error("[DAILY-INTELLIGENCE] Error fetching debtors:", debtorsError);

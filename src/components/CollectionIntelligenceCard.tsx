@@ -65,7 +65,7 @@ export function CollectionIntelligenceCard() {
     isRefetching: aiRefetching 
   } = useAIAnalytics({ scope: "dashboard" });
 
-  const fetchAccountsWithIntelligence = useCallback(async () => {
+  const fetchAccountsWithIntelligence = useCallback(async (): Promise<AccountWithIntelligence[]> => {
     setLoading(true);
     setLoadError(null);
 
@@ -91,17 +91,24 @@ export function CollectionIntelligenceCard() {
 
       if (error) throw error;
 
-      const accountsWithReports = (data || []).filter(a => a.intelligence_report !== null);
+      const accountsWithReports = (data || []).filter((a) => a.intelligence_report !== null);
       accountsWithReports.sort((a, b) => {
-        const aTime = a.intelligence_report_generated_at ? new Date(a.intelligence_report_generated_at).getTime() : 0;
-        const bTime = b.intelligence_report_generated_at ? new Date(b.intelligence_report_generated_at).getTime() : 0;
+        const aTime = a.intelligence_report_generated_at
+          ? new Date(a.intelligence_report_generated_at).getTime()
+          : 0;
+        const bTime = b.intelligence_report_generated_at
+          ? new Date(b.intelligence_report_generated_at).getTime()
+          : 0;
         return bTime - aTime;
       });
+
       setAccounts(accountsWithReports);
+      return accountsWithReports;
     } catch (error: any) {
       console.error("[CollectionIntelligence] Error:", error);
       setLoadError(error?.message || "Failed to load intelligence.");
       setAccounts([]);
+      return [];
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
@@ -114,31 +121,49 @@ export function CollectionIntelligenceCard() {
 
   const handleRefresh = async () => {
     setRegenerating(true);
+
+    const prevLatestMs = latestReportTime
+      ? new Date(latestReportTime).getTime()
+      : 0;
+
     try {
       // Trigger both refreshes in parallel
-      const [, intelligenceResult] = await Promise.all([
+      const [aiResult, intelligenceResult] = await Promise.all([
         refetchAI(),
-        supabase.functions.invoke("daily-intelligence-reports")
+        supabase.functions.invoke("daily-intelligence-reports"),
       ]);
-      
+
+      if (aiResult.error) throw aiResult.error;
       if (intelligenceResult.error) throw intelligenceResult.error;
-      
-      toast.success("Refreshing intelligence data...");
-      
-      // Poll for updates
+
+      const processed = (intelligenceResult.data as any)?.processed;
+      const failed = (intelligenceResult.data as any)?.failed;
+
+      toast.success(
+        typeof processed === "number"
+          ? `Refreshing intelligence… (${processed} processed${failed ? `, ${failed} failed` : ""})`
+          : "Refreshing intelligence data…",
+      );
+
+      // Poll for updates; stop early once we see a newer report timestamp
       let attempts = 0;
-      const maxAttempts = 8;
+      const maxAttempts = 10;
       const pollInterval = setInterval(async () => {
         attempts++;
-        await fetchAccountsWithIntelligence();
-        if (attempts >= maxAttempts) {
+        const refreshed = await fetchAccountsWithIntelligence();
+        const newLatestMs = refreshed[0]?.intelligence_report_generated_at
+          ? new Date(refreshed[0].intelligence_report_generated_at).getTime()
+          : 0;
+
+        if (newLatestMs > prevLatestMs || attempts >= maxAttempts) {
           clearInterval(pollInterval);
           setRegenerating(false);
           toast.success("Intelligence refresh complete");
         }
-      }, 3000);
+      }, 2500);
     } catch (error: any) {
-      toast.error(error.message || "Failed to refresh intelligence");
+      const message = error?.message || "Failed to refresh intelligence";
+      toast.error(message);
       setRegenerating(false);
     }
   };
