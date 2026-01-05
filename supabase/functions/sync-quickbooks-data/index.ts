@@ -13,12 +13,24 @@ const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
 const QB_PAGE_SIZE = 1000;
 const QB_MINOR_VERSION = 75;
 
+// Default incremental sync: last 24 months
+const INCREMENTAL_MONTHS = 24;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Parse request body for options
+    let fullSync = false;
+    try {
+      const body = await req.json();
+      fullSync = body?.full_sync === true;
+    } catch {
+      // No body or invalid JSON - use defaults
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -53,6 +65,7 @@ serve(async (req) => {
     }
 
     let accessToken = profile.quickbooks_access_token;
+    let currentRefreshToken = profile.quickbooks_refresh_token;
     const realmId = profile.quickbooks_realm_id;
 
     // Check if token is expired (with 2-minute buffer) and refresh if needed
@@ -62,13 +75,15 @@ serve(async (req) => {
       
       if (expiresAt <= refreshThreshold) {
         console.log('Token expired or expiring soon, refreshing with CAS...');
-        accessToken = await refreshTokenCAS(supabaseAdmin, user.id, profile.quickbooks_refresh_token);
-        if (!accessToken) {
+        const refreshResult = await refreshTokenCAS(supabaseAdmin, user.id, currentRefreshToken);
+        if (!refreshResult) {
           return new Response(JSON.stringify({ error: 'Failed to refresh token. Please reconnect QuickBooks.' }), {
             status: 401,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
+        accessToken = refreshResult.accessToken;
+        currentRefreshToken = refreshResult.refreshToken;
       }
     }
 
@@ -82,7 +97,7 @@ serve(async (req) => {
       .from('quickbooks_sync_log')
       .insert({
         user_id: user.id,
-        sync_type: 'full',
+        sync_type: fullSync ? 'full' : 'incremental',
         status: 'running'
       })
       .select()
@@ -92,14 +107,22 @@ serve(async (req) => {
     let invoicesSynced = 0;
     const errors: string[] = [];
 
+    // Token refresh context for qbQueryAll retry logic
+    const tokenContext = {
+      accessToken,
+      refreshToken: currentRefreshToken,
+      supabaseAdmin,
+      userId: user.id
+    };
+
     try {
-      // Sync Customers with pagination
+      // Sync Customers with pagination (always full sync for customers)
       console.log('Fetching customers from QuickBooks...');
       const customers = await qbQueryAll(
         apiBase,
         realmId,
-        accessToken,
-        'SELECT * FROM Customer'
+        'SELECT * FROM Customer',
+        tokenContext
       );
       console.log(`Found ${customers.length} customers`);
 
@@ -152,13 +175,25 @@ serve(async (req) => {
         }
       }
 
+      // Build invoice query - incremental by default (last 24 months)
+      let invoiceQuery = 'SELECT * FROM Invoice';
+      if (!fullSync) {
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - INCREMENTAL_MONTHS);
+        const cutoffStr = cutoffDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        invoiceQuery = `SELECT * FROM Invoice WHERE TxnDate >= '${cutoffStr}'`;
+        console.log(`Incremental sync: fetching invoices since ${cutoffStr}`);
+      } else {
+        console.log('Full sync: fetching all invoices');
+      }
+
       // Sync Invoices with pagination
       console.log('Fetching invoices from QuickBooks...');
       const invoices = await qbQueryAll(
         apiBase,
         realmId,
-        accessToken,
-        'SELECT * FROM Invoice'
+        invoiceQuery,
+        tokenContext
       );
       console.log(`Found ${invoices.length} invoices`);
 
@@ -237,6 +272,7 @@ serve(async (req) => {
       success: true,
       customers_synced: customersSynced,
       invoices_synced: invoicesSynced,
+      sync_type: fullSync ? 'full' : 'incremental',
       errors: errors.length > 0 ? errors : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -252,18 +288,27 @@ serve(async (req) => {
   }
 });
 
+interface TokenContext {
+  accessToken: string;
+  refreshToken: string;
+  supabaseAdmin: any;
+  userId: string;
+}
+
 /**
  * Paginated QuickBooks query helper.
  * Fetches all records using STARTPOSITION/MAXRESULTS pagination.
+ * Retries once on 401 after refreshing the token.
  */
 async function qbQueryAll(
   apiBase: string,
   realmId: string,
-  accessToken: string,
-  baseQuery: string
+  baseQuery: string,
+  tokenContext: TokenContext
 ): Promise<any[]> {
   const results: any[] = [];
   let startPosition = 1;
+  let currentAccessToken = tokenContext.accessToken;
   
   // Extract entity name from query (e.g., "SELECT * FROM Customer" -> "Customer")
   const entityMatch = baseQuery.match(/FROM\s+(\w+)/i);
@@ -276,18 +321,50 @@ async function qbQueryAll(
   while (true) {
     const paginatedQuery = `${baseQuery} STARTPOSITION ${startPosition} MAXRESULTS ${QB_PAGE_SIZE}`;
     const encodedQuery = encodeURIComponent(paginatedQuery);
-    const url = `${apiBase}/v3/company/${realmId}/query?query=${encodedQuery}&minorversion=${QB_MINOR_VERSION}`;
+    // Standardized URL: minorversion first, then query
+    const url = `${apiBase}/v3/company/${realmId}/query?minorversion=${QB_MINOR_VERSION}&query=${encodedQuery}`;
     
     console.log(`Fetching ${entityName} from position ${startPosition}...`);
     
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${currentAccessToken}`,
         'Accept': 'application/json'
       }
     });
 
-    if (!response.ok) {
+    // On 401, try to refresh token and retry once
+    if (response.status === 401) {
+      console.log('QB API returned 401, attempting token refresh...');
+      const refreshResult = await refreshTokenCAS(
+        tokenContext.supabaseAdmin,
+        tokenContext.userId,
+        tokenContext.refreshToken
+      );
+      
+      if (!refreshResult) {
+        throw new Error('QB query failed: token refresh failed after 401');
+      }
+      
+      // Update context with new tokens
+      currentAccessToken = refreshResult.accessToken;
+      tokenContext.accessToken = refreshResult.accessToken;
+      tokenContext.refreshToken = refreshResult.refreshToken;
+      
+      // Retry the same request
+      console.log('Retrying QB request with refreshed token...');
+      response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${currentAccessToken}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`QB query failed after retry (${response.status}): ${errText}`);
+      }
+    } else if (!response.ok) {
       const errText = await response.text();
       throw new Error(`QB query failed (${response.status}): ${errText}`);
     }
@@ -312,18 +389,23 @@ async function qbQueryAll(
   return results;
 }
 
+interface RefreshResult {
+  accessToken: string;
+  refreshToken: string;
+}
+
 /**
  * Refresh QuickBooks token with Compare-And-Swap (CAS) to prevent race conditions.
  * Uses .maybeSingle() for proper CAS semantics:
  * - If updateError => real error, return null
- * - If updated row exists => return new token
+ * - If updated row exists => return new tokens (from Intuit response, not DB)
  * - If no row updated => another process refreshed, fetch latest and validate
  */
 async function refreshTokenCAS(
   supabaseAdmin: any,
   userId: string,
   oldRefreshToken: string
-): Promise<string | null> {
+): Promise<RefreshResult | null> {
   try {
     const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
     const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
@@ -357,6 +439,7 @@ async function refreshTokenCAS(
 
     // CAS update: only update if refresh_token still matches what we used
     // Use .maybeSingle() to distinguish "no match" from "real error"
+    // Only select 'id' to avoid exposing sensitive columns
     const { data: updateResult, error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -366,7 +449,7 @@ async function refreshTokenCAS(
       })
       .eq('id', userId)
       .eq('quickbooks_refresh_token', oldRefreshToken)
-      .select('quickbooks_access_token')
+      .select('id')
       .maybeSingle();
 
     // Real database error
@@ -375,19 +458,22 @@ async function refreshTokenCAS(
       return null;
     }
 
-    // CAS succeeded - we updated the row
-    if (updateResult?.quickbooks_access_token) {
+    // CAS succeeded - we updated the row, return tokens from Intuit response
+    if (updateResult?.id) {
       console.log('Token refreshed successfully with CAS');
-      return updateResult.quickbooks_access_token;
+      return {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token
+      };
     }
 
     // No row updated - another process already refreshed the token
-    // Re-fetch the profile to get the current access token and validate it's not expired
+    // Re-fetch the profile to get the current tokens and validate not expired
     console.log('CAS: no row matched, another process may have refreshed. Fetching current token...');
     
     const { data: currentProfile, error: fetchError } = await supabaseAdmin
       .from('profiles')
-      .select('quickbooks_access_token, quickbooks_token_expires_at')
+      .select('quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
       .eq('id', userId)
       .single();
 
@@ -406,7 +492,10 @@ async function refreshTokenCAS(
     }
 
     console.log('Using token refreshed by another process');
-    return currentProfile.quickbooks_access_token;
+    return {
+      accessToken: currentProfile.quickbooks_access_token,
+      refreshToken: currentProfile.quickbooks_refresh_token
+    };
 
   } catch (e: unknown) {
     console.error('Token refresh error:', e);
