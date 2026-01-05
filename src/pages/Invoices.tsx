@@ -19,7 +19,7 @@ import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
-import { AIInsightsCard } from "@/components/CollectionIntelligenceCard";
+import { AIInsightsCard } from "@/components/AIInsightsCard";
 import { IntegrationSourceBadge } from "@/components/IntegrationSourceBanner";
 
 interface Invoice {

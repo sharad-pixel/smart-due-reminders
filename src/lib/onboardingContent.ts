@@ -15,7 +15,7 @@ export const PAGE_ONBOARDING_CONTENT: Record<string, PageOnboardingContent> = {
       "The AR Aging breakdown shows your receivables by age bucket - watch the 90+ day balances closely",
       "Payment Score indicates overall portfolio health - higher is better",
       "Click on any metric card to drill down into details",
-      "Collection Intelligence provides actionable recommendations based on your data",
+      "AI Insights provide actionable recommendations based on your data",
     ],
     quickActions: [
       { label: "View Accounts", path: "/debtors" },
