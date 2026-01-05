@@ -6,12 +6,35 @@ const corsHeaders = {
 };
 
 interface WorkflowResult {
-  assigned: number;
-  fixed: number;
-  skipped: number;
+  invoicesChecked: number;
+  workflowsAssigned: number;
+  workflowsUpgraded: number;
+  cadenceFixed: number;
   skippedCurrent: number;
+  skippedNoWorkflow: number;
   errors: number;
   errorDetails: Array<{ invoiceId: string; error: string }>;
+}
+
+// Aging bucket priority order (highest priority first)
+const BUCKET_PRIORITY: Record<string, number> = {
+  'dpd_150_plus': 1,
+  'dpd_121_150': 2,
+  'dpd_91_120': 3,
+  'dpd_61_90': 4,
+  'dpd_31_60': 5,
+  'dpd_1_30': 6,
+  'current': 7,
+};
+
+function calculateAgingBucket(daysPastDue: number): string {
+  if (daysPastDue < 0) return 'current';
+  if (daysPastDue <= 30) return 'dpd_1_30';
+  if (daysPastDue <= 60) return 'dpd_31_60';
+  if (daysPastDue <= 90) return 'dpd_61_90';
+  if (daysPastDue <= 120) return 'dpd_91_120';
+  if (daysPastDue <= 150) return 'dpd_121_150';
+  return 'dpd_150_plus';
 }
 
 Deno.serve(async (req) => {
@@ -20,16 +43,18 @@ Deno.serve(async (req) => {
   }
 
   const result: WorkflowResult = {
-    assigned: 0,
-    fixed: 0,
-    skipped: 0,
+    invoicesChecked: 0,
+    workflowsAssigned: 0,
+    workflowsUpgraded: 0,
+    cadenceFixed: 0,
     skippedCurrent: 0,
+    skippedNoWorkflow: 0,
     errors: 0,
     errorDetails: [],
   };
 
   try {
-    console.log('Starting ensure-invoice-workflows process...');
+    console.log('[ENSURE-WORKFLOWS] Starting comprehensive workflow assignment...');
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -45,90 +70,115 @@ Deno.serve(async (req) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Fetch all open/in-payment-plan invoices that are NOT paused
-    const { data: invoices, error: invoicesError } = await supabaseAdmin
-      .from('invoices')
-      .select(`
-        id,
-        user_id,
-        due_date,
-        status,
-        aging_bucket,
-        outreach_paused,
-        debtor_id,
-        debtors!inner (
-          id,
-          outreach_paused
-        )
-      `)
-      .in('status', ['Open', 'InPaymentPlan'])
-      .eq('outreach_paused', false);
+    // Process ALL invoices in batches to avoid 1000 row limit
+    const BATCH_SIZE = 500;
+    let offset = 0;
+    let hasMore = true;
+    let allInvoices: any[] = [];
 
-    if (invoicesError) {
-      console.error('Error fetching invoices:', invoicesError);
-      throw invoicesError;
+    console.log('[ENSURE-WORKFLOWS] Fetching all unpaid invoices in batches...');
+
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabaseAdmin
+        .from('invoices')
+        .select(`
+          id,
+          user_id,
+          due_date,
+          status,
+          aging_bucket,
+          outreach_paused,
+          debtor_id,
+          debtors!inner (
+            id,
+            outreach_paused
+          )
+        `)
+        .in('status', ['Open', 'InPaymentPlan'])
+        .eq('outreach_paused', false)
+        .range(offset, offset + BATCH_SIZE - 1)
+        .order('due_date', { ascending: true }); // Oldest first (highest priority)
+
+      if (batchError) {
+        console.error('[ENSURE-WORKFLOWS] Error fetching batch:', batchError);
+        throw batchError;
+      }
+
+      const batchCount = batch?.length || 0;
+      console.log(`[ENSURE-WORKFLOWS] Batch ${Math.floor(offset / BATCH_SIZE) + 1}: ${batchCount} invoices`);
+
+      if (batchCount === 0) {
+        hasMore = false;
+        break;
+      }
+
+      // Filter out invoices where debtor has outreach paused
+      const filtered = batch.filter(inv => {
+        const debtor = inv.debtors as any;
+        return !debtor?.outreach_paused;
+      });
+
+      allInvoices = [...allInvoices, ...filtered];
+      offset += BATCH_SIZE;
+
+      if (batchCount < BATCH_SIZE) {
+        hasMore = false;
+      }
+
+      // Safety limit
+      if (allInvoices.length >= 50000) {
+        console.log('[ENSURE-WORKFLOWS] Reached safety limit of 50,000 invoices');
+        hasMore = false;
+      }
     }
 
-    // Filter out invoices where the debtor has outreach paused
-    const eligibleInvoices = invoices?.filter(inv => {
-      const debtor = inv.debtors as any;
-      return !debtor?.outreach_paused;
-    }) || [];
-
-    console.log(`Found ${eligibleInvoices.length} eligible invoices (not paused)`);
+    console.log(`[ENSURE-WORKFLOWS] Total eligible invoices: ${allInvoices.length}`);
+    result.invoicesChecked = allInvoices.length;
 
     // Get all active ai_workflows for these invoices
-    const invoiceIds = eligibleInvoices.map(inv => inv.id);
+    const invoiceIds = allInvoices.map(inv => inv.id);
     
     const { data: existingWorkflows, error: workflowsError } = await supabaseAdmin
       .from('ai_workflows')
-      .select('invoice_id')
-      .in('invoice_id', invoiceIds.length > 0 ? invoiceIds : ['00000000-0000-0000-0000-000000000000'])
-      .eq('is_active', true);
+      .select('id, invoice_id, cadence_days, is_active')
+      .in('invoice_id', invoiceIds.length > 0 ? invoiceIds : ['00000000-0000-0000-0000-000000000000']);
 
     if (workflowsError) {
-      console.error('Error fetching existing workflows:', workflowsError);
+      console.error('[ENSURE-WORKFLOWS] Error fetching workflows:', workflowsError);
       throw workflowsError;
     }
 
-    const invoicesWithWorkflows = new Set(existingWorkflows?.map(w => w.invoice_id) || []);
+    // Build maps for quick lookup
+    const activeWorkflowsByInvoice = new Map<string, any>();
+    const allWorkflowsByInvoice = new Map<string, any[]>();
     
-    // Find invoices without active workflows
-    const invoicesNeedingWorkflows = eligibleInvoices.filter(inv => !invoicesWithWorkflows.has(inv.id));
+    for (const wf of existingWorkflows || []) {
+      if (!allWorkflowsByInvoice.has(wf.invoice_id)) {
+        allWorkflowsByInvoice.set(wf.invoice_id, []);
+      }
+      allWorkflowsByInvoice.get(wf.invoice_id)!.push(wf);
+      
+      if (wf.is_active) {
+        activeWorkflowsByInvoice.set(wf.invoice_id, wf);
+      }
+    }
 
-    console.log(`${invoicesNeedingWorkflows.length} invoices need workflow assignments`);
+    console.log(`[ENSURE-WORKFLOWS] Active workflows found: ${activeWorkflowsByInvoice.size}`);
 
-    for (const invoice of invoicesNeedingWorkflows) {
+    // Cache collection workflows by bucket to avoid repeated queries
+    const workflowCache = new Map<string, Map<string, any>>();
+
+    for (const invoice of allInvoices) {
       try {
-        // Determine aging bucket based on due date
+        // Calculate aging bucket
         const dueDate = new Date(invoice.due_date);
         dueDate.setHours(0, 0, 0, 0);
-        
         const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        let agingBucket: string;
-        if (daysPastDue < 0) {
-          agingBucket = 'current';
-        } else if (daysPastDue >= 0 && daysPastDue <= 30) {
-          agingBucket = 'dpd_1_30';
-        } else if (daysPastDue >= 31 && daysPastDue <= 60) {
-          agingBucket = 'dpd_31_60';
-        } else if (daysPastDue >= 61 && daysPastDue <= 90) {
-          agingBucket = 'dpd_61_90';
-        } else if (daysPastDue >= 91 && daysPastDue <= 120) {
-          agingBucket = 'dpd_91_120';
-        } else if (daysPastDue >= 121 && daysPastDue <= 150) {
-          agingBucket = 'dpd_121_150';
-        } else {
-          agingBucket = 'dpd_150_plus';
-        }
+        const agingBucket = calculateAgingBucket(daysPastDue);
 
-        // Skip 'current' bucket invoices - they're not past due yet
+        // Skip 'current' bucket - not past due yet
         if (agingBucket === 'current') {
-          console.log(`Skipping invoice ${invoice.id}: aging_bucket is 'current' (not past due yet)`);
-          result.skippedCurrent++;
-          
-          // Still update the aging_bucket if needed
+          // Update aging_bucket if needed
           if (invoice.aging_bucket !== agingBucket) {
             await supabaseAdmin
               .from('invoices')
@@ -138,11 +188,13 @@ Deno.serve(async (req) => {
               })
               .eq('id', invoice.id);
           }
+          result.skippedCurrent++;
           continue;
         }
 
-        // Update the invoice aging_bucket if changed
-        if (invoice.aging_bucket !== agingBucket) {
+        // Update invoice aging_bucket if changed
+        const bucketChanged = invoice.aging_bucket !== agingBucket;
+        if (bucketChanged) {
           await supabaseAdmin
             .from('invoices')
             .update({ 
@@ -150,179 +202,159 @@ Deno.serve(async (req) => {
               bucket_entered_at: new Date().toISOString()
             })
             .eq('id', invoice.id);
-          console.log(`Updated invoice ${invoice.id} aging_bucket to ${agingBucket}`);
+          console.log(`[ENSURE-WORKFLOWS] Invoice ${invoice.id} bucket: ${invoice.aging_bucket} → ${agingBucket}`);
         }
 
-        // Find active collection workflow for this bucket and user
-        const { data: workflow, error: workflowError } = await supabaseAdmin
-          .from('collection_workflows')
-          .select(`
-            id,
-            collection_workflow_steps (
+        // Get or cache workflow template for this bucket/user
+        const cacheKey = `${agingBucket}:${invoice.user_id}`;
+        let userWorkflowCache = workflowCache.get(invoice.user_id);
+        
+        if (!userWorkflowCache) {
+          userWorkflowCache = new Map();
+          workflowCache.set(invoice.user_id, userWorkflowCache);
+        }
+
+        let collectionWorkflow = userWorkflowCache.get(agingBucket);
+        
+        if (!collectionWorkflow) {
+          // Fetch collection workflow for this bucket
+          const { data: workflow } = await supabaseAdmin
+            .from('collection_workflows')
+            .select(`
               id,
-              day_offset,
-              step_order
-            )
-          `)
-          .eq('aging_bucket', agingBucket)
-          .eq('is_active', true)
-          .or(`user_id.eq.${invoice.user_id},user_id.is.null`)
-          .order('user_id', { ascending: false, nullsFirst: false })
-          .limit(1)
-          .maybeSingle();
+              collection_workflow_steps (
+                id,
+                day_offset,
+                step_order
+              )
+            `)
+            .eq('aging_bucket', agingBucket)
+            .eq('is_active', true)
+            .or(`user_id.eq.${invoice.user_id},user_id.is.null`)
+            .order('user_id', { ascending: false, nullsFirst: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (workflowError) {
-          console.error(`Error finding workflow for bucket ${agingBucket}:`, workflowError);
-          result.errors++;
-          result.errorDetails.push({ invoiceId: invoice.id, error: workflowError.message });
+          userWorkflowCache.set(agingBucket, workflow || null);
+          collectionWorkflow = workflow;
+        }
+
+        if (!collectionWorkflow) {
+          console.log(`[ENSURE-WORKFLOWS] No workflow template for bucket ${agingBucket}`);
+          result.skippedNoWorkflow++;
           continue;
         }
 
-        if (!workflow) {
-          console.log(`No workflow found for bucket ${agingBucket}, invoice ${invoice.id}`);
-          result.skipped++;
-          continue;
-        }
-
-        // Create cadence_days array from workflow steps
-        const steps = (workflow.collection_workflow_steps as any[]) || [];
+        // Calculate cadence_days from steps
+        const steps = (collectionWorkflow.collection_workflow_steps as any[]) || [];
         let cadenceDays = steps
           .sort((a, b) => a.step_order - b.step_order)
           .map(s => s.day_offset);
 
-        // Ensure cadence_days is not empty (trigger will also handle this)
         if (cadenceDays.length === 0) {
           cadenceDays = [0, 3, 7, 14, 21]; // Default cadence
-          console.log(`Workflow ${workflow.id} has no steps, using default cadence`);
         }
 
-        // Create ai_workflow entry
-        const { error: insertError } = await supabaseAdmin
-          .from('ai_workflows')
-          .insert({
-            invoice_id: invoice.id,
-            user_id: invoice.user_id,
-            cadence_days: cadenceDays,
-            is_active: true,
-            tone: 'friendly'
-          });
+        const existingActive = activeWorkflowsByInvoice.get(invoice.id);
 
-        if (insertError) {
-          console.error(`Error creating workflow for invoice ${invoice.id}:`, insertError);
-          result.errors++;
-          result.errorDetails.push({ invoiceId: invoice.id, error: insertError.message });
-          continue;
+        if (!existingActive) {
+          // No active workflow - create new one
+          const { error: insertError } = await supabaseAdmin
+            .from('ai_workflows')
+            .insert({
+              invoice_id: invoice.id,
+              user_id: invoice.user_id,
+              cadence_days: cadenceDays,
+              is_active: true,
+              tone: 'friendly'
+            });
+
+          if (insertError) {
+            console.error(`[ENSURE-WORKFLOWS] Error creating workflow for ${invoice.id}:`, insertError);
+            result.errors++;
+            result.errorDetails.push({ invoiceId: invoice.id, error: insertError.message });
+            continue;
+          }
+
+          console.log(`[ENSURE-WORKFLOWS] Created workflow for invoice ${invoice.id}, bucket ${agingBucket}`);
+          result.workflowsAssigned++;
+
+        } else if (bucketChanged) {
+          // Bucket changed - deactivate old workflow and create new one
+          console.log(`[ENSURE-WORKFLOWS] Upgrading workflow for invoice ${invoice.id} due to bucket change`);
+
+          // Deactivate old workflow
+          await supabaseAdmin
+            .from('ai_workflows')
+            .update({ is_active: false })
+            .eq('id', existingActive.id);
+
+          // Create new workflow for new bucket
+          const { error: insertError } = await supabaseAdmin
+            .from('ai_workflows')
+            .insert({
+              invoice_id: invoice.id,
+              user_id: invoice.user_id,
+              cadence_days: cadenceDays,
+              is_active: true,
+              tone: 'friendly'
+            });
+
+          if (insertError) {
+            result.errors++;
+            result.errorDetails.push({ invoiceId: invoice.id, error: insertError.message });
+            continue;
+          }
+
+          result.workflowsUpgraded++;
+
+        } else {
+          // Existing workflow - check if cadence_days is valid
+          const existingCadence = existingActive.cadence_days as any;
+          const isEmpty = !existingCadence || 
+            (Array.isArray(existingCadence) && existingCadence.length === 0) ||
+            existingCadence === '[]';
+
+          if (isEmpty) {
+            console.log(`[ENSURE-WORKFLOWS] Fixing empty cadence for workflow ${existingActive.id}`);
+
+            const { error: updateError } = await supabaseAdmin
+              .from('ai_workflows')
+              .update({ cadence_days: cadenceDays })
+              .eq('id', existingActive.id);
+
+            if (updateError) {
+              result.errors++;
+              result.errorDetails.push({ invoiceId: invoice.id, error: updateError.message });
+
+              // Log to outreach_errors
+              await supabaseAdmin
+                .from('outreach_errors')
+                .insert({
+                  invoice_id: invoice.id,
+                  workflow_id: existingActive.id,
+                  user_id: invoice.user_id,
+                  error_type: 'cadence_fix_failed',
+                  error_message: updateError.message,
+                  metadata: { attempted_cadence: cadenceDays }
+                });
+            } else {
+              result.cadenceFixed++;
+            }
+          }
         }
-
-        console.log(`Created workflow for invoice ${invoice.id} with bucket ${agingBucket}`);
-        result.assigned++;
 
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`Error processing invoice ${invoice.id}:`, errorMsg);
+        console.error(`[ENSURE-WORKFLOWS] Error processing invoice ${invoice.id}:`, errorMsg);
         result.errors++;
         result.errorDetails.push({ invoiceId: invoice.id, error: errorMsg });
       }
     }
 
-    // Fix existing workflows with empty cadence_days
-    console.log('Checking for workflows with empty cadence_days...');
-    
-    const { data: emptyWorkflows } = await supabaseAdmin
-      .from('ai_workflows')
-      .select(`
-        id,
-        invoice_id,
-        user_id,
-        invoices!inner (
-          due_date,
-          status,
-          aging_bucket
-        )
-      `)
-      .eq('is_active', true)
-      .eq('cadence_days', '[]');
-    
-    for (const aw of emptyWorkflows || []) {
-      try {
-        const invoice = aw.invoices as any;
-        if (!invoice || (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan')) {
-          continue;
-        }
-        
-        // Determine aging bucket
-        const dueDate = new Date(invoice.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        let agingBucket = invoice.aging_bucket;
-        if (!agingBucket || agingBucket === 'current') {
-          if (daysPastDue < 0) {
-            agingBucket = 'current';
-          } else if (daysPastDue >= 0 && daysPastDue <= 30) {
-            agingBucket = 'dpd_1_30';
-          } else if (daysPastDue >= 31 && daysPastDue <= 60) {
-            agingBucket = 'dpd_31_60';
-          } else if (daysPastDue >= 61 && daysPastDue <= 90) {
-            agingBucket = 'dpd_61_90';
-          } else if (daysPastDue >= 91 && daysPastDue <= 120) {
-            agingBucket = 'dpd_91_120';
-          } else if (daysPastDue >= 121 && daysPastDue <= 150) {
-            agingBucket = 'dpd_121_150';
-          } else {
-            agingBucket = 'dpd_150_plus';
-          }
-        }
-        
-        // Skip current bucket - can't outreach yet
-        if (agingBucket === 'current') {
-          console.log(`Skipping workflow fix for ${aw.id}: invoice is in 'current' bucket`);
-          continue;
-        }
-        
-        // Find workflow with steps
-        const { data: wf } = await supabaseAdmin
-          .from('collection_workflows')
-          .select(`
-            collection_workflow_steps (day_offset, step_order)
-          `)
-          .eq('aging_bucket', agingBucket)
-          .eq('is_active', true)
-          .or(`user_id.eq.${aw.user_id},user_id.is.null`)
-          .order('user_id', { ascending: false, nullsFirst: false })
-          .limit(1)
-          .maybeSingle();
-        
-        let cadenceDays: number[] = [0, 3, 7, 14, 21]; // Default
-        
-        if (wf) {
-          const steps = (wf.collection_workflow_steps as any[]) || [];
-          const extractedDays = steps
-            .sort((a, b) => a.step_order - b.step_order)
-            .map(s => s.day_offset);
-          
-          if (extractedDays.length > 0) {
-            cadenceDays = extractedDays;
-          }
-        }
-        
-        await supabaseAdmin
-          .from('ai_workflows')
-          .update({ cadence_days: cadenceDays })
-          .eq('id', aw.id);
-        
-        result.fixed++;
-        console.log(`Fixed workflow ${aw.id} with cadence_days: ${JSON.stringify(cadenceDays)}`);
-      } catch (e) {
-        console.error(`Error fixing workflow ${aw.id}:`, e);
-      }
-    }
-    
-    console.log(`Fixed ${result.fixed} workflows with empty cadence_days`);
+    console.log('[ENSURE-WORKFLOWS] Triggering cadence scheduler...');
 
-    // Trigger the daily cadence scheduler to generate drafts
-    console.log('Triggering draft generation...');
-
+    // Trigger the cadence scheduler to generate drafts
     let schedulerResult: any = null;
     try {
       const { data, error: schedulerError } = await supabaseAdmin.functions.invoke(
@@ -331,34 +363,34 @@ Deno.serve(async (req) => {
       );
 
       if (schedulerError) {
-        console.error('Error running cadence scheduler:', schedulerError);
+        console.error('[ENSURE-WORKFLOWS] Scheduler error:', schedulerError);
       } else {
         schedulerResult = data;
-        console.log('Cadence scheduler completed:', schedulerResult);
+        console.log('[ENSURE-WORKFLOWS] Scheduler completed:', schedulerResult);
       }
     } catch (err) {
-      console.error('Exception running cadence scheduler:', err);
+      console.error('[ENSURE-WORKFLOWS] Scheduler exception:', err);
     }
 
     const summary = {
       success: true,
-      totalEligibleInvoices: eligibleInvoices.length,
-      invoicesAlreadyHadWorkflows: invoicesWithWorkflows.size,
-      workflowsCreated: result.assigned,
-      workflowsFixed: result.fixed,
-      skipped: result.skipped,
+      invoicesChecked: result.invoicesChecked,
+      workflowsAssigned: result.workflowsAssigned,
+      workflowsUpgraded: result.workflowsUpgraded,
+      cadenceFixed: result.cadenceFixed,
       skippedCurrent: result.skippedCurrent,
+      skippedNoWorkflow: result.skippedNoWorkflow,
       errors: result.errors,
-      errorDetails: result.errorDetails.slice(0, 10),
+      errorDetails: result.errorDetails.slice(0, 20),
       schedulerResult: schedulerResult ? {
-        drafted: schedulerResult.drafted,
-        sent: schedulerResult.draftsSent,
-        failed: schedulerResult.failed
+        drafted: schedulerResult.drafted || 0,
+        sent: schedulerResult.draftsSent || 0,
+        failed: schedulerResult.failed || 0
       } : null,
-      message: `Processed ${eligibleInvoices.length} invoices, created ${result.assigned} workflows, fixed ${result.fixed} workflows, skipped ${result.skippedCurrent} current-bucket invoices`
+      message: `Checked ${result.invoicesChecked} invoices: ${result.workflowsAssigned} assigned, ${result.workflowsUpgraded} upgraded, ${result.cadenceFixed} fixed, ${result.skippedCurrent} current-bucket skipped`
     };
 
-    console.log('Summary:', summary);
+    console.log('[ENSURE-WORKFLOWS] Summary:', summary);
 
     return new Response(
       JSON.stringify(summary),
@@ -369,7 +401,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in ensure-invoice-workflows:', error);
+    console.error('[ENSURE-WORKFLOWS] Fatal error:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
