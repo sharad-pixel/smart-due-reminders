@@ -2010,6 +2010,8 @@ export type Database = {
           disputed_invoices_count: number | null
           email: string
           external_customer_id: string | null
+          external_customer_source: string | null
+          external_customer_url: string | null
           external_system: string | null
           health_tier: string | null
           high_risk_invoice_count: number | null
@@ -2044,6 +2046,9 @@ export type Database = {
           payment_terms_default: string | null
           phone: string | null
           postal_code: string | null
+          quickbooks_customer_id: string | null
+          quickbooks_sync_token: string | null
+          recouply_customer_id: string | null
           reference_id: string
           risk_last_calculated_at: string | null
           risk_status_note: string | null
@@ -2096,6 +2101,8 @@ export type Database = {
           disputed_invoices_count?: number | null
           email: string
           external_customer_id?: string | null
+          external_customer_source?: string | null
+          external_customer_url?: string | null
           external_system?: string | null
           health_tier?: string | null
           high_risk_invoice_count?: number | null
@@ -2130,6 +2137,9 @@ export type Database = {
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
+          quickbooks_customer_id?: string | null
+          quickbooks_sync_token?: string | null
+          recouply_customer_id?: string | null
           reference_id: string
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
@@ -2182,6 +2192,8 @@ export type Database = {
           disputed_invoices_count?: number | null
           email?: string
           external_customer_id?: string | null
+          external_customer_source?: string | null
+          external_customer_url?: string | null
           external_system?: string | null
           health_tier?: string | null
           high_risk_invoice_count?: number | null
@@ -2216,6 +2228,9 @@ export type Database = {
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
+          quickbooks_customer_id?: string | null
+          quickbooks_sync_token?: string | null
+          recouply_customer_id?: string | null
           reference_id?: string
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
@@ -3516,6 +3531,8 @@ export type Database = {
           product_description: string | null
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
+          quickbooks_doc_number: string | null
+          quickbooks_invoice_id: string | null
           reference_id: string
           source_system: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
@@ -3574,6 +3591,8 @@ export type Database = {
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
+          quickbooks_doc_number?: string | null
+          quickbooks_invoice_id?: string | null
           reference_id: string
           source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
@@ -3632,6 +3651,8 @@ export type Database = {
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
+          quickbooks_doc_number?: string | null
+          quickbooks_invoice_id?: string | null
           reference_id?: string
           source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
@@ -4253,6 +4274,14 @@ export type Database = {
           phone: string | null
           plan_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"] | null
+          quickbooks_access_token: string | null
+          quickbooks_company_name: string | null
+          quickbooks_connected_at: string | null
+          quickbooks_last_sync_at: string | null
+          quickbooks_realm_id: string | null
+          quickbooks_refresh_token: string | null
+          quickbooks_sync_enabled: boolean | null
+          quickbooks_token_expires_at: string | null
           sendgrid_api_key: string | null
           smtp_settings: Json | null
           stripe_customer_id: string | null
@@ -4305,6 +4334,14 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          quickbooks_access_token?: string | null
+          quickbooks_company_name?: string | null
+          quickbooks_connected_at?: string | null
+          quickbooks_last_sync_at?: string | null
+          quickbooks_realm_id?: string | null
+          quickbooks_refresh_token?: string | null
+          quickbooks_sync_enabled?: boolean | null
+          quickbooks_token_expires_at?: string | null
           sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
@@ -4357,6 +4394,14 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          quickbooks_access_token?: string | null
+          quickbooks_company_name?: string | null
+          quickbooks_connected_at?: string | null
+          quickbooks_last_sync_at?: string | null
+          quickbooks_realm_id?: string | null
+          quickbooks_refresh_token?: string | null
+          quickbooks_sync_enabled?: boolean | null
+          quickbooks_token_expires_at?: string | null
           sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
@@ -4380,6 +4425,53 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_sync_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          errors: Json | null
+          id: string
+          records_failed: number | null
+          records_synced: number | null
+          started_at: string | null
+          status: string | null
+          sync_type: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          id?: string
+          records_failed?: number | null
+          records_synced?: number | null
+          started_at?: string | null
+          status?: string | null
+          sync_type: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          id?: string
+          records_failed?: number | null
+          records_synced?: number | null
+          started_at?: string | null
+          status?: string | null
+          sync_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_sync_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
