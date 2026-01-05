@@ -969,6 +969,88 @@ const Invoices = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Bulk Status Change Dialog */}
+        <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Invoice Status</DialogTitle>
+              <DialogDescription>
+                Update the status for {selectedInvoices.length} selected invoice(s).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>New Status</Label>
+                <Select
+                  value={selectedBulkStatus}
+                  onValueChange={(value: typeof selectedBulkStatus) => setSelectedBulkStatus(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Open">Open</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Disputed">Disputed</SelectItem>
+                    <SelectItem value="Settled">Settled</SelectItem>
+                    <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
+                    <SelectItem value="Canceled">Canceled</SelectItem>
+                    <SelectItem value="FinalInternalCollections">Final - Internal Collections</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBulkStatusDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBulkStatusChange} disabled={!selectedBulkStatus}>
+                Update Status
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Assign Workflow Dialog */}
+        <Dialog open={showBulkAssignDialog} onOpenChange={setShowBulkAssignDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign to Workflow</DialogTitle>
+              <DialogDescription>
+                Assign {selectedInvoices.length} selected invoice(s) to an AI workflow.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Aging Bucket</Label>
+                <Select
+                  value={selectedAgingBucket}
+                  onValueChange={setSelectedAgingBucket}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select aging bucket" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0-30">0-30 Days</SelectItem>
+                    <SelectItem value="31-60">31-60 Days</SelectItem>
+                    <SelectItem value="61-90">61-90 Days</SelectItem>
+                    <SelectItem value="91-120">91-120 Days</SelectItem>
+                    <SelectItem value="121+">121+ Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBulkAssignDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBulkAssign} disabled={!selectedAgingBucket}>
+                Assign to Workflow
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
