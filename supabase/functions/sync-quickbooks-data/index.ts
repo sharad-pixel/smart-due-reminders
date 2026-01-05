@@ -105,6 +105,7 @@ serve(async (req) => {
 
     let customersSynced = 0;
     let invoicesSynced = 0;
+    let paymentsSynced = 0;
     const errors: string[] = [];
 
     // Token refresh context for qbQueryAll retry logic
@@ -114,6 +115,11 @@ serve(async (req) => {
       supabaseAdmin,
       userId: user.id
     };
+
+    // Calculate cutoff date for incremental sync
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - INCREMENTAL_MONTHS);
+    const cutoffStr = cutoffDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
     try {
       // Sync Customers with pagination (always full sync for customers)
@@ -178,9 +184,6 @@ serve(async (req) => {
       // Build invoice query - incremental by default (last 24 months)
       let invoiceQuery = 'SELECT * FROM Invoice';
       if (!fullSync) {
-        const cutoffDate = new Date();
-        cutoffDate.setMonth(cutoffDate.getMonth() - INCREMENTAL_MONTHS);
-        const cutoffStr = cutoffDate.toISOString().split('T')[0]; // YYYY-MM-DD
         invoiceQuery = `SELECT * FROM Invoice WHERE TxnDate >= '${cutoffStr}'`;
         console.log(`Incremental sync: fetching invoices since ${cutoffStr}`);
       } else {
@@ -240,6 +243,94 @@ serve(async (req) => {
         }
       }
 
+      // Prefetch all invoices for this tenant to map qb_invoice_id -> invoice.id
+      const { data: allInvoices } = await supabaseAdmin
+        .from('invoices')
+        .select('id, quickbooks_invoice_id')
+        .eq('user_id', user.id)
+        .not('quickbooks_invoice_id', 'is', null);
+
+      // Build lookup map: qb_invoice_id -> invoice_id
+      const invoiceMap = new Map<string, string>();
+      for (const inv of allInvoices || []) {
+        if (inv.quickbooks_invoice_id) {
+          invoiceMap.set(inv.quickbooks_invoice_id, inv.id);
+        }
+      }
+
+      // Build payment query - incremental by default (same window as invoices)
+      let paymentQuery = 'SELECT * FROM Payment';
+      if (!fullSync) {
+        paymentQuery = `SELECT * FROM Payment WHERE TxnDate >= '${cutoffStr}'`;
+        console.log(`Incremental sync: fetching payments since ${cutoffStr}`);
+      } else {
+        console.log('Full sync: fetching all payments');
+      }
+
+      // Sync Payments with pagination
+      console.log('Fetching payments from QuickBooks...');
+      const payments = await qbQueryAll(
+        apiBase,
+        realmId,
+        paymentQuery,
+        tokenContext
+      );
+      console.log(`Found ${payments.length} payments`);
+
+      for (const payment of payments) {
+        try {
+          // Find linked debtor from CustomerRef
+          const debtorId = debtorMap.get(payment.CustomerRef?.value) || null;
+          const paymentDate = payment.TxnDate || null;
+          const paymentMethod = payment.PaymentMethodRef?.name || null;
+          const referenceNumber = payment.PaymentRefNum || null;
+          const currency = payment.CurrencyRef?.value || 'USD';
+
+          // Process each line item in the payment
+          const lines = payment.Line || [];
+          for (const line of lines) {
+            // Check for linked invoices in LinkedTxn array
+            const linkedTxns = line.LinkedTxn || [];
+            for (const linkedTxn of linkedTxns) {
+              if (linkedTxn.TxnType === 'Invoice') {
+                const qbInvoiceId = linkedTxn.TxnId;
+                const invoiceId = invoiceMap.get(qbInvoiceId) || null;
+                const amountApplied = Math.round((line.Amount || 0) * 100);
+
+                const { error: upsertError } = await supabaseAdmin
+                  .from('quickbooks_payments')
+                  .upsert({
+                    user_id: user.id,
+                    debtor_id: debtorId,
+                    invoice_id: invoiceId,
+                    quickbooks_payment_id: payment.Id,
+                    quickbooks_invoice_id: qbInvoiceId,
+                    amount_applied: amountApplied,
+                    currency: currency.toUpperCase(),
+                    payment_date: paymentDate,
+                    payment_method: paymentMethod,
+                    reference_number: referenceNumber,
+                    source: 'quickbooks',
+                    raw: payment,
+                    updated_at: new Date().toISOString()
+                  }, {
+                    onConflict: 'user_id,quickbooks_payment_id,quickbooks_invoice_id'
+                  });
+
+                if (!upsertError) {
+                  paymentsSynced++;
+                } else {
+                  console.error('Payment upsert error:', upsertError);
+                }
+              }
+            }
+          }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Unknown error';
+          errors.push(`Payment ${payment.Id}: ${msg}`);
+        }
+      }
+
     } catch (syncError: unknown) {
       console.error('Sync error:', syncError);
       const msg = syncError instanceof Error ? syncError.message : 'Unknown sync error';
@@ -253,7 +344,7 @@ serve(async (req) => {
         .update({
           status: errors.length > 0 ? 'partial' : 'success',
           completed_at: new Date().toISOString(),
-          records_synced: customersSynced + invoicesSynced,
+          records_synced: customersSynced + invoicesSynced + paymentsSynced,
           records_failed: errors.length,
           errors: errors.length > 0 ? errors : null
         })
@@ -266,12 +357,13 @@ serve(async (req) => {
       .update({ quickbooks_last_sync_at: new Date().toISOString() })
       .eq('id', user.id);
 
-    console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices`);
+    console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments`);
 
     return new Response(JSON.stringify({
       success: true,
       customers_synced: customersSynced,
       invoices_synced: invoicesSynced,
+      payments_synced: paymentsSynced,
       sync_type: fullSync ? 'full' : 'incremental',
       errors: errors.length > 0 ? errors : undefined
     }), {
