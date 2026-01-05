@@ -4,12 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { 
   Brain, 
   RefreshCw, 
   AlertTriangle, 
   TrendingUp, 
+  TrendingDown,
   MessageSquare, 
   Target,
   Users,
@@ -18,12 +22,29 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  Minus
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
+import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
+import { usePaymentScore } from "@/hooks/usePaymentScore";
 
 interface AccountIntelligenceCardProps {
   debtorId: string;
+  // Risk engine props (optional - will be fetched if not provided)
+  paymentScore?: number | null;
+  riskTier?: string | null;
+  riskStatusNote?: string | null;
+  riskLastCalculatedAt?: string | null;
+  avgDaysToPay?: number | null;
+  maxDaysPastDue?: number | null;
+  openInvoicesCount?: number | null;
+  disputedInvoicesCount?: number | null;
 }
 
 interface Intelligence {
@@ -69,14 +90,59 @@ interface Metrics {
   }>;
 }
 
-export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardProps) {
+export function AccountIntelligenceCard({ 
+  debtorId,
+  paymentScore: propPaymentScore,
+  riskTier: propRiskTier,
+  riskStatusNote: propRiskStatusNote,
+  riskLastCalculatedAt: propRiskLastCalculatedAt,
+  avgDaysToPay: propAvgDaysToPay,
+  maxDaysPastDue: propMaxDaysPastDue,
+  openInvoicesCount: propOpenInvoicesCount,
+  disputedInvoicesCount: propDisputedInvoicesCount,
+}: AccountIntelligenceCardProps) {
   const [loading, setLoading] = useState(true);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
-  const [cacheExpiresAt, setCacheExpiresAt] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  
+  // Local state for risk data if not provided via props
+  const [localRiskData, setLocalRiskData] = useState<{
+    paymentScore: number | null;
+    riskTier: string | null;
+    riskStatusNote: string | null;
+    riskLastCalculatedAt: string | null;
+    avgDaysToPay: number | null;
+    maxDaysPastDue: number | null;
+    openInvoicesCount: number | null;
+    disputedInvoicesCount: number | null;
+  }>({
+    paymentScore: propPaymentScore ?? null,
+    riskTier: propRiskTier ?? null,
+    riskStatusNote: propRiskStatusNote ?? null,
+    riskLastCalculatedAt: propRiskLastCalculatedAt ?? null,
+    avgDaysToPay: propAvgDaysToPay ?? null,
+    maxDaysPastDue: propMaxDaysPastDue ?? null,
+    openInvoicesCount: propOpenInvoicesCount ?? null,
+    disputedInvoicesCount: propDisputedInvoicesCount ?? null,
+  });
+
+  const { calculateScore } = usePaymentScore(debtorId);
+
+  // Use props if provided, otherwise use local state
+  const paymentScore = propPaymentScore ?? localRiskData.paymentScore;
+  const riskTier = propRiskTier ?? localRiskData.riskTier;
+  const riskStatusNote = propRiskStatusNote ?? localRiskData.riskStatusNote;
+  const riskLastCalculatedAt = propRiskLastCalculatedAt ?? localRiskData.riskLastCalculatedAt;
+  const avgDaysToPay = propAvgDaysToPay ?? localRiskData.avgDaysToPay;
+  const maxDaysPastDue = propMaxDaysPastDue ?? localRiskData.maxDaysPastDue;
+  const openInvoicesCount = propOpenInvoicesCount ?? localRiskData.openInvoicesCount;
+  const disputedInvoicesCount = propDisputedInvoicesCount ?? localRiskData.disputedInvoicesCount;
+
+  const isStillLearning = riskTier === "Still learning" || !riskTier;
 
   // Load cached report on mount
   useEffect(() => {
@@ -85,11 +151,22 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
 
   const loadCachedReport = async () => {
     setLoading(true);
-    console.log("[AccountIntelligenceCard] Loading cached report for debtor:", debtorId);
     try {
       const { data: debtor, error } = await supabase
         .from("debtors")
-        .select("intelligence_report, intelligence_report_generated_at")
+        .select(`
+          intelligence_report, 
+          intelligence_report_generated_at,
+          payment_score,
+          payment_risk_tier,
+          risk_status_note,
+          risk_last_calculated_at,
+          payment_score_last_calculated,
+          avg_days_to_pay,
+          max_days_past_due,
+          open_invoices_count,
+          disputed_invoices_count
+        `)
         .eq("id", debtorId)
         .single();
 
@@ -100,30 +177,34 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
         return;
       }
 
-      console.log("[AccountIntelligenceCard] Debtor data:", {
-        hasReport: !!debtor?.intelligence_report,
-        generatedAt: debtor?.intelligence_report_generated_at
-      });
+      // Update local risk data if not provided via props
+      if (propPaymentScore === undefined) {
+        setLocalRiskData({
+          paymentScore: debtor?.payment_score ?? null,
+          riskTier: debtor?.payment_risk_tier ?? null,
+          riskStatusNote: debtor?.risk_status_note ?? null,
+          riskLastCalculatedAt: debtor?.risk_last_calculated_at ?? debtor?.payment_score_last_calculated ?? null,
+          avgDaysToPay: debtor?.avg_days_to_pay ?? null,
+          maxDaysPastDue: debtor?.max_days_past_due ?? null,
+          openInvoicesCount: debtor?.open_invoices_count ?? null,
+          disputedInvoicesCount: debtor?.disputed_invoices_count ?? null,
+        });
+      }
 
       if (debtor?.intelligence_report && debtor?.intelligence_report_generated_at) {
         const cacheAge = Date.now() - new Date(debtor.intelligence_report_generated_at).getTime();
         const cacheAgeHours = cacheAge / (1000 * 60 * 60);
 
-        console.log("[AccountIntelligenceCard] Cache age:", cacheAgeHours.toFixed(1), "hours");
-
         if (cacheAgeHours < 24) {
           setIntelligence(debtor.intelligence_report as unknown as Intelligence);
           setGeneratedAt(debtor.intelligence_report_generated_at);
           setFromCache(true);
-          setCacheExpiresAt(new Date(new Date(debtor.intelligence_report_generated_at).getTime() + 24 * 60 * 60 * 1000).toISOString());
           setLoading(false);
           setInitialLoadDone(true);
           return;
         }
       }
       
-      // No valid cached report - show the generate button
-      console.log("[AccountIntelligenceCard] No valid cache, showing generate button");
       setLoading(false);
       setInitialLoadDone(true);
     } catch (error) {
@@ -163,7 +244,6 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
       setMetrics(data.metrics);
       setGeneratedAt(data.generatedAt);
       setFromCache(data.fromCache || false);
-      setCacheExpiresAt(data.cacheExpiresAt || null);
       
       if (data.fromCache) {
         toast.info("Showing cached intelligence report");
@@ -178,7 +258,52 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
     }
   };
 
-  const getRiskColor = (level: string) => {
+  const handleRecalculateRisk = () => {
+    calculateScore.mutate({ debtor_id: debtorId });
+  };
+
+  // Risk styling helpers
+  const getScoreColor = (score: number | null) => {
+    if (score === null) return "text-muted-foreground";
+    if (score <= 30) return "text-green-600";
+    if (score <= 55) return "text-yellow-600";
+    if (score <= 75) return "text-orange-500";
+    return "text-red-600";
+  };
+
+  const getScoreBg = (score: number | null) => {
+    if (score === null) return "bg-muted";
+    if (score <= 30) return "bg-green-500";
+    if (score <= 55) return "bg-yellow-500";
+    if (score <= 75) return "bg-orange-500";
+    return "bg-red-500";
+  };
+
+  const getRiskBadge = (tier: string | null) => {
+    if (!tier || tier === "Still learning") {
+      return <Badge variant="secondary" className="bg-muted text-muted-foreground">Still Learning</Badge>;
+    }
+    
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
+      Low: { variant: "default", className: "bg-green-100 text-green-800 hover:bg-green-100" },
+      Medium: { variant: "default", className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100" },
+      High: { variant: "default", className: "bg-orange-100 text-orange-800 hover:bg-orange-100" },
+      Critical: { variant: "destructive", className: "" },
+    };
+
+    const config = variants[tier] || variants.Medium;
+    return <Badge variant={config.variant} className={config.className}>{tier} Risk</Badge>;
+  };
+
+  const getRiskIcon = (tier: string | null) => {
+    if (!tier || tier === "Still learning") return <Brain className="h-5 w-5 text-muted-foreground" />;
+    if (tier === "Low") return <ShieldCheck className="h-5 w-5 text-green-600" />;
+    if (tier === "Medium") return <Shield className="h-5 w-5 text-yellow-600" />;
+    if (tier === "High") return <ShieldAlert className="h-5 w-5 text-orange-500" />;
+    return <AlertTriangle className="h-5 w-5 text-red-600" />;
+  };
+
+  const getIntelligenceRiskColor = (level: string) => {
     switch (level) {
       case "low": return "bg-green-100 text-green-800 border-green-200";
       case "medium": return "bg-yellow-100 text-yellow-800 border-yellow-200";
@@ -188,7 +313,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
     }
   };
 
-  const getRiskIcon = (level: string) => {
+  const getIntelligenceRiskIcon = (level: string) => {
     switch (level) {
       case "low": return <CheckCircle2 className="h-4 w-4" />;
       case "medium": return <AlertCircle className="h-4 w-4" />;
@@ -204,12 +329,13 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary animate-pulse" />
-            Loading Intelligence Report...
+            Loading Collection Intelligence...
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-20 w-full" />
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
+            <Skeleton className="h-16" />
             <Skeleton className="h-16" />
             <Skeleton className="h-16" />
             <Skeleton className="h-16" />
@@ -220,38 +346,14 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
     );
   }
 
-  if (!intelligence && !loading) {
-    return (
-      <Card className="border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="p-4 rounded-full bg-primary/10">
-            <Brain className="h-8 w-8 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-semibold text-lg">Collection Intelligence</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              AI-powered risk analysis based on payment history, tasks, and communication patterns
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-2 italic">
-              Reports are auto-generated daily at 5 AM PT
-            </p>
-          </div>
-          <Button onClick={() => generateIntelligence(false)} className="gap-2">
-            <Brain className="h-4 w-4" />
-            Generate Intelligence Report
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            Collection Intelligence Report
+            {getRiskIcon(riskTier)}
+            Collection Intelligence
+            <ScoringModelTooltip />
           </CardTitle>
           <div className="flex items-center gap-2 flex-wrap">
             {generatedAt && (
@@ -263,196 +365,268 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
                 </span>
               </div>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => generateIntelligence(true)} 
-              disabled={loading}
-              title="Regenerate report manually"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      handleRecalculateRisk();
+                      generateIntelligence(true);
+                    }} 
+                    disabled={loading || calculateScore.isPending}
+                    title="Regenerate report"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading || calculateScore.isPending ? "animate-spin" : ""}`} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Recalculate Risk & Regenerate Intelligence</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
-        {/* 24-hour auto-refresh notice */}
-        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+      </CardHeader>
+
+      <CardContent className="space-y-6 pt-6">
+        {/* Combined Risk Score Section */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Risk Score Card */}
+          <div className="p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium">Risk Assessment</span>
+              {getRiskBadge(riskTier)}
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Risk Score</span>
+                <span className={`text-2xl font-bold ${getScoreColor(paymentScore)}`}>
+                  {paymentScore !== null ? paymentScore : "—"}
+                  <span className="text-sm font-normal text-muted-foreground">/100</span>
+                </span>
+              </div>
+              <Progress 
+                value={paymentScore ?? 0} 
+                className={`h-2 ${isStillLearning ? "[&>div]:bg-muted" : `[&>div]:${getScoreBg(paymentScore)}`}`}
+              />
+              <p className="text-xs text-muted-foreground">Lower score = lower risk</p>
+            </div>
+            {riskLastCalculatedAt && (
+              <p className="text-xs text-muted-foreground mt-3 pt-2 border-t">
+                Last calculated: {format(new Date(riskLastCalculatedAt), "MMM d, yyyy 'at' h:mm a")}
+              </p>
+            )}
+          </div>
+
+          {/* AI Intelligence Score Card */}
+          {intelligence ? (
+            <div className={`p-4 rounded-lg border-2 ${getIntelligenceRiskColor(intelligence.riskLevel)}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {getIntelligenceRiskIcon(intelligence.riskLevel)}
+                  <div>
+                    <div className="font-semibold uppercase text-sm">
+                      {intelligence.riskLevel} Risk
+                    </div>
+                    <div className="text-xs opacity-80">
+                      AI Risk Score: {intelligence.riskScore}/100
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold">{intelligence.riskScore}</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-lg border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 to-transparent flex flex-col items-center justify-center text-center">
+              <Brain className="h-6 w-6 text-primary mb-2" />
+              <p className="text-sm font-medium">AI Analysis</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Generate a detailed AI intelligence report
+              </p>
+              <Button size="sm" onClick={() => generateIntelligence(false)} disabled={loading}>
+                <Brain className="h-4 w-4 mr-1" />
+                Generate
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Key Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <Clock className="h-3 w-3" />
+              Avg Days to Pay
+            </div>
+            <div className="text-lg font-bold flex items-center gap-1">
+              {avgDaysToPay !== null ? (
+                <>
+                  {Math.round(avgDaysToPay)} days
+                  {avgDaysToPay <= 30 ? (
+                    <TrendingDown className="h-3 w-3 text-green-500" />
+                  ) : avgDaysToPay > 60 ? (
+                    <TrendingUp className="h-3 w-3 text-red-500" />
+                  ) : (
+                    <Minus className="h-3 w-3 text-yellow-500" />
+                  )}
+                </>
+              ) : "—"}
+            </div>
+          </div>
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <AlertTriangle className="h-3 w-3" />
+              Max Days Past Due
+            </div>
+            <div className="text-lg font-bold">
+              {maxDaysPastDue !== null ? `${maxDaysPastDue} days` : "—"}
+            </div>
+          </div>
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <DollarSign className="h-3 w-3" />
+              Open Invoices
+            </div>
+            <div className="text-lg font-bold">{openInvoicesCount ?? 0}</div>
+          </div>
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <XCircle className="h-3 w-3" />
+              Disputed
+            </div>
+            <div className="text-lg font-bold">{disputedInvoicesCount ?? 0}</div>
+          </div>
+        </div>
+
+        {/* Status Note */}
+        {riskStatusNote && (
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-sm text-muted-foreground">{riskStatusNote}</p>
+          </div>
+        )}
+
+        {/* AI Intelligence Details (Collapsible) */}
+        {intelligence && (
+          <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <Brain className="h-4 w-4" />
+                  AI Intelligence Details
+                </span>
+                {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              {/* Executive Summary */}
+              {intelligence.executiveSummary && (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Executive Summary
+                  </h4>
+                  <p className="text-sm">{intelligence.executiveSummary}</p>
+                </div>
+              )}
+
+              {/* Key Insights */}
+              {intelligence.keyInsights && intelligence.keyInsights.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Key Insights
+                  </h4>
+                  <ul className="space-y-2">
+                    {intelligence.keyInsights.map((insight, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{insight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {intelligence.recommendations && intelligence.recommendations.length > 0 && (
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    Recommended Actions
+                  </h4>
+                  <ul className="space-y-2">
+                    {intelligence.recommendations.map((rec, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <Badge variant="outline" className="shrink-0">{index + 1}</Badge>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Analysis Details */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {intelligence.paymentBehavior && (
+                  <div className="p-3 border rounded-lg">
+                    <h5 className="text-xs font-semibold text-muted-foreground mb-1">Payment Behavior</h5>
+                    <p className="text-sm">{intelligence.paymentBehavior}</p>
+                  </div>
+                )}
+                {intelligence.communicationSentiment && (
+                  <div className="p-3 border rounded-lg">
+                    <h5 className="text-xs font-semibold text-muted-foreground mb-1">Communication Sentiment</h5>
+                    <p className="text-sm">{intelligence.communicationSentiment}</p>
+                  </div>
+                )}
+              </div>
+
+              {intelligence.collectionStrategy && (
+                <div className="p-3 border-2 border-primary/30 rounded-lg bg-primary/5">
+                  <h5 className="text-xs font-semibold text-primary mb-1">Recommended Collection Strategy</h5>
+                  <p className="text-sm">{intelligence.collectionStrategy}</p>
+                </div>
+              )}
+
+              {/* Contacts */}
+              {metrics?.contacts && metrics.contacts.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Account Contacts
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {metrics.contacts.map((contact, index) => (
+                      <Badge 
+                        key={index} 
+                        variant={contact.outreachEnabled ? "default" : "secondary"}
+                        className="gap-1"
+                      >
+                        {contact.isPrimary && <span className="text-xs">★</span>}
+                        {contact.name}
+                        {contact.title && <span className="opacity-70">({contact.title})</span>}
+                        {!contact.outreachEnabled && <span className="text-xs opacity-60">• No outreach</span>}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Auto-refresh notice */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
           <Info className="h-3.5 w-3.5 shrink-0" />
           <span>
             Reports auto-refresh daily at 5 AM PT. Click refresh to regenerate manually.
           </span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        {/* Risk Level Banner */}
-        {intelligence && (
-          <div className={`p-4 rounded-lg border-2 ${getRiskColor(intelligence.riskLevel)}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {getRiskIcon(intelligence.riskLevel)}
-                <div>
-                  <div className="font-semibold uppercase text-sm">
-                    {intelligence.riskLevel} Risk
-                  </div>
-                  <div className="text-xs opacity-80">
-                    Risk Score: {intelligence.riskScore}/100
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold">{intelligence.riskScore}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Executive Summary */}
-        {intelligence?.executiveSummary && (
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Executive Summary
-            </h4>
-            <p className="text-sm">{intelligence.executiveSummary}</p>
-          </div>
-        )}
-
-        {/* Key Metrics */}
-        {metrics && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <DollarSign className="h-3 w-3" />
-                Open Balance
-              </div>
-              <div className="text-lg font-bold">
-                ${metrics.financials.totalOpenBalance.toLocaleString()}
-              </div>
-            </div>
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Clock className="h-3 w-3" />
-                Avg DSO
-              </div>
-              <div className="text-lg font-bold">
-                {metrics.financials.avgDSO} days
-              </div>
-            </div>
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <AlertTriangle className="h-3 w-3" />
-                Open Tasks
-              </div>
-              <div className="text-lg font-bold">
-                {metrics.tasks.openCount}
-                {metrics.tasks.overdueCount > 0 && (
-                  <span className="text-xs text-destructive ml-1">
-                    ({metrics.tasks.overdueCount} overdue)
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <MessageSquare className="h-3 w-3" />
-                Inbound Messages
-              </div>
-              <div className="text-lg font-bold">
-                {metrics.communications.inboundCount}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Key Insights */}
-        {intelligence?.keyInsights && intelligence.keyInsights.length > 0 && (
-          <div>
-            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Key Insights
-            </h4>
-            <ul className="space-y-2">
-              {intelligence.keyInsights.map((insight, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>{insight}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Recommendations */}
-        {intelligence?.recommendations && intelligence.recommendations.length > 0 && (
-          <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" />
-              Recommended Actions
-            </h4>
-            <ul className="space-y-2">
-              {intelligence.recommendations.map((rec, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm">
-                  <Badge variant="outline" className="shrink-0">{index + 1}</Badge>
-                  <span>{rec}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Analysis Details */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {intelligence?.paymentBehavior && (
-            <div className="p-3 border rounded-lg">
-              <h5 className="text-xs font-semibold text-muted-foreground mb-1">Payment Behavior</h5>
-              <p className="text-sm">{intelligence.paymentBehavior}</p>
-            </div>
-          )}
-          {intelligence?.communicationSentiment && (
-            <div className="p-3 border rounded-lg">
-              <h5 className="text-xs font-semibold text-muted-foreground mb-1">Communication Sentiment</h5>
-              <p className="text-sm">{intelligence.communicationSentiment}</p>
-            </div>
-          )}
-        </div>
-
-        {intelligence?.collectionStrategy && (
-          <div className="p-3 border-2 border-primary/30 rounded-lg bg-primary/5">
-            <h5 className="text-xs font-semibold text-primary mb-1">Recommended Collection Strategy</h5>
-            <p className="text-sm">{intelligence.collectionStrategy}</p>
-          </div>
-        )}
-
-        {/* Contacts */}
-        {metrics?.contacts && metrics.contacts.length > 0 && (
-          <div>
-            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Account Contacts
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {metrics.contacts.map((contact, index) => (
-                <Badge 
-                  key={index} 
-                  variant={contact.outreachEnabled ? "default" : "secondary"}
-                  className="gap-1"
-                >
-                  {contact.isPrimary && <span className="text-xs">★</span>}
-                  {contact.name}
-                  {contact.title && <span className="opacity-70">({contact.title})</span>}
-                  {!contact.outreachEnabled && <span className="text-xs opacity-60">• No outreach</span>}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Credibility Note */}
-        <div className="text-center pt-2 border-t">
-          <p className="text-xs text-muted-foreground/70 italic">
-            Intelligence improves with more account activity and interactions
-          </p>
-        </div>
       </CardContent>
     </Card>
   );
 }
+
+export default AccountIntelligenceCard;
