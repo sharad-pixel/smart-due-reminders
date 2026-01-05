@@ -9,6 +9,10 @@ const corsHeaders = {
 // 2-minute early refresh buffer to avoid edge cases
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
 
+// QB API pagination settings
+const QB_PAGE_SIZE = 1000;
+const QB_MINOR_VERSION = 75;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -89,130 +93,116 @@ serve(async (req) => {
     const errors: string[] = [];
 
     try {
-      // Sync Customers
+      // Sync Customers with pagination
       console.log('Fetching customers from QuickBooks...');
-      const customersResponse = await fetch(
-        `${apiBase}/v3/company/${realmId}/query?query=SELECT * FROM Customer MAXRESULTS 1000`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
-        }
+      const customers = await qbQueryAll(
+        apiBase,
+        realmId,
+        accessToken,
+        'SELECT * FROM Customer'
       );
+      console.log(`Found ${customers.length} customers`);
 
-      if (customersResponse.ok) {
-        const customersData = await customersResponse.json();
-        const customers = customersData.QueryResponse?.Customer || [];
-        console.log(`Found ${customers.length} customers`);
+      for (const customer of customers) {
+        try {
+          const { error: upsertError } = await supabaseAdmin
+            .from('debtors')
+            .upsert({
+              user_id: user.id,
+              quickbooks_customer_id: customer.Id,
+              quickbooks_sync_token: customer.SyncToken,
+              company_name: customer.CompanyName || customer.DisplayName || 'Unknown',
+              name: customer.DisplayName || customer.CompanyName || 'Unknown',
+              email: customer.PrimaryEmailAddr?.Address || '',
+              phone: customer.PrimaryPhone?.FreeFormNumber || null,
+              address_line1: customer.BillAddr?.Line1 || null,
+              city: customer.BillAddr?.City || null,
+              state: customer.BillAddr?.CountrySubDivisionCode || null,
+              postal_code: customer.BillAddr?.PostalCode || null,
+              country: customer.BillAddr?.Country || null,
+              integration_source: 'quickbooks',
+              is_active: customer.Active !== false
+            }, {
+              onConflict: 'user_id,quickbooks_customer_id'
+            });
 
-        for (const customer of customers) {
-          try {
-            const { error: upsertError } = await supabaseAdmin
-              .from('debtors')
-              .upsert({
-                user_id: user.id,
-                quickbooks_customer_id: customer.Id,
-                quickbooks_sync_token: customer.SyncToken,
-                company_name: customer.CompanyName || customer.DisplayName || 'Unknown',
-                name: customer.DisplayName || customer.CompanyName || 'Unknown',
-                email: customer.PrimaryEmailAddr?.Address || '',
-                phone: customer.PrimaryPhone?.FreeFormNumber || null,
-                address_line1: customer.BillAddr?.Line1 || null,
-                city: customer.BillAddr?.City || null,
-                state: customer.BillAddr?.CountrySubDivisionCode || null,
-                postal_code: customer.BillAddr?.PostalCode || null,
-                country: customer.BillAddr?.Country || null,
-                integration_source: 'quickbooks',
-                is_active: customer.Active !== false
-              }, {
-                onConflict: 'user_id,quickbooks_customer_id'
-              });
-
-            if (!upsertError) {
-              customersSynced++;
-            } else {
-              console.error('Customer upsert error:', upsertError);
-            }
-          } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Unknown error';
-            errors.push(`Customer ${customer.Id}: ${msg}`);
+          if (!upsertError) {
+            customersSynced++;
+          } else {
+            console.error('Customer upsert error:', upsertError);
           }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Unknown error';
+          errors.push(`Customer ${customer.Id}: ${msg}`);
         }
-      } else {
-        const errText = await customersResponse.text();
-        console.error('Failed to fetch customers:', errText);
-        errors.push(`Customers fetch failed: ${customersResponse.status}`);
       }
 
-      // Sync Invoices
+      // Prefetch all debtors for this tenant to avoid N+1 lookups
+      const { data: allDebtors } = await supabaseAdmin
+        .from('debtors')
+        .select('id, quickbooks_customer_id')
+        .eq('user_id', user.id)
+        .not('quickbooks_customer_id', 'is', null);
+
+      // Build lookup map: qb_customer_id -> debtor_id
+      const debtorMap = new Map<string, string>();
+      for (const d of allDebtors || []) {
+        if (d.quickbooks_customer_id) {
+          debtorMap.set(d.quickbooks_customer_id, d.id);
+        }
+      }
+
+      // Sync Invoices with pagination
       console.log('Fetching invoices from QuickBooks...');
-      const invoicesResponse = await fetch(
-        `${apiBase}/v3/company/${realmId}/query?query=SELECT * FROM Invoice MAXRESULTS 1000`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
-        }
+      const invoices = await qbQueryAll(
+        apiBase,
+        realmId,
+        accessToken,
+        'SELECT * FROM Invoice'
       );
+      console.log(`Found ${invoices.length} invoices`);
 
-      if (invoicesResponse.ok) {
-        const invoicesData = await invoicesResponse.json();
-        const invoices = invoicesData.QueryResponse?.Invoice || [];
-        console.log(`Found ${invoices.length} invoices`);
+      for (const invoice of invoices) {
+        try {
+          // Find linked debtor from prefetched map
+          const debtorId = debtorMap.get(invoice.CustomerRef?.value);
 
-        for (const invoice of invoices) {
-          try {
-            // Find linked debtor
-            const { data: debtor } = await supabaseAdmin
-              .from('debtors')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('quickbooks_customer_id', invoice.CustomerRef?.value)
-              .single();
-
-            if (!debtor) {
-              errors.push(`Invoice ${invoice.DocNumber}: No matching customer`);
-              continue;
-            }
-
-            const dueDate = invoice.DueDate || invoice.TxnDate;
-            const status = invoice.Balance === 0 ? 'Paid' : 'Open';
-
-            const { error: upsertError } = await supabaseAdmin
-              .from('invoices')
-              .upsert({
-                user_id: user.id,
-                debtor_id: debtor.id,
-                quickbooks_invoice_id: invoice.Id,
-                quickbooks_doc_number: invoice.DocNumber,
-                invoice_number: invoice.DocNumber || `QB-${invoice.Id}`,
-                amount: Math.round((invoice.TotalAmt || 0) * 100),
-                outstanding_amount: Math.round((invoice.Balance || 0) * 100),
-                invoice_date: invoice.TxnDate,
-                due_date: dueDate,
-                status: status,
-                integration_source: 'quickbooks',
-                last_synced_at: new Date().toISOString()
-              }, {
-                onConflict: 'user_id,quickbooks_invoice_id'
-              });
-
-            if (!upsertError) {
-              invoicesSynced++;
-            } else {
-              console.error('Invoice upsert error:', upsertError);
-            }
-          } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Unknown error';
-            errors.push(`Invoice ${invoice.DocNumber || invoice.Id}: ${msg}`);
+          if (!debtorId) {
+            errors.push(`Invoice ${invoice.DocNumber}: No matching customer`);
+            continue;
           }
+
+          const dueDate = invoice.DueDate || invoice.TxnDate;
+          const status = invoice.Balance === 0 ? 'Paid' : 'Open';
+
+          const { error: upsertError } = await supabaseAdmin
+            .from('invoices')
+            .upsert({
+              user_id: user.id,
+              debtor_id: debtorId,
+              quickbooks_invoice_id: invoice.Id,
+              quickbooks_doc_number: invoice.DocNumber,
+              invoice_number: invoice.DocNumber || `QB-${invoice.Id}`,
+              amount: Math.round((invoice.TotalAmt || 0) * 100),
+              outstanding_amount: Math.round((invoice.Balance || 0) * 100),
+              invoice_date: invoice.TxnDate,
+              due_date: dueDate,
+              status: status,
+              integration_source: 'quickbooks',
+              last_synced_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,quickbooks_invoice_id'
+            });
+
+          if (!upsertError) {
+            invoicesSynced++;
+          } else {
+            console.error('Invoice upsert error:', upsertError);
+          }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Unknown error';
+          errors.push(`Invoice ${invoice.DocNumber || invoice.Id}: ${msg}`);
         }
-      } else {
-        const errText = await invoicesResponse.text();
-        console.error('Failed to fetch invoices:', errText);
-        errors.push(`Invoices fetch failed: ${invoicesResponse.status}`);
       }
 
     } catch (syncError: unknown) {
@@ -263,8 +253,71 @@ serve(async (req) => {
 });
 
 /**
+ * Paginated QuickBooks query helper.
+ * Fetches all records using STARTPOSITION/MAXRESULTS pagination.
+ */
+async function qbQueryAll(
+  apiBase: string,
+  realmId: string,
+  accessToken: string,
+  baseQuery: string
+): Promise<any[]> {
+  const results: any[] = [];
+  let startPosition = 1;
+  
+  // Extract entity name from query (e.g., "SELECT * FROM Customer" -> "Customer")
+  const entityMatch = baseQuery.match(/FROM\s+(\w+)/i);
+  const entityName = entityMatch ? entityMatch[1] : null;
+  
+  if (!entityName) {
+    throw new Error(`Could not extract entity name from query: ${baseQuery}`);
+  }
+
+  while (true) {
+    const paginatedQuery = `${baseQuery} STARTPOSITION ${startPosition} MAXRESULTS ${QB_PAGE_SIZE}`;
+    const encodedQuery = encodeURIComponent(paginatedQuery);
+    const url = `${apiBase}/v3/company/${realmId}/query?query=${encodedQuery}&minorversion=${QB_MINOR_VERSION}`;
+    
+    console.log(`Fetching ${entityName} from position ${startPosition}...`);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`QB query failed (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    const records = data.QueryResponse?.[entityName] || [];
+    
+    if (records.length === 0) {
+      break;
+    }
+    
+    results.push(...records);
+    
+    // If we got fewer than max, we've reached the end
+    if (records.length < QB_PAGE_SIZE) {
+      break;
+    }
+    
+    startPosition += QB_PAGE_SIZE;
+  }
+
+  return results;
+}
+
+/**
  * Refresh QuickBooks token with Compare-And-Swap (CAS) to prevent race conditions.
- * If another process already refreshed the token, we use that token instead.
+ * Uses .maybeSingle() for proper CAS semantics:
+ * - If updateError => real error, return null
+ * - If updated row exists => return new token
+ * - If no row updated => another process refreshed, fetch latest and validate
  */
 async function refreshTokenCAS(
   supabaseAdmin: any,
@@ -303,6 +356,7 @@ async function refreshTokenCAS(
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
     // CAS update: only update if refresh_token still matches what we used
+    // Use .maybeSingle() to distinguish "no match" from "real error"
     const { data: updateResult, error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -313,30 +367,46 @@ async function refreshTokenCAS(
       .eq('id', userId)
       .eq('quickbooks_refresh_token', oldRefreshToken)
       .select('quickbooks_access_token')
-      .single();
+      .maybeSingle();
 
+    // Real database error
     if (updateError) {
-      // CAS failed - another process already refreshed the token
-      // Re-fetch the profile to get the current access token
-      console.log('CAS update failed, another process may have refreshed. Fetching current token...');
-      
-      const { data: currentProfile, error: fetchError } = await supabaseAdmin
-        .from('profiles')
-        .select('quickbooks_access_token')
-        .eq('id', userId)
-        .single();
-
-      if (fetchError || !currentProfile?.quickbooks_access_token) {
-        console.error('Failed to fetch current token after CAS failure:', fetchError);
-        return null;
-      }
-
-      console.log('Using token refreshed by another process');
-      return currentProfile.quickbooks_access_token;
+      console.error('Database error during CAS update:', updateError);
+      return null;
     }
 
-    console.log('Token refreshed successfully with CAS');
-    return tokens.access_token;
+    // CAS succeeded - we updated the row
+    if (updateResult?.quickbooks_access_token) {
+      console.log('Token refreshed successfully with CAS');
+      return updateResult.quickbooks_access_token;
+    }
+
+    // No row updated - another process already refreshed the token
+    // Re-fetch the profile to get the current access token and validate it's not expired
+    console.log('CAS: no row matched, another process may have refreshed. Fetching current token...');
+    
+    const { data: currentProfile, error: fetchError } = await supabaseAdmin
+      .from('profiles')
+      .select('quickbooks_access_token, quickbooks_token_expires_at')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !currentProfile?.quickbooks_access_token) {
+      console.error('Failed to fetch current token after CAS miss:', fetchError);
+      return null;
+    }
+
+    // Validate the fetched token is not expired
+    if (currentProfile.quickbooks_token_expires_at) {
+      const currentExpiry = new Date(currentProfile.quickbooks_token_expires_at);
+      if (currentExpiry <= new Date()) {
+        console.error('Fetched token is already expired - refresh race condition failed');
+        return null;
+      }
+    }
+
+    console.log('Using token refreshed by another process');
+    return currentProfile.quickbooks_access_token;
 
   } catch (e: unknown) {
     console.error('Token refresh error:', e);
