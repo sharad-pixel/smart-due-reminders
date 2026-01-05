@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// 2-minute early refresh buffer to avoid edge cases
+const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -48,12 +51,14 @@ serve(async (req) => {
     let accessToken = profile.quickbooks_access_token;
     const realmId = profile.quickbooks_realm_id;
 
-    // Check if token is expired and refresh if needed
+    // Check if token is expired (with 2-minute buffer) and refresh if needed
     if (profile.quickbooks_token_expires_at) {
       const expiresAt = new Date(profile.quickbooks_token_expires_at);
-      if (expiresAt <= new Date()) {
-        console.log('Token expired, refreshing...');
-        accessToken = await refreshToken(supabaseAdmin, user.id, profile.quickbooks_refresh_token);
+      const refreshThreshold = new Date(Date.now() + TOKEN_REFRESH_BUFFER_MS);
+      
+      if (expiresAt <= refreshThreshold) {
+        console.log('Token expired or expiring soon, refreshing with CAS...');
+        accessToken = await refreshTokenCAS(supabaseAdmin, user.id, profile.quickbooks_refresh_token);
         if (!accessToken) {
           return new Response(JSON.stringify({ error: 'Failed to refresh token. Please reconnect QuickBooks.' }), {
             status: 401,
@@ -257,11 +262,25 @@ serve(async (req) => {
   }
 });
 
-async function refreshToken(supabaseAdmin: any, userId: string, refreshToken: string): Promise<string | null> {
+/**
+ * Refresh QuickBooks token with Compare-And-Swap (CAS) to prevent race conditions.
+ * If another process already refreshed the token, we use that token instead.
+ */
+async function refreshTokenCAS(
+  supabaseAdmin: any,
+  userId: string,
+  oldRefreshToken: string
+): Promise<string | null> {
   try {
     const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
     const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
 
+    if (!clientId || !clientSecret) {
+      console.error('Missing QuickBooks credentials for token refresh');
+      return null;
+    }
+
+    // Call Intuit to refresh the token
     const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
       method: 'POST',
       headers: {
@@ -270,30 +289,57 @@ async function refreshToken(supabaseAdmin: any, userId: string, refreshToken: st
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
-        refresh_token: refreshToken
+        refresh_token: oldRefreshToken
       })
     });
 
     if (!response.ok) {
-      console.error('Token refresh failed:', await response.text());
+      const errorText = await response.text();
+      console.error('Token refresh failed:', response.status, errorText);
       return null;
     }
 
     const tokens = await response.json();
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-    await supabaseAdmin
+    // CAS update: only update if refresh_token still matches what we used
+    const { data: updateResult, error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
         quickbooks_access_token: tokens.access_token,
         quickbooks_refresh_token: tokens.refresh_token,
         quickbooks_token_expires_at: expiresAt.toISOString()
       })
-      .eq('id', userId);
+      .eq('id', userId)
+      .eq('quickbooks_refresh_token', oldRefreshToken)
+      .select('quickbooks_access_token')
+      .single();
 
+    if (updateError) {
+      // CAS failed - another process already refreshed the token
+      // Re-fetch the profile to get the current access token
+      console.log('CAS update failed, another process may have refreshed. Fetching current token...');
+      
+      const { data: currentProfile, error: fetchError } = await supabaseAdmin
+        .from('profiles')
+        .select('quickbooks_access_token')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError || !currentProfile?.quickbooks_access_token) {
+        console.error('Failed to fetch current token after CAS failure:', fetchError);
+        return null;
+      }
+
+      console.log('Using token refreshed by another process');
+      return currentProfile.quickbooks_access_token;
+    }
+
+    console.log('Token refreshed successfully with CAS');
     return tokens.access_token;
-  } catch (e) {
-    console.error('Refresh token error:', e);
+
+  } catch (e: unknown) {
+    console.error('Token refresh error:', e);
     return null;
   }
 }
