@@ -4467,6 +4467,75 @@ export type Database = {
           },
         ]
       }
+      quickbooks_payments: {
+        Row: {
+          amount_applied: number
+          created_at: string
+          currency: string
+          debtor_id: string | null
+          id: string
+          invoice_id: string | null
+          payment_date: string | null
+          payment_method: string | null
+          quickbooks_invoice_id: string | null
+          quickbooks_payment_id: string
+          raw: Json | null
+          reference_number: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_applied: number
+          created_at?: string
+          currency?: string
+          debtor_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          quickbooks_invoice_id?: string | null
+          quickbooks_payment_id: string
+          raw?: Json | null
+          reference_number?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_applied?: number
+          created_at?: string
+          currency?: string
+          debtor_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          quickbooks_invoice_id?: string | null
+          quickbooks_payment_id?: string
+          raw?: Json | null
+          reference_number?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_payments_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quickbooks_sync_log: {
         Row: {
           completed_at: string | null
