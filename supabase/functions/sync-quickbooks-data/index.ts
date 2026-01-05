@@ -50,6 +50,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Marker log to confirm function was hit
+    try {
+      await supabaseAdmin.from('quickbooks_sync_log').insert({
+        user_id: user.id,
+        sync_type: 'full',
+        status: 'running',
+        errors: ['FUNCTION_HIT']
+      });
+    } catch (e) {
+      console.error('QB_SYNCLOG_MARKER_INSERT_FAILED', e);
+    }
+
     // Get user's QuickBooks connection
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
