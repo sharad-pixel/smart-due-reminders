@@ -226,6 +226,17 @@ Deno.serve(async (req) => {
               continue;
             }
 
+            // Check if the collection workflow is template-approved
+            const { data: collectionWorkflow } = await supabaseAdmin
+              .from('collection_workflows')
+              .select('id, is_template_approved, persona_id')
+              .eq('aging_bucket', invoice.aging_bucket)
+              .eq('is_active', true)
+              .limit(1)
+              .single();
+
+            const isWorkflowApproved = collectionWorkflow?.is_template_approved === true;
+
             // Try to get an approved template for this bucket and step
             const { data: templates } = await supabaseAdmin
               .from('draft_templates')
@@ -282,6 +293,9 @@ Deno.serve(async (req) => {
 
             body += '\n\nThank you for your business.';
 
+            // Determine draft status: auto-approve if workflow is approved OR template is approved
+            const draftStatus = (isWorkflowApproved || useTemplate) ? 'approved' : 'pending_approval';
+
             // Create the draft
             const { error: draftError } = await supabaseAdmin
               .from('ai_drafts')
@@ -292,9 +306,10 @@ Deno.serve(async (req) => {
                 message_body: body,
                 step_number: stepNumber,
                 channel: 'email',
-                status: useTemplate ? 'approved' : 'pending_approval',
+                status: draftStatus,
                 recommended_send_date: todayStr,
-                days_past_due: daysPastDue
+                days_past_due: daysPastDue,
+                auto_approved: isWorkflowApproved || useTemplate
               });
 
             if (draftError) {
