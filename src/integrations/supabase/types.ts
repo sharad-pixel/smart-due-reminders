@@ -2010,6 +2010,8 @@ export type Database = {
           disputed_invoices_count: number | null
           email: string
           external_customer_id: string | null
+          external_customer_source: string | null
+          external_customer_url: string | null
           external_system: string | null
           health_tier: string | null
           high_risk_invoice_count: number | null
@@ -2044,6 +2046,7 @@ export type Database = {
           payment_terms_default: string | null
           phone: string | null
           postal_code: string | null
+          recouply_customer_id: string | null
           reference_id: string
           risk_last_calculated_at: string | null
           risk_status_note: string | null
@@ -2096,6 +2099,8 @@ export type Database = {
           disputed_invoices_count?: number | null
           email: string
           external_customer_id?: string | null
+          external_customer_source?: string | null
+          external_customer_url?: string | null
           external_system?: string | null
           health_tier?: string | null
           high_risk_invoice_count?: number | null
@@ -2130,6 +2135,7 @@ export type Database = {
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
+          recouply_customer_id?: string | null
           reference_id: string
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
@@ -2182,6 +2188,8 @@ export type Database = {
           disputed_invoices_count?: number | null
           email?: string
           external_customer_id?: string | null
+          external_customer_source?: string | null
+          external_customer_url?: string | null
           external_system?: string | null
           health_tier?: string | null
           high_risk_invoice_count?: number | null
@@ -2216,6 +2224,7 @@ export type Database = {
           payment_terms_default?: string | null
           phone?: string | null
           postal_code?: string | null
+          recouply_customer_id?: string | null
           reference_id?: string
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
