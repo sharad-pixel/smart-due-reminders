@@ -61,6 +61,9 @@ serve(async (req) => {
       `)
       .eq("id", invoice_id)
       .single();
+    
+    // Extract invoice link for external system
+    const invoiceLink = invoice?.integration_url || '';
 
     if (invoiceError || !invoice) {
       console.error("Invoice fetch error:", invoiceError);
@@ -226,6 +229,8 @@ serve(async (req) => {
           '{{days_past_due}}': daysPastDue.toString(),
           '{{business_name}}': businessName,
           '{{payment_link}}': profile.stripe_payment_link_url || 'Please contact us for payment options',
+          '{{invoice_link}}': invoiceLink,
+          '{{integration_url}}': invoiceLink,
         };
 
         email_subject = approvedTemplate.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
@@ -234,6 +239,11 @@ serve(async (req) => {
         for (const [key, value] of Object.entries(templateVars)) {
           email_subject = email_subject.replace(new RegExp(key, 'g'), value);
           email_body = email_body.replace(new RegExp(key, 'g'), value);
+        }
+
+        // Auto-append invoice link if it exists and isn't already in the message
+        if (invoiceLink && !email_body.includes(invoiceLink)) {
+          email_body += `\n\nView your invoice: ${invoiceLink}`;
         }
 
         // Add signature if available
@@ -348,6 +358,7 @@ BALANCE DUE: $${amountOutstanding} ${invoice.currency || 'USD'}
 Due date: ${new Date(invoice.due_date).toLocaleDateString()}
 Days past due: ${daysPastDue}
 Payment link: ${profile.stripe_payment_link_url || "Please contact us for payment options"}
+${invoiceLink ? `Invoice link (MUST include in email): ${invoiceLink}` : ''}
 Step number in cadence: ${step_number}
 ${crmAccount ? `CRM Account: ${crmAccount.name}, Segment: ${crmAccount.segment || 'N/A'}, Health: ${crmAccount.health_score || 'N/A'}` : ''}
 

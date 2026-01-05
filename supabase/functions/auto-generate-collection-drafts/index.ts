@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
         use_custom_template,
         custom_template_subject,
         custom_template_body,
+        integration_url,
         debtors(
           id,
           name,
@@ -278,6 +279,7 @@ Deno.serve(async (req) => {
         }
 
         // Replace template variables
+        const invoiceLink = invoice.integration_url || '';
         const templateVars: Record<string, string> = {
           '{{debtor_name}}': debtorName,
           '{{company_name}}': companyName,
@@ -288,6 +290,8 @@ Deno.serve(async (req) => {
           '{{days_past_due}}': daysPastDue.toString(),
           '{{business_name}}': businessName,
           '{{from_name}}': fromName,
+          '{{invoice_link}}': invoiceLink,
+          '{{integration_url}}': invoiceLink,
         };
 
         let processedBody = bodyTemplate;
@@ -296,6 +300,11 @@ Deno.serve(async (req) => {
         for (const [key, value] of Object.entries(templateVars)) {
           processedBody = processedBody.replace(new RegExp(key, 'g'), value);
           processedSubject = processedSubject.replace(new RegExp(key, 'g'), value);
+        }
+
+        // Auto-append invoice link if it exists and isn't already in the message
+        if (invoiceLink && !processedBody.includes(invoiceLink)) {
+          processedBody += `\n\nView your invoice: ${invoiceLink}`;
         }
 
         // Add signature if available
