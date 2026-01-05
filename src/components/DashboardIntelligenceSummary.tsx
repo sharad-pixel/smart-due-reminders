@@ -61,15 +61,15 @@ export function DashboardIntelligenceSummary() {
     try {
       console.log("[DashboardIntelligenceSummary] Fetching accounts with intelligence...");
 
+      // Fetch all non-archived accounts and filter in memory for better data freshness
       const queryPromise = supabase
         .from("debtors")
         .select(
           "id, company_name, name, total_open_balance, intelligence_report, intelligence_report_generated_at",
         )
         .neq("is_archived", true)
-        .not("intelligence_report", "is", null)
-        .order("intelligence_report_generated_at", { ascending: false, nullsFirst: false })
-        .limit(50);
+        .order("updated_at", { ascending: false })
+        .limit(100);
 
       const { data, error } = await Promise.race([
         queryPromise,
@@ -81,8 +81,16 @@ export function DashboardIntelligenceSummary() {
         throw error;
       }
 
-      console.log("[DashboardIntelligenceSummary] Found accounts:", data?.length || 0);
-      setAccounts(data || []);
+      // Filter to accounts with intelligence reports
+      const accountsWithReports = (data || []).filter(a => a.intelligence_report !== null);
+      // Sort by report generation time
+      accountsWithReports.sort((a, b) => {
+        const aTime = a.intelligence_report_generated_at ? new Date(a.intelligence_report_generated_at).getTime() : 0;
+        const bTime = b.intelligence_report_generated_at ? new Date(b.intelligence_report_generated_at).getTime() : 0;
+        return bTime - aTime;
+      });
+      console.log("[DashboardIntelligenceSummary] Found accounts:", accountsWithReports.length);
+      setAccounts(accountsWithReports);
     } catch (error: any) {
       console.error("[DashboardIntelligenceSummary] Error fetching intelligence data:", error);
       setLoadError(error?.message || "Failed to load intelligence.");
@@ -98,14 +106,22 @@ export function DashboardIntelligenceSummary() {
     try {
       const { error } = await supabase.functions.invoke("daily-intelligence-reports");
       if (error) throw error;
-      toast.success("Intelligence reports regenerating in background");
-      // Refresh after a delay to allow reports to generate
-      setTimeout(() => {
-        fetchAccountsWithIntelligence();
-      }, 5000);
+      toast.success("Intelligence reports regenerating...");
+      
+      // Poll for updates every 3 seconds for up to 30 seconds
+      let attempts = 0;
+      const maxAttempts = 10;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        await fetchAccountsWithIntelligence();
+        if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          setRegenerating(false);
+          toast.success("Intelligence refresh complete");
+        }
+      }, 3000);
     } catch (error: any) {
       toast.error(error.message || "Failed to trigger intelligence reports");
-    } finally {
       setRegenerating(false);
     }
   };
