@@ -5162,7 +5162,12 @@ export type Database = {
         | "verified"
         | "expired"
         | "rejected"
-      draft_status: "pending_approval" | "approved" | "discarded"
+      draft_status:
+        | "pending_approval"
+        | "approved"
+        | "discarded"
+        | "sent"
+        | "skipped"
       invoice_status:
         | "Open"
         | "Paid"
@@ -5324,7 +5329,13 @@ export const Constants = {
         "expired",
         "rejected",
       ],
-      draft_status: ["pending_approval", "approved", "discarded"],
+      draft_status: [
+        "pending_approval",
+        "approved",
+        "discarded",
+        "sent",
+        "skipped",
+      ],
       invoice_status: [
         "Open",
         "Paid",

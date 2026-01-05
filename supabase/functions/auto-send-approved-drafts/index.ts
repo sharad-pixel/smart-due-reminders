@@ -146,9 +146,19 @@ Deno.serve(async (req) => {
       const invoice = draft.invoices as any;
       const debtor = invoice?.debtors as any;
       
-      // Only process Open or InPaymentPlan invoices
+      // Only process Open or InPaymentPlan invoices - mark others as skipped
       if (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan') {
         console.log(`[AUTO-SEND] Skipping draft ${draft.id}: invoice ${invoice.id} status is ${invoice.status}`);
+        
+        // Mark draft as skipped so it doesn't keep appearing
+        await supabaseAdmin
+          .from('ai_drafts')
+          .update({ 
+            status: 'skipped',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', draft.id);
+        
         skippedCount++;
         continue;
       }
@@ -295,10 +305,11 @@ Deno.serve(async (req) => {
           .update({ last_contact_date: new Date().toISOString().split('T')[0] })
           .eq("id", invoice.id);
 
-        // Mark draft as sent by setting sent_at timestamp
+        // Mark draft as sent with status and timestamp
         await supabaseAdmin
           .from('ai_drafts')
           .update({ 
+            status: 'sent',
             sent_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
