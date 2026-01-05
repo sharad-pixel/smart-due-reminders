@@ -31,6 +31,8 @@ import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploa
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
 import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
 import { IntegrationSyncDashboard } from "@/components/data-center/IntegrationSyncDashboard";
+import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSection";
+import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
 import * as XLSX from "xlsx";
 
 const DataCenter = () => {
@@ -340,6 +342,15 @@ const DataCenter = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Connected Integrations */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Connected Integrations</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <StripeSyncSection />
+            <QuickBooksSyncSection />
           </div>
         </div>
 
