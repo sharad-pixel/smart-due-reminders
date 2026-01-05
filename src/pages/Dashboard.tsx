@@ -18,8 +18,7 @@ import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { AIInsightsCard } from "@/components/AIInsightsCard";
-import { DashboardIntelligenceSummary } from "@/components/DashboardIntelligenceSummary";
+import { CollectionIntelligenceCard } from "@/components/CollectionIntelligenceCard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface Invoice {
@@ -512,11 +511,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* AI Insights */}
-        <AIInsightsCard scope="dashboard" compact />
-
-        {/* Collection Intelligence Summary */}
-        <DashboardIntelligenceSummary />
+        {/* Unified Collection Intelligence */}
+        <CollectionIntelligenceCard />
 
         <Card>
           <CardHeader className="p-4 sm:p-6">
