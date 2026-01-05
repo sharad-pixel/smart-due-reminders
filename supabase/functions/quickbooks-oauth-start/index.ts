@@ -39,37 +39,28 @@ serve(async (req) => {
       });
     }
 
-    // Generate cryptographically secure state token
-    const stateToken = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Generate opaque random state (do NOT embed userId in it)
+    const state = crypto.randomUUID();
 
-    // Store state server-side for validation
+    // Store it server-side so callback can validate it
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Clean up any existing unused states for this user/provider
-    await supabaseAdmin
-      .from('oauth_states')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('provider', 'quickbooks')
-      .is('used_at', null);
-
-    // Insert new state
-    const { error: insertError } = await supabaseAdmin
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const { error: stateErr } = await supabaseAdmin
       .from('oauth_states')
       .insert({
         user_id: user.id,
         provider: 'quickbooks',
-        state: stateToken,
-        expires_at: expiresAt.toISOString()
+        state,
+        expires_at: expiresAt
       });
 
-    if (insertError) {
-      console.error('Failed to store OAuth state:', insertError);
-      return new Response(JSON.stringify({ error: 'Failed to initialize OAuth flow' }), {
+    if (stateErr) {
+      console.error('Failed to store oauth state:', stateErr);
+      return new Response(JSON.stringify({ error: 'Failed to start OAuth' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -81,7 +72,7 @@ serve(async (req) => {
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'com.intuit.quickbooks.accounting',
-      state: stateToken
+      state: state
     }).toString();
 
     console.log(`QuickBooks OAuth started for user ${user.id}, state stored server-side`);
