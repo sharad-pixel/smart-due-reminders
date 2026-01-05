@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/OutreachStatusCards";
-import { WorkflowApprovalCards } from "@/components/WorkflowApprovalCards";
+
 
 interface WorkflowStep {
   id: string;
@@ -1284,19 +1284,6 @@ const AIWorkflows = () => {
           refetchErrors();
         }} />
 
-        {/* Workflow Approval Cards */}
-        <WorkflowApprovalCards 
-          workflows={workflows as any}
-          onRefresh={fetchWorkflows}
-          onPreviewStep={(step, agingBucket) => setPreviewStep({
-            stepId: step.id,
-            channel: "email",
-            subject: step.subject_template,
-            body: step.body_template,
-            agingBucket,
-            dayOffset: step.day_offset,
-          })}
-        />
 
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
