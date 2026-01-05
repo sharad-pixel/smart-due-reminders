@@ -27,8 +27,9 @@ function replaceTemplateVars(
   const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
   const paymentLink = branding?.stripe_payment_link || '';
+  const invoiceLink = invoice?.integration_url || '';
   
-  return text
+  let result = text
     // Customer/Debtor name variations
     .replace(/\{\{customer_name\}\}/gi, customerName)
     .replace(/\{\{customer name\}\}/gi, customerName)
@@ -59,7 +60,20 @@ function replaceTemplateVars(
     .replace(/\{\{payment link\}\}/gi, paymentLink)
     .replace(/\{\{paymentLink\}\}/gi, paymentLink)
     .replace(/\{\{pay_link\}\}/gi, paymentLink)
-    .replace(/\{\{stripe_link\}\}/gi, paymentLink);
+    .replace(/\{\{stripe_link\}\}/gi, paymentLink)
+    // Invoice link variations (external system link)
+    .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
+    .replace(/\{\{invoice link\}\}/gi, invoiceLink)
+    .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
+    .replace(/\{\{external_link\}\}/gi, invoiceLink)
+    .replace(/\{\{integration_url\}\}/gi, invoiceLink);
+  
+  // Auto-append invoice link if it exists and isn't already in the message
+  if (invoiceLink && !result.includes(invoiceLink)) {
+    result += `\n\nView your invoice: ${invoiceLink}`;
+  }
+  
+  return result;
 }
 
 Deno.serve(async (req) => {
@@ -101,6 +115,7 @@ Deno.serve(async (req) => {
           amount,
           currency,
           user_id,
+          integration_url,
           debtors!inner(
             id,
             name,
