@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/OutreachStatusCards";
+import { WorkflowApprovalCards } from "@/components/WorkflowApprovalCards";
 
 interface WorkflowStep {
   id: string;
@@ -496,7 +497,8 @@ const AIWorkflows = () => {
         .from("collection_workflows")
         .select(`
           *,
-          steps:collection_workflow_steps(*)
+          steps:collection_workflow_steps(*),
+          persona:ai_agent_personas(id, name, persona_summary)
         `)
         .or(`user_id.eq.${user.id},user_id.is.null`)
         .order("aging_bucket");
@@ -1282,7 +1284,20 @@ const AIWorkflows = () => {
           refetchErrors();
         }} />
 
-        {/* AI Collection Agents Card */}
+        {/* Workflow Approval Cards */}
+        <WorkflowApprovalCards 
+          workflows={workflows as any}
+          onRefresh={fetchWorkflows}
+          onPreviewStep={(step, agingBucket) => setPreviewStep({
+            stepId: step.id,
+            channel: "email",
+            subject: step.subject_template,
+            body: step.body_template,
+            agingBucket,
+            dayOffset: step.day_offset,
+          })}
+        />
+
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">

@@ -226,6 +226,7 @@ export type Database = {
       ai_drafts: {
         Row: {
           agent_persona_id: string | null
+          auto_approved: boolean | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at: string | null
           days_past_due: number | null
@@ -244,6 +245,7 @@ export type Database = {
         }
         Insert: {
           agent_persona_id?: string | null
+          auto_approved?: boolean | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
           days_past_due?: number | null
@@ -262,6 +264,7 @@ export type Database = {
         }
         Update: {
           agent_persona_id?: string | null
+          auto_approved?: boolean | null
           channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
           days_past_due?: number | null
@@ -1065,9 +1068,11 @@ export type Database = {
           day_offset: number
           id: string
           is_active: boolean | null
+          is_step_approved: boolean | null
           label: string
           requires_review: boolean | null
           sms_template: string | null
+          step_approved_at: string | null
           step_order: number
           subject_template: string | null
           trigger_type: string
@@ -1082,9 +1087,11 @@ export type Database = {
           day_offset: number
           id?: string
           is_active?: boolean | null
+          is_step_approved?: boolean | null
           label: string
           requires_review?: boolean | null
           sms_template?: string | null
+          step_approved_at?: string | null
           step_order: number
           subject_template?: string | null
           trigger_type: string
@@ -1099,9 +1106,11 @@ export type Database = {
           day_offset?: number
           id?: string
           is_active?: boolean | null
+          is_step_approved?: boolean | null
           label?: string
           requires_review?: boolean | null
           sms_template?: string | null
+          step_approved_at?: string | null
           step_order?: number
           subject_template?: string | null
           trigger_type?: string
@@ -1128,7 +1137,11 @@ export type Database = {
           is_active: boolean | null
           is_default: boolean | null
           is_locked: boolean | null
+          is_template_approved: boolean | null
           name: string
+          persona_id: string | null
+          template_approved_at: string | null
+          template_approved_by: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -1141,7 +1154,11 @@ export type Database = {
           is_active?: boolean | null
           is_default?: boolean | null
           is_locked?: boolean | null
+          is_template_approved?: boolean | null
           name: string
+          persona_id?: string | null
+          template_approved_at?: string | null
+          template_approved_by?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1154,11 +1171,23 @@ export type Database = {
           is_active?: boolean | null
           is_default?: boolean | null
           is_locked?: boolean | null
+          is_template_approved?: boolean | null
           name?: string
+          persona_id?: string | null
+          template_approved_at?: string | null
+          template_approved_by?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "collection_workflows_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_personas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_requests: {
         Row: {
