@@ -723,29 +723,6 @@ const DebtorDetail = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Account ID (RAID)</p>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
-                    {debtor.reference_id || "—"}
-                  </code>
-                  {debtor.reference_id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => {
-                        navigator.clipboard.writeText(debtor.reference_id);
-                        setCopiedRefId(true);
-                        setTimeout(() => setCopiedRefId(false), 2000);
-                        toast.success("RAID copied to clipboard");
-                      }}
-                    >
-                      {copiedRefId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div>
                 <p className="text-sm text-muted-foreground">Type</p>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
