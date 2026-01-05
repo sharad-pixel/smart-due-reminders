@@ -213,12 +213,10 @@ serve(async (req) => {
               email: customerEmail,
               phone: customer.phone || null,
               external_customer_id: customer.id,
-              external_customer_source: 'stripe',
-              external_customer_url: `https://dashboard.stripe.com/customers/${customer.id}`,
               external_system: 'stripe',
-              integration_source: 'stripe'
+              reference_id: `STRIPE-${customer.id.slice(-8).toUpperCase()}`
             })
-            .select('id, recouply_customer_id')
+            .select('id')
             .single();
 
           if (debtorError) {
