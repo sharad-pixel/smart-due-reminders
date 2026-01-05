@@ -18,7 +18,7 @@ import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { AIInsightsCard } from "@/components/AIInsightsCard";
+import { AIInsightsCard } from "@/components/CollectionIntelligenceCard";
 import { DashboardIntelligenceSummary } from "@/components/DashboardIntelligenceSummary";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
@@ -512,7 +512,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* AI Insights */}
+        {/* Collection Intelligence */}
         <AIInsightsCard scope="dashboard" compact />
 
         {/* Collection Intelligence Summary */}
