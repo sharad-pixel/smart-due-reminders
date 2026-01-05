@@ -29,6 +29,7 @@ import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 
 import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
 import { IntegrationSourceBanner } from "@/components/IntegrationSourceBanner";
+import { useOverrideWarning, logOverrideAndUpdateInvoice } from "@/components/InvoiceOverrideWarningDialogs";
 
 interface Invoice {
   id: string;
@@ -193,6 +194,13 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [creditWriteOffNotes, setCreditWriteOffNotes] = useState("");
   const [applyingCreditWriteOff, setApplyingCreditWriteOff] = useState(false);
   const [transactionRefreshKey, setTransactionRefreshKey] = useState(0);
+
+  // Override warning hook
+  const { checkAndProceed, CSVWarningDialog, IntegrationWarningDialog } = useOverrideWarning({
+    integrationSource: invoice?.integration_source,
+    integrationUrl: invoice?.integration_url,
+    invoiceId: id || "",
+  });
 
   // Filtered and paginated outreach
   const filteredOutreach = useMemo(() => {
@@ -624,34 +632,114 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleSaveInvoiceEdit = async () => {
     if (!invoice) return;
 
-    try {
-      // Get payment terms days from the selected option
-      const paymentTermsOptions = getPaymentTermsOptions();
-      const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
-      const paymentTermsDays = selectedTerms?.days ?? 30;
-      
-      // Calculate due date from issue date + payment terms
-      const dueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+    // Determine which fields changed for override logging
+    const amountChanged = parseFloat(editAmount) !== invoice.amount;
+    const dueDateWillChange = editIssueDate !== invoice.issue_date || editPaymentTerms !== invoice.payment_terms;
 
-      const { error } = await supabase
-        .from("invoices")
-        .update({
-          invoice_number: editInvoiceNumber,
-          amount: parseFloat(editAmount),
-          issue_date: editIssueDate,
-          due_date: dueDate,
-          payment_terms: editPaymentTerms,
-          notes: editNotes,
-        })
-        .eq("id", invoice.id);
+    const performSave = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
 
-      if (error) throw error;
-      toast.success("Invoice updated successfully");
-      setEditInvoiceDialogOpen(false);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update invoice");
+        // Get payment terms days from the selected option
+        const paymentTermsOptions = getPaymentTermsOptions();
+        const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
+        const paymentTermsDays = selectedTerms?.days ?? 30;
+        
+        // Calculate due date from issue date + payment terms
+        const dueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+
+        // Check if this is an integrated invoice that needs override logging
+        const isIntegrated = invoice.integration_source && 
+          ["stripe", "quickbooks", "xero"].includes(invoice.integration_source);
+
+        if (isIntegrated) {
+          // Log overrides for changed fields
+          if (amountChanged) {
+            await logOverrideAndUpdateInvoice(
+              supabase,
+              invoice.id,
+              user.id,
+              "amount",
+              invoice.amount.toString(),
+              editAmount,
+              invoice.integration_source
+            );
+          }
+          if (dueDateWillChange) {
+            await logOverrideAndUpdateInvoice(
+              supabase,
+              invoice.id,
+              user.id,
+              "due_date",
+              invoice.due_date,
+              dueDate,
+              invoice.integration_source
+            );
+          }
+        }
+
+        const { error } = await supabase
+          .from("invoices")
+          .update({
+            invoice_number: editInvoiceNumber,
+            amount: parseFloat(editAmount),
+            issue_date: editIssueDate,
+            due_date: dueDate,
+            payment_terms: editPaymentTerms,
+            notes: editNotes,
+          })
+          .eq("id", invoice.id);
+
+        if (error) throw error;
+        
+        const successMessage = isIntegrated && (amountChanged || dueDateWillChange)
+          ? "Override saved. This will be reset on next sync."
+          : "Invoice updated successfully";
+        toast.success(successMessage);
+        setEditInvoiceDialogOpen(false);
+        fetchData();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update invoice");
+      }
+    };
+
+    // Check if we need to show override warning
+    if (invoice.integration_source && ["stripe", "quickbooks", "xero"].includes(invoice.integration_source)) {
+      if (amountChanged) {
+        await checkAndProceed(
+          "Invoice Amount",
+          `$${invoice.amount.toLocaleString()}`,
+          `$${parseFloat(editAmount).toLocaleString()}`,
+          performSave
+        );
+        return;
+      }
+      if (dueDateWillChange) {
+        const paymentTermsOptions = getPaymentTermsOptions();
+        const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
+        const paymentTermsDays = selectedTerms?.days ?? 30;
+        const newDueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+        await checkAndProceed(
+          "Due Date",
+          invoice.due_date,
+          newDueDate,
+          performSave
+        );
+        return;
+      }
+    } else if (invoice.integration_source === "csv_upload" && (amountChanged || dueDateWillChange)) {
+      await checkAndProceed(
+        amountChanged ? "Invoice Amount" : "Due Date",
+        amountChanged ? `$${invoice.amount.toLocaleString()}` : invoice.due_date,
+        amountChanged ? `$${parseFloat(editAmount).toLocaleString()}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
+        performSave
+      );
+      return;
     }
+
+    // No warning needed, proceed directly
+    await performSave();
   };
 
   const handleApplyPayment = async () => {
@@ -663,141 +751,171 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       return;
     }
 
-    // Check if this is a Stripe-integrated invoice
-    const isStripeInvoice = invoice.source_system === 'stripe' || !!invoice.stripe_invoice_id;
-    if (isStripeInvoice) {
-      const confirmed = window.confirm(
-        "⚠️ This invoice is integrated with Stripe.\n\n" +
-        "For data consistency, payments should be recorded in Stripe and synced to Recouply rather than applied directly here.\n\n" +
-        "Do you still want to apply this payment manually?"
-      );
-      if (!confirmed) return;
-    }
+    const performPayment = async () => {
+      setApplyingPayment(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
 
-    setApplyingPayment(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+        // Check if this is an integrated invoice
+        const isIntegrated = invoice.integration_source && 
+          ["stripe", "quickbooks", "xero"].includes(invoice.integration_source);
 
-      // Create payment record
-      const { data: newPayment, error: paymentError } = await supabase
-        .from("payments")
-        .insert({
-          user_id: user.id,
-          debtor_id: invoice.debtor_id,
-          payment_date: paymentDate,
-          amount: amount,
-          currency: invoice.currency || "USD",
-          reference: paymentReference || null,
-          invoice_number_hint: invoice.invoice_number,
-          reconciliation_status: "manually_matched",
-        })
-        .select()
-        .single();
-
-      if (paymentError) throw paymentError;
-
-      // Create payment-invoice link
-      const { error: linkError } = await supabase
-        .from("payment_invoice_links")
-        .insert({
-          payment_id: newPayment.id,
-          invoice_id: invoice.id,
-          amount_applied: amount,
-          match_confidence: 1.0,
-          match_method: "manual",
-          status: "confirmed",
-        });
-
-      if (linkError) {
-        console.error("Payment link error:", linkError);
-      }
-
-      // Calculate new outstanding amount
-      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
-      const newOutstanding = Math.max(0, currentOutstanding - amount);
-      
-      // Determine new invoice status
-      let newStatus = invoice.status;
-      let newPaymentDate: string | null = null;
-      
-      if (newOutstanding <= 0) {
-        newStatus = "Paid";
-        newPaymentDate = paymentDate;
-      } else if (invoice.status === "Open") {
-        newStatus = "PartiallyPaid";
-      }
-
-      // Update invoice
-      const { error: invoiceError } = await supabase
-        .from("invoices")
-        .update({
-          amount_outstanding: newOutstanding,
-          status: newStatus as any,
-          payment_date: newPaymentDate,
-          payment_method: paymentMethod || null,
-        })
-        .eq("id", invoice.id);
-
-      if (invoiceError) throw invoiceError;
-
-      // Log payment activity to collection_activities for AI context
-      await supabase
-        .from("collection_activities")
-        .insert({
-          user_id: user.id,
-          debtor_id: invoice.debtor_id,
-          invoice_id: invoice.id,
-          activity_type: "payment_received",
-          channel: "system",
-          direction: "inbound",
-          subject: `Payment of $${amount.toLocaleString()} received`,
-          message_body: `Payment received for Invoice #${invoice.invoice_number}. Amount: $${amount.toLocaleString()}${paymentMethod ? `. Method: ${paymentMethod}` : ""}${paymentReference ? `. Reference: ${paymentReference}` : ""}. ${newOutstanding <= 0 ? "Invoice fully paid." : `Remaining balance: $${newOutstanding.toLocaleString()}`}`,
-          metadata: {
-            payment_id: newPayment.id,
-            payment_amount: amount,
-            payment_method: paymentMethod || null,
-            payment_reference: paymentReference || null,
-            previous_outstanding: currentOutstanding,
-            new_outstanding: newOutstanding,
-            invoice_status: newStatus,
+        // Create payment record
+        const { data: newPayment, error: paymentError } = await supabase
+          .from("payments")
+          .insert({
+            user_id: user.id,
+            debtor_id: invoice.debtor_id,
             payment_date: paymentDate,
-          },
-          sent_at: new Date().toISOString(),
-        });
+            amount: amount,
+            currency: invoice.currency || "USD",
+            reference: paymentReference || null,
+            invoice_number_hint: invoice.invoice_number,
+            reconciliation_status: "manually_matched",
+          })
+          .select()
+          .single();
 
-      // Create transaction record
-      await supabase
-        .from("invoice_transactions")
-        .insert({
-          invoice_id: invoice.id,
-          user_id: user.id,
-          transaction_type: "payment",
-          amount: amount,
-          balance_after: newOutstanding,
-          payment_method: paymentMethod || null,
-          reference_number: paymentReference || null,
-          transaction_date: paymentDate,
-          notes: `Payment applied. ${newOutstanding <= 0 ? 'Invoice fully paid.' : `Remaining: $${newOutstanding.toLocaleString()}`}`,
-          created_by: user.id,
-        });
+        if (paymentError) throw paymentError;
 
-      toast.success(
-        newOutstanding <= 0 
-          ? "Payment applied - Invoice marked as Paid" 
-          : `Payment of $${amount.toLocaleString()} applied - $${newOutstanding.toLocaleString()} remaining`
+        // Create payment-invoice link
+        const { error: linkError } = await supabase
+          .from("payment_invoice_links")
+          .insert({
+            payment_id: newPayment.id,
+            invoice_id: invoice.id,
+            amount_applied: amount,
+            match_confidence: 1.0,
+            match_method: "manual",
+            status: "confirmed",
+          });
+
+        if (linkError) {
+          console.error("Payment link error:", linkError);
+        }
+
+        // Calculate new outstanding amount
+        const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
+        const newOutstanding = Math.max(0, currentOutstanding - amount);
+        
+        // Determine new invoice status
+        let newStatus = invoice.status;
+        let newPaymentDate: string | null = null;
+        
+        if (newOutstanding <= 0) {
+          newStatus = "Paid";
+          newPaymentDate = paymentDate;
+        } else if (invoice.status === "Open") {
+          newStatus = "PartiallyPaid";
+        }
+
+        // Log override if integrated
+        if (isIntegrated) {
+          await logOverrideAndUpdateInvoice(
+            supabase,
+            invoice.id,
+            user.id,
+            "payment_applied",
+            `$${currentOutstanding.toLocaleString()} outstanding`,
+            `Payment of $${amount.toLocaleString()}`,
+            invoice.integration_source
+          );
+        }
+
+        // Update invoice
+        const { error: invoiceError } = await supabase
+          .from("invoices")
+          .update({
+            amount_outstanding: newOutstanding,
+            status: newStatus as any,
+            payment_date: newPaymentDate,
+            payment_method: paymentMethod || null,
+          })
+          .eq("id", invoice.id);
+
+        if (invoiceError) throw invoiceError;
+
+        // Log payment activity to collection_activities for AI context
+        await supabase
+          .from("collection_activities")
+          .insert({
+            user_id: user.id,
+            debtor_id: invoice.debtor_id,
+            invoice_id: invoice.id,
+            activity_type: "payment_received",
+            channel: "system",
+            direction: "inbound",
+            subject: `Payment of $${amount.toLocaleString()} received`,
+            message_body: `Payment received for Invoice #${invoice.invoice_number}. Amount: $${amount.toLocaleString()}${paymentMethod ? `. Method: ${paymentMethod}` : ""}${paymentReference ? `. Reference: ${paymentReference}` : ""}. ${newOutstanding <= 0 ? "Invoice fully paid." : `Remaining balance: $${newOutstanding.toLocaleString()}`}`,
+            metadata: {
+              payment_id: newPayment.id,
+              payment_amount: amount,
+              payment_method: paymentMethod || null,
+              payment_reference: paymentReference || null,
+              previous_outstanding: currentOutstanding,
+              new_outstanding: newOutstanding,
+              invoice_status: newStatus,
+              payment_date: paymentDate,
+            },
+            sent_at: new Date().toISOString(),
+          });
+
+        // Create transaction record
+        await supabase
+          .from("invoice_transactions")
+          .insert({
+            invoice_id: invoice.id,
+            user_id: user.id,
+            transaction_type: "payment",
+            amount: amount,
+            balance_after: newOutstanding,
+            payment_method: paymentMethod || null,
+            reference_number: paymentReference || null,
+            transaction_date: paymentDate,
+            notes: `Payment applied. ${newOutstanding <= 0 ? 'Invoice fully paid.' : `Remaining: $${newOutstanding.toLocaleString()}`}`,
+            created_by: user.id,
+          });
+
+        const successMessage = isIntegrated
+          ? `Override saved. Payment of $${amount.toLocaleString()} applied. This will be reset on next sync.`
+          : newOutstanding <= 0 
+            ? "Payment applied - Invoice marked as Paid" 
+            : `Payment of $${amount.toLocaleString()} applied - $${newOutstanding.toLocaleString()} remaining`;
+        
+        toast.success(successMessage);
+        
+        setApplyPaymentOpen(false);
+        setPaymentAmount("");
+        setPaymentMethod("");
+        setPaymentReference("");
+        setTransactionRefreshKey(prev => prev + 1);
+        fetchData();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to apply payment");
+      } finally {
+        setApplyingPayment(false);
+      }
+    };
+
+    // Check if we need to show override warning
+    if (invoice.integration_source && ["stripe", "quickbooks", "xero"].includes(invoice.integration_source)) {
+      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
+      await checkAndProceed(
+        "Apply Payment",
+        `Outstanding: $${currentOutstanding.toLocaleString()}`,
+        `Payment: $${amount.toLocaleString()}`,
+        performPayment
       );
-      
-      setApplyPaymentOpen(false);
-      setPaymentAmount("");
-      setPaymentMethod("");
-      setPaymentReference("");
-      setTransactionRefreshKey(prev => prev + 1);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to apply payment");
-    } finally {
-      setApplyingPayment(false);
+    } else if (invoice.integration_source === "csv_upload") {
+      await checkAndProceed(
+        "Apply Payment",
+        `Outstanding: $${(invoice.amount_outstanding ?? invoice.amount).toLocaleString()}`,
+        `Payment: $${amount.toLocaleString()}`,
+        performPayment
+      );
+    } else {
+      await performPayment();
     }
   };
 
@@ -815,99 +933,130 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       return;
     }
 
-    // Check if this is a Stripe-integrated invoice
-    const isStripeInvoice = invoice.source_system === 'stripe' || !!invoice.stripe_invoice_id;
-    if (isStripeInvoice) {
-      const confirmed = window.confirm(
-        `⚠️ This invoice is integrated with Stripe.\n\n` +
-        `For data consistency, ${creditWriteOffType === 'credit' ? 'credits' : 'write-offs'} should be applied in Stripe and synced to Recouply.\n\n` +
-        `Do you still want to apply this ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'} manually?`
-      );
-      if (!confirmed) return;
-    }
+    const performCreditWriteOff = async () => {
+      setApplyingCreditWriteOff(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
 
-    setApplyingCreditWriteOff(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+        // Check if this is an integrated invoice
+        const isIntegrated = invoice.integration_source && 
+          ["stripe", "quickbooks", "xero"].includes(invoice.integration_source);
 
-      // Calculate new outstanding amount
-      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
-      const newOutstanding = Math.max(0, currentOutstanding - amount);
-      
-      // Determine new invoice status
-      let newStatus = invoice.status;
-      if (newOutstanding <= 0) {
-        newStatus = creditWriteOffType === 'credit' ? 'Credited' : 'WrittenOff';
-      }
+        // Calculate new outstanding amount
+        const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
+        const newOutstanding = Math.max(0, currentOutstanding - amount);
+        
+        // Determine new invoice status
+        let newStatus = invoice.status;
+        if (newOutstanding <= 0) {
+          newStatus = creditWriteOffType === 'credit' ? 'Credited' : 'WrittenOff';
+        }
 
-      // Create transaction record
-      const { error: txError } = await supabase
-        .from("invoice_transactions")
-        .insert({
-          invoice_id: invoice.id,
-          user_id: user.id,
-          transaction_type: creditWriteOffType,
-          amount: amount,
-          balance_after: newOutstanding,
-          reason: creditWriteOffReason,
-          notes: creditWriteOffNotes || null,
-          transaction_date: new Date().toISOString().split("T")[0],
-          created_by: user.id,
-        });
+        // Log override if integrated
+        if (isIntegrated) {
+          await logOverrideAndUpdateInvoice(
+            supabase,
+            invoice.id,
+            user.id,
+            creditWriteOffType === 'credit' ? 'credit_applied' : 'write_off_applied',
+            `$${currentOutstanding.toLocaleString()} outstanding`,
+            `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()}`,
+            invoice.integration_source
+          );
+        }
 
-      if (txError) throw txError;
-
-      // Update invoice
-      const { error: invoiceError } = await supabase
-        .from("invoices")
-        .update({
-          amount_outstanding: newOutstanding,
-          status: newStatus as any,
-          notes: `${invoice.notes || ''}\n[${new Date().toLocaleDateString()}] ${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'}: $${amount.toLocaleString()} - ${creditWriteOffReason}${creditWriteOffNotes ? `. ${creditWriteOffNotes}` : ''}`.trim(),
-        })
-        .eq("id", invoice.id);
-
-      if (invoiceError) throw invoiceError;
-
-      // Log activity
-      await supabase
-        .from("collection_activities")
-        .insert({
-          user_id: user.id,
-          debtor_id: invoice.debtor_id,
-          invoice_id: invoice.id,
-          activity_type: creditWriteOffType === 'credit' ? 'credit_applied' : 'write_off_applied',
-          channel: "system",
-          direction: "inbound",
-          subject: `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()} applied`,
-          message_body: `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} applied for Invoice #${invoice.invoice_number}. Amount: $${amount.toLocaleString()}. Reason: ${creditWriteOffReason}${creditWriteOffNotes ? `. Notes: ${creditWriteOffNotes}` : ''}. ${newOutstanding <= 0 ? 'Invoice balance cleared.' : `Remaining balance: $${newOutstanding.toLocaleString()}`}`,
-          metadata: {
+        // Create transaction record
+        const { error: txError } = await supabase
+          .from("invoice_transactions")
+          .insert({
+            invoice_id: invoice.id,
+            user_id: user.id,
             transaction_type: creditWriteOffType,
             amount: amount,
+            balance_after: newOutstanding,
             reason: creditWriteOffReason,
             notes: creditWriteOffNotes || null,
-            previous_outstanding: currentOutstanding,
-            new_outstanding: newOutstanding,
-            invoice_status: newStatus,
-          },
-          sent_at: new Date().toISOString(),
-        });
+            transaction_date: new Date().toISOString().split("T")[0],
+            created_by: user.id,
+          });
 
-      toast.success(
-        `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()} applied${newOutstanding <= 0 ? ' - Invoice balance cleared' : ` - $${newOutstanding.toLocaleString()} remaining`}`
+        if (txError) throw txError;
+
+        // Update invoice
+        const { error: invoiceError } = await supabase
+          .from("invoices")
+          .update({
+            amount_outstanding: newOutstanding,
+            status: newStatus as any,
+            notes: `${invoice.notes || ''}\n[${new Date().toLocaleDateString()}] ${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'}: $${amount.toLocaleString()} - ${creditWriteOffReason}${creditWriteOffNotes ? `. ${creditWriteOffNotes}` : ''}`.trim(),
+          })
+          .eq("id", invoice.id);
+
+        if (invoiceError) throw invoiceError;
+
+        // Log activity
+        await supabase
+          .from("collection_activities")
+          .insert({
+            user_id: user.id,
+            debtor_id: invoice.debtor_id,
+            invoice_id: invoice.id,
+            activity_type: creditWriteOffType === 'credit' ? 'credit_applied' : 'write_off_applied',
+            channel: "system",
+            direction: "inbound",
+            subject: `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()} applied`,
+            message_body: `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} applied for Invoice #${invoice.invoice_number}. Amount: $${amount.toLocaleString()}. Reason: ${creditWriteOffReason}${creditWriteOffNotes ? `. Notes: ${creditWriteOffNotes}` : ''}. ${newOutstanding <= 0 ? 'Invoice balance cleared.' : `Remaining balance: $${newOutstanding.toLocaleString()}`}`,
+            metadata: {
+              transaction_type: creditWriteOffType,
+              amount: amount,
+              reason: creditWriteOffReason,
+              notes: creditWriteOffNotes || null,
+              previous_outstanding: currentOutstanding,
+              new_outstanding: newOutstanding,
+              invoice_status: newStatus,
+            },
+            sent_at: new Date().toISOString(),
+          });
+
+        const successMessage = isIntegrated
+          ? `Override saved. ${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} applied. This will be reset on next sync.`
+          : `${creditWriteOffType === 'credit' ? 'Credit' : 'Write-off'} of $${amount.toLocaleString()} applied${newOutstanding <= 0 ? ' - Invoice balance cleared' : ` - $${newOutstanding.toLocaleString()} remaining`}`;
+
+        toast.success(successMessage);
+        
+        setCreditWriteOffOpen(false);
+        setCreditWriteOffAmount("");
+        setCreditWriteOffReason("");
+        setCreditWriteOffNotes("");
+        setTransactionRefreshKey(prev => prev + 1);
+        fetchData();
+      } catch (error: any) {
+        toast.error(error.message || `Failed to apply ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'}`);
+      } finally {
+        setApplyingCreditWriteOff(false);
+      }
+    };
+
+    // Check if we need to show override warning
+    const actionLabel = creditWriteOffType === 'credit' ? 'Credit' : 'Write-off';
+    if (invoice.integration_source && ["stripe", "quickbooks", "xero"].includes(invoice.integration_source)) {
+      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
+      await checkAndProceed(
+        `Apply ${actionLabel}`,
+        `Outstanding: $${currentOutstanding.toLocaleString()}`,
+        `${actionLabel}: $${amount.toLocaleString()}`,
+        performCreditWriteOff
       );
-      
-      setCreditWriteOffOpen(false);
-      setCreditWriteOffAmount("");
-      setCreditWriteOffReason("");
-      setCreditWriteOffNotes("");
-      setTransactionRefreshKey(prev => prev + 1);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || `Failed to apply ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'}`);
-    } finally {
-      setApplyingCreditWriteOff(false);
+    } else if (invoice.integration_source === "csv_upload") {
+      await checkAndProceed(
+        `Apply ${actionLabel}`,
+        `Outstanding: $${(invoice.amount_outstanding ?? invoice.amount).toLocaleString()}`,
+        `${actionLabel}: $${amount.toLocaleString()}`,
+        performCreditWriteOff
+      );
+    } else {
+      await performCreditWriteOff();
     }
   };
 
@@ -2143,6 +2292,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Override Warning Dialogs */}
+        <CSVWarningDialog />
+        <IntegrationWarningDialog />
       </div>
     </Layout>
   );
