@@ -44,9 +44,24 @@ export const IntegrationSourceBanner = ({
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { error } = await supabase.functions.invoke("sync-stripe-invoices");
+      const { data, error } = await supabase.functions.invoke("sync-stripe-invoices");
       if (error) throw error;
-      toast.success("Sync initiated successfully");
+      
+      // Show enhanced notification based on sync results
+      if (data?.overrides_reset && data.overrides_reset > 0) {
+        toast.success(
+          `Stripe sync complete. ${data.overrides_reset} local override${data.overrides_reset > 1 ? 's were' : ' was'} reset to Stripe values.`,
+          { duration: 5000 }
+        );
+      } else if (data?.conflicts_detected && data.conflicts_detected > 0) {
+        toast.success(
+          `Sync complete. ${data.conflicts_detected} conflict${data.conflicts_detected > 1 ? 's' : ''} detected and resolved.`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success(`Sync complete. ${data?.invoices_synced || 0} invoice${data?.invoices_synced !== 1 ? 's' : ''} synced.`);
+      }
+      
       onSync?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to sync");
