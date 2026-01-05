@@ -10,20 +10,11 @@ interface ProcessingResult {
   processed: number;
   draftsCreated: number;
   draftsSkippedExisting: number;
+  draftsSkippedNotCadenceDay: number;
   failed: number;
   skipped: number;
   errors: Array<{ invoiceId: string; error: string; stepNumber?: number }>;
 }
-
-// Priority order for processing (oldest/highest priority first)
-const BUCKET_PRIORITY: Record<string, number> = {
-  'dpd_150_plus': 1,
-  'dpd_121_150': 2,
-  'dpd_91_120': 3,
-  'dpd_61_90': 4,
-  'dpd_31_60': 5,
-  'dpd_1_30': 6,
-};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -35,13 +26,14 @@ Deno.serve(async (req) => {
     processed: 0,
     draftsCreated: 0,
     draftsSkippedExisting: 0,
+    draftsSkippedNotCadenceDay: 0,
     failed: 0,
     skipped: 0,
     errors: [],
   };
 
   try {
-    console.log('[CADENCE-SCHEDULER] Starting comprehensive draft generation...');
+    console.log('[CADENCE-SCHEDULER] Starting daily draft generation (TODAY ONLY mode)...');
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -58,7 +50,7 @@ Deno.serve(async (req) => {
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
 
-    // Process ALL active workflows in batches, ordered by priority
+    // Process ALL active workflows in batches
     const BATCH_SIZE = 100;
     let offset = 0;
     let hasMore = true;
@@ -80,6 +72,7 @@ Deno.serve(async (req) => {
             due_date,
             status,
             aging_bucket,
+            bucket_entered_at,
             invoice_number,
             reference_id,
             amount,
@@ -138,21 +131,6 @@ Deno.serve(async (req) => {
     console.log(`[CADENCE-SCHEDULER] Total workflows to process: ${allWorkflows.length}`);
     result.totalWorkflows = allWorkflows.length;
 
-    // Sort by priority (oldest/highest priority buckets first)
-    allWorkflows.sort((a, b) => {
-      const invoiceA = a.invoices as any;
-      const invoiceB = b.invoices as any;
-      const priorityA = BUCKET_PRIORITY[invoiceA?.aging_bucket] || 99;
-      const priorityB = BUCKET_PRIORITY[invoiceB?.aging_bucket] || 99;
-      
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-      
-      // Secondary sort by due date (oldest first)
-      return new Date(invoiceA?.due_date).getTime() - new Date(invoiceB?.due_date).getTime();
-    });
-
     // Process workflows
     for (const workflow of allWorkflows) {
       const invoice = workflow.invoices as any;
@@ -169,186 +147,150 @@ Deno.serve(async (req) => {
       const cadenceDays = workflow.cadence_days as number[];
       if (!cadenceDays || cadenceDays.length === 0) {
         console.log(`[CADENCE-SCHEDULER] Skipping workflow ${workflow.id}: empty cadence_days`);
-        
-        // Log this error
-        await supabaseAdmin.from('outreach_errors').insert({
-          invoice_id: invoice.id,
-          workflow_id: workflow.id,
-          user_id: workflow.user_id,
-          error_type: 'empty_cadence_days',
-          error_message: 'Workflow has no cadence_days configured',
-          metadata: { cadence_days: cadenceDays }
-        });
-        
         result.skipped++;
         continue;
       }
 
+      // Calculate days since invoice entered current aging bucket
+      // This is the key change: we use bucket_entered_at, not due_date
+      const bucketEnteredAt = invoice.bucket_entered_at 
+        ? new Date(invoice.bucket_entered_at)
+        : new Date(invoice.due_date);
+      bucketEnteredAt.setHours(0, 0, 0, 0);
+      
+      const daysInBucket = Math.floor((today.getTime() - bucketEnteredAt.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Also calculate total days past due for messaging
       const dueDate = new Date(invoice.due_date);
       dueDate.setHours(0, 0, 0, 0);
       const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Find which cadence steps need drafts
-      for (let i = 0; i < cadenceDays.length; i++) {
-        const cadenceDay = cadenceDays[i];
-        const stepNumber = i + 1;
+      // Check if TODAY exactly matches a cadence day
+      // cadenceDays is like [0, 7, 14] meaning "day 0 in bucket, day 7, day 14"
+      const cadenceDayIndex = cadenceDays.indexOf(daysInBucket);
+      
+      if (cadenceDayIndex === -1) {
+        // Today is NOT a cadence day - skip this invoice
+        result.draftsSkippedNotCadenceDay++;
+        continue;
+      }
 
-        // Calculate target date for this step
-        const targetDate = new Date(dueDate);
-        targetDate.setDate(targetDate.getDate() + cadenceDay);
-        targetDate.setHours(0, 0, 0, 0);
+      const stepNumber = cadenceDayIndex + 1;
 
-        // Check if target date is today OR in the past (catch-up mode)
-        if (targetDate.getTime() <= today.getTime()) {
-          try {
-            // Check if draft already exists for this step
-            const { data: existingDrafts } = await supabaseAdmin
-              .from('ai_drafts')
-              .select('id, status')
-              .eq('invoice_id', invoice.id)
-              .eq('step_number', stepNumber)
-              .limit(1);
+      try {
+        // Check if the collection workflow is template-approved
+        const { data: collectionWorkflow } = await supabaseAdmin
+          .from('collection_workflows')
+          .select('id, is_template_approved, persona_id')
+          .eq('aging_bucket', invoice.aging_bucket)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
 
-            if (existingDrafts && existingDrafts.length > 0) {
-              result.draftsSkippedExisting++;
-              continue;
-            }
+        const isWorkflowApproved = collectionWorkflow?.is_template_approved === true;
 
-            // Check if outreach was already sent for this step
-            const { data: existingLogs } = await supabaseAdmin
-              .from('outreach_logs')
-              .select('id, step_number')
-              .eq('invoice_id', invoice.id);
+        // Try to get an approved template for this bucket and step
+        const { data: templates } = await supabaseAdmin
+          .from('draft_templates')
+          .select('*')
+          .eq('user_id', invoice.user_id)
+          .eq('aging_bucket', invoice.aging_bucket)
+          .eq('step_number', stepNumber)
+          .eq('status', 'approved')
+          .limit(1);
 
-            const stepAlreadySent = existingLogs?.some(log => log.step_number === stepNumber);
-            if (stepAlreadySent) {
-              result.draftsSkippedExisting++;
-              continue;
-            }
+        let subject = '';
+        let body = '';
+        let useTemplate = false;
 
-            // Check if the collection workflow is template-approved
-            const { data: collectionWorkflow } = await supabaseAdmin
-              .from('collection_workflows')
-              .select('id, is_template_approved, persona_id')
-              .eq('aging_bucket', invoice.aging_bucket)
-              .eq('is_active', true)
-              .limit(1)
-              .single();
+        const customerName = debtor?.company_name || debtor?.name || 'Customer';
+        const invoiceNumber = invoice.invoice_number || invoice.reference_id || '';
+        const invoiceAmount = invoice.amount || 0;
+        const invoiceLink = invoice.integration_url || '';
 
-            const isWorkflowApproved = collectionWorkflow?.is_template_approved === true;
+        if (templates && templates.length > 0) {
+          const template = templates[0];
+          subject = (template.subject || '')
+            .replace(/{{company_name}}/gi, customerName)
+            .replace(/{{customer_name}}/gi, customerName)
+            .replace(/{{invoice_number}}/gi, invoiceNumber)
+            .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`)
+            .replace(/{{invoice_link}}/gi, invoiceLink);
+          body = (template.body || '')
+            .replace(/{{company_name}}/gi, customerName)
+            .replace(/{{customer_name}}/gi, customerName)
+            .replace(/{{invoice_number}}/gi, invoiceNumber)
+            .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`)
+            .replace(/{{invoice_link}}/gi, invoiceLink);
+          useTemplate = true;
+        } else {
+          // Generate default message based on step
+          const stepMessages = [
+            { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
+            { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions about this invoice.` },
+            { subject: `Important: Invoice ${invoiceNumber} Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}. This invoice is now significantly past due.\n\nPlease arrange payment promptly or contact us to discuss payment options.` },
+            { subject: `Urgent: Invoice ${invoiceNumber} - Action Required`, body: `Dear ${customerName},\n\nDespite previous reminders, invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)} remains unpaid.\n\nPlease contact us immediately to avoid further collection actions.` },
+            { subject: `Final Notice: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is our final notice regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}.\n\nPlease make payment immediately or contact us to discuss your options.` },
+          ];
 
-            // Try to get an approved template for this bucket and step
-            const { data: templates } = await supabaseAdmin
-              .from('draft_templates')
-              .select('*')
-              .eq('user_id', invoice.user_id)
-              .eq('aging_bucket', invoice.aging_bucket)
-              .eq('step_number', stepNumber)
-              .eq('status', 'approved')
-              .limit(1);
-
-            let subject = '';
-            let body = '';
-            let useTemplate = false;
-
-            const customerName = debtor?.company_name || debtor?.name || 'Customer';
-            const invoiceNumber = invoice.invoice_number || invoice.reference_id || '';
-            const invoiceAmount = invoice.amount || 0;
-            const invoiceLink = invoice.integration_url || '';
-
-            if (templates && templates.length > 0) {
-              const template = templates[0];
-              subject = (template.subject || '')
-                .replace(/{{company_name}}/gi, customerName)
-                .replace(/{{customer_name}}/gi, customerName)
-                .replace(/{{invoice_number}}/gi, invoiceNumber)
-                .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`)
-                .replace(/{{invoice_link}}/gi, invoiceLink);
-              body = (template.body || '')
-                .replace(/{{company_name}}/gi, customerName)
-                .replace(/{{customer_name}}/gi, customerName)
-                .replace(/{{invoice_number}}/gi, invoiceNumber)
-                .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`)
-                .replace(/{{invoice_link}}/gi, invoiceLink);
-              useTemplate = true;
-            } else {
-              // Generate default message based on step
-              const stepMessages = [
-                { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
-                { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions about this invoice.` },
-                { subject: `Important: Invoice ${invoiceNumber} Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}. This invoice is now significantly past due.\n\nPlease arrange payment promptly or contact us to discuss payment options.` },
-                { subject: `Urgent: Invoice ${invoiceNumber} - Action Required`, body: `Dear ${customerName},\n\nDespite previous reminders, invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)} remains unpaid.\n\nPlease contact us immediately to avoid further collection actions.` },
-                { subject: `Final Notice: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is our final notice regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}.\n\nPlease make payment immediately or contact us to discuss your options.` },
-              ];
-
-              const messageIndex = Math.min(stepNumber - 1, stepMessages.length - 1);
-              subject = stepMessages[messageIndex].subject;
-              body = stepMessages[messageIndex].body;
-            }
-
-            // Append invoice link if available and not already in body
-            if (invoiceLink && !body.includes(invoiceLink)) {
-              body += `\n\nView your invoice: ${invoiceLink}`;
-            }
-
-            body += '\n\nThank you for your business.';
-
-            // Determine draft status: auto-approve if workflow is approved OR template is approved
-            const draftStatus = (isWorkflowApproved || useTemplate) ? 'approved' : 'pending_approval';
-
-            // Create the draft
-            const { error: draftError } = await supabaseAdmin
-              .from('ai_drafts')
-              .insert({
-                invoice_id: invoice.id,
-                user_id: invoice.user_id,
-                subject,
-                message_body: body,
-                step_number: stepNumber,
-                channel: 'email',
-                status: draftStatus,
-                recommended_send_date: todayStr,
-                days_past_due: daysPastDue,
-                auto_approved: isWorkflowApproved || useTemplate
-              });
-
-            if (draftError) {
-              throw new Error(`Draft insert failed: ${draftError.message}`);
-            }
-
-            console.log(`[CADENCE-SCHEDULER] Created draft for invoice ${invoice.id}, step ${stepNumber}`);
-            result.draftsCreated++;
-
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-            console.error(`[CADENCE-SCHEDULER] Error for invoice ${invoice.id} step ${stepNumber}:`, errorMsg);
-            
-            result.failed++;
-            result.errors.push({
-              invoiceId: invoice.id,
-              error: errorMsg,
-              stepNumber
-            });
-
-            // Log to outreach_errors table
-            try {
-              await supabaseAdmin.from('outreach_errors').insert({
-                invoice_id: invoice.id,
-                workflow_id: workflow.id,
-                user_id: workflow.user_id,
-                error_type: 'draft_generation_failed',
-                error_message: errorMsg,
-                step_number: stepNumber,
-                metadata: { cadence_day: cadenceDay }
-              });
-            } catch (logErr) {
-              console.error('[CADENCE-SCHEDULER] Failed to log error:', logErr);
-            }
-          }
-
-          // Only generate one draft per invoice per run (the earliest missing step)
-          break;
+          const messageIndex = Math.min(stepNumber - 1, stepMessages.length - 1);
+          subject = stepMessages[messageIndex].subject;
+          body = stepMessages[messageIndex].body;
         }
+
+        // Append invoice link if available and not already in body
+        if (invoiceLink && !body.includes(invoiceLink)) {
+          body += `\n\nView your invoice: ${invoiceLink}`;
+        }
+
+        body += '\n\nThank you for your business.';
+
+        // Determine draft status: auto-approve if workflow is approved OR template is approved
+        const draftStatus = (isWorkflowApproved || useTemplate) ? 'approved' : 'pending_approval';
+
+        // Create the draft using UPSERT to handle race conditions
+        // The unique constraint (invoice_id, step_number) will prevent duplicates
+        const { error: draftError } = await supabaseAdmin
+          .from('ai_drafts')
+          .upsert({
+            invoice_id: invoice.id,
+            user_id: invoice.user_id,
+            subject,
+            message_body: body,
+            step_number: stepNumber,
+            channel: 'email',
+            status: draftStatus,
+            recommended_send_date: todayStr,
+            days_past_due: daysPastDue,
+            auto_approved: isWorkflowApproved || useTemplate
+          }, {
+            onConflict: 'invoice_id,step_number',
+            ignoreDuplicates: true
+          });
+
+        if (draftError) {
+          // If it's a unique violation, that's expected - draft already exists
+          if (draftError.code === '23505') {
+            console.log(`[CADENCE-SCHEDULER] Draft already exists for invoice ${invoice.id}, step ${stepNumber}`);
+            result.draftsSkippedExisting++;
+          } else {
+            throw new Error(`Draft insert failed: ${draftError.message}`);
+          }
+        } else {
+          console.log(`[CADENCE-SCHEDULER] Created draft for invoice ${invoice.id}, step ${stepNumber} (day ${daysInBucket} in bucket)`);
+          result.draftsCreated++;
+        }
+
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error(`[CADENCE-SCHEDULER] Error for invoice ${invoice.id} step ${stepNumber}:`, errorMsg);
+        
+        result.failed++;
+        result.errors.push({
+          invoiceId: invoice.id,
+          error: errorMsg,
+          stepNumber
+        });
       }
     }
 
@@ -382,12 +324,13 @@ Deno.serve(async (req) => {
       processed: result.processed,
       draftsCreated: result.draftsCreated,
       draftsSkippedExisting: result.draftsSkippedExisting,
+      draftsSkippedNotCadenceDay: result.draftsSkippedNotCadenceDay,
       failed: result.failed,
       skipped: result.skipped,
       draftsSent: sentCount,
       errors: result.errors.slice(0, 20),
       sendErrors: sendErrors.length > 0 ? sendErrors : undefined,
-      message: `Processed ${result.processed} workflows, created ${result.draftsCreated} drafts, sent ${sentCount} emails, ${result.failed} errors`
+      message: `Processed ${result.processed} workflows, created ${result.draftsCreated} drafts (${result.draftsSkippedNotCadenceDay} skipped - not cadence day), sent ${sentCount} emails`
     };
 
     console.log('[CADENCE-SCHEDULER] Summary:', summary);
