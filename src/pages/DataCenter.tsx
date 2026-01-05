@@ -31,6 +31,7 @@ import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploa
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
 import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
+import { IntegrationSyncDashboard } from "@/components/data-center/IntegrationSyncDashboard";
 import * as XLSX from "xlsx";
 
 const DataCenter = () => {
@@ -342,6 +343,9 @@ const DataCenter = () => {
             </Card>
           </div>
         </div>
+
+        {/* Integration Sync Dashboard */}
+        <IntegrationSyncDashboard />
 
         {/* Stripe Sync Section */}
         <StripeSyncSection />
