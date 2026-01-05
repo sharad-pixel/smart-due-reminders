@@ -149,6 +149,9 @@ serve(async (req) => {
     let createdDebtors = 0;
     let transactionsLogged = 0;
     let newInvoicesCreated = 0;
+    let conflictsDetected = 0;
+    let conflictsResolved = 0;
+    let overridesReset = 0;
     let statusUpdates = { paid: 0, partial: 0, credited: 0, writtenOff: 0, open: 0 };
     const errors: string[] = [];
 
@@ -263,11 +266,18 @@ serve(async (req) => {
         }
 
         // Check if invoice already exists
-        let existingInvoice: { id: string; status: string } | null = null;
+        let existingInvoice: { 
+          id: string; 
+          status: string; 
+          amount?: number;
+          due_date?: string;
+          has_local_overrides?: boolean;
+          override_count?: number;
+        } | null = null;
         
         const { data: byStripeId } = await supabaseClient
           .from('invoices')
-          .select('id, status')
+          .select('id, status, amount, due_date, has_local_overrides, override_count')
           .eq('stripe_invoice_id', stripeInvoice.id)
           .eq('user_id', effectiveAccountId)
           .maybeSingle();
@@ -278,7 +288,7 @@ serve(async (req) => {
           const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
           const { data: byInvoiceNumber } = await supabaseClient
             .from('invoices')
-            .select('id, status')
+            .select('id, status, amount, due_date, has_local_overrides, override_count')
             .eq('invoice_number', invoiceNumber)
             .eq('user_id', effectiveAccountId)
             .maybeSingle();
@@ -288,7 +298,7 @@ serve(async (req) => {
           } else {
             const { data: byExternalId } = await supabaseClient
               .from('invoices')
-              .select('id, status')
+              .select('id, status, amount, due_date, has_local_overrides, override_count')
               .eq('external_invoice_id', stripeInvoice.id)
               .eq('user_id', effectiveAccountId)
               .maybeSingle();
@@ -299,16 +309,22 @@ serve(async (req) => {
           }
         }
 
+        const stripeAmount = (stripeInvoice.amount_due || 0) / 100;
+        const stripeDueDate = stripeInvoice.due_date 
+          ? new Date(stripeInvoice.due_date * 1000).toISOString().split('T')[0] 
+          : new Date().toISOString().split('T')[0];
+        const stripeIntegrationUrl = `https://dashboard.stripe.com/invoices/${stripeInvoice.id}`;
+
         const invoiceData: Record<string, any> = {
           user_id: effectiveAccountId,
           debtor_id: debtorId,
           invoice_number: stripeInvoice.number || stripeInvoice.id,
-          amount: (stripeInvoice.amount_due || 0) / 100,
+          amount: stripeAmount,
           amount_outstanding: (stripeInvoice.amount_remaining || 0) / 100,
           amount_original: (stripeInvoice.total || 0) / 100,
           currency: stripeInvoice.currency?.toUpperCase() || 'USD',
           issue_date: stripeInvoice.created ? new Date(stripeInvoice.created * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          due_date: stripeInvoice.due_date ? new Date(stripeInvoice.due_date * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          due_date: stripeDueDate,
           status: mappedStatus,
           source_system: 'stripe',
           stripe_invoice_id: stripeInvoice.id,
@@ -317,7 +333,14 @@ serve(async (req) => {
           external_invoice_id: stripeInvoice.id,
           external_link: stripeInvoice.hosted_invoice_url || null,
           product_description: stripeInvoice.description || stripeInvoice.lines?.data?.[0]?.description || 'Stripe Invoice',
-          reference_id: stripeInvoice.number || stripeInvoice.id
+          reference_id: stripeInvoice.number || stripeInvoice.id,
+          // Source-of-truth integration fields
+          integration_source: 'stripe',
+          integration_id: stripeInvoice.id,
+          integration_url: stripeIntegrationUrl,
+          original_amount: stripeAmount,
+          original_due_date: stripeDueDate,
+          last_synced_at: new Date().toISOString()
         };
 
         if (paymentDate) {
@@ -340,6 +363,71 @@ serve(async (req) => {
         let isNewInvoice = false;
         
         if (existingInvoice) {
+          // Check for local overrides that need to be resolved
+          if (existingInvoice.has_local_overrides) {
+            const conflicts: Record<string, { recouply_value: any; stripe_value: any }> = {};
+            
+            // Compare amount
+            if (existingInvoice.amount !== undefined && existingInvoice.amount !== stripeAmount) {
+              conflicts.amount = {
+                recouply_value: existingInvoice.amount,
+                stripe_value: stripeAmount
+              };
+            }
+            
+            // Compare due_date
+            if (existingInvoice.due_date && existingInvoice.due_date !== stripeDueDate) {
+              conflicts.due_date = {
+                recouply_value: existingInvoice.due_date,
+                stripe_value: stripeDueDate
+              };
+            }
+            
+            // Log conflicts if any
+            if (Object.keys(conflicts).length > 0) {
+              conflictsDetected++;
+              
+              // Insert sync conflict record
+              await supabaseClient
+                .from('invoice_sync_conflicts')
+                .insert({
+                  invoice_id: existingInvoice.id,
+                  user_id: effectiveAccountId,
+                  integration_source: 'stripe',
+                  conflicts,
+                  resolved: true // Auto-resolved by sync
+                });
+              
+              // Log override reset in override_log
+              for (const [fieldName, values] of Object.entries(conflicts)) {
+                await supabaseClient
+                  .from('invoice_override_log')
+                  .insert({
+                    invoice_id: existingInvoice.id,
+                    user_id: effectiveAccountId,
+                    field_name: fieldName,
+                    original_value: String(values.stripe_value),
+                    new_value: String(values.stripe_value),
+                    acknowledged_warning: true,
+                    integration_source: 'stripe'
+                  });
+              }
+              
+              conflictsResolved++;
+              overridesReset += existingInvoice.override_count || 0;
+              
+              logStep("Override conflict resolved", { 
+                invoiceId: stripeInvoice.id, 
+                conflicts,
+                overridesReset: existingInvoice.override_count 
+              });
+            }
+            
+            // Reset override flags since Stripe data is source of truth
+            invoiceData.has_local_overrides = false;
+            invoiceData.override_count = 0;
+          }
+
           const { error: updateError } = await supabaseClient
             .from('invoices')
             .update(invoiceData)
@@ -360,6 +448,9 @@ serve(async (req) => {
             });
           }
         } else {
+          // New invoice - set initial override state
+          invoiceData.has_local_overrides = false;
+          invoiceData.override_count = 0;
           const { data: newInvoice, error: insertError } = await supabaseClient
             .from('invoices')
             .insert(invoiceData)
@@ -410,6 +501,8 @@ serve(async (req) => {
                       reference_number: paymentRef,
                       transaction_date: new Date(paymentIntent.created * 1000).toISOString().split('T')[0],
                       notes: `Payment via Stripe`,
+                      source_system: 'stripe',
+                      external_transaction_id: paymentIntentId,
                       metadata: { 
                         stripe_payment_intent_id: paymentIntentId,
                         stripe_invoice_id: stripeInvoice.id,
@@ -444,6 +537,8 @@ serve(async (req) => {
                       reference_number: refundRef,
                       transaction_date: new Date(refund.created * 1000).toISOString().split('T')[0],
                       notes: `Refund via Stripe${refund.reason ? `: ${refund.reason}` : ''}`,
+                      source_system: 'stripe',
+                      external_transaction_id: refund.id,
                       metadata: { 
                         stripe_refund_id: refund.id,
                         stripe_invoice_id: stripeInvoice.id,
@@ -483,6 +578,8 @@ serve(async (req) => {
                     reference_number: cnRef,
                     transaction_date: new Date(creditNote.created * 1000).toISOString().split('T')[0],
                     notes: `Credit note via Stripe${creditNote.reason ? `: ${creditNote.reason}` : ''}`,
+                    source_system: 'stripe',
+                    external_transaction_id: creditNote.id,
                     metadata: { 
                       stripe_credit_note_id: creditNote.id,
                       stripe_invoice_id: stripeInvoice.id,
@@ -516,6 +613,8 @@ serve(async (req) => {
                     reference_number: discountRef,
                     transaction_date: new Date(stripeInvoice.created * 1000).toISOString().split('T')[0],
                     notes: `Discount: ${discount.coupon?.name || discount.coupon?.id || 'Applied discount'}`,
+                    source_system: 'stripe',
+                    external_transaction_id: discount.coupon?.id || stripeInvoice.id,
                     metadata: { 
                       stripe_invoice_id: stripeInvoice.id,
                       source: 'stripe_sync'
@@ -545,6 +644,8 @@ serve(async (req) => {
                     reference_number: woRef,
                     transaction_date: new Date().toISOString().split('T')[0],
                     notes: 'Marked as uncollectible in Stripe',
+                    source_system: 'stripe',
+                    external_transaction_id: stripeInvoice.id,
                     metadata: { 
                       stripe_invoice_id: stripeInvoice.id,
                       source: 'stripe_sync'
@@ -583,7 +684,16 @@ serve(async (req) => {
       })
       .eq('user_id', effectiveAccountId);
 
-    logStep("Sync completed", { syncedCount, createdDebtors, transactionsLogged, newInvoicesCreated, errorCount: errors.length });
+    logStep("Sync completed", { 
+      syncedCount, 
+      createdDebtors, 
+      transactionsLogged, 
+      newInvoicesCreated, 
+      conflictsDetected,
+      conflictsResolved,
+      overridesReset,
+      errorCount: errors.length 
+    });
 
     // AUTOMATICALLY trigger ensure-invoice-workflows after sync
     // This assigns workflows to newly synced invoices
@@ -612,10 +722,13 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      synced_count: syncedCount,
+      invoices_synced: syncedCount,
+      transactions_synced: transactionsLogged,
+      conflicts_detected: conflictsDetected,
+      conflicts_resolved: conflictsResolved,
+      overrides_reset: overridesReset,
       created_debtors: createdDebtors,
       new_invoices_created: newInvoicesCreated,
-      transactions_logged: transactionsLogged,
       total_invoices: invoices.length,
       status_breakdown: statusUpdates,
       workflow_result: workflowResult ? {
