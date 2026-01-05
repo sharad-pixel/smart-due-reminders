@@ -74,6 +74,7 @@ const Debtors = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
+  const [balanceFilter, setBalanceFilter] = useState<string>("with_balance"); // Default to exclude zero balance
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,7 +106,7 @@ const Debtors = () => {
   useEffect(() => {
     filterDebtors();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [debtors, searchTerm, typeFilter, outreachFilter]);
+  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter]);
 
   const fetchDebtors = async () => {
     try {
@@ -142,14 +143,23 @@ const Debtors = () => {
   const filterDebtors = () => {
     let filtered = [...debtors];
 
+    // Balance filter - default excludes zero balance
+    if (balanceFilter === "with_balance") {
+      filtered = filtered.filter((d) => (d.total_open_balance || 0) > 0);
+    } else if (balanceFilter === "zero_balance") {
+      filtered = filtered.filter((d) => (d.total_open_balance || 0) === 0);
+    }
+    // "all" shows everything
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (d) =>
-          d.reference_id.toLowerCase().includes(term) ||
-          d.name.toLowerCase().includes(term) ||
-          d.company_name.toLowerCase().includes(term) ||
-          d.email.toLowerCase().includes(term)
+          d.reference_id?.toLowerCase().includes(term) ||
+          d.name?.toLowerCase().includes(term) ||
+          d.company_name?.toLowerCase().includes(term) ||
+          d.email?.toLowerCase().includes(term) ||
+          d.external_customer_id?.toLowerCase().includes(term)
       );
     }
 
@@ -601,6 +611,26 @@ const Debtors = () => {
                         Account Outreach OFF
                       </div>
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={balanceFilter} onValueChange={setBalanceFilter}>
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Balance filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="with_balance">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-3 w-3 text-primary" />
+                        With Open Balance
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="zero_balance">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-3 w-3 text-muted-foreground" />
+                        Zero Balance
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="all">All Accounts</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="flex border rounded-lg overflow-hidden">

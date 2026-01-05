@@ -218,22 +218,26 @@ serve(async (req) => {
         const rowDebtorMap: Map<number, string | null> = new Map();
         
         // First pass: identify existing vs new customers
+        // Priority: 1. RAID (recouply_account_id), 2. Source System ID (customer_id), 3. Company Name (NOT email)
         for (let j = 0; j < batchRows.length; j++) {
           const row = batchRows[j];
           const i = batchStart + j;
           
           const recouplyAccountId = String(getValue(row, "recouply_account_id") || "").trim();
           const customerName = String(getValue(row, "customer_name") || "").trim();
-          const customerId = getValue(row, "customer_id");
+          const customerId = getValue(row, "customer_id"); // Source System Customer ID
           
           let debtorId: string | null = null;
           
+          // 1. First try matching by RAID (Recouply Account ID)
           if (recouplyAccountId) {
             debtorId = customerRefMap.get(normalizeString(recouplyAccountId)) || null;
           }
+          // 2. Then try matching by Source System Customer ID (external_customer_id)
           if (!debtorId && customerId) {
             debtorId = customerMap.get(normalizeString(String(customerId))) || null;
           }
+          // 3. Finally fallback to company name (NOT email to avoid duplicates)
           if (!debtorId && customerName) {
             debtorId = customerMap.get(normalizeString(customerName)) || null;
           }
@@ -245,11 +249,11 @@ serve(async (req) => {
             matched++;
             stagingUpdates.push({ index: i, debtorId });
           } else if (customerName) {
-            // Queue new debtor creation
+            // Queue new debtor creation with Source System ID and RAID
             const contactName = String(getValue(row, "contact_name") || customerName);
             const contactEmail = String(getValue(row, "customer_email") || "");
             const contactPhone = String(getValue(row, "customer_phone") || "");
-            const newRaid = generateReferenceId("RCPLY", i);
+            const newRaid = generateReferenceId("RAID", i); // Changed prefix to RAID
             
             newDebtorsToCreate.push({
               user_id: user.id,
@@ -257,8 +261,10 @@ serve(async (req) => {
               name: customerName,
               email: contactEmail,
               phone: contactPhone,
-              external_customer_id: customerId ? String(customerId) : null,
-              reference_id: newRaid,
+              external_customer_id: customerId ? String(customerId) : null, // Source System Customer ID
+              external_system: "csv_upload", // Track source system
+              integration_source: "csv_upload", // Integration source tracking
+              reference_id: newRaid, // Auto-generated RAID
               _row_index: i, // Track for post-insert mapping
               _contact_name: contactName, // Store for contact creation
             });
@@ -590,6 +596,7 @@ serve(async (req) => {
             existingCustomersCount++;
             matched++;
           } else {
+            // Create new account with Source System ID and RAID
             accountsToCreate.push({
               user_id: user.id,
               company_name: companyName,
@@ -603,11 +610,13 @@ serve(async (req) => {
               state: state || null,
               postal_code: postalCode || null,
               country: country || null,
-              external_customer_id: externalCustomerId || null,
+              external_customer_id: externalCustomerId || null, // Source System Customer ID
               crm_account_id_external: crmId || null,
               industry: industry || null,
               notes: notes || null,
-              reference_id: generateReferenceId("RCPLY-ACCT", i),
+              external_system: "csv_upload",
+              integration_source: "csv_upload",
+              reference_id: generateReferenceId("RAID", i), // Auto-generated RAID
               _contact_name: contactName, // Store for contact creation
             });
             newCustomers++;

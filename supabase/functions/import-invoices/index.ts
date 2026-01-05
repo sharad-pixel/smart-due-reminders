@@ -10,6 +10,7 @@ interface ImportRow {
   invoice_number?: string;
   customer_name?: string;
   customer_email?: string;
+  customer_id?: string; // Source System Customer ID - primary matching key
   amount: number;
   currency: string;
   issue_date?: string;
@@ -71,14 +72,16 @@ Deno.serve(async (req) => {
 
         try {
           // Find or create debtor
+          // Priority: 1. Source System Customer ID, 2. Company Name (NOT email to avoid duplicates)
           let debtorId: string | null = null;
 
-          if (row.customer_email) {
+          // First try matching by Source System Customer ID (external_customer_id)
+          if (row.customer_id) {
             const { data: existingDebtor } = await supabase
               .from('debtors')
               .select('id')
               .eq('user_id', user.id)
-              .eq('email', row.customer_email)
+              .eq('external_customer_id', row.customer_id)
               .single();
 
             if (existingDebtor) {
@@ -86,13 +89,13 @@ Deno.serve(async (req) => {
             }
           }
 
-          // If no debtor found by email, try by name
+          // Then try by company name (NOT email to avoid duplicates)
           if (!debtorId && row.customer_name) {
             const { data: existingDebtor } = await supabase
               .from('debtors')
               .select('id')
               .eq('user_id', user.id)
-              .ilike('name', row.customer_name)
+              .ilike('company_name', row.customer_name)
               .single();
 
             if (existingDebtor) {
@@ -100,8 +103,9 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Create debtor if not found
+          // Create debtor if not found - with Source System ID and RAID
           if (!debtorId) {
+            const newRaid = `RAID-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
             const { data: newDebtor, error: debtorError } = await supabase
               .from('debtors')
               .insert({
@@ -109,7 +113,10 @@ Deno.serve(async (req) => {
                 name: row.customer_name || 'Unknown Customer',
                 company_name: row.customer_name || 'Unknown Company',
                 email: row.customer_email || `unknown-${Date.now()}@placeholder.com`,
-                reference_id: `RCPLY-${Math.random().toString(36).substring(7).toUpperCase()}`,
+                external_customer_id: row.customer_id || null, // Source System Customer ID
+                external_system: row.source_system || 'csv_upload',
+                integration_source: 'csv_upload',
+                reference_id: newRaid, // Auto-generated RAID
               })
               .select('id')
               .single();
