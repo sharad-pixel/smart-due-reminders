@@ -20,6 +20,7 @@ import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { AIInsightsCard } from "@/components/AIInsightsCard";
+import { IntegrationSourceBadge } from "@/components/IntegrationSourceBanner";
 
 interface Invoice {
   id: string;
@@ -32,6 +33,8 @@ interface Invoice {
   status: string;
   last_contact_date: string | null;
   debtor_id: string;
+  integration_source: string | null;
+  has_local_overrides: boolean | null;
   debtors?: { company_name: string };
   ai_workflows?: Array<{
     id: string;
@@ -61,6 +64,7 @@ const Invoices = () => {
   });
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [hideInactive, setHideInactive] = useState<boolean>(() => {
     const saved = localStorage.getItem("hideInactiveInvoices");
     return saved === "true";
@@ -103,14 +107,14 @@ const Invoices = () => {
   useEffect(() => {
     filterInvoices();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, hideInactive]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, hideInactive]);
 
   const fetchData = async () => {
     try {
       const [invoicesRes, debtorsRes, agentPersonasRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(company_name), ai_workflows(id, is_active)")
+          .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides")
           .eq("is_archived", false)
           .order("due_date", { ascending: false }),
         supabase.from("debtors").select("id, company_name").order("company_name"),
@@ -280,6 +284,13 @@ const Invoices = () => {
 
     if (debtorFilter !== "all") {
       filtered = filtered.filter((inv) => inv.debtor_id === debtorFilter);
+    }
+
+    if (sourceFilter !== "all") {
+      filtered = filtered.filter((inv) => {
+        const source = inv.integration_source || "recouply_manual";
+        return source === sourceFilter;
+      });
     }
 
     if (hideInactive) {
@@ -660,6 +671,19 @@ const Invoices = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="recouply_manual">📝 Recouply</SelectItem>
+                  <SelectItem value="csv_upload">📊 CSV Import</SelectItem>
+                  <SelectItem value="stripe">🔗 Stripe</SelectItem>
+                  <SelectItem value="quickbooks">🔗 QuickBooks</SelectItem>
+                  <SelectItem value="xero">🔗 Xero</SelectItem>
+                </SelectContent>
+              </Select>
               </div>
               <div className="flex items-center gap-3">
                 <Switch
@@ -795,6 +819,7 @@ const Invoices = () => {
                       Status
                     </SortableTableHead>
                     <TableHead className="w-32 font-semibold">AI Workflow</TableHead>
+                    <TableHead className="w-24 font-semibold">Source</TableHead>
                     <SortableTableHead
                       sortKey="last_contact_date"
                       currentSortKey={sortKey}
@@ -893,6 +918,13 @@ const Invoices = () => {
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <IntegrationSourceBadge 
+                            source={invoice.integration_source} 
+                            hasOverrides={invoice.has_local_overrides || false}
+                            size="xs"
+                          />
                         </TableCell>
                         <TableCell className="text-sm tabular-nums">
                           {invoice.last_contact_date
