@@ -28,6 +28,7 @@ import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetail
 import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 
 import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
+import { IntegrationSourceBanner } from "@/components/IntegrationSourceBanner";
 
 interface Invoice {
   id: string;
@@ -68,6 +69,15 @@ interface Invoice {
   outreach_paused_at: string | null;
   stripe_invoice_id: string | null;
   stripe_hosted_url: string | null;
+  // Integration source tracking
+  integration_source: string | null;
+  integration_id: string | null;
+  integration_url: string | null;
+  has_local_overrides: boolean | null;
+  override_count: number | null;
+  last_synced_at: string | null;
+  original_amount: number | null;
+  original_due_date: string | null;
   debtors?: { 
     company_name: string; 
     email: string;
@@ -1066,28 +1076,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           </div>
         )}
 
-        {/* Stripe Integration Banner */}
-        {(invoice.source_system === 'stripe' || invoice.stripe_invoice_id) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-            <CreditCard className="h-5 w-5 text-blue-600 shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-blue-800">Stripe Integrated Invoice</p>
-              <p className="text-sm text-blue-700">
-                Payments, credits, and write-offs should be applied in Stripe for data consistency. Use "Sync Stripe" to pull the latest transaction history.
-              </p>
-            </div>
-            {invoice.stripe_hosted_url && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(invoice.stripe_hosted_url!, '_blank')}
-                className="shrink-0"
-              >
-                View in Stripe
-              </Button>
-            )}
-          </div>
-        )}
+        {/* Integration Source Banner */}
+        <IntegrationSourceBanner
+          integrationSource={invoice.integration_source}
+          integrationUrl={invoice.integration_url || invoice.stripe_hosted_url}
+          hasLocalOverrides={invoice.has_local_overrides || false}
+          overrideCount={invoice.override_count || 0}
+          lastSyncedAt={invoice.last_synced_at}
+          invoiceId={invoice.id}
+          onSync={() => fetchData()}
+          onDiscardOverrides={() => fetchData()}
+        />
 
         {/* Main Content Grid - 3 columns on large screens */}
         <div className="grid lg:grid-cols-3 gap-6">
