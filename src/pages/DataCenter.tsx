@@ -30,7 +30,6 @@ import { DataCenterUploadsTab } from "@/components/data-center/DataCenterUploads
 import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploadWizard";
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
 import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
-import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
 import { IntegrationSyncDashboard } from "@/components/data-center/IntegrationSyncDashboard";
 import * as XLSX from "xlsx";
 
@@ -346,9 +345,6 @@ const DataCenter = () => {
 
         {/* Integration Sync Dashboard */}
         <IntegrationSyncDashboard />
-
-        {/* Stripe Sync Section */}
-        <StripeSyncSection />
 
         {/* Main Tabs */}
         <Tabs defaultValue="uploads" className="space-y-4">
