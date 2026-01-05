@@ -30,6 +30,7 @@ import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
 import { IntegrationSourceBanner } from "@/components/IntegrationSourceBanner";
 import { useOverrideWarning, logOverrideAndUpdateInvoice } from "@/components/InvoiceOverrideWarningDialogs";
+import { OutreachTimeline } from "@/components/OutreachTimeline";
 
 interface Invoice {
   id: string;
@@ -1419,7 +1420,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           </div>
 
           {/* Right Column - Collection Intelligence */}
-          <div>
+          <div className="space-y-6">
             <InvoiceWorkflowCard
               daysPastDue={daysPastDue}
               workflow={associatedWorkflow}
@@ -1428,6 +1429,13 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               dueDate={invoice.due_date}
               invoiceId={invoice.id}
               accountOutreachEnabled={invoice.debtors?.account_outreach_enabled ?? false}
+            />
+            
+            {/* Outreach Timeline */}
+            <OutreachTimeline
+              invoiceId={invoice.id}
+              invoiceDueDate={invoice.due_date}
+              agingBucket={invoice.aging_bucket}
             />
           </div>
         </div>

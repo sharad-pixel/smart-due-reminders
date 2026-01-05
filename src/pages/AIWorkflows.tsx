@@ -27,6 +27,7 @@ import AgentScheduleCards from "@/components/AgentScheduleCards";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
+import { OutreachStatusCards } from "@/components/OutreachStatusCards";
 
 interface WorkflowStep {
   id: string;
@@ -1273,6 +1274,13 @@ const AIWorkflows = () => {
             </Button>
           </div>
         </div>
+
+        {/* Outreach Status Cards */}
+        <OutreachStatusCards onRefresh={() => {
+          fetchInvoiceCounts();
+          fetchDraftsByPersona();
+          refetchErrors();
+        }} />
 
         {/* AI Collection Agents Card */}
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
