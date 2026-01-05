@@ -352,25 +352,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('[ENSURE-WORKFLOWS] Triggering cadence scheduler...');
-
-    // Trigger the cadence scheduler to generate drafts
-    let schedulerResult: any = null;
-    try {
-      const { data, error: schedulerError } = await supabaseAdmin.functions.invoke(
-        'daily-cadence-scheduler',
-        { body: {} }
-      );
-
-      if (schedulerError) {
-        console.error('[ENSURE-WORKFLOWS] Scheduler error:', schedulerError);
-      } else {
-        schedulerResult = data;
-        console.log('[ENSURE-WORKFLOWS] Scheduler completed:', schedulerResult);
-      }
-    } catch (err) {
-      console.error('[ENSURE-WORKFLOWS] Scheduler exception:', err);
-    }
+    // Note: We no longer trigger cadence scheduler here to avoid double-triggering
+    // The cadence scheduler runs on its own daily cron job at 3 AM UTC
 
     const summary = {
       success: true,
@@ -382,11 +365,6 @@ Deno.serve(async (req) => {
       skippedNoWorkflow: result.skippedNoWorkflow,
       errors: result.errors,
       errorDetails: result.errorDetails.slice(0, 20),
-      schedulerResult: schedulerResult ? {
-        drafted: schedulerResult.drafted || 0,
-        sent: schedulerResult.draftsSent || 0,
-        failed: schedulerResult.failed || 0
-      } : null,
       message: `Checked ${result.invoicesChecked} invoices: ${result.workflowsAssigned} assigned, ${result.workflowsUpgraded} upgraded, ${result.cadenceFixed} fixed, ${result.skippedCurrent} current-bucket skipped`
     };
 

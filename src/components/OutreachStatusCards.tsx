@@ -26,39 +26,59 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Get past due invoices count
+      // Get past due OPEN invoices count
       const { count: pastDueCount } = await supabase
         .from("invoices")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .in("status", ["Open", "InPaymentPlan"])
+        .in("status", ["Open", "InPaymentPlan", "PartiallyPaid"])
         .neq("aging_bucket", "current")
         .lt("due_date", today.toISOString().split("T")[0]);
 
-      // Get invoices with active workflows
+      // Get open invoice IDs first (for filtering drafts)
+      const { data: openInvoices } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("status", ["Open", "InPaymentPlan", "PartiallyPaid"]);
+      
+      const openInvoiceIds = openInvoices?.map(i => i.id) || [];
+
+      // Get invoices with active workflows (only open invoices)
       const { data: workflows } = await supabase
         .from("ai_workflows")
         .select("invoice_id")
         .eq("user_id", user.id)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .in("invoice_id", openInvoiceIds.length > 0 ? openInvoiceIds : ['00000000-0000-0000-0000-000000000000']);
 
       const withWorkflowCount = workflows?.length || 0;
 
-      // Get pending approval drafts count
-      const { count: pendingApprovalCount } = await supabase
-        .from("ai_drafts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "pending_approval")
-        .is("sent_at", null);
+      // Get pending approval drafts count - ONLY for open invoices
+      let pendingApprovalCount = 0;
+      if (openInvoiceIds.length > 0) {
+        const { count } = await supabase
+          .from("ai_drafts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "pending_approval")
+          .is("sent_at", null)
+          .in("invoice_id", openInvoiceIds);
+        pendingApprovalCount = count || 0;
+      }
 
-      // Get approved (ready to send) drafts count
-      const { count: approvedReadyCount } = await supabase
-        .from("ai_drafts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "approved")
-        .is("sent_at", null);
+      // Get approved (ready to send) drafts count - ONLY for open invoices
+      let approvedReadyCount = 0;
+      if (openInvoiceIds.length > 0) {
+        const { count } = await supabase
+          .from("ai_drafts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "approved")
+          .is("sent_at", null)
+          .in("invoice_id", openInvoiceIds);
+        approvedReadyCount = count || 0;
+      }
 
       // Get sent today count
       const todayStart = new Date();
@@ -81,8 +101,8 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       return {
         pastDue: pastDueCount || 0,
         withWorkflow: withWorkflowCount,
-        pendingApproval: pendingApprovalCount || 0,
-        approvedReady: approvedReadyCount || 0,
+        pendingApproval: pendingApprovalCount,
+        approvedReady: approvedReadyCount,
         sentToday: sentTodayCount || 0,
         errors: errorCount || 0,
       };
