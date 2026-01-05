@@ -104,6 +104,7 @@ serve(async (req) => {
         .from("invoices")
         .select("*, debtors(name, company_name, collections_health_score, collections_risk_score, health_tier, risk_tier)")
         .eq("user_id", accountId)
+        .in("status", ["Open", "InPaymentPlan", "PartiallyPaid", "Disputed"])
         .order("created_at", { ascending: false })
         .limit(500),
       supabase
