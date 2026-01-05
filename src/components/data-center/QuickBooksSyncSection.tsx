@@ -165,17 +165,53 @@ export const QuickBooksSyncSection = () => {
         description: 'Importing data from QuickBooks. This may take a moment.',
       });
 
-      const { data, error } = await supabase.functions.invoke('sync-quickbooks-data');
-      if (error) throw error;
+      // Get current user access token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No access token available - please log in again');
+      }
+
+      const syncUrl = 'https://kguurazunazhhrhasahd.supabase.co/functions/v1/sync-quickbooks-data';
+      console.log('[QB Sync] Calling URL:', syncUrl);
+      console.log('[QB Sync] Request body:', JSON.stringify({ full_sync: true }));
+
+      const response = await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ full_sync: true }),
+      });
+
+      console.log('[QB Sync] Response status:', response.status);
+      const responseText = await response.text();
+      console.log('[QB Sync] Response body:', responseText);
+
+      if (!response.ok) {
+        const errorPreview = responseText.substring(0, 300);
+        toast({
+          title: `Sync Failed (${response.status})`,
+          description: errorPreview,
+          variant: 'destructive',
+        });
+        throw new Error(`HTTP ${response.status}: ${errorPreview}`);
+      }
+
+      // Parse JSON from response text
+      const data = responseText ? JSON.parse(responseText) : {};
 
       toast({
         title: '✅ Sync Complete!',
-        description: `Synced ${data?.customers_synced || 0} customers, ${data?.invoices_synced || 0} invoices`,
+        description: `Synced ${data?.customers_synced || 0} customers, ${data?.invoices_synced || 0} invoices, ${data?.payments_synced || 0} payments`,
       });
       
       checkConnectionStatus();
       loadSyncStats();
     } catch (error: any) {
+      console.error('[QB Sync] Error:', error);
       toast({
         title: 'Sync Failed',
         description: error.message || 'Could not sync QuickBooks data',
