@@ -19,7 +19,7 @@ import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, C
 import { Switch } from "@/components/ui/switch";
 import { ContactCard } from "@/components/ContactCard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
+import { RiskEngineCard } from "@/components/RiskEngineCard";
 import { AgingBucketBreakdown } from "@/components/AgingBucketBreakdown";
 import AccountSummaryModal from "@/components/AccountSummaryModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
@@ -775,18 +775,8 @@ const DebtorDetail = () => {
           </Card>
         </div>
 
-        {/* Collection Intelligence (consolidated AI insights + Risk Assessment) */}
-        <AccountIntelligenceCard 
-          debtorId={debtor.id}
-          paymentScore={debtor.payment_score}
-          riskTier={debtor.payment_risk_tier}
-          riskStatusNote={debtor.risk_status_note}
-          riskLastCalculatedAt={debtor.risk_last_calculated_at || debtor.payment_score_last_calculated}
-          avgDaysToPay={debtor.avg_days_to_pay}
-          maxDaysPastDue={debtor.max_days_past_due}
-          openInvoicesCount={debtor.open_invoices_count}
-          disputedInvoicesCount={debtor.disputed_invoices_count}
-        />
+        {/* Collection Intelligence Report */}
+        <AccountIntelligenceCard debtorId={debtor.id} />
 
         {/* Account Outreach Settings */}
         <AccountOutreachSettings
@@ -800,6 +790,19 @@ const DebtorDetail = () => {
             last_outreach_date: debtor.last_outreach_date,
           }}
           onSettingsChange={fetchDebtor}
+        />
+
+        {/* Risk Assessment Card */}
+        <RiskEngineCard
+          debtorId={debtor.id}
+          paymentScore={debtor.payment_score}
+          riskTier={debtor.payment_risk_tier}
+          riskStatusNote={debtor.risk_status_note}
+          riskLastCalculatedAt={debtor.risk_last_calculated_at || debtor.payment_score_last_calculated}
+          avgDaysToPay={debtor.avg_days_to_pay}
+          maxDaysPastDue={debtor.max_days_past_due}
+          openInvoicesCount={debtor.open_invoices_count}
+          disputedInvoicesCount={debtor.disputed_invoices_count}
         />
 
         {/* Aging Bucket Breakdown */}
