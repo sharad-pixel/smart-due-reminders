@@ -20,7 +20,7 @@ import {
   ArrowRight,
   DollarSign
 } from "lucide-react";
-import { useAIAnalytics, TrendAnalysis, Recommendation, Prediction, RiskAlert } from "@/hooks/useAIAnalytics";
+import { useAIAnalytics, TrendAnalysis, Recommendation, Prediction, RiskAlert } from "@/hooks/useCollectionIntelligence";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -43,14 +43,14 @@ export function AIInsightsCard({
   const [expanded, setExpanded] = useState(!compact);
 
   if (isError) {
-    const message = error instanceof Error ? error.message : "Failed to load AI insights.";
+    const message = error instanceof Error ? error.message : "Failed to load Collection Intelligence.";
     return (
       <Card className={className}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">AI Insights</CardTitle>
+              <CardTitle className="text-lg">Collection Intelligence</CardTitle>
             </div>
             <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isRefetching}>
               <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
@@ -137,7 +137,7 @@ export function AIInsightsCard({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">AI Insights</CardTitle>
+                <CardTitle className="text-lg">Collection Intelligence</CardTitle>
               </div>
               <div className="flex items-center gap-2">
                 {data.riskAlerts.filter(a => a.severity === "critical").length > 0 && (
@@ -365,7 +365,7 @@ export function AIInsightsCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">AI Insights</CardTitle>
+            <CardTitle className="text-lg">Collection Intelligence</CardTitle>
           </div>
           <Button 
             variant="ghost" 

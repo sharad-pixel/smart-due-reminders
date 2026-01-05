@@ -18,7 +18,7 @@ import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
-import { AIInsightsCard } from "@/components/AIInsightsCard";
+import { AIInsightsCard } from "@/components/CollectionIntelligenceCard";
 
 interface Contact {
   name: string;

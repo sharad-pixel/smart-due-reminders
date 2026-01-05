@@ -56,7 +56,7 @@ export function useAIAnalytics(options: UseAIAnalyticsOptions = {}) {
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-          reject(new Error("AI insights timed out. Please try again."));
+          reject(new Error("Collection Intelligence timed out. Please try again."));
         }, timeoutMs);
       });
 
