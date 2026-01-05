@@ -2016,6 +2016,7 @@ export type Database = {
           id: string
           in_payment_plan_invoices_count: number | null
           industry: string | null
+          integration_source: string | null
           intelligence_report: Json | null
           intelligence_report_generated_at: string | null
           is_active: boolean | null
@@ -2101,6 +2102,7 @@ export type Database = {
           id?: string
           in_payment_plan_invoices_count?: number | null
           industry?: string | null
+          integration_source?: string | null
           intelligence_report?: Json | null
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
@@ -2186,6 +2188,7 @@ export type Database = {
           id?: string
           in_payment_plan_invoices_count?: number | null
           industry?: string | null
+          integration_source?: string | null
           intelligence_report?: Json | null
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
