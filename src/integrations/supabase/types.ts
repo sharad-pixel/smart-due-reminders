@@ -966,12 +966,21 @@ export type Database = {
           level: string | null
           notes: Json | null
           organization_id: string | null
+          original_email_body: string | null
           priority: string
           raw_email: string | null
           recommended_action: string | null
+          response_includes_invoice: boolean | null
+          response_includes_portal: boolean | null
+          response_includes_w9: boolean | null
+          response_sent_at: string | null
+          response_sent_to: string | null
+          response_status: string | null
           source: string | null
           status: string
           subject: string | null
+          suggested_response_body: string | null
+          suggested_response_subject: string | null
           summary: string
           task_type: string
           to_email: string | null
@@ -998,12 +1007,21 @@ export type Database = {
           level?: string | null
           notes?: Json | null
           organization_id?: string | null
+          original_email_body?: string | null
           priority?: string
           raw_email?: string | null
           recommended_action?: string | null
+          response_includes_invoice?: boolean | null
+          response_includes_portal?: boolean | null
+          response_includes_w9?: boolean | null
+          response_sent_at?: string | null
+          response_sent_to?: string | null
+          response_status?: string | null
           source?: string | null
           status?: string
           subject?: string | null
+          suggested_response_body?: string | null
+          suggested_response_subject?: string | null
           summary: string
           task_type: string
           to_email?: string | null
@@ -1030,12 +1048,21 @@ export type Database = {
           level?: string | null
           notes?: Json | null
           organization_id?: string | null
+          original_email_body?: string | null
           priority?: string
           raw_email?: string | null
           recommended_action?: string | null
+          response_includes_invoice?: boolean | null
+          response_includes_portal?: boolean | null
+          response_includes_w9?: boolean | null
+          response_sent_at?: string | null
+          response_sent_to?: string | null
+          response_status?: string | null
           source?: string | null
           status?: string
           subject?: string | null
+          suggested_response_body?: string | null
+          suggested_response_subject?: string | null
           summary?: string
           task_type?: string
           to_email?: string | null
@@ -5290,6 +5317,86 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_response_settings: {
+        Row: {
+          already_paid_action: string | null
+          ar_portal_url: string | null
+          callback_request_action: string | null
+          company_address: string | null
+          company_phone: string | null
+          created_at: string | null
+          dispute_action: string | null
+          enabled: boolean | null
+          general_inquiry_action: string | null
+          id: string
+          invoice_request_action: string | null
+          organization_id: string | null
+          payment_plan_request_action: string | null
+          payment_question_action: string | null
+          promise_to_pay_action: string | null
+          response_tone: string | null
+          signature_text: string | null
+          updated_at: string | null
+          user_id: string
+          w9_document_url: string | null
+          w9_request_action: string | null
+        }
+        Insert: {
+          already_paid_action?: string | null
+          ar_portal_url?: string | null
+          callback_request_action?: string | null
+          company_address?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          dispute_action?: string | null
+          enabled?: boolean | null
+          general_inquiry_action?: string | null
+          id?: string
+          invoice_request_action?: string | null
+          organization_id?: string | null
+          payment_plan_request_action?: string | null
+          payment_question_action?: string | null
+          promise_to_pay_action?: string | null
+          response_tone?: string | null
+          signature_text?: string | null
+          updated_at?: string | null
+          user_id: string
+          w9_document_url?: string | null
+          w9_request_action?: string | null
+        }
+        Update: {
+          already_paid_action?: string | null
+          ar_portal_url?: string | null
+          callback_request_action?: string | null
+          company_address?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          dispute_action?: string | null
+          enabled?: boolean | null
+          general_inquiry_action?: string | null
+          id?: string
+          invoice_request_action?: string | null
+          organization_id?: string | null
+          payment_plan_request_action?: string | null
+          payment_question_action?: string | null
+          promise_to_pay_action?: string | null
+          response_tone?: string | null
+          signature_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+          w9_document_url?: string | null
+          w9_request_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_response_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_integrations: {
         Row: {
           auto_sync_enabled: boolean | null
@@ -5423,6 +5530,69 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      task_responses: {
+        Row: {
+          body: string
+          created_at: string | null
+          delivery_status: string | null
+          id: string
+          organization_id: string | null
+          original_ai_body: string | null
+          resend_email_id: string | null
+          sent_at: string | null
+          sent_to: string
+          subject: string
+          task_id: string
+          user_id: string
+          was_edited: boolean | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          delivery_status?: string | null
+          id?: string
+          organization_id?: string | null
+          original_ai_body?: string | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          sent_to: string
+          subject: string
+          task_id: string
+          user_id: string
+          was_edited?: boolean | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          delivery_status?: string | null
+          id?: string
+          organization_id?: string | null
+          original_ai_body?: string | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          sent_to?: string
+          subject?: string
+          task_id?: string
+          user_id?: string
+          was_edited?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_responses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_responses_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "collection_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {

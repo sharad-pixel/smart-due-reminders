@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * 2. Generates AI summary (1-3 sentences)
  * 3. Extracts actionable tasks with structured data
  * 4. Creates tasks in collection_tasks table
+ * 5. Generates smart response suggestions for each task
  * 
  * Can be triggered:
  * - Via cron (scheduled)
@@ -70,6 +71,118 @@ const PERSONA_BUCKET_MAP: Record<string, string> = {
   dpd_150_plus: "Rocco",
 };
 
+// Smart Response Templates
+const RESPONSE_TEMPLATES: Record<string, { subject: string; body: string }> = {
+  W9_REQUEST: {
+    subject: "Re: {{original_subject}} - W9 Document",
+    body: `Hi {{debtor_name}},
+
+Thank you for your request. Please find our W9 document at the link below:
+
+{{w9_link}}
+
+If you have any questions, please don't hesitate to reach out.
+
+{{signature}}`
+  },
+  INVOICE_COPY_REQUEST: {
+    subject: "Re: {{original_subject}} - Invoice {{invoice_number}}",
+    body: `Hi {{debtor_name}},
+
+Here is the invoice information you requested:
+
+Invoice #: {{invoice_number}}
+Amount Due: ${{amount_due}}
+
+You can view and download the invoice through our portal:
+{{portal_link}}
+
+{{signature}}`
+  },
+  PROMISE_TO_PAY: {
+    subject: "Re: {{original_subject}} - Payment Confirmation",
+    body: `Hi {{debtor_name}},
+
+Thank you for confirming your intent to pay invoice #{{invoice_number}} for ${{amount_due}}.
+
+We appreciate your commitment and look forward to receiving your payment. If you need to make a payment now, you can do so through our portal:
+{{portal_link}}
+
+Please let us know if you have any questions.
+
+{{signature}}`
+  },
+  PAYMENT_PLAN_REQUEST: {
+    subject: "Re: {{original_subject}} - Payment Plan Discussion",
+    body: `Hi {{debtor_name}},
+
+Thank you for reaching out regarding a payment plan for invoice #{{invoice_number}}.
+
+We're happy to discuss options that work for your situation. A member of our team will follow up with you within 1-2 business days to discuss available arrangements.
+
+In the meantime, you can view your current balance here:
+{{portal_link}}
+
+{{signature}}`
+  },
+  NEEDS_CALLBACK: {
+    subject: "Re: {{original_subject}} - Callback Scheduled",
+    body: `Hi {{debtor_name}},
+
+We received your request for a callback regarding invoice #{{invoice_number}}.
+
+A member of our team will call you within 1-2 business days at the number on file. If you'd like to specify a preferred time or update your contact number, please reply to this email.
+
+{{signature}}`
+  },
+  DISPUTE_CHARGES: {
+    subject: "Re: {{original_subject}} - Dispute Received",
+    body: `Hi {{debtor_name}},
+
+We've received your message regarding invoice #{{invoice_number}} and have noted your concerns.
+
+Our team will review the details and follow up with you within 2-3 business days. If you have any supporting documentation, please reply to this email with the details.
+
+{{signature}}`
+  },
+  DISPUTE_PO: {
+    subject: "Re: {{original_subject}} - PO Inquiry Received",
+    body: `Hi {{debtor_name}},
+
+We've received your inquiry about the purchase order for invoice #{{invoice_number}}.
+
+Our team will verify the PO details and get back to you within 1-2 business days with clarification.
+
+{{signature}}`
+  },
+  PAYMENT_CONFIRMATION: {
+    subject: "Re: {{original_subject}} - Payment Verification",
+    body: `Hi {{debtor_name}},
+
+Thank you for letting us know about your payment for invoice #{{invoice_number}}.
+
+To help us locate and apply your payment quickly, could you please provide:
+- Payment date
+- Payment method (check number, ACH, card last 4 digits)
+- Amount paid
+
+Once we verify the payment, we'll update your account immediately.
+
+{{signature}}`
+  },
+  GENERAL_INQUIRY: {
+    subject: "Re: {{original_subject}}",
+    body: `Hi {{debtor_name}},
+
+Thank you for your message. We've received your inquiry and a member of our team will respond within 1-2 business days.
+
+For reference, here is a link to your account portal:
+{{portal_link}}
+
+{{signature}}`
+  },
+};
+
 // Helper function to get recommended actions based on task type
 function getRecommendedAction(taskType: string, isInternal: boolean): string {
   if (isInternal) {
@@ -100,6 +213,94 @@ function getRecommendedAction(taskType: string, isInternal: boolean): string {
     OTHER: "Review customer communication and determine next steps",
   };
   return externalActions[taskType] || "Review and respond to customer inquiry";
+}
+
+// Generate smart response for a task
+async function generateSmartResponse(
+  supabase: any,
+  apiKey: string,
+  taskType: string,
+  email: any,
+  debtorInfo: any,
+  invoiceInfo: any,
+  userId: string
+): Promise<{ subject: string; body: string; includesW9: boolean; includesInvoice: boolean; includesPortal: boolean } | null> {
+  // Get user's smart response settings
+  const { data: settings } = await supabase
+    .from("smart_response_settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // Check if smart response is enabled
+  if (settings?.enabled === false) {
+    console.log(`[SMART-RESPONSE] Disabled for user ${userId}`);
+    return null;
+  }
+
+  // Check action setting for this task type
+  const actionKeyMap: Record<string, string> = {
+    W9_REQUEST: "w9_request_action",
+    INVOICE_COPY_REQUEST: "invoice_request_action",
+    PROMISE_TO_PAY: "promise_to_pay_action",
+    PAYMENT_PLAN_REQUEST: "payment_plan_request_action",
+    DISPUTE_CHARGES: "dispute_action",
+    DISPUTE_PO: "dispute_action",
+    NEEDS_CALLBACK: "callback_request_action",
+    GENERAL_INQUIRY: "general_inquiry_action",
+    PAYMENT_CONFIRMATION: "already_paid_action",
+  };
+
+  const actionKey = actionKeyMap[taskType];
+  const actionSetting = settings?.[actionKey] || "manual";
+
+  if (actionSetting === "manual") {
+    console.log(`[SMART-RESPONSE] Manual mode for task type ${taskType}`);
+    return null;
+  }
+
+  // Get template
+  const template = RESPONSE_TEMPLATES[taskType];
+  if (!template) {
+    console.log(`[SMART-RESPONSE] No template for task type ${taskType}`);
+    return null;
+  }
+
+  // Get branding/signature info
+  const { data: branding } = await supabase
+    .from("branding_settings")
+    .select("business_name, stripe_payment_link, email_signature")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // Build variables for template
+  const debtorName = debtorInfo?.name || debtorInfo?.company_name || "Customer";
+  const invoiceNumber = invoiceInfo?.invoice_number || "N/A";
+  const amountDue = invoiceInfo?.amount ? Number(invoiceInfo.amount).toFixed(2) : "0.00";
+  const portalLink = settings?.ar_portal_url || branding?.stripe_payment_link || "[Payment Portal Link]";
+  const w9Link = settings?.w9_document_url || "[W9 Document Link]";
+  const signature = settings?.signature_text || branding?.email_signature || `Best regards,\nThe ${branding?.business_name || "AR"} Team`;
+
+  // Replace template variables
+  let subject = template.subject
+    .replace("{{original_subject}}", email.subject || "Your Inquiry")
+    .replace("{{invoice_number}}", invoiceNumber);
+
+  let body = template.body
+    .replace(/{{debtor_name}}/g, debtorName)
+    .replace(/{{invoice_number}}/g, invoiceNumber)
+    .replace(/{{amount_due}}/g, amountDue)
+    .replace(/{{portal_link}}/g, portalLink)
+    .replace(/{{w9_link}}/g, w9Link)
+    .replace(/{{signature}}/g, signature);
+
+  return {
+    subject,
+    body,
+    includesW9: body.includes(w9Link) && w9Link !== "[W9 Document Link]",
+    includesInvoice: body.includes(invoiceNumber),
+    includesPortal: body.includes(portalLink) && portalLink !== "[Payment Portal Link]",
+  };
 }
 
 async function triggerWorkflowEngagement(
@@ -526,11 +727,11 @@ Extract summary and actions.`;
             return dueDate.toISOString().split("T")[0];
           };
 
-          const tasks = actions.map((action: any) => {
+          for (const action of actions) {
             const taskPriority = action.type === "PROMISE_TO_PAY" || action.type === "ESCALATION" ? "high" : 
                                 action.confidence >= 0.9 ? "high" : "normal";
-            
-            return {
+
+            const taskData = {
               user_id: email.user_id,
               debtor_id: email.debtor_id,
               invoice_id: email.invoice_id,
@@ -551,51 +752,115 @@ Extract summary and actions.`;
               recommended_action: getRecommendedAction(action.type, isInternalCommunication),
               due_date: getDueDate(taskPriority),
               inbound_email_id: email.id,
-              // Note: assigned_to and assigned_persona are left null - tasks are only assignable to team members via UI
+              original_email_from: email.from_email,
+              original_email_body: (email.text_body || "").substring(0, 2000),
             };
-          });
 
-          const { data: createdTasks, error: taskError } = await supabase
-            .from("collection_tasks")
-            .insert(tasks)
-            .select("id");
-            
-          if (taskError) {
-            console.error(`[AI-PROCESS] Error creating tasks:`, taskError.message);
-          } else {
-            console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
-            
-            // Notify all account users about each created task
-            if (createdTasks && createdTasks.length > 0) {
-              for (const task of createdTasks) {
-                try {
-                  const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
-                    "notify-task-created",
-                    {
+            // Insert task
+            const { data: createdTask, error: taskError } = await supabase
+              .from("collection_tasks")
+              .insert(taskData)
+              .select("id")
+              .single();
+
+            if (taskError) {
+              console.error(`[AI-PROCESS] Error creating task:`, taskError.message);
+              continue;
+            }
+
+            console.log(`[AI-PROCESS] Created task ${createdTask.id} for action ${action.type}`);
+
+            // Generate smart response for this task (only for external emails)
+            if (!isInternalCommunication && createdTask) {
+              try {
+                const smartResponse = await generateSmartResponse(
+                  supabase,
+                  LOVABLE_API_KEY,
+                  action.type,
+                  email,
+                  debtorInfo,
+                  invoiceInfo,
+                  email.user_id
+                );
+
+                if (smartResponse) {
+                  // Update task with smart response
+                  await supabase
+                    .from("collection_tasks")
+                    .update({
+                      suggested_response_subject: smartResponse.subject,
+                      suggested_response_body: smartResponse.body,
+                      response_includes_w9: smartResponse.includesW9,
+                      response_includes_invoice: smartResponse.includesInvoice,
+                      response_includes_portal: smartResponse.includesPortal,
+                      response_status: "pending",
+                    })
+                    .eq("id", createdTask.id);
+
+                  console.log(`[AI-PROCESS] Generated smart response for task ${createdTask.id}`);
+
+                  // Check if auto-send is enabled for this task type
+                  const { data: settings } = await supabase
+                    .from("smart_response_settings")
+                    .select("*")
+                    .eq("user_id", email.user_id)
+                    .maybeSingle();
+
+                  const actionKeyMap: Record<string, string> = {
+                    W9_REQUEST: "w9_request_action",
+                    INVOICE_COPY_REQUEST: "invoice_request_action",
+                  };
+                  const actionKey = actionKeyMap[action.type];
+                  const actionSetting = settings?.[actionKey];
+
+                  if (actionSetting === "auto_send") {
+                    // Auto-send the response
+                    console.log(`[AI-PROCESS] Auto-sending response for task ${createdTask.id}`);
+                    
+                    const { error: sendError } = await supabase.functions.invoke("send-task-response", {
                       body: {
-                        taskId: task.id,
-                        creatorUserId: email.user_id,
+                        task_id: createdTask.id,
+                        subject: smartResponse.subject,
+                        body: smartResponse.body,
+                        send_to: email.from_email,
+                        was_edited: false,
                       },
-                    }
-                  );
+                    });
 
-                  if (notifyError) {
-                    console.error(
-                      `[AI-PROCESS] Failed to notify for task ${task.id}:`,
-                      notifyError.message || notifyError
-                    );
-                  } else {
-                    console.log(`[AI-PROCESS] Notification invoked for task ${task.id}`, notifyData);
+                    if (sendError) {
+                      console.error(`[AI-PROCESS] Auto-send failed:`, sendError);
+                    } else {
+                      // Update task as completed
+                      await supabase
+                        .from("collection_tasks")
+                        .update({
+                          status: "done",
+                          completed_at: new Date().toISOString(),
+                        })
+                        .eq("id", createdTask.id);
+
+                      console.log(`[AI-PROCESS] Auto-sent and completed task ${createdTask.id}`);
+                    }
                   }
-                } catch (notifyError: any) {
-                  console.error(
-                    `[AI-PROCESS] Error invoking notification for task ${task.id}:`,
-                    notifyError?.message || notifyError
-                  );
                 }
+              } catch (srError: any) {
+                console.error(`[AI-PROCESS] Smart response error for task ${createdTask.id}:`, srError.message);
               }
             }
+
+            // Notify about created task
+            try {
+              await supabase.functions.invoke("notify-task-created", {
+                body: {
+                  taskId: createdTask.id,
+                  creatorUserId: email.user_id,
+                },
+              });
+            } catch (notifyError: any) {
+              console.error(`[AI-PROCESS] Failed to notify for task ${createdTask.id}:`, notifyError.message);
+            }
           }
+        }
         }
 
         // Trigger automatic workflow engagement for external emails linked to invoices
