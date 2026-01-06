@@ -11,7 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Save, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2, Plug } from "lucide-react";
-import StripeIntegrationCard from "@/components/StripeIntegrationCard";
 import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
@@ -484,9 +483,6 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Stripe Invoice Integration */}
-        {!isChildAccount && <StripeIntegrationCard />}
 
         <Card>
           <CardHeader>
