@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInboundEmails, InboundEmail } from "@/hooks/useInboundEmails";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,12 +36,13 @@ import {
   TrendingDown,
   Minus,
   ChevronDown,
-  ChevronRight,
   Trash2,
   ListTodo,
   X,
   MoreVertical,
   Search,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -85,23 +87,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateBrandedEmail, BrandingSettings } from "@/lib/emailSignature";
-
-interface InvoiceGroup {
-  invoiceNumber: string | null;
-  invoiceId: string | null;
-  debtorName: string | null;
-  companyName: string | null;
-  emails: InboundEmail[];
-}
-
 interface EmailTask {
   id: string;
   task_type: string;
@@ -387,14 +375,15 @@ const EmailDetailContent = ({
 );
 
 const InboundCommandCenter = () => {
-  const { fetchInboundEmails, triggerAIProcessing, updateActionStatus, forwardEmails, isLoading } = useInboundEmails();
+  const { fetchInboundEmails, triggerAIProcessing, updateActionStatus, archiveEmail, unarchiveEmail, forwardEmails, isLoading } = useInboundEmails();
   const [emails, setEmails] = useState<InboundEmail[]>([]);
+  const [archivedEmails, setArchivedEmails] = useState<InboundEmail[]>([]);
+  const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardEmail, setForwardEmail] = useState("");
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [emailTasks, setEmailTasks] = useState<EmailTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
@@ -553,7 +542,8 @@ const InboundCommandCenter = () => {
   };
 
   const loadEmails = async () => {
-    const data = await fetchInboundEmails({
+    // Load active emails
+    const activeData = await fetchInboundEmails({
       status: statusFilter !== "all" ? statusFilter : undefined,
       action_type: actionFilter !== "all" ? actionFilter : undefined,
       action_status: actionStatusFilter !== "all" ? actionStatusFilter : undefined,
@@ -562,48 +552,27 @@ const InboundCommandCenter = () => {
       debtor_status: debtorStatusFilter,
       hide_closed: hideClosed,
       search: searchQuery || undefined,
+      is_archived: false,
     });
-    setEmails(data);
-    // Expand all groups by default
-    const groupKeys = new Set(data.map(e => e.invoice_id || "unlinked"));
-    setExpandedGroups(groupKeys);
+    setEmails(activeData);
+    
+    // Load archived emails
+    const archivedData = await fetchInboundEmails({
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      action_type: actionFilter !== "all" ? actionFilter : undefined,
+      action_status: actionStatusFilter !== "all" ? actionStatusFilter : undefined,
+      ai_category: categoryFilter !== "all" ? categoryFilter : undefined,
+      ai_priority: priorityFilter !== "all" ? priorityFilter : undefined,
+      debtor_status: debtorStatusFilter,
+      hide_closed: hideClosed,
+      search: searchQuery || undefined,
+      is_archived: true,
+    });
+    setArchivedEmails(archivedData);
   };
 
-  // Group emails by invoice
-  const groupedEmails = useMemo((): InvoiceGroup[] => {
-    const groups = new Map<string, InvoiceGroup>();
-    
-    emails.forEach(email => {
-      const key = email.invoice_id || "unlinked";
-      if (!groups.has(key)) {
-        groups.set(key, {
-          invoiceNumber: email.invoices ? (email.invoices as any).invoice_number : null,
-          invoiceId: email.invoice_id,
-          debtorName: email.debtors ? (email.debtors as any).name : null,
-          companyName: email.debtors ? (email.debtors as any).company_name : null,
-          emails: [],
-        });
-      }
-      groups.get(key)!.emails.push(email);
-    });
-
-    // Sort emails within each group by created_at (newest first)
-    groups.forEach(group => {
-      group.emails.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    });
-
-    // Sort groups: linked invoices first, then unlinked, then by most recent email
-    return Array.from(groups.values()).sort((a, b) => {
-      if (a.invoiceId && !b.invoiceId) return -1;
-      if (!a.invoiceId && b.invoiceId) return 1;
-      // Sort by most recent email in group
-      const aLatest = a.emails[0]?.created_at || '';
-      const bLatest = b.emails[0]?.created_at || '';
-      return new Date(bLatest).getTime() - new Date(aLatest).getTime();
-    });
-  }, [emails]);
+  // Flat list sorted newest to oldest (already done by DB query)
+  const displayEmails = activeTab === "active" ? emails : archivedEmails;
 
   const handleSearch = () => {
     loadEmails();
@@ -647,31 +616,54 @@ const InboundCommandCenter = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(emails.map((e) => e.id));
+      setSelectedIds(displayEmails.map((e) => e.id));
     } else {
       setSelectedIds([]);
     }
   };
 
-  const handleSelectGroup = (group: InvoiceGroup, checked: boolean) => {
-    const groupIds = group.emails.map(e => e.id);
-    if (checked) {
-      setSelectedIds(prev => [...new Set([...prev, ...groupIds])]);
-    } else {
-      setSelectedIds(prev => prev.filter(id => !groupIds.includes(id)));
+  const handleArchiveEmail = async (emailId: string) => {
+    const success = await archiveEmail(emailId, "Manual archive");
+    if (success) {
+      loadEmails();
+      if (selectedEmail?.id === emailId) {
+        setDetailsOpen(false);
+      }
     }
   };
 
-  const toggleGroup = (key: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
+  const handleUnarchiveEmail = async (emailId: string) => {
+    const success = await unarchiveEmail(emailId);
+    if (success) {
+      loadEmails();
+      if (selectedEmail?.id === emailId) {
+        setDetailsOpen(false);
       }
-      return next;
-    });
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedIds.length === 0) return;
+    let successCount = 0;
+    for (const id of selectedIds) {
+      const success = await archiveEmail(id, "Bulk archive");
+      if (success) successCount++;
+    }
+    toast.success(`Archived ${successCount} email(s)`);
+    setSelectedIds([]);
+    loadEmails();
+  };
+
+  const handleBulkUnarchive = async () => {
+    if (selectedIds.length === 0) return;
+    let successCount = 0;
+    for (const id of selectedIds) {
+      const success = await unarchiveEmail(id);
+      if (success) successCount++;
+    }
+    toast.success(`Restored ${successCount} email(s)`);
+    setSelectedIds([]);
+    loadEmails();
   };
 
   const handleCloseAction = async (emailId: string) => {
@@ -965,7 +957,10 @@ const InboundCommandCenter = () => {
           {/* Stats badges */}
           <div className="flex gap-2 flex-wrap">
             <Badge variant="outline" className="text-xs md:text-sm">
-              {emails.length} Total
+              {emails.length} Active
+            </Badge>
+            <Badge variant="outline" className="text-xs md:text-sm">
+              {archivedEmails.length} Archived
             </Badge>
             <Badge variant="outline" className="text-xs md:text-sm">
               {emails.filter((e) => e.status === "processed").length} Processed
@@ -1117,18 +1112,31 @@ const InboundCommandCenter = () => {
                 <div className="flex items-center gap-1 md:gap-2">
                   {/* Desktop buttons */}
                   <div className="hidden md:flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={handleBulkCloseActions}>
-                      <CheckSquare className="h-4 w-4 mr-2" />
-                      Close All
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleBulkReopenActions}>
-                      <Clock className="h-4 w-4 mr-2" />
-                      Reopen All
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleForwardSelected}>
-                      <Forward className="h-4 w-4 mr-2" />
-                      Forward
-                    </Button>
+                    {activeTab === "active" ? (
+                      <>
+                        <Button size="sm" variant="outline" onClick={handleBulkCloseActions}>
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Close All
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleBulkReopenActions}>
+                          <Clock className="h-4 w-4 mr-2" />
+                          Reopen All
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleForwardSelected}>
+                          <Forward className="h-4 w-4 mr-2" />
+                          Forward
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleBulkArchive}>
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={handleBulkUnarchive}>
+                        <ArchiveRestore className="h-4 w-4 mr-2" />
+                        Restore All
+                      </Button>
+                    )}
                     <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
@@ -1143,18 +1151,31 @@ const InboundCommandCenter = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleBulkCloseActions}>
-                        <CheckSquare className="h-4 w-4 mr-2" />
-                        Close All
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleBulkReopenActions}>
-                        <Clock className="h-4 w-4 mr-2" />
-                        Reopen All
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleForwardSelected}>
-                        <Forward className="h-4 w-4 mr-2" />
-                        Forward
-                      </DropdownMenuItem>
+                      {activeTab === "active" ? (
+                        <>
+                          <DropdownMenuItem onClick={handleBulkCloseActions}>
+                            <CheckSquare className="h-4 w-4 mr-2" />
+                            Close All
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleBulkReopenActions}>
+                            <Clock className="h-4 w-4 mr-2" />
+                            Reopen All
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleForwardSelected}>
+                            <Forward className="h-4 w-4 mr-2" />
+                            Forward
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleBulkArchive}>
+                            <Archive className="h-4 w-4 mr-2" />
+                            Archive
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
+                        <DropdownMenuItem onClick={handleBulkUnarchive}>
+                          <ArchiveRestore className="h-4 w-4 mr-2" />
+                          Restore All
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-destructive">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
@@ -1170,219 +1191,293 @@ const InboundCommandCenter = () => {
           </Card>
         )}
 
-        {/* Select All Header */}
-        {emails.length > 0 && (
-          <div className="flex items-center gap-2 px-1">
-            <Checkbox
-              id="select-all"
-              checked={selectedIds.length === emails.length && emails.length > 0}
-              onCheckedChange={handleSelectAll}
-            />
-            <Label htmlFor="select-all" className="text-sm cursor-pointer">
-              Select All ({emails.length})
-            </Label>
-          </div>
-        )}
+        {/* Email Tabs - Active vs Archived */}
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "active" | "archived"); setSelectedIds([]); }}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="active" className="gap-2">
+              <Inbox className="h-4 w-4" />
+              Active
+              <Badge variant="secondary" className="ml-1">{emails.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="gap-2">
+              <Archive className="h-4 w-4" />
+              Archived
+              <Badge variant="secondary" className="ml-1">{archivedEmails.length}</Badge>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Email List - Grouped by Invoice */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {groupedEmails.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  No inbound emails found
-                </CardContent>
-              </Card>
+          <TabsContent value="active" className="mt-0">
+            {/* Select All Header */}
+            {emails.length > 0 && (
+              <div className="flex items-center gap-2 px-1 mb-4">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedIds.length === emails.length && emails.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                <Label htmlFor="select-all" className="text-sm cursor-pointer">
+                  Select All ({emails.length})
+                </Label>
+              </div>
+            )}
+
+            {/* Email List - Flat Rows */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
             ) : (
-              groupedEmails.map((group) => {
-                const groupKey = group.invoiceId || "unlinked";
-                const isExpanded = expandedGroups.has(groupKey);
-                const groupEmailIds = group.emails.map(e => e.id);
-                const allSelected = groupEmailIds.every(id => selectedIds.includes(id));
-                const someSelected = groupEmailIds.some(id => selectedIds.includes(id));
-
-                return (
-                  <Card key={groupKey}>
-                    <Collapsible open={isExpanded} onOpenChange={() => toggleGroup(groupKey)}>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-2 md:py-3 px-3 md:px-6">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                              <Checkbox
-                                checked={allSelected}
-                                ref={(ref) => {
-                                  if (ref && someSelected && !allSelected) {
-                                    (ref as any).indeterminate = true;
-                                  }
-                                }}
-                                onCheckedChange={(checked) => handleSelectGroup(group, !!checked)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex-shrink-0"
-                              />
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              )}
-                              <div className="min-w-0">
-                                {group.invoiceNumber ? (
-                                  <div className="flex flex-col md:flex-row md:items-center gap-0.5 md:gap-2">
-                                    <div className="flex items-center gap-1.5">
-                                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                                      <span className="font-medium text-sm md:text-base truncate">{group.invoiceNumber}</span>
-                                    </div>
-                                    {group.debtorName && (
-                                      <span className="text-xs md:text-sm text-muted-foreground truncate">
-                                        {group.debtorName}
-                                        {group.companyName && !isMobile && ` (${group.companyName})`}
-                                      </span>
+              <div className="space-y-3">
+                {emails.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      No active inbound emails found
+                    </CardContent>
+                  </Card>
+                ) : (
+                  emails.map((email) => (
+                    <Card key={email.id} className={selectedIds.includes(email.id) ? "ring-2 ring-primary" : ""}>
+                      <CardContent className="p-3 md:p-4">
+                        <div className="flex items-start gap-2 md:gap-4">
+                          <Checkbox
+                            checked={selectedIds.includes(email.id)}
+                            onCheckedChange={(checked) => handleToggleSelect(email.id, !!checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
+                            {/* Row 1: Invoice/Account context + Date */}
+                            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {email.invoices ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                    <span className="font-medium truncate">{(email.invoices as any).invoice_number}</span>
+                                    {(email.invoices as any).status && (
+                                      <Badge variant={(email.invoices as any).status === "Paid" ? "default" : "outline"} className="text-xs">
+                                        {(email.invoices as any).status}
+                                      </Badge>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-2">
-                                    <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <span className="font-medium text-muted-foreground text-sm">Unlinked</span>
-                                  </div>
+                                  <span className="text-muted-foreground">Unlinked</span>
+                                )}
+                                {email.debtors && (
+                                  <>
+                                    <span className="text-muted-foreground">•</span>
+                                    <span className="truncate">{(email.debtors as any).company_name || (email.debtors as any).name}</span>
+                                  </>
+                                )}
+                              </div>
+                              <span className="flex-shrink-0">
+                                {format(new Date(email.created_at), isMobile ? "MMM d" : "MMM d, h:mm a")}
+                              </span>
+                            </div>
+
+                            {/* Row 2: Badges */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge className={`${getStatusColor(email.status)} text-xs`} variant="outline">
+                                {getStatusIcon(email.status)}
+                                <span className="ml-1 hidden md:inline">{email.status}</span>
+                              </Badge>
+                              {email.ai_category && (
+                                <Badge className={`${getCategoryColor(email.ai_category)} text-xs`} variant="outline">
+                                  <Tag className="h-3 w-3" />
+                                  <span className="ml-1 hidden md:inline">{email.ai_category}</span>
+                                </Badge>
+                              )}
+                              {email.ai_priority && (
+                                <Badge className={`${getPriorityColor(email.ai_priority)} text-xs`} variant="outline">
+                                  {email.ai_priority}
+                                </Badge>
+                              )}
+                              {email.action_status && (
+                                <Badge variant={email.action_status === "closed" ? "secondary" : "default"} className="text-xs">
+                                  {email.action_status === "closed" ? <CheckSquare className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                </Badge>
+                              )}
+                            </div>
+
+                            {/* Row 3: From + Subject */}
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium truncate">{email.from_email}</span>
+                            </div>
+                            <p className="font-semibold text-sm line-clamp-1">{email.subject}</p>
+                            
+                            {/* Row 4: AI Summary */}
+                            {email.ai_summary && (
+                              <div className="flex items-start gap-2 text-xs md:text-sm">
+                                <Bot className="h-3.5 w-3.5 text-purple-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-muted-foreground italic line-clamp-1">{email.ai_summary}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex-shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(email)}>
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleForwardSingle(email.id)}>
+                                  <Forward className="h-4 w-4 mr-2" />
+                                  Forward
+                                </DropdownMenuItem>
+                                {email.action_status !== "closed" ? (
+                                  <DropdownMenuItem onClick={() => handleCloseAction(email.id)}>
+                                    <CheckSquare className="h-4 w-4 mr-2" />
+                                    Close Action
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleReopenAction(email.id)}>
+                                    <Clock className="h-4 w-4 mr-2" />
+                                    Reopen Action
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => handleArchiveEmail(email.id)}>
+                                  <Archive className="h-4 w-4 mr-2" />
+                                  Archive
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="archived" className="mt-0">
+            {/* Select All Header */}
+            {archivedEmails.length > 0 && (
+              <div className="flex items-center gap-2 px-1 mb-4">
+                <Checkbox
+                  id="select-all-archived"
+                  checked={selectedIds.length === archivedEmails.length && archivedEmails.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                <Label htmlFor="select-all-archived" className="text-sm cursor-pointer">
+                  Select All ({archivedEmails.length})
+                </Label>
+              </div>
+            )}
+
+            {/* Archived Email List */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {archivedEmails.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <Archive className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                      <p>No archived emails</p>
+                      <p className="text-sm mt-1">Emails are automatically archived when their invoice is paid or canceled</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  archivedEmails.map((email) => (
+                    <Card key={email.id} className={`opacity-75 ${selectedIds.includes(email.id) ? "ring-2 ring-primary" : ""}`}>
+                      <CardContent className="p-3 md:p-4">
+                        <div className="flex items-start gap-2 md:gap-4">
+                          <Checkbox
+                            checked={selectedIds.includes(email.id)}
+                            onCheckedChange={(checked) => handleToggleSelect(email.id, !!checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
+                            {/* Archived reason badge */}
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="gap-1">
+                                  <Archive className="h-3 w-3" />
+                                  {email.archived_reason || "Archived"}
+                                </Badge>
+                                {email.archived_at && (
+                                  <span className="text-muted-foreground">
+                                    {format(new Date(email.archived_at), "MMM d, yyyy")}
+                                  </span>
                                 )}
                               </div>
                             </div>
-                            <Badge variant="outline" className="text-xs flex-shrink-0">{group.emails.length}</Badge>
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className="pt-0 px-2 md:px-6 space-y-2 md:space-y-3">
-                          {group.emails.map((email) => (
-                            <div
-                              key={email.id}
-                              className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-shadow active:bg-muted/50 ${
-                                selectedIds.includes(email.id) ? "ring-2 ring-primary" : ""
-                              }`}
-                            >
-                              <div className="flex items-start gap-2 md:gap-4">
-                                <Checkbox
-                                  checked={selectedIds.includes(email.id)}
-                                  onCheckedChange={(checked) => handleToggleSelect(email.id, !!checked)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="mt-1 flex-shrink-0"
-                                />
-                                <div className="flex-1 min-w-0 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
-                                  {/* Badges row - scrollable on mobile */}
-                                  <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                                    <Badge className={`${getStatusColor(email.status)} text-xs`} variant="outline">
-                                      {getStatusIcon(email.status)}
-                                      <span className="ml-1 hidden md:inline">{email.status}</span>
-                                    </Badge>
-                                    {(email as any).ai_category && (
-                                      <Badge className={`${getCategoryColor((email as any).ai_category)} text-xs`} variant="outline">
-                                        <Tag className="h-3 w-3" />
-                                        <span className="ml-1 hidden md:inline">{(email as any).ai_category}</span>
-                                      </Badge>
-                                    )}
-                                    {(email as any).ai_priority && (
-                                      <Badge className={`${getPriorityColor((email as any).ai_priority)} text-xs`} variant="outline">
-                                        {(email as any).ai_priority}
-                                      </Badge>
-                                    )}
-                                    {(email as any).action_status && (
-                                      <Badge variant={(email as any).action_status === "closed" ? "secondary" : "default"} className="text-xs">
-                                        {(email as any).action_status === "closed" ? (
-                                          <CheckSquare className="h-3 w-3" />
-                                        ) : (
-                                          <Clock className="h-3 w-3" />
-                                        )}
-                                      </Badge>
-                                    )}
-                                  </div>
 
-                                  {/* From & Date */}
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                    <span className="font-medium truncate">{email.from_email}</span>
-                                    <span className="text-muted-foreground text-xs flex-shrink-0">
-                                      {format(new Date(email.created_at), isMobile ? "MMM d" : "MMM d, h:mm a")}
-                                    </span>
-                                  </div>
-
-                                  {/* Subject */}
-                                  <p className="font-semibold text-sm line-clamp-2">{email.subject}</p>
-                                  
-                                  {/* AI Summary - truncated on mobile */}
-                                  {email.ai_summary && (
-                                    <div className="flex items-start gap-2 text-xs md:text-sm">
-                                      <Bot className="h-3.5 w-3.5 text-purple-500 mt-0.5 flex-shrink-0" />
-                                      <p className="text-muted-foreground italic line-clamp-2">{email.ai_summary}</p>
-                                    </div>
-                                  )}
-
-                                  {/* Actions badges */}
-                                  {email.ai_actions && email.ai_actions.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
-                                      {email.ai_actions.slice(0, isMobile ? 2 : email.ai_actions.length).map((action, idx) => (
-                                        <Badge key={idx} variant="secondary" className="gap-1 text-xs">
-                                          {getActionIcon(action.type)}
-                                          <span className="hidden md:inline">{action.type}</span>
-                                        </Badge>
-                                      ))}
-                                      {isMobile && email.ai_actions.length > 2 && (
-                                        <Badge variant="secondary" className="text-xs">+{email.ai_actions.length - 2}</Badge>
-                                      )}
-                                    </div>
-                                  )}
+                            {/* Invoice/Account context */}
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {email.invoices ? (
+                                <div className="flex items-center gap-1.5">
+                                  <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                  <span className="font-medium truncate">{(email.invoices as any).invoice_number}</span>
                                 </div>
-
-                                {/* Action buttons - dropdown on mobile */}
-                                <div className="flex-shrink-0">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleViewDetails(email)}>
-                                        <ExternalLink className="h-4 w-4 mr-2" />
-                                        View Details
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleForwardSingle(email.id)}>
-                                        <Forward className="h-4 w-4 mr-2" />
-                                        Forward
-                                      </DropdownMenuItem>
-                                      {(email as any).action_status !== "closed" ? (
-                                        <DropdownMenuItem onClick={() => handleCloseAction(email.id)}>
-                                          <CheckSquare className="h-4 w-4 mr-2" />
-                                          Close Action
-                                        </DropdownMenuItem>
-                                      ) : (
-                                        <DropdownMenuItem onClick={() => handleReopenAction(email.id)}>
-                                          <Clock className="h-4 w-4 mr-2" />
-                                          Reopen Action
-                                        </DropdownMenuItem>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
+                              ) : (
+                                <span>Unlinked</span>
+                              )}
+                              {email.debtors && (
+                                <>
+                                  <span>•</span>
+                                  <span className="truncate">{(email.debtors as any).company_name || (email.debtors as any).name}</span>
+                                </>
+                              )}
                             </div>
-                          ))}
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </Card>
-                );
-              })
+
+                            {/* From + Subject */}
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium truncate">{email.from_email}</span>
+                              <span className="text-muted-foreground text-xs flex-shrink-0">
+                                {format(new Date(email.created_at), "MMM d")}
+                              </span>
+                            </div>
+                            <p className="font-semibold text-sm line-clamp-1">{email.subject}</p>
+                            
+                            {/* AI Summary */}
+                            {email.ai_summary && (
+                              <p className="text-xs text-muted-foreground italic line-clamp-1">{email.ai_summary}</p>
+                            )}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex-shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(email)}>
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUnarchiveEmail(email.id)}>
+                                  <ArchiveRestore className="h-4 w-4 mr-2" />
+                                  Restore
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
             )}
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
 
         {/* Email Detail Content - Shared between Sheet and Drawer */}
         {selectedEmail && (

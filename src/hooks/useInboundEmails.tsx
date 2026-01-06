@@ -27,15 +27,25 @@ export interface InboundEmail {
     details: string;
   }> | null;
   ai_processed_at: string | null;
+  is_archived?: boolean;
+  archived_at?: string | null;
+  archived_reason?: string | null;
+  ai_category?: string | null;
+  ai_priority?: string | null;
+  ai_sentiment?: string | null;
+  action_status?: string | null;
   debtors?: {
     name: string;
     company_name: string;
     email: string;
+    is_active?: boolean;
+    is_archived?: boolean;
   };
   invoices?: {
     invoice_number: string;
     amount: number;
     due_date: string;
+    status?: string;
   };
 }
 
@@ -52,6 +62,7 @@ export interface InboundEmailFilters {
   action_status?: string;
   ai_category?: string;
   ai_priority?: string;
+  is_archived?: boolean;
 }
 
 export function useInboundEmails() {
@@ -66,9 +77,14 @@ export function useInboundEmails() {
         .select(`
           *,
           debtors (name, company_name, email, is_active, is_archived),
-          invoices (invoice_number, amount, due_date)
+          invoices (invoice_number, amount, due_date, status)
         `)
         .order("created_at", { ascending: false });
+      
+      // Filter by archived status
+      if (filters.is_archived !== undefined) {
+        query = query.eq("is_archived", filters.is_archived);
+      }
 
       // Apply filters
       if (filters.status && filters.status !== "all") {
@@ -241,6 +257,64 @@ export function useInboundEmails() {
     }
   };
 
+  const archiveEmail = async (emailId: string, reason?: string) => {
+    try {
+      const { error } = await supabase
+        .from("inbound_emails")
+        .update({
+          is_archived: true,
+          archived_at: new Date().toISOString(),
+          archived_reason: reason || "Manual archive",
+        })
+        .eq("id", emailId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Email archived",
+      });
+      return true;
+    } catch (error: any) {
+      console.error("Error archiving email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to archive email",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const unarchiveEmail = async (emailId: string) => {
+    try {
+      const { error } = await supabase
+        .from("inbound_emails")
+        .update({
+          is_archived: false,
+          archived_at: null,
+          archived_reason: null,
+        })
+        .eq("id", emailId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Email restored",
+      });
+      return true;
+    } catch (error: any) {
+      console.error("Error restoring email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to restore email",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const forwardEmails = async (emailIds: string[], forwardTo: string) => {
     setIsLoading(true);
     try {
@@ -273,6 +347,8 @@ export function useInboundEmails() {
     triggerAIProcessing,
     updateEmailStatus,
     updateActionStatus,
+    archiveEmail,
+    unarchiveEmail,
     forwardEmails,
     isLoading,
   };

@@ -3050,6 +3050,8 @@ export type Database = {
           ai_sentiment_category: string | null
           ai_sentiment_score: number | null
           ai_summary: string | null
+          archived_at: string | null
+          archived_reason: string | null
           bcc_emails: Json | null
           cc_emails: Json | null
           created_at: string
@@ -3064,6 +3066,7 @@ export type Database = {
           html_body: string | null
           id: string
           invoice_id: string | null
+          is_archived: boolean | null
           message_id: string
           raw_payload: Json
           sentiment_analyzed_at: string | null
@@ -3087,6 +3090,8 @@ export type Database = {
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
           ai_summary?: string | null
+          archived_at?: string | null
+          archived_reason?: string | null
           bcc_emails?: Json | null
           cc_emails?: Json | null
           created_at?: string
@@ -3101,6 +3106,7 @@ export type Database = {
           html_body?: string | null
           id?: string
           invoice_id?: string | null
+          is_archived?: boolean | null
           message_id: string
           raw_payload: Json
           sentiment_analyzed_at?: string | null
@@ -3124,6 +3130,8 @@ export type Database = {
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
           ai_summary?: string | null
+          archived_at?: string | null
+          archived_reason?: string | null
           bcc_emails?: Json | null
           cc_emails?: Json | null
           created_at?: string
@@ -3138,6 +3146,7 @@ export type Database = {
           html_body?: string | null
           id?: string
           invoice_id?: string | null
+          is_archived?: boolean | null
           message_id?: string
           raw_payload?: Json
           sentiment_analyzed_at?: string | null
