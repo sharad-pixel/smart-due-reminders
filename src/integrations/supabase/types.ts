@@ -3295,6 +3295,62 @@ export type Database = {
           },
         ]
       }
+      invoice_outreach: {
+        Row: {
+          bucket_entered_at: string
+          completed_at: string | null
+          created_at: string | null
+          current_bucket: string
+          id: string
+          invoice_id: string
+          is_active: boolean | null
+          paused_at: string | null
+          step_1_sent_at: string | null
+          step_2_sent_at: string | null
+          step_3_sent_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bucket_entered_at: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_bucket: string
+          id?: string
+          invoice_id: string
+          is_active?: boolean | null
+          paused_at?: string | null
+          step_1_sent_at?: string | null
+          step_2_sent_at?: string | null
+          step_3_sent_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bucket_entered_at?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_bucket?: string
+          id?: string
+          invoice_id?: string
+          is_active?: boolean | null
+          paused_at?: string | null
+          step_1_sent_at?: string | null
+          step_2_sent_at?: string | null
+          step_3_sent_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_outreach_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_override_log: {
         Row: {
           acknowledged_warning: boolean | null
@@ -4120,6 +4176,65 @@ export type Database = {
           },
         ]
       }
+      outreach_log: {
+        Row: {
+          agent_name: string
+          aging_bucket: string
+          body: string
+          cadence_day: number
+          error_message: string | null
+          id: string
+          invoice_id: string
+          invoice_link: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string | null
+          step_number: number
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          agent_name: string
+          aging_bucket: string
+          body: string
+          cadence_day: number
+          error_message?: string | null
+          id?: string
+          invoice_id: string
+          invoice_link?: string | null
+          recipient_email: string
+          sent_at?: string | null
+          status?: string | null
+          step_number: number
+          subject: string
+          user_id: string
+        }
+        Update: {
+          agent_name?: string
+          aging_bucket?: string
+          body?: string
+          cadence_day?: number
+          error_message?: string | null
+          id?: string
+          invoice_id?: string
+          invoice_link?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string | null
+          step_number?: number
+          subject?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_logs: {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]
@@ -4179,6 +4294,56 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_templates: {
+        Row: {
+          agent_name: string
+          aging_bucket: string
+          body_template: string
+          cadence_day: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          step_number: number
+          subject_template: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_name: string
+          aging_bucket: string
+          body_template: string
+          cadence_day: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          step_number: number
+          subject_template: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_name?: string
+          aging_bucket?: string
+          body_template?: string
+          cadence_day?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          step_number?: number
+          subject_template?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -5441,6 +5606,10 @@ export type Database = {
       clean_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      create_default_outreach_templates: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       generate_invite_token: { Args: never; Returns: string }
       generate_reference_id: {
         Args: { prefix: string; target_table: string }
