@@ -167,6 +167,12 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
   const generateAIOutreach = async () => {
     setGenerating(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please log in to generate AI outreach");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("send-account-summary", {
         body: {
           debtorId: debtor.id,
@@ -192,17 +198,22 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
       setSubject(data.subject || `Account Outreach - ${debtor.company_name}`);
       setMessage(data.message || "");
       setAiGenerated(true);
-      
+
       // Capture intelligence report if available
       if (data.intelligence) {
         setIntelligence(data.intelligence);
         setIntelligenceGeneratedAt(data.intelligenceGeneratedAt || new Date().toISOString());
       }
-      
+
       toast.success("AI outreach generated based on Collection Intelligence Report");
     } catch (error: any) {
       console.error("Error generating AI outreach:", error);
-      toast.error(error.message || "Failed to generate AI outreach");
+      const msg = String(error?.message || "");
+      if (msg.toLowerCase().includes("jwt") || msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("not authenticated")) {
+        toast.error("Session expired. Please log in again.");
+      } else {
+        toast.error(error.message || "Failed to generate AI outreach");
+      }
     } finally {
       setGenerating(false);
     }
