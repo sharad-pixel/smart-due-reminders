@@ -35,6 +35,7 @@ import {
   SyncMetricCard,
   type SyncLogEntry 
 } from './sync';
+import stripeLogo from "@/assets/stripe-logo.png";
 
 interface StripeIntegration {
   id: string;
@@ -248,14 +249,7 @@ export const StripeSyncSection = () => {
       <Card className="border-dashed">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-[#635BFF]/10 rounded-lg flex items-center justify-center p-1.5">
-              <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
-                <path fill="#635BFF" d="M13.976 9.15c0-1.185.965-2.12 2.12-2.12 1.156 0 2.121.935 2.121 2.12v6.81c0 1.185-.965 2.12-2.12 2.12s-2.121-.935-2.121-2.12V9.15z"/>
-                <path fill="#635BFF" d="M10.08 18.08c0 1.156-.934 2.12-2.12 2.12-1.185 0-2.12-.964-2.12-2.12V11.27c0-1.156.935-2.12 2.12-2.12s2.12.964 2.12 2.12v6.81z"/>
-                <path fill="#635BFF" d="M26.16 18.08c0 1.156-.935 2.12-2.121 2.12s-2.12-.964-2.12-2.12V11.27c0-1.156.934-2.12 2.12-2.12 1.186 0 2.12.964 2.12 2.12v6.81z"/>
-                <path fill="#635BFF" d="M18.08 22.85c0 1.185-.935 2.12-2.12 2.12s-2.121-.935-2.121-2.12V16c0-1.156.936-2.12 2.12-2.12s2.121.964 2.121 2.12v6.85z"/>
-              </svg>
-            </div>
+            <img src={stripeLogo} alt="Stripe" className="w-10 h-10 rounded-lg object-contain" />
             <div>
               <CardTitle className="text-base">Stripe Integration</CardTitle>
               <CardDescription className="text-xs">
@@ -279,14 +273,7 @@ export const StripeSyncSection = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-[#635BFF]/10 rounded-lg flex items-center justify-center p-1.5">
-                <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none">
-                  <path fill="#635BFF" d="M13.976 9.15c0-1.185.965-2.12 2.12-2.12 1.156 0 2.121.935 2.121 2.12v6.81c0 1.185-.965 2.12-2.12 2.12s-2.121-.935-2.121-2.12V9.15z"/>
-                  <path fill="#635BFF" d="M10.08 18.08c0 1.156-.934 2.12-2.12 2.12-1.185 0-2.12-.964-2.12-2.12V11.27c0-1.156.935-2.12 2.12-2.12s2.12.964 2.12 2.12v6.81z"/>
-                  <path fill="#635BFF" d="M26.16 18.08c0 1.156-.935 2.12-2.121 2.12s-2.12-.964-2.12-2.12V11.27c0-1.156.934-2.12 2.12-2.12 1.186 0 2.12.964 2.12 2.12v6.81z"/>
-                  <path fill="#635BFF" d="M18.08 22.85c0 1.185-.935 2.12-2.12 2.12s-2.121-.935-2.121-2.12V16c0-1.156.936-2.12 2.12-2.12s2.121.964 2.121 2.12v6.85z"/>
-                </svg>
-              </div>
+              <img src={stripeLogo} alt="Stripe" className="w-10 h-10 rounded-lg object-contain" />
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   Stripe Sync
