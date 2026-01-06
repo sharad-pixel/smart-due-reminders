@@ -12,7 +12,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
-import { PaymentActivityCard } from "@/components/PaymentActivityCard";
 import EmailHealthCard from "@/components/EmailHealthCard";
 
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
@@ -639,9 +638,6 @@ const Dashboard = () => {
             })()}
           </CardContent>
         </Card>
-
-        {/* Payment Activity Section */}
-        <PaymentActivityCard limit={5} />
 
         {/* Task Detail Modal */}
         <TaskDetailModal
