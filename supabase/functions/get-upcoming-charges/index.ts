@@ -367,6 +367,14 @@ serve(async (req) => {
     const response = {
       has_upcoming_invoice: true,
       upcoming_invoice: {
+        id: upcomingInvoice.id || null,
+        number: upcomingInvoice.number || null,
+        status: upcomingInvoice.status || 'upcoming',
+        hosted_invoice_url: upcomingInvoice.hosted_invoice_url || null,
+        invoice_pdf: upcomingInvoice.invoice_pdf || null,
+        created_at: upcomingInvoice.created
+          ? new Date(upcomingInvoice.created * 1000).toISOString()
+          : null,
         amount_due: upcomingInvoice.amount_due / 100,
         subtotal: upcomingInvoice.subtotal / 100,
         tax: (upcomingInvoice.tax || 0) / 100,

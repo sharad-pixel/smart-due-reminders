@@ -93,7 +93,7 @@ const ConsumptionTracker = () => {
   const [subscriptionTerm, setSubscriptionTerm] = useState<SubscriptionTerm | null>(null);
   const [stripeInvoices, setStripeInvoices] = useState<StripeInvoice[]>([]);
   const [showDetails, setShowDetails] = useState(false);
-  const [showInvoices, setShowInvoices] = useState(false);
+  const [showInvoices, setShowInvoices] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -136,7 +136,7 @@ const ConsumptionTracker = () => {
           hasUpcoming: true,
           invoiceType: 'upcoming',
           invoiceStatus: 'upcoming',
-          invoiceUrl: null,
+          invoiceUrl: chargesData.upcoming_invoice.hosted_invoice_url || null,
           amountDue: chargesData.upcoming_invoice.amount_due,
           nextPaymentDate: chargesData.upcoming_invoice.next_payment_attempt,
           breakdown: {
@@ -249,6 +249,22 @@ const ConsumptionTracker = () => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
+  const getPeriodRenewalDate = (period: string) => {
+    const [yearStr, monthStr] = period.split('-');
+    const year = Number(yearStr);
+    const monthIndex = Number(monthStr) - 1;
+    const nextMonthStart = new Date(year, monthIndex + 1, 1);
+    return nextMonthStart.toISOString();
+  };
+
+  const formatMonthYear = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -322,7 +338,7 @@ const ConsumptionTracker = () => {
       <CardContent className="space-y-6">
         {/* Invoice Consumption */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-semibold">Invoice Usage</h3>
             {consumption && (
@@ -333,6 +349,11 @@ const ConsumptionTracker = () => {
             <Badge variant="outline" className="ml-auto">
               {consumption?.period ? formatPeriod(consumption.period) : 'Current Period'}
             </Badge>
+            {consumption?.period && (
+              <Badge variant="outline">
+                Renews {formatDate(getPeriodRenewalDate(consumption.period))}
+              </Badge>
+            )}
           </div>
           
           {consumption && (
@@ -562,49 +583,59 @@ const ConsumptionTracker = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-3">
                   <div className="space-y-2">
-                    {stripeInvoices.map((invoice) => (
-                      <div 
-                        key={invoice.id} 
-                        className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium truncate">
-                              {invoice.number || invoice.id.slice(-8)}
-                            </span>
-                            {getInvoiceStatusBadge(invoice.status)}
+                    {stripeInvoices.map((invoice) => {
+                      const invoiceHref = invoice.hostedUrl || invoice.pdfUrl || null;
+                      const invoiceMonth = formatMonthYear(invoice.periodStart || invoice.created);
+
+                      return (
+                        <div
+                          key={invoice.id}
+                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium truncate">
+                                {invoiceMonth}
+                                <span className="text-muted-foreground"> · </span>
+                                {invoice.number || invoice.id.slice(-8)}
+                              </span>
+                              {getInvoiceStatusBadge(invoice.status)}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              {invoice.periodStart && invoice.periodEnd ? (
+                                <span>
+                                  {formatDateShort(invoice.periodStart)} - {formatDateShort(invoice.periodEnd)}
+                                </span>
+                              ) : (
+                                <span>{formatDateShort(invoice.created)}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <span>{formatDateShort(invoice.created)}</span>
-                            {invoice.periodStart && invoice.periodEnd && (
-                              <>
-                                <span>•</span>
-                                <span>{formatDateShort(invoice.periodStart)} - {formatDateShort(invoice.periodEnd)}</span>
-                              </>
+                          <div className="flex items-center gap-3 ml-3">
+                            <div className="text-right">
+                              <p className="font-semibold">{formatPrice(invoice.total)}</p>
+                              {invoice.amountRemaining > 0 && (
+                                <p className="text-xs text-amber-600">
+                                  {formatPrice(invoice.amountRemaining)} due
+                                </p>
+                              )}
+                            </div>
+                            {invoiceHref && (
+                              <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                                <a
+                                  href={invoiceHref}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title="View Invoice"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 ml-3">
-                          <div className="text-right">
-                            <p className="font-semibold">
-                              {formatPrice(invoice.total)}
-                            </p>
-                            {invoice.amountRemaining > 0 && (
-                              <p className="text-xs text-amber-600">
-                                {formatPrice(invoice.amountRemaining)} due
-                              </p>
-                            )}
-                          </div>
-                          {invoice.hostedUrl && (
-                            <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                              <a href={invoice.hostedUrl} target="_blank" rel="noreferrer" title="View Invoice">
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
