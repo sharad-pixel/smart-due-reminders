@@ -316,9 +316,8 @@ const DebtorDetail = () => {
         const { error: outreachError } = await supabase
           .from("invoice_outreach")
           .update({ 
-            is_paused: false,
-            paused_at: null,
-            paused_reason: null
+            is_active: true,
+            paused_at: null
           })
           .in("invoice_id", invoiceIds.map(inv => inv.id));
 
