@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, Eye, MousePointer } from "lucide-react";
-import { format } from "date-fns";
+import { Mail, Clock, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PersonaAvatar } from "./PersonaAvatar";
 
 interface OutreachTimelineProps {
   invoiceId: string;
@@ -12,264 +13,240 @@ interface OutreachTimelineProps {
   agingBucket: string | null;
 }
 
-interface TimelineItem {
-  id: string;
-  type: 'draft' | 'sent';
-  stepNumber: number;
-  dayOffset: number;
-  date: string;
-  subject: string | null;
-  status: string;
-  channel: string;
-  opened?: boolean;
-  clicked?: boolean;
+const AGENT_MAP: Record<string, { name: string; key: string }> = {
+  'dpd_1_30': { name: 'Sam', key: 'sam' },
+  'dpd_31_60': { name: 'James', key: 'james' },
+  'dpd_61_90': { name: 'Katy', key: 'katy' },
+  'dpd_91_120': { name: 'Jimmy', key: 'jimmy' },
+  'dpd_121_150': { name: 'Troy', key: 'troy' },
+  'dpd_150_plus': { name: 'Rocco', key: 'rocco' },
+};
+
+function getBucketForDays(daysPastDue: number): string {
+  if (daysPastDue >= 1 && daysPastDue <= 30) return 'dpd_1_30';
+  if (daysPastDue >= 31 && daysPastDue <= 60) return 'dpd_31_60';
+  if (daysPastDue >= 61 && daysPastDue <= 90) return 'dpd_61_90';
+  if (daysPastDue >= 91 && daysPastDue <= 120) return 'dpd_91_120';
+  if (daysPastDue >= 121 && daysPastDue <= 150) return 'dpd_121_150';
+  return 'dpd_150_plus';
 }
 
 export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: OutreachTimelineProps) {
   const { data, isLoading } = useQuery({
-    queryKey: ["outreach-timeline", invoiceId],
+    queryKey: ["outreach-timeline-v2", invoiceId],
     staleTime: 30_000,
     queryFn: async () => {
-      // Get all drafts for this invoice
-      const { data: drafts } = await supabase
-        .from("ai_drafts")
-        .select("id, step_number, channel, subject, status, sent_at, created_at, days_past_due")
+      // Get outreach tracking record
+      const { data: outreach } = await supabase
+        .from("invoice_outreach")
+        .select("*")
         .eq("invoice_id", invoiceId)
-        .order("step_number", { ascending: true });
+        .maybeSingle();
 
-      // Get all outreach logs for this invoice
+      // Get all outreach logs for this invoice (using new table)
       const { data: logs } = await supabase
-        .from("outreach_logs")
-        .select("id, channel, subject, status, sent_at, delivery_metadata")
+        .from("outreach_log")
+        .select("*")
         .eq("invoice_id", invoiceId)
         .order("sent_at", { ascending: false });
 
-      // Get the active workflow for this invoice
-      const { data: workflow } = await supabase
-        .from("ai_workflows")
-        .select("id, cadence_days")
-        .eq("invoice_id", invoiceId)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      // Get workflow steps for the aging bucket
-      const { data: workflowData } = await supabase
-        .from("collection_workflows")
-        .select(`
-          id,
-          name,
-          collection_workflow_steps (
-            step_order,
-            day_offset,
-            label,
-            channel
-          )
-        `)
-        .eq("aging_bucket", agingBucket || "dpd_1_30")
-        .eq("is_active", true)
-        .maybeSingle();
-
-      const steps = workflowData?.collection_workflow_steps || [];
-      const cadenceDays = (workflow?.cadence_days as number[]) || steps.map((s: any) => s.day_offset);
-
-      // Build timeline items
-      const timeline: TimelineItem[] = [];
-
-      // Add sent items from logs (estimate step number based on order)
-      let stepCounter = 1;
-      const sortedLogs = [...(logs || [])].sort((a, b) => 
-        new Date(a.sent_at || 0).getTime() - new Date(b.sent_at || 0).getTime()
-      );
-      
-      for (const log of sortedLogs) {
-        const metadata = log.delivery_metadata as Record<string, any> | null;
-        timeline.push({
-          id: log.id,
-          type: 'sent',
-          stepNumber: metadata?.step_number || stepCounter,
-          dayOffset: 0,
-          date: log.sent_at || '',
-          subject: log.subject,
-          status: 'sent',
-          channel: log.channel || 'email',
-          opened: metadata?.opened || false,
-          clicked: metadata?.clicked || false,
-        });
-        stepCounter++;
-      }
-
-      // Add pending drafts
-      for (const draft of drafts || []) {
-        if (draft.sent_at) continue; // Skip already sent
-        timeline.push({
-          id: draft.id,
-          type: 'draft',
-          stepNumber: draft.step_number,
-          dayOffset: draft.days_past_due || 0,
-          date: draft.created_at || '',
-          subject: draft.subject,
-          status: draft.status || 'pending',
-          channel: draft.channel || 'email',
-        });
-      }
-
-      // Calculate next outreach
-      const dueDate = new Date(invoiceDueDate);
+      // Calculate days past due
       const today = new Date();
-      const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      let nextOutreach: { day: number; date: Date } | null = null;
-      const sentStepsCount = sortedLogs.length;
-      const draftSteps = new Set((drafts || []).map(d => d.step_number));
+      const due = new Date(invoiceDueDate);
+      const daysPastDue = differenceInDays(today, due);
+      const currentBucket = daysPastDue > 0 ? getBucketForDays(daysPastDue) : null;
+      const currentAgent = currentBucket ? AGENT_MAP[currentBucket] : null;
 
-      for (let i = 0; i < cadenceDays.length; i++) {
-        const stepNumber = i + 1;
-        // Check if step was already sent (based on count) or has a draft
-        if (stepNumber > sentStepsCount && !draftSteps.has(stepNumber)) {
-          const targetDate = new Date(dueDate);
-          targetDate.setDate(targetDate.getDate() + cadenceDays[i]);
-          if (targetDate.getTime() > today.getTime()) {
-            nextOutreach = { day: cadenceDays[i], date: targetDate };
-            break;
-          }
+      // Calculate next email if outreach is active
+      let nextEmail = null;
+      if (outreach?.is_active && currentBucket) {
+        const bucketEntered = new Date(outreach.bucket_entered_at);
+        const daysInBucket = differenceInDays(today, bucketEntered);
+        
+        if (!outreach.step_1_sent_at) {
+          nextEmail = { step: 1, day: 0, daysUntil: Math.max(0, -daysInBucket) };
+        } else if (!outreach.step_2_sent_at) {
+          nextEmail = { step: 2, day: 7, daysUntil: Math.max(0, 7 - daysInBucket) };
+        } else if (!outreach.step_3_sent_at) {
+          nextEmail = { step: 3, day: 14, daysUntil: Math.max(0, 14 - daysInBucket) };
         }
       }
 
       return {
-        timeline: timeline.sort((a, b) => {
-          if (a.type === 'sent' && b.type !== 'sent') return -1;
-          if (a.type !== 'sent' && b.type === 'sent') return 1;
-          return b.stepNumber - a.stepNumber;
-        }),
-        workflowName: workflowData?.name || 'Collection Workflow',
-        cadenceDays,
-        nextOutreach,
-        daysPastDue: Math.max(0, daysPastDue),
+        outreach,
+        logs: logs || [],
+        daysPastDue,
+        currentBucket,
+        currentAgent,
+        nextEmail,
       };
     },
+    enabled: !!invoiceId && !!invoiceDueDate,
   });
 
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <Skeleton className="h-6 w-40" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Mail className="h-4 w-4" />
+            Outreach History
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-20 w-full mb-3" />
-          <Skeleton className="h-16 w-full mb-3" />
-          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-32 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  const getBucketLabel = (bucket: string | null) => {
-    const labels: Record<string, string> = {
-      'current': 'Current (Not Due)',
-      'dpd_1_30': '1-30 Days Past Due',
-      'dpd_31_60': '31-60 Days Past Due',
-      'dpd_61_90': '61-90 Days Past Due',
-      'dpd_91_120': '91-120 Days Past Due',
-      'dpd_121_150': '121-150 Days Past Due',
-      'dpd_150_plus': '150+ Days Past Due',
-    };
-    return labels[bucket || ''] || bucket || 'Unknown';
+  const { outreach, logs, daysPastDue, currentAgent, nextEmail } = data || {};
+
+  // Not past due yet
+  if (!daysPastDue || daysPastDue <= 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Mail className="h-4 w-4" />
+            Outreach History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-muted-foreground">
+            <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>Invoice not yet past due</p>
+            <p className="text-sm">Automated outreach begins 1 day after the due date</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getBucketLabel = (bucket: string) => {
+    switch (bucket) {
+      case 'dpd_1_30': return '1-30 Days';
+      case 'dpd_31_60': return '31-60 Days';
+      case 'dpd_61_90': return '61-90 Days';
+      case 'dpd_91_120': return '91-120 Days';
+      case 'dpd_121_150': return '121-150 Days';
+      case 'dpd_150_plus': return '150+ Days';
+      default: return bucket;
+    }
   };
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="h-5 w-5 text-primary" />
-          Outreach Timeline
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Mail className="h-4 w-4" />
+          Outreach History
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Current Status */}
-        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Current Bucket:</span>
-            <Badge variant="outline">{getBucketLabel(agingBucket)}</Badge>
+        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Current Agent</span>
+            {currentAgent && (
+              <div className="flex items-center gap-2">
+                <PersonaAvatar persona={currentAgent.key} size="xs" />
+                <span className="font-medium">{currentAgent.name}</span>
+              </div>
+            )}
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Active Workflow:</span>
-            <span className="font-medium">{data?.workflowName}</span>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Days Past Due</span>
+            <Badge variant={daysPastDue > 90 ? "destructive" : daysPastDue > 30 ? "secondary" : "outline"}>
+              {daysPastDue} days
+            </Badge>
           </div>
-          {data?.nextOutreach && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Next Outreach:</span>
-              <span className="font-medium text-amber-600">
-                Day {data.nextOutreach.day} ({format(data.nextOutreach.date, "MMM d, yyyy")})
-              </span>
+          
+          {nextEmail && outreach?.is_active && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Next Email</span>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm">
+                  Step {nextEmail.step} {nextEmail.daysUntil === 0 ? '(Today)' : `(in ${nextEmail.daysUntil} days)`}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {outreach && !outreach.is_active && outreach.completed_at && (
+            <div className="flex items-center gap-2 text-green-600 pt-1">
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="text-sm font-medium">Outreach completed - Invoice settled</span>
+            </div>
+          )}
+          
+          {!outreach && daysPastDue > 0 && (
+            <div className="flex items-center gap-2 text-amber-600 pt-1">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Outreach will start on next scheduled run (9 AM UTC)</span>
             </div>
           )}
         </div>
 
-        {/* Timeline Items */}
-        <div className="space-y-3">
-          {data?.timeline.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No outreach activity yet</p>
-              <p className="text-sm">Drafts will be generated based on the workflow cadence</p>
-            </div>
-          ) : (
-            data?.timeline.map((item) => (
-              <div
-                key={item.id}
-                className={`border rounded-lg p-3 ${
-                  item.type === 'sent' ? 'border-green-200 bg-green-50/50 dark:bg-green-950/20' : 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/20'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-full ${
-                    item.type === 'sent' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' : 'bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400'
-                  }`}>
-                    {item.type === 'sent' ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Clock className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        Step {item.stepNumber} - {item.type === 'sent' ? 'Email Sent' : 'Draft Pending'}
-                      </span>
-                      <Badge variant={item.type === 'sent' ? 'default' : 'secondary'} className="text-xs">
-                        {item.type === 'sent' ? '✓ Sent' : item.status}
-                      </Badge>
+        {/* Email History */}
+        {logs && logs.length > 0 && (
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">Email History</h4>
+            <div className="space-y-3">
+              {logs.map((log: any) => {
+                const agent = AGENT_MAP[log.aging_bucket];
+                return (
+                  <div 
+                    key={log.id}
+                    className="flex gap-3 p-3 bg-muted/30 rounded-lg"
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {log.status === 'sent' ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-destructive" />
+                      )}
                     </div>
-                    {item.subject && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        "{item.subject}"
-                      </p>
-                    )}
-                    {item.type === 'sent' && (
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          Opened: {item.opened ? 'Yes' : 'No'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MousePointer className="h-3 w-3" />
-                          Clicked: {item.clicked ? 'Yes' : 'No'}
-                        </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        {agent && <PersonaAvatar persona={agent.key} size="xs" />}
+                        <span className="font-medium text-sm">{log.agent_name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          Step {log.step_number}
+                        </Badge>
+                        <Badge 
+                          variant={log.status === 'sent' ? 'default' : 'destructive'} 
+                          className="text-xs"
+                        >
+                          {log.status}
+                        </Badge>
                       </div>
-                    )}
-                    {item.date && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(item.date), "MMM d, yyyy 'at' h:mm a")}
+                      <p className="text-sm font-medium truncate">{log.subject}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(log.sent_at), 'MMM d, yyyy h:mm a')} • {log.recipient_email}
                       </p>
-                    )}
+                      {log.error_message && (
+                        <p className="text-xs text-destructive mt-1">
+                          Error: {log.error_message}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {(!logs || logs.length === 0) && outreach?.is_active && (
+          <div className="text-center py-4 text-muted-foreground text-sm border-t">
+            <Mail className="h-6 w-6 mx-auto mb-2 opacity-50" />
+            <p>No emails sent yet</p>
+            <p className="text-xs">First email will be sent on Day 0 of the aging bucket</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

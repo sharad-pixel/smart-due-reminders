@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/OutreachStatusCards";
-
+import { OutreachStatusDashboard } from "@/components/OutreachStatusDashboard";
 
 interface WorkflowStep {
   id: string;
@@ -1277,7 +1277,10 @@ const AIWorkflows = () => {
           </div>
         </div>
 
-        {/* Outreach Status Cards */}
+        {/* New Simplified Outreach Dashboard */}
+        <OutreachStatusDashboard />
+
+        {/* Legacy Outreach Status Cards - kept for backwards compatibility */}
         <OutreachStatusCards onRefresh={() => {
           fetchInvoiceCounts();
           fetchDraftsByPersona();
