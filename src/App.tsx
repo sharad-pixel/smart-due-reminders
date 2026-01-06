@@ -75,6 +75,8 @@ const Documents = lazy(() => import("./pages/Documents"));
 const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
 const Branding = lazy(() => import("./pages/Branding"));
 const PublicARPage = lazy(() => import("./pages/PublicARPage"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const EmailDeliveryReport = lazy(() => import("./pages/EmailDeliveryReport"));
 
 // Payment & Billing
 const Checkout = lazy(() => import("./pages/Checkout"));
@@ -186,6 +188,8 @@ const App = () => (
             <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
             <Route path="/daily-digest" element={<DailyDigest />} />
             <Route path="/outreach" element={<Outreach />} />
+            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
 
             {/* Admin Pages */}
             <Route path="/admin" element={<AdminDashboard />} />

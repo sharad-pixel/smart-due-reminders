@@ -117,6 +117,34 @@ serve(async (req) => {
       console.log(`[RESEND-WEBHOOK] Updated outreach_logs for ${emailId}`);
     }
 
+    // Also update email_activity_log if exists
+    const activityUpdateData: Record<string, unknown> = {};
+    if (eventType === 'email.delivered') {
+      activityUpdateData.status = 'delivered';
+      activityUpdateData.delivered_at = new Date().toISOString();
+    } else if (eventType === 'email.opened') {
+      activityUpdateData.status = 'opened';
+      activityUpdateData.opened_at = new Date().toISOString();
+    } else if (eventType === 'email.clicked') {
+      activityUpdateData.status = 'clicked';
+      activityUpdateData.clicked_at = new Date().toISOString();
+    } else if (eventType === 'email.bounced') {
+      activityUpdateData.status = 'bounced';
+      activityUpdateData.failed_at = new Date().toISOString();
+      activityUpdateData.failure_reason = data?.bounce?.message || 'Email bounced';
+    } else if (eventType === 'email.complained') {
+      activityUpdateData.status = 'complained';
+      activityUpdateData.failed_at = new Date().toISOString();
+      activityUpdateData.failure_reason = 'Marked as spam';
+    }
+
+    if (Object.keys(activityUpdateData).length > 0) {
+      await supabase
+        .from('email_activity_log')
+        .update(activityUpdateData)
+        .eq('resend_email_id', emailId);
+    }
+
     // For bounces and complaints, find debtor and create alerts
     if (eventType === 'email.bounced' || eventType === 'email.complained') {
       await handleEmailFailure(supabase, eventType, data, recipientEmail);

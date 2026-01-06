@@ -76,7 +76,7 @@ serve(async (req) => {
       .from('invoices')
       .select(`
         id, invoice_number, amount, amount_outstanding, due_date, 
-        user_id, debtor_id, integration_url,
+        user_id, debtor_id, integration_url, organization_id,
         debtors!inner(id, name, email, company_name)
       `)
       .eq('status', 'Open')
@@ -376,6 +376,23 @@ serve(async (req) => {
         if (logError) {
           console.error(`[OUTREACH] Error logging outreach:`, logError);
         }
+
+        // 10. Also log to email_activity_log for the Email Delivery Report
+        await supabase
+          .from('email_activity_log')
+          .insert({
+            user_id: invoice.user_id,
+            organization_id: invoice.organization_id,
+            debtor_id: invoice.debtor_id,
+            invoice_id: invoice.id,
+            recipient_email: debtor.email,
+            subject: subject,
+            agent_name: agentName,
+            template_type: currentBucket,
+            status: 'sent',
+            resend_email_id: resendId,
+            sent_at: new Date().toISOString()
+          });
 
         results.emails_sent++;
         console.log(`[OUTREACH] ✅ Sent ${agentName} Step ${stepToSend} to ${debtor.email} for invoice ${invoice.invoice_number}`);
