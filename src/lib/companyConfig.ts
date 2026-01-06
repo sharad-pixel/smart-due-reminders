@@ -23,7 +23,7 @@ export const COMPANY_INFO = {
     full: "Delaware, USA",
   },
   social: {
-    linkedin: "https://linkedin.com/company/recouply",
+    linkedin: "https://www.linkedin.com/company/recouplyai-inc",
   },
   legal: {
     disclaimer: "AI-powered software as a service. Not a collection agency.",

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
-import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X } from "lucide-react";
+import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin } from "lucide-react";
 import { useState } from "react";
 
 interface MarketingLayoutProps {
@@ -18,6 +18,9 @@ const COMPANY_INFO = {
     collections: "collections@recouply.ai",
     support: "support@recouply.ai",
     notifications: "notifications@recouply.ai",
+  },
+  social: {
+    linkedin: "https://www.linkedin.com/company/recouplyai-inc",
   },
 } as const;
 
@@ -191,9 +194,18 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               <p className="text-sm text-muted-foreground mb-4">
                 {COMPANY_INFO.tagline}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mb-4">
                 AI-powered software. Not a collection agency.
               </p>
+              <a 
+                href={COMPANY_INFO.social.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Linkedin className="h-5 w-5" />
+                <span className="text-sm">Follow us</span>
+              </a>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Platform</h4>
