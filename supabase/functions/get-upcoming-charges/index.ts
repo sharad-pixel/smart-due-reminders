@@ -49,7 +49,7 @@ serve(async (req) => {
     // Get account owner's profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('email, stripe_customer_id, stripe_subscription_id, plan_type')
+      .select('email, stripe_customer_id, stripe_subscription_id, plan_type, current_period_end, billing_interval')
       .eq('id', accountId)
       .single();
 
@@ -213,6 +213,59 @@ serve(async (req) => {
       .eq('status', 'active')
       .eq('is_owner', false);
 
+    // Get subscription details for term dates
+    let subscriptionDetails: any = null;
+    if (profile.stripe_subscription_id) {
+      try {
+        const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+        subscriptionDetails = {
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          billing_cycle_anchor: subscription.billing_cycle_anchor 
+            ? new Date(subscription.billing_cycle_anchor * 1000).toISOString() 
+            : null,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          status: subscription.status,
+          billing_interval: subscription.items.data[0]?.price?.recurring?.interval || profile.billing_interval || 'month',
+        };
+        logStep("Subscription details retrieved", subscriptionDetails);
+      } catch (subErr) {
+        logStep("Error fetching subscription details", { error: subErr });
+      }
+    }
+
+    // Fetch recent Stripe invoices (paid, open, and uncollectible)
+    let recentInvoices: any[] = [];
+    try {
+      const invoicesResponse = await stripe.invoices.list({
+        customer: customerId,
+        limit: 10,
+      });
+      recentInvoices = invoicesResponse.data.map((inv: Stripe.Invoice) => ({
+        id: inv.id,
+        number: inv.number,
+        status: inv.status,
+        amount_due: (inv.amount_due || 0) / 100,
+        amount_paid: (inv.amount_paid || 0) / 100,
+        amount_remaining: (inv.amount_remaining || 0) / 100,
+        total: (inv.total || 0) / 100,
+        currency: inv.currency?.toUpperCase() || 'USD',
+        created: inv.created ? new Date(inv.created * 1000).toISOString() : null,
+        due_date: inv.due_date ? new Date(inv.due_date * 1000).toISOString() : null,
+        paid_at: inv.status_transitions?.paid_at 
+          ? new Date(inv.status_transitions.paid_at * 1000).toISOString() 
+          : null,
+        hosted_invoice_url: inv.hosted_invoice_url,
+        invoice_pdf: inv.invoice_pdf,
+        period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+        period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+        description: inv.description || `Invoice ${inv.number || inv.id.slice(-8)}`,
+      }));
+      logStep("Recent invoices retrieved", { count: recentInvoices.length });
+    } catch (invErr) {
+      logStep("Error fetching recent invoices", { error: invErr });
+    }
+
     const response = {
       has_upcoming_invoice: true,
       upcoming_invoice: {
@@ -231,6 +284,8 @@ serve(async (req) => {
           ? new Date(upcomingInvoice.next_payment_attempt * 1000).toISOString()
           : null,
       },
+      subscription: subscriptionDetails,
+      invoices: recentInvoices,
       breakdown: {
         base_subscription: {
           items: baseSubscription,

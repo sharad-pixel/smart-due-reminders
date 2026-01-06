@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { 
   FileText, 
@@ -15,7 +14,11 @@ import {
   Calendar,
   DollarSign,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/subscriptionConfig";
@@ -33,6 +36,33 @@ interface ConsumptionData {
     overageRate: number;
   };
   period: string;
+}
+
+interface SubscriptionTerm {
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  billingInterval: string;
+  cancelAtPeriodEnd: boolean;
+  status: string;
+}
+
+interface StripeInvoice {
+  id: string;
+  number: string | null;
+  status: string;
+  amountDue: number;
+  amountPaid: number;
+  amountRemaining: number;
+  total: number;
+  currency: string;
+  created: string | null;
+  dueDate: string | null;
+  paidAt: string | null;
+  hostedUrl: string | null;
+  pdfUrl: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  description: string;
 }
 
 interface UpcomingCharges {
@@ -60,7 +90,10 @@ const ConsumptionTracker = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [consumption, setConsumption] = useState<ConsumptionData | null>(null);
   const [upcomingCharges, setUpcomingCharges] = useState<UpcomingCharges | null>(null);
+  const [subscriptionTerm, setSubscriptionTerm] = useState<SubscriptionTerm | null>(null);
+  const [stripeInvoices, setStripeInvoices] = useState<StripeInvoice[]>([]);
   const [showDetails, setShowDetails] = useState(false);
+  const [showInvoices, setShowInvoices] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -150,6 +183,39 @@ const ConsumptionTracker = () => {
           lineItems: [],
         });
       }
+
+      // Extract subscription term data
+      if (!chargesError && chargesData?.subscription) {
+        setSubscriptionTerm({
+          currentPeriodStart: chargesData.subscription.current_period_start,
+          currentPeriodEnd: chargesData.subscription.current_period_end,
+          billingInterval: chargesData.subscription.billing_interval || 'month',
+          cancelAtPeriodEnd: chargesData.subscription.cancel_at_period_end || false,
+          status: chargesData.subscription.status || 'active',
+        });
+      }
+
+      // Extract Stripe invoices
+      if (!chargesError && chargesData?.invoices && Array.isArray(chargesData.invoices)) {
+        setStripeInvoices(chargesData.invoices.map((inv: any) => ({
+          id: inv.id,
+          number: inv.number,
+          status: inv.status,
+          amountDue: inv.amount_due,
+          amountPaid: inv.amount_paid,
+          amountRemaining: inv.amount_remaining,
+          total: inv.total,
+          currency: inv.currency,
+          created: inv.created,
+          dueDate: inv.due_date,
+          paidAt: inv.paid_at,
+          hostedUrl: inv.hosted_invoice_url,
+          pdfUrl: inv.invoice_pdf,
+          periodStart: inv.period_start,
+          periodEnd: inv.period_end,
+          description: inv.description,
+        })));
+      }
     } catch (error) {
       console.error('Error fetching consumption data:', error);
     } finally {
@@ -181,6 +247,40 @@ const ConsumptionTracker = () => {
     const [year, month] = period.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1);
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatDateShort = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getInvoiceStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Paid</Badge>;
+      case 'open':
+        return <Badge className="bg-amber-100 text-amber-800"><Clock className="w-3 h-3 mr-1" />Open</Badge>;
+      case 'draft':
+        return <Badge variant="secondary">Draft</Badge>;
+      case 'uncollectible':
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Uncollectible</Badge>;
+      case 'void':
+        return <Badge variant="outline">Void</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   if (loading) {
@@ -304,6 +404,35 @@ const ConsumptionTracker = () => {
 
         <Separator />
 
+        {/* Billing Term Info */}
+        {subscriptionTerm && (
+          <>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold">Billing Term</h3>
+                <Badge variant="outline" className="capitalize ml-auto">
+                  {subscriptionTerm.billingInterval === 'year' ? 'Annual' : 'Monthly'}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg bg-muted/50 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Current Term Started</p>
+                  <p className="text-lg font-semibold">{formatDate(subscriptionTerm.currentPeriodStart)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {subscriptionTerm.cancelAtPeriodEnd ? 'Access Ends' : 'New Term Begins'}
+                  </p>
+                  <p className="text-lg font-semibold text-primary">{formatDate(subscriptionTerm.currentPeriodEnd)}</p>
+                </div>
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
         {/* Upcoming Charges */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -326,11 +455,7 @@ const ConsumptionTracker = () => {
                   {upcomingCharges.nextPaymentDate && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
-                      {new Date(upcomingCharges.nextPaymentDate).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
+                      {formatDate(upcomingCharges.nextPaymentDate)}
                     </div>
                   )}
                 </div>
@@ -418,6 +543,74 @@ const ConsumptionTracker = () => {
             </div>
           )}
         </div>
+
+        {/* Stripe Invoice History */}
+        {stripeInvoices.length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <Collapsible open={showInvoices} onOpenChange={setShowInvoices}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-muted/30 -mx-2 px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="font-semibold">Invoice History</h3>
+                      <Badge variant="outline">{stripeInvoices.length}</Badge>
+                    </div>
+                    {showInvoices ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  <div className="space-y-2">
+                    {stripeInvoices.map((invoice) => (
+                      <div 
+                        key={invoice.id} 
+                        className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium truncate">
+                              {invoice.number || invoice.id.slice(-8)}
+                            </span>
+                            {getInvoiceStatusBadge(invoice.status)}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <span>{formatDateShort(invoice.created)}</span>
+                            {invoice.periodStart && invoice.periodEnd && (
+                              <>
+                                <span>•</span>
+                                <span>{formatDateShort(invoice.periodStart)} - {formatDateShort(invoice.periodEnd)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 ml-3">
+                          <div className="text-right">
+                            <p className="font-semibold">
+                              {formatPrice(invoice.total)}
+                            </p>
+                            {invoice.amountRemaining > 0 && (
+                              <p className="text-xs text-amber-600">
+                                {formatPrice(invoice.amountRemaining)} due
+                              </p>
+                            )}
+                          </div>
+                          {invoice.hostedUrl && (
+                            <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                              <a href={invoice.hostedUrl} target="_blank" rel="noreferrer" title="View Invoice">
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
