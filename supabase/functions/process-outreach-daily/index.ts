@@ -285,8 +285,10 @@ serve(async (req) => {
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
-        const fromEmail = branding?.from_email || 'collections@send.inbound.services.recouply.ai';
-        const fromName = branding?.from_name || branding?.business_name || 'Collections';
+        // IMPORTANT: Use verified Resend domain - recouply.ai is NOT verified
+        const verifiedDomain = 'send.inbound.services.recouply.ai';
+        const fromName = branding?.from_name || branding?.business_name || 'Recouply';
+        const fromEmail = `${fromName} <collections@${verifiedDomain}>`;
 
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -295,7 +297,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: `${fromName} <${fromEmail}>`,
+            from: fromEmail,
             to: debtor.email,
             subject: subject,
             text: body,
