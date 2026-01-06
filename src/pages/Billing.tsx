@@ -14,7 +14,7 @@ import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@
 import { AccountHierarchy } from "@/components/AccountHierarchy";
 import { useAccountHierarchy } from "@/hooks/useAccountHierarchy";
 import ConsumptionTracker from "@/components/ConsumptionTracker";
-
+import { UsageIndicator } from "@/components/UsageIndicator";
 // Colorful gauge component
 const UsageGauge = ({ 
   used, 
@@ -365,6 +365,19 @@ const Billing = () => {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Usage & Term Overview Card */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Usage & Billing Term
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UsageIndicator />
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6">
           {/* Current Plan */}
