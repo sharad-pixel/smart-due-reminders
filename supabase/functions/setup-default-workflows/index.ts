@@ -482,36 +482,7 @@ Deno.serve(async (req) => {
         throw new Error(`Unsupported aging bucket: ${aging_bucket}`);
     }
 
-    // Create the workflow
-    const { data: newWorkflow, error: workflowError } = await supabase
-      .from('collection_workflows')
-      .insert({
-        user_id: user.id,
-        aging_bucket,
-        name: workflowName,
-        description: workflowDescription,
-        is_active: true,
-        is_locked: false,
-      })
-      .select()
-      .single();
-
-    if (workflowError) throw workflowError;
-
-    // Create workflow steps
-    const stepsWithWorkflowId = steps.map(step => ({
-      ...step,
-      workflow_id: newWorkflow.id,
-    }));
-
-    const { data: createdSteps, error: stepsError } = await supabase
-      .from('collection_workflow_steps')
-      .insert(stepsWithWorkflowId)
-      .select();
-
-    if (stepsError) throw stepsError;
-
-    // Get persona for this bucket
+    // Get persona for this bucket first, so we can assign it when creating the workflow
     let minDays = 0;
     switch (aging_bucket) {
       case 'dpd_1_30': minDays = 1; break;
@@ -530,6 +501,38 @@ Deno.serve(async (req) => {
       .order('bucket_min', { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    console.log(`[SETUP-DEFAULT-WORKFLOWS] Found persona ${persona?.id} for bucket ${aging_bucket} (minDays: ${minDays})`);
+
+    // Create the workflow with persona assigned
+    const { data: newWorkflow, error: workflowError } = await supabase
+      .from('collection_workflows')
+      .insert({
+        user_id: user.id,
+        aging_bucket,
+        name: workflowName,
+        description: workflowDescription,
+        is_active: true,
+        is_locked: false,
+        persona_id: persona?.id || null,
+      })
+      .select()
+      .single();
+
+    if (workflowError) throw workflowError;
+
+    // Create workflow steps
+    const stepsWithWorkflowId = steps.map(step => ({
+      ...step,
+      workflow_id: newWorkflow.id,
+    }));
+
+    const { data: createdSteps, error: stepsError } = await supabase
+      .from('collection_workflow_steps')
+      .insert(stepsWithWorkflowId)
+      .select();
+
+    if (stepsError) throw stepsError;
 
     // Create draft templates with pre-written content
     if (createdSteps && createdSteps.length > 0) {
