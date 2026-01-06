@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,20 +15,51 @@ import {
   FileText,
   CreditCard,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  UserCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { 
+  LastSyncRunCard, 
+  SyncErrorBanner, 
+  SyncHistoryDrawer, 
+  SyncMetricCard,
+  type SyncLogEntry 
+} from './sync';
 
 export const QuickBooksSyncSection = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [connectedAt, setConnectedAt] = useState<string | null>(null);
-  const [lastSync, setLastSync] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStats, setSyncStats] = useState({ customers: 0, invoices: 0, payments: 0 });
+  const [syncStats, setSyncStats] = useState({ customers: 0, invoices: 0, payments: 0, contacts: 0 });
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { toast } = useToast();
+
+  // Fetch sync logs
+  const { data: syncLogs, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
+    queryKey: ['quickbooks-sync-logs'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('quickbooks_sync_log')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data as SyncLogEntry[];
+    },
+    enabled: isConnected,
+  });
+
+  const latestSync = syncLogs?.[0] || null;
+  const isSyncRunning = latestSync?.status === 'running' || isSyncing;
 
   useEffect(() => {
     checkConnectionStatus();
@@ -50,7 +82,6 @@ export const QuickBooksSyncSection = () => {
         setIsConnected(true);
         setCompanyName(profile.quickbooks_company_name || 'QuickBooks Company');
         setConnectedAt(profile.quickbooks_connected_at);
-        setLastSync(profile.quickbooks_last_sync_at);
       } else {
         setIsConnected(false);
       }
@@ -66,16 +97,17 @@ export const QuickBooksSyncSection = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Count QuickBooks-synced records
-      const [customersResult, invoicesResult] = await Promise.all([
+      const [customersResult, invoicesResult, contactsResult] = await Promise.all([
         supabase.from('debtors').select('id', { count: 'exact' }).not('quickbooks_customer_id', 'is', null),
-        supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'quickbooks')
+        supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'quickbooks'),
+        supabase.from('contacts').select('id', { count: 'exact' }).eq('source', 'quickbooks')
       ]);
 
       setSyncStats({
         customers: customersResult.count || 0,
         invoices: invoicesResult.count || 0,
-        payments: 0
+        payments: 0,
+        contacts: contactsResult.count || 0
       });
     } catch (error) {
       console.error('Error loading sync stats:', error);
@@ -114,7 +146,6 @@ export const QuickBooksSyncSection = () => {
       if (error) throw error;
       if (!data?.authUrl) throw new Error('No auth URL returned');
       
-      // Redirect to QuickBooks OAuth
       window.location.href = data.authUrl;
       
     } catch (error: any) {
@@ -140,7 +171,6 @@ export const QuickBooksSyncSection = () => {
       setIsConnected(false);
       setCompanyName('');
       setConnectedAt(null);
-      setLastSync(null);
       
       toast({
         title: 'Disconnected',
@@ -158,6 +188,8 @@ export const QuickBooksSyncSection = () => {
   };
 
   const syncNow = async () => {
+    if (isSyncRunning) return;
+    
     setIsSyncing(true);
     try {
       toast({
@@ -165,7 +197,6 @@ export const QuickBooksSyncSection = () => {
         description: 'Importing data from QuickBooks. This may take a moment.',
       });
 
-      // Get current user access token
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       
@@ -174,8 +205,6 @@ export const QuickBooksSyncSection = () => {
       }
 
       const syncUrl = 'https://kguurazunazhhrhasahd.supabase.co/functions/v1/sync-quickbooks-data';
-      console.log('[QB Sync] Calling URL:', syncUrl);
-      console.log('[QB Sync] Request body:', JSON.stringify({ full_sync: true }));
 
       const response = await fetch(syncUrl, {
         method: 'POST',
@@ -186,9 +215,7 @@ export const QuickBooksSyncSection = () => {
         body: JSON.stringify({ full_sync: true }),
       });
 
-      console.log('[QB Sync] Response status:', response.status);
       const responseText = await response.text();
-      console.log('[QB Sync] Response body:', responseText);
 
       if (!response.ok) {
         const errorPreview = responseText.substring(0, 300);
@@ -200,7 +227,6 @@ export const QuickBooksSyncSection = () => {
         throw new Error(`HTTP ${response.status}: ${errorPreview}`);
       }
 
-      // Parse JSON from response text
       const data = responseText ? JSON.parse(responseText) : {};
 
       toast({
@@ -210,6 +236,7 @@ export const QuickBooksSyncSection = () => {
       
       checkConnectionStatus();
       loadSyncStats();
+      refetchLogs();
     } catch (error: any) {
       console.error('[QB Sync] Error:', error);
       toast({
@@ -222,6 +249,15 @@ export const QuickBooksSyncSection = () => {
     }
   };
 
+  // Transform sync log to include detailed counts
+  const enrichedLatestSync: SyncLogEntry | null = latestSync ? {
+    ...latestSync,
+    customers_synced: latestSync.records_synced, // Approximation - ideally stored separately
+    invoices_synced: 0,
+    payments_synced: 0,
+    contacts_synced: 0,
+  } : null;
+
   if (checkingStatus) {
     return (
       <Card>
@@ -233,145 +269,180 @@ export const QuickBooksSyncSection = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#2CA01C]/10 rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="#2CA01C">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-              </svg>
-            </div>
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                QuickBooks Online
-                {isConnected ? (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Connected
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-muted text-muted-foreground">
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Not Connected
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Import customers, invoices, and payments from QuickBooks
-              </CardDescription>
-            </div>
-          </div>
-
-          {isConnected && (
-            <Button 
-              onClick={syncNow} 
-              disabled={isSyncing}
-              size="sm"
-              className="gap-2"
-            >
-              {isSyncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4" />
-                  Sync Now
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isConnected ? (
-          <div className="space-y-4">
-            {/* Connection Info */}
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-[#2CA01C]" />
-                <div>
-                  <p className="font-medium">{companyName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Connected {connectedAt ? format(new Date(connectedAt), 'MMM d, yyyy') : ''}
-                  </p>
-                  {lastSync && (
-                    <p className="text-xs text-muted-foreground">
-                      Last synced: {format(new Date(lastSync), 'MMM d, h:mm a')}
-                    </p>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#2CA01C]/10 rounded-lg flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="#2CA01C">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+              </div>
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  QuickBooks Online
+                  {isConnected ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Not Connected
+                    </Badge>
                   )}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Import customers, invoices, and payments from QuickBooks
+                </CardDescription>
+              </div>
+            </div>
+
+            {isConnected && (
+              <Button 
+                onClick={syncNow} 
+                disabled={isSyncRunning}
+                size="sm"
+                className="gap-2"
+              >
+                {isSyncRunning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Sync Now
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isConnected ? (
+            <div className="space-y-4">
+              {/* Last Sync Run Card */}
+              <LastSyncRunCard 
+                syncLog={enrichedLatestSync}
+                isLoading={logsLoading}
+                onViewDetails={() => setHistoryOpen(true)}
+                integrationName="QuickBooks"
+              />
+
+              {/* Error Banner */}
+              {latestSync?.errors && latestSync.errors.length > 0 && (
+                <SyncErrorBanner 
+                  errors={latestSync.errors}
+                  objectType="records"
+                  onViewDetails={() => setHistoryOpen(true)}
+                />
+              )}
+
+              {/* Connection Info */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-[#2CA01C]" />
+                  <div>
+                    <p className="font-medium">{companyName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Connected {connectedAt ? format(new Date(connectedAt), 'MMM d, yyyy') : ''}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={disconnectQuickBooks}
+                  disabled={isLoading}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Unlink className="h-4 w-4 mr-1" />
+                  Disconnect
+                </Button>
+              </div>
+
+              {/* Sync Stats with Delta + Total */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <SyncMetricCard
+                  icon={Users}
+                  label="Customers"
+                  total={syncStats.customers}
+                  delta={latestSync?.records_synced ?? undefined}
+                  status={latestSync?.status === 'success' ? 'success' : latestSync?.status === 'partial' ? 'warning' : 'neutral'}
+                />
+                <SyncMetricCard
+                  icon={FileText}
+                  label="Invoices"
+                  total={syncStats.invoices}
+                  delta={0}
+                  status={latestSync?.records_failed && latestSync.records_failed > 0 ? 'error' : 'neutral'}
+                />
+                <SyncMetricCard
+                  icon={CreditCard}
+                  label="Payments"
+                  total={syncStats.payments}
+                  delta={0}
+                  status="neutral"
+                />
+                <SyncMetricCard
+                  icon={UserCircle}
+                  label="Contacts"
+                  total={syncStats.contacts}
+                  delta={0}
+                  status="success"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Connect your QuickBooks Online account to automatically import:
+                </p>
+                <div className="flex justify-center gap-6 text-xs text-muted-foreground mb-4">
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    Customers
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-3.5 w-3.5" />
+                    Invoices
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Payments
+                  </div>
                 </div>
               </div>
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={disconnectQuickBooks}
+                className="w-full bg-[#2CA01C] hover:bg-[#238615] text-white"
+                onClick={connectQuickBooks}
                 disabled={isLoading}
-                className="text-destructive hover:text-destructive"
               >
-                <Unlink className="h-4 w-4 mr-1" />
-                Disconnect
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                )}
+                Connect QuickBooks
               </Button>
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {/* Sync Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="p-3 bg-muted/50 rounded-lg text-center">
-                <Users className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                <p className="text-xl font-bold">{syncStats.customers}</p>
-                <p className="text-xs text-muted-foreground">Customers</p>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg text-center">
-                <FileText className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                <p className="text-xl font-bold">{syncStats.invoices}</p>
-                <p className="text-xs text-muted-foreground">Invoices</p>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg text-center">
-                <CreditCard className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                <p className="text-xl font-bold">{syncStats.payments}</p>
-                <p className="text-xs text-muted-foreground">Payments</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground mb-3">
-                Connect your QuickBooks Online account to automatically import:
-              </p>
-              <div className="flex justify-center gap-6 text-xs text-muted-foreground mb-4">
-                <div className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  Customers
-                </div>
-                <div className="flex items-center gap-1">
-                  <FileText className="h-3.5 w-3.5" />
-                  Invoices
-                </div>
-                <div className="flex items-center gap-1">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Payments
-                </div>
-              </div>
-            </div>
-            <Button
-              className="w-full bg-[#2CA01C] hover:bg-[#238615] text-white"
-              onClick={connectQuickBooks}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <ExternalLink className="h-4 w-4 mr-2" />
-              )}
-              Connect QuickBooks
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* Sync History Drawer */}
+      <SyncHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        syncLogs={syncLogs || []}
+        integrationName="QuickBooks"
+      />
+    </>
   );
 };
 
