@@ -20,13 +20,12 @@ export function SmartResponseSection({ task, onResponseSent }: SmartResponseSect
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFullBody, setShowFullBody] = useState(false);
 
-  const taskData = task as any;
-  const responseStatus = taskData.response_status || "pending";
-  const suggestedSubject = taskData.suggested_response_subject;
-  const suggestedBody = taskData.suggested_response_body;
-  const responseSentAt = taskData.response_sent_at;
-  const responseSentTo = taskData.response_sent_to;
-  const originalEmailFrom = taskData.original_email_from || taskData.from_email;
+  const responseStatus = task.response_status || "pending";
+  const suggestedSubject = task.suggested_response_subject;
+  const suggestedBody = task.suggested_response_body;
+  const responseSentAt = task.response_sent_at;
+  const responseSentTo = task.response_sent_to;
+  const originalEmailFrom = task.from_email;
 
   // No response available
   if (!suggestedSubject && !suggestedBody && responseStatus === "pending") {
