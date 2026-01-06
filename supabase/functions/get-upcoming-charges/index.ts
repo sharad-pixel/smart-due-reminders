@@ -101,10 +101,10 @@ serve(async (req) => {
       throw err;
     }
 
-    // Get upcoming invoice from Stripe using correct method name
+    // Get upcoming invoice from Stripe using retrieveUpcoming method
     let upcomingInvoice;
     try {
-      upcomingInvoice = await stripe.invoices.upcoming({
+      upcomingInvoice = await stripe.invoices.retrieveUpcoming({
         customer: customerId,
       });
     } catch (err: any) {
