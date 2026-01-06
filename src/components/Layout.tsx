@@ -46,7 +46,6 @@ import NicolasChat from "@/components/NicolasChat";
 import { NicolasPageTip } from "@/components/NicolasPageTip";
 import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
-import { NotificationBell } from "@/components/NotificationBell";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
@@ -318,7 +317,6 @@ const Layout = ({ children }: LayoutProps) => {
             
             <div className="flex items-center space-x-2 shrink-0">
               <AlertNotifications />
-              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-accent/50">
