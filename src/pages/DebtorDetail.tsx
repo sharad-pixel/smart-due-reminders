@@ -32,6 +32,8 @@ import { AccountIntelligenceCard } from "@/components/AccountIntelligenceCard";
 import { AccountOutreachSettings } from "@/components/AccountOutreachSettings";
 import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
+import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
+import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 
 interface Debtor {
   id: string;
@@ -71,6 +73,11 @@ interface Debtor {
   next_outreach_date: string | null;
   last_outreach_date: string | null;
   account_outreach_persona: string | null;
+  // Email status fields
+  email_status: string | null;
+  email_status_updated_at: string | null;
+  email_bounce_count: number | null;
+  last_bounce_reason: string | null;
 }
 
 interface DebtorContact {
@@ -650,6 +657,14 @@ const DebtorDetail = () => {
             </Button>
           </div>
         </div>
+
+        {/* Email Delivery Warning Banner */}
+        <EmailDeliveryWarning
+          status={debtor.email_status}
+          bounceReason={debtor.last_bounce_reason}
+          bounceCount={debtor.email_bounce_count || undefined}
+          onUpdateEmail={() => setIsEditOpen(true)}
+        />
 
         {/* Paused Alert Banner */}
         {debtor.outreach_paused && (

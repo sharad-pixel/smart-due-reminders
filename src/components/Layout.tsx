@@ -46,6 +46,7 @@ import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
+import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 
 
 interface LayoutProps {
@@ -302,6 +303,7 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-2 shrink-0">
+              <AlertNotifications />
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

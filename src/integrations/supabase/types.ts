@@ -2077,6 +2077,9 @@ export type Database = {
           current_balance: number | null
           disputed_invoices_count: number | null
           email: string
+          email_bounce_count: number | null
+          email_status: string | null
+          email_status_updated_at: string | null
           external_customer_id: string | null
           external_customer_source: string | null
           external_customer_url: string | null
@@ -2091,6 +2094,7 @@ export type Database = {
           intelligence_report_generated_at: string | null
           is_active: boolean | null
           is_archived: boolean | null
+          last_bounce_reason: string | null
           last_outreach_date: string | null
           last_score_change_reason: string | null
           latitude: number | null
@@ -2168,6 +2172,9 @@ export type Database = {
           current_balance?: number | null
           disputed_invoices_count?: number | null
           email: string
+          email_bounce_count?: number | null
+          email_status?: string | null
+          email_status_updated_at?: string | null
           external_customer_id?: string | null
           external_customer_source?: string | null
           external_customer_url?: string | null
@@ -2182,6 +2189,7 @@ export type Database = {
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          last_bounce_reason?: string | null
           last_outreach_date?: string | null
           last_score_change_reason?: string | null
           latitude?: number | null
@@ -2259,6 +2267,9 @@ export type Database = {
           current_balance?: number | null
           disputed_invoices_count?: number | null
           email?: string
+          email_bounce_count?: number | null
+          email_status?: string | null
+          email_status_updated_at?: string | null
           external_customer_id?: string | null
           external_customer_source?: string | null
           external_customer_url?: string | null
@@ -2273,6 +2284,7 @@ export type Database = {
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          last_bounce_reason?: string | null
           last_outreach_date?: string | null
           last_score_change_reason?: string | null
           latitude?: number | null
@@ -5427,6 +5439,82 @@ export type Database = {
             columns: ["upload_batch_id"]
             isOneToOne: false
             referencedRelation: "upload_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_alerts: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          alert_type: string
+          created_at: string | null
+          debtor_id: string | null
+          id: string
+          invoice_id: string | null
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          organization_id: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          alert_type: string
+          created_at?: string | null
+          debtor_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          organization_id?: string | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          alert_type?: string
+          created_at?: string | null
+          debtor_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_alerts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_alerts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

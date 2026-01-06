@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle } from "lucide-react";
+import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
@@ -62,6 +63,9 @@ interface Debtor {
   account_outreach_enabled: boolean | null;
   outreach_frequency: string | null;
   contacts?: DebtorContact[];
+  // Email status fields
+  email_status: string | null;
+  last_bounce_reason: string | null;
 }
 
 const ROWS_PER_PAGE = 25;
@@ -996,14 +1000,25 @@ const Debtors = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
-                          {debtor.account_outreach_enabled ? (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                              <Zap className="h-3 w-3 mr-1" />
-                              ON
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                          <div className="flex items-center justify-center gap-1">
+                            {debtor.email_status && debtor.email_status !== 'unknown' && (
+                              <EmailStatusBadge 
+                                status={debtor.email_status} 
+                                bounceReason={debtor.last_bounce_reason}
+                                size="sm"
+                              />
+                            )}
+                            {debtor.account_outreach_enabled ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <Zap className="h-3 w-3 mr-1" />
+                                ON
+                              </Badge>
+                            ) : (
+                              !debtor.email_status || debtor.email_status === 'unknown' ? (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              ) : null
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
