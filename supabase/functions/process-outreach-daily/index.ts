@@ -285,7 +285,7 @@ serve(async (req) => {
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
-        const fromEmail = branding?.from_email || 'collections@recouply.ai';
+        const fromEmail = branding?.from_email || 'collections@send.inbound.services.recouply.ai';
         const fromName = branding?.from_name || branding?.business_name || 'Collections';
 
         const emailResponse = await fetch('https://api.resend.com/emails', {
