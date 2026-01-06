@@ -105,7 +105,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
           .order("due_date", { ascending: true }),
         supabase
           .from("collection_tasks")
-          .select("id, summary, task_type, status, priority")
+          .select("*")
           .eq("debtor_id", debtor.id)
           .in("status", ["open", "in_progress"])
           .order("created_at", { ascending: false }),
