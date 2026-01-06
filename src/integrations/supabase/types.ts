@@ -4181,12 +4181,17 @@ export type Database = {
           agent_name: string
           aging_bucket: string
           body: string
+          bounce_type: string | null
+          bounced_at: string | null
           cadence_day: number
+          delivered_at: string | null
           error_message: string | null
           id: string
           invoice_id: string
           invoice_link: string | null
+          opened_at: string | null
           recipient_email: string
+          resend_id: string | null
           sent_at: string | null
           status: string | null
           step_number: number
@@ -4197,12 +4202,17 @@ export type Database = {
           agent_name: string
           aging_bucket: string
           body: string
+          bounce_type?: string | null
+          bounced_at?: string | null
           cadence_day: number
+          delivered_at?: string | null
           error_message?: string | null
           id?: string
           invoice_id: string
           invoice_link?: string | null
+          opened_at?: string | null
           recipient_email: string
+          resend_id?: string | null
           sent_at?: string | null
           status?: string | null
           step_number: number
@@ -4213,12 +4223,17 @@ export type Database = {
           agent_name?: string
           aging_bucket?: string
           body?: string
+          bounce_type?: string | null
+          bounced_at?: string | null
           cadence_day?: number
+          delivered_at?: string | null
           error_message?: string | null
           id?: string
           invoice_id?: string
           invoice_link?: string | null
+          opened_at?: string | null
           recipient_email?: string
+          resend_id?: string | null
           sent_at?: string | null
           status?: string | null
           step_number?: number
