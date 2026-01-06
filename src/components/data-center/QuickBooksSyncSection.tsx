@@ -205,7 +205,7 @@ export const QuickBooksSyncSection = () => {
 
       toast({
         title: '✅ Sync Complete!',
-        description: `Synced ${data?.customers_synced || 0} customers, ${data?.invoices_synced || 0} invoices, ${data?.payments_synced || 0} payments`,
+        description: `Synced ${data?.customers_synced || 0} customers, ${data?.invoices_synced || 0} invoices, ${data?.payments_synced || 0} payments, ${data?.contacts_synced || 0} contacts`,
       });
       
       checkConnectionStatus();

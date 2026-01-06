@@ -126,6 +126,7 @@ serve(async (req) => {
     let customersSynced = 0;
     let invoicesSynced = 0;
     let paymentsSynced = 0;
+    let contactsSynced = 0;
     const errors: string[] = [];
 
     // Token refresh context for qbQueryAll retry logic
@@ -174,10 +175,12 @@ serve(async (req) => {
         payments: payments.length
       });
 
-      // Process customers
+      // Process customers and sync contacts
       for (const customer of customers) {
+        let debtorIdForContacts: string | null = null;
+        
         try {
-          const { error: upsertError } = await supabaseAdmin
+          const { data: upsertedDebtor, error: upsertError } = await supabaseAdmin
             .from('debtors')
             .upsert({
               user_id: user.id,
@@ -196,17 +199,119 @@ serve(async (req) => {
               is_active: customer.Active !== false
             }, {
               onConflict: 'user_id,quickbooks_customer_id'
-            });
+            })
+            .select('id')
+            .single();
 
-          if (!upsertError) {
+          if (!upsertError && upsertedDebtor) {
             customersSynced++;
-          } else {
+            debtorIdForContacts = upsertedDebtor.id;
+          } else if (upsertError) {
             console.error('Customer upsert error:', upsertError);
             errors.push(`CUSTOMER_UPSERT_FAILED qb_customer_id=${customer.Id} name=${customer.DisplayName || customer.CompanyName}: ${upsertError.message || JSON.stringify(upsertError)}`);
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error';
           errors.push(`CUSTOMER_UPSERT_FAILED qb_customer_id=${customer.Id} name=${customer.DisplayName || customer.CompanyName}: ${msg}`);
+        }
+
+        // If we couldn't get debtor_id from upsert, look it up
+        if (!debtorIdForContacts) {
+          const { data: existingDebtor } = await supabaseAdmin
+            .from('debtors')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('quickbooks_customer_id', customer.Id)
+            .single();
+          
+          if (existingDebtor) {
+            debtorIdForContacts = existingDebtor.id;
+          }
+        }
+
+        // Sync contacts for this customer
+        if (debtorIdForContacts) {
+          // A) Primary contact
+          const primaryName = customer.DisplayName || customer.CompanyName || 'Unknown';
+          const primaryEmail = customer.PrimaryEmailAddr?.Address || null;
+          const primaryPhone = customer.PrimaryPhone?.FreeFormNumber || customer.Mobile?.FreeFormNumber || null;
+          
+          try {
+            const { error: primaryContactError } = await supabaseAdmin
+              .from('contacts')
+              .upsert({
+                user_id: user.id,
+                debtor_id: debtorIdForContacts,
+                external_contact_id: `${customer.Id}:primary`,
+                name: primaryName,
+                first_name: null,
+                last_name: null,
+                email: primaryEmail,
+                phone: primaryPhone,
+                title: null,
+                is_primary: true,
+                source: 'quickbooks',
+                raw: customer,
+                updated_at: new Date().toISOString()
+              }, {
+                onConflict: 'user_id,debtor_id,external_contact_id'
+              });
+
+            if (!primaryContactError) {
+              contactsSynced++;
+            } else {
+              console.error('Primary contact upsert error:', primaryContactError);
+              errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${customer.Id}:primary: ${primaryContactError.message || JSON.stringify(primaryContactError)}`);
+            }
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${customer.Id}:primary: ${msg}`);
+          }
+
+          // B) Additional contacts from Contact array
+          const additionalContacts = customer.Contact || [];
+          for (let i = 0; i < additionalContacts.length; i++) {
+            const c = additionalContacts[i];
+            const extContactId = `${customer.Id}:contact:${i}`;
+            const firstName = c.GivenName || null;
+            const lastName = c.FamilyName || null;
+            const contactName = `${c.GivenName || ''} ${c.FamilyName || ''}`.trim() || null;
+            const contactEmail = c.EmailAddress || null;
+            const contactPhone = c.Phone?.FreeFormNumber || c.Mobile?.FreeFormNumber || null;
+            const contactTitle = c.Title || null;
+
+            try {
+              const { error: additionalContactError } = await supabaseAdmin
+                .from('contacts')
+                .upsert({
+                  user_id: user.id,
+                  debtor_id: debtorIdForContacts,
+                  external_contact_id: extContactId,
+                  name: contactName,
+                  first_name: firstName,
+                  last_name: lastName,
+                  email: contactEmail,
+                  phone: contactPhone,
+                  title: contactTitle,
+                  is_primary: false,
+                  source: 'quickbooks',
+                  raw: c,
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'user_id,debtor_id,external_contact_id'
+                });
+
+              if (!additionalContactError) {
+                contactsSynced++;
+              } else {
+                console.error('Additional contact upsert error:', additionalContactError);
+                errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${extContactId}: ${additionalContactError.message || JSON.stringify(additionalContactError)}`);
+              }
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : 'Unknown error';
+              errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${extContactId}: ${msg}`);
+            }
+          }
         }
       }
 
@@ -348,8 +453,8 @@ serve(async (req) => {
     }
 
     // ALWAYS update sync log at end
-    const finalStatus = errors.length > 0 ? (customersSynced + invoicesSynced + paymentsSynced > 0 ? 'partial' : 'failed') : 'success';
-    const recordsSynced = customersSynced + invoicesSynced + paymentsSynced;
+    const finalStatus = errors.length > 0 ? (customersSynced + invoicesSynced + paymentsSynced + contactsSynced > 0 ? 'partial' : 'failed') : 'success';
+    const recordsSynced = customersSynced + invoicesSynced + paymentsSynced + contactsSynced;
     
     if (syncLogId) {
       await supabaseAdmin
@@ -370,13 +475,14 @@ serve(async (req) => {
       .update({ quickbooks_last_sync_at: new Date().toISOString() })
       .eq('id', user.id);
 
-    console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments`);
+    console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments, ${contactsSynced} contacts`);
 
     return new Response(JSON.stringify({
       success: true,
       customers_synced: customersSynced,
       invoices_synced: invoicesSynced,
       payments_synced: paymentsSynced,
+      contacts_synced: contactsSynced,
       records_synced: recordsSynced,
       sync_type: fullSync ? 'full' : 'incremental',
       errors: errors
