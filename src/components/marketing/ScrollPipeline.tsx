@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Upload, Brain, Zap, CreditCard, BarChart3, ArrowRight } from "lucide-react";
 
 const steps = [
-  { icon: Upload, title: "Upload or Sync Invoices", description: "Import from any ERP or billing system", comingSoon: "Sync" },
+  { icon: Upload, title: "Upload or Sync Invoices", description: "Integrate with Stripe, QuickBooks, or import from any billing system" },
   { icon: Brain, title: "AI Agents Read, Classify & Engage", description: "Smart analysis and customer profiling" },
   { icon: Zap, title: "Smart Follow-Up & Escalation", description: "Automated outreach based on aging" },
   { icon: CreditCard, title: "Payment Captured", description: "Seamless payment collection" },
@@ -81,14 +81,7 @@ const ScrollPipeline = () => {
                           <Icon className="h-6 w-6 text-primary" />
                         </div>
                         <div className={isLeft ? "md:text-right" : ""}>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-lg mb-1">{step.title}</h3>
-                            {step.comingSoon && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent font-medium mb-1">
-                                {step.comingSoon} Coming Soon
-                              </span>
-                            )}
-                          </div>
+                          <h3 className="font-bold text-lg mb-1">{step.title}</h3>
                           <p className="text-sm text-muted-foreground">{step.description}</p>
                         </div>
                       </div>
