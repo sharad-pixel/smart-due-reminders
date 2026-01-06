@@ -202,7 +202,7 @@ export function AlertNotifications() {
               <p className="text-xs mt-1">You're all caught up!</p>
             </div>
           ) : (
-            alerts.map(alert => (
+            alerts.slice(0, 5).map(alert => (
               <AlertItem
                 key={alert.id}
                 alert={alert}
@@ -213,6 +213,16 @@ export function AlertNotifications() {
             ))
           )}
         </ScrollArea>
+        
+        <div className="p-2 border-t">
+          <Button
+            variant="ghost"
+            className="w-full text-sm"
+            onClick={() => navigate('/alerts')}
+          >
+            View all notifications
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

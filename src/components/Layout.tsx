@@ -26,7 +26,9 @@ import {
   CalendarDays,
   ServerCog,
   Building2,
-  Palette
+  Palette,
+  Bell,
+  BarChart3
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -47,6 +49,7 @@ import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
+import { useUserAlerts } from "@/hooks/useUserAlerts";
 
 
 interface LayoutProps {
@@ -63,6 +66,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
+  const { unreadCount: alertUnreadCount } = useUserAlerts();
   const { 
     isTeamMember, 
     ownerName, 
@@ -217,6 +221,8 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
+    { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
+    { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown
@@ -283,16 +289,24 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuContent align="start" className="w-48 z-[110] bg-card border shadow-lg">
                     {aiToolsItems.map((item) => {
                       const Icon = item.icon;
+                      const badge = 'badge' in item ? item.badge : undefined;
                       return (
                         <DropdownMenuItem key={item.path} asChild>
                           <Link
                             to={item.path}
-                            className={`flex items-center gap-2 cursor-pointer ${
+                            className={`flex items-center justify-between cursor-pointer ${
                               isActive(item.path) ? "bg-accent" : ""
                             }`}
                           >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.label}</span>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </div>
+                            {badge !== undefined && badge > 0 && (
+                              <span className="h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+                                {badge > 9 ? '9+' : badge}
+                              </span>
+                            )}
                           </Link>
                         </DropdownMenuItem>
                       );

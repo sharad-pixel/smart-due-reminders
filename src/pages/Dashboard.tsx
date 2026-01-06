@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
 import { PaymentActivityCard } from "@/components/PaymentActivityCard";
+import EmailHealthCard from "@/components/EmailHealthCard";
 
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
@@ -568,8 +569,11 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Invoice Collectability Report Widget */}
-        <InvoiceCollectabilityReport />
+        {/* Email Health + Invoice Collectability */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <EmailHealthCard />
+          <InvoiceCollectabilityReport />
+        </div>
 
         <Card>
           <CardHeader>

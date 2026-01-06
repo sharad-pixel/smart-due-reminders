@@ -2769,6 +2769,91 @@ export type Database = {
           },
         ]
       }
+      email_activity_log: {
+        Row: {
+          agent_name: string | null
+          clicked_at: string | null
+          debtor_id: string | null
+          delivered_at: string | null
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          invoice_id: string | null
+          metadata: Json | null
+          opened_at: string | null
+          organization_id: string | null
+          recipient_email: string
+          resend_email_id: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          template_type: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_name?: string | null
+          clicked_at?: string | null
+          debtor_id?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          organization_id?: string | null
+          recipient_email: string
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          template_type?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_name?: string | null
+          clicked_at?: string | null
+          debtor_id?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          organization_id?: string | null
+          recipient_email?: string
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          template_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_activity_log_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_activity_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_broadcasts: {
         Row: {
           audience: string
