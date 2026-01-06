@@ -247,7 +247,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.send-branded-test-email]
-verify_jwt = false
+verify_jwt = true
+
+[functions.send-branding-test-email]
+verify_jwt = true
 
 [functions.get-email-template]
 verify_jwt = true

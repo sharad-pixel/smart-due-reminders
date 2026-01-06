@@ -1,12 +1,16 @@
 // ⚠️ EMAIL DOMAIN WARNING ⚠️
 // This function sends emails via Resend.
-// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
-// DO NOT change to @recouply.ai - it will fail!
-// See: supabase/functions/_shared/emailConfig.ts
+// Uses deterministic sender selection from renderBrandedEmail.ts
+// See: supabase/functions/_shared/renderBrandedEmail.ts
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { VERIFIED_EMAIL_DOMAIN, getVerifiedFromAddress } from "../_shared/emailConfig.ts";
+import { 
+  getSenderIdentity, 
+  captureBrandSnapshot, 
+  renderBrandedEmail,
+  BrandingConfig 
+} from "../_shared/renderBrandedEmail.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -277,7 +281,7 @@ serve(async (req) => {
         const subject = replaceTemplateVars(template.subject_template, templateVars);
         const body = replaceTemplateVars(template.body_template, templateVars);
 
-        // 7. Send email via Resend
+        // 7. Send email via Resend with deterministic sender selection
         const resendKey = Deno.env.get('RESEND_API_KEY');
         if (!resendKey) {
           console.error('[OUTREACH] RESEND_API_KEY not configured');
@@ -285,16 +289,54 @@ serve(async (req) => {
           continue;
         }
 
-        // Get branding for from email
+        // Get branding for deterministic sender selection
         const { data: branding } = await supabase
           .from('branding_settings')
-          .select('from_email, from_name, business_name')
+          .select('*')
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
-        // IMPORTANT: Use verified Resend domain from shared config
-        const fromName = branding?.from_name || branding?.business_name || 'Recouply';
-        const fromEmail = getVerifiedFromAddress(fromName, 'collections');
+        // Build branding config for deterministic sender selection
+        const brandingConfig: BrandingConfig = {
+          business_name: branding?.business_name || 'Recouply',
+          from_name: branding?.from_name || branding?.business_name || 'Recouply',
+          logo_url: branding?.logo_url,
+          primary_color: branding?.primary_color || '#111827',
+          accent_color: branding?.accent_color || '#6366f1',
+          sending_mode: branding?.sending_mode || 'recouply_default',
+          from_email: branding?.from_email,
+          from_email_verified: branding?.from_email_verified || false,
+          verified_from_email: branding?.verified_from_email,
+          reply_to_email: branding?.reply_to_email,
+          email_signature: branding?.email_signature,
+          email_footer: branding?.email_footer,
+          footer_disclaimer: branding?.footer_disclaimer,
+          ar_page_public_token: branding?.ar_page_public_token,
+          ar_page_enabled: branding?.ar_page_enabled,
+          stripe_payment_link: branding?.stripe_payment_link,
+        };
+
+        // Get deterministic sender identity
+        const sender = getSenderIdentity(brandingConfig);
+        const brandSnapshot = captureBrandSnapshot(brandingConfig, sender);
+
+        console.log(`[OUTREACH] Sender for ${invoice.invoice_number}:`, {
+          mode: sender.sendingMode,
+          from: sender.fromEmail,
+          fallback: sender.usedFallback,
+        });
+
+        // Render branded HTML email
+        const htmlEmail = renderBrandedEmail({
+          brand: brandingConfig,
+          subject: subject,
+          bodyHtml: body.replace(/\n/g, '<br>'),
+          meta: {
+            invoiceId: invoice.id,
+            agentName: agentName,
+            templateType: currentBucket,
+          },
+        });
 
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -303,9 +345,11 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: fromEmail,
+            from: sender.fromEmail,
             to: debtor.email,
+            reply_to: sender.replyTo || undefined,
             subject: subject,
+            html: htmlEmail,
             text: body,
           }),
         });

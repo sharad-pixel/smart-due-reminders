@@ -1,11 +1,15 @@
 // ⚠️ EMAIL DOMAIN WARNING ⚠️
 // This function sends emails via Resend.
-// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
-// DO NOT change to @recouply.ai - it will fail!
-// See: supabase/functions/_shared/emailConfig.ts
+// Uses deterministic sender selection from renderBrandedEmail.ts
+// See: supabase/functions/_shared/renderBrandedEmail.ts
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { 
+  getSenderIdentity, 
+  captureBrandSnapshot, 
+  renderBrandedEmail,
+  BrandingConfig 
+} from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
@@ -193,18 +197,45 @@ Deno.serve(async (req) => {
         });
         const brandingOwnerId = effectiveAccountId || invoice.user_id;
 
-        // Fetch branding settings
+        // Fetch full branding settings for deterministic sender selection
         const { data: branding } = await supabaseAdmin
           .from("branding_settings")
-          .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+          .select("*")
           .eq("user_id", brandingOwnerId)
           .single();
 
-        // Generate the From address using company name
-        const fromEmail = getEmailFromAddress(branding || {});
+        // Build branding config for deterministic sender selection
+        const brandingConfig: BrandingConfig = {
+          business_name: branding?.business_name || 'Recouply',
+          from_name: branding?.from_name || branding?.business_name || 'Recouply',
+          logo_url: branding?.logo_url,
+          primary_color: branding?.primary_color || '#111827',
+          accent_color: branding?.accent_color || '#6366f1',
+          sending_mode: branding?.sending_mode || 'recouply_default',
+          from_email: branding?.from_email,
+          from_email_verified: branding?.from_email_verified || false,
+          verified_from_email: branding?.verified_from_email,
+          reply_to_email: branding?.reply_to_email,
+          email_signature: branding?.email_signature,
+          email_footer: branding?.email_footer,
+          footer_disclaimer: branding?.footer_disclaimer,
+          ar_page_public_token: branding?.ar_page_public_token,
+          ar_page_enabled: branding?.ar_page_enabled,
+          stripe_payment_link: branding?.stripe_payment_link,
+        };
+
+        // Get deterministic sender identity
+        const sender = getSenderIdentity(brandingConfig);
+        const brandSnapshot = captureBrandSnapshot(brandingConfig, sender);
         
-        // Reply-to is based on invoice for routing inbound responses
-        const replyToAddress = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
+        // Use invoice-specific reply-to for routing inbound responses
+        const replyToAddress = sender.replyTo || `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
+
+        console.log(`[AUTO-SEND] Sender for draft ${draft.id}:`, {
+          mode: sender.sendingMode,
+          from: sender.fromEmail,
+          fallback: sender.usedFallback,
+        });
 
         // Calculate days past due for template replacement
         const dueDate = new Date(invoice.due_date);
@@ -216,20 +247,22 @@ Deno.serve(async (req) => {
         const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue);
         const processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
 
-        // Format message body with line breaks
-        const formattedBody = processedBody.replace(/\n/g, "<br>");
-
-        // Build fully branded email with signature and payment link
-        const emailHtml = generateBrandedEmail(
-          formattedBody,
-          branding || {},
-          {
+        // Render branded HTML email using new standardized wrapper
+        const emailHtml = renderBrandedEmail({
+          brand: brandingConfig,
+          subject: processedSubject,
+          bodyHtml: processedBody.replace(/\n/g, '<br>'),
+          cta: branding?.stripe_payment_link ? {
+            label: `💳 Pay Now $${invoice.amount?.toLocaleString()}`,
+            url: branding.stripe_payment_link,
+          } : undefined,
+          meta: {
             invoiceId: invoice.id,
-            amount: invoice.amount,
-          }
-        );
+            debtorId: debtor.id,
+          },
+        });
 
-        console.log(`[AUTO-SEND] Sending email from ${fromEmail} to ${allEmails.join(', ')}`);
+        console.log(`[AUTO-SEND] Sending email from ${sender.fromEmail} to ${allEmails.join(', ')}`);
 
         // Send email via platform send-email function
         const sendEmailResponse = await fetch(
@@ -242,7 +275,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               to: allEmails,
-              from: fromEmail,
+              from: sender.fromEmail,
               reply_to: replyToAddress,
               subject: processedSubject,
               html: emailHtml,
@@ -260,7 +293,7 @@ Deno.serve(async (req) => {
 
         console.log(`[AUTO-SEND] Email sent successfully for draft ${draft.id}`);
 
-        // Log the outreach
+        // Log the outreach with brand snapshot
         await supabaseAdmin.from("outreach_logs").insert({
           user_id: invoice.user_id,
           invoice_id: invoice.id,
@@ -269,7 +302,7 @@ Deno.serve(async (req) => {
           subject: processedSubject,
           message_body: processedBody,
           sent_to: allEmails.join(', '),
-          sent_from: fromEmail,
+          sent_from: sender.fromEmail,
           status: "sent",
           sent_at: new Date().toISOString(),
           delivery_metadata: {
@@ -278,10 +311,11 @@ Deno.serve(async (req) => {
             platform_send: true,
             recipients_count: allEmails.length,
             auto_sent: true,
+            brand_snapshot: brandSnapshot,
           },
         });
 
-        // Log collection activity
+        // Log collection activity with brand snapshot
         await supabaseAdmin.from("collection_activities").insert({
           user_id: invoice.user_id,
           debtor_id: debtor.id,
@@ -294,12 +328,15 @@ Deno.serve(async (req) => {
           message_body: processedBody,
           sent_at: new Date().toISOString(),
           metadata: {
-            from_email: fromEmail,
-            from_name: branding?.business_name || "Recouply.ai",
+            from_email: sender.fromEmail,
+            from_name: sender.fromName,
             reply_to_email: replyToAddress,
+            sending_mode: sender.sendingMode,
+            used_fallback: sender.usedFallback,
             platform_send: true,
             auto_sent: true,
             recipients: allEmails,
+            brand_snapshot: brandSnapshot,
           },
         });
 
@@ -309,13 +346,14 @@ Deno.serve(async (req) => {
           .update({ last_contact_date: new Date().toISOString().split('T')[0] })
           .eq("id", invoice.id);
 
-        // Mark draft as sent with status and timestamp
+        // Mark draft as sent with status, timestamp, and brand snapshot for auditing
         await supabaseAdmin
           .from('ai_drafts')
           .update({ 
             status: 'sent',
             sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            applied_brand_snapshot: brandSnapshot,
           })
           .eq('id', draft.id);
 

@@ -226,6 +226,7 @@ export type Database = {
       ai_drafts: {
         Row: {
           agent_persona_id: string | null
+          applied_brand_snapshot: Json | null
           auto_approved: boolean | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at: string | null
@@ -245,6 +246,7 @@ export type Database = {
         }
         Insert: {
           agent_persona_id?: string | null
+          applied_brand_snapshot?: Json | null
           auto_approved?: boolean | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
@@ -264,6 +266,7 @@ export type Database = {
         }
         Update: {
           agent_persona_id?: string | null
+          applied_brand_snapshot?: Json | null
           auto_approved?: boolean | null
           channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string | null
@@ -504,21 +507,27 @@ export type Database = {
           created_at: string | null
           email_footer: string | null
           email_signature: string | null
+          email_wrapper_enabled: boolean | null
           escalation_contact_email: string | null
           escalation_contact_name: string | null
           escalation_contact_phone: string | null
           footer_disclaimer: string | null
           from_email: string | null
+          from_email_verification_status: string | null
+          from_email_verified: boolean | null
           from_name: string | null
           id: string
+          last_test_email_sent_at: string | null
           logo_url: string | null
           organization_id: string | null
           primary_color: string | null
           reply_to_email: string | null
+          sending_mode: string | null
           stripe_payment_link: string | null
           supported_payment_methods: Json | null
           updated_at: string | null
           user_id: string
+          verified_from_email: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -530,21 +539,27 @@ export type Database = {
           created_at?: string | null
           email_footer?: string | null
           email_signature?: string | null
+          email_wrapper_enabled?: boolean | null
           escalation_contact_email?: string | null
           escalation_contact_name?: string | null
           escalation_contact_phone?: string | null
           footer_disclaimer?: string | null
           from_email?: string | null
+          from_email_verification_status?: string | null
+          from_email_verified?: boolean | null
           from_name?: string | null
           id?: string
+          last_test_email_sent_at?: string | null
           logo_url?: string | null
           organization_id?: string | null
           primary_color?: string | null
           reply_to_email?: string | null
+          sending_mode?: string | null
           stripe_payment_link?: string | null
           supported_payment_methods?: Json | null
           updated_at?: string | null
           user_id: string
+          verified_from_email?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -556,21 +571,27 @@ export type Database = {
           created_at?: string | null
           email_footer?: string | null
           email_signature?: string | null
+          email_wrapper_enabled?: boolean | null
           escalation_contact_email?: string | null
           escalation_contact_name?: string | null
           escalation_contact_phone?: string | null
           footer_disclaimer?: string | null
           from_email?: string | null
+          from_email_verification_status?: string | null
+          from_email_verified?: boolean | null
           from_name?: string | null
           id?: string
+          last_test_email_sent_at?: string | null
           logo_url?: string | null
           organization_id?: string | null
           primary_color?: string | null
           reply_to_email?: string | null
+          sending_mode?: string | null
           stripe_payment_link?: string | null
           supported_payment_methods?: Json | null
           updated_at?: string | null
           user_id?: string
+          verified_from_email?: string | null
         }
         Relationships: [
           {
