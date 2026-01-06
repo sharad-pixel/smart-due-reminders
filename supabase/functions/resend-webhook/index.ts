@@ -305,7 +305,7 @@ async function handleEmailFailure(
           message: `Email to ${recipientEmail} bounced: ${bounceReason}. Outreach paused until email is fixed.`,
           invoice_id: invoiceList[0]?.id || null,
           debtor_id: debtor.id,
-          action_url: `/accounts/${debtor.id}`,
+          action_url: `/debtors/${debtor.id}`,
           action_label: 'Update Email',
           metadata: { 
             recipient_email: recipientEmail, 
@@ -362,7 +362,7 @@ async function handleEmailFailure(
           title: `⚠️ Spam Complaint: ${debtorName}`,
           message: `${debtorName} marked your email as spam. All outreach stopped to protect sender reputation.`,
           debtor_id: debtor.id,
-          action_url: `/accounts/${debtor.id}`,
+          action_url: `/debtors/${debtor.id}`,
           action_label: 'View Account'
         });
 
