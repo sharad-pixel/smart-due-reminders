@@ -1225,6 +1225,68 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          created_at: string | null
+          debtor_id: string
+          email: string | null
+          external_contact_id: string
+          first_name: string | null
+          id: string
+          is_primary: boolean | null
+          last_name: string | null
+          name: string | null
+          phone: string | null
+          raw: Json | null
+          source: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          debtor_id: string
+          email?: string | null
+          external_contact_id: string
+          first_name?: string | null
+          id?: string
+          is_primary?: boolean | null
+          last_name?: string | null
+          name?: string | null
+          phone?: string | null
+          raw?: Json | null
+          source?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          debtor_id?: string
+          email?: string | null
+          external_contact_id?: string
+          first_name?: string | null
+          id?: string
+          is_primary?: boolean | null
+          last_name?: string | null
+          name?: string | null
+          phone?: string | null
+          raw?: Json | null
+          source?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_accounts: {
         Row: {
           account_number: string | null
