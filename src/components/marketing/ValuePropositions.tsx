@@ -14,13 +14,13 @@ const ValuePropositions = () => {
             Solutions
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Built for Every Stage of Growth
+            One System. Complete Visibility.
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Risk-aware intelligence that scales with your business—from startup to enterprise
+            Recouply.ai centralizes every collection action, customer interaction, and outcome into a single, transparent system
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Centralized workflows replace scattered tools and disconnected inboxes
+            This unified view enables smarter automation today — and better decisions with customers tomorrow
           </p>
         </div>
         

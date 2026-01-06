@@ -283,7 +283,7 @@ export const StripeSyncSection = () => {
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Import invoices and transactions from Stripe
+                  Your system of record for collections — not just another integration
                 </CardDescription>
               </div>
             </div>

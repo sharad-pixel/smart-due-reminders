@@ -24,8 +24,18 @@ const WhyDifferent = () => {
             Signals from accounts, communications, and payments—guiding decisions, not just automating tasks
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Your single system of record for all collection activities
+            Your single source of truth for all collection activities
           </p>
+          
+          {/* Single Source of Truth Messaging */}
+          <div className="mt-8 max-w-3xl mx-auto bg-muted/30 rounded-2xl p-6 border border-border/50">
+            <p className="text-muted-foreground">
+              Recouply.ai acts as the single source of truth for all collection activity — every action, message, and outcome is stored in one centralized system with full transparency and auditability.
+            </p>
+            <p className="text-sm text-muted-foreground/80 mt-3 font-medium">
+              No handoffs. No scattered inboxes. No lost context.
+            </p>
+          </div>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
