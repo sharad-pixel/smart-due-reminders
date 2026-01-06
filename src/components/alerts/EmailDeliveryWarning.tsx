@@ -1,4 +1,5 @@
-import { AlertTriangle, Mail } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Mail, PlayCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
@@ -7,13 +8,17 @@ interface EmailDeliveryWarningProps {
   bounceReason?: string | null;
   bounceCount?: number;
   onUpdateEmail?: () => void;
+  onResumeOutreach?: () => Promise<void>;
+  isResuming?: boolean;
 }
 
 export function EmailDeliveryWarning({ 
   status, 
   bounceReason, 
   bounceCount,
-  onUpdateEmail 
+  onUpdateEmail,
+  onResumeOutreach,
+  isResuming = false
 }: EmailDeliveryWarningProps) {
   if (!status || (status !== 'bounced' && status !== 'complained')) {
     return null;
@@ -56,16 +61,34 @@ export function EmailDeliveryWarning({
             </>
           )}
           
-          {onUpdateEmail && isBounced && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={onUpdateEmail}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Update Email Address
-            </Button>
+          {isBounced && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {onUpdateEmail && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={onUpdateEmail}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Update Email Address
+                </Button>
+              )}
+              {onResumeOutreach && (
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={onResumeOutreach}
+                  disabled={isResuming}
+                >
+                  {isResuming ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {isResuming ? 'Resuming...' : 'Resume Outreach'}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </AlertDescription>

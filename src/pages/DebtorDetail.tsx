@@ -157,6 +157,8 @@ const DebtorDetail = () => {
   const OUTREACH_PAGE_SIZE = 10;
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [isResumingOutreach, setIsResumingOutreach] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -282,6 +284,83 @@ const DebtorDetail = () => {
       fetchContacts();
     } catch (error: any) {
       toast.error("Failed to update outreach setting");
+    }
+  };
+
+  // Resume outreach after email update - resets email_status and resumes paused invoice outreach
+  const handleResumeOutreach = async () => {
+    if (!id) return;
+    setIsResumingOutreach(true);
+    try {
+      // 1. Reset debtor email_status to 'unknown' and clear bounce data
+      const { error: debtorError } = await supabase
+        .from("debtors")
+        .update({ 
+          email_status: 'unknown',
+          email_bounce_count: 0,
+          last_bounce_reason: null,
+          outreach_paused: false,
+          outreach_paused_at: null
+        })
+        .eq("id", id);
+
+      if (debtorError) throw debtorError;
+
+      // 2. Resume all paused invoice_outreach records for this debtor's invoices
+      const { data: invoiceIds } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("debtor_id", id);
+
+      if (invoiceIds && invoiceIds.length > 0) {
+        const { error: outreachError } = await supabase
+          .from("invoice_outreach")
+          .update({ 
+            is_paused: false,
+            paused_at: null,
+            paused_reason: null
+          })
+          .in("invoice_id", invoiceIds.map(inv => inv.id));
+
+        if (outreachError) throw outreachError;
+      }
+
+      // 3. Create a success alert
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("user_alerts").insert([{
+          user_id: user.id,
+          alert_type: 'outreach_resumed',
+          severity: 'success',
+          title: 'Outreach Resumed',
+          message: `✅ Outreach Resumed for ${debtor?.company_name || debtor?.name || 'account'}`,
+          action_url: `/debtors/${id}`,
+          is_read: false,
+          is_dismissed: false
+        }]);
+      }
+
+      toast.success("Outreach resumed! Collection emails will resume on the next scheduled date.");
+      fetchDebtor();
+    } catch (error: any) {
+      console.error("Error resuming outreach:", error);
+      toast.error(error.message || "Failed to resume outreach");
+    } finally {
+      setIsResumingOutreach(false);
+    }
+  };
+
+  // Open primary contact's edit modal
+  const handleOpenPrimaryContactEdit = () => {
+    const primaryContact = contacts.find(c => c.is_primary);
+    if (primaryContact) {
+      setEditingContactId(primaryContact.id);
+    } else if (contacts.length > 0) {
+      // If no primary, open first contact
+      setEditingContactId(contacts[0].id);
+    } else {
+      // No contacts - open add contact modal
+      setIsAddContactOpen(true);
     }
   };
 
@@ -663,7 +742,9 @@ const DebtorDetail = () => {
           status={debtor.email_status}
           bounceReason={debtor.last_bounce_reason}
           bounceCount={debtor.email_bounce_count || undefined}
-          onUpdateEmail={() => setIsEditOpen(true)}
+          onUpdateEmail={handleOpenPrimaryContactEdit}
+          onResumeOutreach={handleResumeOutreach}
+          isResuming={isResumingOutreach}
         />
 
         {/* Paused Alert Banner */}
@@ -705,6 +786,8 @@ const DebtorDetail = () => {
                     onToggleOutreach={handleToggleOutreach}
                     onDelete={handleDeleteContact}
                     onUpdate={fetchContacts}
+                    autoOpenEdit={editingContactId === contact.id}
+                    onEditClose={() => setEditingContactId(null)}
                   />
                 ))
               ) : debtor.email ? (
