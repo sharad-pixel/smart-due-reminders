@@ -54,22 +54,40 @@ interface ARPageData {
 
 const CATEGORY_LABELS: Record<string, string> = {
   w9: "W-9 Form",
+  W9: "W-9 Form",
   ach_authorization: "ACH Authorization",
+  ACH_AUTHORIZATION: "ACH Authorization",
+  ACH: "ACH Authorization",
   wire_instructions: "Wire Instructions",
+  WIRE_INSTRUCTIONS: "Wire Instructions",
+  WIRE: "Wire Instructions",
   compliance: "Compliance Document",
+  COMPLIANCE: "Compliance Document",
   contract: "Contract",
+  CONTRACT: "Contract",
   insurance: "Insurance Certificate",
+  INSURANCE: "Insurance Certificate",
   other: "Other Document",
+  OTHER: "Other Document",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
   w9: "📋",
+  W9: "📋",
   ach_authorization: "🏦",
+  ACH_AUTHORIZATION: "🏦",
+  ACH: "🏦",
   wire_instructions: "💳",
+  WIRE_INSTRUCTIONS: "💳",
+  WIRE: "💳",
   compliance: "✅",
+  COMPLIANCE: "✅",
   contract: "📝",
+  CONTRACT: "📝",
   insurance: "🛡️",
+  INSURANCE: "🛡️",
   other: "📄",
+  OTHER: "📄",
 };
 
 export default function PublicARPage() {
