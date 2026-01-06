@@ -101,12 +101,54 @@ serve(async (req) => {
       throw err;
     }
 
-    // Get upcoming invoice from Stripe using retrieveUpcoming method
-    let upcomingInvoice;
+    // Get upcoming invoice from Stripe
+    let upcomingInvoice: any = null;
     try {
-      upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+      // First check for draft invoices
+      const drafts = await stripe.invoices.list({
         customer: customerId,
+        status: 'draft',
+        limit: 1,
       });
+      
+      if (drafts.data.length > 0) {
+        upcomingInvoice = drafts.data[0];
+      } else {
+        // For active subscriptions, estimate upcoming charges from subscription
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'active',
+          limit: 1,
+        });
+        
+        if (subscriptions.data.length > 0) {
+          const sub = subscriptions.data[0];
+          const totalAmount = sub.items.data.reduce((sum: number, item: any) => sum + (item.price?.unit_amount || 0), 0);
+          
+          upcomingInvoice = {
+            amount_due: totalAmount,
+            subtotal: totalAmount,
+            tax: 0,
+            total: totalAmount,
+            currency: sub.currency,
+            period_start: sub.current_period_start,
+            period_end: sub.current_period_end,
+            next_payment_attempt: sub.current_period_end,
+            lines: { 
+              data: sub.items.data.map((item: any) => ({
+                description: item.price?.nickname || item.price?.product || 'Subscription',
+                amount: item.price?.unit_amount || 0,
+                quantity: item.quantity || 1,
+                price: item.price,
+                period: { start: sub.current_period_start, end: sub.current_period_end },
+                proration: false,
+              })) 
+            },
+          };
+        } else {
+          throw new Error('No upcoming invoices');
+        }
+      }
     } catch (err: any) {
       // No upcoming invoice is normal for customers without active subscriptions.
       // For expired subscriptions we may still have an OPEN/DRAFT invoice "on account" (e.g. overage invoice).
