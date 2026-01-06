@@ -33,6 +33,7 @@ import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanne
 import { IntegrationSyncDashboard } from "@/components/data-center/IntegrationSyncDashboard";
 import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSection";
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
+import { EmailIdentityStatus } from "@/components/data-center/EmailIdentityStatus";
 import * as XLSX from "xlsx";
 
 const DataCenter = () => {
@@ -344,6 +345,9 @@ const DataCenter = () => {
             </Card>
           </div>
         </div>
+
+        {/* Email Identity Status */}
+        <EmailIdentityStatus />
 
         {/* Connected Integrations */}
         <div className="space-y-4">
