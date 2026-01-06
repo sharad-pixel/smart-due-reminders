@@ -53,6 +53,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Debtors = lazy(() => import("./pages/Debtors"));
 const DebtorDetail = lazy(() => import("./pages/DebtorDetail"));
+const LegacyAccountsRedirect = lazy(() => import("./pages/LegacyAccountsRedirect"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const InvoiceDetail = lazy(() => import("./pages/InvoiceDetail"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -163,6 +164,11 @@ const App = () => (
 
             {/* Dashboard & Core App */}
             <Route path="/dashboard" element={<Dashboard />} />
+            
+            {/* Legacy route support (older alerts/emails) */}
+            <Route path="/accounts" element={<LegacyAccountsRedirect />} />
+            <Route path="/accounts/:id" element={<LegacyAccountsRedirect />} />
+
             <Route path="/debtors" element={<Debtors />} />
             <Route path="/debtors/:id" element={<DebtorDetail />} />
             <Route path="/invoices" element={<Invoices />} />
