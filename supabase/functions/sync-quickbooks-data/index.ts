@@ -50,16 +50,19 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Marker log to confirm function was hit
+    // Create sync log at the START of sync (always)
+    let syncLogId: string | null = null;
     try {
-      await supabaseAdmin.from('quickbooks_sync_log').insert({
+      const { data: insertedLog } = await supabaseAdmin.from('quickbooks_sync_log').insert({
         user_id: user.id,
-        sync_type: 'full',
+        sync_type: fullSync ? 'full' : 'incremental',
         status: 'running',
-        errors: ['FUNCTION_HIT']
-      });
+        errors: []
+      }).select('id').single();
+      syncLogId = insertedLog?.id || null;
+      console.log('QB_SYNC_LOG_CREATED', { syncLogId });
     } catch (e) {
-      console.error('QB_SYNCLOG_MARKER_INSERT_FAILED', e);
+      console.error('QB_SYNCLOG_INSERT_FAILED', e);
     }
 
     // Get user's QuickBooks connection
@@ -70,7 +73,15 @@ serve(async (req) => {
       .single();
 
     if (profileError || !profile?.quickbooks_realm_id) {
-      return new Response(JSON.stringify({ error: 'QuickBooks not connected' }), {
+      // Update sync log with error
+      if (syncLogId) {
+        await supabaseAdmin.from('quickbooks_sync_log').update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          errors: ['QuickBooks not connected']
+        }).eq('id', syncLogId);
+      }
+      return new Response(JSON.stringify({ error: 'QuickBooks not connected', errors: ['QuickBooks not connected'] }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -89,7 +100,15 @@ serve(async (req) => {
         console.log('Token expired or expiring soon, refreshing with CAS...');
         const refreshResult = await refreshTokenCAS(supabaseAdmin, user.id, currentRefreshToken);
         if (!refreshResult) {
-          return new Response(JSON.stringify({ error: 'Failed to refresh token. Please reconnect QuickBooks.' }), {
+          // Update sync log with error
+          if (syncLogId) {
+            await supabaseAdmin.from('quickbooks_sync_log').update({
+              status: 'failed',
+              completed_at: new Date().toISOString(),
+              errors: ['Failed to refresh token. Please reconnect QuickBooks.']
+            }).eq('id', syncLogId);
+          }
+          return new Response(JSON.stringify({ error: 'Failed to refresh token. Please reconnect QuickBooks.', errors: ['Failed to refresh token'] }), {
             status: 401,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
@@ -103,17 +122,6 @@ serve(async (req) => {
     const apiBase = environment === 'production'
       ? 'https://quickbooks.api.intuit.com'
       : 'https://sandbox-quickbooks.api.intuit.com';
-
-    // Create sync log
-    const { data: syncLog } = await supabaseAdmin
-      .from('quickbooks_sync_log')
-      .insert({
-        user_id: user.id,
-        sync_type: fullSync ? 'full' : 'incremental',
-        status: 'running'
-      })
-      .select()
-      .single();
 
     let customersSynced = 0;
     let invoicesSynced = 0;
@@ -142,8 +150,31 @@ serve(async (req) => {
         'SELECT * FROM Customer',
         tokenContext
       );
-      console.log(`Found ${customers.length} customers`);
 
+      // Build invoice query - incremental by default (last 24 months)
+      let invoiceQuery = 'SELECT * FROM Invoice';
+      if (!fullSync) {
+        invoiceQuery = `SELECT * FROM Invoice WHERE TxnDate >= '${cutoffStr}'`;
+      }
+      console.log('Fetching invoices from QuickBooks...');
+      const invoices = await qbQueryAll(apiBase, realmId, invoiceQuery, tokenContext);
+
+      // Build payment query - incremental by default
+      let paymentQuery = 'SELECT * FROM Payment';
+      if (!fullSync) {
+        paymentQuery = `SELECT * FROM Payment WHERE TxnDate >= '${cutoffStr}'`;
+      }
+      console.log('Fetching payments from QuickBooks...');
+      const payments = await qbQueryAll(apiBase, realmId, paymentQuery, tokenContext);
+
+      // Log fetched counts
+      console.log('QB_FETCH_COUNTS', {
+        customers: customers.length,
+        invoices: invoices.length,
+        payments: payments.length
+      });
+
+      // Process customers
       for (const customer of customers) {
         try {
           const { error: upsertError } = await supabaseAdmin
@@ -171,10 +202,11 @@ serve(async (req) => {
             customersSynced++;
           } else {
             console.error('Customer upsert error:', upsertError);
+            errors.push(`CUSTOMER_UPSERT_FAILED qb_customer_id=${customer.Id} name=${customer.DisplayName || customer.CompanyName}: ${upsertError.message || JSON.stringify(upsertError)}`);
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error';
-          errors.push(`Customer ${customer.Id}: ${msg}`);
+          errors.push(`CUSTOMER_UPSERT_FAILED qb_customer_id=${customer.Id} name=${customer.DisplayName || customer.CompanyName}: ${msg}`);
         }
       }
 
@@ -193,25 +225,7 @@ serve(async (req) => {
         }
       }
 
-      // Build invoice query - incremental by default (last 24 months)
-      let invoiceQuery = 'SELECT * FROM Invoice';
-      if (!fullSync) {
-        invoiceQuery = `SELECT * FROM Invoice WHERE TxnDate >= '${cutoffStr}'`;
-        console.log(`Incremental sync: fetching invoices since ${cutoffStr}`);
-      } else {
-        console.log('Full sync: fetching all invoices');
-      }
-
-      // Sync Invoices with pagination
-      console.log('Fetching invoices from QuickBooks...');
-      const invoices = await qbQueryAll(
-        apiBase,
-        realmId,
-        invoiceQuery,
-        tokenContext
-      );
-      console.log(`Found ${invoices.length} invoices`);
-
+      // Process invoices
       for (const invoice of invoices) {
         try {
           // Find linked debtor from prefetched map
@@ -248,10 +262,11 @@ serve(async (req) => {
             invoicesSynced++;
           } else {
             console.error('Invoice upsert error:', upsertError);
+            errors.push(`INVOICE_UPSERT_FAILED qb_invoice_id=${invoice.Id} doc=${invoice.DocNumber}: ${upsertError.message || JSON.stringify(upsertError)}`);
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error';
-          errors.push(`Invoice ${invoice.DocNumber || invoice.Id}: ${msg}`);
+          errors.push(`INVOICE_UPSERT_FAILED qb_invoice_id=${invoice.Id} doc=${invoice.DocNumber}: ${msg}`);
         }
       }
 
@@ -270,25 +285,7 @@ serve(async (req) => {
         }
       }
 
-      // Build payment query - incremental by default (same window as invoices)
-      let paymentQuery = 'SELECT * FROM Payment';
-      if (!fullSync) {
-        paymentQuery = `SELECT * FROM Payment WHERE TxnDate >= '${cutoffStr}'`;
-        console.log(`Incremental sync: fetching payments since ${cutoffStr}`);
-      } else {
-        console.log('Full sync: fetching all payments');
-      }
-
-      // Sync Payments with pagination
-      console.log('Fetching payments from QuickBooks...');
-      const payments = await qbQueryAll(
-        apiBase,
-        realmId,
-        paymentQuery,
-        tokenContext
-      );
-      console.log(`Found ${payments.length} payments`);
-
+      // Process payments
       for (const payment of payments) {
         try {
           // Find linked debtor from CustomerRef
@@ -333,13 +330,14 @@ serve(async (req) => {
                   paymentsSynced++;
                 } else {
                   console.error('Payment upsert error:', upsertError);
+                  errors.push(`PAYMENT_UPSERT_FAILED qb_payment_id=${payment.Id}: ${upsertError.message || JSON.stringify(upsertError)}`);
                 }
               }
             }
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error';
-          errors.push(`Payment ${payment.Id}: ${msg}`);
+          errors.push(`PAYMENT_UPSERT_FAILED qb_payment_id=${payment.Id}: ${msg}`);
         }
       }
 
@@ -349,18 +347,21 @@ serve(async (req) => {
       errors.push(msg);
     }
 
-    // Update sync log
-    if (syncLog?.id) {
+    // ALWAYS update sync log at end
+    const finalStatus = errors.length > 0 ? (customersSynced + invoicesSynced + paymentsSynced > 0 ? 'partial' : 'failed') : 'success';
+    const recordsSynced = customersSynced + invoicesSynced + paymentsSynced;
+    
+    if (syncLogId) {
       await supabaseAdmin
         .from('quickbooks_sync_log')
         .update({
-          status: errors.length > 0 ? 'partial' : 'success',
+          status: finalStatus,
           completed_at: new Date().toISOString(),
-          records_synced: customersSynced + invoicesSynced + paymentsSynced,
+          records_synced: recordsSynced,
           records_failed: errors.length,
           errors: errors.length > 0 ? errors : null
         })
-        .eq('id', syncLog.id);
+        .eq('id', syncLogId);
     }
 
     // Update last sync time on profile
@@ -376,8 +377,9 @@ serve(async (req) => {
       customers_synced: customersSynced,
       invoices_synced: invoicesSynced,
       payments_synced: paymentsSynced,
+      records_synced: recordsSynced,
       sync_type: fullSync ? 'full' : 'incremental',
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
