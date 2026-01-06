@@ -311,7 +311,7 @@ export default function EmailDeliveryReport() {
                         {debtor.last_bounce_reason || '-'}
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => navigate(`/accounts/${debtor.id}`)}>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           Fix
                         </Button>
                       </TableCell>
