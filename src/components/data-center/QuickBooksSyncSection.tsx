@@ -274,9 +274,11 @@ export const QuickBooksSyncSection = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#2CA01C]/10 rounded-lg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="#2CA01C">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              <div className="w-10 h-10 bg-[#2CA01C]/10 rounded-lg flex items-center justify-center p-1">
+                <svg viewBox="0 0 40 40" className="h-7 w-7" fill="none">
+                  <circle cx="20" cy="20" r="18" fill="#2CA01C"/>
+                  <path d="M20 8c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12S26.627 8 20 8z" fill="#2CA01C"/>
+                  <path d="M25.5 15.5c0-2.485-2.015-4.5-4.5-4.5-1.657 0-3.105.895-3.889 2.228A4.49 4.49 0 0014.5 15.5c0 2.485 2.015 4.5 4.5 4.5h2v4.5c0 1.933 1.567 3.5 3.5 3.5s3.5-1.567 3.5-3.5v-2h-4.5c-1.657 0-3-1.343-3-3s1.343-3 3-3h2c0-1.105-.895-2-2-2s-2 .895-2 2h-2c0-2.21 1.79-4 4-4s4 1.79 4 4h-2z" fill="white"/>
                 </svg>
               </div>
               <div>
