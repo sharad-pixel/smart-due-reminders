@@ -752,7 +752,6 @@ Extract summary and actions.`;
               recommended_action: getRecommendedAction(action.type, isInternalCommunication),
               due_date: getDueDate(taskPriority),
               inbound_email_id: email.id,
-              original_email_from: email.from_email,
               original_email_body: (email.text_body || "").substring(0, 2000),
             };
 
