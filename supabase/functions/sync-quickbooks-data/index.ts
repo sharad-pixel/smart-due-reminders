@@ -229,43 +229,54 @@ serve(async (req) => {
           }
         }
 
-        // Sync contacts for this customer
+        // Sync contacts for this customer into debtor_contacts (used by outreach)
         if (debtorIdForContacts) {
-          // A) Primary contact
           const primaryName = customer.DisplayName || customer.CompanyName || 'Unknown';
           const primaryEmail = customer.PrimaryEmailAddr?.Address || null;
           const primaryPhone = customer.PrimaryPhone?.FreeFormNumber || customer.Mobile?.FreeFormNumber || null;
+          const externalPrimaryId = `${customer.Id}:primary`;
           
-          try {
-            const { error: primaryContactError } = await supabaseAdmin
-              .from('contacts')
-              .upsert({
-                user_id: user.id,
-                debtor_id: debtorIdForContacts,
-                external_contact_id: `${customer.Id}:primary`,
-                name: primaryName,
-                first_name: null,
-                last_name: null,
-                email: primaryEmail,
-                phone: primaryPhone,
-                title: null,
-                is_primary: true,
-                source: 'quickbooks',
-                raw: customer,
-                updated_at: new Date().toISOString()
-              }, {
-                onConflict: 'user_id,debtor_id,external_contact_id'
-              });
+          // A) Primary contact - only insert if email exists and no primary yet
+          if (primaryEmail) {
+            try {
+              // Check if a primary contact already exists for this debtor
+              const { data: existingPrimary } = await supabaseAdmin
+                .from('debtor_contacts')
+                .select('id')
+                .eq('debtor_id', debtorIdForContacts)
+                .eq('is_primary', true)
+                .limit(1);
+              
+              const hasPrimary = existingPrimary && existingPrimary.length > 0;
+              
+              const { error: primaryContactError } = await supabaseAdmin
+                .from('debtor_contacts')
+                .upsert({
+                  user_id: user.id,
+                  debtor_id: debtorIdForContacts,
+                  external_contact_id: externalPrimaryId,
+                  name: primaryName,
+                  email: primaryEmail,
+                  phone: primaryPhone,
+                  title: null,
+                  is_primary: !hasPrimary, // Only set as primary if no primary exists
+                  outreach_enabled: true,
+                  source: 'quickbooks',
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'user_id,debtor_id,external_contact_id'
+                });
 
-            if (!primaryContactError) {
-              contactsSynced++;
-            } else {
-              console.error('Primary contact upsert error:', primaryContactError);
-              errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${customer.Id}:primary: ${primaryContactError.message || JSON.stringify(primaryContactError)}`);
+              if (!primaryContactError) {
+                contactsSynced++;
+              } else {
+                console.error('Primary contact upsert error:', primaryContactError);
+                errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${externalPrimaryId}: ${primaryContactError.message || JSON.stringify(primaryContactError)}`);
+              }
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : 'Unknown error';
+              errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${externalPrimaryId}: ${msg}`);
             }
-          } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Unknown error';
-            errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${customer.Id}:primary: ${msg}`);
           }
 
           // B) Additional contacts from Contact array
@@ -280,36 +291,80 @@ serve(async (req) => {
             const contactPhone = c.Phone?.FreeFormNumber || c.Mobile?.FreeFormNumber || null;
             const contactTitle = c.Title || null;
 
-            try {
-              const { error: additionalContactError } = await supabaseAdmin
-                .from('contacts')
-                .upsert({
+            // Only sync if contact has email or phone
+            if (contactEmail || contactPhone) {
+              try {
+                const { error: additionalContactError } = await supabaseAdmin
+                  .from('debtor_contacts')
+                  .upsert({
+                    user_id: user.id,
+                    debtor_id: debtorIdForContacts,
+                    external_contact_id: extContactId,
+                    name: contactName || `${firstName || ''} ${lastName || ''}`.trim() || 'Contact',
+                    email: contactEmail,
+                    phone: contactPhone,
+                    title: contactTitle,
+                    is_primary: false,
+                    outreach_enabled: true,
+                    source: 'quickbooks',
+                    updated_at: new Date().toISOString()
+                  }, {
+                    onConflict: 'user_id,debtor_id,external_contact_id'
+                  });
+
+                if (!additionalContactError) {
+                  contactsSynced++;
+                } else {
+                  console.error('Additional contact upsert error:', additionalContactError);
+                  errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${extContactId}: ${additionalContactError.message || JSON.stringify(additionalContactError)}`);
+                }
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'Unknown error';
+                errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${extContactId}: ${msg}`);
+              }
+            }
+          }
+
+          // C) Ensure a primary contact exists - if none and debtor has email, create one
+          const { data: checkPrimary } = await supabaseAdmin
+            .from('debtor_contacts')
+            .select('id')
+            .eq('debtor_id', debtorIdForContacts)
+            .eq('is_primary', true)
+            .limit(1);
+          
+          if ((!checkPrimary || checkPrimary.length === 0)) {
+            // Check if any contacts exist
+            const { data: anyContacts } = await supabaseAdmin
+              .from('debtor_contacts')
+              .select('id')
+              .eq('debtor_id', debtorIdForContacts)
+              .order('created_at', { ascending: true })
+              .limit(1);
+            
+            if (anyContacts && anyContacts.length > 0) {
+              // Set oldest as primary
+              await supabaseAdmin
+                .from('debtor_contacts')
+                .update({ is_primary: true })
+                .eq('id', anyContacts[0].id);
+            } else if (primaryEmail) {
+              // No contacts at all - create from debtor email
+              const { error: fallbackError } = await supabaseAdmin
+                .from('debtor_contacts')
+                .insert({
                   user_id: user.id,
                   debtor_id: debtorIdForContacts,
-                  external_contact_id: extContactId,
-                  name: contactName,
-                  first_name: firstName,
-                  last_name: lastName,
-                  email: contactEmail,
-                  phone: contactPhone,
-                  title: contactTitle,
-                  is_primary: false,
-                  source: 'quickbooks',
-                  raw: c,
-                  updated_at: new Date().toISOString()
-                }, {
-                  onConflict: 'user_id,debtor_id,external_contact_id'
+                  name: primaryName,
+                  email: primaryEmail,
+                  phone: primaryPhone,
+                  is_primary: true,
+                  outreach_enabled: true,
+                  source: 'auto_generated'
                 });
-
-              if (!additionalContactError) {
+              if (!fallbackError) {
                 contactsSynced++;
-              } else {
-                console.error('Additional contact upsert error:', additionalContactError);
-                errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${extContactId}: ${additionalContactError.message || JSON.stringify(additionalContactError)}`);
               }
-            } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : 'Unknown error';
-              errors.push(`CONTACT_UPSERT_FAILED qb_customer_id=${customer.Id} ext_contact_id=${extContactId}: ${msg}`);
             }
           }
         }

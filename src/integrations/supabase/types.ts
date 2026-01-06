@@ -1910,12 +1910,14 @@ export type Database = {
           created_at: string
           debtor_id: string
           email: string | null
+          external_contact_id: string | null
           id: string
           is_primary: boolean
           name: string
           organization_id: string | null
           outreach_enabled: boolean
           phone: string | null
+          source: string
           title: string | null
           updated_at: string
           user_id: string
@@ -1924,12 +1926,14 @@ export type Database = {
           created_at?: string
           debtor_id: string
           email?: string | null
+          external_contact_id?: string | null
           id?: string
           is_primary?: boolean
           name: string
           organization_id?: string | null
           outreach_enabled?: boolean
           phone?: string | null
+          source?: string
           title?: string | null
           updated_at?: string
           user_id: string
@@ -1938,12 +1942,14 @@ export type Database = {
           created_at?: string
           debtor_id?: string
           email?: string | null
+          external_contact_id?: string | null
           id?: string
           is_primary?: boolean
           name?: string
           organization_id?: string | null
           outreach_enabled?: boolean
           phone?: string | null
+          source?: string
           title?: string | null
           updated_at?: string
           user_id?: string

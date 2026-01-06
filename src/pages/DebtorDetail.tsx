@@ -692,6 +692,68 @@ const DebtorDetail = () => {
                     onUpdate={fetchContacts}
                   />
                 ))
+              ) : debtor.email ? (
+                // Fallback: Show generated primary contact preview when debtor has email
+                <div className="space-y-3">
+                  <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3 bg-muted/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium text-sm">
+                          {debtor.company_name || debtor.name || 'Primary Contact'}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">Primary</Badge>
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Auto-generated</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        <span>{debtor.email}</span>
+                      </div>
+                      {debtor.phone && (
+                        <div className="flex items-center gap-1">
+                          <PhoneIcon className="h-3 w-3" />
+                          <span>{debtor.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) throw new Error("Not authenticated");
+                        
+                        const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', {
+                          p_user_id: user.id
+                        });
+
+                        const { error } = await supabase.from("debtor_contacts").insert({
+                          debtor_id: id,
+                          user_id: effectiveAccountId || user.id,
+                          name: debtor.company_name || debtor.name || 'Primary Contact',
+                          email: debtor.email,
+                          phone: debtor.phone || null,
+                          is_primary: true,
+                          outreach_enabled: true,
+                        });
+
+                        if (error) throw error;
+                        toast.success("Primary contact created successfully");
+                        fetchContacts();
+                      } catch (error: any) {
+                        toast.error(error.message || "Failed to create contact");
+                      }
+                    }}
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Create Primary Contact
+                  </Button>
+                </div>
               ) : (
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground mb-2">No contacts found. Add your first contact for this account.</p>
