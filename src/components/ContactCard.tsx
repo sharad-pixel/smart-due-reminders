@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +24,12 @@ interface ContactCardProps {
   onToggleOutreach: (contactId: string, enabled: boolean) => void;
   onDelete: (contactId: string, isPrimary: boolean) => void;
   onUpdate: () => void;
+  autoOpenEdit?: boolean;
+  onEditClose?: () => void;
 }
 
-export const ContactCard = ({ contact, onToggleOutreach, onDelete, onUpdate }: ContactCardProps) => {
-  const [isEditOpen, setIsEditOpen] = useState(false);
+export const ContactCard = ({ contact, onToggleOutreach, onDelete, onUpdate, autoOpenEdit = false, onEditClose }: ContactCardProps) => {
+  const [isEditOpen, setIsEditOpen] = useState(autoOpenEdit);
   const [editData, setEditData] = useState({
     name: contact.name,
     title: contact.title || "",
@@ -36,6 +38,21 @@ export const ContactCard = ({ contact, onToggleOutreach, onDelete, onUpdate }: C
     outreach_enabled: contact.outreach_enabled,
   });
   const [saving, setSaving] = useState(false);
+
+  // Sync isEditOpen with autoOpenEdit prop
+  useEffect(() => {
+    if (autoOpenEdit) {
+      setIsEditOpen(true);
+    }
+  }, [autoOpenEdit]);
+
+  // Handle autoOpenEdit changes
+  const handleDialogChange = (open: boolean) => {
+    setIsEditOpen(open);
+    if (!open && onEditClose) {
+      onEditClose();
+    }
+  };
 
   const handleSave = async () => {
     if (!editData.name || !editData.email) {
@@ -134,7 +151,7 @@ export const ContactCard = ({ contact, onToggleOutreach, onDelete, onUpdate }: C
         </div>
       </div>
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <Dialog open={isEditOpen} onOpenChange={handleDialogChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Contact</DialogTitle>
