@@ -292,7 +292,7 @@ export const QuickBooksSyncSection = () => {
                   )}
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Import customers, invoices, and payments from QuickBooks
+                  Centralized system of record for collections — not just another integration
                 </CardDescription>
               </div>
             </div>

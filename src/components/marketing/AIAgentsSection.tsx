@@ -92,6 +92,19 @@ const AIAgentsSection = () => {
             <span className="font-semibold text-lg">These agents work 24/7 so you don't have to</span>
           </div>
         </div>
+        
+        {/* AI Risk & Expansion Intelligence */}
+        <div className="mt-16 max-w-3xl mx-auto text-center">
+          <div className="bg-card rounded-2xl border border-border/50 p-8">
+            <h3 className="text-xl font-semibold mb-4">Intelligence That Compounds</h3>
+            <p className="text-muted-foreground mb-4">
+              Recouply.ai uses historical collection behavior, payment patterns, and engagement data to assess risk — and to inform smarter future decisions with existing customers.
+            </p>
+            <p className="text-sm text-primary font-medium">
+              Collection data doesn't just reduce risk; it becomes intelligence for renewals, upsells, and expansion.
+            </p>
+          </div>
+        </div>
 
         {/* Agent Detail Modal */}
         {selectedAgent && (

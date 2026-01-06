@@ -3,14 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, Mail, Target, AlertTriangle, DollarSign, Clock, BarChart3, Brain } from "lucide-react";
 
 const features = [
-  { icon: Users, title: "Multi-Agent Workflow Automation", description: "6 specialized agents working in sync, guided by payment behavior signals" },
-  { icon: Mail, title: "AI Email Reading + Smart Response", description: "Understands customer intent, drafts responses—reviewed before sending" },
-  { icon: Target, title: "Invoice & Account-Level Routing", description: "Context-aware routing based on value, history, and risk signals" },
-  { icon: AlertTriangle, title: "Risk Scoring & Early Warning", description: "Proactive signals before risk compounds—act earlier, not later" },
-  { icon: DollarSign, title: "Payment Plan Negotiation", description: "AI-assisted arrangements with human oversight at every step" },
-  { icon: Clock, title: "Aging Bucket Automation", description: "Risk-aware escalation aligned with cash flow outcomes" },
-  { icon: BarChart3, title: "Real-time Dashboard", description: "Full visibility into AR health and actionable next steps" },
-  { icon: Brain, title: "Full Message History + AI Summary", description: "Complete audit trail with intelligence that informs decisions" },
+  { icon: Users, title: "Multi-Agent Workflow Automation", description: "6 specialized agents working in sync, guided by payment behavior signals", micro: "All collection activity stored in one centralized repository" },
+  { icon: Mail, title: "AI Email Reading + Smart Response", description: "Understands customer intent, drafts responses—reviewed before sending", micro: "Complete visibility into every customer interaction" },
+  { icon: Target, title: "Invoice & Account-Level Routing", description: "Context-aware routing based on value, history, and risk signals", micro: "Eliminate handoffs between finance, ops, and sales" },
+  { icon: AlertTriangle, title: "Risk Scoring & Early Warning", description: "Proactive signals before risk compounds—act earlier, not later", micro: "AI-driven risk assessment and engagement insights" },
+  { icon: DollarSign, title: "Payment Plan Negotiation", description: "AI-assisted arrangements with human oversight at every step", micro: "Full transparency across finance, ops, and leadership" },
+  { icon: Clock, title: "Aging Bucket Automation", description: "Risk-aware escalation aligned with cash flow outcomes", micro: "No handoffs between systems or teams" },
+  { icon: BarChart3, title: "Real-time Dashboard", description: "Full visibility into AR health and actionable next steps", micro: "Centralized, audit-ready collection history" },
+  { icon: Brain, title: "Full Message History + AI Summary", description: "Complete audit trail with intelligence that informs decisions", micro: "Turn collections data into future expansion intelligence" },
 ];
 
 const FeatureGrid = () => {
@@ -72,7 +72,8 @@ const FeatureGrid = () => {
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2 group-hover:text-primary transition-colors">{feature.title}</h4>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  <p className="text-sm text-muted-foreground mb-2">{feature.description}</p>
+                  <p className="text-xs text-primary/70 font-medium">{feature.micro}</p>
                 </CardContent>
               </Card>
             );
