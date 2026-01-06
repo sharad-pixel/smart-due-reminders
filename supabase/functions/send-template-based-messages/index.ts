@@ -1,14 +1,19 @@
+// ⚠️ EMAIL DOMAIN WARNING ⚠️
+// This function sends emails via Resend.
+// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
+// DO NOT change to @recouply.ai - it will fail!
+// See: supabase/functions/_shared/emailConfig.ts
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 // Cache branding settings per user to avoid repeated queries
 const brandingCache = new Map<string, any>();
@@ -104,7 +109,7 @@ async function processInvoiceBatch(
       ?.replace(/\{\{due_date\}\}/g, invoice.due_date)
       ?.replace(/\{\{days_past_due\}\}/g, daysPastDue.toString());
 
-    const replyToEmail = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
+    const replyToEmail = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
     // Generate From address with user's branding (falls back to Recouply.ai if no branding)
     const fromEmail = getEmailFromAddress(branding);

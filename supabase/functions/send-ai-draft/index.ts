@@ -1,15 +1,19 @@
+// ⚠️ EMAIL DOMAIN WARNING ⚠️
+// This function sends emails via Resend.
+// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
+// DO NOT change to @recouply.ai - it will fail!
+// See: supabase/functions/_shared/emailConfig.ts
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
+import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Platform email configuration
-const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 // Decrypt a value using AES-GCM (kept for SMS Twilio credentials)
 async function decryptValue(encryptedValue: string): Promise<string> {
@@ -197,8 +201,8 @@ serve(async (req) => {
         throw new Error("No email found for this account. Please add a contact with email and enable outreach.");
       }
       
-      // Use platform email - reply-to is based on invoice
-      const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
+      // Use platform email - reply-to is based on invoice (uses shared config)
+      const replyToAddress = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
       
       console.log(`Sending email via platform from ${fromEmail} to ${allEmails.join(', ')} with reply-to: ${replyToAddress}`);
 
