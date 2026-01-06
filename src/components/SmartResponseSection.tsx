@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bot, Send, Edit, XCircle, Eye, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Bot, Send, Edit, XCircle, Eye, Loader2, RefreshCw, CheckCircle2, Sparkles } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { EditResponseModal } from "@/components/EditResponseModal";
+import { useSmartResponseSettings, getTaskTypeActionKey } from "@/hooks/useSmartResponseSettings";
 
 interface SmartResponseSectionProps {
   task: CollectionTask;
@@ -17,8 +18,10 @@ interface SmartResponseSectionProps {
 export function SmartResponseSection({ task, onResponseSent }: SmartResponseSectionProps) {
   const [isSending, setIsSending] = useState(false);
   const [isIgnoring, setIsIgnoring] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFullBody, setShowFullBody] = useState(false);
+  const { settings } = useSmartResponseSettings();
 
   const responseStatus = task.response_status || "pending";
   const suggestedSubject = task.suggested_response_subject;
@@ -27,8 +30,12 @@ export function SmartResponseSection({ task, onResponseSent }: SmartResponseSect
   const responseSentTo = task.response_sent_to;
   const originalEmailFrom = task.from_email;
 
-  // No response available
-  if (!suggestedSubject && !suggestedBody && responseStatus === "pending") {
+  // Check if smart response is enabled for this task type
+  const actionKey = getTaskTypeActionKey(task.task_type);
+  const actionSetting = actionKey ? settings[actionKey] : 'manual';
+  
+  // Hide section if action is 'manual' and no response exists and no from_email
+  if (!originalEmailFrom && !suggestedSubject && !suggestedBody && responseStatus === "pending") {
     return null;
   }
 
@@ -81,8 +88,103 @@ export function SmartResponseSection({ task, onResponseSent }: SmartResponseSect
     }
   };
 
+  const getResponseTemplate = (taskType: string) => {
+    const templates: Record<string, { subject: string; bodyTemplate: string }> = {
+      'W9_REQUEST': {
+        subject: 'Re: W9 Document Request',
+        bodyTemplate: 'Thank you for your request. Please find our W9 document at the link provided. If you have any questions, please don\'t hesitate to reach out.'
+      },
+      'INVOICE_COPY_REQUEST': {
+        subject: 'Re: Invoice Copy Request',
+        bodyTemplate: 'Here is the invoice information you requested. You can view and download the invoice at the link provided. To make a payment, please visit our portal.'
+      },
+      'PROMISE_TO_PAY': {
+        subject: 'Re: Payment Confirmation',
+        bodyTemplate: 'Thank you for confirming your intent to pay. We appreciate your commitment and look forward to receiving your payment. If you need to make a payment now, you can do so through our portal.'
+      },
+      'PAYMENT_PLAN_REQUEST': {
+        subject: 'Re: Payment Plan Discussion',
+        bodyTemplate: 'Thank you for reaching out regarding a payment plan. We\'re happy to discuss options that work for your situation. A member of our team will follow up with you within 1-2 business days.'
+      },
+      'NEEDS_CALLBACK': {
+        subject: 'Re: Callback Scheduled',
+        bodyTemplate: 'We received your request for a callback. A member of our team will call you within 1-2 business days at the number on file.'
+      },
+      'DISPUTE': {
+        subject: 'Re: Dispute Received',
+        bodyTemplate: 'We\'ve received your message and have noted your concerns. Our team will review the details and follow up with you within 2-3 business days.'
+      },
+      'ALREADY_PAID': {
+        subject: 'Re: Payment Verification',
+        bodyTemplate: 'Thank you for letting us know about your payment. To help us locate and apply your payment quickly, could you please provide the payment date, method, and amount?'
+      }
+    };
+    return templates[taskType] || {
+      subject: 'Re: Your Inquiry',
+      bodyTemplate: 'Thank you for your message. We\'ve received your inquiry and a member of our team will respond within 1-2 business days.'
+    };
+  };
+
+  const handleGenerateResponse = async () => {
+    if (!originalEmailFrom) {
+      toast.error("No sender email available");
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const template = getResponseTemplate(task.task_type);
+      const debtorName = task.summary?.split(' - ')?.[0]?.replace(/^\w+:?\s*/, '') || 'Customer';
+      
+      const systemPrompt = `You are a professional accounts receivable representative. Generate a helpful, professional email response to a customer inquiry. 
+Be concise, friendly, and helpful. Use the customer's name if provided.
+Keep the response under 150 words. Do not include placeholder text like [Your Name] - end naturally.`;
+
+      const userPrompt = `Generate a response email for:
+Task Type: ${task.task_type}
+Customer: ${debtorName}
+Customer Email: ${originalEmailFrom}
+Task Details: ${task.details || task.summary}
+${task.original_email_body ? `Original Email Content: ${task.original_email_body.substring(0, 500)}` : ''}
+
+Base the response on this template but make it natural:
+Subject: ${template.subject}
+Body concept: ${template.bodyTemplate}`;
+
+      const { data, error } = await supabase.functions.invoke("regenerate-draft", {
+        body: {
+          system_prompt: systemPrompt,
+          user_prompt: userPrompt,
+          channel: 'email',
+        },
+      });
+
+      if (error) throw error;
+
+      // Save the generated response to the task
+      const { error: updateError } = await supabase
+        .from('collection_tasks')
+        .update({
+          suggested_response_subject: data.subject || template.subject,
+          suggested_response_body: data.message_body,
+          response_status: 'pending'
+        })
+        .eq('id', task.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Response generated!");
+      onResponseSent?.();
+    } catch (error: any) {
+      console.error("Error generating response:", error);
+      toast.error("Failed to generate response");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleRegenerateResponse = async () => {
-    toast.info("Response regeneration coming soon");
+    await handleGenerateResponse();
   };
 
   // Response already sent
@@ -147,7 +249,44 @@ export function SmartResponseSection({ task, onResponseSent }: SmartResponseSect
     );
   }
 
-  // Pending - show preview and actions
+  // No response generated yet but has from_email - show generate option
+  if (!suggestedSubject && !suggestedBody && originalEmailFrom) {
+    return (
+      <div className="space-y-3 pt-3 border-t">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <Bot className="h-4 w-4 text-primary" />
+            Smart Response
+          </h4>
+          <Badge variant="outline" className="gap-1 text-xs">
+            Not Generated
+          </Badge>
+        </div>
+        <Card className="bg-muted/30 border-dashed">
+          <CardContent className="p-4 text-center">
+            <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mb-3">
+              Generate an AI response to reply to {originalEmailFrom}
+            </p>
+            <Button
+              size="sm"
+              onClick={handleGenerateResponse}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-1" />
+              )}
+              Generate Response
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Pending with response - show preview and actions
   const truncatedBody = suggestedBody && suggestedBody.length > 200 
     ? suggestedBody.substring(0, 200) + "..." 
     : suggestedBody;
