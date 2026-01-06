@@ -5556,6 +5556,7 @@ export type Database = {
           alert_type: string
           created_at: string | null
           debtor_id: string | null
+          dismissed_at: string | null
           id: string
           invoice_id: string | null
           is_dismissed: boolean | null
@@ -5573,6 +5574,7 @@ export type Database = {
           alert_type: string
           created_at?: string | null
           debtor_id?: string | null
+          dismissed_at?: string | null
           id?: string
           invoice_id?: string | null
           is_dismissed?: boolean | null
@@ -5590,6 +5592,7 @@ export type Database = {
           alert_type?: string
           created_at?: string | null
           debtor_id?: string | null
+          dismissed_at?: string | null
           id?: string
           invoice_id?: string | null
           is_dismissed?: boolean | null
@@ -5813,6 +5816,7 @@ export type Database = {
         }[]
       }
       clean_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_dismissed_user_alerts: { Args: never; Returns: undefined }
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       create_default_outreach_templates: {

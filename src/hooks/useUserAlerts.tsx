@@ -88,15 +88,17 @@ export function useUserAlerts() {
   }, []);
 
   const dismissAlert = useCallback(async (alertId: string) => {
+    // Get alert before dismissing to check if unread
+    const alertToRemove = alerts.find(a => a.id === alertId);
+    
     const { error } = await supabase
       .from('user_alerts')
-      .update({ is_dismissed: true })
+      .update({ is_dismissed: true, dismissed_at: new Date().toISOString() })
       .eq('id', alertId);
 
     if (!error) {
       setAlerts(prev => prev.filter(a => a.id !== alertId));
-      const alertWasUnread = alerts.find(a => a.id === alertId && !a.is_read);
-      if (alertWasUnread) {
+      if (alertToRemove && !alertToRemove.is_read) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     }
@@ -108,7 +110,7 @@ export function useUserAlerts() {
 
     const { error } = await supabase
       .from('user_alerts')
-      .update({ is_dismissed: true })
+      .update({ is_dismissed: true, dismissed_at: new Date().toISOString() })
       .eq('is_dismissed', false);
 
     if (!error) {
