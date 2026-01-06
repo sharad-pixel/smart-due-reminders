@@ -225,12 +225,30 @@ async function generateSmartResponse(
   invoiceInfo: any,
   userId: string
 ): Promise<{ subject: string; body: string; includesW9: boolean; includesInvoice: boolean; includesPortal: boolean } | null> {
+  const defaultSettings = {
+    enabled: true,
+    w9_request_action: "auto_draft",
+    invoice_request_action: "auto_draft",
+    promise_to_pay_action: "manual",
+    payment_plan_request_action: "manual",
+    dispute_action: "manual",
+    callback_request_action: "manual",
+    general_inquiry_action: "manual",
+    already_paid_action: "manual",
+    w9_document_url: null,
+    ar_portal_url: null,
+    signature_text: null,
+  } as const;
+
   // Get user's smart response settings
-  const { data: settings } = await supabase
+  const { data: settingsRow } = await supabase
     .from("smart_response_settings")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
+
+  // If no settings row exists yet, behave like the app defaults (so smart responses work out of the box)
+  const settings: any = settingsRow ?? defaultSettings;
 
   // Check if smart response is enabled
   if (settings?.enabled === false) {
@@ -252,7 +270,7 @@ async function generateSmartResponse(
   };
 
   const actionKey = actionKeyMap[taskType];
-  const actionSetting = settings?.[actionKey] || "manual";
+  const actionSetting = (actionKey ? settings?.[actionKey] : null) || "manual";
 
   if (actionSetting === "manual") {
     console.log(`[SMART-RESPONSE] Manual mode for task type ${taskType}`);
