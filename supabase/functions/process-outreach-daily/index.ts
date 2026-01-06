@@ -328,6 +328,11 @@ serve(async (req) => {
           continue;
         }
 
+        // Parse response to get Resend email ID
+        const emailResult = await emailResponse.json();
+        const resendId = emailResult.id;
+        console.log(`[OUTREACH] Resend ID: ${resendId}`);
+
         // 8. Update invoice_outreach with sent timestamp
         const { error: updateOutreachError } = await supabase
           .from('invoice_outreach')
@@ -342,7 +347,7 @@ serve(async (req) => {
           results.errors.push(`Invoice ${invoice.invoice_number}: Failed to update outreach record`);
         }
 
-        // 9. Log to outreach_log for audit trail
+        // 9. Log to outreach_log for audit trail (with resend_id for webhook tracking)
         const { error: logError } = await supabase
           .from('outreach_log')
           .insert({
@@ -356,6 +361,7 @@ serve(async (req) => {
             body: body,
             recipient_email: debtor.email,
             status: 'sent',
+            resend_id: resendId,
             invoice_link: invoice.integration_url
           });
 
