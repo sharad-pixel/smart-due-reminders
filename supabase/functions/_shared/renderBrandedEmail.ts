@@ -160,8 +160,9 @@ export function getSenderIdentity(brand: BrandingConfig): SenderIdentity {
     effectiveSendingMode = 'recouply_default';
   }
   
-  // Determine reply-to
-  const replyTo = brand.reply_to_email || brand.from_email || null;
+  // Determine reply-to - MUST use INBOUND_EMAIL_DOMAIN for receiving, not VERIFIED_EMAIL_DOMAIN!
+  // Custom reply_to is allowed if set, otherwise fallback to support@ on inbound domain
+  const replyTo = brand.reply_to_email || `support@${INBOUND_EMAIL_DOMAIN}`;
   
   return {
     fromEmail,

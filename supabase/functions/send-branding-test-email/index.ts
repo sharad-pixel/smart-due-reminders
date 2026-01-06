@@ -6,6 +6,7 @@ import {
   captureBrandSnapshot,
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
+import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -129,6 +130,9 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY is not configured");
     }
 
+    // Use inbound domain for replies (not the send domain!)
+    const replyToAddress = sender.replyTo || `support@${INBOUND_EMAIL_DOMAIN}`;
+
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -138,7 +142,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: sender.fromEmail,
         to: [user.email],
-        reply_to: sender.replyTo || undefined,
+        reply_to: replyToAddress,
         subject: `📧 Email Template Preview - ${brandingConfig.business_name}`,
         html: htmlEmail,
       }),
