@@ -34,10 +34,14 @@ export function SmartResponseSection({ task, onResponseSent }: SmartResponseSect
   const actionKey = getTaskTypeActionKey(task.task_type);
   const actionSetting = actionKey && settings ? settings[actionKey] : 'manual';
   
-  // Hide section if action is 'manual' and no response exists and no from_email
+  // Always show section if we have a from_email (can generate response)
+  // Only hide if no from_email AND no response content AND still pending
   if (!originalEmailFrom && !suggestedSubject && !suggestedBody && responseStatus === "pending") {
     return null;
   }
+  
+  // Show section if we have from_email (even without generated response yet)
+  const hasFromEmail = !!originalEmailFrom;
 
   const handleSendResponse = async () => {
     if (!suggestedSubject || !suggestedBody) {
