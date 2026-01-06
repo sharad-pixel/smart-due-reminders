@@ -1,9 +1,17 @@
+// ⚠️ EMAIL DOMAIN WARNING ⚠️
+// This module generates FROM addresses for outbound emails.
+// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
+// DO NOT change to @recouply.ai - it will fail!
+// See: supabase/functions/_shared/emailConfig.ts
+
 /**
  * Email Signature Generator for Edge Functions
  * 
  * Generates consistent enterprise-grade email signatures with organization branding,
  * custom signatures, payment links, Public AR page links, and RecouplyAI Inc. branding.
  */
+
+import { VERIFIED_EMAIL_DOMAIN } from "./emailConfig.ts";
 
 // Company Information
 const COMPANY_INFO = {
@@ -71,7 +79,8 @@ export function getEmailFromName(branding: BrandingSettings): string {
  */
 export function getEmailFromAddress(branding: BrandingSettings): string {
   const fromName = getEmailFromName(branding);
-  return `${fromName} <notifications@send.inbound.services.recouply.ai>`;
+  // IMPORTANT: Uses verified domain from shared config
+  return `${fromName} <notifications@${VERIFIED_EMAIL_DOMAIN}>`;
 }
 
 /**

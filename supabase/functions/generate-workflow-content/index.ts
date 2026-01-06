@@ -1,3 +1,9 @@
+// ⚠️ EMAIL DOMAIN WARNING ⚠️
+// This function generates email templates.
+// Any FROM email MUST use verified domain: send.inbound.services.recouply.ai
+// DO NOT change to @recouply.ai - it will fail!
+// See: supabase/functions/_shared/emailConfig.ts
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {

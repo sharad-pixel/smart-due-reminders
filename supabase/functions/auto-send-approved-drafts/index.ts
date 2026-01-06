@@ -1,14 +1,18 @@
+// ⚠️ EMAIL DOMAIN WARNING ⚠️
+// This function sends emails via Resend.
+// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
+// DO NOT change to @recouply.ai - it will fail!
+// See: supabase/functions/_shared/emailConfig.ts
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
+import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Platform email configuration
-const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
 /**
  * Replace template variables in subject and body
@@ -200,7 +204,7 @@ Deno.serve(async (req) => {
         const fromEmail = getEmailFromAddress(branding || {});
         
         // Reply-to is based on invoice for routing inbound responses
-        const replyToAddress = `invoice+${invoice.id}@${PLATFORM_INBOUND_DOMAIN}`;
+        const replyToAddress = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
         // Calculate days past due for template replacement
         const dueDate = new Date(invoice.due_date);

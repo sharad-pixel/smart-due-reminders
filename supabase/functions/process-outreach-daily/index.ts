@@ -1,5 +1,12 @@
+// ⚠️ EMAIL DOMAIN WARNING ⚠️
+// This function sends emails via Resend.
+// The FROM email MUST use verified domain: send.inbound.services.recouply.ai
+// DO NOT change to @recouply.ai - it will fail!
+// See: supabase/functions/_shared/emailConfig.ts
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { VERIFIED_EMAIL_DOMAIN, getVerifiedFromAddress } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -285,10 +292,9 @@ serve(async (req) => {
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
-        // IMPORTANT: Use verified Resend domain - recouply.ai is NOT verified
-        const verifiedDomain = 'send.inbound.services.recouply.ai';
+        // IMPORTANT: Use verified Resend domain from shared config
         const fromName = branding?.from_name || branding?.business_name || 'Recouply';
-        const fromEmail = `${fromName} <collections@${verifiedDomain}>`;
+        const fromEmail = getVerifiedFromAddress(fromName, 'collections');
 
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
