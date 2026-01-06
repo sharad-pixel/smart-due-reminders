@@ -92,7 +92,7 @@ If you have any questions, please don't hesitate to reach out.
 Here is the invoice information you requested:
 
 Invoice #: {{invoice_number}}
-Amount Due: ${{amount_due}}
+Amount Due: \${{amount_due}}
 
 You can view and download the invoice through our portal:
 {{portal_link}}
@@ -103,7 +103,7 @@ You can view and download the invoice through our portal:
     subject: "Re: {{original_subject}} - Payment Confirmation",
     body: `Hi {{debtor_name}},
 
-Thank you for confirming your intent to pay invoice #{{invoice_number}} for ${{amount_due}}.
+Thank you for confirming your intent to pay invoice #{{invoice_number}} for \${{amount_due}}.
 
 We appreciate your commitment and look forward to receiving your payment. If you need to make a payment now, you can do so through our portal:
 {{portal_link}}
@@ -860,7 +860,6 @@ Extract summary and actions.`;
               console.error(`[AI-PROCESS] Failed to notify for task ${createdTask.id}:`, notifyError.message);
             }
           }
-        }
         }
 
         // Trigger automatic workflow engagement for external emails linked to invoices
