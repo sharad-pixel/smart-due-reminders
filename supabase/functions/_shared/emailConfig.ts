@@ -19,31 +19,34 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Verified Resend domain for sending emails
+ * Verified Resend domain for SENDING emails (outbound only)
  * IMPORTANT: Only change this after verifying the new domain in Resend
+ * ⚠️ DO NOT use this domain for Reply-To - replies will bounce!
  */
 export const VERIFIED_EMAIL_DOMAIN = 'send.inbound.services.recouply.ai' as const;
 
 /**
- * Inbound email domain for receiving replies
- * This is separate from the sending domain
+ * Inbound email domain for RECEIVING replies
+ * This is separate from the sending domain and is where replies should go
+ * ✅ USE THIS for all Reply-To addresses
  */
 export const INBOUND_EMAIL_DOMAIN = 'inbound.services.recouply.ai' as const;
 
 /**
- * Pre-configured FROM email addresses using verified domain
- * All outbound emails MUST use one of these addresses
+ * Pre-configured FROM email addresses using verified SENDING domain
+ * All outbound emails MUST use one of these addresses for the FROM field
  */
 export const EMAIL_CONFIG = {
-  // VERIFIED FROM ADDRESSES - DO NOT CHANGE WITHOUT RESEND VERIFICATION
+  // VERIFIED FROM ADDRESSES (for sending) - uses VERIFIED_EMAIL_DOMAIN
   FROM_COLLECTIONS: `Recouply <collections@${VERIFIED_EMAIL_DOMAIN}>`,
   FROM_NOTIFICATIONS: `Recouply <notifications@${VERIFIED_EMAIL_DOMAIN}>`,
   FROM_SUPPORT: `Recouply Support <support@${VERIFIED_EMAIL_DOMAIN}>`,
   FROM_NOREPLY: `Recouply <noreply@${VERIFIED_EMAIL_DOMAIN}>`,
   
-  // Reply-to addresses can use any domain (doesn't need verification)
-  REPLY_TO_SUPPORT: 'support@recouply.ai',
-  REPLY_TO_COLLECTIONS: 'collections@recouply.ai',
+  // REPLY-TO ADDRESSES (for receiving) - uses INBOUND_EMAIL_DOMAIN
+  REPLY_TO_SUPPORT: `support@${INBOUND_EMAIL_DOMAIN}`,
+  REPLY_TO_COLLECTIONS: `collections@${INBOUND_EMAIL_DOMAIN}`,
+  DEFAULT_REPLY_TO: `support@${INBOUND_EMAIL_DOMAIN}`,
 } as const;
 
 /**
@@ -104,7 +107,8 @@ export async function sendEmailViaResend(params: {
         subject: params.subject,
         html: params.html,
         text: params.text,
-        reply_to: params.replyTo || EMAIL_CONFIG.REPLY_TO_SUPPORT,
+        // CRITICAL: Use INBOUND domain for reply-to, not the SEND domain!
+        reply_to: params.replyTo || EMAIL_CONFIG.DEFAULT_REPLY_TO,
       }),
     });
 

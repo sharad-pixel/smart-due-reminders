@@ -11,6 +11,7 @@ import {
   renderBrandedEmail,
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
+import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -338,6 +339,9 @@ serve(async (req) => {
           },
         });
 
+        // Always use invoice-specific reply-to on the INBOUND domain (not send domain)
+        const replyToAddress = sender.replyTo || `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
+
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -347,7 +351,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: sender.fromEmail,
             to: debtor.email,
-            reply_to: sender.replyTo || undefined,
+            reply_to: replyToAddress,
             subject: subject,
             html: htmlEmail,
             text: body,
