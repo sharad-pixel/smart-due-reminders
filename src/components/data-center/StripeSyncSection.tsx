@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Table,
   TableBody,
@@ -18,18 +17,24 @@ import {
   RefreshCw, 
   Check, 
   X, 
-  AlertTriangle, 
   Loader2, 
   CreditCard,
   Calendar,
   FileText,
   ArrowUpRight,
   DollarSign,
-  ArrowDownRight,
   RotateCcw,
-  MinusCircle
+  MinusCircle,
+  Users
 } from "lucide-react";
 import { format } from "date-fns";
+import { 
+  LastSyncRunCard, 
+  SyncErrorBanner, 
+  SyncHistoryDrawer, 
+  SyncMetricCard,
+  type SyncLogEntry 
+} from './sync';
 
 interface StripeIntegration {
   id: string;
@@ -65,6 +70,7 @@ export const StripeSyncSection = () => {
   const [syncing, setSyncing] = useState(false);
   const [integration, setIntegration] = useState<StripeIntegration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     fetchIntegration();
@@ -93,6 +99,29 @@ export const StripeSyncSection = () => {
     }
   };
 
+  // Fetch sync logs
+  const { data: syncLogs, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
+    queryKey: ['stripe-sync-logs'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('stripe_sync_log')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data as SyncLogEntry[];
+    },
+    enabled: !!integration?.stripe_secret_key_encrypted,
+  });
+
+  const latestSync = syncLogs?.[0] || null;
+  const isSyncRunning = latestSync?.status === 'running' || syncing;
+
   const { data: transactions, isLoading: transactionsLoading, refetch: refetchTransactions } = useQuery({
     queryKey: ["stripe-synced-transactions"],
     queryFn: async () => {
@@ -118,7 +147,27 @@ export const StripeSyncSection = () => {
     enabled: !!integration?.stripe_secret_key_encrypted,
   });
 
+  // Fetch total counts
+  const { data: syncStats } = useQuery({
+    queryKey: ['stripe-sync-stats'],
+    queryFn: async () => {
+      const [invoicesResult, customersResult] = await Promise.all([
+        supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'stripe'),
+        supabase.from('debtors').select('id', { count: 'exact' }).not('stripe_customer_id', 'is', null)
+      ]);
+
+      return {
+        invoices: invoicesResult.count || 0,
+        customers: customersResult.count || 0,
+        transactions: transactions?.length || 0
+      };
+    },
+    enabled: !!integration?.stripe_secret_key_encrypted,
+  });
+
   const handleSync = async () => {
+    if (isSyncRunning) return;
+    
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-stripe-invoices');
@@ -135,6 +184,7 @@ export const StripeSyncSection = () => {
 
       await fetchIntegration();
       refetchTransactions();
+      refetchLogs();
     } catch (error: any) {
       console.error("Sync error:", error);
       toast.error(error.message || "Failed to sync Stripe invoices");
@@ -175,6 +225,14 @@ export const StripeSyncSection = () => {
 
   const hasStripeKey = integration?.stripe_secret_key_encrypted;
 
+  // Enrich latest sync with counts
+  const enrichedLatestSync: SyncLogEntry | null = latestSync ? {
+    ...latestSync,
+    invoices_synced: latestSync.records_synced,
+    customers_synced: 0,
+    payments_synced: 0,
+  } : null;
+
   if (loading) {
     return (
       <Card>
@@ -213,147 +271,161 @@ export const StripeSyncSection = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#635BFF]/10 rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 60 25" className="h-4 w-8" fill="#635BFF">
-                <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a13.77 13.77 0 0 1-4.56.75c-4.22 0-6.85-2.55-6.85-6.68 0-3.89 2.38-6.73 6.15-6.73 3.87 0 5.98 2.84 5.98 6.5 0 .49-.05 1.19-.09 1.24zm-4.33-5.87c-1.21 0-2.15.93-2.32 2.55h4.51c-.01-1.62-.82-2.55-2.19-2.55zM45.6 6.58c.91 0 1.67.16 2.32.42v3.7a5.28 5.28 0 0 0-1.94-.42c-1.69 0-2.68 1.23-2.68 3.32v6.5h-4.29V6.82h4.01v1.86c.54-1.29 1.4-2.1 2.58-2.1z"/>
-              </svg>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#635BFF]/10 rounded-lg flex items-center justify-center">
+                <svg viewBox="0 0 60 25" className="h-4 w-8" fill="#635BFF">
+                  <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a13.77 13.77 0 0 1-4.56.75c-4.22 0-6.85-2.55-6.85-6.68 0-3.89 2.38-6.73 6.15-6.73 3.87 0 5.98 2.84 5.98 6.5 0 .49-.05 1.19-.09 1.24zm-4.33-5.87c-1.21 0-2.15.93-2.32 2.55h4.51c-.01-1.62-.82-2.55-2.19-2.55zM45.6 6.58c.91 0 1.67.16 2.32.42v3.7a5.28 5.28 0 0 0-1.94-.42c-1.69 0-2.68 1.23-2.68 3.32v6.5h-4.29V6.82h4.01v1.86c.54-1.29 1.4-2.1 2.58-2.1z"/>
+                </svg>
+              </div>
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Stripe Sync
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Check className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Import invoices and transactions from Stripe
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base">Stripe Sync</CardTitle>
-              <CardDescription className="text-xs">
-                Import invoices and transactions from Stripe
-              </CardDescription>
-            </div>
+            <Button 
+              onClick={handleSync} 
+              disabled={isSyncRunning}
+              size="sm"
+              className="gap-2"
+            >
+              {isSyncRunning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Sync Now
+                </>
+              )}
+            </Button>
           </div>
-          <Button 
-            onClick={handleSync} 
-            disabled={syncing}
-            size="sm"
-            className="gap-2"
-          >
-            {syncing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Syncing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4" />
-                Sync Now
-              </>
-            )}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <FileText className="h-3.5 w-3.5" />
-              Invoices Synced
-            </div>
-            <p className="text-xl font-bold mt-1">
-              {integration?.invoices_synced_count || 0}
-            </p>
-          </div>
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <DollarSign className="h-3.5 w-3.5" />
-              Transactions
-            </div>
-            <p className="text-xl font-bold mt-1">
-              {transactions?.length || 0}
-            </p>
-          </div>
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              Last Sync
-            </div>
-            <p className="text-sm font-medium mt-1">
-              {integration?.last_sync_at 
-                ? format(new Date(integration.last_sync_at), 'MMM d, h:mm a')
-                : 'Never'
-              }
-            </p>
-          </div>
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Last Sync Run Card */}
+          <LastSyncRunCard 
+            syncLog={enrichedLatestSync}
+            isLoading={logsLoading}
+            onViewDetails={() => setHistoryOpen(true)}
+            integrationName="Stripe"
+          />
 
-        {/* Error Alert */}
-        {integration?.last_sync_error && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              {integration.last_sync_error}
-            </AlertDescription>
-          </Alert>
-        )}
+          {/* Error Banner */}
+          {latestSync?.errors && latestSync.errors.length > 0 && (
+            <SyncErrorBanner 
+              errors={latestSync.errors}
+              objectType="invoices"
+              onViewDetails={() => setHistoryOpen(true)}
+            />
+          )}
 
-        {/* Transactions Log */}
-        {transactions && transactions.length > 0 ? (
-          <div className="border rounded-lg">
-            <div className="p-3 border-b bg-muted/30">
-              <h4 className="text-sm font-medium flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" />
-                Synced Transactions
-              </h4>
-            </div>
-            <div className="max-h-[300px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Type</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Reason</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((tx) => (
-                    <TableRow key={tx.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getTransactionIcon(tx.transaction_type)}
-                          {getTransactionBadge(tx.transaction_type)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {tx.invoice?.invoice_number || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {tx.invoice?.debtor?.company_name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ${(tx.amount / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
-                        {tx.reason || tx.notes || '-'}
-                      </TableCell>
+          {/* Stats Row with Delta + Total */}
+          <div className="grid grid-cols-3 gap-4">
+            <SyncMetricCard
+              icon={FileText}
+              label="Invoices"
+              total={syncStats?.invoices || integration?.invoices_synced_count || 0}
+              delta={latestSync?.records_synced}
+              status={latestSync?.status === 'success' ? 'success' : latestSync?.status === 'partial' ? 'warning' : 'neutral'}
+            />
+            <SyncMetricCard
+              icon={Users}
+              label="Customers"
+              total={syncStats?.customers || 0}
+              delta={0}
+              status="neutral"
+            />
+            <SyncMetricCard
+              icon={DollarSign}
+              label="Transactions"
+              total={transactions?.length || 0}
+              delta={0}
+              status="neutral"
+            />
+          </div>
+
+          {/* Transactions Log */}
+          {transactions && transactions.length > 0 ? (
+            <div className="border rounded-lg">
+              <div className="p-3 border-b bg-muted/30">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  Synced Transactions
+                </h4>
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Type</TableHead>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Reason</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getTransactionIcon(tx.transaction_type)}
+                            {getTransactionBadge(tx.transaction_type)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {tx.invoice?.invoice_number || 'Unknown'}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {tx.invoice?.debtor?.company_name || 'Unknown'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ${(tx.amount / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
+                          {tx.reason || tx.notes || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
-            <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No transactions synced yet</p>
-            <p className="text-xs">Click "Sync Now" to import from Stripe</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
+              <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No transactions synced yet</p>
+              <p className="text-xs">Click "Sync Now" to import from Stripe</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sync History Drawer */}
+      <SyncHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        syncLogs={syncLogs || []}
+        integrationName="Stripe"
+      />
+    </>
   );
 };
 

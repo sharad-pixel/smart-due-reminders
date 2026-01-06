@@ -104,6 +104,21 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
+    // Create sync log entry
+    let syncLogId: string | null = null;
+    try {
+      const { data: insertedLog } = await supabaseClient.from('stripe_sync_log').insert({
+        user_id: effectiveAccountId,
+        sync_type: 'full',
+        status: 'running',
+        errors: []
+      }).select('id').single();
+      syncLogId = insertedLog?.id || null;
+      logStep('STRIPE_SYNC_LOG_CREATED', { syncLogId });
+    } catch (e) {
+      logStep('STRIPE_SYNCLOG_INSERT_FAILED', { error: String(e) });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Fetch invoices from Stripe - all statuses for complete sync
@@ -717,6 +732,25 @@ serve(async (req) => {
         }
       } catch (err) {
         logStep("Exception calling ensure-invoice-workflows", { error: String(err) });
+      }
+    }
+
+    // Update sync log with success
+    const totalSynced = syncedCount + transactionsLogged;
+    const totalFailed = errors.length;
+    const finalStatus = totalFailed > 0 ? (totalSynced > 0 ? 'partial' : 'failed') : 'success';
+    
+    if (syncLogId) {
+      try {
+        await supabaseClient.from('stripe_sync_log').update({
+          status: finalStatus,
+          completed_at: new Date().toISOString(),
+          records_synced: totalSynced,
+          records_failed: totalFailed,
+          errors: errors.slice(0, 20)
+        }).eq('id', syncLogId);
+      } catch (e) {
+        logStep('STRIPE_SYNCLOG_UPDATE_FAILED', { error: String(e) });
       }
     }
 

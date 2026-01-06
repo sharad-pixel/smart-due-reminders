@@ -5036,6 +5036,45 @@ export type Database = {
           },
         ]
       }
+      stripe_sync_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          errors: Json | null
+          id: string
+          records_failed: number | null
+          records_synced: number | null
+          started_at: string | null
+          status: string | null
+          sync_type: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          id?: string
+          records_failed?: number | null
+          records_synced?: number | null
+          started_at?: string | null
+          status?: string | null
+          sync_type: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          id?: string
+          records_failed?: number | null
+          records_synced?: number | null
+          started_at?: string | null
+          status?: string | null
+          sync_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suspicious_activity_log: {
         Row: {
           action_type: string
