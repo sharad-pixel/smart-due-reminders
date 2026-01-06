@@ -37,14 +37,20 @@ function replaceTemplateVars(
   const paymentLink = branding?.stripe_payment_link || '';
   const invoiceLink = invoice?.integration_url || '';
   
+  // Get business name from branding for {{company_name}} and {{business_name}}
+  const businessName = branding?.business_name || 'Our Company';
+  
   let result = text
-    // Customer/Debtor name variations
+    // Company/Business name (sender's company) - MUST come before customer name
+    .replace(/\{\{company_name\}\}/gi, businessName)
+    .replace(/\{\{company name\}\}/gi, businessName)
+    .replace(/\{\{business_name\}\}/gi, businessName)
+    .replace(/\{\{business name\}\}/gi, businessName)
+    // Customer/Debtor name variations (recipient)
     .replace(/\{\{customer_name\}\}/gi, customerName)
     .replace(/\{\{customer name\}\}/gi, customerName)
     .replace(/\{\{debtor_name\}\}/gi, customerName)
     .replace(/\{\{debtor name\}\}/gi, customerName)
-    .replace(/\{\{company_name\}\}/gi, customerName)
-    .replace(/\{\{company name\}\}/gi, customerName)
     .replace(/\{\{name\}\}/gi, customerName)
     // Invoice number variations
     .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)

@@ -189,6 +189,21 @@ Deno.serve(async (req) => {
 
         const isWorkflowApproved = collectionWorkflow?.is_template_approved === true;
 
+        // Get branding settings for this user to get business name and payment link
+        const { data: effectiveAccountId } = await supabaseAdmin.rpc('get_effective_account_id', { 
+          p_user_id: invoice.user_id 
+        });
+        const brandingOwnerId = effectiveAccountId || invoice.user_id;
+
+        const { data: branding } = await supabaseAdmin
+          .from('branding_settings')
+          .select('business_name, stripe_payment_link')
+          .eq('user_id', brandingOwnerId)
+          .single();
+
+        const businessName = branding?.business_name || 'Our Company';
+        const paymentLink = branding?.stripe_payment_link || '';
+
         // Try to get an approved template for this bucket and step
         const { data: templates } = await supabaseAdmin
           .from('draft_templates')
@@ -203,34 +218,60 @@ Deno.serve(async (req) => {
         let body = '';
         let useTemplate = false;
 
-        const customerName = debtor?.company_name || debtor?.name || 'Customer';
+        const customerName = debtor?.company_name || debtor?.name || 'Valued Customer';
         const invoiceNumber = invoice.invoice_number || invoice.reference_id || '';
         const invoiceAmount = invoice.amount || 0;
+        const formattedAmount = `$${invoiceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
         const invoiceLink = invoice.integration_url || '';
+        const formattedDueDate = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+
+        // Helper function to replace all template variables
+        const replaceTemplateVars = (text: string): string => {
+          if (!text) return text;
+          return text
+            // Company/Business name (sender's company)
+            .replace(/\{\{company_name\}\}/gi, businessName)
+            .replace(/\{\{business_name\}\}/gi, businessName)
+            // Customer/Debtor name (recipient)
+            .replace(/\{\{customer_name\}\}/gi, customerName)
+            .replace(/\{\{debtor_name\}\}/gi, customerName)
+            .replace(/\{\{name\}\}/gi, customerName)
+            // Invoice details
+            .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
+            .replace(/\{\{invoiceNumber\}\}/gi, invoiceNumber)
+            .replace(/\{\{amount\}\}/gi, formattedAmount)
+            .replace(/\{\{balance\}\}/gi, formattedAmount)
+            .replace(/\{\{total\}\}/gi, formattedAmount)
+            .replace(/\{\{invoice_amount\}\}/gi, formattedAmount)
+            // Dates
+            .replace(/\{\{due_date\}\}/gi, formattedDueDate)
+            .replace(/\{\{dueDate\}\}/gi, formattedDueDate)
+            .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
+            .replace(/\{\{daysPastDue\}\}/gi, String(daysPastDue))
+            // Links
+            .replace(/\{\{payment_link\}\}/gi, paymentLink)
+            .replace(/\{\{paymentLink\}\}/gi, paymentLink)
+            .replace(/\{\{pay_link\}\}/gi, paymentLink)
+            .replace(/\{\{stripe_link\}\}/gi, paymentLink)
+            .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
+            .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
+            .replace(/\{\{external_link\}\}/gi, invoiceLink)
+            .replace(/\{\{integration_url\}\}/gi, invoiceLink);
+        };
 
         if (templates && templates.length > 0) {
           const template = templates[0];
-          subject = (template.subject || '')
-            .replace(/{{company_name}}/gi, customerName)
-            .replace(/{{customer_name}}/gi, customerName)
-            .replace(/{{invoice_number}}/gi, invoiceNumber)
-            .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`)
-            .replace(/{{invoice_link}}/gi, invoiceLink);
-          body = (template.body || '')
-            .replace(/{{company_name}}/gi, customerName)
-            .replace(/{{customer_name}}/gi, customerName)
-            .replace(/{{invoice_number}}/gi, invoiceNumber)
-            .replace(/{{amount}}/gi, `$${invoiceAmount.toFixed(2)}`)
-            .replace(/{{invoice_link}}/gi, invoiceLink);
+          subject = replaceTemplateVars(template.subject || '');
+          body = replaceTemplateVars(template.body || '');
           useTemplate = true;
         } else {
           // Generate default message based on step
           const stepMessages = [
-            { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
-            { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions about this invoice.` },
-            { subject: `Important: Invoice ${invoiceNumber} Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}. This invoice is now significantly past due.\n\nPlease arrange payment promptly or contact us to discuss payment options.` },
-            { subject: `Urgent: Invoice ${invoiceNumber} - Action Required`, body: `Dear ${customerName},\n\nDespite previous reminders, invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)} remains unpaid.\n\nPlease contact us immediately to avoid further collection actions.` },
-            { subject: `Final Notice: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is our final notice regarding invoice ${invoiceNumber} for $${invoiceAmount.toFixed(2)}.\n\nPlease make payment immediately or contact us to discuss your options.` },
+            { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
+            { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for ${formattedAmount}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions about this invoice.` },
+            { subject: `Important: Invoice ${invoiceNumber} Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for ${formattedAmount}. This invoice is now significantly past due.\n\nPlease arrange payment promptly or contact us to discuss payment options.` },
+            { subject: `Urgent: Invoice ${invoiceNumber} - Action Required`, body: `Dear ${customerName},\n\nDespite previous reminders, invoice ${invoiceNumber} for ${formattedAmount} remains unpaid.\n\nPlease contact us immediately to avoid further collection actions.` },
+            { subject: `Final Notice: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is our final notice regarding invoice ${invoiceNumber} for ${formattedAmount}.\n\nPlease make payment immediately or contact us to discuss your options.` },
           ];
 
           const messageIndex = Math.min(stepNumber - 1, stepMessages.length - 1);
