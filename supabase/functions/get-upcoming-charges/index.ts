@@ -73,8 +73,20 @@ serve(async (req) => {
 
     if (!customerId) {
       logStep("No Stripe customer found");
+      // Still try to return subscription data from profile if available
+      let subscriptionFromProfile: any = null;
+      if (profile.stripe_subscription_id || profile.current_period_end) {
+        subscriptionFromProfile = {
+          current_period_start: null,
+          current_period_end: profile.current_period_end || null,
+          billing_interval: profile.billing_interval || 'month',
+          cancel_at_period_end: false,
+          status: profile.plan_type === 'free' ? 'inactive' : 'active',
+        };
+      }
       return new Response(JSON.stringify({
         has_upcoming_invoice: false,
+        subscription: subscriptionFromProfile,
         message: "No billing account found"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -90,8 +102,20 @@ serve(async (req) => {
     } catch (err: any) {
       if (err.code === 'resource_missing' || err.statusCode === 404) {
         logStep("Stripe customer not found in Stripe, clearing reference");
+        // Still try to return subscription data from profile
+        let subscriptionFromProfile: any = null;
+        if (profile.stripe_subscription_id || profile.current_period_end) {
+          subscriptionFromProfile = {
+            current_period_start: null,
+            current_period_end: profile.current_period_end || null,
+            billing_interval: profile.billing_interval || 'month',
+            cancel_at_period_end: false,
+            status: 'inactive',
+          };
+        }
         return new Response(JSON.stringify({
           has_upcoming_invoice: false,
+          subscription: subscriptionFromProfile,
           message: "Billing account needs to be re-established"
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -153,7 +177,37 @@ serve(async (req) => {
       // No upcoming invoice is normal for customers without active subscriptions.
       // For expired subscriptions we may still have an OPEN/DRAFT invoice "on account" (e.g. overage invoice).
       if (err.code === 'invoice_upcoming_none' || err.message?.includes('No upcoming invoices')) {
-        logStep("No upcoming invoice; checking for open invoices", { customerId });
+        logStep("No upcoming invoice; checking for open invoices and subscription", { customerId });
+
+        // Still fetch subscription details for term info
+        let subscriptionDetails: any = null;
+        if (profile.stripe_subscription_id) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+            subscriptionDetails = {
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              billing_cycle_anchor: subscription.billing_cycle_anchor 
+                ? new Date(subscription.billing_cycle_anchor * 1000).toISOString() 
+                : null,
+              cancel_at_period_end: subscription.cancel_at_period_end,
+              status: subscription.status,
+              billing_interval: subscription.items.data[0]?.price?.recurring?.interval || profile.billing_interval || 'month',
+            };
+          } catch (subErr) {
+            logStep("Error fetching subscription in fallback", { error: subErr });
+          }
+        }
+        // Fallback to profile data if no Stripe subscription
+        if (!subscriptionDetails && profile.current_period_end) {
+          subscriptionDetails = {
+            current_period_start: null,
+            current_period_end: profile.current_period_end,
+            billing_interval: profile.billing_interval || 'month',
+            cancel_at_period_end: false,
+            status: profile.plan_type === 'free' ? 'inactive' : 'active',
+          };
+        }
 
         const openInvoices = await stripe.invoices.list({ customer: customerId, status: 'open', limit: 1 });
         const draftInvoices = openInvoices.data.length === 0
@@ -166,6 +220,7 @@ serve(async (req) => {
           return new Response(JSON.stringify({
             has_upcoming_invoice: false,
             has_open_invoice: true,
+            subscription: subscriptionDetails,
             open_invoice: {
               id: invoiceOnAccount.id,
               status: invoiceOnAccount.status,
@@ -190,6 +245,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           has_upcoming_invoice: false,
           has_open_invoice: false,
+          subscription: subscriptionDetails,
           message: "No upcoming invoice"
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
