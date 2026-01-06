@@ -92,6 +92,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             <NavDropdown label="Platform" items={platformItems} navigate={navigate} />
             <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
             <button 
+              onClick={() => navigate("/integrations")}
+              className="text-foreground hover:text-primary transition-colors py-2"
+            >
+              Integrations
+            </button>
+            <button 
               onClick={() => navigate("/pricing")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
@@ -159,6 +165,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 ))}
               </div>
               <div className="flex flex-col gap-2 pt-2 border-t">
+                <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
                 <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
                 <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                 <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="w-full mt-2">

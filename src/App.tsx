@@ -31,6 +31,7 @@ const SMB = lazy(() => import("./pages/SMB"));
 const Enterprise = lazy(() => import("./pages/Enterprise"));
 const About = lazy(() => import("./pages/About"));
 const Investors = lazy(() => import("./pages/Investors"));
+const Integrations = lazy(() => import("./pages/Integrations"));
 const CollectionIntelligence = lazy(() => import("./pages/CollectionIntelligence"));
 const WhyCollectionsMatter = lazy(() => import("./pages/WhyCollectionsMatter"));
 const Personas = lazy(() => import("./pages/Personas"));
@@ -137,6 +138,7 @@ const App = () => (
             <Route path="/smb" element={<SMB />} />
             <Route path="/enterprise" element={<Enterprise />} />
             <Route path="/about" element={<About />} />
+            <Route path="/integrations" element={<Integrations />} />
             <Route path="/investors" element={<Investors />} />
 
             {/* Legal Pages */}
