@@ -32,7 +32,7 @@ export function SmartResponseSection({ task, onResponseSent }: SmartResponseSect
 
   // Check if smart response is enabled for this task type
   const actionKey = getTaskTypeActionKey(task.task_type);
-  const actionSetting = actionKey ? settings[actionKey] : 'manual';
+  const actionSetting = actionKey && settings ? settings[actionKey] : 'manual';
   
   // Hide section if action is 'manual' and no response exists and no from_email
   if (!originalEmailFrom && !suggestedSubject && !suggestedBody && responseStatus === "pending") {
