@@ -140,7 +140,7 @@ export const NotificationBell = () => {
                           <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                         {notification.message}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
