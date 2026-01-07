@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
 import EmailHealthCard from "@/components/EmailHealthCard";
+import { PaymentsActivityDashboard } from "@/components/PaymentsActivityDashboard";
 
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/SavedViewsManager";
@@ -567,6 +568,9 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Payments Activity */}
+        <PaymentsActivityDashboard />
 
         {/* Email Health + Invoice Collectability */}
         <div className="grid gap-4 md:grid-cols-2">
