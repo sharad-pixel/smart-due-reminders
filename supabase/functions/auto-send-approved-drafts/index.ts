@@ -40,6 +40,11 @@ function replaceTemplateVars(
   // Get business name from branding for {{company_name}} and {{business_name}}
   const businessName = branding?.business_name || 'Our Company';
   
+  // Build AR portal URL
+  const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
+    ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
+    : '';
+  
   let result = text
     // Company/Business name (sender's company) - MUST come before customer name
     .replace(/\{\{company_name\}\}/gi, businessName)
@@ -80,11 +85,60 @@ function replaceTemplateVars(
     .replace(/\{\{invoice link\}\}/gi, invoiceLink)
     .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
     .replace(/\{\{external_link\}\}/gi, invoiceLink)
-    .replace(/\{\{integration_url\}\}/gi, invoiceLink);
+    .replace(/\{\{integration_url\}\}/gi, invoiceLink)
+    // AR Portal link
+    .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
+    .replace(/\{\{portal_link\}\}/gi, arPageUrl);
   
   // Auto-append invoice link if it exists and isn't already in the message
   if (invoiceLink && !result.includes(invoiceLink)) {
     result += `\n\nView your invoice: ${invoiceLink}`;
+  }
+  
+  return result;
+}
+
+/**
+ * Process message body to ensure it has contact info, signature, and links
+ */
+function ensureMessageHasContactInfo(
+  body: string,
+  branding: any
+): string {
+  let result = body;
+  
+  const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
+    ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
+    : '';
+  const paymentLink = branding?.stripe_payment_link || '';
+  const signature = branding?.email_signature || '';
+  const contactName = branding?.escalation_contact_name || '';
+  const contactEmail = branding?.escalation_contact_email || '';
+  const contactPhone = branding?.escalation_contact_phone || '';
+  const businessName = branding?.business_name || 'Our Company';
+  
+  // Append AR portal link if available and not already in body
+  if (arPageUrl && !result.includes(arPageUrl)) {
+    result += `\n\n📄 Access your account portal: ${arPageUrl}`;
+  }
+  
+  // Append payment link if available and not already in body
+  if (paymentLink && !result.includes(paymentLink)) {
+    result += `\n\n💳 Make a payment: ${paymentLink}`;
+  }
+  
+  // Add signature/contact info if not already in body
+  if (signature && !result.includes(signature)) {
+    result += `\n\n---\n${signature}`;
+  } else if (!signature) {
+    // Add contact info from escalation settings
+    let contactSection = '';
+    if (contactName) contactSection += `\n${contactName}`;
+    if (contactEmail) contactSection += `\nEmail: ${contactEmail}`;
+    if (contactPhone) contactSection += `\nPhone: ${contactPhone}`;
+    if (contactSection || businessName) {
+      result += `\n\n---${contactSection}\n${businessName}`;
+    }
   }
   
   return result;
@@ -251,7 +305,10 @@ Deno.serve(async (req) => {
 
         // Replace template variables in draft content
         const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue);
-        const processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
+        let processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
+        
+        // Ensure message has contact info, signature, and links
+        processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
         // Render branded HTML email using new standardized wrapper
         const emailHtml = renderBrandedEmail({
