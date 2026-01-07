@@ -1,5 +1,8 @@
 project_id = "kguurazunazhhrhasahd"
 
+[functions.resend-outreach-corrected]
+verify_jwt = false
+
 [functions.analyze-document]
 verify_jwt = true
 
