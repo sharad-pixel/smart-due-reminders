@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { 
-  renderBrandedEmail, 
+  renderEmail,
   getSenderIdentity,
   captureBrandSnapshot,
   BrandingConfig 
@@ -65,6 +65,7 @@ serve(async (req) => {
       email_footer: branding?.email_footer,
       footer_disclaimer: branding?.footer_disclaimer,
       email_wrapper_enabled: branding?.email_wrapper_enabled ?? true,
+      email_format: branding?.email_format || 'enhanced',
       ar_page_public_token: branding?.ar_page_public_token,
       ar_page_enabled: branding?.ar_page_enabled,
       stripe_payment_link: branding?.stripe_payment_link,
@@ -78,22 +79,33 @@ serve(async (req) => {
       fromEmail: sender.fromEmail,
       sendingMode: sender.sendingMode,
       usedFallback: sender.usedFallback,
+      emailFormat: brandingConfig.email_format,
     });
 
     // Generate test email content
+    const formatLabel = brandingConfig.email_format === 'simple' ? 'Simple (Plain HTML)' : 'Enhanced (Branded Template)';
+    
     const testEmailBody = `
       <h2 style="color: #1e293b; margin: 0 0 20px;">Email Template Preview</h2>
       
       <p>Hello,</p>
       
-      <p>This is a test email to demonstrate your branded email template for <strong>${brandingConfig.business_name}</strong>.</p>
+      <p>This is a test email to demonstrate your email template for <strong>${brandingConfig.business_name}</strong>.</p>
+      
+      <p><strong>Current Email Format:</strong> ${formatLabel}</p>
       
       <p>This template includes:</p>
       <ul style="margin: 16px 0; padding-left: 20px;">
+        ${brandingConfig.email_format === 'enhanced' ? `
         <li>Your company branding (logo, colors)</li>
         <li>Your custom email signature</li>
         <li>Your Public AR Information Page link in the footer</li>
         <li>Professional Recouply.ai branding</li>
+        ` : `
+        <li>Clean, minimal HTML formatting</li>
+        <li>Your custom email signature</li>
+        <li>No heavy branding or templates</li>
+        `}
       </ul>
       
       <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin: 24px 0; border-left: 4px solid #3b82f6;">
@@ -106,13 +118,13 @@ serve(async (req) => {
         </p>
       </div>
       
-      <p>All future collection emails, AI drafts, and notifications will use this template format.</p>
+      <p>All future collection emails will use this format.</p>
       
       <p>Thank you for using Recouply.ai!</p>
     `;
 
-    // Render the full branded email
-    const htmlEmail = renderBrandedEmail({
+    // Render email using the user's selected format
+    const htmlEmail = renderEmail({
       brand: brandingConfig,
       subject: `📧 Email Template Preview - ${brandingConfig.business_name}`,
       bodyHtml: testEmailBody,

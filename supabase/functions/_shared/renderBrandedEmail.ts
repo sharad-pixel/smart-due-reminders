@@ -50,6 +50,9 @@ export interface BrandingConfig {
   footer_disclaimer?: string | null;
   email_wrapper_enabled?: boolean | null;
   
+  // Email format preference
+  email_format?: 'simple' | 'enhanced' | null;
+  
   // Public AR page
   ar_page_public_token?: string | null;
   ar_page_enabled?: boolean | null;
@@ -455,6 +458,55 @@ function lightenColor(hex: string, percent: number): string {
 }
 
 /**
+ * SIMPLE EMAIL FORMAT: Minimal HTML without branding template
+ * Used when email_format = 'simple'
+ */
+export function renderSimpleEmail(input: EmailRenderInput): string {
+  const { brand, bodyHtml, cta } = input;
+  const businessName = brand.business_name || brand.from_name || "Your Business";
+  
+  // Simple signature
+  const signatureHtml = brand.email_signature 
+    ? `<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+        <p style="font-size: 14px; color: #374151; margin: 0; white-space: pre-line;">${escapeHtml(brand.email_signature)}</p>
+       </div>`
+    : "";
+  
+  // Simple CTA button
+  const ctaHtml = cta 
+    ? `<div style="margin: 24px 0;">
+        <a href="${escapeHtml(cta.url)}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;">${escapeHtml(cta.label)}</a>
+       </div>`
+    : "";
+  
+  // Simple footer
+  const footerHtml = brand.email_footer 
+    ? `<p style="font-size: 12px; color: #6b7280; margin: 16px 0 0;">${escapeHtml(brand.email_footer)}</p>`
+    : "";
+  
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message from ${escapeHtml(businessName)}</title>
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1f2937; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    ${bodyHtml}
+    ${ctaHtml}
+    ${signatureHtml}
+    ${footerHtml}
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af;">
+      <p style="margin: 0;">Sent on behalf of ${escapeHtml(businessName)} via Recouply.ai</p>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+}
+
+/**
  * Generate a plain text version of the email
  */
 export function renderPlainTextEmail(input: EmailRenderInput): string {
@@ -496,4 +548,17 @@ export function renderPlainTextEmail(input: EmailRenderInput): string {
   }
   
   return text;
+}
+
+/**
+ * SMART EMAIL RENDERER: Automatically chooses format based on brand settings
+ */
+export function renderEmail(input: EmailRenderInput): string {
+  const emailFormat = input.brand.email_format || 'enhanced';
+  
+  if (emailFormat === 'simple') {
+    return renderSimpleEmail(input);
+  }
+  
+  return renderBrandedEmail(input);
 }
