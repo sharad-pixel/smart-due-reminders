@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 /**
  * Create Checkout Session Edge Function
