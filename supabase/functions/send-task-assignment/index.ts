@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -9,16 +10,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Enterprise Company Info
+// Enterprise Company Info - use inbound domain for reply-capable addresses
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
   tagline: "AI-Powered CashOps Platform",
   website: "https://recouply.ai",
   emails: {
-    notifications: "notifications@recouply.ai",
-    support: "support@recouply.ai",
-    collections: "collections@recouply.ai",
+    notifications: `notifications@${INBOUND_EMAIL_DOMAIN}`,
+    support: `support@${INBOUND_EMAIL_DOMAIN}`,
+    collections: `collections@${INBOUND_EMAIL_DOMAIN}`,
   },
   address: "Delaware, USA",
 };
