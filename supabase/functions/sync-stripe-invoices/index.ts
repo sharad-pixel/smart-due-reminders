@@ -642,6 +642,8 @@ Deno.serve(async (req) => {
           
           const existingRefs = new Set((existingTxs || []).map(tx => tx.reference_number).filter(Boolean));
 
+           let paymentLoggedViaIntent = false;
+
            if (stripeInvoice.payment_intent) {
              const paymentIntentId = typeof stripeInvoice.payment_intent === 'string'
                ? stripeInvoice.payment_intent
@@ -682,6 +684,9 @@ Deno.serve(async (req) => {
 
                    transactionsLogged++;
                    existingRefs.add(paymentRef);
+                   paymentLoggedViaIntent = true;
+                 } else {
+                   paymentLoggedViaIntent = true; // Already exists
                  }
                }
 
@@ -726,6 +731,51 @@ Deno.serve(async (req) => {
                }
              } catch (piError) {
                logStep("Error fetching payment intent", { paymentIntentId, error: String(piError) });
+             }
+           }
+
+           // Fallback: Log payment for paid/partially paid invoices without payment_intent
+           // This covers invoices paid via credit balance, bank transfers, or manual payments
+           if (!paymentLoggedViaIntent && stripeInvoice.amount_paid > 0) {
+             const fallbackRef = `stripe_inv_payment_${stripeInvoice.id}`;
+             if (!existingRefs.has(fallbackRef)) {
+               const amountPaid = (stripeInvoice.amount_paid || 0) / 100;
+               const balanceAfter = (stripeInvoice.amount_remaining || 0) / 100;
+               
+               // Determine payment date from status_transitions or invoice creation
+               let paymentTransactionDate: string;
+               if (stripeInvoice.status_transitions?.paid_at) {
+                 paymentTransactionDate = new Date(stripeInvoice.status_transitions.paid_at * 1000).toISOString().split('T')[0];
+               } else if (stripeInvoice.status_transitions?.finalized_at) {
+                 paymentTransactionDate = new Date(stripeInvoice.status_transitions.finalized_at * 1000).toISOString().split('T')[0];
+               } else {
+                 paymentTransactionDate = new Date(stripeInvoice.created * 1000).toISOString().split('T')[0];
+               }
+
+               await supabaseClient
+                 .from('invoice_transactions')
+                 .insert({
+                   invoice_id: invoiceRecordId,
+                   user_id: effectiveAccountId,
+                   transaction_type: 'payment',
+                   amount: amountPaid,
+                   balance_after: balanceAfter,
+                   payment_method: 'stripe',
+                   reference_number: fallbackRef,
+                   transaction_date: paymentTransactionDate,
+                   notes: `Payment via Stripe${stripeInvoice.payment_intent ? '' : ' (no payment intent)'}`,
+                   source_system: 'stripe',
+                   external_transaction_id: stripeInvoice.id,
+                   metadata: {
+                     stripe_invoice_id: stripeInvoice.id,
+                     source: 'stripe_sync',
+                     fallback_payment: true
+                   }
+                 });
+
+               transactionsLogged++;
+               existingRefs.add(fallbackRef);
+               logStep("Logged fallback payment for invoice", { invoiceId: stripeInvoice.id, amountPaid });
              }
            }
 
