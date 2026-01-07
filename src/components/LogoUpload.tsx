@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,6 +82,8 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       if (updateError) throw updateError;
 
       onLogoChange(result.publicUrl!);
+      // Invalidate branding query to refresh data
+      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       toast.success("Logo updated. It will appear on all outgoing message signatures.");
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -115,6 +119,8 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       if (error) throw error;
 
       onLogoChange(null);
+      // Invalidate branding query to refresh data
+      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       toast.success("Logo removed. Messages will use text-only signatures.");
     } catch (error: any) {
       console.error("Remove error:", error);
