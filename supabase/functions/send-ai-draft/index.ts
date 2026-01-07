@@ -131,9 +131,14 @@ serve(async (req) => {
     // Fetch branding settings for signature and From name (using effective account)
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_format")
       .eq("user_id", brandingOwnerId)
       .single();
+    
+    // Build AR portal URL
+    const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
+      ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
+      : '';
 
     // Replace template variables in subject and body
     const replaceTemplateVars = (text: string): string => {
@@ -144,6 +149,7 @@ serve(async (req) => {
       const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
       const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
       const paymentLink = branding?.stripe_payment_link || '';
+      const businessName = branding?.business_name || 'Our Company';
       
       return text
         // Customer/Debtor name variations
@@ -151,8 +157,9 @@ serve(async (req) => {
         .replace(/\{\{customer name\}\}/gi, customerName)
         .replace(/\{\{debtor_name\}\}/gi, customerName)
         .replace(/\{\{debtor name\}\}/gi, customerName)
-        .replace(/\{\{company_name\}\}/gi, customerName)
-        .replace(/\{\{company name\}\}/gi, customerName)
+        .replace(/\{\{company_name\}\}/gi, businessName)
+        .replace(/\{\{company name\}\}/gi, businessName)
+        .replace(/\{\{business_name\}\}/gi, businessName)
         .replace(/\{\{name\}\}/gi, customerName)
         // Invoice number variations
         .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
@@ -176,12 +183,46 @@ serve(async (req) => {
         .replace(/\{\{payment link\}\}/gi, paymentLink)
         .replace(/\{\{paymentLink\}\}/gi, paymentLink)
         .replace(/\{\{pay_link\}\}/gi, paymentLink)
-        .replace(/\{\{stripe_link\}\}/gi, paymentLink);
+        .replace(/\{\{stripe_link\}\}/gi, paymentLink)
+        // AR Portal link
+        .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
+        .replace(/\{\{portal_link\}\}/gi, arPageUrl);
     };
 
     // Apply template replacement to draft content
+    let processedBody = replaceTemplateVars(draft.message_body);
+    
+    // Append AR portal link if available and not already in body
+    if (arPageUrl && !processedBody.includes(arPageUrl)) {
+      processedBody += `\n\n📄 Access your account portal: ${arPageUrl}`;
+    }
+    
+    // Append payment link if available and not already in body
+    const paymentLink = branding?.stripe_payment_link || '';
+    if (paymentLink && !processedBody.includes(paymentLink)) {
+      processedBody += `\n\n💳 Make a payment: ${paymentLink}`;
+    }
+    
+    // Add signature/contact info if not already in body
+    if (branding?.email_signature && !processedBody.includes(branding.email_signature)) {
+      processedBody += `\n\n---\n${branding.email_signature}`;
+    } else if (!branding?.email_signature) {
+      // Add contact info from escalation settings
+      const contactName = branding?.escalation_contact_name || '';
+      const contactEmail = branding?.escalation_contact_email || '';
+      const contactPhone = branding?.escalation_contact_phone || '';
+      const businessName = branding?.business_name || 'Our Company';
+      
+      let contactSection = '';
+      if (contactName) contactSection += `\n${contactName}`;
+      if (contactEmail) contactSection += `\nEmail: ${contactEmail}`;
+      if (contactPhone) contactSection += `\nPhone: ${contactPhone}`;
+      if (contactSection || businessName) {
+        processedBody += `\n\n---${contactSection}\n${businessName}`;
+      }
+    }
+    
     const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder');
-    const processedBody = replaceTemplateVars(draft.message_body);
     // Fetch all outreach-enabled contacts with fallback to debtor record
     const outreachContacts = await getOutreachContacts(supabaseClient, debtor?.id, debtor);
     const allEmails = outreachContacts.emails;

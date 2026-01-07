@@ -197,12 +197,21 @@ Deno.serve(async (req) => {
 
         const { data: branding } = await supabaseAdmin
           .from('branding_settings')
-          .select('business_name, stripe_payment_link')
+          .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature')
           .eq('user_id', brandingOwnerId)
           .single();
 
         const businessName = branding?.business_name || 'Our Company';
         const paymentLink = branding?.stripe_payment_link || '';
+        const arPageToken = branding?.ar_page_public_token;
+        const arPageEnabled = branding?.ar_page_enabled === true;
+        const arPageUrl = arPageToken && arPageEnabled ? `https://recouply.ai/ar/${arPageToken}` : '';
+        
+        // Build contact info section
+        const contactName = branding?.escalation_contact_name || '';
+        const contactEmail = branding?.escalation_contact_email || '';
+        const contactPhone = branding?.escalation_contact_phone || '';
+        const signature = branding?.email_signature || '';
 
         // Try to get an approved template for this bucket and step
         const { data: templates } = await supabaseAdmin
@@ -256,7 +265,10 @@ Deno.serve(async (req) => {
             .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
             .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
             .replace(/\{\{external_link\}\}/gi, invoiceLink)
-            .replace(/\{\{integration_url\}\}/gi, invoiceLink);
+            .replace(/\{\{integration_url\}\}/gi, invoiceLink)
+            // AR Portal link
+            .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
+            .replace(/\{\{portal_link\}\}/gi, arPageUrl);
         };
 
         if (templates && templates.length > 0) {
@@ -284,7 +296,33 @@ Deno.serve(async (req) => {
           body += `\n\nView your invoice: ${invoiceLink}`;
         }
 
+        // Append AR portal link if available and enabled
+        if (arPageUrl && !body.includes(arPageUrl)) {
+          body += `\n\n📄 Access your account portal: ${arPageUrl}`;
+        }
+
+        // Append payment link if available
+        if (paymentLink && !body.includes(paymentLink)) {
+          body += `\n\n💳 Make a payment: ${paymentLink}`;
+        }
+
         body += '\n\nThank you for your business.';
+
+        // Add signature/contact info if available
+        if (signature) {
+          body += `\n\n---\n${signature}`;
+        } else {
+          // Build contact section from escalation contact
+          let contactSection = '';
+          if (contactName) contactSection += `\n${contactName}`;
+          if (contactEmail) contactSection += `\nEmail: ${contactEmail}`;
+          if (contactPhone) contactSection += `\nPhone: ${contactPhone}`;
+          if (contactSection) {
+            body += `\n\n---${contactSection}\n${businessName}`;
+          } else {
+            body += `\n\n---\n${businessName}`;
+          }
+        }
 
         // Determine draft status: auto-approve if workflow is approved OR template is approved
         const draftStatus = (isWorkflowApproved || useTemplate) ? 'approved' : 'pending_approval';
