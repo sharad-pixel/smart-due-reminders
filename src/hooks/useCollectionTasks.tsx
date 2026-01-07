@@ -34,17 +34,6 @@ export interface CollectionTask {
   assignment_email_sent_at?: string;
   inbound_email_id?: string;
   notes?: TaskNote[] | unknown[];
-  // Smart Response fields
-  suggested_response_subject?: string;
-  suggested_response_body?: string;
-  response_status?: 'pending' | 'sent' | 'edited_sent' | 'ignored' | 'not_applicable';
-  response_sent_at?: string;
-  response_sent_to?: string;
-  response_includes_w9?: boolean;
-  response_includes_invoice?: boolean;
-  response_includes_portal?: boolean;
-  from_email?: string;
-  original_email_body?: string;
 }
 
 export const useCollectionTasks = () => {

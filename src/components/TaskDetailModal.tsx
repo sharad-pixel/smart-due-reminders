@@ -21,7 +21,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/MentionInput";
 import { createMentionNotification } from "@/hooks/useNotifications";
-import { SmartResponseSection } from "@/components/SmartResponseSection";
 
 interface TaskDetailModalProps {
   task: CollectionTask | null;
@@ -428,15 +427,6 @@ export const TaskDetailModal = ({
               )}
             </div>
           )}
-
-          {/* Smart Response Section */}
-          <SmartResponseSection 
-            task={task} 
-            onResponseSent={() => {
-              // Refresh task data
-              onNoteAdded?.();
-            }}
-          />
 
           {/* Assignment Section */}
           {onAssign && (

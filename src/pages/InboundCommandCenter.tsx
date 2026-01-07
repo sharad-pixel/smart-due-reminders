@@ -593,7 +593,7 @@ const InboundCommandCenter = () => {
     try {
       const { data: tasks, error } = await supabase
         .from("collection_tasks")
-        .select("*")
+        .select("id, task_type, priority, status, summary, details, recommended_action, due_date, created_at")
         .eq("inbound_email_id", email.id)
         .order("created_at", { ascending: false });
       

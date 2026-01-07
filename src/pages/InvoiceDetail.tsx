@@ -418,43 +418,21 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   };
 
   const handleGenerateDraft = async () => {
-    if (!id) {
-      toast.error("Missing invoice ID");
-      return;
-    }
-
     setGeneratingDraft(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Session expired. Please log in again.");
-
       const { data, error } = await supabase.functions.invoke("generate-outreach-draft", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
         body: {
           invoice_id: id,
           tone: generateTone,
           step_number: generateStep,
-          use_ai_generation: true,
         },
       });
 
-      if (error) {
-        let message = error.message || "Failed to generate draft";
-        const body = (error as any)?.context?.body;
-        if (body) {
-          try {
-            const parsed = typeof body === "string" ? JSON.parse(body) : body;
-            if (parsed?.error) message = parsed.error;
-          } catch {
-            // ignore
-          }
-        }
-        throw new Error(message);
-      }
-
+      if (error) throw error;
+      
       // Close generate dialog and show preview with generated draft
       setGenerateDialogOpen(false);
-
+      
       if (data?.email_draft) {
         setPreviewDraft({
           ...data.email_draft,
@@ -462,7 +440,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         });
         setPreviewModalOpen(true);
       }
-
+      
       toast.success("AI draft generated! Review and approve to send.");
       fetchData();
     } catch (error: any) {
