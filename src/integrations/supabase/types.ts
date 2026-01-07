@@ -2178,6 +2178,7 @@ export type Database = {
           risk_tier: string | null
           risk_tier_detailed: string | null
           score_components: Json | null
+          source_system: string | null
           state: string | null
           tags: Json | null
           total_open_balance: number | null
@@ -2273,6 +2274,7 @@ export type Database = {
           risk_tier?: string | null
           risk_tier_detailed?: string | null
           score_components?: Json | null
+          source_system?: string | null
           state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
@@ -2368,6 +2370,7 @@ export type Database = {
           risk_tier?: string | null
           risk_tier_detailed?: string | null
           score_components?: Json | null
+          source_system?: string | null
           state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
@@ -3851,12 +3854,14 @@ export type Database = {
           integration_url: string | null
           invoice_number: string
           is_archived: boolean | null
+          is_collectible: boolean | null
           is_overage: boolean | null
           issue_date: string
           last_contact_date: string | null
           last_contacted_at: string | null
           last_synced_at: string | null
           next_contact_date: string | null
+          normalized_status: string | null
           notes: string | null
           organization_id: string | null
           original_amount: number | null
@@ -3868,6 +3873,7 @@ export type Database = {
           paid_date: string | null
           payment_date: string | null
           payment_method: string | null
+          payment_origin: string | null
           payment_terms: string | null
           payment_terms_days: number | null
           po_number: string | null
@@ -3884,6 +3890,7 @@ export type Database = {
           stripe_invoice_id: string | null
           subtotal: number | null
           tax_amount: number | null
+          terminal_reason: string | null
           total_amount: number | null
           updated_at: string | null
           use_custom_template: boolean | null
@@ -3911,12 +3918,14 @@ export type Database = {
           integration_url?: string | null
           invoice_number: string
           is_archived?: boolean | null
+          is_collectible?: boolean | null
           is_overage?: boolean | null
           issue_date: string
           last_contact_date?: string | null
           last_contacted_at?: string | null
           last_synced_at?: string | null
           next_contact_date?: string | null
+          normalized_status?: string | null
           notes?: string | null
           organization_id?: string | null
           original_amount?: number | null
@@ -3928,6 +3937,7 @@ export type Database = {
           paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
+          payment_origin?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
@@ -3944,6 +3954,7 @@ export type Database = {
           stripe_invoice_id?: string | null
           subtotal?: number | null
           tax_amount?: number | null
+          terminal_reason?: string | null
           total_amount?: number | null
           updated_at?: string | null
           use_custom_template?: boolean | null
@@ -3971,12 +3982,14 @@ export type Database = {
           integration_url?: string | null
           invoice_number?: string
           is_archived?: boolean | null
+          is_collectible?: boolean | null
           is_overage?: boolean | null
           issue_date?: string
           last_contact_date?: string | null
           last_contacted_at?: string | null
           last_synced_at?: string | null
           next_contact_date?: string | null
+          normalized_status?: string | null
           notes?: string | null
           organization_id?: string | null
           original_amount?: number | null
@@ -3988,6 +4001,7 @@ export type Database = {
           paid_date?: string | null
           payment_date?: string | null
           payment_method?: string | null
+          payment_origin?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
@@ -4004,6 +4018,7 @@ export type Database = {
           stripe_invoice_id?: string | null
           subtotal?: number | null
           tax_amount?: number | null
+          terminal_reason?: string | null
           total_amount?: number | null
           updated_at?: string | null
           use_custom_template?: boolean | null
@@ -5011,7 +5026,9 @@ export type Database = {
           customers_synced: number | null
           errors: Json | null
           id: string
+          invoices_skipped: number | null
           invoices_synced: number | null
+          invoices_terminal: number | null
           needs_attention_count: number | null
           needs_attention_details: Json | null
           payments_synced: number | null
@@ -5032,7 +5049,9 @@ export type Database = {
           customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_skipped?: number | null
           invoices_synced?: number | null
+          invoices_terminal?: number | null
           needs_attention_count?: number | null
           needs_attention_details?: Json | null
           payments_synced?: number | null
@@ -5053,7 +5072,9 @@ export type Database = {
           customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_skipped?: number | null
           invoices_synced?: number | null
+          invoices_terminal?: number | null
           needs_attention_count?: number | null
           needs_attention_details?: Json | null
           payments_synced?: number | null
@@ -5555,9 +5576,12 @@ export type Database = {
           customers_synced: number | null
           errors: Json | null
           id: string
+          invoices_skipped: number | null
           invoices_synced: number | null
+          invoices_terminal: number | null
           needs_attention_count: number | null
           needs_attention_details: Json | null
+          paid_without_payment: number | null
           payments_synced: number | null
           records_failed: number | null
           records_synced: number | null
@@ -5575,9 +5599,12 @@ export type Database = {
           customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_skipped?: number | null
           invoices_synced?: number | null
+          invoices_terminal?: number | null
           needs_attention_count?: number | null
           needs_attention_details?: Json | null
+          paid_without_payment?: number | null
           payments_synced?: number | null
           records_failed?: number | null
           records_synced?: number | null
@@ -5595,9 +5622,12 @@ export type Database = {
           customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_skipped?: number | null
           invoices_synced?: number | null
+          invoices_terminal?: number | null
           needs_attention_count?: number | null
           needs_attention_details?: Json | null
+          paid_without_payment?: number | null
           payments_synced?: number | null
           records_failed?: number | null
           records_synced?: number | null

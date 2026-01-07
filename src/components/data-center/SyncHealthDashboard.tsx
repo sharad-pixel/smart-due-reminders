@@ -110,10 +110,15 @@ export const SyncHealthDashboard = () => {
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Sync Health
-          </CardTitle>
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Sync Health
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              One-way sync: Stripe & QuickBooks → Recouply (read-only)
+            </p>
+          </div>
           <Badge variant="outline" className="text-xs">
             <Clock className="h-3 w-3 mr-1" />
             Last 24h

@@ -127,6 +127,7 @@ serve(async (req) => {
     let invoicesSynced = 0;
     let paymentsSynced = 0;
     let contactsSynced = 0;
+    let terminalSkipped = 0;
     const errors: string[] = [];
 
     // Token refresh context for qbQueryAll retry logic
@@ -385,34 +386,80 @@ serve(async (req) => {
         }
       }
 
-      // Helper to map QuickBooks invoice status to valid DB enum
-      // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid, Voided
-      const mapQBInvoiceStatus = (qbInvoice: any): 'Open' | 'Paid' | 'PartiallyPaid' | 'Voided' => {
+      // ============================================================
+      // ONE-DIRECTIONAL SYNC: QuickBooks → Recouply (READ-ONLY)
+      // Recouply NEVER writes back to QuickBooks
+      // ============================================================
+      
+      // Normalized status mapping for collection logic
+      interface NormalizedQBInvoice {
+        status: 'Open' | 'Paid' | 'PartiallyPaid' | 'Voided';
+        normalizedStatus: 'open' | 'paid' | 'partially_paid' | 'terminal';
+        isCollectible: boolean;
+        terminalReason: string | null;
+        paymentOrigin: string | null;
+      }
+
+      // Helper to map QuickBooks invoice status with normalized fields
+      // QuickBooks is SOURCE OF TRUTH for all invoice data
+      const mapQBInvoiceStatus = (qbInvoice: any): NormalizedQBInvoice => {
         // Check if invoice is voided (QB uses PrivateNote or has $0 total with specific markers)
         const privateNote = (qbInvoice.PrivateNote || '').toLowerCase();
         if (privateNote.includes('void') || privateNote.includes('cancelled') || privateNote.includes('canceled')) {
-          return 'Voided'; // Use Voided status for voided invoices
+          terminalSkipped++;
+          return {
+            status: 'Voided',
+            normalizedStatus: 'terminal',
+            isCollectible: false,
+            terminalReason: 'voided_in_quickbooks',
+            paymentOrigin: 'voided'
+          };
         }
         
         // Check if invoice has been deleted/voided (TotalAmt = 0 and Balance = 0 and no line items)
         const lines = qbInvoice.Line || [];
         const hasValidLines = lines.some((line: any) => line.Amount && line.Amount > 0);
         if (qbInvoice.TotalAmt === 0 && qbInvoice.Balance === 0 && !hasValidLines) {
-          return 'Voided'; // Use Voided for $0 voided invoices
+          terminalSkipped++;
+          return {
+            status: 'Voided',
+            normalizedStatus: 'terminal',
+            isCollectible: false,
+            terminalReason: 'voided_in_quickbooks',
+            paymentOrigin: 'voided'
+          };
         }
         
         // Check if fully paid
         if (qbInvoice.Balance === 0 && qbInvoice.TotalAmt > 0) {
-          return 'Paid';
+          return {
+            status: 'Paid',
+            normalizedStatus: 'paid',
+            isCollectible: false,
+            terminalReason: null,
+            paymentOrigin: 'quickbooks_payment'
+          };
         }
         
         // Check if partially paid
         if (qbInvoice.Balance > 0 && qbInvoice.Balance < qbInvoice.TotalAmt) {
-          return 'PartiallyPaid';
+          return {
+            status: 'PartiallyPaid',
+            normalizedStatus: 'partially_paid',
+            isCollectible: true,
+            terminalReason: null,
+            paymentOrigin: null
+          };
         }
         
         // Default to Open
-        return 'Open';
+        return {
+          status: 'Open',
+          normalizedStatus: 'open',
+          isCollectible: true,
+          terminalReason: null,
+          paymentOrigin: null
+        };
       };
 
       // Process invoices
@@ -427,15 +474,17 @@ serve(async (req) => {
           }
 
           const dueDate = invoice.DueDate || invoice.TxnDate;
-          const status = mapQBInvoiceStatus(invoice);
+          const normalizedInvoice = mapQBInvoiceStatus(invoice);
           
-          // Build notes based on status
+          // Build notes based on status - informational, not errors
           let notes: string | null = null;
-          if (status === 'Voided') {
-            notes = `Voided in QuickBooks`;
-          } else if (status === 'PartiallyPaid') {
+          if (normalizedInvoice.status === 'Voided') {
+            notes = `[TERMINAL] Voided in QuickBooks - excluded from collections`;
+          } else if (normalizedInvoice.status === 'PartiallyPaid') {
             const paid = (invoice.TotalAmt || 0) - (invoice.Balance || 0);
             notes = `Partially paid - $${paid.toFixed(2)} received via QuickBooks`;
+          } else if (normalizedInvoice.status === 'Paid') {
+            notes = `Paid in full via QuickBooks`;
           }
 
           const upsertData: Record<string, any> = {
@@ -448,7 +497,14 @@ serve(async (req) => {
             amount_outstanding: Math.round((invoice.Balance || 0) * 100),
             issue_date: invoice.TxnDate,
             due_date: dueDate,
-            status: status,
+            status: normalizedInvoice.status,
+            // Normalized fields for collection logic
+            normalized_status: normalizedInvoice.normalizedStatus,
+            is_collectible: normalizedInvoice.isCollectible,
+            terminal_reason: normalizedInvoice.terminalReason,
+            payment_origin: normalizedInvoice.paymentOrigin,
+            // Source system tracking (READ-ONLY from QuickBooks)
+            source_system: 'quickbooks',
             integration_source: 'quickbooks',
             last_synced_at: new Date().toISOString()
           };
@@ -552,7 +608,8 @@ serve(async (req) => {
       errors.push(msg);
     }
 
-    // ALWAYS update sync log at end
+    // ALWAYS update sync log at end with detailed metrics
+    // Terminal invoices are NOT failures - they're valid states from source system
     const finalStatus = errors.length > 0 ? (customersSynced + invoicesSynced + paymentsSynced + contactsSynced > 0 ? 'partial' : 'failed') : 'success';
     const recordsSynced = customersSynced + invoicesSynced + paymentsSynced + contactsSynced;
     
@@ -564,6 +621,11 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
           records_synced: recordsSynced,
           records_failed: errors.length,
+          invoices_synced: invoicesSynced,
+          invoices_terminal: terminalSkipped,
+          customers_synced: customersSynced,
+          contacts_synced: contactsSynced,
+          payments_synced: paymentsSynced,
           errors: errors.length > 0 ? errors : null
         })
         .eq('id', syncLogId);
@@ -575,14 +637,19 @@ serve(async (req) => {
       .update({ quickbooks_last_sync_at: new Date().toISOString() })
       .eq('id', user.id);
 
-    console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments, ${contactsSynced} contacts`);
+    console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments, ${contactsSynced} contacts, ${terminalSkipped} terminal`);
 
     return new Response(JSON.stringify({
       success: true,
+      // One-directional sync indicator
+      sync_direction: 'quickbooks_to_recouply',
+      read_only: true,
       customers_synced: customersSynced,
       invoices_synced: invoicesSynced,
       payments_synced: paymentsSynced,
       contacts_synced: contactsSynced,
+      // Terminal invoices are valid, not failures
+      terminal_invoices: terminalSkipped,
       records_synced: recordsSynced,
       sync_type: fullSync ? 'full' : 'incremental',
       errors: errors
