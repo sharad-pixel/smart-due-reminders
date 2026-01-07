@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Eye, FileText, Sparkles } from "lucide-react";
 
 interface EmailPreviewPanelProps {
   formData: {
@@ -18,6 +20,8 @@ interface EmailPreviewPanelProps {
 }
 
 export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
+  const [emailFormat, setEmailFormat] = useState<"simple" | "enhanced">("enhanced");
+  
   const businessName = formData.business_name || formData.from_name || "Your Business";
   const primaryColor = formData.primary_color || "#111827";
   const accentColor = formData.accent_color || "#6366f1";
@@ -25,10 +29,72 @@ export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
     ? `${window.location.origin}/ar/${formData.ar_page_public_token}` 
     : null;
 
-  const renderEmailPreview = (type: 'friendly' | 'past_due') => {
+  const getEmailContent = (type: 'friendly' | 'past_due') => {
     const subject = type === 'friendly' 
       ? `Friendly Reminder: Invoice #12345 is Due`
       : `Payment Required: Invoice #12345 - 30+ Days Overdue`;
+    
+    const bodyHtml = type === 'friendly' ? `
+      <p>Hi John,</p>
+      <p>I hope this message finds you well! I wanted to reach out regarding invoice #12345 for $1,500.00, which was due on December 15, 2025.</p>
+      <p>If you've already sent payment, please disregard this message. Otherwise, we'd appreciate if you could process this at your earliest convenience.</p>
+      <p>Best regards,<br/>Sam</p>
+    ` : `
+      <p>Dear John,</p>
+      <p>I'm writing regarding invoice #12345 for $1,500.00, which is now over 30 days past due.</p>
+      <p>Please process payment immediately or contact us to discuss payment arrangements.</p>
+      <p>Regards,<br/>James</p>
+    `;
+
+    return { subject, bodyHtml };
+  };
+
+  const renderSimplePreview = (type: 'friendly' | 'past_due') => {
+    const { subject, bodyHtml } = getEmailContent(type);
+    
+    return (
+      <div className="border rounded-lg overflow-hidden bg-slate-50 p-4">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden max-w-[480px] mx-auto font-mono text-xs">
+          {/* Simple Email Header */}
+          <div className="px-4 py-3 border-b bg-slate-100">
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <span className="font-semibold">From:</span>
+              <span>{formData.from_name || businessName} &lt;noreply@recouply.ai&gt;</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <span className="font-semibold">To:</span>
+              <span>john@example.com</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500">
+              <span className="font-semibold">Subject:</span>
+              <span>{subject}</span>
+            </div>
+          </div>
+
+          {/* Plain HTML Body */}
+          <div 
+            className="p-4 text-sm text-slate-700"
+            style={{ fontFamily: 'Arial, sans-serif' }}
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
+
+          {/* Simple Signature */}
+          {formData.email_signature && (
+            <div className="px-4 pb-4 pt-2 border-t">
+              <pre className="text-xs text-slate-600 whitespace-pre-wrap font-sans">{formData.email_signature}</pre>
+            </div>
+          )}
+        </div>
+        
+        <p className="text-xs text-muted-foreground text-center mt-3">
+          Simple format — no branding, just plain HTML
+        </p>
+      </div>
+    );
+  };
+
+  const renderEnhancedPreview = (type: 'friendly' | 'past_due') => {
+    const { subject } = getEmailContent(type);
     
     const bodyContent = type === 'friendly' ? (
       <>
@@ -133,8 +199,18 @@ export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
             </div>
           </div>
         </div>
+        
+        <p className="text-xs text-muted-foreground text-center mt-3">
+          Enhanced format — branded template with logo & styling
+        </p>
       </div>
     );
+  };
+
+  const renderPreview = (type: 'friendly' | 'past_due') => {
+    return emailFormat === "simple" 
+      ? renderSimplePreview(type) 
+      : renderEnhancedPreview(type);
   };
 
   return (
@@ -148,17 +224,46 @@ export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
           Live preview of how your emails will look
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Format Toggle */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">Format</span>
+          <ToggleGroup 
+            type="single" 
+            value={emailFormat} 
+            onValueChange={(val) => val && setEmailFormat(val as "simple" | "enhanced")}
+            className="bg-muted p-1 rounded-lg"
+          >
+            <ToggleGroupItem 
+              value="simple" 
+              aria-label="Simple format"
+              className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-3 py-1.5 text-xs gap-1.5"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Simple
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="enhanced" 
+              aria-label="Enhanced format"
+              className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-3 py-1.5 text-xs gap-1.5"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Enhanced
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        {/* Email Type Tabs */}
         <Tabs defaultValue="friendly" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="friendly">Friendly Reminder</TabsTrigger>
             <TabsTrigger value="past_due">Past Due Notice</TabsTrigger>
           </TabsList>
           <TabsContent value="friendly">
-            {renderEmailPreview('friendly')}
+            {renderPreview('friendly')}
           </TabsContent>
           <TabsContent value="past_due">
-            {renderEmailPreview('past_due')}
+            {renderPreview('past_due')}
           </TabsContent>
         </Tabs>
       </CardContent>
