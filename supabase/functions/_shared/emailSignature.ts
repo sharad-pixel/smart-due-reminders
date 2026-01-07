@@ -79,11 +79,13 @@ export function getEmailFromName(branding: BrandingSettings): string {
 
 /**
  * Generate the full From address with company name
+ * Uses collections@ prefix - replies should go to invoice+{id}@inbound domain
  */
 export function getEmailFromAddress(branding: BrandingSettings): string {
   const fromName = getEmailFromName(branding);
-  // IMPORTANT: Uses verified domain from shared config
-  return `${fromName} <notifications@${VERIFIED_EMAIL_DOMAIN}>`;
+  // IMPORTANT: Uses verified sending domain with collections@ prefix
+  // Reply-to header should always be set separately to route to inbound domain
+  return `${fromName} <collections@${VERIFIED_EMAIL_DOMAIN}>`;
 }
 
 /**

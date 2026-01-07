@@ -169,6 +169,7 @@ serve(async (req) => {
   console.log("Sending email via Resend", {
     to: toAddresses,
     from: payload.from,
+    reply_to: payload.reply_to || '(not set)',
     subject: payload.subject,
     hasHtml: !!payload.html,
     hasText: !!payload.text,
