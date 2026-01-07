@@ -27,19 +27,26 @@ export const SyncErrorBanner = ({ errors, objectType = 'records', onViewDetails 
       </AlertTitle>
       <AlertDescription className="text-amber-700">
         <p className="text-sm mb-2">
-          {grouped.groups[0].count} {objectType} failed to sync due to:
+          {grouped.totalCount} {objectType} failed to sync:
         </p>
         
-        <ul className="list-disc list-inside text-sm space-y-1 mb-2">
+        <ul className="space-y-2 text-sm mb-2">
           {grouped.groups.slice(0, expanded ? undefined : 2).map((group, i) => (
-            <li key={i} className="flex items-start gap-1">
-              <span className="inline-block mt-0.5">•</span>
-              <span>
-                <span className="font-medium">{group.message}</span>
-                {group.count > 1 && (
-                  <span className="text-amber-600"> ({group.count} occurrences)</span>
-                )}
-              </span>
+            <li key={i} className="border-l-2 border-amber-300 pl-2">
+              <div className="flex items-start gap-1">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-amber-600 shrink-0" />
+                <div>
+                  <span className="font-medium">{group.message}</span>
+                  {group.count > 1 && (
+                    <span className="text-amber-600"> ({group.count}x)</span>
+                  )}
+                  {group.remedy && (
+                    <p className="text-xs text-amber-600/80 mt-0.5">
+                      💡 {group.remedy}
+                    </p>
+                  )}
+                </div>
+              </div>
             </li>
           ))}
         </ul>

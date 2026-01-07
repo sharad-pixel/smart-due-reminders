@@ -1,5 +1,6 @@
 /**
  * Utilities for parsing and grouping sync errors into human-readable messages
+ * with remediation suggestions for enterprise-grade error handling
  */
 
 export interface ParsedSyncError {
@@ -7,6 +8,7 @@ export interface ParsedSyncError {
   message: string;
   count: number;
   details?: string[];
+  remedy?: string;
 }
 
 export interface GroupedErrors {
@@ -15,55 +17,102 @@ export interface GroupedErrors {
   totalCount: number;
 }
 
-// Common error patterns to match and humanize
-const ERROR_PATTERNS: { pattern: RegExp; type: string; getMessage: (match: RegExpMatchArray) => string }[] = [
+// Common error patterns to match, humanize, and provide remediation
+const ERROR_PATTERNS: { 
+  pattern: RegExp; 
+  type: string; 
+  getMessage: (match: RegExpMatchArray) => string;
+  getRemedy?: (match: RegExpMatchArray) => string;
+}[] = [
   {
     pattern: /invalid input value for enum.*status.*"([^"]+)"/i,
     type: 'unsupported_status',
-    getMessage: (match) => `Unsupported status: ${match[1]}`
+    getMessage: (match) => `Unsupported status: ${match[1]}`,
+    getRemedy: (match) => `The status "${match[1]}" from your billing system is not yet mapped. Please contact support or sync will retry with corrected status mapping.`
   },
   {
-    pattern: /INVOICE_UPSERT_FAILED.*ext_invoice_id=([^:]+).*invalid input value.*"([^"]+)"/i,
+    pattern: /INVOICE_UPSERT_FAILED.*qb_invoice_id=([^:]+).*doc=([^:]+).*invalid input value.*"([^"]+)"/i,
     type: 'invoice_status_error',
-    getMessage: (match) => `Invoice status not supported: "${match[2]}"`
+    getMessage: (match) => `Invoice ${match[2]}: Status "${match[3]}" not supported`,
+    getRemedy: () => `QuickBooks invoice has an unmapped status. This will be corrected on next sync.`
+  },
+  {
+    pattern: /INVOICE_UPSERT_FAILED.*stripe_invoice_id=([^:]+).*invalid input value.*"([^"]+)"/i,
+    type: 'invoice_status_error',
+    getMessage: (match) => `Stripe invoice: Status "${match[2]}" not supported`,
+    getRemedy: () => `Stripe invoice has an unmapped status. This will be corrected on next sync.`
   },
   {
     pattern: /CONTACT_UPSERT_FAILED.*qb_customer_id=([^:]+)/i,
     type: 'contact_error',
-    getMessage: () => `Contact sync failed`
+    getMessage: () => `Contact sync failed`,
+    getRemedy: () => `The contact record could not be synced. Check that the contact has a valid email address.`
+  },
+  {
+    pattern: /CUSTOMER_UPSERT_FAILED.*qb_customer_id=([^:]+).*name=([^:]+)/i,
+    type: 'customer_error',
+    getMessage: (match) => `Customer sync failed: ${match[2]}`,
+    getRemedy: () => `The customer record has missing or invalid data. Verify the customer in QuickBooks has a valid name and email.`
+  },
+  {
+    pattern: /PAYMENT_UPSERT_FAILED.*qb_payment_id=([^:]+)/i,
+    type: 'payment_error',
+    getMessage: () => `Payment sync failed`,
+    getRemedy: () => `The payment could not be matched to an invoice. Ensure the payment is linked to a synced invoice in QuickBooks.`
+  },
+  {
+    pattern: /No matching customer/i,
+    type: 'missing_customer',
+    getMessage: () => `Invoice has no matching customer`,
+    getRemedy: () => `The invoice references a customer not yet synced. Re-run sync to ensure customers are imported first.`
   },
   {
     pattern: /foreign key.*debtors/i,
     type: 'missing_customer',
-    getMessage: () => `Customer not found in system`
+    getMessage: () => `Customer not found in system`,
+    getRemedy: () => `The invoice references a customer that doesn't exist. Re-sync to import all customers.`
   },
   {
-    pattern: /violates not-null constraint/i,
+    pattern: /violates not-null constraint.*"([^"]+)"/i,
     type: 'missing_field',
-    getMessage: () => `Required field missing`
+    getMessage: (match) => `Required field missing: ${match[1]}`,
+    getRemedy: (match) => `The ${match[1]} field is required but was empty. Check the source record in your billing system.`
   },
   {
     pattern: /duplicate key.*unique constraint/i,
     type: 'duplicate',
-    getMessage: () => `Duplicate record`
+    getMessage: () => `Duplicate record`,
+    getRemedy: () => `This record already exists. No action needed - the existing record is preserved.`
   },
   {
     pattern: /timeout/i,
     type: 'timeout',
-    getMessage: () => `Request timed out`
+    getMessage: () => `Request timed out`,
+    getRemedy: () => `The sync took too long. Try syncing again - partial syncs will resume where they left off.`
   },
   {
     pattern: /rate limit/i,
     type: 'rate_limit',
-    getMessage: () => `Rate limit exceeded`
+    getMessage: () => `Rate limit exceeded`,
+    getRemedy: () => `Too many requests were made. Wait a few minutes and try again.`
+  },
+  {
+    pattern: /Failed to refresh token/i,
+    type: 'auth_expired',
+    getMessage: () => `Authentication expired`,
+    getRemedy: () => `Your connection to the billing system has expired. Please reconnect your account in Settings.`
   },
 ];
 
-export function parseErrorMessage(error: string): { type: string; message: string } {
-  for (const { pattern, type, getMessage } of ERROR_PATTERNS) {
+export function parseErrorMessage(error: string): { type: string; message: string; remedy?: string } {
+  for (const { pattern, type, getMessage, getRemedy } of ERROR_PATTERNS) {
     const match = error.match(pattern);
     if (match) {
-      return { type, message: getMessage(match) };
+      return { 
+        type, 
+        message: getMessage(match),
+        remedy: getRemedy ? getRemedy(match) : undefined
+      };
     }
   }
   
@@ -78,7 +127,7 @@ export function groupSyncErrors(errors: (string | object)[] | null | undefined):
   }
 
   const errorStrings = errors.map(e => typeof e === 'string' ? e : JSON.stringify(e));
-  const grouped = new Map<string, { message: string; count: number; details: string[] }>();
+  const grouped = new Map<string, { message: string; count: number; details: string[]; remedy?: string }>();
 
   for (const error of errorStrings) {
     const parsed = parseErrorMessage(error);
@@ -87,14 +136,15 @@ export function groupSyncErrors(errors: (string | object)[] | null | undefined):
     if (grouped.has(key)) {
       const existing = grouped.get(key)!;
       existing.count++;
-      if (existing.details.length < 3) {
+      if (existing.details.length < 5) {
         existing.details.push(error);
       }
     } else {
       grouped.set(key, {
         message: parsed.message,
         count: 1,
-        details: [error]
+        details: [error],
+        remedy: parsed.remedy
       });
     }
   }
@@ -103,7 +153,8 @@ export function groupSyncErrors(errors: (string | object)[] | null | undefined):
     type,
     message: data.message,
     count: data.count,
-    details: data.details
+    details: data.details,
+    remedy: data.remedy
   }));
 
   // Sort by count descending
@@ -130,18 +181,21 @@ export function getErrorTypeLabel(type: string): string {
     unsupported_status: 'Unsupported Status',
     invoice_status_error: 'Invoice Status Error',
     contact_error: 'Contact Sync Error',
+    customer_error: 'Customer Sync Error',
+    payment_error: 'Payment Sync Error',
     missing_customer: 'Missing Customer',
     missing_field: 'Missing Required Field',
     duplicate: 'Duplicate Record',
     timeout: 'Timeout',
     rate_limit: 'Rate Limit',
+    auth_expired: 'Authentication Expired',
     unknown: 'Other Error'
   };
   return labels[type] || 'Error';
 }
 
 export function getErrorTypeIcon(type: string): 'warning' | 'error' | 'info' {
-  const severeTypes = ['timeout', 'rate_limit', 'missing_customer'];
+  const severeTypes = ['timeout', 'rate_limit', 'missing_customer', 'auth_expired'];
   const infoTypes = ['duplicate'];
   
   if (severeTypes.includes(type)) return 'error';
