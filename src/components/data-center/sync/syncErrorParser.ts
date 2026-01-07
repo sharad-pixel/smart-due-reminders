@@ -28,25 +28,31 @@ const ERROR_PATTERNS: {
     pattern: /invalid input value for enum.*status.*"([^"]+)"/i,
     type: 'unsupported_status',
     getMessage: (match) => `Unsupported status: ${match[1]}`,
-    getRemedy: (match) => `The status "${match[1]}" from your billing system is not yet mapped. Please contact support or sync will retry with corrected status mapping.`
+    getRemedy: (match) => `The status "${match[1]}" from your billing system is not yet mapped. This has been fixed - please re-run sync.`
   },
   {
     pattern: /INVOICE_UPSERT_FAILED.*qb_invoice_id=([^:]+).*doc=([^:]+).*invalid input value.*"([^"]+)"/i,
     type: 'invoice_status_error',
     getMessage: (match) => `Invoice ${match[2]}: Status "${match[3]}" not supported`,
-    getRemedy: () => `QuickBooks invoice has an unmapped status. This will be corrected on next sync.`
+    getRemedy: () => `QuickBooks invoice has an unmapped status. Please re-run sync - this issue has been fixed.`
   },
   {
     pattern: /INVOICE_UPSERT_FAILED.*stripe_invoice_id=([^:]+).*invalid input value.*"([^"]+)"/i,
     type: 'invoice_status_error',
     getMessage: (match) => `Stripe invoice: Status "${match[2]}" not supported`,
-    getRemedy: () => `Stripe invoice has an unmapped status. This will be corrected on next sync.`
+    getRemedy: () => `Stripe invoice has an unmapped status. Please re-run sync - this issue has been fixed.`
+  },
+  {
+    pattern: /there is no unique or exclusion constraint matching the ON CONFLICT/i,
+    type: 'constraint_error',
+    getMessage: () => `Database constraint missing`,
+    getRemedy: () => `A required database constraint was missing. This has been fixed - please re-run sync.`
   },
   {
     pattern: /CONTACT_UPSERT_FAILED.*qb_customer_id=([^:]+)/i,
     type: 'contact_error',
     getMessage: () => `Contact sync failed`,
-    getRemedy: () => `The contact record could not be synced. Check that the contact has a valid email address.`
+    getRemedy: () => `A database constraint issue has been fixed. Please re-run sync to import contacts.`
   },
   {
     pattern: /CUSTOMER_UPSERT_FAILED.*qb_customer_id=([^:]+).*name=([^:]+)/i,
@@ -189,6 +195,7 @@ export function getErrorTypeLabel(type: string): string {
     timeout: 'Timeout',
     rate_limit: 'Rate Limit',
     auth_expired: 'Authentication Expired',
+    constraint_error: 'Database Constraint',
     unknown: 'Other Error'
   };
   return labels[type] || 'Error';

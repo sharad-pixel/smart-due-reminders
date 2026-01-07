@@ -19,29 +19,33 @@ export const SyncErrorBanner = ({ errors, objectType = 'records', onViewDetails 
     return null;
   }
 
+  // Check if all errors are "fixed" types that can be resolved by re-running sync
+  const fixableTypes = ['unsupported_status', 'invoice_status_error', 'contact_error', 'constraint_error'];
+  const allFixable = grouped.groups.every(g => fixableTypes.includes(g.type));
+
   return (
-    <Alert variant="default" className="border-amber-200 bg-amber-50/50">
-      <AlertTriangle className="h-4 w-4 text-amber-600" />
-      <AlertTitle className="text-amber-800 text-sm font-medium">
-        Sync issues detected
+    <Alert variant="default" className={allFixable ? "border-blue-200 bg-blue-50/50" : "border-amber-200 bg-amber-50/50"}>
+      <AlertTriangle className={`h-4 w-4 ${allFixable ? 'text-blue-600' : 'text-amber-600'}`} />
+      <AlertTitle className={`text-sm font-medium ${allFixable ? 'text-blue-800' : 'text-amber-800'}`}>
+        {allFixable ? 'Previous sync had issues (now fixed)' : 'Sync issues detected'}
       </AlertTitle>
-      <AlertDescription className="text-amber-700">
+      <AlertDescription className={allFixable ? 'text-blue-700' : 'text-amber-700'}>
         <p className="text-sm mb-2">
-          {grouped.totalCount} {objectType} failed to sync:
+          {grouped.totalCount} {objectType} {allFixable ? 'had issues in last sync' : 'failed to sync'}:
         </p>
         
         <ul className="space-y-2 text-sm mb-2">
           {grouped.groups.slice(0, expanded ? undefined : 2).map((group, i) => (
-            <li key={i} className="border-l-2 border-amber-300 pl-2">
+            <li key={i} className={`border-l-2 pl-2 ${allFixable ? 'border-blue-300' : 'border-amber-300'}`}>
               <div className="flex items-start gap-1">
-                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-amber-600 shrink-0" />
+                <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${allFixable ? 'text-blue-600' : 'text-amber-600'}`} />
                 <div>
                   <span className="font-medium">{group.message}</span>
                   {group.count > 1 && (
-                    <span className="text-amber-600"> ({group.count}x)</span>
+                    <span className={allFixable ? 'text-blue-600' : 'text-amber-600'}> ({group.count}x)</span>
                   )}
                   {group.remedy && (
-                    <p className="text-xs text-amber-600/80 mt-0.5">
+                    <p className={`text-xs mt-0.5 ${allFixable ? 'text-blue-600/80' : 'text-amber-600/80'}`}>
                       💡 {group.remedy}
                     </p>
                   )}
@@ -55,7 +59,7 @@ export const SyncErrorBanner = ({ errors, objectType = 'records', onViewDetails 
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-xs text-amber-700 hover:text-amber-800 hover:bg-amber-100"
+            className={`h-6 px-2 text-xs ${allFixable ? 'text-blue-700 hover:text-blue-800 hover:bg-blue-100' : 'text-amber-700 hover:text-amber-800 hover:bg-amber-100'}`}
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? (
@@ -72,16 +76,19 @@ export const SyncErrorBanner = ({ errors, objectType = 'records', onViewDetails 
           </Button>
         )}
 
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-amber-200">
-          <Info className="h-3 w-3 text-amber-600" />
-          <span className="text-xs text-amber-600">
-            This does not affect successfully synced {objectType}.
+        <div className={`flex items-center gap-2 mt-2 pt-2 border-t ${allFixable ? 'border-blue-200' : 'border-amber-200'}`}>
+          <Info className={`h-3 w-3 ${allFixable ? 'text-blue-600' : 'text-amber-600'}`} />
+          <span className={`text-xs ${allFixable ? 'text-blue-600' : 'text-amber-600'}`}>
+            {allFixable 
+              ? 'These issues have been fixed. Re-run sync to resolve them.'
+              : `This does not affect successfully synced ${objectType}.`
+            }
           </span>
           {onViewDetails && (
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-xs text-amber-700 underline"
+              className={`h-auto p-0 text-xs underline ${allFixable ? 'text-blue-700' : 'text-amber-700'}`}
               onClick={onViewDetails}
             >
               View full details

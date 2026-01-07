@@ -167,12 +167,12 @@ serve(async (req) => {
     let conflictsDetected = 0;
     let conflictsResolved = 0;
     let overridesReset = 0;
-    let statusUpdates = { paid: 0, partial: 0, canceled: 0, open: 0 };
+    let statusUpdates = { paid: 0, partial: 0, canceled: 0, voided: 0, open: 0 };
     const errors: string[] = [];
 
     // Helper function to map Stripe status to our invoice status
-    // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid
-    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' | 'Settled' => {
+    // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid, Voided
+    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' | 'Voided' => {
       const amountPaid = stripeInvoice.amount_paid || 0;
       const amountDue = stripeInvoice.amount_due || 0;
       const amountRemaining = stripeInvoice.amount_remaining || 0;
@@ -180,17 +180,17 @@ serve(async (req) => {
       switch (stripeInvoice.status) {
         case 'paid':
           if (amountPaid > 0 && amountPaid < amountDue && amountRemaining === 0) {
-            return 'PartiallyPaid'; // Was 'Partial' - using valid enum
+            return 'PartiallyPaid';
           }
           return 'Paid';
         case 'void':
-          return 'Canceled'; // Was 'Credited' - using valid enum for voided invoices
+          return 'Voided'; // Use Voided status for void invoices
         case 'uncollectible':
-          return 'Canceled'; // Was 'Written Off' - using valid enum for uncollectible
+          return 'Canceled'; // Use Canceled for uncollectible
         case 'open':
         default:
           if (amountPaid > 0 && amountRemaining > 0) {
-            return 'PartiallyPaid'; // Was 'Partial' - using valid enum
+            return 'PartiallyPaid';
           }
           return 'Open';
       }
@@ -270,6 +270,7 @@ serve(async (req) => {
         if (mappedStatus === 'Paid') statusUpdates.paid++;
         else if (mappedStatus === 'PartiallyPaid') statusUpdates.partial++;
         else if (mappedStatus === 'Canceled') statusUpdates.canceled++;
+        else if (mappedStatus === 'Voided') statusUpdates.voided++;
         else statusUpdates.open++;
 
         let paymentDate: string | null = null;
