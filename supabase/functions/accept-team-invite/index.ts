@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
 
       if (ownerProfile?.stripe_subscription_id) {
         // Update Stripe seat quantity
-        const Stripe = (await import('https://esm.sh/stripe@18.5.0')).default;
+        const Stripe = (await import("https://esm.sh/stripe@18.5.0")).default;
         const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { 
           apiVersion: '2025-08-27.basil' 
         });
