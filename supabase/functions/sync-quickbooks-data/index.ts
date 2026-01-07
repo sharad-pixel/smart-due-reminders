@@ -385,6 +385,36 @@ serve(async (req) => {
         }
       }
 
+      // Helper to map QuickBooks invoice status to valid DB enum
+      // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid
+      const mapQBInvoiceStatus = (qbInvoice: any): 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' => {
+        // Check if invoice is voided (QB uses PrivateNote or has $0 total with specific markers)
+        const privateNote = (qbInvoice.PrivateNote || '').toLowerCase();
+        if (privateNote.includes('void') || privateNote.includes('cancelled') || privateNote.includes('canceled')) {
+          return 'Canceled';
+        }
+        
+        // Check if invoice has been deleted/voided (TotalAmt = 0 and Balance = 0 and no line items)
+        const lines = qbInvoice.Line || [];
+        const hasValidLines = lines.some((line: any) => line.Amount && line.Amount > 0);
+        if (qbInvoice.TotalAmt === 0 && qbInvoice.Balance === 0 && !hasValidLines) {
+          return 'Canceled';
+        }
+        
+        // Check if fully paid
+        if (qbInvoice.Balance === 0 && qbInvoice.TotalAmt > 0) {
+          return 'Paid';
+        }
+        
+        // Check if partially paid
+        if (qbInvoice.Balance > 0 && qbInvoice.Balance < qbInvoice.TotalAmt) {
+          return 'PartiallyPaid';
+        }
+        
+        // Default to Open
+        return 'Open';
+      };
+
       // Process invoices
       for (const invoice of invoices) {
         try {
@@ -397,24 +427,39 @@ serve(async (req) => {
           }
 
           const dueDate = invoice.DueDate || invoice.TxnDate;
-          const status = invoice.Balance === 0 ? 'Paid' : 'Open';
+          const status = mapQBInvoiceStatus(invoice);
+          
+          // Build notes based on status
+          let notes: string | null = null;
+          if (status === 'Canceled') {
+            notes = `Voided/Canceled in QuickBooks`;
+          } else if (status === 'PartiallyPaid') {
+            const paid = (invoice.TotalAmt || 0) - (invoice.Balance || 0);
+            notes = `Partially paid - $${paid.toFixed(2)} received via QuickBooks`;
+          }
+
+          const upsertData: Record<string, any> = {
+            user_id: user.id,
+            debtor_id: debtorId,
+            quickbooks_invoice_id: invoice.Id,
+            quickbooks_doc_number: invoice.DocNumber,
+            invoice_number: invoice.DocNumber || `QB-${invoice.Id}`,
+            amount: Math.round((invoice.TotalAmt || 0) * 100),
+            amount_outstanding: Math.round((invoice.Balance || 0) * 100),
+            issue_date: invoice.TxnDate,
+            due_date: dueDate,
+            status: status,
+            integration_source: 'quickbooks',
+            last_synced_at: new Date().toISOString()
+          };
+          
+          if (notes) {
+            upsertData.notes = notes;
+          }
 
           const { error: upsertError } = await supabaseAdmin
             .from('invoices')
-            .upsert({
-              user_id: user.id,
-              debtor_id: debtorId,
-              quickbooks_invoice_id: invoice.Id,
-              quickbooks_doc_number: invoice.DocNumber,
-              invoice_number: invoice.DocNumber || `QB-${invoice.Id}`,
-              amount: Math.round((invoice.TotalAmt || 0) * 100),
-              amount_outstanding: Math.round((invoice.Balance || 0) * 100),
-              issue_date: invoice.TxnDate,
-              due_date: dueDate,
-              status: status,
-              integration_source: 'quickbooks',
-              last_synced_at: new Date().toISOString()
-            }, {
+            .upsert(upsertData, {
               onConflict: 'user_id,quickbooks_invoice_id'
             });
 
