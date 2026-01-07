@@ -387,7 +387,7 @@ export const StripeSyncSection = () => {
                           {tx.invoice?.debtor?.company_name || 'Unknown'}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          ${(tx.amount / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          ${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
