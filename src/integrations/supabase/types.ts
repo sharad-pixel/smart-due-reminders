@@ -3322,6 +3322,68 @@ export type Database = {
           },
         ]
       }
+      integration_sync_settings: {
+        Row: {
+          conflict_resolution: string | null
+          created_at: string | null
+          id: string
+          include_draft: boolean | null
+          include_open: boolean | null
+          include_paid: boolean | null
+          include_voided: boolean | null
+          integration_type: string
+          sync_credits: boolean | null
+          sync_customers: boolean | null
+          sync_frequency: string | null
+          sync_invoices: boolean | null
+          sync_payments: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conflict_resolution?: string | null
+          created_at?: string | null
+          id?: string
+          include_draft?: boolean | null
+          include_open?: boolean | null
+          include_paid?: boolean | null
+          include_voided?: boolean | null
+          integration_type: string
+          sync_credits?: boolean | null
+          sync_customers?: boolean | null
+          sync_frequency?: string | null
+          sync_invoices?: boolean | null
+          sync_payments?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conflict_resolution?: string | null
+          created_at?: string | null
+          id?: string
+          include_draft?: boolean | null
+          include_open?: boolean | null
+          include_paid?: boolean | null
+          include_voided?: boolean | null
+          integration_type?: string
+          sync_credits?: boolean | null
+          sync_customers?: boolean | null
+          sync_frequency?: string | null
+          sync_invoices?: boolean | null
+          sync_payments?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_import_errors: {
         Row: {
           error_message: string
@@ -4944,38 +5006,65 @@ export type Database = {
       quickbooks_sync_log: {
         Row: {
           completed_at: string | null
+          contacts_synced: number | null
           created_at: string | null
+          customers_synced: number | null
           errors: Json | null
           id: string
+          invoices_synced: number | null
+          needs_attention_count: number | null
+          needs_attention_details: Json | null
+          payments_synced: number | null
           records_failed: number | null
           records_synced: number | null
+          skipped_count: number | null
+          skipped_details: Json | null
           started_at: string | null
           status: string | null
           sync_type: string
+          synced_count: number | null
           user_id: string
         }
         Insert: {
           completed_at?: string | null
+          contacts_synced?: number | null
           created_at?: string | null
+          customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_synced?: number | null
+          needs_attention_count?: number | null
+          needs_attention_details?: Json | null
+          payments_synced?: number | null
           records_failed?: number | null
           records_synced?: number | null
+          skipped_count?: number | null
+          skipped_details?: Json | null
           started_at?: string | null
           status?: string | null
           sync_type: string
+          synced_count?: number | null
           user_id: string
         }
         Update: {
           completed_at?: string | null
+          contacts_synced?: number | null
           created_at?: string | null
+          customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_synced?: number | null
+          needs_attention_count?: number | null
+          needs_attention_details?: Json | null
+          payments_synced?: number | null
           records_failed?: number | null
           records_synced?: number | null
+          skipped_count?: number | null
+          skipped_details?: Json | null
           started_at?: string | null
           status?: string | null
           sync_type?: string
+          synced_count?: number | null
           user_id?: string
         }
         Relationships: [
@@ -5463,37 +5552,61 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          customers_synced: number | null
           errors: Json | null
           id: string
+          invoices_synced: number | null
+          needs_attention_count: number | null
+          needs_attention_details: Json | null
+          payments_synced: number | null
           records_failed: number | null
           records_synced: number | null
+          skipped_count: number | null
+          skipped_details: Json | null
           started_at: string | null
           status: string | null
           sync_type: string
+          synced_count: number | null
           user_id: string
         }
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_synced?: number | null
+          needs_attention_count?: number | null
+          needs_attention_details?: Json | null
+          payments_synced?: number | null
           records_failed?: number | null
           records_synced?: number | null
+          skipped_count?: number | null
+          skipped_details?: Json | null
           started_at?: string | null
           status?: string | null
           sync_type: string
+          synced_count?: number | null
           user_id: string
         }
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          customers_synced?: number | null
           errors?: Json | null
           id?: string
+          invoices_synced?: number | null
+          needs_attention_count?: number | null
+          needs_attention_details?: Json | null
+          payments_synced?: number | null
           records_failed?: number | null
           records_synced?: number | null
+          skipped_count?: number | null
+          skipped_details?: Json | null
           started_at?: string | null
           status?: string | null
           sync_type?: string
+          synced_count?: number | null
           user_id?: string
         }
         Relationships: []

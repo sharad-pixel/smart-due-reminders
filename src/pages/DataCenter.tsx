@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Database, 
   Upload, 
@@ -13,14 +12,10 @@ import {
   Download, 
   Plus, 
   Settings,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Eye,
   Loader2,
-  Info,
   Users,
   DollarSign,
+  Link2,
   FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,10 +25,10 @@ import { DataCenterUploadsTab } from "@/components/data-center/DataCenterUploads
 import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploadWizard";
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
 import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
-import { IntegrationSyncDashboard } from "@/components/data-center/IntegrationSyncDashboard";
 import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSection";
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
-import { EmailIdentityStatus } from "@/components/data-center/EmailIdentityStatus";
+import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
+import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import * as XLSX from "xlsx";
 
 const DataCenter = () => {
@@ -62,7 +57,6 @@ const DataCenter = () => {
   });
 
   const handleStartUpload = (fileType: "invoice_aging" | "payments" | "accounts") => {
-    // Force user to create a source first if none exist
     if (!stats?.sources || stats.sources === 0) {
       toast.info("Create a data source first", {
         description: "You need to set up a data source before uploading files."
@@ -82,7 +76,6 @@ const DataCenter = () => {
         return;
       }
 
-      // Fetch all accounts for the user
       const { data: accounts, error } = await supabase
         .from("debtors")
         .select("reference_id, company_name, name, email, phone, type, external_customer_id, crm_account_id_external, industry, address_line1, address_line2, city, state, postal_code, country")
@@ -98,7 +91,6 @@ const DataCenter = () => {
         return;
       }
 
-      // Format data for export
       const exportData = accounts.map(acc => ({
         "Recouply Account ID (RAID)": acc.reference_id,
         "Company Name": acc.company_name,
@@ -117,12 +109,9 @@ const DataCenter = () => {
         "Country": acc.country || ""
       }));
 
-      // Create workbook and worksheet
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Accounts");
-
-      // Download file
       XLSX.writeFile(wb, `recouply_accounts_export_${new Date().toISOString().split('T')[0]}.xlsx`);
 
       toast.success("Accounts exported", {
@@ -150,7 +139,7 @@ const DataCenter = () => {
               Data Center
             </h1>
             <p className="text-muted-foreground">
-              Import, map, and manage your AR data with AI-powered field detection
+              Manage all your data sources and integrations in one place
             </p>
           </div>
           <div className="flex gap-2">
@@ -165,7 +154,113 @@ const DataCenter = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Sync Health Dashboard */}
+        <SyncHealthDashboard />
+
+        {/* Connected Integrations - Enterprise Cards */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-primary" />
+            Connected Integrations
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <StripeSyncSection />
+            <QuickBooksSyncSection />
+          </div>
+        </div>
+
+        {/* Data Import Section */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-primary" />
+            Data Import
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* CSV/Excel Upload Card */}
+            <Card className="border-primary/20 hover:border-primary/40 transition-colors">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
+                    <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">CSV/Excel Upload</CardTitle>
+                    <CardDescription className="text-xs">
+                      Import invoices & customers from files
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => handleStartUpload("accounts")}
+                  >
+                    <Users className="h-3 w-3" />
+                    Accounts
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => handleStartUpload("invoice_aging")}
+                  >
+                    <FileText className="h-3 w-3" />
+                    Invoices
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => handleStartUpload("payments")}
+                  >
+                    <DollarSign className="h-3 w-3" />
+                    Payments
+                  </Button>
+                </div>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="w-full gap-2"
+                  onClick={handleExportAccounts}
+                >
+                  <Download className="h-3 w-3" />
+                  Export Accounts with RAIDs
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* API Connection Card - Coming Soon */}
+            <Card className="border-dashed opacity-75">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                    <Link2 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      API Connection
+                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Connect custom systems via REST API
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Build custom integrations with our API to sync data from any system.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
@@ -205,163 +300,22 @@ const DataCenter = () => {
               <CardDescription>Quick Actions</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleStartUpload("accounts")}>
-                <Users className="h-4 w-4 mr-1" />
-                Accounts
-              </Button>
               <Button size="sm" variant="outline" onClick={() => handleStartUpload("invoice_aging")}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />
-                Invoices
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleStartUpload("payments")}>
-                <DollarSign className="h-4 w-4 mr-1" />
-                Payments
+                <Upload className="h-4 w-4 mr-1" />
+                Upload
               </Button>
               <Button size="sm" variant="secondary" onClick={handleExportAccounts}>
                 <Download className="h-4 w-4 mr-1" />
-                Export Accounts
+                Export
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* How to Prepare Data Guide */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Info className="h-5 w-5 text-primary" />
-            How to Prepare Your Data
-          </h3>
-          
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Accounts Guide */}
-            <Card className="border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  Accounts
-                </CardTitle>
-                <CardDescription className="text-xs">Import your customer/company records</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <div>
-                  <p className="font-medium text-foreground mb-1">Required Fields:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Company Name</strong> - Company or business name</li>
-                    <li><strong>Contact Name</strong> - Primary contact person</li>
-                    <li><strong>Contact Email</strong> - Primary contact email</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li>Contact Name, Customer Phone</li>
-                    <li>External Customer ID, CRM Account ID</li>
-                    <li>Industry, Account Type</li>
-                    <li>Billing Address</li>
-                    <li>Customer ID</li>
-                  </ul>
-                </div>
-                <div className="pt-2 border-t flex items-start gap-1.5">
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
-                  <p className="text-muted-foreground">
-                    Recouply Account ID (RAID) is auto-generated. Import accounts first for best matching.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Sync Activity Log */}
+        <SyncActivityLog />
 
-            {/* Invoices Guide */}
-            <Card className="border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-amber-500" />
-                  Invoices
-                </CardTitle>
-                <CardDescription className="text-xs">Import your AR aging or invoice data</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <div>
-                  <p className="font-medium text-foreground mb-1">Required Fields:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Recouply Account ID</strong> - Links to existing account (RAID)</li>
-                    <li><strong>Invoice Number</strong> - Your invoice identifier</li>
-                    <li><strong>Original Amount</strong> - Invoice total amount</li>
-                    <li><strong>Invoice Date</strong> - Date invoice was issued</li>
-                    <li><strong>Due Date</strong> - Payment due date</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li>Outstanding Amount, Currency</li>
-                    <li>Invoice Status, External Invoice ID</li>
-                    <li>Product/Service Description</li>
-                    <li>PO Number</li>
-                  </ul>
-                </div>
-                <div className="pt-2 border-t flex items-start gap-1.5">
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-                  <p className="text-muted-foreground">
-                    Export accounts first to get Recouply Account IDs for linking invoices.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Payments Guide */}
-            <Card className="border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-green-500" />
-                  Payments
-                </CardTitle>
-                <CardDescription className="text-xs">Import payments to reconcile invoices</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <div>
-                  <p className="font-medium text-foreground mb-1">Required Fields:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li><strong>Recouply Invoice ID</strong> - Primary match key (RINV)</li>
-                    <li><strong>Invoice Number</strong> - Fallback match key</li>
-                    <li><strong>Payment Amount</strong> - Amount paid</li>
-                    <li><strong>Payment Date</strong> - Date payment received</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground mb-1">Recommended Fields:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                    <li>Payment Method (check, wire, ACH)</li>
-                    <li>Payment Reference / Check Number</li>
-                    <li>Payment Notes</li>
-                  </ul>
-                </div>
-                <div className="pt-2 border-t flex items-start gap-1.5">
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-                  <p className="text-muted-foreground">
-                    Export invoices first to get Recouply Invoice IDs for accurate payment matching.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Email Identity Status */}
-        <EmailIdentityStatus />
-
-        {/* Connected Integrations */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Connected Integrations</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <StripeSyncSection />
-            <QuickBooksSyncSection />
-          </div>
-        </div>
-
-        {/* Integration Sync Dashboard */}
-        <IntegrationSyncDashboard />
-
-        {/* Main Tabs */}
+        {/* Tabs for Uploads and Sources */}
         <Tabs defaultValue="uploads" className="space-y-4">
           <TabsList>
             <TabsTrigger value="uploads" className="gap-2">
