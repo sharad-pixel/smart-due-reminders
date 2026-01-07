@@ -4,8 +4,8 @@
 // DO NOT change to @recouply.ai - it will fail!
 // See: supabase/functions/_shared/emailConfig.ts
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
