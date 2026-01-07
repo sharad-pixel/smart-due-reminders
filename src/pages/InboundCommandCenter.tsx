@@ -94,6 +94,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateBrandedEmail, BrandingSettings } from "@/lib/emailSignature";
+import { getDebtorReplyTo, getInvoiceReplyTo, getPlatformFromAddress } from "@/lib/emailSending";
 interface EmailTask {
   id: string;
   task_type: string;
@@ -1828,10 +1829,17 @@ const InboundCommandCenter = () => {
                       
                       const brandedHtml = generateBrandedEmail(formattedBody, branding);
                       
+                      const replyTo = selectedEmail.invoice_id
+                        ? getInvoiceReplyTo(selectedEmail.invoice_id)
+                        : selectedEmail.debtor_id
+                          ? getDebtorReplyTo(selectedEmail.debtor_id)
+                          : undefined;
+
                       const { error: sendError } = await supabase.functions.invoke("send-email", {
                         body: {
                           to: selectedEmail.from_email,
-                          from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+                          from: getPlatformFromAddress(),
+                          reply_to: replyTo,
                           subject: generatedResponse.subject,
                           html: brandedHtml,
                         },
@@ -2034,14 +2042,21 @@ const InboundCommandCenter = () => {
                       
                       const brandedHtml = generateBrandedEmail(formattedBody, branding);
                       
-                      const { error: sendError } = await supabase.functions.invoke("send-email", {
-                        body: {
-                          to: selectedEmail.from_email,
-                          from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
-                          subject: generatedResponse.subject,
-                          html: brandedHtml,
-                        },
-                      });
+                       const replyTo = selectedEmail.invoice_id
+                         ? getInvoiceReplyTo(selectedEmail.invoice_id)
+                         : selectedEmail.debtor_id
+                           ? getDebtorReplyTo(selectedEmail.debtor_id)
+                           : undefined;
+
+                       const { error: sendError } = await supabase.functions.invoke("send-email", {
+                         body: {
+                           to: selectedEmail.from_email,
+                           from: getPlatformFromAddress(),
+                           reply_to: replyTo,
+                           subject: generatedResponse.subject,
+                           html: brandedHtml,
+                         },
+                       });
                       
                       if (sendError) throw sendError;
                       

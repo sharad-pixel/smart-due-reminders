@@ -14,7 +14,10 @@ interface EmailAttachment {
 interface SendEmailRequest {
   to: string | string[];
   from: string;
+  // Preferred snake_case (matches Resend API)
   reply_to?: string;
+  // Back-compat for older callers
+  replyTo?: string;
   subject: string;
   html?: string;
   text?: string;
@@ -154,9 +157,8 @@ serve(async (req) => {
     resendPayload.text = payload.text;
   }
 
-  if (payload.reply_to) {
-    resendPayload.reply_to = payload.reply_to;
-  }
+  const resolvedReplyTo = payload.reply_to || payload.replyTo || "support@inbound.services.recouply.ai";
+  resendPayload.reply_to = resolvedReplyTo;
 
   if (payload.attachments && payload.attachments.length > 0) {
     resendPayload.attachments = payload.attachments.map((att) => ({
