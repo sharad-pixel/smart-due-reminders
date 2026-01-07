@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -182,7 +182,7 @@ serve(async (req) => {
     // Get branding settings for email customization
     const { data: brandingSettings } = await supabaseAdmin
       .from('branding_settings')
-      .select('business_name, from_name, email_signature, email_footer, primary_color, logo_url, ar_page_public_token, ar_page_enabled')
+      .select('business_name, from_name, email_signature, email_footer, primary_color, logo_url, ar_page_public_token, ar_page_enabled, ar_contact_email')
       .eq('user_id', brandingOwnerId)
       .single();
     
@@ -490,9 +490,20 @@ ${brandingSettings.email_footer ? `- Include this footer note: "${brandingSettin
       }
     }
     
+    // Build contact email for signature - use branding settings or profile email
+    const arContactEmail = brandingSettings?.ar_contact_email || profile?.email || `collections@${businessName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
+    
     // Build AI prompt based on available context
     let systemPrompt = `You are ${persona.name}, an AI collections assistant representing ${businessName}.\n
 Your tone is: ${persona.tone}\n${brandingContext}
+
+CRITICAL SIGNATURE REQUIREMENTS:
+- Your signature MUST use the exact business name: "${businessName}"
+- Your signature MUST use this contact email: "${arContactEmail}"
+- NEVER use template variables like {{company_name}} - always use the actual business name: "${businessName}"
+- NEVER use collections@recouply.ai - use "${arContactEmail}" instead
+- Sign off as "the ${businessName} team" NOT "the {{company_name}} team"
+
 Rules:\n- Act in this persona's tone and style\n- Write as the business, using full white-label identity\n- NEVER mention Recouply.ai or imply third-party collection services\n- NEVER use threats, legal intimidation, or harassment\n- Keep the message professional and helpful\n- Include a clear next step or call to action\n- Offer a polite way for the customer to reply or resolve their inquiry\n- Be concise but personable\n- If there are open customer requests or issues, acknowledge them professionally and address them\n- If there is historical engagement context, use it to craft a more informed and contextually relevant response\n- If branding signature/footer is provided, incorporate it naturally into your email closing${taskContext}${paymentActivityContext}${historicalEngagementContext}`;
 
     let userPrompt: string;
