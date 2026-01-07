@@ -70,6 +70,22 @@ serve(async (req) => {
       throw new Error("Invoice not found");
     }
 
+    // CRITICAL: Block draft generation for settled invoices
+    const settledStatuses = ['Paid', 'Canceled', 'Voided', 'Credited', 'Written Off', 'paid', 'canceled', 'voided', 'credited', 'written off'];
+    if (settledStatuses.includes(invoice.status)) {
+      console.log(`Blocking draft generation: invoice ${invoice_id} has status ${invoice.status}`);
+      return new Response(
+        JSON.stringify({
+          error: `Cannot generate outreach for ${invoice.status} invoices`,
+          invoice_status: invoice.status,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Use the invoice owner as the source of truth for templates/branding (supports team members)
     const templateOwnerId: string = invoice.user_id || user.id;
 
