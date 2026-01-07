@@ -167,11 +167,12 @@ serve(async (req) => {
     let conflictsDetected = 0;
     let conflictsResolved = 0;
     let overridesReset = 0;
-    let statusUpdates = { paid: 0, partial: 0, credited: 0, writtenOff: 0, open: 0 };
+    let statusUpdates = { paid: 0, partial: 0, canceled: 0, open: 0 };
     const errors: string[] = [];
 
     // Helper function to map Stripe status to our invoice status
-    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): 'Open' | 'Paid' | 'Partial' | 'Credited' | 'Written Off' => {
+    // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid
+    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' | 'Settled' => {
       const amountPaid = stripeInvoice.amount_paid || 0;
       const amountDue = stripeInvoice.amount_due || 0;
       const amountRemaining = stripeInvoice.amount_remaining || 0;
@@ -179,17 +180,17 @@ serve(async (req) => {
       switch (stripeInvoice.status) {
         case 'paid':
           if (amountPaid > 0 && amountPaid < amountDue && amountRemaining === 0) {
-            return 'Partial';
+            return 'PartiallyPaid'; // Was 'Partial' - using valid enum
           }
           return 'Paid';
         case 'void':
-          return 'Credited';
+          return 'Canceled'; // Was 'Credited' - using valid enum for voided invoices
         case 'uncollectible':
-          return 'Written Off';
+          return 'Canceled'; // Was 'Written Off' - using valid enum for uncollectible
         case 'open':
         default:
           if (amountPaid > 0 && amountRemaining > 0) {
-            return 'Partial';
+            return 'PartiallyPaid'; // Was 'Partial' - using valid enum
           }
           return 'Open';
       }
@@ -267,9 +268,8 @@ serve(async (req) => {
         const mappedStatus = mapStripeStatus(stripeInvoice);
         
         if (mappedStatus === 'Paid') statusUpdates.paid++;
-        else if (mappedStatus === 'Partial') statusUpdates.partial++;
-        else if (mappedStatus === 'Credited') statusUpdates.credited++;
-        else if (mappedStatus === 'Written Off') statusUpdates.writtenOff++;
+        else if (mappedStatus === 'PartiallyPaid') statusUpdates.partial++;
+        else if (mappedStatus === 'Canceled') statusUpdates.canceled++;
         else statusUpdates.open++;
 
         let paymentDate: string | null = null;
@@ -363,13 +363,14 @@ serve(async (req) => {
           invoiceData.paid_date = paidDate;
         }
 
-        if (mappedStatus === 'Credited') {
-          invoiceData.notes = `Voided/Credited in Stripe on ${new Date().toLocaleDateString()}`;
-        } else if (mappedStatus === 'Written Off') {
+        // Add notes based on status - using Stripe raw status for notes
+        if (stripeInvoice.status === 'void') {
+          invoiceData.notes = `Voided in Stripe on ${new Date().toLocaleDateString()}`;
+        } else if (stripeInvoice.status === 'uncollectible') {
           invoiceData.notes = `Marked uncollectible in Stripe on ${new Date().toLocaleDateString()}`;
-        } else if (mappedStatus === 'Partial') {
+        } else if (mappedStatus === 'PartiallyPaid') {
           const amountPaid = (stripeInvoice.amount_paid || 0) / 100;
-          invoiceData.notes = `Partially settled - $${amountPaid.toFixed(2)} paid via Stripe`;
+          invoiceData.notes = `Partially paid - $${amountPaid.toFixed(2)} paid via Stripe`;
         } else if (mappedStatus === 'Paid') {
           invoiceData.notes = `Paid in full via Stripe${paidDate ? ` on ${paidDate}` : ''}`;
         }
