@@ -208,29 +208,33 @@ serve(async (req) => {
           }
         }
 
-        // PAYMENTS METRICS - Use effective account ID
+        // PAYMENTS METRICS - Use invoice_transactions table for accurate payment tracking
+        // This captures both integration payments (Stripe, QuickBooks) and manual entries
         const { data: paymentsToday } = await supabase
-          .from('payments')
+          .from('invoice_transactions')
           .select('amount')
           .eq('user_id', accountId)
-          .gte('payment_date', today);
+          .in('transaction_type', ['payment', 'credit'])
+          .gte('transaction_date', today);
 
         const paymentsCollectedToday = paymentsToday?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
         const { data: paymentsLast7 } = await supabase
-          .from('payments')
+          .from('invoice_transactions')
           .select('amount')
           .eq('user_id', accountId)
-          .gte('payment_date', last7DaysStart.toISOString());
+          .in('transaction_type', ['payment', 'credit'])
+          .gte('transaction_date', last7DaysStart.toISOString());
 
         const paymentsCollectedLast7Days = paymentsLast7?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
         const { data: paymentsPrev7 } = await supabase
-          .from('payments')
+          .from('invoice_transactions')
           .select('amount')
           .eq('user_id', accountId)
-          .gte('payment_date', prev7DaysStart.toISOString())
-          .lt('payment_date', last7DaysStart.toISOString());
+          .in('transaction_type', ['payment', 'credit'])
+          .gte('transaction_date', prev7DaysStart.toISOString())
+          .lt('transaction_date', last7DaysStart.toISOString());
 
         const paymentsCollectedPrev7Days = paymentsPrev7?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
