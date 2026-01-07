@@ -414,39 +414,31 @@ Deno.serve(async (req) => {
         } else {
           debtorId = existingDebtor.id;
           
-          // Update debtor email if changed in Stripe
+          // Only update primary contact email if different in Stripe
           if (customerEmail) {
-            const { error: updateDebtorError } = await supabaseClient
-              .from('debtors')
-              .update({ 
-                email: customerEmail,
-                name: customerName,
-                company_name: customerName,
-                phone: customer.phone || null,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', debtorId);
-            
-            if (updateDebtorError) {
-              logStep('Error updating debtor email', { error: updateDebtorError.message, debtorId });
-            } else {
-              logStep('Updated debtor from Stripe', { debtorId, customerEmail });
-            }
-            
-            // Also update the primary contact email
-            const { error: updateContactError } = await supabaseClient
+            const { data: existingContact } = await supabaseClient
               .from('debtor_contacts')
-              .update({ 
-                email: customerEmail,
-                name: customerName,
-                phone: customer.phone || null,
-                updated_at: new Date().toISOString()
-              })
+              .select('email')
               .eq('debtor_id', debtorId)
-              .eq('is_primary', true);
+              .eq('is_primary', true)
+              .limit(1)
+              .maybeSingle();
             
-            if (updateContactError) {
-              logStep('Error updating contact email', { error: updateContactError.message, debtorId });
+            if (existingContact && existingContact.email !== customerEmail) {
+              const { error: updateContactError } = await supabaseClient
+                .from('debtor_contacts')
+                .update({ 
+                  email: customerEmail,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('debtor_id', debtorId)
+                .eq('is_primary', true);
+              
+              if (updateContactError) {
+                logStep('Error updating contact email', { error: updateContactError.message, debtorId });
+              } else {
+                logStep('Updated primary contact email from Stripe', { debtorId, oldEmail: existingContact.email, newEmail: customerEmail });
+              }
             }
           }
         }
