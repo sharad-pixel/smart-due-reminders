@@ -1,9 +1,37 @@
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const serve = (handler: (req: Request) => Promise<Response>) => {
-  Deno.serve(handler);
+type StripeInvoice = any;
+type StripeCustomer = any;
+type StripePaymentIntent = any;
+type StripeRefund = any;
+type StripeCreditNote = any;
+
+type StripeListResponse<T> = { data: T[] };
+
+const STRIPE_API_BASE = "https://api.stripe.com";
+
+const buildStripeUrl = (path: string, params: Array<[string, string]> = []) => {
+  const url = new URL(`${STRIPE_API_BASE}${path}`);
+  for (const [k, v] of params) url.searchParams.append(k, v);
+  return url;
 };
+
+async function stripeGetJson<T = any>(stripeKey: string, path: string, params: Array<[string, string]> = []): Promise<T> {
+  const res = await fetch(buildStripeUrl(path, params), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${stripeKey}`,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Stripe API error (${res.status}) GET ${path}: ${text || res.statusText}`);
+  }
+
+  return await res.json();
+}
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,7 +75,7 @@ async function decryptValue(encryptedValue: string): Promise<string> {
   return decoder.decode(decrypted);
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -122,63 +150,46 @@ serve(async (req) => {
       logStep('STRIPE_SYNCLOG_INSERT_FAILED', { error: String(e) });
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
     // Fetch invoices from Stripe - all statuses for complete sync
     // Use a Map to deduplicate invoices by ID (in case same invoice appears in multiple lists)
-    const invoiceMap = new Map<string, Stripe.Invoice>();
-    
+    const invoiceMap = new Map<string, StripeInvoice>();
+
+    const listInvoices = async (status: string) => {
+      const resp = await stripeGetJson<StripeListResponse<StripeInvoice>>(stripeKey, "/v1/invoices", [
+        ["status", status],
+        ["limit", "100"],
+        ["expand[]", "data.customer"],
+      ]);
+      return resp.data || [];
+    };
+
     // Get open invoices (unpaid)
-    const openInvoices = await stripe.invoices.list({
-      status: 'open',
-      limit: 100,
-      expand: ['data.customer']
-    });
-    for (const inv of openInvoices.data) {
-      invoiceMap.set(inv.id, inv);
-    }
-    logStep("Fetched open invoices", { count: openInvoices.data.length });
+    const openInvoices = await listInvoices("open");
+    for (const inv of openInvoices) invoiceMap.set(inv.id, inv);
+    logStep("Fetched open invoices", { count: openInvoices.length });
 
     // Get paid invoices to capture settlements - PRIORITY: paid status overwrites others
-    const paidInvoices = await stripe.invoices.list({
-      status: 'paid',
-      limit: 100,
-      expand: ['data.customer']
-    });
-    for (const inv of paidInvoices.data) {
-      // Always overwrite with paid - this is the source of truth for settlement
-      invoiceMap.set(inv.id, inv);
-    }
-    logStep("Fetched paid invoices", { count: paidInvoices.data.length });
+    const paidInvoices = await listInvoices("paid");
+    for (const inv of paidInvoices) invoiceMap.set(inv.id, inv);
+    logStep("Fetched paid invoices", { count: paidInvoices.length });
 
     // Get void invoices (cancelled/credited) - only add if not already paid
-    const voidInvoices = await stripe.invoices.list({
-      status: 'void',
-      limit: 100,
-      expand: ['data.customer']
-    });
-    for (const inv of voidInvoices.data) {
+    const voidInvoices = await listInvoices("void");
+    for (const inv of voidInvoices) {
       const existing = invoiceMap.get(inv.id);
-      // Only set if not already in the map, or if existing isn't paid
-      if (!existing || existing.status !== 'paid') {
-        invoiceMap.set(inv.id, inv);
-      }
+      if (!existing || existing.status !== "paid") invoiceMap.set(inv.id, inv);
     }
-    logStep("Fetched void invoices", { count: voidInvoices.data.length });
+    logStep("Fetched void invoices", { count: voidInvoices.length });
 
     // Get uncollectible invoices (written off) - only add if not already paid/void
-    const uncollectibleInvoices = await stripe.invoices.list({
-      status: 'uncollectible',
-      limit: 100,
-      expand: ['data.customer']
-    });
-    for (const inv of uncollectibleInvoices.data) {
+    const uncollectibleInvoices = await listInvoices("uncollectible");
+    for (const inv of uncollectibleInvoices) {
       const existing = invoiceMap.get(inv.id);
-      if (!existing || (existing.status !== 'paid' && existing.status !== 'void')) {
+      if (!existing || (existing.status !== "paid" && existing.status !== "void")) {
         invoiceMap.set(inv.id, inv);
       }
     }
-    logStep("Fetched uncollectible invoices", { count: uncollectibleInvoices.data.length });
+    logStep("Fetched uncollectible invoices", { count: uncollectibleInvoices.length });
 
     // Convert map to array for processing
     const invoices = Array.from(invoiceMap.values());
@@ -247,7 +258,7 @@ serve(async (req) => {
 
     // Helper function to map Stripe status with normalized fields
     // Recouply treats void/uncollectible as TERMINAL - not sync failures
-    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): NormalizedInvoice => {
+    const mapStripeStatus = (stripeInvoice: StripeInvoice): NormalizedInvoice => {
       const amountPaid = stripeInvoice.amount_paid || 0;
       const amountDue = stripeInvoice.amount_due || 0;
       const amountRemaining = stripeInvoice.amount_remaining || 0;
@@ -327,9 +338,9 @@ serve(async (req) => {
       try {
         if (!stripeInvoice.customer) continue;
 
-        const customer = typeof stripeInvoice.customer === 'string' 
-          ? null 
-          : stripeInvoice.customer as Stripe.Customer;
+        const customer = typeof stripeInvoice.customer === 'string'
+          ? null
+          : (stripeInvoice.customer as StripeCustomer);
         
         if (!customer) continue;
 
@@ -631,125 +642,136 @@ serve(async (req) => {
           
           const existingRefs = new Set((existingTxs || []).map(tx => tx.reference_number).filter(Boolean));
 
-          if (stripeInvoice.payment_intent) {
-            const paymentIntentId = typeof stripeInvoice.payment_intent === 'string' 
-              ? stripeInvoice.payment_intent 
-              : stripeInvoice.payment_intent.id;
-            
-            try {
-              const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-              
-              if (paymentIntent.status === 'succeeded' && paymentIntent.amount_received > 0) {
-                const paymentRef = `stripe_pi_${paymentIntentId}`;
-                if (!existingRefs.has(paymentRef)) {
-                  const amountPaid = paymentIntent.amount_received / 100;
-                  const balanceAfter = (stripeInvoice.amount_remaining || 0) / 100;
-                  
-                  await supabaseClient
-                    .from('invoice_transactions')
-                    .insert({
-                      invoice_id: invoiceRecordId,
-                      user_id: effectiveAccountId,
-                      transaction_type: 'payment',
-                      amount: amountPaid,
-                      balance_after: balanceAfter,
-                      payment_method: paymentIntent.payment_method_types?.[0] || 'card',
-                      reference_number: paymentRef,
-                      transaction_date: new Date(paymentIntent.created * 1000).toISOString().split('T')[0],
-                      notes: `Payment via Stripe`,
-                      source_system: 'stripe',
-                      external_transaction_id: paymentIntentId,
-                      metadata: { 
-                        stripe_payment_intent_id: paymentIntentId,
-                        stripe_invoice_id: stripeInvoice.id,
-                        source: 'stripe_sync'
-                      }
-                    });
-                  
-                  transactionsLogged++;
-                  existingRefs.add(paymentRef);
-                }
-              }
-              
-              // Check for refunds
-              const refunds = await stripe.refunds.list({
-                payment_intent: paymentIntentId,
-                limit: 100
-              });
-              
-              for (const refund of refunds.data) {
-                const refundRef = `stripe_refund_${refund.id}`;
-                if (!existingRefs.has(refundRef)) {
-                  const refundAmount = refund.amount / 100;
-                  
-                  await supabaseClient
-                    .from('invoice_transactions')
-                    .insert({
-                      invoice_id: invoiceRecordId,
-                      user_id: effectiveAccountId,
-                      transaction_type: 'refund',
-                      amount: -refundAmount,
-                      payment_method: 'refund',
-                      reference_number: refundRef,
-                      transaction_date: new Date(refund.created * 1000).toISOString().split('T')[0],
-                      notes: `Refund via Stripe${refund.reason ? `: ${refund.reason}` : ''}`,
-                      source_system: 'stripe',
-                      external_transaction_id: refund.id,
-                      metadata: { 
-                        stripe_refund_id: refund.id,
-                        stripe_invoice_id: stripeInvoice.id,
-                        source: 'stripe_sync'
-                      }
-                    });
-                  
-                  transactionsLogged++;
-                  existingRefs.add(refundRef);
-                }
-              }
-            } catch (piError) {
-              logStep("Error fetching payment intent", { paymentIntentId, error: String(piError) });
-            }
-          }
+           if (stripeInvoice.payment_intent) {
+             const paymentIntentId = typeof stripeInvoice.payment_intent === 'string'
+               ? stripeInvoice.payment_intent
+               : stripeInvoice.payment_intent.id;
 
-          // Check for credit notes
-          try {
-            const creditNotes = await stripe.creditNotes.list({
-              invoice: stripeInvoice.id,
-              limit: 100
-            });
+             try {
+               const paymentIntent = await stripeGetJson<StripePaymentIntent>(
+                 stripeKey,
+                 `/v1/payment_intents/${paymentIntentId}`
+               );
 
-            for (const creditNote of creditNotes.data) {
-              const cnRef = `stripe_cn_${creditNote.id}`;
-              if (!existingRefs.has(cnRef)) {
-                const creditAmount = creditNote.amount / 100;
-                
-                await supabaseClient
-                  .from('invoice_transactions')
-                  .insert({
-                    invoice_id: invoiceRecordId,
-                    user_id: effectiveAccountId,
-                    transaction_type: 'credit',
-                    amount: -creditAmount,
-                    payment_method: 'credit_note',
-                    reference_number: cnRef,
-                    transaction_date: new Date(creditNote.created * 1000).toISOString().split('T')[0],
-                    notes: `Credit note via Stripe${creditNote.reason ? `: ${creditNote.reason}` : ''}`,
-                    source_system: 'stripe',
-                    external_transaction_id: creditNote.id,
-                    metadata: { 
-                      stripe_credit_note_id: creditNote.id,
-                      stripe_invoice_id: stripeInvoice.id,
-                      source: 'stripe_sync'
-                    }
-                  });
-                
-                transactionsLogged++;
-                existingRefs.add(cnRef);
-              }
-            }
-          } catch (cnError) {
-            logStep("Error fetching credit notes", { invoiceId: stripeInvoice.id, error: String(cnError) });
-          }
+               if (paymentIntent.status === 'succeeded' && (paymentIntent.amount_received || 0) > 0) {
+                 const paymentRef = `stripe_pi_${paymentIntentId}`;
+                 if (!existingRefs.has(paymentRef)) {
+                   const amountPaid = (paymentIntent.amount_received || 0) / 100;
+                   const balanceAfter = (stripeInvoice.amount_remaining || 0) / 100;
+
+                   await supabaseClient
+                     .from('invoice_transactions')
+                     .insert({
+                       invoice_id: invoiceRecordId,
+                       user_id: effectiveAccountId,
+                       transaction_type: 'payment',
+                       amount: amountPaid,
+                       balance_after: balanceAfter,
+                       payment_method: paymentIntent.payment_method_types?.[0] || 'card',
+                       reference_number: paymentRef,
+                       transaction_date: new Date((paymentIntent.created || 0) * 1000).toISOString().split('T')[0],
+                       notes: `Payment via Stripe`,
+                       source_system: 'stripe',
+                       external_transaction_id: paymentIntentId,
+                       metadata: {
+                         stripe_payment_intent_id: paymentIntentId,
+                         stripe_invoice_id: stripeInvoice.id,
+                         source: 'stripe_sync'
+                       }
+                     });
+
+                   transactionsLogged++;
+                   existingRefs.add(paymentRef);
+                 }
+               }
+
+               // Check for refunds
+               const refundsResp = await stripeGetJson<StripeListResponse<StripeRefund>>(
+                 stripeKey,
+                 '/v1/refunds',
+                 [
+                   ['payment_intent', paymentIntentId],
+                   ['limit', '100'],
+                 ]
+               );
+
+               for (const refund of refundsResp.data || []) {
+                 const refundRef = `stripe_refund_${refund.id}`;
+                 if (!existingRefs.has(refundRef)) {
+                   const refundAmount = (refund.amount || 0) / 100;
+
+                   await supabaseClient
+                     .from('invoice_transactions')
+                     .insert({
+                       invoice_id: invoiceRecordId,
+                       user_id: effectiveAccountId,
+                       transaction_type: 'refund',
+                       amount: -refundAmount,
+                       payment_method: 'refund',
+                       reference_number: refundRef,
+                       transaction_date: new Date((refund.created || 0) * 1000).toISOString().split('T')[0],
+                       notes: `Refund via Stripe${refund.reason ? `: ${refund.reason}` : ''}`,
+                       source_system: 'stripe',
+                       external_transaction_id: refund.id,
+                       metadata: {
+                         stripe_refund_id: refund.id,
+                         stripe_invoice_id: stripeInvoice.id,
+                         source: 'stripe_sync'
+                       }
+                     });
+
+                   transactionsLogged++;
+                   existingRefs.add(refundRef);
+                 }
+               }
+             } catch (piError) {
+               logStep("Error fetching payment intent", { paymentIntentId, error: String(piError) });
+             }
+           }
+
+           // Check for credit notes
+           try {
+             const creditNotesResp = await stripeGetJson<StripeListResponse<StripeCreditNote>>(
+               stripeKey,
+               '/v1/credit_notes',
+               [
+                 ['invoice', stripeInvoice.id],
+                 ['limit', '100'],
+               ]
+             );
+
+             for (const creditNote of creditNotesResp.data || []) {
+               const cnRef = `stripe_cn_${creditNote.id}`;
+               if (!existingRefs.has(cnRef)) {
+                 const creditAmount = (creditNote.amount || 0) / 100;
+
+                 await supabaseClient
+                   .from('invoice_transactions')
+                   .insert({
+                     invoice_id: invoiceRecordId,
+                     user_id: effectiveAccountId,
+                     transaction_type: 'credit',
+                     amount: -creditAmount,
+                     payment_method: 'credit_note',
+                     reference_number: cnRef,
+                     transaction_date: new Date((creditNote.created || 0) * 1000).toISOString().split('T')[0],
+                     notes: `Credit note via Stripe${creditNote.reason ? `: ${creditNote.reason}` : ''}`,
+                     source_system: 'stripe',
+                     external_transaction_id: creditNote.id,
+                     metadata: {
+                       stripe_credit_note_id: creditNote.id,
+                       stripe_invoice_id: stripeInvoice.id,
+                       source: 'stripe_sync'
+                     }
+                   });
+
+                 transactionsLogged++;
+                 existingRefs.add(cnRef);
+               }
+             }
+           } catch (cnError) {
+             logStep("Error fetching credit notes", { invoiceId: stripeInvoice.id, error: String(cnError) });
+           }
 
           // Log discounts
           if (stripeInvoice.discount) {
