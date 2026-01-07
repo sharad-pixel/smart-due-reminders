@@ -43,6 +43,10 @@ import {
   Search,
   Archive,
   ArchiveRestore,
+  Receipt,
+  Building2,
+  LayoutGrid,
+  MessageSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -379,6 +383,7 @@ const InboundCommandCenter = () => {
   const [emails, setEmails] = useState<InboundEmail[]>([]);
   const [archivedEmails, setArchivedEmails] = useState<InboundEmail[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
+  const [outreachType, setOutreachType] = useState<"all" | "invoice" | "account">("all");
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -571,8 +576,19 @@ const InboundCommandCenter = () => {
     setArchivedEmails(archivedData);
   };
 
+  // Filter by outreach type (invoice vs account level)
+  const filterByOutreachType = (emailList: InboundEmail[]) => {
+    if (outreachType === "all") return emailList;
+    if (outreachType === "invoice") return emailList.filter(e => e.invoice_id);
+    return emailList.filter(e => !e.invoice_id && e.debtor_id);
+  };
+
   // Flat list sorted newest to oldest (already done by DB query)
-  const displayEmails = activeTab === "active" ? emails : archivedEmails;
+  const displayEmails = filterByOutreachType(activeTab === "active" ? emails : archivedEmails);
+  
+  // Counts for outreach type tabs
+  const invoiceOutreachCount = (activeTab === "active" ? emails : archivedEmails).filter(e => e.invoice_id).length;
+  const accountOutreachCount = (activeTab === "active" ? emails : archivedEmails).filter(e => !e.invoice_id && e.debtor_id).length;
 
   const handleSearch = () => {
     loadEmails();
@@ -954,17 +970,52 @@ const InboundCommandCenter = () => {
             </Button>
           </div>
           
-          {/* Stats badges */}
-          <div className="flex gap-2 flex-wrap">
-            <Badge variant="outline" className="text-xs md:text-sm">
-              {emails.length} Active
-            </Badge>
-            <Badge variant="outline" className="text-xs md:text-sm">
-              {archivedEmails.length} Archived
-            </Badge>
-            <Badge variant="outline" className="text-xs md:text-sm">
-              {emails.filter((e) => e.status === "processed").length} Processed
-            </Badge>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-blue-500/10 rounded-md">
+                  <Inbox className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{emails.length}</p>
+                  <p className="text-xs text-blue-600/80 dark:text-blue-400/80">Active</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 rounded-lg p-3 border border-purple-100 dark:border-purple-800">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-purple-500/10 rounded-md">
+                  <Receipt className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{invoiceOutreachCount}</p>
+                  <p className="text-xs text-purple-600/80 dark:text-purple-400/80">Invoice</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950 dark:to-emerald-900/50 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-500/10 rounded-md">
+                  <Building2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{accountOutreachCount}</p>
+                  <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">Account</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950 dark:to-amber-900/50 rounded-lg p-3 border border-amber-100 dark:border-amber-800">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-amber-500/10 rounded-md">
+                  <CheckCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{emails.filter((e) => e.status === "processed").length}</p>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-400/80">Processed</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1192,31 +1243,79 @@ const InboundCommandCenter = () => {
         )}
 
         {/* Email Tabs - Active vs Archived */}
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "active" | "archived"); setSelectedIds([]); }}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="active" className="gap-2">
-              <Inbox className="h-4 w-4" />
-              Active
-              <Badge variant="secondary" className="ml-1">{emails.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2">
-              <Archive className="h-4 w-4" />
-              Archived
-              <Badge variant="secondary" className="ml-1">{archivedEmails.length}</Badge>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "active" | "archived"); setSelectedIds([]); setOutreachType("all"); }}>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <TabsList>
+              <TabsTrigger value="active" className="gap-2">
+                <Inbox className="h-4 w-4" />
+                Active
+                <Badge variant="secondary" className="ml-1">{emails.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="archived" className="gap-2">
+                <Archive className="h-4 w-4" />
+                Archived
+                <Badge variant="secondary" className="ml-1">{archivedEmails.length}</Badge>
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Outreach Type Sub-tabs */}
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+              <button
+                onClick={() => setOutreachType("all")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  outreachType === "all" 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">All</span>
+                <Badge variant="outline" className="text-xs h-5 px-1.5">
+                  {(activeTab === "active" ? emails : archivedEmails).length}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setOutreachType("invoice")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  outreachType === "invoice" 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Invoice</span>
+                <Badge variant="outline" className="text-xs h-5 px-1.5 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                  {invoiceOutreachCount}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setOutreachType("account")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  outreachType === "account" 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Account</span>
+                <Badge variant="outline" className="text-xs h-5 px-1.5 bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                  {accountOutreachCount}
+                </Badge>
+              </button>
+            </div>
+          </div>
 
           <TabsContent value="active" className="mt-0">
             {/* Select All Header */}
-            {emails.length > 0 && (
+            {displayEmails.length > 0 && (
               <div className="flex items-center gap-2 px-1 mb-4">
                 <Checkbox
                   id="select-all"
-                  checked={selectedIds.length === emails.length && emails.length > 0}
+                  checked={selectedIds.length === displayEmails.length && displayEmails.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
                 <Label htmlFor="select-all" className="text-sm cursor-pointer">
-                  Select All ({emails.length})
+                  Select All ({displayEmails.length})
                 </Label>
               </div>
             )}
@@ -1227,16 +1326,29 @@ const InboundCommandCenter = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-3">
-                {emails.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                      No active inbound emails found
+              <div className="space-y-2">
+                {displayEmails.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-12 text-center">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+                      <p className="text-muted-foreground font-medium">No emails found</p>
+                      <p className="text-sm text-muted-foreground/80 mt-1">
+                        {outreachType === "invoice" 
+                          ? "No invoice-specific communications" 
+                          : outreachType === "account"
+                          ? "No account-level communications"
+                          : "No active inbound emails"}
+                      </p>
                     </CardContent>
                   </Card>
                 ) : (
-                  emails.map((email) => (
-                    <Card key={email.id} className={selectedIds.includes(email.id) ? "ring-2 ring-primary" : ""}>
+                  displayEmails.map((email) => (
+                    <Card 
+                      key={email.id} 
+                      className={`hover:shadow-md transition-all duration-200 ${
+                        selectedIds.includes(email.id) ? "ring-2 ring-primary bg-primary/5" : "hover:border-primary/30"
+                      }`}
+                    >
                       <CardContent className="p-3 md:p-4">
                         <div className="flex items-start gap-2 md:gap-4">
                           <Checkbox
@@ -1246,30 +1358,47 @@ const InboundCommandCenter = () => {
                             className="mt-1 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
-                            {/* Row 1: Invoice/Account context + Date */}
-                            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                            {/* Row 1: Outreach Type + Invoice/Account context + Date */}
+                            <div className="flex items-center justify-between gap-2 text-xs">
                               <div className="flex items-center gap-2 min-w-0">
-                                {email.invoices ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                {/* Outreach Type Indicator */}
+                                {email.invoice_id ? (
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800 gap-1">
+                                    <Receipt className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Invoice</span>
+                                  </Badge>
+                                ) : email.debtor_id ? (
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800 gap-1">
+                                    <Building2 className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Account</span>
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-muted-foreground gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Unlinked</span>
+                                  </Badge>
+                                )}
+                                
+                                {email.invoices && (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <span className="hidden sm:inline">•</span>
+                                    <FileText className="h-3 w-3 text-primary flex-shrink-0" />
                                     <span className="font-medium truncate">{(email.invoices as any).invoice_number}</span>
                                     {(email.invoices as any).status && (
-                                      <Badge variant={(email.invoices as any).status === "Paid" ? "default" : "outline"} className="text-xs">
+                                      <Badge variant={(email.invoices as any).status === "Paid" ? "default" : "secondary"} className="text-xs h-5">
                                         {(email.invoices as any).status}
                                       </Badge>
                                     )}
                                   </div>
-                                ) : (
-                                  <span className="text-muted-foreground">Unlinked</span>
                                 )}
                                 {email.debtors && (
-                                  <>
-                                    <span className="text-muted-foreground">•</span>
-                                    <span className="truncate">{(email.debtors as any).company_name || (email.debtors as any).name}</span>
-                                  </>
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <span className="hidden sm:inline">•</span>
+                                    <span className="truncate max-w-[120px] md:max-w-none">{(email.debtors as any).company_name || (email.debtors as any).name}</span>
+                                  </div>
                                 )}
                               </div>
-                              <span className="flex-shrink-0">
+                              <span className="flex-shrink-0 text-muted-foreground">
                                 {format(new Date(email.created_at), isMobile ? "MMM d" : "MMM d, h:mm a")}
                               </span>
                             </div>
@@ -1360,15 +1489,15 @@ const InboundCommandCenter = () => {
 
           <TabsContent value="archived" className="mt-0">
             {/* Select All Header */}
-            {archivedEmails.length > 0 && (
+            {displayEmails.length > 0 && activeTab === "archived" && (
               <div className="flex items-center gap-2 px-1 mb-4">
                 <Checkbox
                   id="select-all-archived"
-                  checked={selectedIds.length === archivedEmails.length && archivedEmails.length > 0}
+                  checked={selectedIds.length === displayEmails.length && displayEmails.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
                 <Label htmlFor="select-all-archived" className="text-sm cursor-pointer">
-                  Select All ({archivedEmails.length})
+                  Select All ({displayEmails.length})
                 </Label>
               </div>
             )}
@@ -1379,18 +1508,24 @@ const InboundCommandCenter = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-3">
-                {archivedEmails.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                      <Archive className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                      <p>No archived emails</p>
-                      <p className="text-sm mt-1">Emails are automatically archived when their invoice is paid or canceled</p>
+              <div className="space-y-2">
+                {displayEmails.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-12 text-center">
+                      <Archive className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+                      <p className="text-muted-foreground font-medium">No archived emails</p>
+                      <p className="text-sm text-muted-foreground/80 mt-1">
+                        {outreachType === "invoice" 
+                          ? "No archived invoice communications" 
+                          : outreachType === "account"
+                          ? "No archived account communications"
+                          : "Emails are archived when their invoice is paid or resolved"}
+                      </p>
                     </CardContent>
                   </Card>
                 ) : (
-                  archivedEmails.map((email) => (
-                    <Card key={email.id} className={`opacity-75 ${selectedIds.includes(email.id) ? "ring-2 ring-primary" : ""}`}>
+                  displayEmails.map((email) => (
+                    <Card key={email.id} className={`transition-all duration-200 ${selectedIds.includes(email.id) ? "ring-2 ring-primary bg-primary/5" : "hover:border-primary/30 opacity-80 hover:opacity-100"}`}>
                       <CardContent className="p-3 md:p-4">
                         <div className="flex items-start gap-2 md:gap-4">
                           <Checkbox
@@ -1400,34 +1535,44 @@ const InboundCommandCenter = () => {
                             className="mt-1 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0 space-y-2 cursor-pointer" onClick={() => handleViewDetails(email)}>
-                            {/* Archived reason badge */}
+                            {/* Archived reason badge + Outreach Type */}
                             <div className="flex items-center justify-between gap-2 text-xs">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Badge variant="secondary" className="gap-1">
                                   <Archive className="h-3 w-3" />
                                   {email.archived_reason || "Archived"}
                                 </Badge>
-                                {email.archived_at && (
-                                  <span className="text-muted-foreground">
-                                    {format(new Date(email.archived_at), "MMM d, yyyy")}
-                                  </span>
-                                )}
+                                {/* Outreach Type Indicator */}
+                                {email.invoice_id ? (
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800 gap-1">
+                                    <Receipt className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Invoice</span>
+                                  </Badge>
+                                ) : email.debtor_id ? (
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800 gap-1">
+                                    <Building2 className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Account</span>
+                                  </Badge>
+                                ) : null}
                               </div>
+                              {email.archived_at && (
+                                <span className="text-muted-foreground flex-shrink-0">
+                                  {format(new Date(email.archived_at), "MMM d, yyyy")}
+                                </span>
+                              )}
                             </div>
 
                             {/* Invoice/Account context */}
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {email.invoices ? (
+                              {email.invoices && (
                                 <div className="flex items-center gap-1.5">
-                                  <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                  <FileText className="h-3 w-3 text-primary flex-shrink-0" />
                                   <span className="font-medium truncate">{(email.invoices as any).invoice_number}</span>
                                 </div>
-                              ) : (
-                                <span>Unlinked</span>
                               )}
                               {email.debtors && (
                                 <>
-                                  <span>•</span>
+                                  {email.invoices && <span>•</span>}
                                   <span className="truncate">{(email.debtors as any).company_name || (email.debtors as any).name}</span>
                                 </>
                               )}
