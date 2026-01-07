@@ -642,31 +642,67 @@ Please craft a helpful, professional response. Since we don't have specific acco
       .single();
     
     // Save draft - invoice_id is optional now
+    // IMPORTANT: avoid unique constraint conflicts on (invoice_id, step_number)
+    // by choosing the next available step_number for this invoice.
+    let stepNumber = 1;
+
+    if (invoice) {
+      const { data: lastDraft, error: lastDraftError } = await supabaseAdmin
+        .from('ai_drafts')
+        .select('step_number')
+        .eq('invoice_id', invoice.id)
+        .order('step_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastDraftError) {
+        console.warn('Could not determine last draft step_number:', lastDraftError);
+      }
+
+      stepNumber = (lastDraft?.step_number ?? 0) + 1;
+    }
+
     const draftData: any = {
       user_id: user.id,
       channel: parsed.channel,
       subject,
       message_body: messageBody,
       status: 'pending_approval',
-      step_number: 1,
+      step_number: stepNumber,
       days_past_due: daysPastDue,
-      agent_persona_id: personaRecord?.id
+      agent_persona_id: personaRecord?.id,
     };
-    
+
     // Only add invoice_id if we have one
     if (invoice) {
       draftData.invoice_id = invoice.id;
-      console.log('Linking draft to invoice:', invoice.id, invoice.invoice_number);
+      console.log('Linking draft to invoice:', invoice.id, invoice.invoice_number, 'step_number:', stepNumber);
     } else {
       console.warn('No invoice found to link draft - invoice_id will be null');
     }
-    
-    const { data: draft, error: draftError } = await supabaseAdmin
+
+    let { data: draft, error: draftError } = await supabaseAdmin
       .from('ai_drafts')
       .insert(draftData)
       .select()
       .single();
-    
+
+    // Rare race condition: if another draft was created between our lookup and insert, retry once.
+    if (draftError?.code === '23505' && invoice) {
+      console.warn('Draft step_number conflict; retrying with next step_number', {
+        invoice_id: invoice.id,
+        attempted_step_number: draftData.step_number,
+      });
+
+      draftData.step_number = stepNumber + 1;
+
+      ({ data: draft, error: draftError } = await supabaseAdmin
+        .from('ai_drafts')
+        .insert(draftData)
+        .select()
+        .single());
+    }
+
     if (draftError) {
       console.error('Draft save error:', draftError);
       throw draftError;
