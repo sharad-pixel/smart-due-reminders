@@ -9,16 +9,17 @@
 
 import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "./emailConfig.ts";
 
-// Company Information
+// Company Information - use INBOUND_EMAIL_DOMAIN for reply-capable addresses
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
   tagline: "Collection Intelligence Platform",
   website: "https://recouply.ai",
   emails: {
-    collections: "collections@recouply.ai",
-    support: "support@recouply.ai",
-    notifications: "notifications@recouply.ai",
+    // Use inbound domain for emails that might receive replies
+    collections: `collections@${INBOUND_EMAIL_DOMAIN}`,
+    support: `support@${INBOUND_EMAIL_DOMAIN}`,
+    notifications: `notifications@${INBOUND_EMAIL_DOMAIN}`,
   },
   address: "Delaware, USA",
 } as const;

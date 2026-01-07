@@ -6,7 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { VERIFIED_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
+import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -726,8 +726,8 @@ function generateEmailHtml(data: {
         AI-Powered CashOps Platform
       </p>
       <p style="color: #64748b; margin: 0; font-size: 12px;">
-        <a href="mailto:collections@recouply.ai" style="color: #94a3b8;">collections@recouply.ai</a> · 
-        <a href="mailto:support@recouply.ai" style="color: #94a3b8;">support@recouply.ai</a>
+        <a href="mailto:collections@${INBOUND_EMAIL_DOMAIN}" style="color: #94a3b8;">collections@${INBOUND_EMAIL_DOMAIN}</a> · 
+        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #94a3b8;">support@${INBOUND_EMAIL_DOMAIN}</a>
       </p>
       <p style="color: #475569; margin: 12px 0 0; font-size: 11px;">
         © ${new Date().getFullYear()} RecouplyAI Inc. All rights reserved.
