@@ -49,13 +49,15 @@ interface BrandingSettings {
   supported_payment_methods: string[];
   stripe_payment_link: string | null;
   ar_page_last_updated_at: string | null;
-  // New sender identity fields
+  // Sender identity fields
   sending_mode: string | null;
   from_email_verified: boolean | null;
   from_email_verification_status: string | null;
   verified_from_email: string | null;
   last_test_email_sent_at: string | null;
   email_wrapper_enabled: boolean | null;
+  // Email format preference
+  email_format: "simple" | "enhanced" | null;
 }
 
 export default function Branding() {
@@ -461,7 +463,10 @@ export default function Branding() {
 
           {/* Right Column - Email Preview */}
           <div className="hidden lg:block">
-            <EmailPreviewPanel formData={formData} />
+            <EmailPreviewPanel 
+              formData={formData} 
+              onFormatChange={(format) => handleChange("email_format", format)}
+            />
           </div>
         </div>
       </div>
