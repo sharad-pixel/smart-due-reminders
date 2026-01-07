@@ -66,7 +66,7 @@ function AlertItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <p className={cn(
-              'text-sm truncate',
+              'text-sm leading-tight',
               !alert.is_read && 'font-semibold'
             )}>
               {alert.title}
@@ -100,7 +100,7 @@ function AlertItem({
               </Button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed break-words">
             {alert.message}
           </p>
           <div className="flex items-center justify-between mt-2">
@@ -175,7 +175,7 @@ function NotificationItem({
               <X className="h-3 w-3" />
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed break-words">
             {notification.message}
           </p>
           <div className="flex items-center gap-2 mt-2">
@@ -258,7 +258,7 @@ export function AlertNotifications() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end" sideOffset={8}>
+      <PopoverContent className="w-[420px] p-0" align="end" sideOffset={8}>
         <Tabs defaultValue="all" className="w-full">
           <div className="flex items-center justify-between p-3 border-b">
             <h4 className="font-semibold">Notifications</h4>
