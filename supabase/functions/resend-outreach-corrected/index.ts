@@ -39,6 +39,7 @@ serve(async (req) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days_back);
 
+    // Only resend for invoices that are still OPEN (not paid/closed)
     const { data: outreachLogs, error: logsError } = await supabase
       .from('outreach_logs')
       .select(`
@@ -56,7 +57,8 @@ serve(async (req) => {
           invoice_number,
           amount,
           total_amount,
-          due_date
+          due_date,
+          status
         ),
         debtors!inner (
           id,
@@ -65,6 +67,7 @@ serve(async (req) => {
         )
       `)
       .eq('channel', 'email')
+      .in('invoices.status', ['Open', 'Overdue', 'PartiallyPaid', 'InPaymentPlan'])
       .gte('sent_at', cutoffDate.toISOString())
       .order('sent_at', { ascending: false });
 
