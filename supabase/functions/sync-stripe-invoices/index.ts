@@ -160,6 +160,11 @@ serve(async (req) => {
     invoices.push(...uncollectibleInvoices.data);
     logStep("Fetched uncollectible invoices", { count: uncollectibleInvoices.data.length });
     
+    // ============================================================
+    // ONE-DIRECTIONAL SYNC: Stripe → Recouply (READ-ONLY)
+    // Recouply NEVER writes back to Stripe
+    // ============================================================
+    
     let syncedCount = 0;
     let createdDebtors = 0;
     let transactionsLogged = 0;
@@ -167,32 +172,96 @@ serve(async (req) => {
     let conflictsDetected = 0;
     let conflictsResolved = 0;
     let overridesReset = 0;
-    let statusUpdates = { paid: 0, partial: 0, canceled: 0, voided: 0, open: 0 };
+    let terminalSkipped = 0;
+    let paidWithoutPayment = 0;
+    let statusUpdates = { paid: 0, partial: 0, canceled: 0, voided: 0, open: 0, terminal: 0 };
     const errors: string[] = [];
+    const warnings: string[] = [];
 
-    // Helper function to map Stripe status to our invoice status
-    // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid, Voided
-    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' | 'Voided' => {
+    // Normalized status mapping for collection logic
+    interface NormalizedInvoice {
+      status: 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' | 'Voided';
+      normalizedStatus: 'open' | 'paid' | 'partially_paid' | 'terminal';
+      isCollectible: boolean;
+      terminalReason: string | null;
+      paymentOrigin: string | null;
+    }
+
+    // Helper function to map Stripe status with normalized fields
+    // Recouply treats void/uncollectible as TERMINAL - not sync failures
+    const mapStripeStatus = (stripeInvoice: Stripe.Invoice): NormalizedInvoice => {
       const amountPaid = stripeInvoice.amount_paid || 0;
       const amountDue = stripeInvoice.amount_due || 0;
       const amountRemaining = stripeInvoice.amount_remaining || 0;
+      const hasPaymentIntent = !!stripeInvoice.payment_intent;
 
       switch (stripeInvoice.status) {
         case 'paid':
-          if (amountPaid > 0 && amountPaid < amountDue && amountRemaining === 0) {
-            return 'PartiallyPaid';
+          // Handle paid invoices - may or may not have PaymentIntent
+          // Stripe invoices can be paid via credits, manual payments, or external methods
+          const paymentOrigin = hasPaymentIntent ? 'stripe_payment' : 'external_settlement';
+          if (!hasPaymentIntent) {
+            paidWithoutPayment++;
+            warnings.push(`Invoice ${stripeInvoice.id} paid without Stripe payment object (external/manual settlement)`);
           }
-          return 'Paid';
+          
+          if (amountPaid > 0 && amountPaid < amountDue && amountRemaining === 0) {
+            return {
+              status: 'PartiallyPaid',
+              normalizedStatus: 'partially_paid',
+              isCollectible: false,
+              terminalReason: null,
+              paymentOrigin
+            };
+          }
+          return {
+            status: 'Paid',
+            normalizedStatus: 'paid',
+            isCollectible: false,
+            terminalReason: null,
+            paymentOrigin
+          };
+          
         case 'void':
-          return 'Voided'; // Use Voided status for void invoices
+          // Voided invoices are TERMINAL - not a sync error
+          terminalSkipped++;
+          return {
+            status: 'Voided',
+            normalizedStatus: 'terminal',
+            isCollectible: false,
+            terminalReason: 'voided_in_stripe',
+            paymentOrigin: 'voided'
+          };
+          
         case 'uncollectible':
-          return 'Canceled'; // Use Canceled for uncollectible
+          // Uncollectible invoices are TERMINAL - written off
+          terminalSkipped++;
+          return {
+            status: 'Canceled',
+            normalizedStatus: 'terminal',
+            isCollectible: false,
+            terminalReason: 'written_off_in_stripe',
+            paymentOrigin: 'written_off'
+          };
+          
         case 'open':
         default:
           if (amountPaid > 0 && amountRemaining > 0) {
-            return 'PartiallyPaid';
+            return {
+              status: 'PartiallyPaid',
+              normalizedStatus: 'partially_paid',
+              isCollectible: true,
+              terminalReason: null,
+              paymentOrigin: null
+            };
           }
-          return 'Open';
+          return {
+            status: 'Open',
+            normalizedStatus: 'open',
+            isCollectible: true,
+            terminalReason: null,
+            paymentOrigin: null
+          };
       }
     };
 
@@ -265,13 +334,16 @@ serve(async (req) => {
           debtorId = existingDebtor.id;
         }
 
-        const mappedStatus = mapStripeStatus(stripeInvoice);
+        const normalizedInvoice = mapStripeStatus(stripeInvoice);
         
-        if (mappedStatus === 'Paid') statusUpdates.paid++;
-        else if (mappedStatus === 'PartiallyPaid') statusUpdates.partial++;
-        else if (mappedStatus === 'Canceled') statusUpdates.canceled++;
-        else if (mappedStatus === 'Voided') statusUpdates.voided++;
+        // Track status breakdown
+        if (normalizedInvoice.status === 'Paid') statusUpdates.paid++;
+        else if (normalizedInvoice.status === 'PartiallyPaid') statusUpdates.partial++;
+        else if (normalizedInvoice.status === 'Canceled') statusUpdates.canceled++;
+        else if (normalizedInvoice.status === 'Voided') statusUpdates.voided++;
         else statusUpdates.open++;
+        
+        if (normalizedInvoice.normalizedStatus === 'terminal') statusUpdates.terminal++;
 
         let paymentDate: string | null = null;
         let paidDate: string | null = null;
@@ -341,7 +413,13 @@ serve(async (req) => {
           currency: stripeInvoice.currency?.toUpperCase() || 'USD',
           issue_date: stripeInvoice.created ? new Date(stripeInvoice.created * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           due_date: stripeDueDate,
-          status: mappedStatus,
+          status: normalizedInvoice.status,
+          // Normalized fields for collection logic
+          normalized_status: normalizedInvoice.normalizedStatus,
+          is_collectible: normalizedInvoice.isCollectible,
+          terminal_reason: normalizedInvoice.terminalReason,
+          payment_origin: normalizedInvoice.paymentOrigin,
+          // Source system tracking (READ-ONLY from Stripe)
           source_system: 'stripe',
           stripe_invoice_id: stripeInvoice.id,
           stripe_customer_id: customer.id,
@@ -364,16 +442,19 @@ serve(async (req) => {
           invoiceData.paid_date = paidDate;
         }
 
-        // Add notes based on status - using Stripe raw status for notes
+        // Add notes based on status - informational, not errors
         if (stripeInvoice.status === 'void') {
-          invoiceData.notes = `Voided in Stripe on ${new Date().toLocaleDateString()}`;
+          invoiceData.notes = `[TERMINAL] Voided in Stripe - excluded from collections`;
         } else if (stripeInvoice.status === 'uncollectible') {
-          invoiceData.notes = `Marked uncollectible in Stripe on ${new Date().toLocaleDateString()}`;
-        } else if (mappedStatus === 'PartiallyPaid') {
+          invoiceData.notes = `[TERMINAL] Written off in Stripe - excluded from collections`;
+        } else if (normalizedInvoice.status === 'PartiallyPaid') {
           const amountPaid = (stripeInvoice.amount_paid || 0) / 100;
-          invoiceData.notes = `Partially paid - $${amountPaid.toFixed(2)} paid via Stripe`;
-        } else if (mappedStatus === 'Paid') {
-          invoiceData.notes = `Paid in full via Stripe${paidDate ? ` on ${paidDate}` : ''}`;
+          invoiceData.notes = `Partially paid - $${amountPaid.toFixed(2)} received via Stripe`;
+        } else if (normalizedInvoice.status === 'Paid') {
+          const settlementType = normalizedInvoice.paymentOrigin === 'external_settlement' 
+            ? ' (external/manual settlement)' 
+            : '';
+          invoiceData.notes = `Paid in full${settlementType}${paidDate ? ` on ${paidDate}` : ''}`;
         }
 
         let invoiceRecordId: string;
@@ -457,11 +538,11 @@ serve(async (req) => {
           
           invoiceRecordId = existingInvoice.id;
           
-          if (existingInvoice.status !== mappedStatus) {
+          if (existingInvoice.status !== normalizedInvoice.status) {
             logStep("Status updated", { 
               invoiceId: stripeInvoice.id, 
               oldStatus: existingInvoice.status, 
-              newStatus: mappedStatus 
+              newStatus: normalizedInvoice.status 
             });
           }
         } else {
@@ -737,9 +818,11 @@ serve(async (req) => {
       }
     }
 
-    // Update sync log with success
+    // Update sync log with detailed metrics
+    // Terminal invoices are NOT failures - they're valid states from source system
     const totalSynced = syncedCount + transactionsLogged;
     const totalFailed = errors.length;
+    // Only count as partial/failed if there are actual errors, not just terminal invoices
     const finalStatus = totalFailed > 0 ? (totalSynced > 0 ? 'partial' : 'failed') : 'success';
     
     if (syncLogId) {
@@ -749,6 +832,10 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
           records_synced: totalSynced,
           records_failed: totalFailed,
+          invoices_synced: syncedCount,
+          invoices_terminal: terminalSkipped,
+          paid_without_payment: paidWithoutPayment,
+          customers_synced: createdDebtors,
           errors: errors.slice(0, 20)
         }).eq('id', syncLogId);
       } catch (e) {
@@ -756,10 +843,21 @@ serve(async (req) => {
       }
     }
 
+    // Log warnings for transparency (not failures)
+    if (warnings.length > 0) {
+      logStep("Sync warnings (informational)", { count: warnings.length, sample: warnings.slice(0, 3) });
+    }
+
     return new Response(JSON.stringify({
       success: true,
+      // One-directional sync indicator
+      sync_direction: 'stripe_to_recouply',
+      read_only: true,
       invoices_synced: syncedCount,
       transactions_synced: transactionsLogged,
+      // Terminal invoices are valid, not failures
+      terminal_invoices: terminalSkipped,
+      paid_without_payment: paidWithoutPayment,
       conflicts_detected: conflictsDetected,
       conflicts_resolved: conflictsResolved,
       overrides_reset: overridesReset,
@@ -772,6 +870,7 @@ serve(async (req) => {
         drafts_generated: workflowResult.schedulerResult?.drafted || 0,
         drafts_sent: workflowResult.schedulerResult?.sent || 0
       } : null,
+      warnings: warnings.slice(0, 5),
       errors: errors.slice(0, 5)
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
