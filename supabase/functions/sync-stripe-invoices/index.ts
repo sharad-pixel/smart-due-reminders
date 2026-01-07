@@ -347,7 +347,8 @@ Deno.serve(async (req) => {
         const customerEmail = customer.email || `${customer.id}@stripe-customer.local`;
         const customerName = customer.name || customer.id;
 
-        // Check if debtor exists by stripe customer id, email, or legacy reference id
+        // Check if debtor exists ONLY by Stripe customer ID or reference_id - NEVER by email
+        // This prevents cross-account matching when different customers share an email
         // NOTE: reference_id is globally unique in our DB, so we prefix it to avoid collisions across users.
         const legacyReferenceId = `STRIPE-${customer.id.slice(-8).toUpperCase()}`;
         const referenceId = `STRIPE-${effectiveAccountId.slice(0, 8).toUpperCase()}-${customer.id}`;
@@ -357,7 +358,7 @@ Deno.serve(async (req) => {
           .select('id')
           .eq('user_id', effectiveAccountId)
           .or(
-            `external_customer_id.eq.${customer.id},email.eq.${customerEmail},reference_id.eq.${referenceId},reference_id.eq.${legacyReferenceId}`
+            `external_customer_id.eq.${customer.id},reference_id.eq.${referenceId},reference_id.eq.${legacyReferenceId}`
           )
           .limit(1);
 
