@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   RefreshCw, 
@@ -15,27 +14,12 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
-  ExternalLink,
-  Eye,
   Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
-
-interface SyncConflict {
-  id: string;
-  invoice_id: string;
-  integration_source: string;
-  conflicts: Record<string, { recouply_value: any; stripe_value: any }>;
-  resolved: boolean;
-  created_at: string;
-  invoice?: {
-    invoice_number: string;
-    amount: number;
-  };
-}
 
 interface IntegrationStats {
   source: string;
@@ -175,49 +159,6 @@ export const IntegrationSyncDashboard = () => {
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
-  // Fetch unresolved sync conflicts
-  const { data: conflicts, isLoading: conflictsLoading } = useQuery({
-    queryKey: ["sync-conflicts"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("invoice_sync_conflicts")
-        .select(`
-          id,
-          invoice_id,
-          integration_source,
-          conflicts,
-          resolved,
-          created_at
-        `)
-        .eq("user_id", user.id)
-        .eq("resolved", false)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-
-      // Fetch invoice details for each conflict
-      const conflictsWithInvoices: SyncConflict[] = [];
-      for (const conflict of data || []) {
-        const { data: invoice } = await supabase
-          .from("invoices")
-          .select("invoice_number, amount")
-          .eq("id", conflict.invoice_id)
-          .maybeSingle();
-
-        conflictsWithInvoices.push({
-          ...conflict,
-          conflicts: conflict.conflicts as Record<string, { recouply_value: any; stripe_value: any }>,
-          invoice: invoice || undefined
-        });
-      }
-
-      return conflictsWithInvoices;
-    }
-  });
 
   const handleStripeSync = async () => {
     setSyncing(true);
@@ -236,7 +177,6 @@ export const IntegrationSyncDashboard = () => {
 
       // Refetch stats
       queryClient.invalidateQueries({ queryKey: ["integration-sync-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["sync-conflicts"] });
     } catch (error: any) {
       toast.error(error.message || "Failed to sync");
     } finally {
@@ -360,82 +300,6 @@ export const IntegrationSyncDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Sync Conflicts Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Sync Conflicts
-          </CardTitle>
-          <CardDescription>
-            Invoices with local modifications that differ from the source system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {conflictsLoading ? (
-            <Skeleton className="h-20 w-full" />
-          ) : conflicts && conflicts.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Modified Fields</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {conflicts.map((conflict) => (
-                  <TableRow key={conflict.id}>
-                    <TableCell>
-                      <span className="font-medium">
-                        {conflict.invoice?.invoice_number || "Unknown"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {conflict.integration_source}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {Object.keys(conflict.conflicts || {}).map((field) => (
-                          <Badge key={field} variant="secondary" className="text-xs">
-                            {field.replace(/_/g, ' ')}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                        Will be overwritten
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => navigate(`/invoices/${conflict.invoice_id}`)}
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <Alert className="bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">
-                No sync conflicts. All integrations are in sync.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
