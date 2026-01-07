@@ -347,16 +347,25 @@ Deno.serve(async (req) => {
         const customerEmail = customer.email || `${customer.id}@stripe-customer.local`;
         const customerName = customer.name || customer.id;
 
-        // Check if debtor exists by stripe_customer_id, email, or reference_id
-        const referenceId = `STRIPE-${customer.id.slice(-8).toUpperCase()}`;
-        
-        let { data: existingDebtor } = await supabaseClient
-          .from('debtors')
-          .select('id, email, external_customer_id')
-          .eq('user_id', effectiveAccountId)
-          .or(`email.eq.${customerEmail},external_customer_id.eq.${customer.id},reference_id.eq.${referenceId}`)
-          .maybeSingle();
+        // Check if debtor exists by stripe customer id, email, or legacy reference id
+        // NOTE: reference_id is globally unique in our DB, so we prefix it to avoid collisions across users.
+        const legacyReferenceId = `STRIPE-${customer.id.slice(-8).toUpperCase()}`;
+        const referenceId = `STRIPE-${effectiveAccountId.slice(0, 8).toUpperCase()}-${customer.id}`;
 
+        const { data: debtorRows, error: debtorLookupError } = await supabaseClient
+          .from('debtors')
+          .select('id')
+          .eq('user_id', effectiveAccountId)
+          .or(
+            `external_customer_id.eq.${customer.id},email.eq.${customerEmail},reference_id.eq.${referenceId},reference_id.eq.${legacyReferenceId}`
+          )
+          .limit(1);
+
+        if (debtorLookupError) {
+          logStep('Debtor lookup error', { error: debtorLookupError.message, customerId: customer.id });
+        }
+
+        const existingDebtor = debtorRows?.[0] ?? null;
         let debtorId: string;
 
         if (!existingDebtor) {
@@ -376,12 +385,13 @@ Deno.serve(async (req) => {
             .single();
 
           if (debtorError) {
-            logStep("Error creating debtor", { error: debtorError.message, customerId: customer.id });
-            errors.push(`Failed to create debtor for ${customerEmail}: ${debtorError.message}`);
+            // Treat duplicate reference_id as a warning and skip this invoice (we don't want sync to hard-fail).
+            logStep('Error creating debtor', { error: debtorError.message, customerId: customer.id });
+            warnings.push(`Debtor already exists or could not be created for ${customerEmail}: ${debtorError.message}`);
             continue;
           }
           debtorId = newDebtor.id;
-          
+
           // Create a proper contact entry for outreach
           const { error: contactError } = await supabaseClient
             .from('debtor_contacts')
@@ -394,13 +404,13 @@ Deno.serve(async (req) => {
               is_primary: true,
               outreach_enabled: true
             });
-          
+
           if (contactError) {
-            logStep("Error creating contact", { error: contactError.message, debtorId });
+            logStep('Error creating contact', { error: contactError.message, debtorId });
           }
-          
+
           createdDebtors++;
-          logStep("Created new debtor with contact", { debtorId, customerEmail });
+          logStep('Created new debtor with contact', { debtorId, customerEmail });
         } else {
           debtorId = existingDebtor.id;
         }
@@ -620,6 +630,7 @@ Deno.serve(async (req) => {
           // New invoice - set initial override state
           invoiceData.has_local_overrides = false;
           invoiceData.override_count = 0;
+
           const { data: newInvoice, error: insertError } = await supabaseClient
             .from('invoices')
             .insert(invoiceData)
@@ -627,12 +638,44 @@ Deno.serve(async (req) => {
             .single();
 
           if (insertError) {
-            errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
-            continue;
+            // If this is a duplicate, treat it as "already exists" and update the existing record instead.
+            // This makes sync idempotent and ensures we still ingest credits/payments/status changes.
+            if (/duplicate key.*unique constraint/i.test(insertError.message)) {
+              const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
+
+              const { data: existingByNumber, error: existingByNumberError } = await supabaseClient
+                .from('invoices')
+                .select('id')
+                .eq('user_id', effectiveAccountId)
+                .eq('invoice_number', invoiceNumber)
+                .limit(1);
+
+              if (!existingByNumberError && existingByNumber?.[0]?.id) {
+                const { error: dupUpdateError } = await supabaseClient
+                  .from('invoices')
+                  .update({ ...invoiceData, stripe_invoice_id: stripeInvoice.id, external_invoice_id: stripeInvoice.id })
+                  .eq('id', existingByNumber[0].id);
+
+                if (!dupUpdateError) {
+                  invoiceRecordId = existingByNumber[0].id;
+                  isNewInvoice = false;
+                } else {
+                  errors.push(`Failed to update existing duplicate invoice ${stripeInvoice.id}: ${dupUpdateError.message}`);
+                  continue;
+                }
+              } else {
+                errors.push(`Failed to locate duplicate invoice ${stripeInvoice.id} after insert conflict`);
+                continue;
+              }
+            } else {
+              errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
+              continue;
+            }
+          } else {
+            invoiceRecordId = newInvoice.id;
+            isNewInvoice = true;
+            newInvoicesCreated++;
           }
-          invoiceRecordId = newInvoice.id;
-          isNewInvoice = true;
-          newInvoicesCreated++;
         }
 
         // Sync transaction history from Stripe
