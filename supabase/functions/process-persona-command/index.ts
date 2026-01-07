@@ -663,7 +663,10 @@ Please craft a helpful, professional response. Since we don't have specific acco
     
     const { data: draft, error: draftError } = await supabaseAdmin
       .from('ai_drafts')
-      .insert(draftData)
+      .upsert(draftData, { 
+        onConflict: 'invoice_id,step_number',
+        ignoreDuplicates: false 
+      })
       .select()
       .single();
     
