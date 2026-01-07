@@ -347,12 +347,14 @@ Deno.serve(async (req) => {
         const customerEmail = customer.email || `${customer.id}@stripe-customer.local`;
         const customerName = customer.name || customer.id;
 
-        // Check if debtor exists by stripe_customer_id or email
+        // Check if debtor exists by stripe_customer_id, email, or reference_id
+        const referenceId = `STRIPE-${customer.id.slice(-8).toUpperCase()}`;
+        
         let { data: existingDebtor } = await supabaseClient
           .from('debtors')
-          .select('id')
+          .select('id, email, external_customer_id')
           .eq('user_id', effectiveAccountId)
-          .or(`email.eq.${customerEmail},external_customer_id.eq.${customer.id}`)
+          .or(`email.eq.${customerEmail},external_customer_id.eq.${customer.id},reference_id.eq.${referenceId}`)
           .maybeSingle();
 
         let debtorId: string;
@@ -368,7 +370,7 @@ Deno.serve(async (req) => {
               phone: customer.phone || null,
               external_customer_id: customer.id,
               external_system: 'stripe',
-              reference_id: `STRIPE-${customer.id.slice(-8).toUpperCase()}`
+              reference_id: referenceId
             })
             .select('id')
             .single();
