@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/MentionInput";
 import { createMentionNotification } from "@/hooks/useNotifications";
+import { getDebtorReplyTo, getInvoiceReplyTo, getPlatformFromAddress } from "@/lib/emailSending";
 import { Link } from "react-router-dom";
 
 interface TaskDetailModalProps {
@@ -351,10 +352,15 @@ export const TaskDetailModal = ({
         <p><strong>Created:</strong> ${format(new Date(task.created_at), "MMM d, yyyy h:mm a")}</p>
       `;
 
+      const replyTo = task.invoice_id
+        ? getInvoiceReplyTo(task.invoice_id)
+        : getDebtorReplyTo(task.debtor_id);
+
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
           to: recipientEmail,
-          from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+          from: getPlatformFromAddress(),
+          reply_to: replyTo,
           subject: `Task Assignment: ${getTaskTypeLabel(task.task_type)} - ${task.summary}`,
           html: taskHtml,
         },
