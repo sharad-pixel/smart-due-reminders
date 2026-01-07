@@ -6193,6 +6193,7 @@ export type Database = {
         | "Canceled"
         | "FinalInternalCollections"
         | "PartiallyPaid"
+        | "Voided"
       outreach_log_status: "sent" | "failed" | "queued"
       outreach_status: "draft" | "scheduled" | "sent" | "failed"
       plan_type: "free" | "starter" | "growth" | "pro" | "professional"
@@ -6361,6 +6362,7 @@ export const Constants = {
         "Canceled",
         "FinalInternalCollections",
         "PartiallyPaid",
+        "Voided",
       ],
       outreach_log_status: ["sent", "failed", "queued"],
       outreach_status: ["draft", "scheduled", "sent", "failed"],

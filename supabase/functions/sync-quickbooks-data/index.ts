@@ -386,19 +386,19 @@ serve(async (req) => {
       }
 
       // Helper to map QuickBooks invoice status to valid DB enum
-      // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid
-      const mapQBInvoiceStatus = (qbInvoice: any): 'Open' | 'Paid' | 'PartiallyPaid' | 'Canceled' => {
+      // Valid enum values: Open, Paid, Disputed, Settled, InPaymentPlan, Canceled, FinalInternalCollections, PartiallyPaid, Voided
+      const mapQBInvoiceStatus = (qbInvoice: any): 'Open' | 'Paid' | 'PartiallyPaid' | 'Voided' => {
         // Check if invoice is voided (QB uses PrivateNote or has $0 total with specific markers)
         const privateNote = (qbInvoice.PrivateNote || '').toLowerCase();
         if (privateNote.includes('void') || privateNote.includes('cancelled') || privateNote.includes('canceled')) {
-          return 'Canceled';
+          return 'Voided'; // Use Voided status for voided invoices
         }
         
         // Check if invoice has been deleted/voided (TotalAmt = 0 and Balance = 0 and no line items)
         const lines = qbInvoice.Line || [];
         const hasValidLines = lines.some((line: any) => line.Amount && line.Amount > 0);
         if (qbInvoice.TotalAmt === 0 && qbInvoice.Balance === 0 && !hasValidLines) {
-          return 'Canceled';
+          return 'Voided'; // Use Voided for $0 voided invoices
         }
         
         // Check if fully paid
@@ -431,8 +431,8 @@ serve(async (req) => {
           
           // Build notes based on status
           let notes: string | null = null;
-          if (status === 'Canceled') {
-            notes = `Voided/Canceled in QuickBooks`;
+          if (status === 'Voided') {
+            notes = `Voided in QuickBooks`;
           } else if (status === 'PartiallyPaid') {
             const paid = (invoice.TotalAmt || 0) - (invoice.Balance || 0);
             notes = `Partially paid - $${paid.toFixed(2)} received via QuickBooks`;
