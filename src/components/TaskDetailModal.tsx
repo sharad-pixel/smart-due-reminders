@@ -14,13 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollectionTask, TaskNote } from "@/hooks/useCollectionTasks";
 import { format, differenceInDays } from "date-fns";
-import { CheckCircle2, Archive, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote, X } from "lucide-react";
+import { CheckCircle2, Archive, Mail, Loader2, UserPlus, Info, CalendarClock, MessageSquarePlus, StickyNote, X, Building2, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/MentionInput";
 import { createMentionNotification } from "@/hooks/useNotifications";
+import { Link } from "react-router-dom";
 
 interface TaskDetailModalProps {
   task: CollectionTask | null;
@@ -85,11 +86,16 @@ export const TaskDetailModal = ({
   const [noteMentions, setNoteMentions] = useState<string[]>([]);
   const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([]);
   const [showAllNotes, setShowAllNotes] = useState(false);
+  
+  // Linked data state
+  const [linkedDebtor, setLinkedDebtor] = useState<{ id: string; name: string; company_name: string } | null>(null);
+  const [linkedInvoice, setLinkedInvoice] = useState<{ id: string; invoice_number: string; amount: number; status: string } | null>(null);
 
   useEffect(() => {
     if (open) {
       fetchAccountUsers();
       fetchCurrentUser();
+      fetchLinkedData();
       // Set initial values from task
       setSelectedAccountUser(task?.assigned_to || "");
       // Load notes from task
@@ -103,6 +109,34 @@ export const TaskDetailModal = ({
       }
     }
   }, [open, task]);
+
+  const fetchLinkedData = async () => {
+    if (!task) return;
+    
+    // Fetch debtor info
+    if (task.debtor_id) {
+      const { data: debtor } = await supabase
+        .from('debtors')
+        .select('id, name, company_name')
+        .eq('id', task.debtor_id)
+        .single();
+      if (debtor) {
+        setLinkedDebtor(debtor);
+      }
+    }
+    
+    // Fetch invoice info
+    if (task.invoice_id) {
+      const { data: invoice } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, amount, status')
+        .eq('id', task.invoice_id)
+        .single();
+      if (invoice) {
+        setLinkedInvoice(invoice);
+      }
+    }
+  };
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -425,6 +459,55 @@ export const TaskDetailModal = ({
                   View Source Email →
                 </a>
               )}
+            </div>
+          )}
+
+          {/* Linked Account & Invoice Section */}
+          {(linkedDebtor || linkedInvoice) && (
+            <div className="space-y-3 pt-2 border-t">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Linked Records
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {linkedDebtor && (
+                  <Link 
+                    to={`/accounts/${linkedDebtor.id}`}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors group"
+                  >
+                    <div className="p-2 bg-primary/10 rounded-full">
+                      <Building2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Account</p>
+                      <p className="text-sm font-medium truncate">
+                        {linkedDebtor.company_name || linkedDebtor.name}
+                      </p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                )}
+                {linkedInvoice && (
+                  <Link 
+                    to={`/invoices/${linkedInvoice.id}`}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors group"
+                  >
+                    <div className="p-2 bg-blue-500/10 rounded-full">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Invoice</p>
+                      <p className="text-sm font-medium truncate">
+                        {linkedInvoice.invoice_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        ${linkedInvoice.amount?.toLocaleString()} • {linkedInvoice.status}
+                      </p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 
