@@ -413,6 +413,42 @@ Deno.serve(async (req) => {
           logStep('Created new debtor with contact', { debtorId, customerEmail });
         } else {
           debtorId = existingDebtor.id;
+          
+          // Update debtor email if changed in Stripe
+          if (customerEmail) {
+            const { error: updateDebtorError } = await supabaseClient
+              .from('debtors')
+              .update({ 
+                email: customerEmail,
+                name: customerName,
+                company_name: customerName,
+                phone: customer.phone || null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', debtorId);
+            
+            if (updateDebtorError) {
+              logStep('Error updating debtor email', { error: updateDebtorError.message, debtorId });
+            } else {
+              logStep('Updated debtor from Stripe', { debtorId, customerEmail });
+            }
+            
+            // Also update the primary contact email
+            const { error: updateContactError } = await supabaseClient
+              .from('debtor_contacts')
+              .update({ 
+                email: customerEmail,
+                name: customerName,
+                phone: customer.phone || null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('debtor_id', debtorId)
+              .eq('is_primary', true);
+            
+            if (updateContactError) {
+              logStep('Error updating contact email', { error: updateContactError.message, debtorId });
+            }
+          }
         }
 
         const normalizedInvoice = mapStripeStatus(stripeInvoice);
