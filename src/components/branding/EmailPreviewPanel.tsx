@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -16,11 +16,29 @@ interface EmailPreviewPanelProps {
     ar_page_enabled?: boolean | null;
     ar_page_public_token?: string | null;
     stripe_payment_link?: string | null;
+    email_format?: "simple" | "enhanced" | null;
   };
+  onFormatChange?: (format: "simple" | "enhanced") => void;
 }
 
-export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
-  const [emailFormat, setEmailFormat] = useState<"simple" | "enhanced">("enhanced");
+export function EmailPreviewPanel({ formData, onFormatChange }: EmailPreviewPanelProps) {
+  const [emailFormat, setEmailFormat] = useState<"simple" | "enhanced">(
+    formData.email_format || "enhanced"
+  );
+  
+  // Sync with formData when it loads
+  useEffect(() => {
+    if (formData.email_format) {
+      setEmailFormat(formData.email_format);
+    }
+  }, [formData.email_format]);
+
+  const handleFormatChange = (value: string | undefined) => {
+    if (value && (value === "simple" || value === "enhanced")) {
+      setEmailFormat(value);
+      onFormatChange?.(value);
+    }
+  };
   
   const businessName = formData.business_name || formData.from_name || "Your Business";
   const primaryColor = formData.primary_color || "#111827";
@@ -227,11 +245,11 @@ export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
       <CardContent className="space-y-4">
         {/* Format Toggle */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">Format</span>
+          <span className="text-sm font-medium text-muted-foreground">Email Format</span>
           <ToggleGroup 
             type="single" 
             value={emailFormat} 
-            onValueChange={(val) => val && setEmailFormat(val as "simple" | "enhanced")}
+            onValueChange={handleFormatChange}
             className="bg-muted p-1 rounded-lg"
           >
             <ToggleGroupItem 
@@ -252,6 +270,10 @@ export function EmailPreviewPanel({ formData }: EmailPreviewPanelProps) {
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
+        
+        <p className="text-xs text-muted-foreground">
+          This setting is saved to your account and applies to all outgoing emails.
+        </p>
 
         {/* Email Type Tabs */}
         <Tabs defaultValue="friendly" className="w-full">

@@ -506,6 +506,7 @@ export type Database = {
           business_name: string
           created_at: string | null
           email_footer: string | null
+          email_format: string | null
           email_signature: string | null
           email_wrapper_enabled: boolean | null
           escalation_contact_email: string | null
@@ -538,6 +539,7 @@ export type Database = {
           business_name: string
           created_at?: string | null
           email_footer?: string | null
+          email_format?: string | null
           email_signature?: string | null
           email_wrapper_enabled?: boolean | null
           escalation_contact_email?: string | null
@@ -570,6 +572,7 @@ export type Database = {
           business_name?: string
           created_at?: string | null
           email_footer?: string | null
+          email_format?: string | null
           email_signature?: string | null
           email_wrapper_enabled?: boolean | null
           escalation_contact_email?: string | null
