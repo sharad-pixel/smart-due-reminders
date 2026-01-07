@@ -187,6 +187,40 @@ serve(async (req) => {
       paymentOrigin: string | null;
     }
 
+    // Defensive: ensure we only ever write valid enum values to invoices.status.
+    // (We’ve seen older logs where lowercase values like "paid" slipped through.)
+    type InvoiceStatusEnum =
+      | 'Open'
+      | 'Paid'
+      | 'Disputed'
+      | 'Settled'
+      | 'InPaymentPlan'
+      | 'Canceled'
+      | 'FinalInternalCollections'
+      | 'PartiallyPaid'
+      | 'Voided';
+
+    const INVOICE_STATUS_CANONICAL: Record<string, InvoiceStatusEnum> = {
+      open: 'Open',
+      paid: 'Paid',
+      disputed: 'Disputed',
+      settled: 'Settled',
+      inpaymentplan: 'InPaymentPlan',
+      canceled: 'Canceled',
+      cancelled: 'Canceled',
+      voided: 'Voided',
+      void: 'Voided',
+      partiallypaid: 'PartiallyPaid',
+      partially_paid: 'PartiallyPaid',
+      finalinternalcollections: 'FinalInternalCollections',
+    };
+
+    const canonicalizeInvoiceStatus = (value: unknown): InvoiceStatusEnum => {
+      const raw = String(value ?? 'Open');
+      const key = raw.replace(/[^a-z_]/gi, '').toLowerCase();
+      return INVOICE_STATUS_CANONICAL[key] ?? 'Open';
+    };
+
     // Helper function to map Stripe status with normalized fields
     // Recouply treats void/uncollectible as TERMINAL - not sync failures
     const mapStripeStatus = (stripeInvoice: Stripe.Invoice): NormalizedInvoice => {
@@ -413,7 +447,7 @@ serve(async (req) => {
           currency: stripeInvoice.currency?.toUpperCase() || 'USD',
           issue_date: stripeInvoice.created ? new Date(stripeInvoice.created * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           due_date: stripeDueDate,
-          status: normalizedInvoice.status,
+          status: canonicalizeInvoiceStatus(normalizedInvoice.status),
           // Normalized fields for collection logic
           normalized_status: normalizedInvoice.normalizedStatus,
           is_collectible: normalizedInvoice.isCollectible,
