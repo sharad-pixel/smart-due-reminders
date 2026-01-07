@@ -86,6 +86,17 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+const formatTxDate = (dateStr: string | null | undefined) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '—';
+  try {
+    return format(d, 'MMM d, yyyy');
+  } catch {
+    return '—';
+  }
+};
+
 export const PaymentsActivityDashboard = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -309,7 +320,7 @@ export const PaymentsActivityDashboard = () => {
                       onClick={() => tx.invoice_id && navigate(`/invoices/${tx.invoice_id}`)}
                     >
                       <TableCell className="whitespace-nowrap text-sm">
-                        {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
+                        {formatTxDate(tx.transaction_date)}
                       </TableCell>
                       <TableCell className="max-w-[150px]">
                         <div className="truncate font-medium">
