@@ -43,11 +43,12 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       if (!user) throw new Error("Not authenticated");
 
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
-      const storagePath = `${user.id}/logo.${fileExt}`;
+      // Use a unique filename to avoid CDN/browser caching old logos.
+      const storagePath = `${user.id}/logo-${Date.now()}.${fileExt}`;
 
       // Delete existing logo if any
       if (currentLogoUrl) {
-        const oldPath = currentLogoUrl.split("/org-logos/")[1];
+        const oldPath = currentLogoUrl.split("/org-logos/")[1]?.split("?")[0];
         if (oldPath) {
           await supabase.storage.from("org-logos").remove([oldPath]);
         }
@@ -105,7 +106,7 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       if (!user) throw new Error("Not authenticated");
 
       // Delete from storage
-      const path = currentLogoUrl.split("/org-logos/")[1];
+      const path = currentLogoUrl.split("/org-logos/")[1]?.split("?")[0];
       if (path) {
         await supabase.storage.from("org-logos").remove([path]);
       }
