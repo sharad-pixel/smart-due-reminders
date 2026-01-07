@@ -6226,6 +6226,16 @@ export type Database = {
         | "Voided"
         | "paid"
         | "canceled"
+        | "open"
+        | "cancelled"
+        | "voided"
+        | "void"
+        | "disputed"
+        | "settled"
+        | "inpaymentplan"
+        | "partiallypaid"
+        | "partially_paid"
+        | "finalinternalcollections"
       outreach_log_status: "sent" | "failed" | "queued"
       outreach_status: "draft" | "scheduled" | "sent" | "failed"
       plan_type: "free" | "starter" | "growth" | "pro" | "professional"
@@ -6397,6 +6407,16 @@ export const Constants = {
         "Voided",
         "paid",
         "canceled",
+        "open",
+        "cancelled",
+        "voided",
+        "void",
+        "disputed",
+        "settled",
+        "inpaymentplan",
+        "partiallypaid",
+        "partially_paid",
+        "finalinternalcollections",
       ],
       outreach_log_status: ["sent", "failed", "queued"],
       outreach_status: ["draft", "scheduled", "sent", "failed"],
