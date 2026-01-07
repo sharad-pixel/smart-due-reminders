@@ -110,6 +110,23 @@ serve(async (req) => {
       );
     }
 
+    // CRITICAL: Prevent sending to settled invoices (Paid, Canceled, Voided, Credited, Written Off)
+    const settledStatuses = ['Paid', 'Canceled', 'Voided', 'Credited', 'Written Off', 'paid', 'canceled', 'voided', 'credited', 'written off'];
+    if (settledStatuses.includes(invoice.status)) {
+      console.log(`Draft ${draft_id} blocked: invoice ${invoice.id} has status ${invoice.status}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Cannot send outreach to ${invoice.status} invoices`,
+          invoice_status: invoice.status,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const debtor = invoice.debtors;
     if (!debtor) {
       throw new Error(

@@ -169,6 +169,8 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const BATCH_SIZE = 50;
     
+    // CRITICAL: Only fetch drafts for ACTIVE invoices (Open, InPaymentPlan)
+    // Do NOT send emails to Paid, Canceled, Voided, Credited, or WrittenOff invoices
     const { data: approvedDrafts, error: draftsError } = await supabaseAdmin
       .from('ai_drafts')
       .select(`
@@ -195,6 +197,7 @@ Deno.serve(async (req) => {
       `)
       .eq('status', 'approved')
       .is('sent_at', null)
+      .in('invoices.status', ['Open', 'InPaymentPlan']) // Only active invoices!
       .lte('recommended_send_date', today)
       .order('recommended_send_date', { ascending: true })
       .limit(BATCH_SIZE);
