@@ -122,7 +122,8 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Fetch invoices from Stripe - all statuses for complete sync
-    const invoices: Stripe.Invoice[] = [];
+    // Use a Map to deduplicate invoices by ID (in case same invoice appears in multiple lists)
+    const invoiceMap = new Map<string, Stripe.Invoice>();
     
     // Get open invoices (unpaid)
     const openInvoices = await stripe.invoices.list({
@@ -130,35 +131,55 @@ serve(async (req) => {
       limit: 100,
       expand: ['data.customer']
     });
-    invoices.push(...openInvoices.data);
+    for (const inv of openInvoices.data) {
+      invoiceMap.set(inv.id, inv);
+    }
     logStep("Fetched open invoices", { count: openInvoices.data.length });
 
-    // Get paid invoices to capture settlements
+    // Get paid invoices to capture settlements - PRIORITY: paid status overwrites others
     const paidInvoices = await stripe.invoices.list({
       status: 'paid',
       limit: 100,
       expand: ['data.customer']
     });
-    invoices.push(...paidInvoices.data);
+    for (const inv of paidInvoices.data) {
+      // Always overwrite with paid - this is the source of truth for settlement
+      invoiceMap.set(inv.id, inv);
+    }
     logStep("Fetched paid invoices", { count: paidInvoices.data.length });
 
-    // Get void invoices (cancelled/credited)
+    // Get void invoices (cancelled/credited) - only add if not already paid
     const voidInvoices = await stripe.invoices.list({
       status: 'void',
       limit: 100,
       expand: ['data.customer']
     });
-    invoices.push(...voidInvoices.data);
+    for (const inv of voidInvoices.data) {
+      const existing = invoiceMap.get(inv.id);
+      // Only set if not already in the map, or if existing isn't paid
+      if (!existing || existing.status !== 'paid') {
+        invoiceMap.set(inv.id, inv);
+      }
+    }
     logStep("Fetched void invoices", { count: voidInvoices.data.length });
 
-    // Get uncollectible invoices (written off)
+    // Get uncollectible invoices (written off) - only add if not already paid/void
     const uncollectibleInvoices = await stripe.invoices.list({
       status: 'uncollectible',
       limit: 100,
       expand: ['data.customer']
     });
-    invoices.push(...uncollectibleInvoices.data);
+    for (const inv of uncollectibleInvoices.data) {
+      const existing = invoiceMap.get(inv.id);
+      if (!existing || (existing.status !== 'paid' && existing.status !== 'void')) {
+        invoiceMap.set(inv.id, inv);
+      }
+    }
     logStep("Fetched uncollectible invoices", { count: uncollectibleInvoices.data.length });
+
+    // Convert map to array for processing
+    const invoices = Array.from(invoiceMap.values());
+    logStep("Total unique invoices to process", { count: invoices.length });
     
     // ============================================================
     // ONE-DIRECTIONAL SYNC: Stripe → Recouply (READ-ONLY)
