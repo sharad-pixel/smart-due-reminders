@@ -186,8 +186,8 @@ serve(async (req) => {
       .eq('user_id', brandingOwnerId)
       .single();
     
-    // Use branding business_name first, then profile, then default
-    const businessName = brandingSettings?.business_name || profile?.business_name || "Your Business";
+    // Use branding business_name first, then profile, then Recouply.ai (never "Your Business")
+    const businessName = brandingSettings?.business_name || profile?.business_name || "Recouply.ai";
     const fromName = brandingSettings?.from_name || businessName;
     
     // Build branding context for AI prompt

@@ -213,7 +213,7 @@ serve(async (req) => {
                   <p>Your SendGrid integration is working correctly. You can now send invoice reminders to your debtors.</p>
                   <hr style="border: 1px solid #eee; margin: 20px 0;" />
                   <p style="color: #666; font-size: 12px;">
-                    This email was sent from ${profile.business_name || "your business"} via Recouply.ai
+                    This email was sent from ${profile.business_name || "Recouply.ai"} via Recouply.ai
                   </p>
                 </div>
               `,

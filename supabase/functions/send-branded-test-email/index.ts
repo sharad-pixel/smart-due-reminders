@@ -58,8 +58,8 @@ serve(async (req) => {
       .single();
 
     const brandingSettings: BrandingSettings = branding || {
-      business_name: "Your Business",
-      from_name: "Your Business",
+      business_name: "Recouply.ai",
+      from_name: "Recouply.ai",
     };
 
     // Generate the email content
@@ -68,7 +68,7 @@ serve(async (req) => {
       
       <p>Hello,</p>
       
-      <p>This is a test email to demonstrate the new email template design for <strong>${brandingSettings.business_name || "your business"}</strong>.</p>
+      <p>This is a test email to demonstrate the new email template design for <strong>${brandingSettings.business_name || "Recouply.ai"}</strong>.</p>
       
       <p>This template includes:</p>
       <ul style="margin: 16px 0; padding-left: 20px;">
@@ -113,7 +113,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: fromAddress,
         to: [to_email],
-        subject: `📧 Email Template Preview - ${brandingSettings.business_name || "Your Business"}`,
+        subject: `📧 Email Template Preview - ${brandingSettings.business_name || "Recouply.ai"}`,
         html: htmlEmail,
       }),
     });

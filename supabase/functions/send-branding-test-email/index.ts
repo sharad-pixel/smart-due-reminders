@@ -49,10 +49,10 @@ serve(async (req) => {
       throw new Error(`Failed to fetch branding: ${brandingError.message}`);
     }
 
-    // Build branding config with defaults
+    // Build branding config with defaults (never use "Your Business" - use Recouply.ai as fallback)
     const brandingConfig: BrandingConfig = {
-      business_name: branding?.business_name || "Your Business",
-      from_name: branding?.from_name || branding?.business_name || "Your Business",
+      business_name: branding?.business_name || "Recouply.ai",
+      from_name: branding?.from_name || branding?.business_name || "Recouply.ai",
       logo_url: branding?.logo_url,
       primary_color: branding?.primary_color || "#111827",
       accent_color: branding?.accent_color || "#6366f1",

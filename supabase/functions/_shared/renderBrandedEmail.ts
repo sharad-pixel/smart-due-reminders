@@ -358,10 +358,10 @@ function generateRecouplyFooter(brand: BrandingConfig): string {
  * 
  * This is the single standardized wrapper used by ALL outbound email sending.
  */
-export function renderBrandedEmail(input: EmailRenderInput): string {
+export function renderBrandedEmail(input: EmailRenderInput, personaName?: string): string {
   const { brand, bodyHtml, cta, meta } = input;
   
-  const businessName = brand.business_name || brand.from_name || "Your Business";
+  const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
   const primaryColor = brand.primary_color || DEFAULT_PRIMARY_COLOR;
   const accentColor = brand.accent_color || DEFAULT_ACCENT_COLOR;
   
@@ -462,9 +462,9 @@ function lightenColor(hex: string, percent: number): string {
  * SIMPLE EMAIL FORMAT: Minimal HTML without branding template
  * Used when email_format = 'simple'
  */
-export function renderSimpleEmail(input: EmailRenderInput): string {
+export function renderSimpleEmail(input: EmailRenderInput, personaName?: string): string {
   const { brand, bodyHtml, cta } = input;
-  const businessName = brand.business_name || brand.from_name || "Your Business";
+  const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
   
   // Simple signature
   const signatureHtml = brand.email_signature 
@@ -510,9 +510,9 @@ export function renderSimpleEmail(input: EmailRenderInput): string {
 /**
  * Generate a plain text version of the email
  */
-export function renderPlainTextEmail(input: EmailRenderInput): string {
+export function renderPlainTextEmail(input: EmailRenderInput, personaName?: string): string {
   const { brand, bodyHtml, cta } = input;
-  const businessName = brand.business_name || brand.from_name || "Your Business";
+  const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
   const currentYear = new Date().getFullYear();
   
   // Strip HTML tags (simple approach)
