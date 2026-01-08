@@ -1,0 +1,41 @@
+{
+  "common": {
+    "settings": "Configurações",
+    "billing": "Faturamento",
+    "support": "Suporte",
+    "logout": "Sair",
+    "login": "Entrar",
+    "signUp": "Cadastrar",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso"
+  },
+  "footer": {
+    "company": "Empresa",
+    "about": "Sobre",
+    "pricing": "Preços",
+    "features": "Recursos",
+    "contact": "Contato",
+    "legal": "Legal",
+    "privacy": "Política de Privacidade",
+    "terms": "Termos de Serviço",
+    "cookies": "Política de Cookies",
+    "solutions": "Soluções",
+    "saas": "SaaS",
+    "smb": "Pequenas Empresas",
+    "enterprise": "Enterprise",
+    "professionalServices": "Serviços Profissionais",
+    "connect": "Conectar",
+    "allRightsReserved": "Todos os direitos reservados.",
+    "language": "Idioma"
+  },
+  "nav": {
+    "platform": "Plataforma",
+    "solutions": "Soluções",
+    "pricing": "Preços",
+    "about": "Sobre"
+  }
+}

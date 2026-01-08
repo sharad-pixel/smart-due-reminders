@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
+import LanguageSelector from "@/components/LanguageSelector";
 import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -65,6 +67,7 @@ const NavDropdown = ({
 const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const platformItems = [
     { icon: Brain, title: "Collection Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
@@ -318,10 +321,11 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               </Button>
             </div>
           </div>
-          <div className="text-center pt-8 border-t">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
+              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} {t('footer.allRightsReserved')}
             </p>
+            <LanguageSelector />
           </div>
         </div>
       </footer>
