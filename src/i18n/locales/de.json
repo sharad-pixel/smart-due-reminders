@@ -98,7 +98,122 @@
   "hero": {
     "badge": "Collection Intelligence Plattform",
     "tagline": "Alle Collection-Aktivitäten an einem Ort — KI-gestützt, audit-ready, für nahtlose Übergaben",
-    "agentsWorkBadge": "Diese Agenten arbeiten 24/7, damit Sie es nicht müssen"
+    "agentsWorkBadge": "Diese Agenten arbeiten 24/7, damit Sie es nicht müssen",
+    "headlines": [
+      "Schluss mit Zahlungsjagd.",
+      "Automatisieren Sie Ihr AR.",
+      "Collections, neu gedacht.",
+      "KI-gestützte Collections.",
+      "Umsatz schneller zurückholen."
+    ],
+    "subheadlines": [
+      "Lernen Sie 7 KI-Agenten kennen, die 24/7 arbeiten, um Ihre offenen Rechnungen einzutreiben.",
+      "Intelligente Automatisierung, die sich an das Zahlungsverhalten jedes Kunden anpasst.",
+      "Von der ersten Erinnerung bis zur letzten Nachverfolgung, automatisch erledigt.",
+      "Risikobewusste Collections, die Kundenbeziehungen schützen.",
+      "Verwandeln Sie überfällige Rechnungen in Cashflow, ohne manuelle Arbeit."
+    ]
+  },
+  "metrics": {
+    "reduceDso": "DSO reduzieren",
+    "reduceDsoDesc": "Reduzieren Sie Außenstandstage mit KI-gesteuerten Follow-ups",
+    "automateAr": "AR automatisieren",
+    "automateArDesc": "Eliminieren Sie manuelle Collection-Touchpoints",
+    "recoverPayments": "Zahlungen eintreiben",
+    "recoverPaymentsDesc": "Non-Stop KI-Agenten arbeiten rund um die Uhr"
+  },
+  "pipeline": {
+    "title": "So funktioniert es",
+    "subtitle": "Beobachten Sie die Collection Intelligence Pipeline in Aktion",
+    "invoiceReceived": "Rechnung empfangen",
+    "invoiceReceivedDesc": "Neue Rechnung aus Ihrem Abrechnungssystem synchronisiert",
+    "riskAssessment": "Risikobewertung",
+    "riskAssessmentDesc": "KI bewertet Zahlungswahrscheinlichkeit und Risikosignale",
+    "agentAssignment": "Agenten-Zuweisung",
+    "agentAssignmentDesc": "Optimale Persona basierend auf Kontoprofil ausgewählt",
+    "outreachSent": "Outreach gesendet",
+    "outreachSentDesc": "Personalisierte Nachricht zum richtigen Zeitpunkt zugestellt",
+    "paymentReceived": "Zahlung erhalten",
+    "paymentReceivedDesc": "Rechnung als bezahlt markiert und zurück zur Quelle synchronisiert"
+  },
+  "emailDemo": {
+    "title": "KI in Aktion sehen",
+    "subtitle": "Sehen Sie, wie unsere Agenten personalisierte Collection-Nachrichten erstellen",
+    "preview": "E-Mail-Vorschau",
+    "from": "Von",
+    "to": "An",
+    "subject": "Betreff",
+    "generating": "Personalisierte Nachricht wird generiert...",
+    "regenerate": "Neu generieren"
+  },
+  "pricingTeaser": {
+    "badge": "Einfache Preise",
+    "title": "Pläne, die mit Ihnen wachsen",
+    "subtitle": "Kostenlos starten, upgraden wenn Sie bereit sind",
+    "starter": "Starter",
+    "starterPrice": "Kostenlos",
+    "starterDesc": "Für kleine Teams am Anfang",
+    "starterFeatures": ["Bis zu 50 Rechnungen/Monat", "3 KI-Agenten", "E-Mail-Support", "Basis-Analytik"],
+    "growth": "Growth",
+    "growthPrice": "99€",
+    "growthPeriod": "/Monat",
+    "growthDesc": "Für wachsende Unternehmen",
+    "growthFeatures": ["Bis zu 500 Rechnungen/Monat", "Alle 7 KI-Agenten", "Prioritäts-Support", "Erweiterte Analytik", "Individuelle Workflows"],
+    "enterprise": "Enterprise",
+    "enterprisePrice": "Individuell",
+    "enterpriseDesc": "Für große Organisationen",
+    "enterpriseFeatures": ["Unbegrenzte Rechnungen", "Dedizierter Support", "Individuelle Integrationen", "SLA-Garantie", "On-Premise-Option"],
+    "popular": "Am beliebtesten"
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Häufig gestellte Fragen",
+    "subtitle": "Alles, was Sie über Collection Intelligence wissen müssen",
+    "q1": "Was ist Collection Intelligence?",
+    "a1": "Collection Intelligence ist eine KI-gestützte Plattform, die Ihr Forderungsmanagement mit 7 spezialisierten KI-Agenten automatisiert, die jeweils für verschiedene Collection-Szenarien konzipiert sind.",
+    "q2": "Wie integriert es sich mit meinen bestehenden Systemen?",
+    "a2": "Wir bieten native Integrationen mit Stripe, QuickBooks und anderen beliebten Abrechnungssystemen. Ihre Daten werden automatisch in Echtzeit synchronisiert.",
+    "q3": "Sind meine Daten sicher?",
+    "a3": "Ja, wir verwenden Enterprise-Grade-Verschlüsselung und sind SOC 2 konform. Ihre Daten werden niemals geteilt und sicher gespeichert.",
+    "q4": "Kann ich die KI-Nachrichten anpassen?",
+    "a4": "Absolut. Sie können Ton, Timing und Inhalt aller KI-generierten Nachrichten anpassen, um Ihrer Markensprache zu entsprechen.",
+    "q5": "Was passiert, wenn ein Kunde antwortet?",
+    "a5": "Unsere KI-Agenten können Kundenantworten verstehen und darauf reagieren oder an Ihr Team eskalieren, wenn menschliches Eingreifen erforderlich ist.",
+    "q6": "Wie lange dauert die Einrichtung?",
+    "a6": "Die meisten Kunden sind in unter 30 Minuten einsatzbereit. Verbinden Sie Ihr Abrechnungssystem und lassen Sie die KI übernehmen."
+  },
+  "finalCta": {
+    "title": "Bereit, Ihre Collections zu transformieren?",
+    "subtitle": "Schließen Sie sich zukunftsorientierten Unternehmen an, die KI nutzen, um Umsatz schneller zurückzuholen",
+    "button": "Kostenlos starten",
+    "note": "Keine Kreditkarte erforderlich • 14-tägige kostenlose Testversion"
+  },
+  "valueProps": {
+    "title": "Warum Collection Intelligence?",
+    "subtitle": "Entwickelt für moderne Finanzteams",
+    "speed": "Geschwindigkeit",
+    "speedDesc": "Reduzieren Sie DSO um 35-50% mit automatisierten Follow-ups",
+    "accuracy": "Genauigkeit",
+    "accuracyDesc": "KI-gestützte Risikobewertung verhindert Forderungsausfälle",
+    "scale": "Skalierung",
+    "scaleDesc": "Bearbeiten Sie 10x mehr Rechnungen ohne zusätzliches Personal",
+    "relationships": "Beziehungen",
+    "relationshipsDesc": "Bewahren Sie Kundenbeziehungen mit ton-bewussten Nachrichten"
+  },
+  "aiAgents": {
+    "badge": "Das Team kennenlernen",
+    "title": "7 KI-Agenten, eine Mission",
+    "subtitle": "Jeder Agent ist auf ein anderes Collection-Szenario spezialisiert"
+  },
+  "whyDifferent": {
+    "title": "Warum wir anders sind",
+    "subtitle": "Nicht nur ein weiteres Collection-Tool",
+    "notAgency": "Kein Inkassobüro",
+    "notAgencyDesc": "Wir sind Software, keine Drittpartei-Agentur. Sie behalten die Kontrolle.",
+    "aiFirst": "KI-First-Ansatz",
+    "aiFirstDesc": "Zweckgebaute KI, keine nachgerüsteten Automatisierungsskripte.",
+    "humanLoop": "Mensch in der Schleife",
+    "humanLoopDesc": "KI entwirft, Sie genehmigen. Volle Kontrolle über jede Nachricht."
   },
   "designPartners": {
     "badge": "Frühzugang",
