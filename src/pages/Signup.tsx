@@ -380,7 +380,7 @@ const Signup = () => {
   return (
     <>
       <SEO
-        title="Sign Up | Recouply.ai"
+        title="Sign Up"
         description="Create your Recouply.ai account and start automating invoice collection with AI-powered intelligence."
         noindex={true}
       />
