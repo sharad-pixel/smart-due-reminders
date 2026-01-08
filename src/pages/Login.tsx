@@ -7,11 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
-import { Sparkles, Zap, Users, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import SEO from "@/components/SEO";
 
@@ -24,10 +23,6 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
-  const [showRequestAccess, setShowRequestAccess] = useState(false);
-  const [requestName, setRequestName] = useState("");
-  const [requestEmail, setRequestEmail] = useState("");
-  const [requestingAccess, setRequestingAccess] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener for OAuth callbacks
@@ -179,50 +174,6 @@ const Login = () => {
     }
   };
 
-  const handleRequestAccess = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!requestName.trim()) {
-      toast.error("Please enter your name");
-      return;
-    }
-    
-    setRequestingAccess(true);
-
-    try {
-      const { error } = await supabase
-        .from('waitlist_signups')
-        .insert([{ email: requestEmail, name: requestName.trim() }]);
-      
-      if (error) {
-        if (error.code === '23505') {
-          toast.error("This email is already on the waitlist!");
-        } else {
-          throw error;
-        }
-      } else {
-        try {
-          await supabase.functions.invoke('send-admin-alert', {
-            body: { type: 'waitlist', email: requestEmail, name: requestName.trim() }
-          });
-        } catch (alertErr) {
-          console.error('Failed to send admin alert:', alertErr);
-        }
-        
-        toast.success("Thanks! We'll review your request and get back to you soon.", {
-          description: "You've been added to the early access waitlist."
-        });
-        setShowRequestAccess(false);
-        setRequestName("");
-        setRequestEmail("");
-      }
-    } catch (error) {
-      console.error('Error saving to waitlist:', error);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setRequestingAccess(false);
-    }
-  };
 
   return (
     <>
@@ -233,12 +184,8 @@ const Login = () => {
       />
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
-        {/* Early Access Banner */}
+        {/* Header */}
         <div className="text-center mb-6">
-          <Badge variant="secondary" className="mb-4 px-4 py-1.5 text-sm bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="w-4 h-4 mr-2" />
-            Early Access Program
-          </Badge>
           <RecouplyLogo size="xl" className="justify-center mb-2" />
           <p className="text-muted-foreground">Collection Intelligence Platform</p>
         </div>
@@ -340,21 +287,14 @@ const Login = () => {
           </CardContent>
         </Card>
 
-        {/* Early Access Info */}
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="font-medium">Don't have access yet?</span>
-          </div>
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setShowRequestAccess(true)}
-          >
-            <Mail className="w-4 h-4 mr-2" />
-            Request Early Access
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            By signing in, you agree to our{" "}
+            <Link to="/legal/terms" className="text-primary hover:underline">Terms</Link>
+            {" "}and{" "}
+            <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+          </p>
         </div>
 
         {/* Forgot Password Dialog */}
@@ -395,54 +335,6 @@ const Login = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Request Early Access Dialog */}
-        <Dialog open={showRequestAccess} onOpenChange={setShowRequestAccess}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request Early Access</DialogTitle>
-              <DialogDescription>
-                Enter your details and we'll review your request for early access to Recouply.ai.
-                We respond to requests within 24-48 hours.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleRequestAccess} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="request-name">Name</Label>
-                <Input
-                  id="request-name"
-                  type="text"
-                  value={requestName}
-                  onChange={(e) => setRequestName(e.target.value)}
-                  required
-                  placeholder="Your name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="request-email">Email</Label>
-                <Input
-                  id="request-email"
-                  type="email"
-                  value={requestEmail}
-                  onChange={(e) => setRequestEmail(e.target.value)}
-                  required
-                  placeholder="you@company.com"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowRequestAccess(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={requestingAccess}>
-                  {requestingAccess ? "Submitting..." : "Request Access"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
       </div>
     </>

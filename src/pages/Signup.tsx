@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
-import { Check, X, Sparkles, Zap, Users, FileText, Bot, Lock, Mail, ArrowRight, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Check, X, Zap, Users, FileText, Bot, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,13 +47,8 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checkingWhitelist, setCheckingWhitelist] = useState(false);
   const [isInviteFlow, setIsInviteFlow] = useState(false);
   const [inviteProcessing, setInviteProcessing] = useState(true);
-  const [showRequestAccess, setShowRequestAccess] = useState(false);
-  const [requestName, setRequestName] = useState("");
-  const [requestEmail, setRequestEmail] = useState("");
-  const [requestingAccess, setRequestingAccess] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
   // Calculate password strength
@@ -138,33 +131,6 @@ const Signup = () => {
     return () => subscription.unsubscribe();
   }, [navigate, isInviteFlow, inviteProcessing]);
 
-  const checkWhitelist = async (emailToCheck: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('check-whitelist', {
-        body: { email: emailToCheck }
-      });
-      
-      if (error) {
-        console.error('Whitelist check error:', error);
-        return false;
-      }
-      
-      return data?.isWhitelisted === true;
-    } catch (err) {
-      console.error('Whitelist check failed:', err);
-      return false;
-    }
-  };
-
-  const markWhitelistUsed = async (emailToMark: string) => {
-    try {
-      await supabase.functions.invoke('mark-whitelist-used', {
-        body: { email: emailToMark }
-      });
-    } catch (err) {
-      console.error('Failed to mark whitelist as used:', err);
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     setOauthError(null);
@@ -203,7 +169,6 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setCheckingWhitelist(true);
 
     try {
       // For invite flow, password may not be required if already authenticated
@@ -220,7 +185,6 @@ const Signup = () => {
         : { name, email, password, businessName };
 
       const validatedData = validationSchema.parse(dataToValidate);
-      setCheckingWhitelist(false);
 
       // If invite flow with authenticated user, just update profile
       if (isInviteFlow && user) {
@@ -238,8 +202,6 @@ const Signup = () => {
           throw new Error('Failed to update profile');
         }
 
-        // Mark whitelist as used
-        await markWhitelistUsed(validatedData.email);
 
         // Send admin alert
         try {
@@ -273,20 +235,7 @@ const Signup = () => {
         return;
       }
 
-      // Standard signup flow - check whitelist first
-      const isWhitelisted = await checkWhitelist(validatedData.email);
-      
-      if (!isWhitelisted) {
-        toast.error("This email is not on the early access list. Please contact us at support@recouply.ai to request an invite.");
-        await logSecurityEvent({
-          eventType: "signup",
-          email: validatedData.email,
-          success: false,
-          failureReason: "Email not on whitelist",
-        });
-        setLoading(false);
-        return;
-      }
+      // Standard signup flow
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
@@ -316,8 +265,6 @@ const Signup = () => {
       }
       if (!authData.user) throw new Error("Failed to create account");
 
-      // Mark whitelist as used
-      await markWhitelistUsed(validatedData.email);
 
       await logSecurityEvent({
         eventType: "signup",
@@ -381,7 +328,6 @@ const Signup = () => {
       }
     } finally {
       setLoading(false);
-      setCheckingWhitelist(false);
     }
   };
 
@@ -411,22 +357,18 @@ const Signup = () => {
       />
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-lg">
-        {/* Early Access Banner */}
+        {/* Header */}
         <div className="text-center mb-6">
-          <Badge variant="secondary" className="mb-4 px-4 py-1.5 text-sm bg-primary/10 text-primary border-primary/20">
-            <Lock className="w-4 h-4 mr-2" />
-            Invite-Only Early Access
-          </Badge>
           <RecouplyLogo size="xl" className="justify-center mb-2" />
           <p className="text-muted-foreground">Collection Intelligence Platform</p>
         </div>
 
-        {/* Early Access Benefits Card */}
+        {/* Free Trial Benefits Card */}
         <Card className="mb-4 border-primary/20 bg-primary/5">
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-sm">Early Access - Free Trial</span>
+              <span className="font-semibold text-sm">Free Trial Included</span>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-2 bg-background rounded-lg">
@@ -445,21 +387,18 @@ const Signup = () => {
                 <p className="text-xs text-muted-foreground">Features</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              Access is currently invite-only. Contact support@recouply.ai to request an invite.
-            </p>
           </CardContent>
         </Card>
 
         <Card className="border-2">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl">
-              {isInviteFlow && user ? "Complete Your Profile" : "Join Early Access"}
+              {isInviteFlow && user ? "Complete Your Profile" : "Create Your Account"}
             </CardTitle>
             <CardDescription>
               {isInviteFlow && user 
                 ? "Just a few more details to get started" 
-                : "Sign up with your invited email address"}
+                : "Get started with AI-powered collections"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -626,7 +565,7 @@ const Signup = () => {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {checkingWhitelist ? "Verifying invite..." : loading ? (isInviteFlow && user ? "Completing profile..." : "Creating account...") : (isInviteFlow && user ? "Complete Profile" : "Join Early Access")}
+                {loading ? (isInviteFlow && user ? "Completing profile..." : "Creating account...") : (isInviteFlow && user ? "Complete Profile" : "Create Account")}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
@@ -650,115 +589,16 @@ const Signup = () => {
           </CardContent>
         </Card>
 
-        {/* Request Access Info */}
-        {!(isInviteFlow && user) && (
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="font-medium">Don't have an invite?</span>
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => setShowRequestAccess(true)}
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              Request Early Access
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        )}
 
-        {/* Request Early Access Dialog */}
-        <Dialog open={showRequestAccess} onOpenChange={setShowRequestAccess}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request Early Access</DialogTitle>
-              <DialogDescription>
-                Enter your details and we'll review your request for early access to Recouply.ai.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              
-              if (!requestName.trim()) {
-                toast.error("Please enter your name");
-                return;
-              }
-              
-              setRequestingAccess(true);
-
-              try {
-                const { error } = await supabase
-                  .from('waitlist_signups')
-                  .insert([{ email: requestEmail, name: requestName.trim() }]);
-                
-                if (error) {
-                  if (error.code === '23505') {
-                    toast.error("This email is already on the waitlist!");
-                  } else {
-                    throw error;
-                  }
-                } else {
-                  try {
-                    await supabase.functions.invoke('send-admin-alert', {
-                      body: { type: 'waitlist', email: requestEmail, name: requestName.trim() }
-                    });
-                  } catch (alertErr) {
-                    console.error('Failed to send admin alert:', alertErr);
-                  }
-                  
-                  toast.success("Thanks! We'll review your request and get back to you soon.", {
-                    description: "You've been added to the early access waitlist."
-                  });
-                  setShowRequestAccess(false);
-                  setRequestName("");
-                  setRequestEmail("");
-                }
-              } catch (error) {
-                console.error('Error saving to waitlist:', error);
-                toast.error("Something went wrong. Please try again.");
-              } finally {
-                setRequestingAccess(false);
-              }
-            }} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="request-name">Name</Label>
-                <Input
-                  id="request-name"
-                  type="text"
-                  value={requestName}
-                  onChange={(e) => setRequestName(e.target.value)}
-                  required
-                  placeholder="Your name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="request-email">Email</Label>
-                <Input
-                  id="request-email"
-                  type="email"
-                  value={requestEmail}
-                  onChange={(e) => setRequestEmail(e.target.value)}
-                  required
-                  placeholder="you@company.com"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowRequestAccess(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={requestingAccess}>
-                  {requestingAccess ? "Submitting..." : "Request Access"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            Need help? Contact us at{" "}
+            <a href="mailto:support@recouply.ai" className="text-primary hover:underline">
+              support@recouply.ai
+            </a>
+          </p>
+        </div>
       </div>
     </div>
     </>
