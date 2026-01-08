@@ -98,7 +98,122 @@
   "hero": {
     "badge": "Collection Intelligence Platform",
     "tagline": "All collection activities in one place — AI-powered, audit-ready, built for seamless handoffs",
-    "agentsWorkBadge": "These agents work 24/7 so you don't have to"
+    "agentsWorkBadge": "These agents work 24/7 so you don't have to",
+    "headlines": [
+      "Stop chasing payments.",
+      "Automate your AR.",
+      "Collections, reimagined.",
+      "AI-powered collections.",
+      "Recover revenue faster."
+    ],
+    "subheadlines": [
+      "Meet 7 AI agents that work 24/7 to recover your outstanding invoices.",
+      "Intelligent automation that adapts to each customer's payment behavior.",
+      "From first reminder to final follow-up, handled automatically.",
+      "Risk-aware collections that protect customer relationships.",
+      "Turn overdue invoices into cash flow, without the manual work."
+    ]
+  },
+  "metrics": {
+    "reduceDso": "Reduce DSO",
+    "reduceDsoDesc": "Cut days sales outstanding with AI-driven follow-ups",
+    "automateAr": "Automate AR",
+    "automateArDesc": "Eliminate manual collection touchpoints",
+    "recoverPayments": "Recover Payments",
+    "recoverPaymentsDesc": "Non-stop AI agents working around the clock"
+  },
+  "pipeline": {
+    "title": "See how it works",
+    "subtitle": "Watch the collection intelligence pipeline in action",
+    "invoiceReceived": "Invoice Received",
+    "invoiceReceivedDesc": "New invoice synced from your billing system",
+    "riskAssessment": "Risk Assessment",
+    "riskAssessmentDesc": "AI evaluates payment probability and risk signals",
+    "agentAssignment": "Agent Assignment",
+    "agentAssignmentDesc": "Optimal persona selected based on account profile",
+    "outreachSent": "Outreach Sent",
+    "outreachSentDesc": "Personalized message delivered at the right time",
+    "paymentReceived": "Payment Received",
+    "paymentReceivedDesc": "Invoice marked paid and synced back to source"
+  },
+  "emailDemo": {
+    "title": "Watch AI in action",
+    "subtitle": "See how our agents craft personalized collection messages",
+    "preview": "Email Preview",
+    "from": "From",
+    "to": "To",
+    "subject": "Subject",
+    "generating": "Generating personalized message...",
+    "regenerate": "Regenerate"
+  },
+  "pricingTeaser": {
+    "badge": "Simple Pricing",
+    "title": "Plans that scale with you",
+    "subtitle": "Start free, upgrade when you're ready",
+    "starter": "Starter",
+    "starterPrice": "Free",
+    "starterDesc": "For small teams getting started",
+    "starterFeatures": ["Up to 50 invoices/month", "3 AI agents", "Email support", "Basic analytics"],
+    "growth": "Growth",
+    "growthPrice": "$99",
+    "growthPeriod": "/month",
+    "growthDesc": "For growing businesses",
+    "growthFeatures": ["Up to 500 invoices/month", "All 7 AI agents", "Priority support", "Advanced analytics", "Custom workflows"],
+    "enterprise": "Enterprise",
+    "enterprisePrice": "Custom",
+    "enterpriseDesc": "For large organizations",
+    "enterpriseFeatures": ["Unlimited invoices", "Dedicated support", "Custom integrations", "SLA guarantee", "On-premise option"],
+    "popular": "Most Popular"
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about Collection Intelligence",
+    "q1": "What is Collection Intelligence?",
+    "a1": "Collection Intelligence is an AI-powered platform that automates your accounts receivable collections with 7 specialized AI agents, each designed to handle different collection scenarios.",
+    "q2": "How does it integrate with my existing systems?",
+    "a2": "We offer native integrations with Stripe, QuickBooks, and other popular billing systems. Your data syncs automatically in real-time.",
+    "q3": "Is my data secure?",
+    "a3": "Yes, we use enterprise-grade encryption and are SOC 2 compliant. Your data is never shared and is stored securely.",
+    "q4": "Can I customize the AI messages?",
+    "a4": "Absolutely. You can customize tone, timing, and content of all AI-generated messages to match your brand voice.",
+    "q5": "What happens if a customer responds?",
+    "a5": "Our AI agents can understand and respond to customer replies, or escalate to your team when human intervention is needed.",
+    "q6": "How long does setup take?",
+    "a6": "Most customers are up and running in under 30 minutes. Connect your billing system and let the AI take over."
+  },
+  "finalCta": {
+    "title": "Ready to transform your collections?",
+    "subtitle": "Join forward-thinking companies using AI to recover revenue faster",
+    "button": "Start Free Trial",
+    "note": "No credit card required • 14-day free trial"
+  },
+  "valueProps": {
+    "title": "Why Collection Intelligence?",
+    "subtitle": "Built for modern finance teams",
+    "speed": "Speed",
+    "speedDesc": "Reduce DSO by 35-50% with automated follow-ups",
+    "accuracy": "Accuracy",
+    "accuracyDesc": "AI-powered risk scoring prevents bad debt",
+    "scale": "Scale",
+    "scaleDesc": "Handle 10x more invoices without adding headcount",
+    "relationships": "Relationships",
+    "relationshipsDesc": "Preserve customer relationships with tone-aware messaging"
+  },
+  "aiAgents": {
+    "badge": "Meet the Team",
+    "title": "7 AI Agents, One Mission",
+    "subtitle": "Each agent specializes in a different collection scenario"
+  },
+  "whyDifferent": {
+    "title": "Why we're different",
+    "subtitle": "Not just another collections tool",
+    "notAgency": "Not a Collection Agency",
+    "notAgencyDesc": "We're software, not a third-party agency. You stay in control.",
+    "aiFirst": "AI-First Approach",
+    "aiFirstDesc": "Purpose-built AI, not retrofitted automation scripts.",
+    "humanLoop": "Human in the Loop",
+    "humanLoopDesc": "AI drafts, you approve. Full control over every message."
   },
   "designPartners": {
     "badge": "Early Access Opportunity",

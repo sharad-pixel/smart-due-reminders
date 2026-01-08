@@ -98,7 +98,122 @@
   "hero": {
     "badge": "Plataforma Collection Intelligence",
     "tagline": "Todas las actividades de cobranza en un solo lugar — impulsado por IA, audit-ready, para traspasos sin fricciones",
-    "agentsWorkBadge": "Estos agentes trabajan 24/7 para que tú no tengas que hacerlo"
+    "agentsWorkBadge": "Estos agentes trabajan 24/7 para que tú no tengas que hacerlo",
+    "headlines": [
+      "Deja de perseguir pagos.",
+      "Automatiza tu AR.",
+      "Cobranzas, reimaginadas.",
+      "Cobranzas con IA.",
+      "Recupera ingresos más rápido."
+    ],
+    "subheadlines": [
+      "Conoce 7 agentes IA que trabajan 24/7 para recuperar tus facturas pendientes.",
+      "Automatización inteligente que se adapta al comportamiento de pago de cada cliente.",
+      "Del primer recordatorio al seguimiento final, manejado automáticamente.",
+      "Cobranzas risk-aware que protegen las relaciones con los clientes.",
+      "Convierte facturas vencidas en flujo de caja, sin trabajo manual."
+    ]
+  },
+  "metrics": {
+    "reduceDso": "Reduce DSO",
+    "reduceDsoDesc": "Reduce días de ventas pendientes con seguimientos IA",
+    "automateAr": "Automatiza AR",
+    "automateArDesc": "Elimina puntos de contacto manuales de cobranza",
+    "recoverPayments": "Recupera Pagos",
+    "recoverPaymentsDesc": "Agentes IA non-stop trabajando las 24 horas"
+  },
+  "pipeline": {
+    "title": "Mira cómo funciona",
+    "subtitle": "Observa el pipeline de Collection Intelligence en acción",
+    "invoiceReceived": "Factura Recibida",
+    "invoiceReceivedDesc": "Nueva factura sincronizada desde tu sistema de facturación",
+    "riskAssessment": "Evaluación de Riesgo",
+    "riskAssessmentDesc": "IA evalúa probabilidad de pago y señales de riesgo",
+    "agentAssignment": "Asignación de Agente",
+    "agentAssignmentDesc": "Persona óptima seleccionada basada en el perfil de cuenta",
+    "outreachSent": "Outreach Enviado",
+    "outreachSentDesc": "Mensaje personalizado entregado en el momento correcto",
+    "paymentReceived": "Pago Recibido",
+    "paymentReceivedDesc": "Factura marcada como pagada y sincronizada a la fuente"
+  },
+  "emailDemo": {
+    "title": "Mira la IA en acción",
+    "subtitle": "Ve cómo nuestros agentes crean mensajes de cobranza personalizados",
+    "preview": "Vista Previa del Email",
+    "from": "De",
+    "to": "Para",
+    "subject": "Asunto",
+    "generating": "Generando mensaje personalizado...",
+    "regenerate": "Regenerar"
+  },
+  "pricingTeaser": {
+    "badge": "Precios Simples",
+    "title": "Planes que escalan contigo",
+    "subtitle": "Empieza gratis, mejora cuando estés listo",
+    "starter": "Starter",
+    "starterPrice": "Gratis",
+    "starterDesc": "Para equipos pequeños empezando",
+    "starterFeatures": ["Hasta 50 facturas/mes", "3 agentes IA", "Soporte email", "Analítica básica"],
+    "growth": "Growth",
+    "growthPrice": "$99",
+    "growthPeriod": "/mes",
+    "growthDesc": "Para negocios en crecimiento",
+    "growthFeatures": ["Hasta 500 facturas/mes", "Los 7 agentes IA", "Soporte prioritario", "Analítica avanzada", "Workflows personalizados"],
+    "enterprise": "Enterprise",
+    "enterprisePrice": "Personalizado",
+    "enterpriseDesc": "Para grandes organizaciones",
+    "enterpriseFeatures": ["Facturas ilimitadas", "Soporte dedicado", "Integraciones personalizadas", "Garantía SLA", "Opción on-premise"],
+    "popular": "Más Popular"
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Preguntas Frecuentes",
+    "subtitle": "Todo lo que necesitas saber sobre Collection Intelligence",
+    "q1": "¿Qué es Collection Intelligence?",
+    "a1": "Collection Intelligence es una plataforma impulsada por IA que automatiza tus cobranzas de cuentas por cobrar con 7 agentes IA especializados, cada uno diseñado para manejar diferentes escenarios de cobranza.",
+    "q2": "¿Cómo se integra con mis sistemas existentes?",
+    "a2": "Ofrecemos integraciones nativas con Stripe, QuickBooks y otros sistemas de facturación populares. Tus datos se sincronizan automáticamente en tiempo real.",
+    "q3": "¿Están seguros mis datos?",
+    "a3": "Sí, usamos encriptación de grado empresarial y cumplimos con SOC 2. Tus datos nunca se comparten y se almacenan de forma segura.",
+    "q4": "¿Puedo personalizar los mensajes de IA?",
+    "a4": "Absolutamente. Puedes personalizar el tono, tiempo y contenido de todos los mensajes generados por IA para que coincidan con la voz de tu marca.",
+    "q5": "¿Qué pasa si un cliente responde?",
+    "a5": "Nuestros agentes IA pueden entender y responder a las respuestas de los clientes, o escalar a tu equipo cuando se necesita intervención humana.",
+    "q6": "¿Cuánto tiempo toma la configuración?",
+    "a6": "La mayoría de los clientes están operando en menos de 30 minutos. Conecta tu sistema de facturación y deja que la IA se encargue."
+  },
+  "finalCta": {
+    "title": "¿Listo para transformar tus cobranzas?",
+    "subtitle": "Únete a empresas innovadoras que usan IA para recuperar ingresos más rápido",
+    "button": "Empezar Prueba Gratis",
+    "note": "Sin tarjeta de crédito • Prueba gratis 14 días"
+  },
+  "valueProps": {
+    "title": "¿Por qué Collection Intelligence?",
+    "subtitle": "Construido para equipos financieros modernos",
+    "speed": "Velocidad",
+    "speedDesc": "Reduce DSO 35-50% con seguimientos automatizados",
+    "accuracy": "Precisión",
+    "accuracyDesc": "Risk scoring con IA previene deudas incobrables",
+    "scale": "Escala",
+    "scaleDesc": "Maneja 10x más facturas sin añadir personal",
+    "relationships": "Relaciones",
+    "relationshipsDesc": "Preserva relaciones con mensajes conscientes del tono"
+  },
+  "aiAgents": {
+    "badge": "Conoce al Equipo",
+    "title": "7 Agentes IA, Una Misión",
+    "subtitle": "Cada agente se especializa en un escenario de cobranza diferente"
+  },
+  "whyDifferent": {
+    "title": "Por qué somos diferentes",
+    "subtitle": "No solo otra herramienta de cobranzas",
+    "notAgency": "No Somos una Agencia de Cobranza",
+    "notAgencyDesc": "Somos software, no una agencia tercera. Tú mantienes el control.",
+    "aiFirst": "Enfoque IA-First",
+    "aiFirstDesc": "IA diseñada específicamente, no scripts de automatización adaptados.",
+    "humanLoop": "Humano en el Loop",
+    "humanLoopDesc": "IA redacta, tú apruebas. Control total sobre cada mensaje."
   },
   "designPartners": {
     "badge": "Acceso anticipado",
