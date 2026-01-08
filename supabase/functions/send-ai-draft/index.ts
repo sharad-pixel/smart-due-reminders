@@ -224,19 +224,25 @@ serve(async (req) => {
     if (branding?.email_signature && !processedBody.includes(branding.email_signature)) {
       processedBody += `\n\n---\n${branding.email_signature}`;
     } else if (!branding?.email_signature) {
-      // Add contact info from escalation settings
-      const contactName = branding?.escalation_contact_name || '';
-      const contactEmail = branding?.escalation_contact_email || '';
-      const contactPhone = branding?.escalation_contact_phone || '';
+      // No branding signature - use the assigned agent persona
+      const { data: personaData } = await supabaseClient
+        .from('ai_agent_personas')
+        .select('name')
+        .eq('id', draft.agent_persona_id)
+        .single();
+      
+      const personaName = personaData?.name || 'Collections Team';
       const businessName = branding?.business_name || 'Our Company';
       
-      let contactSection = '';
-      if (contactName) contactSection += `\n${contactName}`;
+      // Add contact info from escalation settings if available
+      const contactEmail = branding?.escalation_contact_email || '';
+      const contactPhone = branding?.escalation_contact_phone || '';
+      
+      let contactSection = `\n\n---\nBest regards,\n${personaName}\n${businessName}`;
       if (contactEmail) contactSection += `\nEmail: ${contactEmail}`;
       if (contactPhone) contactSection += `\nPhone: ${contactPhone}`;
-      if (contactSection || businessName) {
-        processedBody += `\n\n---${contactSection}\n${businessName}`;
-      }
+      
+      processedBody += contactSection;
     }
     
     const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder');

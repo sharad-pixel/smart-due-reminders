@@ -342,12 +342,26 @@ CRITICAL COMPLIANCE RULES:
 - Write as if you are ${businessName}, NOT a third party
 - Always include the payment link once in the email
 - Encourage the customer to pay or reply if there is a dispute or issue
+
+ABSOLUTELY CRITICAL - NO PLACEHOLDERS:
+- You MUST use the ACTUAL values provided below - NEVER use placeholders
+- FORBIDDEN: [Your Name], [Customer Name], [Company Name], {{variable}}, {variable}, or ANY similar placeholder syntax
+- Use the ACTUAL customer name: "${contactName}"
+- Use the ACTUAL business name: "${businessName}"
+- Format money as proper USD: "$XX,XXX.XX" format
+- Sign the email as "${personaName}" from "${businessName}" - never as "[Your Name]"
+- If no branding signature exists, sign as: "Best regards,\\n${personaName}\\n${businessName}"
 ${taskContext}
+
+OUTPUT FORMAT:
+- Use simple, clean HTML with <p> tags for paragraphs
+- Use <br> for line breaks within paragraphs
+- Keep formatting minimal and professional
 
 You must respond in JSON format with the following structure:
 {
-  "email_subject": "string (in English)",
-  "email_body": "string (in English)"
+  "email_subject": "string (in English, no placeholders)",
+  "email_body": "string (in English, simple HTML, no placeholders)"
 }`;
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

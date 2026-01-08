@@ -211,8 +211,8 @@ function generateRecouplyFooter(branding: BrandingSettings): string {
 /**
  * Generate enterprise-grade styled email wrapper with RecouplyAI Inc. branding
  */
-export function wrapEmailContent(body: string, branding: BrandingSettings = {}): string {
-  const businessName = branding.business_name || branding.from_name || "Your Business";
+export function wrapEmailContent(body: string, branding: BrandingSettings = {}, personaName?: string): string {
+  const businessName = branding.business_name || branding.from_name || personaName || "Recouply.ai";
   const primaryColor = branding.primary_color || "#1e3a5f";
   
   return `
@@ -312,9 +312,10 @@ export function generatePaymentButton(options: PaymentLinkOptions): string {
  */
 export function generateEmailSignature(
   branding: BrandingSettings, 
-  paymentOptions?: PaymentLinkOptions
+  paymentOptions?: PaymentLinkOptions,
+  personaName?: string
 ): string {
-  const businessName = branding.business_name || branding.from_name || "Your Business";
+  const businessName = branding.business_name || branding.from_name || personaName || "Recouply.ai";
   
   // Custom signature takes precedence if provided
   const customSignature = branding.email_signature 
@@ -395,9 +396,10 @@ export function generateEmailSignature(
  */
 export function generatePlainTextSignature(
   branding: BrandingSettings,
-  paymentOptions?: PaymentLinkOptions
+  paymentOptions?: PaymentLinkOptions,
+  personaName?: string
 ): string {
-  const businessName = branding.business_name || branding.from_name || "Your Business";
+  const businessName = branding.business_name || branding.from_name || personaName || "Recouply.ai";
   const currentYear = new Date().getFullYear();
   
   let signature = "\n\n";
