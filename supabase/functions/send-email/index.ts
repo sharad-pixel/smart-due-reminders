@@ -142,11 +142,18 @@ serve(async (req) => {
     );
   }
 
+  // Sanitize subject - Resend doesn't allow newlines in subject
+  const sanitizedSubject = payload.subject
+    .replace(/[\r\n]+/g, ' ')  // Replace newlines with space
+    .replace(/\s+/g, ' ')       // Collapse multiple spaces
+    .trim()
+    .substring(0, 200);         // Limit length
+
   // Build Resend API payload
   const resendPayload: Record<string, unknown> = {
     from: payload.from,
     to: toAddresses,
-    subject: payload.subject,
+    subject: sanitizedSubject,
   };
 
   if (payload.html) {
