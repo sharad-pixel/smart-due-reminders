@@ -59,6 +59,16 @@ export const STRIPE_PRODUCTS = {
 export const ANNUAL_DISCOUNT_RATE = 0.20; // 20% discount
 
 /**
+ * Trial Configuration
+ * 7-day trial with 5 invoice limit
+ */
+export const TRIAL_CONFIG = {
+  trialDays: 7,
+  invoiceLimit: 5,
+  defaultPlan: 'starter' as const,
+} as const;
+
+/**
  * Per-invoice pricing (standardized across all plans)
  */
 export const INVOICE_PRICING = {
@@ -241,11 +251,12 @@ export function canAccessFeature(plan: PlanType, feature: string): boolean {
   return config?.features.includes(feature) || false;
 }
 
-export function getInvoiceLimit(plan: PlanType): number {
-  if (plan === 'free') return 15;
+export function getInvoiceLimit(plan: PlanType, isTrial: boolean = false): number {
+  if (isTrial) return TRIAL_CONFIG.invoiceLimit; // 5 invoices during trial
+  if (plan === 'free') return 5; // Free tier now has same limit as trial
   if (plan === 'enterprise') return -1; // Unlimited
   const config = PLAN_CONFIGS[plan];
-  return config?.invoiceLimit || 15;
+  return config?.invoiceLimit || 5;
 }
 
 export function getMaxAgents(plan: PlanType): number {

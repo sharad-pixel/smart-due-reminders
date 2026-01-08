@@ -235,7 +235,7 @@ const Signup = () => {
         return;
       }
 
-      // Standard signup flow
+      // Standard signup flow - Create account first, then redirect to Stripe checkout
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
@@ -300,12 +300,13 @@ const Signup = () => {
         console.error('Failed to send welcome email:', welcomeErr);
       }
 
-      // Update profile with business name
+      // Update profile with business name and trial plan
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           business_name: validatedData.businessName,
-          plan_type: 'free'
+          plan_type: 'starter', // Default to starter for trial
+          subscription_status: 'trialing',
         })
         .eq('id', authData.user.id);
 
@@ -313,11 +314,39 @@ const Signup = () => {
         console.error('Profile update error:', profileError);
       }
 
+      // If session exists, redirect to Stripe checkout for payment info
       if (authData.session) {
-        toast.success("Welcome to Recouply.ai! You're on your way to Collection Excellence.");
-        navigate("/dashboard");
+        toast.success("Account created! Setting up your trial...");
+        
+        // Create Stripe checkout session for trial signup
+        try {
+          const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
+            body: { 
+              planId: 'starter',
+              billingInterval: 'month',
+              isTrialSignup: true
+            }
+          });
+
+          if (checkoutError) {
+            console.error('Checkout error:', checkoutError);
+            toast.error("Failed to setup payment. You can add payment later in settings.");
+            navigate("/dashboard");
+            return;
+          }
+          
+          if (checkoutData?.url) {
+            // Redirect to Stripe checkout
+            window.location.href = checkoutData.url;
+            return;
+          }
+        } catch (checkoutErr) {
+          console.error('Checkout exception:', checkoutErr);
+          toast.error("Failed to setup payment. You can add payment later in settings.");
+          navigate("/dashboard");
+        }
       } else {
-        toast.success("Account created! Please check your email to verify your account.");
+        toast.success("Account created! Please check your email to verify your account, then set up payment.");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -368,12 +397,12 @@ const Signup = () => {
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-sm">Free Trial Included</span>
+              <span className="font-semibold text-sm">7-Day Free Trial on Starter</span>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-2 bg-background rounded-lg">
                 <FileText className="w-5 h-5 mx-auto mb-1 text-primary" />
-                <p className="text-lg font-bold">15</p>
+                <p className="text-lg font-bold">5</p>
                 <p className="text-xs text-muted-foreground">Invoices</p>
               </div>
               <div className="p-2 bg-background rounded-lg">
@@ -383,10 +412,13 @@ const Signup = () => {
               </div>
               <div className="p-2 bg-background rounded-lg">
                 <Users className="w-5 h-5 mx-auto mb-1 text-primary" />
-                <p className="text-lg font-bold">∞</p>
-                <p className="text-xs text-muted-foreground">Features</p>
+                <p className="text-lg font-bold">7</p>
+                <p className="text-xs text-muted-foreground">Days Free</p>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-3 text-center">
+              Payment info required. Auto-converts to Starter ($199/mo) after trial unless cancelled.
+            </p>
           </CardContent>
         </Card>
 
