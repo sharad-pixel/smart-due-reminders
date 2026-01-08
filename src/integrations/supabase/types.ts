@@ -527,6 +527,7 @@ export type Database = {
           stripe_payment_link: string | null
           supported_payment_methods: Json | null
           updated_at: string | null
+          use_persona_signatures: boolean | null
           user_id: string
           verified_from_email: string | null
         }
@@ -560,6 +561,7 @@ export type Database = {
           stripe_payment_link?: string | null
           supported_payment_methods?: Json | null
           updated_at?: string | null
+          use_persona_signatures?: boolean | null
           user_id: string
           verified_from_email?: string | null
         }
@@ -593,6 +595,7 @@ export type Database = {
           stripe_payment_link?: string | null
           supported_payment_methods?: Json | null
           updated_at?: string | null
+          use_persona_signatures?: boolean | null
           user_id?: string
           verified_from_email?: string | null
         }
