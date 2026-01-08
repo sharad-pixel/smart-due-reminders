@@ -10,6 +10,79 @@ const corsHeaders = {
 // Platform email configuration
 const PLATFORM_INBOUND_DOMAIN = "inbound.services.recouply.ai";
 
+/**
+ * Replace template variables in subject and body
+ */
+function replaceTemplateVars(
+  text: string,
+  invoice: any,
+  debtor: any,
+  branding: any,
+  daysPastDue: number
+): string {
+  if (!text) return text;
+
+  const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
+  const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
+  const amount = invoice?.amount
+    ? `$${Number(invoice.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    : '';
+  const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+  const paymentLink = branding?.stripe_payment_link || '';
+  const invoiceLink = invoice?.integration_url || '';
+  const businessName = branding?.business_name || 'Our Company';
+  const arPageUrl =
+    branding?.ar_page_public_token && branding?.ar_page_enabled
+      ? `https://recouply.ai/ar/${branding.ar_page_public_token}`
+      : '';
+
+  return text
+    // Company/Business name (sender's company)
+    .replace(/\{\{company_name\}\}/gi, businessName)
+    .replace(/\{\{company name\}\}/gi, businessName)
+    .replace(/\{\{business_name\}\}/gi, businessName)
+    .replace(/\{\{business name\}\}/gi, businessName)
+    // Customer/Debtor name variations (recipient)
+    .replace(/\{\{customer_name\}\}/gi, customerName)
+    .replace(/\{\{customer name\}\}/gi, customerName)
+    .replace(/\{\{debtor_name\}\}/gi, customerName)
+    .replace(/\{\{debtor name\}\}/gi, customerName)
+    .replace(/\{\{name\}\}/gi, customerName)
+    // Invoice number variations
+    .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
+    .replace(/\{\{invoice number\}\}/gi, invoiceNumber)
+    .replace(/\{\{invoiceNumber\}\}/gi, invoiceNumber)
+    // Amount variations
+    .replace(/\{\{amount\}\}/gi, amount)
+    .replace(/\{\{balance\}\}/gi, amount)
+    .replace(/\{\{total\}\}/gi, amount)
+    .replace(/\{\{invoice_amount\}\}/gi, amount)
+    .replace(/\{\{amount_due\}\}/gi, amount)
+    // Due date variations
+    .replace(/\{\{due_date\}\}/gi, dueDate)
+    .replace(/\{\{due date\}\}/gi, dueDate)
+    .replace(/\{\{dueDate\}\}/gi, dueDate)
+    // Days past due
+    .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
+    .replace(/\{\{days past due\}\}/gi, String(daysPastDue))
+    .replace(/\{\{daysPastDue\}\}/gi, String(daysPastDue))
+    // Payment link variations
+    .replace(/\{\{payment_link\}\}/gi, paymentLink)
+    .replace(/\{\{payment link\}\}/gi, paymentLink)
+    .replace(/\{\{paymentLink\}\}/gi, paymentLink)
+    .replace(/\{\{pay_link\}\}/gi, paymentLink)
+    .replace(/\{\{stripe_link\}\}/gi, paymentLink)
+    // Invoice link variations (external system link)
+    .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
+    .replace(/\{\{invoice link\}\}/gi, invoiceLink)
+    .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
+    .replace(/\{\{external_link\}\}/gi, invoiceLink)
+    .replace(/\{\{integration_url\}\}/gi, invoiceLink)
+    // AR Portal link
+    .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
+    .replace(/\{\{portal_link\}\}/gi, arPageUrl);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -65,6 +138,48 @@ serve(async (req) => {
       .eq("user_id", brandingOwnerId)
       .single();
 
+    // Fetch invoice and debtor data for template replacement if invoiceId is provided
+    let invoice: any = null;
+    let debtor: any = null;
+    let daysPastDue = 0;
+
+    if (invoiceId) {
+      const { data: invoiceData } = await supabaseClient
+        .from("invoices")
+        .select("id, invoice_number, reference_id, amount, currency, due_date, integration_url, debtor_id, debtors(id, name, company_name)")
+        .eq("id", invoiceId)
+        .single();
+
+      if (invoiceData) {
+        invoice = invoiceData;
+        debtor = invoiceData.debtors;
+
+        // Calculate days past due
+        if (invoice.due_date) {
+          const dueDate = new Date(invoice.due_date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
+          daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+      }
+    } else if (debtorId) {
+      // Fetch debtor directly if no invoice
+      const { data: debtorData } = await supabaseClient
+        .from("debtors")
+        .select("id, name, company_name")
+        .eq("id", debtorId)
+        .single();
+
+      if (debtorData) {
+        debtor = debtorData;
+      }
+    }
+
+    // Replace template variables in subject and body
+    const processedSubject = replaceTemplateVars(subject, invoice, debtor, branding, daysPastDue);
+    const processedBody = replaceTemplateVars(body, invoice, debtor, branding, daysPastDue);
+
     // Generate the From address using company name
     const fromEmail = getEmailFromAddress(branding || {});
 
@@ -72,7 +187,7 @@ serve(async (req) => {
 
     // Build fully branded email with signature and optional payment link
     const emailHtml = generateBrandedEmail(
-      body,
+      processedBody,
       branding || {},
       {
         invoiceId,
@@ -94,7 +209,7 @@ serve(async (req) => {
           to: recipientEmail,
           from: fromEmail,
           reply_to: replyToEmail,
-          subject,
+          subject: processedSubject,
           html: emailHtml,
         }),
       }
@@ -108,17 +223,19 @@ serve(async (req) => {
 
     console.log("Email sent successfully via platform:", sendResult);
 
-    // Log the collection activity
+    // Log the collection activity with the PROCESSED body (for reference)
     if (draftId || invoiceId) {
       // Get debtor_id from invoice if not provided
       let finalDebtorId = debtorId;
-      if (!finalDebtorId && invoiceId) {
-        const { data: invoice } = await supabaseClient
+      if (!finalDebtorId && invoice?.debtor_id) {
+        finalDebtorId = invoice.debtor_id;
+      } else if (!finalDebtorId && invoiceId) {
+        const { data: inv } = await supabaseClient
           .from("invoices")
           .select("debtor_id")
           .eq("id", invoiceId)
           .single();
-        finalDebtorId = invoice?.debtor_id;
+        finalDebtorId = inv?.debtor_id;
       }
 
       if (finalDebtorId) {
@@ -132,8 +249,8 @@ serve(async (req) => {
             activity_type: "outreach",
             direction: "outbound",
             channel: "email",
-            subject,
-            message_body: body,
+            subject: processedSubject,
+            message_body: processedBody,
             sent_at: new Date().toISOString(),
             metadata: {
               from_email: fromEmail,
