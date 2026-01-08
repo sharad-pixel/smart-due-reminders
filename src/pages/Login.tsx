@@ -178,7 +178,7 @@ const Login = () => {
   return (
     <>
       <SEO
-        title="Login | Recouply.ai"
+        title="Sign In"
         description="Sign in to your Recouply.ai account to manage your collection intelligence dashboard."
         noindex={true}
       />
