@@ -1,0 +1,41 @@
+{
+  "common": {
+    "settings": "Settings",
+    "billing": "Billing",
+    "support": "Support",
+    "logout": "Logout",
+    "login": "Login",
+    "signUp": "Sign Up",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "footer": {
+    "company": "Company",
+    "about": "About",
+    "pricing": "Pricing",
+    "features": "Features",
+    "contact": "Contact Us",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookies": "Cookie Policy",
+    "solutions": "Solutions",
+    "saas": "SaaS",
+    "smb": "Small Businesses",
+    "enterprise": "Enterprise",
+    "professionalServices": "Professional Services",
+    "connect": "Connect",
+    "allRightsReserved": "All rights reserved.",
+    "language": "Language"
+  },
+  "nav": {
+    "platform": "Platform",
+    "solutions": "Solutions",
+    "pricing": "Pricing",
+    "about": "About"
+  }
+}
