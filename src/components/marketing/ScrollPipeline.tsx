@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Brain, Zap, CreditCard, BarChart3, ArrowRight } from "lucide-react";
-
-const steps = [
-  { icon: Upload, title: "Upload or Sync Invoices", description: "Integrate with Stripe, QuickBooks, or import from any billing system" },
-  { icon: Brain, title: "AI Agents Read, Classify & Engage", description: "Smart analysis and customer profiling" },
-  { icon: Zap, title: "Smart Follow-Up & Escalation", description: "Automated outreach based on aging" },
-  { icon: CreditCard, title: "Payment Captured", description: "Seamless payment collection" },
-  { icon: BarChart3, title: "Dashboard Updates Automatically", description: "Real-time cash operations visibility" },
-];
+import { useTranslation } from "react-i18next";
+import { Upload, Brain, Zap, CreditCard, BarChart3 } from "lucide-react";
 
 const ScrollPipeline = () => {
+  const { t } = useTranslation();
   const [visibleSteps, setVisibleSteps] = useState<number[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
+
+  const steps = [
+    { icon: Upload, titleKey: "pipeline.step1Title", descKey: "pipeline.step1Desc" },
+    { icon: Brain, titleKey: "pipeline.step2Title", descKey: "pipeline.step2Desc" },
+    { icon: Zap, titleKey: "pipeline.step3Title", descKey: "pipeline.step3Desc" },
+    { icon: CreditCard, titleKey: "pipeline.step4Title", descKey: "pipeline.step4Desc" },
+    { icon: BarChart3, titleKey: "pipeline.step5Title", descKey: "pipeline.step5Desc" },
+  ];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -40,16 +42,16 @@ const ScrollPipeline = () => {
       <div className="container mx-auto max-w-6xl relative z-10">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            How It Works
+            {t("pipeline.badge")}
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Automate Collections from Day One
+            {t("pipeline.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            A streamlined pipeline that handles everything from invoice upload to payment capture
+            {t("pipeline.subtitle")}
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Every action is automatically logged for visibility, compliance, and seamless team handoffs
+            {t("pipeline.subtext")}
           </p>
         </div>
 
@@ -81,8 +83,8 @@ const ScrollPipeline = () => {
                           <Icon className="h-6 w-6 text-primary" />
                         </div>
                         <div className={isLeft ? "md:text-right" : ""}>
-                          <h3 className="font-bold text-lg mb-1">{step.title}</h3>
-                          <p className="text-sm text-muted-foreground">{step.description}</p>
+                          <h3 className="font-bold text-lg mb-1">{t(step.titleKey)}</h3>
+                          <p className="text-sm text-muted-foreground">{t(step.descKey)}</p>
                         </div>
                       </div>
                     </div>

@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Mail, Bot, Sparkles, Send } from "lucide-react";
 
-const customerEmail = "Hi, can you resend the invoice? We need to review it before paying.";
-const aiResponse = "Absolutely — here is your invoice and a summary of what's due. Invoice #INV-2024-0847 for $12,500 is attached. Payment due by December 15th. Let me know if you have any questions!";
-
 const EmailDemo = () => {
+  const { t } = useTranslation();
+  
+  const customerEmail = t("emailDemo.customerEmail");
+  const aiResponse = t("emailDemo.aiResponse");
+  
   const [customerText, setCustomerText] = useState("");
   const [aiText, setAiText] = useState("");
   const [phase, setPhase] = useState<"idle" | "typing-customer" | "thinking" | "typing-ai" | "complete">("idle");
@@ -67,7 +70,7 @@ const EmailDemo = () => {
       }, 20);
       return () => clearInterval(interval);
     }
-  }, [phase]);
+  }, [phase, customerEmail, aiResponse]);
 
   const resetDemo = () => {
     setCustomerText("");
@@ -82,16 +85,16 @@ const EmailDemo = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             <Sparkles className="h-4 w-4" />
-            Live AI Demo
+            {t("emailDemo.badge")}
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Watch AI Understand & Respond
+            {t("emailDemo.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            See how our AI agents read, classify, and respond to customer emails in real-time
+            {t("emailDemo.subtitle")}
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Designed to reduce reliance on email-based collection processes — every interaction logged automatically
+            {t("emailDemo.subtext")}
           </p>
         </div>
 
@@ -101,8 +104,8 @@ const EmailDemo = () => {
             <div className="bg-card rounded-2xl border border-border/50 shadow-xl overflow-hidden">
               <div className="bg-muted/50 px-4 py-3 border-b border-border/50 flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Customer Email</span>
-                <span className="ml-auto text-xs text-muted-foreground">from: customer@acme.com</span>
+                <span className="font-medium">{t("emailDemo.customerEmailLabel")}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{t("emailDemo.fromLabel")}</span>
               </div>
               <div className="p-6 min-h-[200px]">
                 <p className="text-foreground leading-relaxed">
@@ -123,17 +126,17 @@ const EmailDemo = () => {
               
               <div className="bg-primary/10 px-4 py-3 border-b border-primary/20 flex items-center gap-3 relative">
                 <Bot className="h-5 w-5 text-primary" />
-                <span className="font-medium text-primary">AI Agent Response</span>
+                <span className="font-medium text-primary">{t("emailDemo.aiResponseLabel")}</span>
                 {phase === "thinking" && (
                   <span className="ml-auto flex items-center gap-2 text-xs text-primary">
                     <Sparkles className="h-3 w-3 animate-spin" />
-                    Analyzing...
+                    {t("emailDemo.analyzing")}
                   </span>
                 )}
                 {phase === "complete" && (
                   <span className="ml-auto flex items-center gap-2 text-xs text-accent">
                     <Send className="h-3 w-3" />
-                    Ready to send
+                    {t("emailDemo.readyToSend")}
                   </span>
                 )}
               </div>
@@ -143,15 +146,15 @@ const EmailDemo = () => {
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 text-sm text-primary animate-pulse">
                       <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                      <span>Reading email content...</span>
+                      <span>{t("emailDemo.readingContent")}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-primary/70 animate-pulse" style={{ animationDelay: "0.2s" }}>
                       <div className="w-2 h-2 bg-primary/70 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                      <span>Identifying request type...</span>
+                      <span>{t("emailDemo.identifyingRequest")}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-primary/50 animate-pulse" style={{ animationDelay: "0.4s" }}>
                       <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
-                      <span>Generating response...</span>
+                      <span>{t("emailDemo.generatingResponse")}</span>
                     </div>
                   </div>
                 )}
@@ -177,7 +180,7 @@ const EmailDemo = () => {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
             >
               <Sparkles className="h-4 w-4" />
-              Watch Again
+              {t("common.watchAgain")}
             </button>
           </div>
         )}

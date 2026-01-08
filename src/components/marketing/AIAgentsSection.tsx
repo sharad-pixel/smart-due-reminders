@@ -1,18 +1,20 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { AlertTriangle, X, Brain } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 
-const watchdogAgent = {
-  name: "Watchdog",
-  description: "Proactive Risk Intelligence & Early Detection",
-  tone: "Analyzes payment patterns, communication sentiment, and account behavior to flag at-risk accounts before they become delinquent",
-  dayRange: "Always Active",
-};
-
 const AIAgentsSection = () => {
+  const { t } = useTranslation();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+
+  const watchdogAgent = {
+    name: t("agents.watchdog"),
+    description: t("agents.watchdogDesc"),
+    tone: t("agents.watchdogTone"),
+    dayRange: t("agents.alwaysActive"),
+  };
 
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-muted/10 to-muted/30 relative overflow-hidden">
@@ -23,16 +25,16 @@ const AIAgentsSection = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             <Brain className="h-4 w-4" />
-            Collection Intelligence Agents
+            {t("agents.badge")}
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Six AI Agents Powering Your Intelligence
+            {t("agents.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Each agent analyzes accounts, communications, payments, and tasks to maximize recovery
+            {t("agents.subtitle")}
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            AI-driven workflows ensure consistency without manual follow-ups — context preserved across every interaction
+            {t("agents.subtext")}
           </p>
         </div>
         
@@ -53,7 +55,7 @@ const AIAgentsSection = () => {
                   <div>
                     <h4 className="font-bold text-lg">{persona.name}</h4>
                     <p className="text-xs text-muted-foreground">
-                      {persona.bucketMin}-{persona.bucketMax || "150+"} Days
+                      {persona.bucketMin}-{persona.bucketMax || "150+"} {t("agents.days")}
                     </p>
                   </div>
                 </div>
@@ -89,19 +91,19 @@ const AIAgentsSection = () => {
         <div className="text-center mt-12">
           <div className="inline-flex items-center gap-3 bg-accent/10 text-accent px-8 py-4 rounded-full">
             <span className="w-3 h-3 bg-accent rounded-full animate-pulse"></span>
-            <span className="font-semibold text-lg">These agents work 24/7 so you don't have to</span>
+            <span className="font-semibold text-lg">{t("hero.agentsWorkBadge")}</span>
           </div>
         </div>
         
         {/* AI Risk & Expansion Intelligence */}
         <div className="mt-16 max-w-3xl mx-auto text-center">
           <div className="bg-card rounded-2xl border border-border/50 p-8">
-            <h3 className="text-xl font-semibold mb-4">Intelligence That Compounds</h3>
+            <h3 className="text-xl font-semibold mb-4">{t("agents.intelligenceTitle")}</h3>
             <p className="text-muted-foreground mb-4">
-              Recouply.ai uses historical collection behavior, payment patterns, and engagement data to assess risk — and to inform smarter future decisions with existing customers.
+              {t("agents.intelligenceDesc")}
             </p>
             <p className="text-sm text-primary font-medium">
-              Collection data doesn't just reduce risk; it becomes intelligence for renewals, upsells, and expansion.
+              {t("agents.intelligenceSubtext")}
             </p>
           </div>
         </div>
@@ -146,7 +148,7 @@ const AIAgentsSection = () => {
                     <div>
                       <h3 className="text-2xl font-bold">{personaConfig[selectedAgent]?.name}</h3>
                       <p className="text-muted-foreground">
-                        {personaConfig[selectedAgent]?.bucketMin}-{personaConfig[selectedAgent]?.bucketMax || "150+"} Days Past Due
+                        {personaConfig[selectedAgent]?.bucketMin}-{personaConfig[selectedAgent]?.bucketMax || "150+"} {t("agents.daysPastDue")}
                       </p>
                     </div>
                   </div>
