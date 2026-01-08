@@ -15,7 +15,6 @@ interface MarketingLayoutProps {
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Collection Intelligence Platform",
   emails: {
     collections: "collections@recouply.ai",
     support: "support@recouply.ai",
@@ -70,16 +69,16 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const { t } = useTranslation();
 
   const platformItems = [
-    { icon: Brain, title: "Collection Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
-    { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
-    { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/features" },
-    { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/features#analytics" },
+    { icon: Brain, title: t('nav.collectionIntelligence'), description: t('marketing.aiInsights'), path: "/collection-intelligence" },
+    { icon: Bot, title: t('nav.aiAgents'), description: t('marketing.autonomousPersonas'), path: "/personas" },
+    { icon: Zap, title: t('nav.automation'), description: t('marketing.workflowAutomation'), path: "/features" },
+    { icon: BarChart3, title: t('nav.analytics'), description: t('marketing.realtimeDashboards'), path: "/features#analytics" },
   ];
 
   const solutionsItems = [
-    { icon: Rocket, title: "Startups", description: "Scale collections from day one", path: "/startups" },
-    { icon: Users, title: "SMB", description: "Right-sized for growing teams", path: "/smb" },
-    { icon: Building2, title: "Enterprise", description: "Full-scale deployment", path: "/enterprise" },
+    { icon: Rocket, title: t('nav.startups'), description: t('marketing.scaleFromDayOne'), path: "/startups" },
+    { icon: Users, title: t('nav.smb'), description: t('marketing.rightSizedTeams'), path: "/smb" },
+    { icon: Building2, title: t('nav.enterprise'), description: t('marketing.fullScaleDeployment'), path: "/enterprise" },
   ];
 
   return (
@@ -95,32 +94,32 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
-            <NavDropdown label="Platform" items={platformItems} navigate={navigate} />
-            <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
+            <NavDropdown label={t('nav.platform')} items={platformItems} navigate={navigate} />
+            <NavDropdown label={t('nav.solutions')} items={solutionsItems} navigate={navigate} />
             <button 
               onClick={() => navigate("/integrations")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
-              Integrations
+              {t('nav.integrations')}
             </button>
             <button 
               onClick={() => navigate("/pricing")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
-              Pricing
+              {t('nav.pricing')}
             </button>
             <button 
               onClick={() => navigate("/about")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
-              About
+              {t('nav.about')}
             </button>
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
               <Button onClick={() => navigate("/login")} variant="ghost" size="sm">
-                Sign In
+                {t('common.login')}
               </Button>
               <Button onClick={() => navigate("/signup")} size="sm">
-                Get Started
+                {t('common.getStarted')}
               </Button>
             </div>
           </nav>
@@ -128,7 +127,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center gap-2">
             <Button onClick={() => navigate("/login")} variant="ghost" size="sm">
-              Sign In
+              {t('common.login')}
             </Button>
             <Button 
               variant="ghost" 
@@ -145,7 +144,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           <div className="lg:hidden border-t bg-card">
             <div className="container mx-auto px-4 py-4 space-y-4">
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Platform</div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('nav.platform')}</div>
                 {platformItems.map((item) => (
                   <button
                     key={item.path}
@@ -158,7 +157,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 ))}
               </div>
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Solutions</div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('nav.solutions')}</div>
                 {solutionsItems.map((item) => (
                   <button
                     key={item.path}
@@ -171,11 +170,11 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 ))}
               </div>
               <div className="flex flex-col gap-2 pt-2 border-t">
-                <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
-                <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
-                <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
+                <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">{t('nav.integrations')}</button>
+                <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">{t('nav.pricing')}</button>
+                <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">{t('nav.about')}</button>
                 <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="w-full mt-2">
-                  Get Started
+                  {t('common.getStarted')}
                 </Button>
               </div>
             </div>
@@ -195,10 +194,10 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 <RecouplyLogo size="lg" />
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                {COMPANY_INFO.tagline}
+                {t('footer.tagline')}
               </p>
               <p className="text-xs text-muted-foreground mb-4">
-                AI-powered software. Not a collection agency.
+                {t('footer.notAgency')}
               </p>
               <a 
                 href={COMPANY_INFO.social.linkedin}
@@ -207,11 +206,11 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
               >
                 <Linkedin className="h-5 w-5" />
-                <span className="text-sm">Follow us</span>
+                <span className="text-sm">{t('footer.followUs')}</span>
               </a>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
+              <h4 className="font-semibold mb-4">{t('nav.platform')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <button 
@@ -219,7 +218,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     className="text-muted-foreground hover:text-primary flex items-center gap-1"
                   >
                     <Brain className="h-3 w-3" />
-                    Collection Intelligence
+                    {t('nav.collectionIntelligence')}
                   </button>
                 </li>
                 <li>
@@ -227,7 +226,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/personas")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    AI Agents
+                    {t('nav.aiAgents')}
                   </button>
                 </li>
                 <li>
@@ -235,7 +234,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/features")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Features
+                    {t('footer.features')}
                   </button>
                 </li>
                 <li>
@@ -243,20 +242,20 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/pricing")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Pricing
+                    {t('nav.pricing')}
                   </button>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Company</h4>
+              <h4 className="font-semibold mb-4">{t('footer.company')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <button 
                     onClick={() => navigate("/about")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    About Us
+                    {t('footer.about')}
                   </button>
                 </li>
                 <li>
@@ -264,7 +263,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/investors")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Investors
+                    {t('footer.investors')}
                   </button>
                 </li>
                 <li>
@@ -272,7 +271,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/legal/terms")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Terms of Service
+                    {t('footer.terms')}
                   </button>
                 </li>
                 <li>
@@ -280,7 +279,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/legal/privacy")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Privacy Policy
+                    {t('footer.privacy')}
                   </button>
                 </li>
                 <li>
@@ -288,20 +287,20 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/security-public")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Security
+                    {t('footer.security')}
                   </button>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Contact</h4>
+              <h4 className="font-semibold mb-4">{t('footer.contact')}</h4>
               <ul className="space-y-2 text-sm mb-4">
                 <li>
                   <button 
                     onClick={() => navigate("/contact")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Contact Us
+                    {t('footer.contact')}
                   </button>
                 </li>
                 <li>
@@ -309,7 +308,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/contact?intent=demo")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    Request a Demo
+                    {t('footer.requestDemo')}
                   </button>
                 </li>
               </ul>
@@ -317,7 +316,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 onClick={() => navigate("/signup")}
                 className="w-full"
               >
-                Start Free Trial
+                {t('common.startFreeTrial')}
               </Button>
             </div>
           </div>
