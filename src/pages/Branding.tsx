@@ -23,7 +23,8 @@ import {
   Eye,
   EyeOff,
   Save,
-  AlertCircle
+  AlertCircle,
+  Bot
 } from "lucide-react";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
@@ -58,6 +59,8 @@ interface BrandingSettings {
   email_wrapper_enabled: boolean | null;
   // Email format preference
   email_format: "simple" | "enhanced" | null;
+  // AI persona signatures
+  use_persona_signatures: boolean | null;
 }
 
 export default function Branding() {
@@ -279,15 +282,37 @@ export default function Branding() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* AI Persona Signatures Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Bot className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium">Use AI Agent Persona Signatures</p>
+                      <p className="text-sm text-muted-foreground">
+                        Outreach emails will be signed with the assigned AI persona name (e.g., "Sam", "Katy") for a more personal touch
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.use_persona_signatures || false}
+                    onCheckedChange={(checked) => handleChange("use_persona_signatures", checked)}
+                  />
+                </div>
+
                 <div>
                   <Label htmlFor="email_signature">Email Signature</Label>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {formData.use_persona_signatures 
+                      ? "This signature will appear below the AI persona name"
+                      : "This signature will appear at the end of your emails"
+                    }
+                  </p>
                   <Textarea
                     id="email_signature"
                     value={formData.email_signature || ""}
                     onChange={(e) => handleChange("email_signature", e.target.value)}
                     placeholder="Your custom email signature..."
                     rows={3}
-                    className="mt-1"
                   />
                 </div>
 
