@@ -182,10 +182,18 @@ const MessagePreview = ({ open, onOpenChange, stepId, channel, subject, body, ag
 
     return text
       .replace(/\{\{debtor_name\}\}/g, sampleData.debtor_name)
+      .replace(/\{\{customer_name\}\}/g, sampleData.debtor_name)
       .replace(/\{\{invoice_number\}\}/g, sampleData.invoice_number)
       .replace(/\{\{amount\}\}/g, sampleData.amount)
+      .replace(/\{\{amount_outstanding\}\}/g, sampleData.amount)
       .replace(/\{\{due_date\}\}/g, sampleData.due_date)
-      .replace(/\{\{company_name\}\}/g, sampleData.company_name);
+      .replace(/\{\{company_name\}\}/g, sampleData.company_name)
+      .replace(/\{\{business_name\}\}/g, "Your Business")
+      .replace(/\{\{payment_link\}\}/g, "https://pay.example.com")
+      .replace(/\{\{invoice_link\}\}/g, "#")
+      .replace(/\{\{integration_url\}\}/g, "#")
+      .replace(/\{\{days_past_due\}\}/g, "0")
+      .replace(/\{\{currency\}\}/g, "USD");
   };
 
   return (
