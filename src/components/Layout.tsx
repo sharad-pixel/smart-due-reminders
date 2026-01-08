@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
 import { 
   LayoutDashboard, 
   Users, 
@@ -50,7 +49,6 @@ import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
-import LanguageSelector from "@/components/LanguageSelector";
 
 
 interface LayoutProps {
@@ -60,7 +58,6 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -200,31 +197,31 @@ const Layout = ({ children }: LayoutProps) => {
   }, [user]);
 
   const navItems = [
-    { path: "/dashboard", label: t('nav.dashboard'), icon: LayoutDashboard },
-    { path: "/debtors", label: t('nav.accounts'), icon: Users },
-    { path: "/invoices", label: t('nav.invoices'), icon: FileText },
-    { path: "/settings/ai-workflows", label: t('nav.aiWorkflows'), icon: Workflow },
-    ...(showTeam ? [{ path: "/team", label: t('common.teamRoles'), icon: Users }] : []),
-    { path: "/profile", label: userName || t('common.profile'), icon: UserIcon },
-    { path: "/settings", label: t('common.settings'), icon: Settings },
+    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/debtors", label: "Accounts", icon: Users },
+    { path: "/invoices", label: "Invoices", icon: FileText },
+    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
+    ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
+    { path: "/profile", label: userName || "Profile", icon: UserIcon },
+    { path: "/settings", label: "Settings", icon: Settings },
   ];
 
   if (!user) return null;
 
   const coreNavItems = [
-    { path: "/dashboard", label: t('nav.dashboard'), icon: LayoutDashboard },
-    { path: "/debtors", label: t('nav.accounts'), icon: Users },
-    { path: "/invoices", label: t('nav.invoices'), icon: FileText },
-    { path: "/data-center", label: t('nav.dataCenter'), icon: Database },
+    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/debtors", label: "Accounts", icon: Users },
+    { path: "/invoices", label: "Invoices", icon: FileText },
+    { path: "/data-center", label: "Data Center", icon: Database },
   ];
 
   const aiToolsItems = [
-    { path: "/settings/ai-workflows", label: t('nav.aiWorkflows'), icon: Workflow },
-    { path: "/inbound", label: t('nav.inboundAI'), icon: Inbox },
-    { path: "/tasks", label: t('nav.tasks'), icon: CheckSquare },
-    { path: "/daily-digest", label: t('nav.dailyDigest'), icon: CalendarDays },
-    { path: "/alerts", label: t('nav.alerts'), icon: Bell, badge: alertUnreadCount },
-    { path: "/reports/email-delivery", label: t('nav.emailDelivery'), icon: BarChart3 },
+    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
+    { path: "/inbound", label: "Inbound AI", icon: Inbox },
+    { path: "/tasks", label: "Tasks", icon: CheckSquare },
+    { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
+    { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
+    { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown
@@ -284,7 +281,7 @@ const Layout = ({ children }: LayoutProps) => {
                       }`}
                     >
                       <Bot className="h-4 w-4 shrink-0" />
-                      <span>{t('nav.aiTools')}</span>
+                      <span>AI Tools</span>
                       <ChevronDown className="h-3 w-3 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -332,7 +329,7 @@ const Layout = ({ children }: LayoutProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-card border shadow-lg z-[100]">
-                  <DropdownMenuLabel>{t('common.myAccount')}</DropdownMenuLabel>
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
                   <div className="px-2 py-3 space-y-3">
@@ -343,26 +340,26 @@ const Layout = ({ children }: LayoutProps) => {
                           <span className="font-medium">{ownerCompanyName}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {t('common.connectedVia')} {ownerName || ownerEmail}
+                          Connected via {ownerName || ownerEmail}
                         </p>
                       </div>
                     )}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{t('common.plan')}:</span>
+                        <span className="text-muted-foreground">Plan:</span>
                         <span className="font-medium capitalize">{displayPlanType}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{t('common.status')}:</span>
+                        <span className="text-muted-foreground">Status:</span>
                         {displaySubscriptionStatus && displaySubscriptionStatus !== 'inactive' ? (
                           <span className="text-green-600 font-medium capitalize">{displaySubscriptionStatus}</span>
                         ) : (
-                          <span className="text-muted-foreground">{t('common.freePlan')}</span>
+                          <span className="text-muted-foreground">Free Plan</span>
                         )}
                       </div>
                       {isTeamMember && memberRole && (
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{t('common.yourRole')}:</span>
+                          <span className="text-muted-foreground">Your Role:</span>
                           <span className="font-medium capitalize">{memberRole}</span>
                         </div>
                       )}
@@ -374,7 +371,7 @@ const Layout = ({ children }: LayoutProps) => {
                         className="w-full"
                         onClick={() => navigate("/upgrade")}
                       >
-                        {t('common.upgradePlan')}
+                        Upgrade Plan
                       </Button>
                     )}
                   </div>
@@ -383,39 +380,39 @@ const Layout = ({ children }: LayoutProps) => {
                   
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <UserIcon className="mr-2 h-4 w-4" />
-                    {t('common.profile')}
+                    Profile
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/documents")}>
                     <FolderOpen className="mr-2 h-4 w-4" />
-                    {t('common.documents')}
+                    Documents
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     <Settings className="mr-2 h-4 w-4" />
-                    {t('common.settings')}
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/branding")}>
                     <Palette className="mr-2 h-4 w-4" />
-                    {t('common.branding')}
+                    Branding
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/security")}>
                     <Shield className="mr-2 h-4 w-4" />
-                    {t('common.security')}
+                    Security Settings
                   </DropdownMenuItem>
                   
                   {/* Admin Section */}
                   {(showTeam || isFounder) && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">{t('common.administration')}</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Administration</DropdownMenuLabel>
                       {showTeam && (
                         <>
                           <DropdownMenuItem onClick={() => navigate("/team")}>
                             <Users className="mr-2 h-4 w-4" />
-                            {t('common.teamRoles')}
+                            Team & Roles
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate("/security")}>
                             <Shield className="mr-2 h-4 w-4" />
-                            {t('common.securityDashboard')}
+                            Security Dashboard
                           </DropdownMenuItem>
                         </>
                       )}
@@ -425,7 +422,7 @@ const Layout = ({ children }: LayoutProps) => {
                           className="text-destructive focus:text-destructive"
                         >
                           <ServerCog className="mr-2 h-4 w-4" />
-                          {t('common.adminCenter')}
+                          Admin Center
                         </DropdownMenuItem>
                       )}
                     </>
@@ -435,7 +432,7 @@ const Layout = ({ children }: LayoutProps) => {
                   
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    {t('common.logout')}
+                    Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -495,28 +492,25 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center gap-3">
               <RecouplyLogo size="sm" />
               <span className="text-muted-foreground text-sm">
-                {t('footer.tagline')}
+                Collection Intelligence Platform
               </span>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <Link to="/legal/privacy" className="hover:text-foreground transition-colors">
-                {t('footer.privacy')}
+                Privacy Policy
               </Link>
               <Link to="/legal/terms" className="hover:text-foreground transition-colors">
-                {t('footer.terms')}
+                Terms of Service
               </Link>
               <a 
                 href="mailto:support@recouply.ai" 
                 className="hover:text-foreground transition-colors"
               >
-                {t('common.support')}
+                Support
               </a>
             </div>
-            <div className="flex items-center gap-4">
-              <LanguageSelector />
-              <span className="text-xs text-muted-foreground">
-                © {new Date().getFullYear()} Recouply.ai. {t('footer.allRightsReserved')}
-              </span>
+            <div className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Recouply.ai. All rights reserved.
             </div>
           </div>
         </div>

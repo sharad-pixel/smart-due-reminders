@@ -1,47 +1,70 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { ArrowRight, Play } from "lucide-react";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+const headlines = [
+  "Collect Your Money. Intelligently.",
+  "Act Earlier. Recover Smarter.",
+  "Revenue Intelligence That Compounds",
+  "Visibility Into Cash Outcomes, Before They Happen",
+  "Risk-Aware Collections, Human-Controlled",
+  "Predictable Cash Flow Starts With Better Signals",
+  "Turn Payment Behavior Into Actionable Insight",
+  "Collections Intelligence That Learns With You",
+  "Healthy Cash Flow Is Built on Foresight",
+  "Informed Decisions Drive Sustainable Growth",
+  "Protect Cash Flow With Context-Aware Outreach",
+  "Revenue Recognized Faster, Relationships Preserved",
+  "From Aging Invoices to Actionable Intelligence",
+  "Your AR, Guided by Real-Time Signals",
+  "Financial Health Through Proactive Intelligence",
+  "AI-Assisted Collections, Human-Approved Outcomes",
+  "Build Resilience With Risk-Aware Automation",
+  "Better Signals. Faster Recovery. Stronger Cash Position.",
+  "Collections That Inform Your Next Move",
+];
+
+const subheadlines = [
+  "Six AI agents learn from payment behavior to guide your next action—before risk compounds.",
+  "AI-assisted outreach, reviewed before sending. You stay in control while intelligence scales.",
+  "From friendly reminders to firm follow-ups—agents adapt tone based on real-time signals.",
+  "Turn payment patterns into foresight. Act earlier, recover smarter, protect cash flow.",
+  "Risk-aware automation designed to support predictable cash outcomes.",
+  "Collections that preserve relationships—guided by context, approved by you.",
+  "Intelligence that compounds with every touchpoint. Better signals, faster recovery.",
+  "Let AI handle the follow-ups while you focus on decisions that matter.",
+  "Enterprise-grade signals at a fraction of the cost of traditional AR teams.",
+  "Context-aware outreach that knows when to be gentle and when to escalate—human-approved.",
+];
+
 const AnimatedHero = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const [displayText, setDisplayText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
-  const [currentSubheadline, setCurrentSubheadline] = useState(0);
-
-  // Get translated headlines and subheadlines
-  const headlines = t("hero.headlines", { returnObjects: true }) as string[];
-  const subheadlines = t("hero.subheadlines", { returnObjects: true }) as string[];
+  const [currentSubheadline, setCurrentSubheadline] = useState(() => 
+    Math.floor(Math.random() * subheadlines.length)
+  );
 
   // Rotate headlines every 5 seconds
   useEffect(() => {
-    if (!Array.isArray(headlines) || headlines.length === 0) return;
-    
     const rotationInterval = setInterval(() => {
       setHeadlineIndex((prev) => (prev + 1) % headlines.length);
-      if (Array.isArray(subheadlines) && subheadlines.length > 0) {
-        setCurrentSubheadline(Math.floor(Math.random() * subheadlines.length));
-      }
+      setCurrentSubheadline(Math.floor(Math.random() * subheadlines.length));
       setDisplayText("");
       setIsTypingComplete(false);
     }, 5000);
 
     return () => clearInterval(rotationInterval);
-  }, [headlines, subheadlines]);
+  }, []);
 
   // Typewriter effect
   useEffect(() => {
-    if (!Array.isArray(headlines) || headlines.length === 0) return;
-    
     const currentHeadline = headlines[headlineIndex];
-    if (!currentHeadline) return;
-    
     let currentIndex = 0;
     
     const typingInterval = setInterval(() => {
@@ -55,11 +78,7 @@ const AnimatedHero = () => {
     }, 40);
 
     return () => clearInterval(typingInterval);
-  }, [headlineIndex, headlines]);
-
-  const currentSubheadlineText = Array.isArray(subheadlines) && subheadlines.length > 0 
-    ? subheadlines[currentSubheadline] 
-    : "";
+  }, [headlineIndex]);
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
@@ -100,12 +119,12 @@ const AnimatedHero = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-8 animate-fade-in">
             <span className="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-            {t("hero.badge")}
+            Collection Intelligence Platform
           </div>
           
           {/* Supporting tagline */}
           <p className="text-sm text-muted-foreground mb-4 animate-fade-in">
-            {t("hero.tagline")}
+            All collection activities in one place — AI-powered, audit-ready, built for seamless handoffs
           </p>
 
           {/* Typewriter Headline */}
@@ -121,7 +140,7 @@ const AnimatedHero = () => {
 
           {/* Subheadline - Randomized */}
           <p className={`text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto transition-all duration-700 ${isTypingComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            {currentSubheadlineText}
+            {subheadlines[currentSubheadline]}
           </p>
 
           {/* AI Agent Avatars */}
@@ -156,7 +175,7 @@ const AnimatedHero = () => {
           <p className={`text-sm text-muted-foreground mb-10 transition-all duration-700 delay-500 ${isTypingComplete ? 'opacity-100' : 'opacity-0'}`}>
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent">
               <span className="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-              {t("hero.agentsWorkBadge")}
+              These agents work 24/7 so you don't have to
             </span>
           </p>
 
@@ -169,7 +188,7 @@ const AnimatedHero = () => {
             >
               <span className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               <span className="relative flex items-center gap-2">
-                {t("common.getStarted")}
+                Get Started
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </span>
             </Button>
@@ -180,7 +199,7 @@ const AnimatedHero = () => {
               className="text-lg px-8 py-6 group border-2"
             >
               <Play className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-              {t("common.seeInAction")}
+              See Recouply.ai in Action
             </Button>
           </div>
         </div>

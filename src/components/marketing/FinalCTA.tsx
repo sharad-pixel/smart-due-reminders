@@ -1,11 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 const FinalCTA = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   return (
     <section className="py-24 px-4 relative overflow-hidden">
@@ -38,22 +36,22 @@ const FinalCTA = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
               <Sparkles className="h-4 w-4 animate-pulse" />
-              {t("hero.badge")}
+              Collection Intelligence Platform
             </div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              {t("cta.title")}
+              Collect Your Money. Intelligently.
             </h2>
             
             <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-              {t("cta.tagline")}
+              AI-Assisted Intelligence, Human-Controlled Outcomes
             </p>
             
             <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              {t("cta.description")}
+              Payment behavior, communication signals, and risk context—synthesized to help teams act earlier and recover smarter.
             </p>
             <p className="text-sm text-muted-foreground/80 mb-10 max-w-xl mx-auto">
-              {t("cta.subtext")}
+              Centralized workflows • Built-in audit logs • Context preserved during handoffs
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -65,7 +63,7 @@ const FinalCTA = () => {
                 {/* Glow effect */}
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 <span className="relative flex items-center gap-2">
-                  {t("common.getStarted")}
+                  Get Started
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Button>
@@ -76,12 +74,12 @@ const FinalCTA = () => {
                 onClick={() => navigate("/contact")} 
                 className="text-lg px-10 py-6 border-2 bg-background/50 backdrop-blur-sm"
               >
-                {t("common.talkToSales")}
+                Talk to Sales
               </Button>
             </div>
 
             <p className="mt-8 text-sm text-muted-foreground">
-              {t("cta.trialInfo")}
+              No credit card required • 14-day free trial • Cancel anytime
             </p>
           </div>
         </div>

@@ -2,10 +2,8 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
-import LanguageSelector from "@/components/LanguageSelector";
 import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin } from "lucide-react";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -15,6 +13,7 @@ interface MarketingLayoutProps {
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
+  tagline: "Collection Intelligence Platform",
   emails: {
     collections: "collections@recouply.ai",
     support: "support@recouply.ai",
@@ -66,19 +65,18 @@ const NavDropdown = ({
 const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { t } = useTranslation();
 
   const platformItems = [
-    { icon: Brain, title: t('nav.collectionIntelligence'), description: t('marketing.aiInsights'), path: "/collection-intelligence" },
-    { icon: Bot, title: t('nav.aiAgents'), description: t('marketing.autonomousPersonas'), path: "/personas" },
-    { icon: Zap, title: t('nav.automation'), description: t('marketing.workflowAutomation'), path: "/features" },
-    { icon: BarChart3, title: t('nav.analytics'), description: t('marketing.realtimeDashboards'), path: "/features#analytics" },
+    { icon: Brain, title: "Collection Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
+    { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
+    { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/features" },
+    { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/features#analytics" },
   ];
 
   const solutionsItems = [
-    { icon: Rocket, title: t('nav.startups'), description: t('marketing.scaleFromDayOne'), path: "/startups" },
-    { icon: Users, title: t('nav.smb'), description: t('marketing.rightSizedTeams'), path: "/smb" },
-    { icon: Building2, title: t('nav.enterprise'), description: t('marketing.fullScaleDeployment'), path: "/enterprise" },
+    { icon: Rocket, title: "Startups", description: "Scale collections from day one", path: "/startups" },
+    { icon: Users, title: "SMB", description: "Right-sized for growing teams", path: "/smb" },
+    { icon: Building2, title: "Enterprise", description: "Full-scale deployment", path: "/enterprise" },
   ];
 
   return (
@@ -94,32 +92,32 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
-            <NavDropdown label={t('nav.platform')} items={platformItems} navigate={navigate} />
-            <NavDropdown label={t('nav.solutions')} items={solutionsItems} navigate={navigate} />
+            <NavDropdown label="Platform" items={platformItems} navigate={navigate} />
+            <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
             <button 
               onClick={() => navigate("/integrations")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
-              {t('nav.integrations')}
+              Integrations
             </button>
             <button 
               onClick={() => navigate("/pricing")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
-              {t('nav.pricing')}
+              Pricing
             </button>
             <button 
               onClick={() => navigate("/about")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
-              {t('nav.about')}
+              About
             </button>
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
               <Button onClick={() => navigate("/login")} variant="ghost" size="sm">
-                {t('common.login')}
+                Sign In
               </Button>
               <Button onClick={() => navigate("/signup")} size="sm">
-                {t('common.getStarted')}
+                Get Started
               </Button>
             </div>
           </nav>
@@ -127,7 +125,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center gap-2">
             <Button onClick={() => navigate("/login")} variant="ghost" size="sm">
-              {t('common.login')}
+              Sign In
             </Button>
             <Button 
               variant="ghost" 
@@ -144,7 +142,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
           <div className="lg:hidden border-t bg-card">
             <div className="container mx-auto px-4 py-4 space-y-4">
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('nav.platform')}</div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Platform</div>
                 {platformItems.map((item) => (
                   <button
                     key={item.path}
@@ -157,7 +155,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 ))}
               </div>
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('nav.solutions')}</div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Solutions</div>
                 {solutionsItems.map((item) => (
                   <button
                     key={item.path}
@@ -170,11 +168,11 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 ))}
               </div>
               <div className="flex flex-col gap-2 pt-2 border-t">
-                <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">{t('nav.integrations')}</button>
-                <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">{t('nav.pricing')}</button>
-                <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">{t('nav.about')}</button>
+                <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
+                <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
+                <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                 <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="w-full mt-2">
-                  {t('common.getStarted')}
+                  Get Started
                 </Button>
               </div>
             </div>
@@ -194,10 +192,10 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 <RecouplyLogo size="lg" />
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                {t('footer.tagline')}
+                {COMPANY_INFO.tagline}
               </p>
               <p className="text-xs text-muted-foreground mb-4">
-                {t('footer.notAgency')}
+                AI-powered software. Not a collection agency.
               </p>
               <a 
                 href={COMPANY_INFO.social.linkedin}
@@ -206,11 +204,11 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
               >
                 <Linkedin className="h-5 w-5" />
-                <span className="text-sm">{t('footer.followUs')}</span>
+                <span className="text-sm">Follow us</span>
               </a>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">{t('nav.platform')}</h4>
+              <h4 className="font-semibold mb-4">Platform</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <button 
@@ -218,7 +216,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     className="text-muted-foreground hover:text-primary flex items-center gap-1"
                   >
                     <Brain className="h-3 w-3" />
-                    {t('nav.collectionIntelligence')}
+                    Collection Intelligence
                   </button>
                 </li>
                 <li>
@@ -226,7 +224,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/personas")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('nav.aiAgents')}
+                    AI Agents
                   </button>
                 </li>
                 <li>
@@ -234,7 +232,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/features")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.features')}
+                    Features
                   </button>
                 </li>
                 <li>
@@ -242,20 +240,20 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/pricing")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('nav.pricing')}
+                    Pricing
                   </button>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">{t('footer.company')}</h4>
+              <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <button 
                     onClick={() => navigate("/about")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.about')}
+                    About Us
                   </button>
                 </li>
                 <li>
@@ -263,7 +261,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/investors")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.investors')}
+                    Investors
                   </button>
                 </li>
                 <li>
@@ -271,7 +269,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/legal/terms")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.terms')}
+                    Terms of Service
                   </button>
                 </li>
                 <li>
@@ -279,7 +277,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/legal/privacy")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.privacy')}
+                    Privacy Policy
                   </button>
                 </li>
                 <li>
@@ -287,20 +285,20 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/security-public")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.security')}
+                    Security
                   </button>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">{t('footer.contact')}</h4>
+              <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm mb-4">
                 <li>
                   <button 
                     onClick={() => navigate("/contact")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.contact')}
+                    Contact Us
                   </button>
                 </li>
                 <li>
@@ -308,7 +306,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                     onClick={() => navigate("/contact?intent=demo")}
                     className="text-muted-foreground hover:text-primary"
                   >
-                    {t('footer.requestDemo')}
+                    Request a Demo
                   </button>
                 </li>
               </ul>
@@ -316,15 +314,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 onClick={() => navigate("/signup")}
                 className="w-full"
               >
-                {t('common.startFreeTrial')}
+                Start Free Trial
               </Button>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t">
+          <div className="text-center pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} {t('footer.allRightsReserved')}
+              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
             </p>
-            <LanguageSelector />
           </div>
         </div>
       </footer>

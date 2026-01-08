@@ -1,42 +1,39 @@
-import { useTranslation } from "react-i18next";
 import { Brain, Mail, Zap, CheckCircle, TrendingUp, Shield } from "lucide-react";
 
+const differentiators = [
+  { icon: Brain, title: "360° Account Intelligence", description: "Payment history, communication patterns, and risk signals—synthesized into actionable context" },
+  { icon: Mail, title: "Communication Intelligence", description: "Understands sentiment and intent to guide your next action, not just respond" },
+  { icon: Zap, title: "Task & Resolution Intelligence", description: "Tracks what works, surfaces what doesn't—informing team decisions" },
+  { icon: CheckCircle, title: "Payment Behavior as Insight", description: "Learns from every payment pattern to help you act before risk compounds" },
+  { icon: TrendingUp, title: "Intelligence That Compounds", description: "Every touchpoint makes the system smarter—better signals over time" },
+  { icon: Shield, title: "Proactive Risk Signals", description: "Early visibility into at-risk accounts—designed to support predictable cash flow" },
+];
+
 const WhyDifferent = () => {
-  const { t } = useTranslation();
-
-  const differentiators = [
-    { icon: Brain, titleKey: "whyDifferent.accountIntelligence", descKey: "whyDifferent.accountIntelligenceDesc" },
-    { icon: Mail, titleKey: "whyDifferent.commIntelligence", descKey: "whyDifferent.commIntelligenceDesc" },
-    { icon: Zap, titleKey: "whyDifferent.taskIntelligence", descKey: "whyDifferent.taskIntelligenceDesc" },
-    { icon: CheckCircle, titleKey: "whyDifferent.paymentBehavior", descKey: "whyDifferent.paymentBehaviorDesc" },
-    { icon: TrendingUp, titleKey: "whyDifferent.compounds", descKey: "whyDifferent.compoundsDesc" },
-    { icon: Shield, titleKey: "whyDifferent.proactiveRisk", descKey: "whyDifferent.proactiveRiskDesc" },
-  ];
-
   return (
     <section className="py-24 px-4 bg-background">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            {t("hero.badge")}
+            Collection Intelligence Platform
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            {t("whyDifferent.title")}
+            Intelligence That Informs Action
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            {t("whyDifferent.subtitle")}
+            Signals from accounts, communications, and payments—guiding decisions, not just automating tasks
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            {t("whyDifferent.subtext")}
+            Your single source of truth for all collection activities
           </p>
           
           {/* Single Source of Truth Messaging */}
           <div className="mt-8 max-w-3xl mx-auto bg-muted/30 rounded-2xl p-6 border border-border/50">
             <p className="text-muted-foreground">
-              {t("whyDifferent.sourceOfTruth")}
+              Recouply.ai acts as the single source of truth for all collection activity — every action, message, and outcome is stored in one centralized system with full transparency and auditability.
             </p>
             <p className="text-sm text-muted-foreground/80 mt-3 font-medium">
-              {t("whyDifferent.noHandoffs")}
+              No handoffs. No scattered inboxes. No lost context.
             </p>
           </div>
         </div>
@@ -52,8 +49,8 @@ const WhyDifferent = () => {
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">{t(item.titleKey)}</h4>
-                  <p className="text-sm text-muted-foreground">{t(item.descKey)}</p>
+                  <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
               </div>
             );

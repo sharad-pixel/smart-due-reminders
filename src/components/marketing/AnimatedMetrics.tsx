@@ -1,35 +1,32 @@
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { TrendingDown, Bot, Clock } from "lucide-react";
 
-const AnimatedMetrics = () => {
-  const { t } = useTranslation();
-  
-  const metrics = [
-    { 
-      icon: TrendingDown, 
-      value: 50, 
-      suffix: "%", 
-      prefix: "35-",
-      labelKey: "metrics.reduceDso",
-      descKey: "metrics.reduceDsoDesc"
-    },
-    { 
-      icon: Bot, 
-      value: 80, 
-      suffix: "%", 
-      labelKey: "metrics.automateAr",
-      descKey: "metrics.automateArDesc"
-    },
-    { 
-      icon: Clock, 
-      value: 24, 
-      suffix: "/7", 
-      labelKey: "metrics.recoverPayments",
-      descKey: "metrics.recoverPaymentsDesc"
-    },
-  ];
+const metrics = [
+  { 
+    icon: TrendingDown, 
+    value: 50, 
+    suffix: "%", 
+    prefix: "35-",
+    label: "Reduce DSO",
+    description: "Cut days sales outstanding dramatically"
+  },
+  { 
+    icon: Bot, 
+    value: 80, 
+    suffix: "%", 
+    label: "Automate AR Work",
+    description: "Free your team from manual follow-ups"
+  },
+  { 
+    icon: Clock, 
+    value: 24, 
+    suffix: "/7", 
+    label: "Recover Payments",
+    description: "AI agents never sleep or take breaks"
+  },
+];
 
+const AnimatedMetrics = () => {
   const [counters, setCounters] = useState<number[]>(metrics.map(() => 0));
   const [hasAnimated, setHasAnimated] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -98,8 +95,8 @@ const AnimatedMetrics = () => {
                       <span className="tabular-nums">{counters[index]}</span>
                       <span className="text-primary">{metric.suffix}</span>
                     </div>
-                    <div className="text-lg font-semibold mb-1">{t(metric.labelKey)}</div>
-                    <p className="text-sm text-muted-foreground">{t(metric.descKey)}</p>
+                    <div className="text-lg font-semibold mb-1">{metric.label}</div>
+                    <p className="text-sm text-muted-foreground">{metric.description}</p>
                   </div>
                 </div>
               </div>
