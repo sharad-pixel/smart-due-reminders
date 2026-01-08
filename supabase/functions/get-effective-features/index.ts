@@ -69,11 +69,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Trial configuration: 7 days, 5 invoices
+    const TRIAL_INVOICE_LIMIT = 5;
+    
     // Default plan features - all paid plans can have team users
     const planFeatures: Record<string, any> = {
       free: {
         can_use_invoice_line_items: false,
-        invoice_limit: 15,
+        invoice_limit: TRIAL_INVOICE_LIMIT, // 5 invoices for free/trial
         can_have_team_users: false,
         can_manage_roles: false,
         max_invited_users: 0,

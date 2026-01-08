@@ -42,6 +42,10 @@ const SEAT_PRICE_IDS: Record<string, string> = {
   year: 'price_1ScbGiBfb0dWgtCDOrLwli7A',   // $720/year
 };
 
+// Trial configuration: 7 days, 5 invoices
+const TRIAL_DAYS = 7;
+const TRIAL_INVOICE_LIMIT = 5;
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
@@ -184,8 +188,8 @@ serve(async (req) => {
 
     // Only add trial if user has never had one
     if (isEligibleForTrial) {
-      subscriptionData.trial_period_days = 14;
-      logStep('Adding 14-day trial to subscription');
+      subscriptionData.trial_period_days = TRIAL_DAYS;
+      logStep(`Adding ${TRIAL_DAYS}-day trial to subscription`);
     } else {
       logStep('No trial - user has already used their trial or has active subscription');
     }

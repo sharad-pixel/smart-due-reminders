@@ -31,7 +31,7 @@ const plans = [
     period: "/month",
     invoiceLimit: "Up to 100 active invoices/month",
     description: "Perfect for small businesses seeking visibility into cash outcomes.",
-    cta: "Start Free Trial",
+    cta: "Start 7-Day Trial",
     planType: "starter",
     popular: false
   },
@@ -43,7 +43,7 @@ const plans = [
     period: "/month",
     invoiceLimit: "Up to 300 active invoices/month",
     description: "Ideal for scaling teams needing risk-aware workflows.",
-    cta: "Start Free Trial",
+    cta: "Start 7-Day Trial",
     planType: "growth",
     popular: true
   },
@@ -55,7 +55,7 @@ const plans = [
     period: "/month",
     invoiceLimit: "Up to 500 active invoices/month",
     description: "Built for high-volume operations seeking proactive intelligence.",
-    cta: "Start Free Trial",
+    cta: "Start 7-Day Trial",
     planType: "professional",
     popular: false
   },
@@ -220,10 +220,10 @@ const Pricing = () => {
             All plans include full platform access. Choose based on your monthly active invoice volume.
           </p>
           <p className="text-lg text-primary font-medium mb-4">
-            Six AI-assisted agents, human-approved—included in every plan.
+            7-day free trial with payment info. Auto-converts unless cancelled.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
-            Pricing is based on active invoices per month. All plans include risk-aware automation, dashboards, and support.
+            Pricing is based on active invoices per month. Trial includes 5 invoices. All plans include risk-aware automation, dashboards, and support.
           </p>
         </div>
       </section>

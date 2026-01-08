@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { type PlanType, PLAN_CONFIGS } from '@/lib/subscriptionConfig';
+import { type PlanType, PLAN_CONFIGS, TRIAL_CONFIG } from '@/lib/subscriptionConfig';
 
 interface SubscriptionState {
   plan: PlanType;
@@ -17,11 +17,12 @@ interface SubscriptionState {
   billingInterval: 'month' | 'year' | null;
   isAccountOwner: boolean;
   canUpgrade: boolean;
+  trialInvoiceLimit: number;
   canAccessFeature: (feature: string) => boolean;
   refresh: () => Promise<void>;
 }
 
-const FREE_INVOICE_LIMIT = 15;
+const TRIAL_INVOICE_LIMIT = TRIAL_CONFIG.invoiceLimit; // 5 invoices during trial
 const FREE_MAX_AGENTS = 6;
 
 /**
@@ -29,13 +30,14 @@ const FREE_MAX_AGENTS = 6;
  * 
  * - Account owners have their own subscription
  * - Team members inherit account owner's subscription
- * - Trial is one-time per email (tracked via trial_used_at)
+ * - Trial is 7 days with 5 invoice limit
+ * - Trial auto-converts to Starter unless cancelled
  */
 export function useSubscription(): SubscriptionState {
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlan] = useState<PlanType>('free');
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>('inactive');
-  const [invoiceLimit, setInvoiceLimit] = useState(FREE_INVOICE_LIMIT);
+  const [invoiceLimit, setInvoiceLimit] = useState(TRIAL_INVOICE_LIMIT);
   const [maxAgents, setMaxAgents] = useState(FREE_MAX_AGENTS);
   const [isTrial, setIsTrial] = useState(false);
   const [hasUsedTrial, setHasUsedTrial] = useState(false);
@@ -44,6 +46,7 @@ export function useSubscription(): SubscriptionState {
   const [billingInterval, setBillingInterval] = useState<'month' | 'year' | null>(null);
   const [isAccountOwner, setIsAccountOwner] = useState(true);
   const [canUpgrade, setCanUpgrade] = useState(true);
+  const [trialInvoiceLimit] = useState(TRIAL_INVOICE_LIMIT);
 
   const fetchSubscription = useCallback(async () => {
     try {
@@ -106,20 +109,24 @@ export function useSubscription(): SubscriptionState {
     // Check if in trial
     if (profile.subscription_status === 'trialing' && profile.trial_ends_at) {
       setIsTrial(true);
+      // During trial, limit to 5 invoices
+      setInvoiceLimit(TRIAL_INVOICE_LIMIT);
+      setMaxAgents(FREE_MAX_AGENTS);
     } else {
       setIsTrial(false);
-    }
-
-    // Set limits based on plan
-    if (planType !== 'free' && (profile.subscription_status === 'active' || profile.subscription_status === 'trialing')) {
-      const config = PLAN_CONFIGS[planType as keyof typeof PLAN_CONFIGS];
-      if (config) {
-        setInvoiceLimit(profile.invoice_limit || config.invoiceLimit);
-        setMaxAgents(config.maxAgents);
+      
+      // Set limits based on plan for active subscriptions
+      if (planType !== 'free' && profile.subscription_status === 'active') {
+        const config = PLAN_CONFIGS[planType as keyof typeof PLAN_CONFIGS];
+        if (config) {
+          setInvoiceLimit(profile.invoice_limit || config.invoiceLimit);
+          setMaxAgents(config.maxAgents);
+        }
+      } else {
+        // Free/inactive users get trial limits
+        setInvoiceLimit(TRIAL_INVOICE_LIMIT);
+        setMaxAgents(FREE_MAX_AGENTS);
       }
-    } else {
-      setInvoiceLimit(FREE_INVOICE_LIMIT);
-      setMaxAgents(FREE_MAX_AGENTS);
     }
   };
 
@@ -162,6 +169,7 @@ export function useSubscription(): SubscriptionState {
     billingInterval,
     isAccountOwner,
     canUpgrade,
+    trialInvoiceLimit,
     canAccessFeature,
     refresh: fetchSubscription,
   };
