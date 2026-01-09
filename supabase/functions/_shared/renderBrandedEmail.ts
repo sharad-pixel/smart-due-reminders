@@ -164,10 +164,18 @@ export function getSenderIdentity(brand: BrandingConfig): SenderIdentity {
     effectiveSendingMode = 'recouply_default';
   }
   
-  // Determine reply-to - MUST use INBOUND_EMAIL_DOMAIN for receiving, not VERIFIED_EMAIL_DOMAIN!
-  // Custom reply_to is allowed if set, otherwise fallback to support@ on inbound domain
-  const replyTo = brand.reply_to_email || `support@${INBOUND_EMAIL_DOMAIN}`;
-  
+  // Determine reply-to.
+  // CRITICAL: For deliverability + inbound routing, Reply-To must be on the INBOUND_EMAIL_DOMAIN.
+  // If a non-inbound address is configured, ignore it and fall back to support@INBOUND_EMAIL_DOMAIN.
+  const configuredReplyTo = (brand.reply_to_email || '').trim();
+  const configuredDomain = configuredReplyTo.includes('@')
+    ? configuredReplyTo.split('@').pop()?.toLowerCase()
+    : undefined;
+
+  const replyTo = configuredReplyTo && configuredDomain === INBOUND_EMAIL_DOMAIN
+    ? configuredReplyTo
+    : `support@${INBOUND_EMAIL_DOMAIN}`;
+
   return {
     fromEmail,
     fromName,

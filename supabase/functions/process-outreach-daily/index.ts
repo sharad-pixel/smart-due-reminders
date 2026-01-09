@@ -339,8 +339,8 @@ serve(async (req) => {
           },
         });
 
-        // Always use invoice-specific reply-to on the INBOUND domain (not send domain)
-        const replyToAddress = sender.replyTo || `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
+        // Always use invoice-specific reply-to on the INBOUND domain (required for inbound AI routing)
+        const replyToAddress = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
