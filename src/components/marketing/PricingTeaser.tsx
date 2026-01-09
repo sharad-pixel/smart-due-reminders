@@ -94,11 +94,11 @@ const PricingTeaser = () => {
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    Automated follow-ups
+                    Stripe & QuickBooks integrations
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    Email reading & responses
+                    Full automation suite
                   </li>
                 </ul>
 

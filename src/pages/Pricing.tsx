@@ -74,13 +74,13 @@ const plans = [
 ];
 
 const platformFeatures = [
-  "Six AI-assisted agents, human-approved",
-  "Risk-aware automation capabilities",
+  "All 6 AI collection agents",
+  "Stripe & QuickBooks integrations",
+  "Email & SMS campaigns",
+  "Full automation suite",
   "Collection intelligence dashboard",
-  "Unlimited contacts / accounts",
-  "Email & SMS outreach",
-  "Promise-to-Pay tracking",
   "Team collaboration tools",
+  "Advanced analytics & reporting",
   "Priority support"
 ];
 
