@@ -1441,7 +1441,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         </div>
 
 
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Payment & Additional Info - 2 columns */}
+        <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Payment Information</CardTitle>
@@ -1481,7 +1482,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                !invoice.promise_to_pay_date && invoice.promise_to_pay_amount === null && (
                 <p className="text-sm text-muted-foreground">No payment information available</p>
               )}
-              {/* Show payment acknowledgment button when payment has been made */}
               {(invoice.payment_date || invoice.paid_date || invoice.status === "Paid" || invoice.status === "PartiallyPaid") && (
                 <div className="pt-3 border-t">
                   <Button
@@ -1498,35 +1498,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     AI will compose a contextual thank-you message
                   </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Collection Dates</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {invoice.last_contacted_at && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Contacted</p>
-                  <p className="font-medium">{new Date(invoice.last_contacted_at).toLocaleDateString()}</p>
-                </div>
-              )}
-              {invoice.last_contact_date && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Contact Date</p>
-                  <p className="font-medium">{new Date(invoice.last_contact_date).toLocaleDateString()}</p>
-                </div>
-              )}
-              {invoice.next_contact_date && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Next Contact Date</p>
-                  <p className="font-medium">{new Date(invoice.next_contact_date).toLocaleDateString()}</p>
-                </div>
-              )}
-              {!invoice.last_contacted_at && !invoice.last_contact_date && !invoice.next_contact_date && (
-                <p className="text-sm text-muted-foreground">No collection dates set</p>
               )}
             </CardContent>
           </Card>
