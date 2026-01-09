@@ -615,121 +615,138 @@ const Invoices = () => {
           </div>
         </div>
 
-        <AIInsightsCard scope="invoices" compact className="mb-4" />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* AI Insights - Collapsible Sidebar */}
+          <div className="lg:col-span-1">
+            <AIInsightsCard scope="invoices" compact className="h-full" />
+          </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by reference ID, invoice #, or account..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+          {/* Main Invoices Table */}
+          <Card className="lg:col-span-3 flex flex-col min-h-[600px]">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col gap-4">
+                {/* Search and Filters Row */}
+                <div className="flex flex-col xl:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by reference ID, invoice #, or account..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="Open">Open</SelectItem>
+                        <SelectItem value="Paid">Paid</SelectItem>
+                        <SelectItem value="Disputed">Disputed</SelectItem>
+                        <SelectItem value="Settled">Settled</SelectItem>
+                        <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
+                        <SelectItem value="Canceled">Canceled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={ageBucketFilter} onValueChange={setAgeBucketFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Age" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Ages</SelectItem>
+                        <SelectItem value="current">Current</SelectItem>
+                        <SelectItem value="0-30">0-30 Days</SelectItem>
+                        <SelectItem value="31-60">31-60 Days</SelectItem>
+                        <SelectItem value="60plus">60+ Days</SelectItem>
+                        <SelectItem value="61-90">61-90 Days</SelectItem>
+                        <SelectItem value="91-120">91-120 Days</SelectItem>
+                        <SelectItem value="121+">121+ Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={debtorFilter} onValueChange={setDebtorFilter}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="Account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Accounts</SelectItem>
+                        {debtors.map((debtor) => (
+                          <SelectItem key={debtor.id} value={debtor.id}>
+                            {debtor.company_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sources</SelectItem>
+                        <SelectItem value="recouply_manual">📝 Recouply</SelectItem>
+                        <SelectItem value="csv_upload">📊 CSV Import</SelectItem>
+                        <SelectItem value="stripe">🔗 Stripe</SelectItem>
+                        <SelectItem value="quickbooks">🔗 QuickBooks</SelectItem>
+                        <SelectItem value="xero">🔗 Xero</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Open">Open</SelectItem>
-                  <SelectItem value="Paid">Paid</SelectItem>
-                  <SelectItem value="Disputed">Disputed</SelectItem>
-                  <SelectItem value="Settled">Settled</SelectItem>
-                  <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
-                  <SelectItem value="Canceled">Canceled</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={ageBucketFilter} onValueChange={setAgeBucketFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Age" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ages</SelectItem>
-                  <SelectItem value="current">Current</SelectItem>
-                  <SelectItem value="0-30">0-30 Days</SelectItem>
-                  <SelectItem value="31-60">31-60 Days</SelectItem>
-                  <SelectItem value="60plus">60+ Days</SelectItem>
-                  <SelectItem value="61-90">61-90 Days</SelectItem>
-                  <SelectItem value="91-120">91-120 Days</SelectItem>
-                  <SelectItem value="121+">121+ Days</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={debtorFilter} onValueChange={setDebtorFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Account" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Accounts</SelectItem>
-                  {debtors.map((debtor) => (
-                    <SelectItem key={debtor.id} value={debtor.id}>
-                      {debtor.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full md:w-[150px]">
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sources</SelectItem>
-                  <SelectItem value="recouply_manual">📝 Recouply</SelectItem>
-                  <SelectItem value="csv_upload">📊 CSV Import</SelectItem>
-                  <SelectItem value="stripe">🔗 Stripe</SelectItem>
-                  <SelectItem value="quickbooks">🔗 QuickBooks</SelectItem>
-                  <SelectItem value="xero">🔗 Xero</SelectItem>
-                </SelectContent>
-              </Select>
+                
+                {/* Hide inactive toggle */}
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="hide-inactive"
+                    checked={hideInactive}
+                    onCheckedChange={setHideInactive}
+                  />
+                  <Label htmlFor="hide-inactive" className="text-sm font-normal cursor-pointer">
+                    Hide inactive (Paid, Settled, Canceled)
+                  </Label>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="hide-inactive"
-                  checked={hideInactive}
-                  onCheckedChange={setHideInactive}
-                />
-                <Label htmlFor="hide-inactive" className="text-sm font-normal cursor-pointer">
-                  Hide inactive (Paid, Settled, Canceled)
-                </Label>
-              </div>
-            </div>
-            {selectedInvoices.length > 0 && (
-              <div className="flex gap-2 mt-4">
-                <span className="text-sm text-muted-foreground py-2">
-                  {selectedInvoices.length} selected
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowBulkStatusDialog(true)}
-                >
-                  <ListChecks className="h-4 w-4 mr-2" />
-                  Change Status
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowBulkAssignDialog(true)}
-                >
-                  Assign to Workflow
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleBulkUnassign}
-                >
-                  Remove from Workflow
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setSelectedInvoices([])}
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </CardHeader>
+              
+              {/* Bulk Actions */}
+              {selectedInvoices.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
+                  <span className="text-sm text-muted-foreground py-2">
+                    {selectedInvoices.length} selected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkStatusDialog(true)}
+                  >
+                    <ListChecks className="h-4 w-4 mr-2" />
+                    Change Status
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkAssignDialog(true)}
+                  >
+                    Assign to Workflow
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkUnassign}
+                  >
+                    Remove from Workflow
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedInvoices([])}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
+            </CardHeader>
           <CardContent>
             {filteredInvoices.length === 0 ? (
               <div className="text-center py-12">
@@ -969,7 +986,8 @@ const Invoices = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* Bulk Status Change Dialog */}
         <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
