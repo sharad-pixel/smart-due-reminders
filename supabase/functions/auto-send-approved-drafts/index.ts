@@ -291,8 +291,8 @@ Deno.serve(async (req) => {
         const sender = getSenderIdentity(brandingConfig);
         const brandSnapshot = captureBrandSnapshot(brandingConfig, sender);
         
-        // Use invoice-specific reply-to for routing inbound responses
-        const replyToAddress = sender.replyTo || `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
+        // Always use invoice-specific reply-to for routing inbound responses (do not allow branding overrides)
+        const replyToAddress = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
         console.log(`[AUTO-SEND] Sender for draft ${draft.id}:`, {
           mode: sender.sendingMode,
