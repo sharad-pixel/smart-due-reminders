@@ -76,7 +76,7 @@ const plans = [
 const platformFeatures = [
   "All 6 AI collection agents",
   "Stripe & QuickBooks integrations",
-  "Email & SMS campaigns",
+  "Email campaigns",
   "Full automation suite",
   "Collection intelligence dashboard",
   "Team collaboration tools",
