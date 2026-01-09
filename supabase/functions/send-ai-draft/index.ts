@@ -167,6 +167,7 @@ serve(async (req) => {
       const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
       const paymentLink = branding?.stripe_payment_link || '';
       const businessName = branding?.business_name || 'Our Company';
+      const productDescription = invoice?.product_description || '';
       
       return text
         // Customer/Debtor name variations
@@ -203,7 +204,13 @@ serve(async (req) => {
         .replace(/\{\{stripe_link\}\}/gi, paymentLink)
         // AR Portal link
         .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
-        .replace(/\{\{portal_link\}\}/gi, arPageUrl);
+        .replace(/\{\{portal_link\}\}/gi, arPageUrl)
+        // Product/Service description variations
+        .replace(/\{\{product_description\}\}/gi, productDescription)
+        .replace(/\{\{product description\}\}/gi, productDescription)
+        .replace(/\{\{productDescription\}\}/gi, productDescription)
+        .replace(/\{\{service_description\}\}/gi, productDescription)
+        .replace(/\{\{description\}\}/gi, productDescription);
     };
 
     // Apply template replacement to draft content

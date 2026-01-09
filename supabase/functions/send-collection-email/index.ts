@@ -30,6 +30,7 @@ function replaceTemplateVars(
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
   const paymentLink = branding?.stripe_payment_link || '';
   const invoiceLink = invoice?.integration_url || '';
+  const productDescription = invoice?.product_description || '';
   const businessName = branding?.business_name || 'Our Company';
   const arPageUrl =
     branding?.ar_page_public_token && branding?.ar_page_enabled
@@ -80,7 +81,13 @@ function replaceTemplateVars(
     .replace(/\{\{integration_url\}\}/gi, invoiceLink)
     // AR Portal link
     .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
-    .replace(/\{\{portal_link\}\}/gi, arPageUrl);
+    .replace(/\{\{portal_link\}\}/gi, arPageUrl)
+    // Product/Service description variations
+    .replace(/\{\{product_description\}\}/gi, productDescription)
+    .replace(/\{\{product description\}\}/gi, productDescription)
+    .replace(/\{\{productDescription\}\}/gi, productDescription)
+    .replace(/\{\{service_description\}\}/gi, productDescription)
+    .replace(/\{\{description\}\}/gi, productDescription);
 }
 
 serve(async (req) => {

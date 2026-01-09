@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
         custom_template_subject,
         custom_template_body,
         integration_url,
+        product_description,
         debtors(
           id,
           name,
@@ -280,6 +281,7 @@ Deno.serve(async (req) => {
 
         // Replace template variables
         const invoiceLink = invoice.integration_url || '';
+        const productDescription = invoice.product_description || '';
         const templateVars: Record<string, string> = {
           '{{debtor_name}}': debtorName,
           '{{company_name}}': companyName,
@@ -292,6 +294,10 @@ Deno.serve(async (req) => {
           '{{from_name}}': fromName,
           '{{invoice_link}}': invoiceLink,
           '{{integration_url}}': invoiceLink,
+          '{{product_description}}': productDescription,
+          '{{productDescription}}': productDescription,
+          '{{service_description}}': productDescription,
+          '{{description}}': productDescription,
         };
 
         let processedBody = bodyTemplate;
