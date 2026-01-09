@@ -128,18 +128,11 @@ export function EmailPreviewFrame({
       ${bodyHtml}
     </div>
     <div class="email-footer">
-      ${logoUrl ? `<img src="${logoUrl}" alt="${businessName}" class="footer-logo" />` : ""}
-      <p class="footer-text"><strong>${businessName}</strong></p>
       ${arPageLink ? `
-        <a href="${arPageLink}" class="ar-page-link">Visit Our AR Information Page</a>
+        <a href="${arPageLink}" class="ar-page-link">View Invoice Details</a>
       ` : ""}
-      <div class="divider"></div>
-      <p class="footer-text">
-        This email was sent by ${businessName} via Recouply.ai<br>
-        Collection Intelligence Platform
-      </p>
-      <p class="footer-text" style="color: #999;">
-        © ${new Date().getFullYear()} RecouplyAI Inc. All rights reserved.
+      <p class="footer-text" style="font-size: 10px; color: #9ca3af; margin-top: 16px;">
+        Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a>
       </p>
     </div>
   </div>
