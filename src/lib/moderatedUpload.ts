@@ -38,23 +38,24 @@ export async function uploadModeratedImage(
   }
 
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderated-image-upload`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: formData,
-      }
-    );
+    // Use supabase.functions.invoke for reliable edge function calls
+    const { data, error } = await supabase.functions.invoke("moderated-image-upload", {
+      body: formData,
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (error) {
+      console.error("Moderated upload error:", error);
       return {
         success: false,
-        error: data.error || "Upload failed",
+        error: error.message || "Upload failed",
+        rejected: false,
+      };
+    }
+
+    if (data?.error) {
+      return {
+        success: false,
+        error: data.error,
         rejected: data.rejected || false,
       };
     }
