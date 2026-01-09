@@ -178,6 +178,7 @@ CRITICAL COMPLIANCE RULES:
 - Encourage the customer to pay or reply if there is a dispute or issue`;
 
         const userPrompt = workflowStep?.body_template || getDefaultTemplate(agingBucket);
+        const productDesc = invoice.product_description ? `\n- Product/Service: ${invoice.product_description}` : '';
         
         const contextualPrompt = `${userPrompt}
 
@@ -189,7 +190,7 @@ Context:
 - Amount: $${invoice.amount} ${invoice.currency || 'USD'}
 - Original Due Date: ${invoice.due_date}
 - Days Past Due: ${daysPastDue}
-- Aging Bucket: ${agingBucket}
+- Aging Bucket: ${agingBucket}${productDesc}
 
 ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_signature}` : ''}`;
 

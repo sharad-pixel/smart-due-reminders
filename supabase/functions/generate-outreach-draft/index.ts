@@ -234,6 +234,7 @@ serve(async (req) => {
 
       if (approvedTemplate) {
         // Use approved template with variable replacement
+        const productDescription = invoice.product_description || '';
         const templateVars: Record<string, string> = {
           '{{debtor_name}}': contactName,
           '{{company_name}}': invoice.debtors.company_name || contactName,
@@ -247,6 +248,10 @@ serve(async (req) => {
           '{{payment_link}}': profile.stripe_payment_link_url || 'Please contact us for payment options',
           '{{invoice_link}}': invoiceLink,
           '{{integration_url}}': invoiceLink,
+          '{{product_description}}': productDescription,
+          '{{productDescription}}': productDescription,
+          '{{service_description}}': productDescription,
+          '{{description}}': productDescription,
         };
 
         email_subject = approvedTemplate.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
@@ -389,6 +394,7 @@ Due date: ${new Date(invoice.due_date).toLocaleDateString()}
 Days past due: ${daysPastDue}
 Payment link: ${profile.stripe_payment_link_url || "Please contact us for payment options"}
 ${invoiceLink ? `Invoice link (MUST include in email): ${invoiceLink}` : ''}
+${invoice.product_description ? `Product/Service: ${invoice.product_description}` : ''}
 Step number in cadence: ${step_number}
 ${crmAccount ? `CRM Account: ${crmAccount.name}, Segment: ${crmAccount.segment || 'N/A'}, Health: ${crmAccount.health_score || 'N/A'}` : ''}
 

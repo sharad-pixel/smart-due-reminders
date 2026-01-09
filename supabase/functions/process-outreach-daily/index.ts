@@ -81,7 +81,7 @@ serve(async (req) => {
       .from('invoices')
       .select(`
         id, invoice_number, amount, amount_outstanding, due_date, 
-        user_id, debtor_id, integration_url, organization_id,
+        user_id, debtor_id, integration_url, organization_id, product_description,
         debtors!inner(id, name, email, company_name)
       `)
       .eq('status', 'Open')
@@ -269,6 +269,7 @@ serve(async (req) => {
 
         // 6. Prepare email content with variable replacement
         const amountDue = invoice.amount_outstanding || invoice.amount || 0;
+        const productDescription = (invoice as any).product_description || '';
         const templateVars: Record<string, string> = {
           debtor_name: debtor.name || debtor.company_name || 'Valued Customer',
           company_name: debtor.company_name || debtor.name || '',
@@ -277,6 +278,10 @@ serve(async (req) => {
           due_date: new Date(invoice.due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
           days_overdue: daysPastDue.toString(),
           invoice_link: invoice.integration_url ? `\n\nView Invoice: ${invoice.integration_url}` : '',
+          product_description: productDescription,
+          productDescription: productDescription,
+          service_description: productDescription,
+          description: productDescription,
         };
 
         const subject = replaceTemplateVars(template.subject_template, templateVars);
