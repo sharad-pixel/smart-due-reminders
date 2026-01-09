@@ -64,16 +64,20 @@ const DebtorsList = ({ onUpdate }: DebtorsListProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Generate reference ID for the new account
+      const referenceId = `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      
       const { data: debtor, error } = await supabase.from("debtors").insert([{
         company_name: formData.company_name,
-        name: formData.contact_name || formData.company_name,
+        name: formData.company_name,
+        reference_id: referenceId,
         email: formData.email,
         phone: formData.phone || null,
         address: formData.address || null,
         external_customer_id: formData.external_customer_id || null,
         crm_account_id_external: formData.crm_account_id_external || null,
         user_id: user.id,
-      } as any]).select().single();
+      }]).select().single();
       
       if (error) throw error;
 

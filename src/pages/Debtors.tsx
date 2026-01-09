@@ -268,14 +268,29 @@ const Debtors = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data: debtor, error } = await supabase.from("debtors").insert({
-        ...formData,
+      // Generate reference ID for the new account
+      const referenceId = `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      
+      const { data: debtor, error } = await supabase.from("debtors").insert([{
+        company_name: formData.company_name,
         name: formData.company_name,
-        contact_name: primaryContact.name,
+        reference_id: referenceId,
+        type: formData.type as "B2B" | "B2C",
+        address: formData.address || null,
+        address_line1: formData.address_line1 || null,
+        address_line2: formData.address_line2 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        postal_code: formData.postal_code || null,
+        country: formData.country || null,
+        notes: formData.notes || null,
+        external_customer_id: formData.external_customer_id || null,
+        crm_account_id_external: formData.crm_account_id_external || null,
+        industry: formData.industry || null,
         email: primaryContact.email,
-        phone: primaryContact.phone,
+        phone: primaryContact.phone || null,
         user_id: user.id,
-      } as any).select().single();
+      }]).select().single();
 
       if (error) throw error;
 
