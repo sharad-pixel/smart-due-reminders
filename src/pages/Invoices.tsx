@@ -615,15 +615,11 @@ const Invoices = () => {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* AI Insights - Collapsible Sidebar */}
-          <div className="lg:col-span-1">
-            <AIInsightsCard scope="invoices" compact className="h-full" />
-          </div>
+        {/* AI Insights Card - On Top */}
+        <AIInsightsCard scope="invoices" compact className="mb-4" />
 
-          {/* Main Invoices Table */}
-          <Card className="lg:col-span-3 flex flex-col min-h-[600px]">
+        {/* Main Invoices Table */}
+        <Card className="flex flex-col">
             <CardHeader className="pb-4">
               <div className="flex flex-col gap-4">
                 {/* Search and Filters Row */}
@@ -987,7 +983,6 @@ const Invoices = () => {
             )}
           </CardContent>
           </Card>
-        </div>
 
         {/* Bulk Status Change Dialog */}
         <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
