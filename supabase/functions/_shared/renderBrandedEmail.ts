@@ -254,10 +254,9 @@ function generatePublicARPageCTA(brand: BrandingConfig): string {
 }
 
 /**
- * Generate RecouplyAI footer
+ * Generate minimal footer - just subtle "Powered by recouply.ai"
  */
-function generateRecouplyFooter(brand: BrandingConfig): string {
-  const currentYear = new Date().getFullYear();
+function generateMinimalFooter(brand: BrandingConfig): string {
   const arPageCTA = generatePublicARPageCTA(brand);
   const footerDisclaimer = brand.footer_disclaimer 
     ? `<p style="margin: 12px 0 0; font-size: 11px; color: #64748b;">${escapeHtml(brand.footer_disclaimer)}</p>`
@@ -280,82 +279,12 @@ function generateRecouplyFooter(brand: BrandingConfig): string {
     </tr>
     ` : ""}
     
-    <!-- RecouplyAI Inc. Enterprise Footer -->
+    <!-- Subtle Powered By Footer -->
     <tr>
-      <td style="padding: 32px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 0 0 12px 12px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-          <tr>
-            <td style="text-align: center;">
-              <!-- Recouply Logo -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px;">
-                <tr>
-                  <td style="vertical-align: middle; padding-right: 12px;">
-                    <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 10px; text-align: center; line-height: 42px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
-                      <span style="color: #ffffff; font-weight: bold; font-size: 20px;">R</span>
-                    </div>
-                  </td>
-                  <td style="vertical-align: middle;">
-                    <span style="color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;">Recouply</span><span style="color: #3b82f6; font-size: 22px; font-weight: 700;">.ai</span>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Tagline -->
-              <p style="margin: 0 0 20px; font-size: 15px; color: #94a3b8; font-weight: 500;">
-                ${COMPANY_INFO.tagline}
-              </p>
-              
-              <!-- Feature badges -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 24px;">
-                <tr>
-                  <td style="padding: 0 8px;">
-                    <span style="display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.2);">🤖 6 AI Agents</span>
-                  </td>
-                  <td style="padding: 0 8px;">
-                    <span style="display: inline-block; background: rgba(139, 92, 246, 0.15); color: #a78bfa; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 16px; border: 1px solid rgba(139, 92, 246, 0.2);">⚡ 24/7 Collections</span>
-                  </td>
-                  <td style="padding: 0 8px;">
-                    <span style="display: inline-block; background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2);">📈 Smart Recovery</span>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Contact Links -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px;">
-                <tr>
-                  <td style="padding: 0 16px; text-align: center;">
-                    <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 500;">
-                      Support
-                    </a>
-                  </td>
-                  <td style="color: #475569;">|</td>
-                  <td style="padding: 0 16px; text-align: center;">
-                    <a href="mailto:${COMPANY_INFO.emails.collections}" style="color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 500;">
-                      Collections
-                    </a>
-                  </td>
-                  <td style="color: #475569;">|</td>
-                  <td style="padding: 0 16px; text-align: center;">
-                    <a href="${COMPANY_INFO.website}" style="color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: 600;">
-                      Visit Website →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Divider -->
-              <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #334155, transparent); margin: 20px 0;"></div>
-              
-              <!-- Legal Footer -->
-              <p style="margin: 0 0 8px; font-size: 12px; color: #64748b;">
-                © ${currentYear} ${COMPANY_INFO.legalName}. All rights reserved.
-              </p>
-              <p style="margin: 0; font-size: 11px; color: #475569;">
-                ${COMPANY_INFO.address} • AI-powered software, not a collection agency
-              </p>
-            </td>
-          </tr>
-        </table>
+      <td style="padding: 16px 36px 24px; text-align: center;">
+        <p style="margin: 0; font-size: 10px; color: #9ca3af;">
+          Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a>
+        </p>
       </td>
     </tr>
   `.trim();
@@ -432,20 +361,7 @@ export function renderBrandedEmail(input: EmailRenderInput, personaName?: string
             </td>
           </tr>
           
-          ${generateRecouplyFooter(brand)}
-        </table>
-        
-        <!-- Unsubscribe and Legal Links -->
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 16px auto 0;">
-          <tr>
-            <td style="text-align: center; padding: 0 20px;">
-              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
-                This email was sent by ${COMPANY_INFO.legalName} on behalf of ${escapeHtml(businessName)}.
-                <br>
-                Questions? Contact us at <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #64748b;">${COMPANY_INFO.emails.support}</a>
-              </p>
-            </td>
-          </tr>
+          ${generateMinimalFooter(brand)}
         </table>
       </td>
     </tr>
@@ -507,8 +423,8 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
     ${ctaHtml}
     ${signatureHtml}
     ${footerHtml}
-    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af;">
-      <p style="margin: 0;">Sent on behalf of ${escapeHtml(businessName)} via Recouply.ai</p>
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
+      <p style="margin: 0; font-size: 10px; color: #9ca3af;">Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a></p>
     </div>
   </div>
 </body>
@@ -546,11 +462,8 @@ export function renderPlainTextEmail(input: EmailRenderInput, personaName?: stri
     text += `\n\n---\n${brand.email_signature}`;
   }
   
-  text += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
-  text += `\n\nSent on behalf of ${businessName}`;
-  text += `\nPowered by ${COMPANY_INFO.displayName} - ${COMPANY_INFO.tagline}`;
-  text += `\n\n© ${currentYear} ${COMPANY_INFO.legalName}`;
-  text += `\n${COMPANY_INFO.address} • AI-powered software, not a collection agency`;
+  text += `\n\n---`;
+  text += `\nPowered by recouply.ai`;
   
   if (brand.ar_page_enabled && brand.ar_page_public_token) {
     text += `\n\n📄 AR Portal: https://recouply.ai/ar/${brand.ar_page_public_token}`;
