@@ -451,13 +451,13 @@ const Upgrade = () => {
               Enterprise / Custom
             </CardTitle>
             <CardDescription>
-              For high-volume operations with custom integration needs
+              For high-volume operations with unlimited invoices
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <ul className="grid sm:grid-cols-2 gap-2">
-                {PLAN_CONFIGS.enterprise.features.slice(0, 4).map((feature, idx) => (
+                {PLAN_CONFIGS.enterprise.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm">
                     <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                     <span>{feature}</span>
