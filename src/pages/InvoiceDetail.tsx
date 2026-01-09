@@ -1392,9 +1392,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             </Card>
           </div>
 
-          {/* Middle Column - Account Info */}
-          <div>
-            <Card>
+          {/* Middle Column - Account Info & Payment Info */}
+          <div className="space-y-6">
+            <Card className="h-auto">
               <CardHeader className="pb-3">
                 <CardTitle>Account Info</CardTitle>
               </CardHeader>
@@ -1415,6 +1415,66 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 >
                   View Account Details
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Payment Information - moved here to fill space */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Payment Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {invoice.paid_date && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Paid Date</p>
+                    <p className="font-medium">{new Date(invoice.paid_date).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {invoice.payment_date && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Payment Date</p>
+                    <p className="font-medium">{new Date(invoice.payment_date).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {invoice.payment_method && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Payment Method</p>
+                    <p className="font-medium">{invoice.payment_method}</p>
+                  </div>
+                )}
+                {invoice.promise_to_pay_date && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Promise to Pay Date</p>
+                    <p className="font-medium">{new Date(invoice.promise_to_pay_date).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {invoice.promise_to_pay_amount !== null && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Promise to Pay Amount</p>
+                    <p className="font-medium">${invoice.promise_to_pay_amount.toLocaleString()}</p>
+                  </div>
+                )}
+                {!invoice.paid_date && !invoice.payment_date && !invoice.payment_method && 
+                 !invoice.promise_to_pay_date && invoice.promise_to_pay_amount === null && (
+                  <p className="text-sm text-muted-foreground">No payment information available</p>
+                )}
+                {(invoice.payment_date || invoice.paid_date || invoice.status === "Paid" || invoice.status === "PartiallyPaid") && (
+                  <div className="pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleSendPaymentAcknowledgment}
+                      disabled={generatingPaymentMessage}
+                    >
+                      <Mail className="h-3.5 w-3.5 mr-1.5" />
+                      {generatingPaymentMessage ? "Generating..." : "Send Payment Acknowledgment"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      AI will compose a contextual thank-you message
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1440,88 +1500,28 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           </div>
         </div>
 
-
-        {/* Payment & Additional Info - 2 columns */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {invoice.paid_date && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Paid Date</p>
-                  <p className="font-medium">{new Date(invoice.paid_date).toLocaleDateString()}</p>
-                </div>
-              )}
-              {invoice.payment_date && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Payment Date</p>
-                  <p className="font-medium">{new Date(invoice.payment_date).toLocaleDateString()}</p>
-                </div>
-              )}
-              {invoice.payment_method && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Payment Method</p>
-                  <p className="font-medium">{invoice.payment_method}</p>
-                </div>
-              )}
-              {invoice.promise_to_pay_date && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Promise to Pay Date</p>
-                  <p className="font-medium">{new Date(invoice.promise_to_pay_date).toLocaleDateString()}</p>
-                </div>
-              )}
-              {invoice.promise_to_pay_amount !== null && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Promise to Pay Amount</p>
-                  <p className="font-medium">${invoice.promise_to_pay_amount.toLocaleString()}</p>
-                </div>
-              )}
-              {!invoice.paid_date && !invoice.payment_date && !invoice.payment_method && 
-               !invoice.promise_to_pay_date && invoice.promise_to_pay_amount === null && (
-                <p className="text-sm text-muted-foreground">No payment information available</p>
-              )}
-              {(invoice.payment_date || invoice.paid_date || invoice.status === "Paid" || invoice.status === "PartiallyPaid") && (
-                <div className="pt-3 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={handleSendPaymentAcknowledgment}
-                    disabled={generatingPaymentMessage}
-                  >
-                    <Mail className="h-3.5 w-3.5 mr-1.5" />
-                    {generatingPaymentMessage ? "Generating..." : "Send Payment Acknowledgment"}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    AI will compose a contextual thank-you message
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+        {/* Additional Info - Full Width */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Additional Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {invoice.external_invoice_id && (
                 <div>
-                  <p className="text-sm text-muted-foreground">External Invoice ID</p>
+                  <p className="text-xs text-muted-foreground">External Invoice ID</p>
                   <p className="font-medium text-sm break-all">{invoice.external_invoice_id}</p>
                 </div>
               )}
               {invoice.source_system && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Source System</p>
+                  <p className="text-xs text-muted-foreground">Source System</p>
                   <p className="font-medium">{invoice.source_system}</p>
                 </div>
               )}
               {invoice.external_link && (
                 <div>
-                  <p className="text-sm text-muted-foreground">External Link</p>
+                  <p className="text-xs text-muted-foreground">External Link</p>
                   <a 
                     href={invoice.external_link} 
                     target="_blank" 
@@ -1532,15 +1532,27 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   </a>
                 </div>
               )}
+              {invoice.product_description && (
+                <div className="md:col-span-2">
+                  <p className="text-xs text-muted-foreground">Product/Service Description</p>
+                  <p className="text-sm">{invoice.product_description}</p>
+                </div>
+              )}
+              {invoice.notes && (
+                <div className="md:col-span-2">
+                  <p className="text-xs text-muted-foreground">Notes</p>
+                  <p className="text-sm">{invoice.notes}</p>
+                </div>
+              )}
               {invoice.created_at && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-xs text-muted-foreground">Created</p>
                   <p className="text-xs">{new Date(invoice.created_at).toLocaleString()}</p>
                 </div>
               )}
               {invoice.updated_at && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
+                  <p className="text-xs text-muted-foreground">Last Updated</p>
                   <p className="text-xs">{new Date(invoice.updated_at).toLocaleString()}</p>
                 </div>
               )}
@@ -1549,9 +1561,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <Badge variant="secondary">Archived</Badge>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Transaction History Log */}
         <InvoiceTransactionLog 
