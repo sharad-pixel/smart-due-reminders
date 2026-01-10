@@ -235,17 +235,27 @@ serve(async (req) => {
       if (approvedTemplate) {
         // Use approved template with variable replacement
         const productDescription = invoice.product_description || '';
+        const currency = invoice.currency || 'USD';
+        const formatCurrency = (amt: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amt);
+        const formattedAmount = formatCurrency(invoice.amount || 0);
+        const formattedOutstanding = formatCurrency(amountOutstanding || 0);
+        const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
         const templateVars: Record<string, string> = {
           '{{debtor_name}}': contactName,
-          '{{company_name}}': invoice.debtors.company_name || contactName,
+          '{{customer_name}}': contactName,
+          '{{name}}': contactName,
+          '{{company_name}}': businessName,
+          '{{customer_company}}': invoice.debtors.company_name || contactName,
           '{{invoice_number}}': invoice.invoice_number,
-          '{{amount}}': invoice.amount?.toString() || '0',
-          '{{amount_outstanding}}': amountOutstanding?.toString() || '0',
-          '{{currency}}': invoice.currency || 'USD',
-          '{{due_date}}': new Date(invoice.due_date).toLocaleDateString(),
+          '{{amount}}': formattedAmount,
+          '{{amount_outstanding}}': formattedOutstanding,
+          '{{balance}}': formattedOutstanding,
+          '{{currency}}': '', // Remove standalone currency since amount is formatted
+          '{{due_date}}': formattedDueDate,
           '{{days_past_due}}': daysPastDue.toString(),
           '{{business_name}}': businessName,
-          '{{payment_link}}': profile.stripe_payment_link_url || 'Please contact us for payment options',
+          '{{payment_link}}': profile.stripe_payment_link_url || '',
           '{{invoice_link}}': invoiceLink,
           '{{integration_url}}': invoiceLink,
           '{{product_description}}': productDescription,
@@ -258,9 +268,13 @@ serve(async (req) => {
         email_body = approvedTemplate.message_body_template;
 
         for (const [key, value] of Object.entries(templateVars)) {
-          email_subject = email_subject.replace(new RegExp(key, 'g'), value);
-          email_body = email_body.replace(new RegExp(key, 'g'), value);
+          email_subject = email_subject.replace(new RegExp(key, 'gi'), value);
+          email_body = email_body.replace(new RegExp(key, 'gi'), value);
         }
+        
+        // Remove any remaining placeholders
+        email_subject = email_subject.replace(/\{\{[^}]+\}\}/g, '');
+        email_body = email_body.replace(/\{\{[^}]+\}\}/g, '');
 
         // Auto-append invoice link if it exists and isn't already in the message
         if (invoiceLink && !email_body.includes(invoiceLink)) {
@@ -335,6 +349,16 @@ serve(async (req) => {
         throw new Error("LOVABLE_API_KEY not configured");
       }
 
+      // Format amounts properly
+      const formatCurrency = (amt: number, curr: string = 'USD') => {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: curr, minimumFractionDigits: 2 }).format(amt);
+      };
+      
+      const formattedAmount = formatCurrency(invoice.amount || 0, invoice.currency || 'USD');
+      const formattedPaid = formatCurrency(totalPaid, invoice.currency || 'USD');
+      const formattedBalance = formatCurrency(amountOutstanding, invoice.currency || 'USD');
+      const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      
       const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
 
 ${personaGuidelines}
@@ -345,17 +369,19 @@ CRITICAL COMPLIANCE RULES:
 - NEVER claim to be or act as a "collection agency" or legal authority
 - NEVER use harassment or intimidation
 - Write as if you are ${businessName}, NOT a third party
-- Always include the payment link once in the email
+- Include the payment link once in the email if available
 - Encourage the customer to pay or reply if there is a dispute or issue
 
-ABSOLUTELY CRITICAL - NO PLACEHOLDERS:
-- You MUST use the ACTUAL values provided below - NEVER use placeholders
-- FORBIDDEN: [Your Name], [Customer Name], [Company Name], {{variable}}, {variable}, or ANY similar placeholder syntax
-- Use the ACTUAL customer name: "${contactName}"
-- Use the ACTUAL business name: "${businessName}"
-- Format money as proper USD: "$XX,XXX.XX" format
-- Sign the email as "${personaName}" from "${businessName}" - never as "[Your Name]"
-- If no branding signature exists, sign as: "Best regards,\\n${personaName}\\n${businessName}"
+ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
+- DO NOT USE ANY PLACEHOLDERS like {{variable}}, {variable}, [Name], [Your Name], or similar
+- Use these EXACT values in your message:
+  * Customer Name: ${contactName}
+  * Business Name: ${businessName}
+  * Invoice Number: ${invoice.invoice_number}
+  * Amount Due: ${formattedBalance}
+  * Due Date: ${formattedDueDate}
+  * Days Past Due: ${daysPastDue}
+- Sign the email as "${personaName}" from "${businessName}"
 ${taskContext}
 
 OUTPUT FORMAT:
@@ -381,24 +407,23 @@ You must respond in JSON format with the following structure:
             { role: "system", content: systemPrompt },
             {
               role: "user",
-              content: `Generate a collection message with the following details:
+              content: `Generate a collection message using these EXACT values (no placeholders):
 
-Business name: ${businessName}
 Customer name: ${contactName}
-Customer company: ${invoice.debtors.company_name}
+Customer company: ${invoice.debtors.company_name || contactName}
 Invoice number: ${invoice.invoice_number}
-Original Amount: $${invoice.amount} ${invoice.currency || 'USD'}
-Amount Already Paid: $${totalPaid} ${invoice.currency || 'USD'}
-BALANCE DUE: $${amountOutstanding} ${invoice.currency || 'USD'}
-Due date: ${new Date(invoice.due_date).toLocaleDateString()}
+Original Amount: ${formattedAmount}
+Amount Already Paid: ${formattedPaid}
+BALANCE DUE: ${formattedBalance}
+Due date: ${formattedDueDate}
 Days past due: ${daysPastDue}
-Payment link: ${profile.stripe_payment_link_url || "Please contact us for payment options"}
-${invoiceLink ? `Invoice link (MUST include in email): ${invoiceLink}` : ''}
+${profile.stripe_payment_link_url ? `Payment link: ${profile.stripe_payment_link_url}` : ''}
+${invoiceLink ? `Invoice link: ${invoiceLink}` : ''}
 ${invoice.product_description ? `Product/Service: ${invoice.product_description}` : ''}
-Step number in cadence: ${step_number}
-${crmAccount ? `CRM Account: ${crmAccount.name}, Segment: ${crmAccount.segment || 'N/A'}, Health: ${crmAccount.health_score || 'N/A'}` : ''}
+Your business name: ${businessName}
+Agent name (sign as): ${personaName}
 
-Return JSON with email_subject and email_body fields.`,
+Return JSON with email_subject and email_body fields. Use the actual values above, NOT placeholders.`,
             },
           ],
         }),
@@ -425,6 +450,26 @@ Return JSON with email_subject and email_body fields.`,
 
       email_subject = parsedContent.email_subject;
       email_body = parsedContent.email_body;
+      
+      // Post-process to replace any remaining placeholders that slipped through
+      const replaceRemainingPlaceholders = (text: string): string => {
+        return text
+          .replace(/\{\{customer_name\}\}/gi, contactName)
+          .replace(/\{\{company_name\}\}/gi, businessName)
+          .replace(/\{\{business_name\}\}/gi, businessName)
+          .replace(/\{\{debtor_name\}\}/gi, contactName)
+          .replace(/\{\{invoice_number\}\}/gi, invoice.invoice_number)
+          .replace(/\{\{amount\}\}/gi, formattedBalance)
+          .replace(/\{\{balance\}\}/gi, formattedBalance)
+          .replace(/\{\{due_date\}\}/gi, formattedDueDate)
+          .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
+          .replace(/\{\{payment_link\}\}/gi, profile.stripe_payment_link_url || '')
+          .replace(/\{\{[^}]+\}\}/g, ''); // Remove any other remaining placeholders
+      };
+      
+      email_subject = replaceRemainingPlaceholders(email_subject);
+      email_body = replaceRemainingPlaceholders(email_body);
+      
       templateSource = 'AI generated';
       // AI-generated content requires human review - do not auto-approve
     }

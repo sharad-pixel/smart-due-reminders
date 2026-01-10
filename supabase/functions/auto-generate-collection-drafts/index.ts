@@ -279,16 +279,25 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Replace template variables
+        // Replace template variables with proper formatting
         const invoiceLink = invoice.integration_url || '';
         const productDescription = invoice.product_description || '';
+        const currency = invoice.currency || 'USD';
+        const formatCurrency = (amt: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amt);
+        const formattedAmount = formatCurrency(invoice.amount || 0);
+        const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
         const templateVars: Record<string, string> = {
           '{{debtor_name}}': debtorName,
-          '{{company_name}}': companyName,
+          '{{customer_name}}': debtorName,
+          '{{name}}': debtorName,
+          '{{company_name}}': businessName,
+          '{{customer_company}}': companyName,
           '{{invoice_number}}': invoice.invoice_number,
-          '{{amount}}': invoice.amount?.toString() || '0',
-          '{{currency}}': invoice.currency || 'USD',
-          '{{due_date}}': invoice.due_date,
+          '{{amount}}': formattedAmount,
+          '{{balance}}': formattedAmount,
+          '{{currency}}': '', // Remove standalone currency since amount is formatted
+          '{{due_date}}': formattedDueDate,
           '{{days_past_due}}': daysPastDue.toString(),
           '{{business_name}}': businessName,
           '{{from_name}}': fromName,
@@ -298,15 +307,20 @@ Deno.serve(async (req) => {
           '{{productDescription}}': productDescription,
           '{{service_description}}': productDescription,
           '{{description}}': productDescription,
+          '{{payment_link}}': branding?.stripe_payment_link || '',
         };
 
         let processedBody = bodyTemplate;
         let processedSubject = subjectTemplate;
         
         for (const [key, value] of Object.entries(templateVars)) {
-          processedBody = processedBody.replace(new RegExp(key, 'g'), value);
-          processedSubject = processedSubject.replace(new RegExp(key, 'g'), value);
+          processedBody = processedBody.replace(new RegExp(key, 'gi'), value);
+          processedSubject = processedSubject.replace(new RegExp(key, 'gi'), value);
         }
+        
+        // Remove any remaining placeholders
+        processedBody = processedBody.replace(/\{\{[^}]+\}\}/g, '');
+        processedSubject = processedSubject.replace(/\{\{[^}]+\}\}/g, '');
 
         // Auto-append invoice link if it exists and isn't already in the message
         if (invoiceLink && !processedBody.includes(invoiceLink)) {
