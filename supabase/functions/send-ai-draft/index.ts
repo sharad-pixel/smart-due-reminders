@@ -162,32 +162,48 @@ serve(async (req) => {
       if (!text) return text;
       
       const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
+      const customerCompany = debtor?.company_name || debtor?.name || 'Customer';
       const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
-      const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-      const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+      const rawAmount = invoice?.amount || 0;
+      const currency = invoice?.currency || 'USD';
+      // Format amount with proper currency format
+      const amount = new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: currency,
+        minimumFractionDigits: 2 
+      }).format(rawAmount);
+      const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
       const paymentLink = branding?.stripe_payment_link || '';
       const businessName = branding?.business_name || 'Our Company';
       const productDescription = invoice?.product_description || '';
       
-      return text
-        // Customer/Debtor name variations
+      let result = text
+        // Customer/Debtor name variations - use actual customer name, NOT company
         .replace(/\{\{customer_name\}\}/gi, customerName)
         .replace(/\{\{customer name\}\}/gi, customerName)
         .replace(/\{\{debtor_name\}\}/gi, customerName)
         .replace(/\{\{debtor name\}\}/gi, customerName)
+        .replace(/\{\{name\}\}/gi, customerName)
+        // Company name - this is the CUSTOMER's company, not your business
+        .replace(/\{\{customer_company\}\}/gi, customerCompany)
+        .replace(/\{\{debtor_company\}\}/gi, customerCompany)
+        // Business name - YOUR business name
         .replace(/\{\{company_name\}\}/gi, businessName)
         .replace(/\{\{company name\}\}/gi, businessName)
         .replace(/\{\{business_name\}\}/gi, businessName)
-        .replace(/\{\{name\}\}/gi, customerName)
+        .replace(/\{\{businessName\}\}/gi, businessName)
         // Invoice number variations
         .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
         .replace(/\{\{invoice number\}\}/gi, invoiceNumber)
         .replace(/\{\{invoiceNumber\}\}/gi, invoiceNumber)
-        // Amount variations
+        // Amount variations - use formatted currency
         .replace(/\{\{amount\}\}/gi, amount)
         .replace(/\{\{balance\}\}/gi, amount)
         .replace(/\{\{total\}\}/gi, amount)
         .replace(/\{\{invoice_amount\}\}/gi, amount)
+        .replace(/\{\{amount_outstanding\}\}/gi, amount)
+        // Currency
+        .replace(/\{\{currency\}\}/gi, '')  // Remove standalone currency since amount is formatted
         // Due date variations
         .replace(/\{\{due_date\}\}/gi, dueDate)
         .replace(/\{\{due date\}\}/gi, dueDate)
@@ -196,12 +212,12 @@ serve(async (req) => {
         .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
         .replace(/\{\{days past due\}\}/gi, String(daysPastDue))
         .replace(/\{\{daysPastDue\}\}/gi, String(daysPastDue))
-        // Payment link variations
-        .replace(/\{\{payment_link\}\}/gi, paymentLink)
-        .replace(/\{\{payment link\}\}/gi, paymentLink)
-        .replace(/\{\{paymentLink\}\}/gi, paymentLink)
-        .replace(/\{\{pay_link\}\}/gi, paymentLink)
-        .replace(/\{\{stripe_link\}\}/gi, paymentLink)
+        // Payment link variations - only include if we have one
+        .replace(/\{\{payment_link\}\}/gi, paymentLink || '')
+        .replace(/\{\{payment link\}\}/gi, paymentLink || '')
+        .replace(/\{\{paymentLink\}\}/gi, paymentLink || '')
+        .replace(/\{\{pay_link\}\}/gi, paymentLink || '')
+        .replace(/\{\{stripe_link\}\}/gi, paymentLink || '')
         // AR Portal link
         .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
         .replace(/\{\{portal_link\}\}/gi, arPageUrl)
@@ -211,6 +227,11 @@ serve(async (req) => {
         .replace(/\{\{productDescription\}\}/gi, productDescription)
         .replace(/\{\{service_description\}\}/gi, productDescription)
         .replace(/\{\{description\}\}/gi, productDescription);
+      
+      // Clean up any remaining placeholders that might have slipped through
+      result = result.replace(/\{\{[^}]+\}\}/g, '');
+      
+      return result;
     };
 
     // Apply template replacement to draft content
