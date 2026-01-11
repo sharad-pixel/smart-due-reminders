@@ -62,9 +62,9 @@ serve(async (req) => {
       .eq("id", invoice_id)
       .single();
     
-    // Extract invoice link for external system - use integration_url first, fallback to stripe_hosted_url
-    const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
-
+    // Extract invoice link for external system
+    // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
+    const invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
     if (invoiceError || !invoice) {
       console.error("Invoice fetch error:", invoiceError);
       throw new Error("Invoice not found");
@@ -371,6 +371,7 @@ CRITICAL COMPLIANCE RULES:
 - Write as if you are ${businessName}, NOT a third party
 - Include the payment link once in the email if available
 - Encourage the customer to pay or reply if there is a dispute or issue
+- If a Product/Service description is provided, mention it briefly (one short clause) to reduce confusion
 
 ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
 - DO NOT USE ANY PLACEHOLDERS like {{variable}}, {variable}, [Name], [Your Name], or similar

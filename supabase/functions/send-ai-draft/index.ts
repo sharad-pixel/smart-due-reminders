@@ -176,8 +176,12 @@ serve(async (req) => {
       const paymentLink = branding?.stripe_payment_link || '';
       const businessName = branding?.business_name || 'Our Company';
       const productDescription = invoice?.product_description || '';
-      // Use integration_url first (external system link), fallback to stripe_hosted_url for Stripe invoices
-      const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
+      // Prefer publicly shareable invoice links (Stripe hosted invoice URL) over internal dashboard links
+      const invoiceLink =
+        invoice?.external_link ||
+        invoice?.stripe_hosted_url ||
+        invoice?.integration_url ||
+        '';
       
       let result = text
         // Customer/Debtor name variations - use actual customer name, NOT company
@@ -239,6 +243,11 @@ serve(async (req) => {
       // Auto-append invoice link if it exists and isn't already in the result
       if (invoiceLink && !result.includes(invoiceLink)) {
         result += `\n\nView your invoice: ${invoiceLink}`;
+      }
+
+      // If we have a product/service description, include it once for extra context
+      if (productDescription && !result.toLowerCase().includes(productDescription.toLowerCase())) {
+        result += `\n\nProduct/Service: ${productDescription}`;
       }
       
       // Clean up any remaining placeholders that might have slipped through
