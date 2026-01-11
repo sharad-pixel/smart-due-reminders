@@ -81,7 +81,7 @@ serve(async (req) => {
       .from('invoices')
       .select(`
         id, invoice_number, amount, amount_outstanding, due_date, 
-        user_id, debtor_id, integration_url, stripe_hosted_url, organization_id, product_description,
+        user_id, debtor_id, integration_url, stripe_hosted_url, external_link, organization_id, product_description,
         debtors!inner(id, name, email, company_name)
       `)
       .eq('status', 'Open')
@@ -270,8 +270,8 @@ serve(async (req) => {
         // 6. Prepare email content with variable replacement
         const amountDue = invoice.amount_outstanding || invoice.amount || 0;
         const productDescription = (invoice as any).product_description || '';
-        // Use integration_url first, fallback to stripe_hosted_url for Stripe invoices
-        const invoiceLink = invoice.integration_url || (invoice as any).stripe_hosted_url || '';
+        // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
+        const invoiceLink = (invoice as any).external_link || (invoice as any).stripe_hosted_url || invoice.integration_url || '';
         const templateVars: Record<string, string> = {
           debtor_name: debtor.name || debtor.company_name || 'Valued Customer',
           company_name: debtor.company_name || debtor.name || '',
@@ -384,7 +384,7 @@ serve(async (req) => {
               recipient_email: debtor.email,
               status: 'failed',
               error_message: errorText,
-              invoice_link: invoice.integration_url
+              invoice_link: invoiceLink || null
             });
           
           results.errors.push(`Invoice ${invoice.invoice_number}: Email failed - ${errorText.substring(0, 100)}`);
@@ -423,10 +423,10 @@ serve(async (req) => {
             subject: subject,
             body: body,
             recipient_email: debtor.email,
-            status: 'sent',
-            resend_id: resendId,
-            invoice_link: invoice.integration_url
-          });
+             status: 'sent',
+             resend_id: resendId,
+             invoice_link: invoiceLink || null
+           });
 
         if (logError) {
           console.error(`[OUTREACH] Error logging outreach:`, logError);

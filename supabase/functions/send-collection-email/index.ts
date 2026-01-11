@@ -29,8 +29,8 @@ function replaceTemplateVars(
     : '';
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
-  // Use integration_url first (external system link), fallback to stripe_hosted_url for Stripe invoices
-  const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
+  // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
+  const invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
   const productDescription = invoice?.product_description || '';
   const businessName = branding?.business_name || 'Our Company';
   const arPageUrl =
@@ -154,7 +154,7 @@ serve(async (req) => {
     if (invoiceId) {
       const { data: invoiceData } = await supabaseClient
         .from("invoices")
-        .select("id, invoice_number, reference_id, amount, currency, due_date, integration_url, stripe_hosted_url, product_description, debtor_id, debtors(id, name, company_name)")
+        .select("id, invoice_number, reference_id, amount, currency, due_date, integration_url, stripe_hosted_url, external_link, product_description, debtor_id, debtors(id, name, company_name)")
         .eq("id", invoiceId)
         .single();
 

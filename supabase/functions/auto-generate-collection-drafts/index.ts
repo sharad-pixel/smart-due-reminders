@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
         custom_template_subject,
         custom_template_body,
         integration_url,
+        stripe_hosted_url,
+        external_link,
         product_description,
         debtors(
           id,
@@ -280,7 +282,7 @@ Deno.serve(async (req) => {
         }
 
         // Replace template variables with proper formatting
-        const invoiceLink = invoice.integration_url || '';
+        const invoiceLink = (invoice as any).external_link || (invoice as any).stripe_hosted_url || invoice.integration_url || '';
         const productDescription = invoice.product_description || '';
         const currency = invoice.currency || 'USD';
         const formatCurrency = (amt: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amt);
@@ -327,6 +329,10 @@ Deno.serve(async (req) => {
           processedBody += `\n\nView your invoice: ${invoiceLink}`;
         }
 
+        // If we have a product/service description, include it once for extra context
+        if (productDescription && !processedBody.toLowerCase().includes(productDescription.toLowerCase())) {
+          processedBody += `\n\nProduct/Service: ${productDescription}`;
+        }
         // Add signature if available
         if (branding?.email_signature) {
           processedBody += `\n\n${branding.email_signature}`;
