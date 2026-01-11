@@ -33,9 +33,10 @@ function replaceTemplateVars(
   const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
   const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
   const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-  const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+  const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
-  const invoiceLink = invoice?.integration_url || '';
+  // Use integration_url first (external system link), fallback to stripe_hosted_url for Stripe invoices
+  const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
   const productDescription = invoice?.product_description || '';
   
   // Get business name from branding for {{company_name}} and {{business_name}}
@@ -181,7 +182,7 @@ Deno.serve(async (req) => {
     const { data: approvedDrafts, error: draftsError } = await supabaseAdmin
       .from('ai_drafts')
       .select(`
-        *,
+      *,
         invoices!inner(
           id,
           status,
@@ -193,6 +194,8 @@ Deno.serve(async (req) => {
           currency,
           user_id,
           integration_url,
+          stripe_hosted_url,
+          product_description,
           debtors!inner(
             id,
             name,

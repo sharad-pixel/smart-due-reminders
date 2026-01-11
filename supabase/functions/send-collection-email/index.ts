@@ -27,9 +27,10 @@ function replaceTemplateVars(
   const amount = invoice?.amount
     ? `$${Number(invoice.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
     : '';
-  const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString() : '';
+  const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
-  const invoiceLink = invoice?.integration_url || '';
+  // Use integration_url first (external system link), fallback to stripe_hosted_url for Stripe invoices
+  const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
   const productDescription = invoice?.product_description || '';
   const businessName = branding?.business_name || 'Our Company';
   const arPageUrl =
@@ -153,7 +154,7 @@ serve(async (req) => {
     if (invoiceId) {
       const { data: invoiceData } = await supabaseClient
         .from("invoices")
-        .select("id, invoice_number, reference_id, amount, currency, due_date, integration_url, debtor_id, debtors(id, name, company_name)")
+        .select("id, invoice_number, reference_id, amount, currency, due_date, integration_url, stripe_hosted_url, product_description, debtor_id, debtors(id, name, company_name)")
         .eq("id", invoiceId)
         .single();
 

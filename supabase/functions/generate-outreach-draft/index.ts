@@ -62,8 +62,8 @@ serve(async (req) => {
       .eq("id", invoice_id)
       .single();
     
-    // Extract invoice link for external system
-    const invoiceLink = invoice?.integration_url || '';
+    // Extract invoice link for external system - use integration_url first, fallback to stripe_hosted_url
+    const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
 
     if (invoiceError || !invoice) {
       console.error("Invoice fetch error:", invoiceError);
