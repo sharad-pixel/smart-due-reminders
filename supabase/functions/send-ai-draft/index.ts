@@ -176,6 +176,8 @@ serve(async (req) => {
       const paymentLink = branding?.stripe_payment_link || '';
       const businessName = branding?.business_name || 'Our Company';
       const productDescription = invoice?.product_description || '';
+      // Use integration_url first (external system link), fallback to stripe_hosted_url for Stripe invoices
+      const invoiceLink = invoice?.integration_url || invoice?.stripe_hosted_url || '';
       
       let result = text
         // Customer/Debtor name variations - use actual customer name, NOT company
@@ -221,12 +223,23 @@ serve(async (req) => {
         // AR Portal link
         .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
         .replace(/\{\{portal_link\}\}/gi, arPageUrl)
+        // Invoice link variations (external system link)
+        .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
+        .replace(/\{\{invoice link\}\}/gi, invoiceLink)
+        .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
+        .replace(/\{\{external_link\}\}/gi, invoiceLink)
+        .replace(/\{\{integration_url\}\}/gi, invoiceLink)
         // Product/Service description variations
         .replace(/\{\{product_description\}\}/gi, productDescription)
         .replace(/\{\{product description\}\}/gi, productDescription)
         .replace(/\{\{productDescription\}\}/gi, productDescription)
         .replace(/\{\{service_description\}\}/gi, productDescription)
         .replace(/\{\{description\}\}/gi, productDescription);
+      
+      // Auto-append invoice link if it exists and isn't already in the result
+      if (invoiceLink && !result.includes(invoiceLink)) {
+        result += `\n\nView your invoice: ${invoiceLink}`;
+      }
       
       // Clean up any remaining placeholders that might have slipped through
       result = result.replace(/\{\{[^}]+\}\}/g, '');
