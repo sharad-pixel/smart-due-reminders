@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Mail, Bot, Sparkles, Send, Tag, UserCheck, ClipboardCheck, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Mail, Bot, Sparkles, Send, Tag, UserCheck, ClipboardCheck, CheckCircle2, ExternalLink } from "lucide-react";
 
 const customerEmail = "Hi, can you resend the invoice? We need to review it before paying.";
 const aiAssessment = {
@@ -11,11 +11,13 @@ const aiAssessment = {
 const taskDetails = {
   title: "Resend Invoice #INV-2024-0847",
   type: "invoice_request",
-  assignedTo: "Sam (AI Agent)",
+  assignedTo: "Sarah Johnson",
+  role: "AR Specialist",
   tags: ["Invoice Copy", "Payment Pending", "ACME Corp"],
   dueDate: "Today",
 };
-const aiResponse = "Absolutely — here is your invoice and a summary of what's due. Invoice #INV-2024-0847 for $12,500 is attached. Payment due by December 15th. Let me know if you have any questions!";
+const aiResponse = "Absolutely — here is your invoice and a summary of what's due. Payment due by December 15th. Let me know if you have any questions!";
+const invoiceLink = "https://pay.recouply.com/inv/2024-0847";
 
 type Phase = "idle" | "typing-customer" | "analyzing" | "assessment" | "task-creation" | "typing-ai" | "complete";
 
@@ -208,6 +210,7 @@ const EmailDemo = () => {
                       <div>
                         <p className="text-xs text-muted-foreground">Assigned to</p>
                         <p className="font-medium text-sm">{taskDetails.assignedTo}</p>
+                        <p className="text-xs text-muted-foreground">{taskDetails.role}</p>
                       </div>
                       <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                         Due: {taskDetails.dueDate}
@@ -284,12 +287,26 @@ const EmailDemo = () => {
                 )}
                 
                 {(phase === "typing-ai" || phase === "complete") && (
-                  <p className="text-foreground leading-relaxed text-sm">
-                    {aiText}
-                    {phase === "typing-ai" && (
-                      <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-blink"></span>
+                  <div className="space-y-3">
+                    <p className="text-foreground leading-relaxed text-sm">
+                      {aiText}
+                      {phase === "typing-ai" && (
+                        <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-blink"></span>
+                      )}
+                    </p>
+                    {phase === "complete" && (
+                      <div className="flex items-center gap-2 p-3 bg-accent/10 rounded-lg border border-accent/20 animate-in fade-in slide-in-from-bottom-2">
+                        <ExternalLink className="h-4 w-4 text-accent" />
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground">Invoice Link</p>
+                          <p className="text-sm font-medium text-accent">{invoiceLink}</p>
+                        </div>
+                        <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
+                          $12,500
+                        </span>
+                      </div>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>
