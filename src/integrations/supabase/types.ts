@@ -2111,6 +2111,7 @@ export type Database = {
           ai_sentiment_score: number | null
           assigned_campaign_id: string | null
           avg_days_to_pay: number | null
+          avg_response_sentiment: string | null
           avg_risk_score: number | null
           billing_address_line1: string | null
           billing_address_line2: string | null
@@ -2119,6 +2120,9 @@ export type Database = {
           billing_postal_code: string | null
           billing_state: string | null
           city: string | null
+          collection_health_tier: string | null
+          collection_intelligence_score: number | null
+          collection_score_updated_at: string | null
           collections_health_score: number | null
           collections_risk_score: number | null
           company_name: string
@@ -2142,6 +2146,7 @@ export type Database = {
           high_risk_invoice_count: number | null
           id: string
           in_payment_plan_invoices_count: number | null
+          inbound_email_count: number | null
           industry: string | null
           integration_source: string | null
           intelligence_report: Json | null
@@ -2151,6 +2156,7 @@ export type Database = {
           last_bounce_reason: string | null
           last_outreach_date: string | null
           last_score_change_reason: string | null
+          last_touchpoint_at: string | null
           latitude: number | null
           longitude: number | null
           max_days_past_due: number | null
@@ -2176,6 +2182,7 @@ export type Database = {
           quickbooks_sync_token: string | null
           recouply_customer_id: string | null
           reference_id: string
+          response_rate: number | null
           risk_last_calculated_at: string | null
           risk_status_note: string | null
           risk_tier: string | null
@@ -2185,6 +2192,7 @@ export type Database = {
           state: string | null
           tags: Json | null
           total_open_balance: number | null
+          touchpoint_count: number | null
           type: Database["public"]["Enums"]["debtor_type"] | null
           updated_at: string | null
           user_id: string
@@ -2207,6 +2215,7 @@ export type Database = {
           ai_sentiment_score?: number | null
           assigned_campaign_id?: string | null
           avg_days_to_pay?: number | null
+          avg_response_sentiment?: string | null
           avg_risk_score?: number | null
           billing_address_line1?: string | null
           billing_address_line2?: string | null
@@ -2215,6 +2224,9 @@ export type Database = {
           billing_postal_code?: string | null
           billing_state?: string | null
           city?: string | null
+          collection_health_tier?: string | null
+          collection_intelligence_score?: number | null
+          collection_score_updated_at?: string | null
           collections_health_score?: number | null
           collections_risk_score?: number | null
           company_name: string
@@ -2238,6 +2250,7 @@ export type Database = {
           high_risk_invoice_count?: number | null
           id?: string
           in_payment_plan_invoices_count?: number | null
+          inbound_email_count?: number | null
           industry?: string | null
           integration_source?: string | null
           intelligence_report?: Json | null
@@ -2247,6 +2260,7 @@ export type Database = {
           last_bounce_reason?: string | null
           last_outreach_date?: string | null
           last_score_change_reason?: string | null
+          last_touchpoint_at?: string | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
@@ -2272,6 +2286,7 @@ export type Database = {
           quickbooks_sync_token?: string | null
           recouply_customer_id?: string | null
           reference_id: string
+          response_rate?: number | null
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
           risk_tier?: string | null
@@ -2281,6 +2296,7 @@ export type Database = {
           state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
+          touchpoint_count?: number | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id: string
@@ -2303,6 +2319,7 @@ export type Database = {
           ai_sentiment_score?: number | null
           assigned_campaign_id?: string | null
           avg_days_to_pay?: number | null
+          avg_response_sentiment?: string | null
           avg_risk_score?: number | null
           billing_address_line1?: string | null
           billing_address_line2?: string | null
@@ -2311,6 +2328,9 @@ export type Database = {
           billing_postal_code?: string | null
           billing_state?: string | null
           city?: string | null
+          collection_health_tier?: string | null
+          collection_intelligence_score?: number | null
+          collection_score_updated_at?: string | null
           collections_health_score?: number | null
           collections_risk_score?: number | null
           company_name?: string
@@ -2334,6 +2354,7 @@ export type Database = {
           high_risk_invoice_count?: number | null
           id?: string
           in_payment_plan_invoices_count?: number | null
+          inbound_email_count?: number | null
           industry?: string | null
           integration_source?: string | null
           intelligence_report?: Json | null
@@ -2343,6 +2364,7 @@ export type Database = {
           last_bounce_reason?: string | null
           last_outreach_date?: string | null
           last_score_change_reason?: string | null
+          last_touchpoint_at?: string | null
           latitude?: number | null
           longitude?: number | null
           max_days_past_due?: number | null
@@ -2368,6 +2390,7 @@ export type Database = {
           quickbooks_sync_token?: string | null
           recouply_customer_id?: string | null
           reference_id?: string
+          response_rate?: number | null
           risk_last_calculated_at?: string | null
           risk_status_note?: string | null
           risk_tier?: string | null
@@ -2377,6 +2400,7 @@ export type Database = {
           state?: string | null
           tags?: Json | null
           total_open_balance?: number | null
+          touchpoint_count?: number | null
           type?: Database["public"]["Enums"]["debtor_type"] | null
           updated_at?: string | null
           user_id?: string

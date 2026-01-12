@@ -299,3 +299,9 @@ verify_jwt = false
 
 [functions.resend-webhook]
 verify_jwt = false
+
+[functions.calculate-collection-intelligence]
+verify_jwt = true
+
+[functions.account-intelligence]
+verify_jwt = true

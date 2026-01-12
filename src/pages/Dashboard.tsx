@@ -20,6 +20,7 @@ import { SavedViewsManager } from "@/components/SavedViewsManager";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { CollectionIntelligenceCard } from "@/components/CollectionIntelligenceCard";
+import { CollectionIntelligenceDashboard } from "@/components/CollectionIntelligenceDashboard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface Invoice {
@@ -568,6 +569,9 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Collection Intelligence Scorecards */}
+        <CollectionIntelligenceDashboard />
 
         {/* Payments Activity */}
         <PaymentsActivityDashboard />
