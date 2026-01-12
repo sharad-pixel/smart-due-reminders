@@ -29,6 +29,7 @@ import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/CustomerCaseFeed";
 import { AccountIntelligenceCard } from "@/components/AccountIntelligenceCard";
+import { CollectionIntelligenceScorecard } from "@/components/CollectionIntelligenceScorecard";
 import { AccountOutreachSettings } from "@/components/AccountOutreachSettings";
 import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
@@ -934,8 +935,16 @@ const DebtorDetail = () => {
           </Card>
         </div>
 
-        {/* Collection Intelligence Report */}
-        <AccountIntelligenceCard debtorId={debtor.id} />
+        {/* Collection Intelligence Scorecard */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <CollectionIntelligenceScorecard 
+            debtorId={debtor.id} 
+            debtorName={debtor.company_name || debtor.name}
+          />
+          
+          {/* Collection Intelligence Report */}
+          <AccountIntelligenceCard debtorId={debtor.id} />
+        </div>
 
         {/* Account Outreach Settings */}
         <AccountOutreachSettings
