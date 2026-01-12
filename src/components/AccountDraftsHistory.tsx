@@ -90,7 +90,8 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
     setLoading(true);
     
     try {
-      let query = supabase
+      // Fetch invoice-level drafts
+      const invoiceDraftsQuery = supabase
         .from('ai_drafts')
         .select(`
           id,
@@ -103,6 +104,7 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
           days_past_due,
           step_number,
           channel,
+          applied_brand_snapshot,
           invoices(
             id,
             invoice_number,
@@ -111,35 +113,45 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
           )
         `)
         .eq('user_id', effectiveAccountId)
+        .not('invoice_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(200);
 
-      // Filter by debtor if specified
-      if (debtorId) {
-        const { data: debtorInvoices } = await supabase
-          .from('invoices')
-          .select('id')
-          .eq('debtor_id', debtorId);
-        
-        const invoiceIds = debtorInvoices?.map(i => i.id) || [];
-        if (invoiceIds.length > 0) {
-          query = query.in('invoice_id', invoiceIds);
-        } else {
-          setDrafts([]);
-          setLoading(false);
-          return;
-        }
-      }
+      // Fetch account-level drafts (invoice_id is null)
+      const accountDraftsQuery = supabase
+        .from('ai_drafts')
+        .select(`
+          id,
+          invoice_id,
+          subject,
+          status,
+          created_at,
+          sent_at,
+          recommended_send_date,
+          days_past_due,
+          step_number,
+          channel,
+          applied_brand_snapshot
+        `)
+        .eq('user_id', effectiveAccountId)
+        .is('invoice_id', null)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      const { data, error } = await query;
-      if (error) throw error;
+      const [invoiceResult, accountResult] = await Promise.all([
+        invoiceDraftsQuery,
+        accountDraftsQuery
+      ]);
 
-      const draftItems: DraftItem[] = (data || [])
+      if (invoiceResult.error) throw invoiceResult.error;
+      if (accountResult.error) throw accountResult.error;
+
+      // Process invoice-level drafts
+      const invoiceDraftItems: DraftItem[] = (invoiceResult.data || [])
         .filter((d: any) => d.invoices)
         .map((draft: any) => {
           const invoice = draft.invoices;
           const debtor = invoice?.debtors;
-          const isAccountLevel = debtor?.account_outreach_enabled === true;
           const personaKey = getPersonaFromDpd(draft.days_past_due);
 
           return {
@@ -157,11 +169,45 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
             step_number: draft.step_number,
             channel: draft.channel,
             persona_key: personaKey,
-            source_type: isAccountLevel ? 'account_level' : 'invoice_workflow',
-          } as DraftItem;
+            source_type: 'invoice_workflow' as const,
+          };
         });
 
-      setDrafts(draftItems);
+      // Process account-level drafts (get debtor info from applied_brand_snapshot or metadata)
+      const accountDraftItems: DraftItem[] = (accountResult.data || []).map((draft: any) => {
+        const snapshot = draft.applied_brand_snapshot || {};
+        const personaKey = getPersonaFromDpd(draft.days_past_due);
+
+        return {
+          id: draft.id,
+          invoice_id: null,
+          invoice_number: null,
+          debtor_id: snapshot.debtor_id || null,
+          company_name: snapshot.debtor_name || snapshot.company_name || 'Account Summary',
+          subject: draft.subject,
+          status: draft.status,
+          created_at: draft.created_at,
+          sent_at: draft.sent_at,
+          recommended_send_date: draft.recommended_send_date,
+          days_past_due: draft.days_past_due,
+          step_number: draft.step_number,
+          channel: draft.channel,
+          persona_key: personaKey,
+          source_type: 'account_level' as const,
+        };
+      });
+
+      // Combine and sort by created_at
+      let allDrafts = [...invoiceDraftItems, ...accountDraftItems].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      // Filter by debtor if specified
+      if (debtorId) {
+        allDrafts = allDrafts.filter(d => d.debtor_id === debtorId);
+      }
+
+      setDrafts(allDrafts);
     } catch (error) {
       console.error("Error fetching drafts:", error);
     } finally {
