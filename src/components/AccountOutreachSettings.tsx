@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles } from "lucide-react";
+import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AccountOutreachSettingsProps {
   debtorId: string;
@@ -18,6 +19,7 @@ interface AccountOutreachSettingsProps {
     outreach_frequency_days: number;
     next_outreach_date: string | null;
     last_outreach_date: string | null;
+    auto_send_outreach?: boolean;
   };
   onSettingsChange?: () => void;
 }
@@ -39,6 +41,7 @@ export const AccountOutreachSettings = ({
   const [frequency, setFrequency] = useState(initialSettings?.outreach_frequency || "weekly");
   const [customDays, setCustomDays] = useState(initialSettings?.outreach_frequency_days || 7);
   const [nextDate, setNextDate] = useState(initialSettings?.next_outreach_date || "");
+  const [autoSend, setAutoSend] = useState(initialSettings?.auto_send_outreach || false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,6 +50,7 @@ export const AccountOutreachSettings = ({
       setFrequency(initialSettings.outreach_frequency || "weekly");
       setCustomDays(initialSettings.outreach_frequency_days || 7);
       setNextDate(initialSettings.next_outreach_date || "");
+      setAutoSend(initialSettings.auto_send_outreach || false);
     }
   }, [initialSettings]);
 
@@ -57,7 +61,8 @@ export const AccountOutreachSettings = ({
         ? customDays 
         : FREQUENCY_OPTIONS.find(f => f.value === frequency)?.days || 7;
 
-      // Calculate next outreach date if enabling and no date set
+      // Use the selected next_outreach_date as the cadence start date
+      // If no date is set and enabling, default to today + frequency days
       let calculatedNextDate = nextDate;
       if (enabled && !nextDate) {
         const next = new Date();
@@ -72,13 +77,18 @@ export const AccountOutreachSettings = ({
           outreach_frequency: frequency,
           outreach_frequency_days: frequencyDays,
           next_outreach_date: enabled ? calculatedNextDate : null,
+          auto_send_outreach: autoSend,
         })
         .eq("id", debtorId);
 
       if (error) throw error;
 
+      const modeMessage = autoSend 
+        ? "Outreach will be sent automatically on the scheduled date."
+        : "Outreach drafts will be created for your review before sending.";
+
       toast.success(enabled 
-        ? "Account-level outreach enabled. Individual invoice workflows will be bypassed." 
+        ? `Account-level outreach enabled. ${modeMessage}` 
         : "Account-level outreach disabled. Individual invoice workflows will resume."
       );
       onSettingsChange?.();
@@ -89,21 +99,23 @@ export const AccountOutreachSettings = ({
     }
   };
 
-  const handleTriggerOutreach = async () => {
+  const handleTriggerOutreach = async (generateOnly: boolean = false) => {
     setSaving(true);
     try {
       const { error } = await supabase.functions.invoke("send-account-summary", {
-        body: { debtorId, generateOnly: false }
+        body: { debtorId, generateOnly }
       });
 
       if (error) throw error;
 
-      // Update last outreach date and calculate next
+      // Update last outreach date and calculate next based on the frequency from the current next_outreach_date
       const frequencyDays = frequency === "custom" 
         ? customDays 
         : FREQUENCY_OPTIONS.find(f => f.value === frequency)?.days || 7;
       
-      const nextOutreachDate = new Date();
+      // Calculate next outreach date from current next_outreach_date (cadence start) + frequency
+      const baseDate = nextDate ? new Date(nextDate) : new Date();
+      const nextOutreachDate = new Date(baseDate);
       nextOutreachDate.setDate(nextOutreachDate.getDate() + frequencyDays);
 
       await supabase
@@ -114,10 +126,14 @@ export const AccountOutreachSettings = ({
         })
         .eq("id", debtorId);
 
-      toast.success("Account outreach sent successfully");
+      if (generateOnly) {
+        toast.success("AI draft generated for review");
+      } else {
+        toast.success("Account outreach sent successfully");
+      }
       onSettingsChange?.();
     } catch (error: any) {
-      toast.error(error.message || "Failed to send outreach");
+      toast.error(error.message || "Failed to process outreach");
     } finally {
       setSaving(false);
     }
@@ -157,6 +173,41 @@ export const AccountOutreachSettings = ({
                 <p className="font-medium">Individual invoice workflows will be bypassed</p>
                 <p className="text-amber-700">When account-level outreach is enabled, AI persona-based workflows for individual invoices will be excluded. All outreach will be managed at the account level on your schedule.</p>
               </div>
+            </div>
+
+            {/* Outreach Mode Selection */}
+            <div className="bg-muted/30 border rounded-lg p-4 space-y-4">
+              <Label className="text-base font-medium">Outreach Mode</Label>
+              <RadioGroup 
+                value={autoSend ? "auto" : "review"} 
+                onValueChange={(value) => setAutoSend(value === "auto")}
+                className="grid gap-3"
+              >
+                <div className="flex items-start space-x-3 p-3 rounded-lg border bg-background hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="review" id="review-mode" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="review-mode" className="flex items-center gap-2 cursor-pointer font-medium">
+                      <Eye className="h-4 w-4 text-blue-600" />
+                      Review Before Sending
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      AI generates drafts for your approval. You review and send manually.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3 p-3 rounded-lg border bg-background hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="auto" id="auto-mode" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="auto-mode" className="flex items-center gap-2 cursor-pointer font-medium">
+                      <Send className="h-4 w-4 text-green-600" />
+                      Auto-Send
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      AI generates and sends outreach automatically on the scheduled date.
+                    </p>
+                  </div>
+                </div>
+              </RadioGroup>
             </div>
 
             {/* AI Intelligence Features */}
@@ -207,13 +258,19 @@ export const AccountOutreachSettings = ({
                 )}
 
                 <div className="space-y-2">
-                  <Label>Next Scheduled Outreach</Label>
+                  <Label className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Cadence Start Date
+                  </Label>
                   <Input
                     type="date"
                     value={nextDate}
                     onChange={(e) => setNextDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Outreach will begin on this date and repeat based on frequency.
+                  </p>
                 </div>
 
                 {initialSettings?.last_outreach_date && (
@@ -233,6 +290,28 @@ export const AccountOutreachSettings = ({
                     <p><strong className="text-foreground">High Risk:</strong> Firm but courteous urgency</p>
                     <p><strong className="text-foreground">Critical:</strong> Direct, resolution-focused</p>
                   </div>
+                </div>
+
+                {/* Current Mode Summary */}
+                <div className="p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2 text-sm">
+                    {autoSend ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium text-green-700">Auto-Send Enabled</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-700">Review Mode Enabled</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {autoSend 
+                      ? "Outreach will be sent automatically without manual approval."
+                      : "Drafts will be created for review in Scheduled Outreach."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -255,14 +334,24 @@ export const AccountOutreachSettings = ({
           </div>
           <div className="flex gap-2">
             {enabled && (
-              <Button 
-                variant="outline" 
-                onClick={handleTriggerOutreach}
-                disabled={saving}
-              >
-                <Brain className="h-4 w-4 mr-2" />
-                Generate & Send AI Outreach
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleTriggerOutreach(true)}
+                  disabled={saving}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Generate Draft
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleTriggerOutreach(false)}
+                  disabled={saving}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Generate & Send Now
+                </Button>
+              </>
             )}
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "Saving..." : "Save Settings"}

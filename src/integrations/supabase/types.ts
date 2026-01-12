@@ -2110,6 +2110,7 @@ export type Database = {
           ai_sentiment_category: string | null
           ai_sentiment_score: number | null
           assigned_campaign_id: string | null
+          auto_send_outreach: boolean | null
           avg_days_to_pay: number | null
           avg_response_sentiment: string | null
           avg_risk_score: number | null
@@ -2214,6 +2215,7 @@ export type Database = {
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
           assigned_campaign_id?: string | null
+          auto_send_outreach?: boolean | null
           avg_days_to_pay?: number | null
           avg_response_sentiment?: string | null
           avg_risk_score?: number | null
@@ -2318,6 +2320,7 @@ export type Database = {
           ai_sentiment_category?: string | null
           ai_sentiment_score?: number | null
           assigned_campaign_id?: string | null
+          auto_send_outreach?: boolean | null
           avg_days_to_pay?: number | null
           avg_response_sentiment?: string | null
           avg_risk_score?: number | null
