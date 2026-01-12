@@ -145,14 +145,16 @@ export const useCollectionIntelligenceDashboard = () => {
   };
 };
 
-// Extended data including invoice counts from real data
+// Extended data including invoice and inbound email counts from real data
 export interface DebtorIntelligenceWithInvoices extends CollectionIntelligenceData {
   paid_invoices_count: number;
   overdue_invoices_count: number;
+  actual_inbound_email_count: number;
+  inbound_sentiments: string[];
   has_sufficient_data: boolean;
 }
 
-// Hook for single debtor intelligence with real invoice data
+// Hook for single debtor intelligence with real invoice AND inbound email data
 export const useDebtorIntelligence = (debtorId: string) => {
   const [realtimeScore, setRealtimeScore] = useState<number | null>(null);
 
@@ -160,48 +162,64 @@ export const useDebtorIntelligence = (debtorId: string) => {
     queryKey: ["debtor-intelligence", debtorId],
     enabled: !!debtorId,
     queryFn: async () => {
-      // Fetch debtor data
-      const { data: debtorData, error: debtorError } = await supabase
-        .from("debtors")
-        .select(`
-          id, company_name,
-          collection_intelligence_score, collection_health_tier,
-          touchpoint_count, inbound_email_count, response_rate,
-          avg_response_sentiment, collection_score_updated_at,
-          total_open_balance, current_balance, payment_score, avg_days_to_pay,
-          open_invoices_count, disputed_invoices_count, max_days_past_due
-        `)
-        .eq("id", debtorId)
-        .single();
+      // Fetch debtor data, invoices, and inbound emails in parallel
+      const [debtorResult, invoicesResult, inboundResult] = await Promise.all([
+        supabase
+          .from("debtors")
+          .select(`
+            id, company_name,
+            collection_intelligence_score, collection_health_tier,
+            touchpoint_count, inbound_email_count, response_rate,
+            avg_response_sentiment, collection_score_updated_at,
+            total_open_balance, current_balance, payment_score, avg_days_to_pay,
+            open_invoices_count, disputed_invoices_count, max_days_past_due
+          `)
+          .eq("id", debtorId)
+          .single(),
+        supabase
+          .from("invoices")
+          .select("id, status, due_date")
+          .eq("debtor_id", debtorId),
+        supabase
+          .from("inbound_emails")
+          .select("id, ai_sentiment")
+          .eq("debtor_id", debtorId)
+          .order("created_at", { ascending: false }),
+      ]);
 
-      if (debtorError) throw debtorError;
+      if (debtorResult.error) throw debtorResult.error;
 
-      // Fetch real invoice counts for this debtor
-      const { data: invoices, error: invoicesError } = await supabase
-        .from("invoices")
-        .select("id, status, due_date")
-        .eq("debtor_id", debtorId);
-
-      if (invoicesError) {
-        console.error("Error fetching invoices:", invoicesError);
-      }
+      const debtorData = debtorResult.data;
+      const invoices = invoicesResult.data || [];
+      const inboundEmails = inboundResult.data || [];
 
       const today = new Date();
-      const paidInvoices = invoices?.filter(inv => inv.status === "paid") || [];
-      const overdueInvoices = invoices?.filter(inv => 
-        inv.status !== "paid" && inv.due_date && new Date(inv.due_date) < today
-      ) || [];
-      const totalInvoices = invoices?.length || 0;
+      const paidInvoices = invoices.filter(inv => inv.status === "paid" || inv.status === "Paid");
+      const overdueInvoices = invoices.filter(inv => 
+        !["paid", "Paid", "Canceled", "Settled"].includes(inv.status) && 
+        inv.due_date && new Date(inv.due_date) < today
+      );
+      const totalInvoices = invoices.length;
+
+      // Get actual inbound email count and sentiments
+      const actualInboundCount = inboundEmails.length;
+      const inboundSentiments = inboundEmails
+        .map(e => e.ai_sentiment)
+        .filter((s): s is string => !!s);
 
       // Determine if we have sufficient data for intelligence
       const hasSufficientData = totalInvoices > 0 || 
         (debtorData.touchpoint_count || 0) > 0 || 
-        (debtorData.inbound_email_count || 0) > 0;
+        actualInboundCount > 0;
 
       return {
         ...debtorData,
         paid_invoices_count: paidInvoices.length,
         overdue_invoices_count: overdueInvoices.length,
+        actual_inbound_email_count: actualInboundCount,
+        // Use real count instead of cached count
+        inbound_email_count: actualInboundCount,
+        inbound_sentiments: inboundSentiments,
         has_sufficient_data: hasSufficientData,
       } as DebtorIntelligenceWithInvoices;
     },
@@ -231,8 +249,27 @@ export const useDebtorIntelligence = (debtorId: string) => {
       )
       .subscribe();
 
+    // Also listen for new inbound emails to this debtor
+    const inboundChannel = supabase
+      .channel(`debtor-inbound-${debtorId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "inbound_emails",
+          filter: `debtor_id=eq.${debtorId}`,
+        },
+        (payload) => {
+          console.log("[REALTIME] New inbound email for debtor:", payload.new);
+          query.refetch();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(inboundChannel);
     };
   }, [debtorId]);
 
