@@ -101,6 +101,7 @@ serve(async (req) => {
             inbound_email_count: result.metrics.inboundEmails.count,
             response_rate: result.metrics.touchpoints.responseRate,
             avg_response_sentiment: result.metrics.inboundEmails.avgSentiment,
+            avg_days_to_pay: result.metrics.paymentPractices.avgDaysToPay,
             collection_score_updated_at: new Date().toISOString(),
           })
           .eq("id", dId);
