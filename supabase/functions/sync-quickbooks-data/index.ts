@@ -486,14 +486,20 @@ Deno.serve(async (req) => {
             notes = `Paid in full via QuickBooks`;
           }
 
+          // QuickBooks returns amounts in dollars (not cents), so use directly
+          // Build the QuickBooks invoice link URL (customer-facing payment URL)
+          const qbInvoiceLink = invoice.InvoiceLink || null;
+          const qbIntegrationUrl = `https://app.qbo.intuit.com/app/invoice?txnId=${invoice.Id}`;
+          
           const upsertData: Record<string, any> = {
             user_id: user.id,
             debtor_id: debtorId,
             quickbooks_invoice_id: invoice.Id,
             quickbooks_doc_number: invoice.DocNumber,
             invoice_number: invoice.DocNumber || `QB-${invoice.Id}`,
-            amount: Math.round((invoice.TotalAmt || 0) * 100),
-            amount_outstanding: Math.round((invoice.Balance || 0) * 100),
+            // QB returns amounts in dollars - store as-is (not multiplied by 100)
+            amount: invoice.TotalAmt || 0,
+            amount_outstanding: invoice.Balance || 0,
             issue_date: invoice.TxnDate,
             due_date: dueDate,
             status: normalizedInvoice.status,
@@ -505,6 +511,10 @@ Deno.serve(async (req) => {
             // Source system tracking (READ-ONLY from QuickBooks)
             source_system: 'quickbooks',
             integration_source: 'quickbooks',
+            // QuickBooks invoice links
+            external_link: qbInvoiceLink,
+            invoice_link: qbInvoiceLink,
+            integration_url: qbIntegrationUrl,
             last_synced_at: new Date().toISOString()
           };
           
@@ -564,7 +574,8 @@ Deno.serve(async (req) => {
               if (linkedTxn.TxnType === 'Invoice') {
                 const qbInvoiceId = linkedTxn.TxnId;
                 const invoiceId = invoiceMap.get(qbInvoiceId) || null;
-                const amountApplied = Math.round((line.Amount || 0) * 100);
+                // QB returns amounts in dollars - store as-is (not multiplied by 100)
+                const amountApplied = line.Amount || 0;
 
                 const { error: upsertError } = await supabaseAdmin
                   .from('quickbooks_payments')
