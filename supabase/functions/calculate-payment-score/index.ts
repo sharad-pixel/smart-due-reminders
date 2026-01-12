@@ -151,18 +151,21 @@ async function calculatePaymentScore(
   // Start with base risk score of 20 (low risk baseline)
   let score = 20;
 
-  // Calculate days to pay for paid invoices
+  // Calculate Average Days to Pay for paid invoices
+  // Formula: Total Days Taken to Pay All Invoices / Number of Paid Invoices
+  // Days Taken to Pay = Invoice Payment Date - Invoice Issue Date
   const paidInvoices = invoices.filter((inv: any) => 
-    inv.status === "Paid" && inv.paid_date && inv.due_date
+    inv.status === "Paid" && inv.paid_date && inv.issue_date
   );
   
   let avgDaysToPay: number | null = null;
   if (paidInvoices.length > 0) {
     const totalDaysToPay = paidInvoices.reduce((sum: number, inv: any) => {
-      const days = Math.floor(
-        (new Date(inv.paid_date).getTime() - new Date(inv.due_date).getTime()) / 
+      // Days to Pay = Payment Date - Issue Date (not due date)
+      const days = Math.max(0, Math.floor(
+        (new Date(inv.paid_date).getTime() - new Date(inv.issue_date).getTime()) / 
         (1000 * 60 * 60 * 24)
-      );
+      ));
       return sum + days;
     }, 0);
     
