@@ -940,10 +940,14 @@ const DebtorDetail = () => {
           <CollectionIntelligenceScorecard 
             debtorId={debtor.id} 
             debtorName={debtor.company_name || debtor.name}
+            onIntelligenceCalculated={() => {
+              // Force a refetch of debtor data to update intelligence report
+              fetchDebtor();
+            }}
           />
           
           {/* Collection Intelligence Report */}
-          <AccountIntelligenceCard debtorId={debtor.id} />
+          <AccountIntelligenceCard debtorId={debtor.id} key={`intel-${debtor.id}`} />
         </div>
 
         {/* Account Outreach Settings */}
