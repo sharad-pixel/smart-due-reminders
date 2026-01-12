@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, ExternalLink, AlertTriangle } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PersonaAvatar } from "./PersonaAvatar";
@@ -31,7 +33,18 @@ function getBucketForDays(daysPastDue: number): string {
   return 'dpd_150_plus';
 }
 
+interface AggregatedError {
+  errorMessage: string;
+  count: number;
+  status: string;
+  latestDate: string;
+  agentName: string;
+  recipientEmail: string;
+}
+
 export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: OutreachTimelineProps) {
+  const navigate = useNavigate();
+  
   const { data, isLoading } = useQuery({
     queryKey: ["outreach-timeline-v2", invoiceId],
     staleTime: 30_000,
@@ -72,9 +85,36 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
         }
       }
 
+      // Aggregate and count logs
+      const successLogs = (logs || []).filter(log => log.status === 'sent' || log.status === 'delivered');
+      const failedLogs = (logs || []).filter(log => log.status !== 'sent' && log.status !== 'delivered');
+      
+      // Aggregate failed logs by error message
+      const errorAggregation: Record<string, AggregatedError> = {};
+      failedLogs.forEach((log: any) => {
+        const key = `${log.status}-${log.error_message || 'Unknown error'}`;
+        if (!errorAggregation[key]) {
+          errorAggregation[key] = {
+            errorMessage: log.error_message || 'Unknown error',
+            count: 0,
+            status: log.status,
+            latestDate: log.sent_at,
+            agentName: log.agent_name,
+            recipientEmail: log.recipient_email
+          };
+        }
+        errorAggregation[key].count++;
+        if (new Date(log.sent_at) > new Date(errorAggregation[key].latestDate)) {
+          errorAggregation[key].latestDate = log.sent_at;
+        }
+      });
+
       return {
         outreach,
-        logs: logs || [],
+        successLogs,
+        aggregatedErrors: Object.values(errorAggregation),
+        totalFailed: failedLogs.length,
+        totalBounced: failedLogs.filter((l: any) => l.status === 'bounced').length,
         daysPastDue,
         currentBucket,
         currentAgent,
@@ -100,7 +140,7 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
     );
   }
 
-  const { outreach, logs, daysPastDue, currentAgent, nextEmail } = data || {};
+  const { outreach, successLogs, aggregatedErrors, totalFailed, totalBounced, daysPastDue, currentAgent, nextEmail } = data || {};
 
   // Not past due yet
   if (!daysPastDue || daysPastDue <= 0) {
@@ -190,12 +230,78 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
           )}
         </div>
 
-        {/* Email History */}
-        {logs && logs.length > 0 && (
+        {/* Failed Emails Summary - Aggregated */}
+        {aggregatedErrors && aggregatedErrors.length > 0 && (
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3">Email History</h4>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <h4 className="text-sm font-medium">Failed Emails</h4>
+                <Badge variant="destructive" className="text-xs">
+                  {totalFailed} total {totalBounced && totalBounced > 0 ? `(${totalBounced} bounced)` : ''}
+                </Badge>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-7"
+                onClick={() => navigate('/reports/email-delivery')}
+              >
+                View All
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {aggregatedErrors.slice(0, 3).map((error, index) => (
+                <div 
+                  key={index}
+                  className="flex items-start gap-3 p-3 bg-destructive/5 border border-destructive/20 rounded-lg"
+                >
+                  <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="destructive" className="text-xs">
+                        {error.status}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {error.count} occurrence{error.count > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <p className="text-xs text-destructive mt-1 line-clamp-2">
+                      {error.errorMessage}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Last: {format(new Date(error.latestDate), 'MMM d, h:mm a')} • {error.recipientEmail}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {aggregatedErrors.length > 3 && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs"
+                  onClick={() => navigate('/reports/email-delivery')}
+                >
+                  View {aggregatedErrors.length - 3} more error types
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Successful Email History */}
+        {successLogs && successLogs.length > 0 && (
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              Sent Emails
+              <Badge variant="secondary" className="text-xs">{successLogs.length}</Badge>
+            </h4>
             <div className="space-y-3">
-              {logs.map((log: any) => {
+              {successLogs.slice(0, 5).map((log: any) => {
                 const agent = AGENT_MAP[log.aging_bucket];
                 return (
                   <div 
@@ -203,11 +309,7 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
                     className="flex gap-3 p-3 bg-muted/30 rounded-lg"
                   >
                     <div className="flex-shrink-0 mt-0.5">
-                      {log.status === 'sent' ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-destructive" />
-                      )}
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -216,10 +318,7 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
                         <Badge variant="outline" className="text-xs">
                           Step {log.step_number}
                         </Badge>
-                        <Badge 
-                          variant={log.status === 'sent' ? 'default' : 'destructive'} 
-                          className="text-xs"
-                        >
+                        <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                           {log.status}
                         </Badge>
                       </div>
@@ -227,20 +326,21 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(log.sent_at), 'MMM d, yyyy h:mm a')} • {log.recipient_email}
                       </p>
-                      {log.error_message && (
-                        <p className="text-xs text-destructive mt-1">
-                          Error: {log.error_message}
-                        </p>
-                      )}
                     </div>
                   </div>
                 );
               })}
+              
+              {successLogs.length > 5 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  +{successLogs.length - 5} more emails sent
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {(!logs || logs.length === 0) && outreach?.is_active && (
+        {(!successLogs || successLogs.length === 0) && (!aggregatedErrors || aggregatedErrors.length === 0) && outreach?.is_active && (
           <div className="text-center py-4 text-muted-foreground text-sm border-t">
             <Mail className="h-6 w-6 mx-auto mb-2 opacity-50" />
             <p>No emails sent yet</p>
