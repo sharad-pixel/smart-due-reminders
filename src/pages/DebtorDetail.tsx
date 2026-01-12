@@ -985,6 +985,7 @@ const DebtorDetail = () => {
             outreach_frequency_days: debtor.outreach_frequency_days || 7,
             next_outreach_date: debtor.next_outreach_date,
             last_outreach_date: debtor.last_outreach_date,
+            auto_send_outreach: (debtor as any).auto_send_outreach || false,
           }}
           onSettingsChange={fetchDebtor}
         />
