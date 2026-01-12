@@ -137,16 +137,17 @@ export function SyncIssuesPanel(props: {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      // Use explicit any cast to avoid TS2589 deep instantiation error
+      const { data, error } = await (supabase
         .from("payments")
         .select("id, quickbooks_payment_id, reference")
-        .eq("user_id", user.id)
+        .eq("user_id", user.id) as any)
         .in("quickbooks_payment_id", qbPaymentIds);
 
       if (error) throw error;
 
       const map = new Map<string, { id: string; reference: string | null }>();
-      (data || []).forEach((row: any) => {
+      ((data as any[]) || []).forEach((row) => {
         if (row.quickbooks_payment_id) {
           map.set(String(row.quickbooks_payment_id), { id: row.id, reference: row.reference ?? null });
         }
