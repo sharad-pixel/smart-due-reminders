@@ -28,8 +28,7 @@ import { ResponseActivityCard } from "@/components/ResponseActivityCard";
 import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/CustomerCaseFeed";
-import { AccountIntelligenceCard } from "@/components/AccountIntelligenceCard";
-import { CollectionIntelligenceScorecard } from "@/components/CollectionIntelligenceScorecard";
+import { AccountIntelligencePanel } from "@/components/AccountIntelligencePanel";
 import { AccountOutreachSettings } from "@/components/AccountOutreachSettings";
 import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
@@ -935,20 +934,14 @@ const DebtorDetail = () => {
           </Card>
         </div>
 
-        {/* Collection Intelligence Scorecard */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <CollectionIntelligenceScorecard 
-            debtorId={debtor.id} 
-            debtorName={debtor.company_name || debtor.name}
-            onIntelligenceCalculated={() => {
-              // Force a refetch of debtor data to update intelligence report
-              fetchDebtor();
-            }}
-          />
-          
-          {/* Collection Intelligence Report */}
-          <AccountIntelligenceCard debtorId={debtor.id} key={`intel-${debtor.id}`} />
-        </div>
+        {/* Collection Intelligence Panel (Consolidated Scorecard + Report) */}
+        <AccountIntelligencePanel 
+          debtorId={debtor.id} 
+          debtorName={debtor.company_name || debtor.name}
+          onIntelligenceCalculated={() => {
+            fetchDebtor();
+          }}
+        />
 
         {/* Account Outreach Settings */}
         <AccountOutreachSettings
