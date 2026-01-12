@@ -250,12 +250,13 @@ export const QuickBooksSyncSection = () => {
     }
   };
 
-  // Handle dismissing a sync error
-  const handleDismissError = async (errorMessage: string) => {
+  // Handle dismissing a group of sync errors (accepts array of error strings)
+  const handleDismissError = async (errorMessages: string[]) => {
     if (!latestSync?.id) return;
     
-    const currentDismissed = (latestSync as any).dismissed_errors || [];
-    const newDismissed = [...currentDismissed, errorMessage];
+    const currentDismissed: string[] = (latestSync as any).dismissed_errors || [];
+    // Add all new error messages that aren't already dismissed
+    const newDismissed = [...new Set([...currentDismissed, ...errorMessages])];
     
     const { error } = await supabase
       .from('quickbooks_sync_log')
@@ -263,16 +264,18 @@ export const QuickBooksSyncSection = () => {
       .eq('id', latestSync.id);
     
     if (error) {
+      console.error('Error dismissing errors:', error);
       toast({
         title: 'Error',
-        description: 'Could not dismiss error',
+        description: 'Could not dismiss error. Please try again.',
         variant: 'destructive',
       });
+      throw error; // Re-throw to let the banner know it failed
     } else {
-      refetchLogs();
+      await refetchLogs();
       toast({
-        title: 'Issue dismissed',
-        description: 'Marked as aligned with source system',
+        title: 'Issues dismissed',
+        description: `${errorMessages.length} issue${errorMessages.length !== 1 ? 's' : ''} marked as aligned with source system`,
       });
     }
   };
@@ -291,13 +294,15 @@ export const QuickBooksSyncSection = () => {
       .eq('id', latestSync.id);
     
     if (error) {
+      console.error('Error dismissing all errors:', error);
       toast({
         title: 'Error',
-        description: 'Could not dismiss errors',
+        description: 'Could not dismiss errors. Please try again.',
         variant: 'destructive',
       });
+      throw error; // Re-throw to let the banner know it failed
     } else {
-      refetchLogs();
+      await refetchLogs();
       toast({
         title: 'All issues dismissed',
         description: 'Marked as aligned with source system',
