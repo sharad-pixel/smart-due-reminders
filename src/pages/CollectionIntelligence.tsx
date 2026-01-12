@@ -16,10 +16,15 @@ import {
   Sparkles,
   TrendingUp,
   Shield,
-  Users
+  Users,
+  AlertTriangle,
+  Lightbulb,
+  FileText,
+  Activity
 } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";
 
 const CollectionIntelligence = () => {
   const navigate = useNavigate();
@@ -381,6 +386,127 @@ const CollectionIntelligence = () => {
                 </ul>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Collection Intelligence Showcase */}
+      <CollectionIntelligenceShowcase />
+
+      {/* AI Intelligence Report Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
+                <Brain className="h-3 w-3" />
+                AI Intelligence Reports
+              </div>
+              <h2 className="text-4xl font-bold mb-6">
+                Deep-Dive AI Analysis for Every Account
+              </h2>
+              <p className="text-lg text-muted-foreground mb-6">
+                Beyond the scorecard, our AI generates comprehensive intelligence reports with executive summaries, 
+                key insights, and actionable recommendations tailored to each account's unique situation.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Executive Summary</span>
+                    <p className="text-sm text-muted-foreground">AI-generated overview of account health and collection status</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Key Insights</span>
+                    <p className="text-sm text-muted-foreground">Pattern recognition from payment history and communications</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Strategic Recommendations</span>
+                    <p className="text-sm text-muted-foreground">Personalized action items to optimize recovery</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-card p-6 rounded-2xl border shadow-lg">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Brain className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">AI Intelligence Report</p>
+                  <p className="text-xs text-muted-foreground">Sterling Industries</p>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10">
+                  <AlertTriangle className="h-3 w-3 text-red-500" />
+                  <span className="text-xs font-medium text-red-500">Critical</span>
+                </div>
+              </div>
+              
+              {/* Executive Summary */}
+              <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                  <FileText className="h-3 w-3" /> Executive Summary
+                </p>
+                <p className="text-sm">
+                  Account shows significant collection risk with $89,500 past due and declining payment trend. 
+                  Low response rate (28%) indicates potential cash flow issues or disengagement.
+                </p>
+              </div>
+
+              {/* Key Insights */}
+              <div className="mb-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3" /> Key Insights
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-sm">
+                    <Activity className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <span>Payment velocity slowed 40% over last 90 days</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm">
+                    <Activity className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <span>6 of 8 open invoices are past due date</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm">
+                    <Activity className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <span>Communication sentiment trending toward delay tactics</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommendations */}
+              <div className="pt-3 border-t">
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <Target className="h-3 w-3" /> Recommendations
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 rounded text-sm">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span>Escalate to senior collections team</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 rounded text-sm">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span>Propose structured payment plan</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 rounded text-sm">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span>Increase touchpoint frequency to daily</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
