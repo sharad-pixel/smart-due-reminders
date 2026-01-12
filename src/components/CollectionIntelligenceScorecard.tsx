@@ -46,7 +46,7 @@ export function CollectionIntelligenceScorecard({
     setIsRecalculating(true);
     try {
       // Run both scorecard calculation AND intelligence report generation in parallel
-      const [scorecardResult] = await Promise.all([
+      await Promise.all([
         calculateIntelligence.mutateAsync({ debtor_id: debtorId }),
         // Also trigger the account-intelligence edge function
         (async () => {
@@ -56,18 +56,18 @@ export function CollectionIntelligenceScorecard({
               body: { debtor_id: debtorId, force_regenerate: true },
             });
           }
-        })()
+        })(),
       ]);
-      
+
       await refetch();
-      
+
       // Notify parent component to refresh intelligence report
       onIntelligenceCalculated?.();
-      
-      toast.success("Intelligence calculated successfully");
+
+      toast.success("Intelligence updated");
     } catch (error: any) {
       console.error("Error calculating intelligence:", error);
-      toast.error(error.message || "Failed to calculate intelligence");
+      toast.error(error.message || "Failed to run intelligence");
     } finally {
       setIsRecalculating(false);
     }
@@ -142,7 +142,7 @@ export function CollectionIntelligenceScorecard({
       case "Critical":
         return { icon: AlertTriangle, message: "Immediate action required. High write-off risk.", className: "bg-red-100 text-red-700" };
       default:
-        return { icon: Brain, message: "Calculate intelligence to get insights.", className: "bg-muted text-muted-foreground" };
+        return { icon: Brain, message: "Run intelligence to get insights.", className: "bg-muted text-muted-foreground" };
     }
   };
 
@@ -173,7 +173,7 @@ export function CollectionIntelligenceScorecard({
           <p className="text-sm text-muted-foreground mb-3">No intelligence data available</p>
           <Button size="sm" onClick={handleRecalculate} disabled={isRecalculating}>
             <RefreshCw className={cn("h-4 w-4 mr-2", isRecalculating && "animate-spin")} />
-            Calculate Intelligence
+            Run Intelligence
           </Button>
         </CardContent>
       </Card>
@@ -367,12 +367,23 @@ export function CollectionIntelligenceScorecard({
           </div>
         </div>
 
-        {/* Footer Insight */}
+        {/* Footer Insight (click to run) */}
         <div className="px-4 pb-4">
-          <div className={cn("p-3 rounded-lg text-sm flex items-center gap-2", insight.className)}>
+          <button
+            type="button"
+            onClick={handleRecalculate}
+            disabled={isRecalculating}
+            className={cn(
+              "w-full text-left p-3 rounded-lg text-sm flex items-center gap-2 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              insight.className,
+              isRecalculating ? "opacity-70" : "hover:opacity-90"
+            )}
+            title="Run Intelligence"
+          >
             <InsightIcon className="h-4 w-4 flex-shrink-0" />
-            <span>{insight.message}</span>
-          </div>
+            <span className="flex-1">{insight.message}</span>
+            <span className="text-xs font-medium">{isRecalculating ? "Running…" : "Run"}</span>
+          </button>
         </div>
 
         {/* Last Updated */}
