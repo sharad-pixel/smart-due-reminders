@@ -337,11 +337,11 @@ export function CollectionIntelligenceScorecard({
             <span className="text-sm font-medium">{data.touchpoint_count || 0}</span>
           </div>
 
-          {/* Inbound Replies - using actual count from inbound_emails table */}
+          {/* Replies - using actual count from inbound_emails table */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>Inbound Replies</span>
+              <span>Replies</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">
