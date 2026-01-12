@@ -167,11 +167,23 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("account-intelligence", {
-        body: { debtor_id: debtorId, force_regenerate: forceRegenerate },
-      });
+      // Run scorecard calculation + report generation together
+      const [scorecardRes, reportRes] = await Promise.all([
+        supabase.functions.invoke("calculate-collection-intelligence", {
+          body: { debtor_id: debtorId, recalculate_all: false },
+        }),
+        supabase.functions.invoke("account-intelligence", {
+          body: { debtor_id: debtorId, force_regenerate: forceRegenerate },
+        }),
+      ]);
 
-      if (error) throw error;
+      if (scorecardRes.error) {
+        console.warn("[AccountIntelligenceCard] Scorecard calculation failed:", scorecardRes.error);
+      }
+
+      if (reportRes.error) throw reportRes.error;
+
+      const data = reportRes.data as any;
 
       if (data.error) {
         if (data.error.includes("Rate limit")) {
@@ -192,7 +204,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
       setGeneratedAt(data.generatedAt);
       setFromCache(data.fromCache || false);
       setCacheExpiresAt(data.cacheExpiresAt || null);
-      
+
       if (data.fromCache) {
         toast.info("Showing cached intelligence report");
       } else {
@@ -200,7 +212,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
       }
     } catch (error: any) {
       console.error("Error generating intelligence:", error);
-      toast.error(error.message || "Failed to generate intelligence");
+      toast.error(error.message || "Failed to run intelligence");
     } finally {
       setLoading(false);
     }
@@ -264,9 +276,9 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
               Reports are auto-generated daily at 5 AM PT
             </p>
           </div>
-          <Button onClick={() => generateIntelligence(false)} className="gap-2">
+          <Button onClick={() => generateIntelligence(false)} className="gap-2" disabled={loading}>
             <Brain className="h-4 w-4" />
-            Generate Intelligence Report
+            Run Intelligence
           </Button>
         </CardContent>
       </Card>
