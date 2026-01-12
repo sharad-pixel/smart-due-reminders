@@ -95,6 +95,7 @@ const getPersonaForBucket = (agingBucket: string): { key: string; persona: Perso
 
 type SortField = 'scheduled_date' | 'company_name' | 'amount' | 'days_past_due';
 type SortDirection = 'asc' | 'desc';
+type OutreachTypeFilter = 'all' | 'account' | 'invoice';
 
 const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: UpcomingOutreachLogProps) => {
   const navigate = useNavigate();
@@ -114,6 +115,7 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
   const [accountFilter, setAccountFilter] = useState("");
   const [sortField, setSortField] = useState<SortField>('scheduled_date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [outreachTypeFilter, setOutreachTypeFilter] = useState<OutreachTypeFilter>('all');
 
   // Unique account names for dropdown
   const uniqueAccounts = useMemo(() => {
@@ -288,6 +290,13 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
       );
     }
 
+    // Outreach type filter
+    if (outreachTypeFilter === 'account') {
+      filtered = filtered.filter(item => item.is_account_level);
+    } else if (outreachTypeFilter === 'invoice') {
+      filtered = filtered.filter(item => !item.is_account_level);
+    }
+
     // Sorting
     filtered.sort((a, b) => {
       let comparison = 0;
@@ -315,7 +324,7 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
     const paginatedItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
 
     setOutreachItems(paginatedItems);
-  }, [allOutreachItems, selectedPersona, accountFilter, sortField, sortDirection, currentPage]);
+  }, [allOutreachItems, selectedPersona, accountFilter, outreachTypeFilter, sortField, sortDirection, currentPage]);
 
   useEffect(() => {
     fetchUpcomingOutreach();
@@ -461,6 +470,7 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
 
   const clearFilters = () => {
     setAccountFilter("");
+    setOutreachTypeFilter('all');
     setSortField('scheduled_date');
     setSortDirection('asc');
     setCurrentPage(1);
@@ -700,11 +710,11 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
           <div className="space-y-4">
             {/* Filter and Sort Controls */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 max-w-md">
-                <div className="relative flex-1">
+              <div className="flex items-center gap-2 flex-wrap flex-1">
+                <div className="relative flex-1 min-w-[180px] max-w-[260px]">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Filter by account name..."
+                    placeholder="Filter by account..."
                     value={accountFilter}
                     onChange={(e) => {
                       setAccountFilter(e.target.value);
@@ -713,7 +723,23 @@ const UpcomingOutreachLog = ({ selectedPersona, onPersonaFilterClear }: Upcoming
                     className="pl-8 h-9"
                   />
                 </div>
-                {(accountFilter || selectedPersona) && (
+                <Select
+                  value={outreachTypeFilter}
+                  onValueChange={(value: OutreachTypeFilter) => {
+                    setOutreachTypeFilter(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[150px]">
+                    <SelectValue placeholder="Outreach Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Outreach</SelectItem>
+                    <SelectItem value="account">Account Level</SelectItem>
+                    <SelectItem value="invoice">Invoice Workflow</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(accountFilter || selectedPersona || outreachTypeFilter !== 'all') && (
                   <Button
                     variant="ghost"
                     size="sm"
