@@ -337,13 +337,22 @@ export function CollectionIntelligenceScorecard({
             <span className="text-sm font-medium">{data.touchpoint_count || 0}</span>
           </div>
 
-          {/* Inbound Replies */}
+          {/* Inbound Replies - using actual count from inbound_emails table */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
               <Mail className="h-4 w-4 text-muted-foreground" />
               <span>Inbound Replies</span>
             </div>
-            <span className="text-sm font-medium">{data.inbound_email_count || 0}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">
+                {data.actual_inbound_email_count ?? data.inbound_email_count ?? 0}
+              </span>
+              {(data.actual_inbound_email_count ?? data.inbound_email_count ?? 0) > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  ({data.inbound_sentiments?.filter(s => s?.toLowerCase() === "positive").length || 0} positive)
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Sentiment */}
