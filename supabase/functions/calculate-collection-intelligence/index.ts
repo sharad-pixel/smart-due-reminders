@@ -200,16 +200,20 @@ async function calculateIntelligence(
   }
 
   // ==================== PAYMENT PRACTICES SCORE (25 points) ====================
-  const paidInvoices = invoices.filter((i: any) => i.status === "Paid" && i.paid_at);
+  // Average Days to Pay = Total Days Taken to Pay All Invoices / Number of Paid Invoices
+  // Days Taken to Pay = Invoice Payment Date - Invoice Issue Date
+  const paidInvoices = invoices.filter((i: any) => i.status === "Paid" && i.paid_at && i.issue_date);
   let avgDaysToPay = 0;
   let onTimePayments = 0;
 
   if (paidInvoices.length > 0) {
     const daysToPay = paidInvoices.map((inv: any) => {
-      const dueDate = new Date(inv.due_date);
+      const issueDate = new Date(inv.issue_date);
       const paidDate = new Date(inv.paid_at);
-      const days = Math.floor((paidDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (days <= 0) onTimePayments++;
+      // Days to Pay = Payment Date - Issue Date
+      const days = Math.max(0, Math.floor((paidDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      // On-time if paid before or on due date
+      if (inv.due_date && paidDate <= new Date(inv.due_date)) onTimePayments++;
       return days;
     });
     avgDaysToPay = Math.round(daysToPay.reduce((a: number, b: number) => a + b, 0) / daysToPay.length);

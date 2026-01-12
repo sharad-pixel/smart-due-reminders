@@ -80,46 +80,67 @@ export const useDebtorDashboard = () => {
 
       if (error) throw error;
 
-      // Fetch invoices from last 90 days for DSO calculation
+      // Fetch invoices for DSO and Average Days to Pay calculation
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
 
-      // Get all invoices for DSO calculation (exclude Draft)
+      // Get all invoices for calculations (exclude Draft)
       const { data: invoices, error: invoicesError } = await supabase
         .from("invoices")
-        .select("amount, amount_original, amount_outstanding, status, issue_date")
+        .select("amount, amount_original, amount_outstanding, status, issue_date, paid_date")
         .not("status", "eq", "Draft");
 
       if (invoicesError) throw invoicesError;
 
-      // Filter invoices from last 90 days client-side for DSO
+      // Filter invoices from last 90 days for DSO calculation
       const recentInvoices = (invoices || []).filter((inv: any) => {
         if (!inv.issue_date) return false;
         return inv.issue_date >= ninetyDaysAgoStr;
       });
 
       // Calculate DSO using proper formula:
-      // DSO = (Total Outstanding Amount / Total Original Invoice Amount) × 90
+      // DSO = (Accounts Receivable / Total Credit Sales in Period) × Number of Days in Period
       let totalOutstanding = 0;
-      let totalOriginal = 0;
+      let totalCreditSales = 0;
 
       recentInvoices.forEach((inv: any) => {
         const original = Number(inv.amount_original) || Number(inv.amount) || 0;
-        totalOriginal += original;
+        totalCreditSales += original;
         
-        // Paid invoices contribute 0 outstanding_amount
+        // Paid invoices contribute 0 to outstanding
         if (inv.status === "Paid" || inv.status === "Settled" || inv.status === "Canceled") {
           totalOutstanding += 0;
         } else {
-          // Open, Partial, Overdue invoices
+          // Open, Partial, Overdue, etc. invoices
           totalOutstanding += Number(inv.amount_outstanding) || Number(inv.amount) || 0;
         }
       });
 
-      let dso = totalOriginal > 0 ? Math.round((totalOutstanding / totalOriginal) * 90) : 0;
+      // DSO = (Accounts Receivable / Total Credit Sales) × Days in Period (90 days)
+      let dso = totalCreditSales > 0 ? Math.round((totalOutstanding / totalCreditSales) * 90) : 0;
       // Cap DSO at maximum 365
       dso = Math.min(dso, 365);
+      
+      // Calculate Average Days to Pay using proper formula:
+      // Average Days to Pay = Total Days Taken to Pay All Invoices / Number of Paid Invoices
+      // Days Taken to Pay = Invoice Payment Date - Invoice Issue Date
+      const paidInvoices = (invoices || []).filter((inv: any) => 
+        inv.status === "Paid" && inv.paid_date && inv.issue_date
+      );
+      
+      let avgDaysToPay: number | null = null;
+      if (paidInvoices.length > 0) {
+        const totalDays = paidInvoices.reduce((sum: number, inv: any) => {
+          const issueDate = new Date(inv.issue_date);
+          const paidDate = new Date(inv.paid_date);
+          const days = Math.max(0, Math.floor(
+            (paidDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24)
+          ));
+          return sum + days;
+        }, 0);
+        avgDaysToPay = Math.round(totalDays / paidInvoices.length);
+      }
 
       const totalDebtors = data.length;
       const scoredDebtors = data.filter(d => d.payment_score !== null);
@@ -149,6 +170,7 @@ export const useDebtorDashboard = () => {
           highRisk,
           criticalRisk,
           dso,
+          avgDaysToPay,
           totalAR,
         },
       };
