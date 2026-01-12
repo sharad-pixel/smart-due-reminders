@@ -5051,6 +5051,7 @@ export type Database = {
           contacts_synced: number | null
           created_at: string | null
           customers_synced: number | null
+          dismissed_errors: Json | null
           errors: Json | null
           id: string
           invoices_skipped: number | null
@@ -5074,6 +5075,7 @@ export type Database = {
           contacts_synced?: number | null
           created_at?: string | null
           customers_synced?: number | null
+          dismissed_errors?: Json | null
           errors?: Json | null
           id?: string
           invoices_skipped?: number | null
@@ -5097,6 +5099,7 @@ export type Database = {
           contacts_synced?: number | null
           created_at?: string | null
           customers_synced?: number | null
+          dismissed_errors?: Json | null
           errors?: Json | null
           id?: string
           invoices_skipped?: number | null
