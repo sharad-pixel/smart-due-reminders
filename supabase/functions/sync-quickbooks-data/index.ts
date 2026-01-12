@@ -511,9 +511,8 @@ Deno.serve(async (req) => {
             // Source system tracking (READ-ONLY from QuickBooks)
             source_system: 'quickbooks',
             integration_source: 'quickbooks',
-            // QuickBooks invoice links
+            // QuickBooks invoice links (external_link for customer-facing, integration_url for admin)
             external_link: qbInvoiceLink,
-            invoice_link: qbInvoiceLink,
             integration_url: qbIntegrationUrl,
             last_synced_at: new Date().toISOString()
           };
