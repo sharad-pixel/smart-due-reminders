@@ -15,7 +15,7 @@ const Terms = () => {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Master Service Agreement</h1>
           <p className="text-xl text-muted-foreground mb-2">Terms of Service</p>
-          <p className="text-sm text-muted-foreground">Effective Date: {effectiveDate} | Last Updated: January 2025</p>
+          <p className="text-sm text-muted-foreground">Effective Date: {effectiveDate} | Last Updated: January 2026</p>
         </div>
 
         {/* Quick Navigation */}
