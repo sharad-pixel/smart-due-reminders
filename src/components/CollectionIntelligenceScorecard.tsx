@@ -22,17 +22,21 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useDebtorIntelligence, useCollectionIntelligence, DebtorIntelligenceWithInvoices } from "@/hooks/useCollectionIntelligence";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CollectionIntelligenceScorecardProps {
   debtorId: string;
   debtorName?: string;
   compact?: boolean;
+  onIntelligenceCalculated?: () => void; // Callback to refresh related components
 }
 
 export function CollectionIntelligenceScorecard({ 
   debtorId, 
   debtorName,
-  compact = false 
+  compact = false,
+  onIntelligenceCalculated
 }: CollectionIntelligenceScorecardProps) {
   const { data, isLoading, refetch } = useDebtorIntelligence(debtorId);
   const { calculateIntelligence } = useCollectionIntelligence(debtorId);
@@ -41,8 +45,29 @@ export function CollectionIntelligenceScorecard({
   const handleRecalculate = async () => {
     setIsRecalculating(true);
     try {
-      await calculateIntelligence.mutateAsync({ debtor_id: debtorId });
+      // Run both scorecard calculation AND intelligence report generation in parallel
+      const [scorecardResult] = await Promise.all([
+        calculateIntelligence.mutateAsync({ debtor_id: debtorId }),
+        // Also trigger the account-intelligence edge function
+        (async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase.functions.invoke("account-intelligence", {
+              body: { debtor_id: debtorId, force_regenerate: true },
+            });
+          }
+        })()
+      ]);
+      
       await refetch();
+      
+      // Notify parent component to refresh intelligence report
+      onIntelligenceCalculated?.();
+      
+      toast.success("Intelligence calculated successfully");
+    } catch (error: any) {
+      console.error("Error calculating intelligence:", error);
+      toast.error(error.message || "Failed to calculate intelligence");
     } finally {
       setIsRecalculating(false);
     }

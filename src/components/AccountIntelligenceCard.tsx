@@ -77,10 +77,38 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
   const [fromCache, setFromCache] = useState(false);
   const [cacheExpiresAt, setCacheExpiresAt] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load cached report on mount
+  // Load cached report on mount or when refreshKey changes
   useEffect(() => {
     loadCachedReport();
+  }, [debtorId, refreshKey]);
+  
+  // Listen for realtime updates to the debtor's intelligence report
+  useEffect(() => {
+    const channel = supabase
+      .channel(`debtor-intel-report-${debtorId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "debtors",
+          filter: `id=eq.${debtorId}`,
+        },
+        (payload) => {
+          // Check if intelligence report was updated
+          if (payload.new.intelligence_report_generated_at !== payload.old?.intelligence_report_generated_at) {
+            console.log("[AccountIntelligenceCard] Intelligence report updated, refreshing...");
+            setRefreshKey(prev => prev + 1);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [debtorId]);
 
   const loadCachedReport = async () => {
