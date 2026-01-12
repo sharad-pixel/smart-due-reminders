@@ -212,10 +212,10 @@ const DebtorDetail = () => {
           created_at,
           from_email,
           subject,
-          body_text,
+          text_body,
           ai_summary,
           ai_sentiment,
-          ai_intent,
+          ai_category,
           invoice_id,
           invoices(invoice_number)
         `)
@@ -1201,9 +1201,9 @@ const DebtorDetail = () => {
                             </div>
                           )}
 
-                          {reply.ai_intent && (
+                          {reply.ai_category && (
                             <Badge variant="outline" className="text-xs">
-                              Intent: {reply.ai_intent.replace(/_/g, ' ')}
+                              Category: {reply.ai_category.replace(/_/g, ' ')}
                             </Badge>
                           )}
 
