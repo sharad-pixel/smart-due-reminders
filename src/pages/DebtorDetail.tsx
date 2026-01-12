@@ -34,6 +34,8 @@ import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetail
 import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
+import { AccountScheduledOutreachPanel } from "@/components/AccountScheduledOutreachPanel";
+import { AccountDraftsHistory } from "@/components/AccountDraftsHistory";
 
 interface Debtor {
   id: string;
@@ -1007,8 +1009,10 @@ const DebtorDetail = () => {
         <CustomerCaseFeed debtorId={id} />
 
         <Tabs defaultValue="invoices" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
+            <TabsTrigger value="scheduled">Scheduled Outreach</TabsTrigger>
+            <TabsTrigger value="drafts">AI Drafts</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
             <TabsTrigger value="replies">
               Replies ({inboundReplies.length})
@@ -1076,6 +1080,14 @@ const DebtorDetail = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="scheduled">
+            <AccountScheduledOutreachPanel debtorId={id} />
+          </TabsContent>
+
+          <TabsContent value="drafts">
+            <AccountDraftsHistory debtorId={id} />
           </TabsContent>
 
           <TabsContent value="tasks">
