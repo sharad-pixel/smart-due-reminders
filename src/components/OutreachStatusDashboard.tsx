@@ -13,8 +13,8 @@ const AGENT_CONFIG = [
   { name: 'Sam', bucket: 'dpd_1_30', range: '1-30 days', tone: 'Friendly' },
   { name: 'James', bucket: 'dpd_31_60', range: '31-60 days', tone: 'Professional' },
   { name: 'Katy', bucket: 'dpd_61_90', range: '61-90 days', tone: 'Firm' },
-  { name: 'Jimmy', bucket: 'dpd_91_120', range: '91-120 days', tone: 'Serious' },
-  { name: 'Troy', bucket: 'dpd_121_150', range: '121-150 days', tone: 'Final Warning' },
+  { name: 'Troy', bucket: 'dpd_91_120', range: '91-120 days', tone: 'Final Warning' },
+  { name: 'Jimmy', bucket: 'dpd_121_150', range: '121-150 days', tone: 'Serious' },
   { name: 'Rocco', bucket: 'dpd_150_plus', range: '151+ days', tone: 'Collections' },
 ];
 

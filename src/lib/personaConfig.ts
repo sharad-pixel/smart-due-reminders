@@ -55,7 +55,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMin: 91,
     bucketMax: 120,
     description: "Firm 91-120 Day Agent",
-    tone: "Very firm but professional",
+    tone: "Final Warning",
   },
   jimmy: {
     name: "Jimmy",
@@ -65,7 +65,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMin: 121,
     bucketMax: 150,
     description: "Very Firm 121-150 Day Agent",
-    tone: "Very firm, serious urgency",
+    tone: "Serious",
   },
   rocco: {
     name: "Rocco",
