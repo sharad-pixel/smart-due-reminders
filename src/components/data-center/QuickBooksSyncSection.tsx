@@ -48,13 +48,13 @@ export const QuickBooksSyncSection = () => {
 
       const { data, error } = await supabase
         .from('quickbooks_sync_log')
-        .select('*')
+        .select('*, dismissed_errors')
         .eq('user_id', user.id)
         .order('started_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
-      return data as SyncLogEntry[];
+      return data as (SyncLogEntry & { dismissed_errors?: string[] })[];
     },
     enabled: isConnected,
   });
@@ -250,6 +250,61 @@ export const QuickBooksSyncSection = () => {
     }
   };
 
+  // Handle dismissing a sync error
+  const handleDismissError = async (errorMessage: string) => {
+    if (!latestSync?.id) return;
+    
+    const currentDismissed = (latestSync as any).dismissed_errors || [];
+    const newDismissed = [...currentDismissed, errorMessage];
+    
+    const { error } = await supabase
+      .from('quickbooks_sync_log')
+      .update({ dismissed_errors: newDismissed })
+      .eq('id', latestSync.id);
+    
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not dismiss error',
+        variant: 'destructive',
+      });
+    } else {
+      refetchLogs();
+      toast({
+        title: 'Issue dismissed',
+        description: 'Marked as aligned with source system',
+      });
+    }
+  };
+
+  // Handle dismissing all sync errors
+  const handleDismissAllErrors = async () => {
+    if (!latestSync?.id || !latestSync.errors) return;
+    
+    const allErrors = latestSync.errors.map(e => 
+      typeof e === 'string' ? e : JSON.stringify(e)
+    );
+    
+    const { error } = await supabase
+      .from('quickbooks_sync_log')
+      .update({ dismissed_errors: allErrors })
+      .eq('id', latestSync.id);
+    
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not dismiss errors',
+        variant: 'destructive',
+      });
+    } else {
+      refetchLogs();
+      toast({
+        title: 'All issues dismissed',
+        description: 'Marked as aligned with source system',
+      });
+    }
+  };
+
   // Transform sync log to include detailed counts
   const enrichedLatestSync: SyncLogEntry | null = latestSync ? {
     ...latestSync,
@@ -334,8 +389,11 @@ export const QuickBooksSyncSection = () => {
               {latestSync?.errors && latestSync.errors.length > 0 && (
                 <SyncErrorBanner 
                   errors={latestSync.errors}
+                  dismissedErrors={(latestSync as any).dismissed_errors}
                   objectType="records"
                   onViewDetails={() => setHistoryOpen(true)}
+                  onDismissError={handleDismissError}
+                  onDismissAll={handleDismissAllErrors}
                 />
               )}
 

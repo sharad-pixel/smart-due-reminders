@@ -153,12 +153,13 @@ Deno.serve(async (req) => {
       );
 
       // Build invoice query - incremental by default (last 24 months)
+      // Include include=invoiceLink parameter to get customer-facing payment links
       let invoiceQuery = 'SELECT * FROM Invoice';
       if (!fullSync) {
         invoiceQuery = `SELECT * FROM Invoice WHERE TxnDate >= '${cutoffStr}'`;
       }
       console.log('Fetching invoices from QuickBooks...');
-      const invoices = await qbQueryAll(apiBase, realmId, invoiceQuery, tokenContext);
+      const invoices = await qbQueryAll(apiBase, realmId, invoiceQuery, tokenContext, true);
 
       // Build payment query - incremental by default
       let paymentQuery = 'SELECT * FROM Payment';
@@ -687,12 +688,14 @@ interface TokenContext {
  * Paginated QuickBooks query helper.
  * Fetches all records using STARTPOSITION/MAXRESULTS pagination.
  * Retries once on 401 after refreshing the token.
+ * @param includeInvoiceLink - If true, adds include=invoiceLink parameter for Invoice queries
  */
 async function qbQueryAll(
   apiBase: string,
   realmId: string,
   baseQuery: string,
-  tokenContext: TokenContext
+  tokenContext: TokenContext,
+  includeInvoiceLink: boolean = false
 ): Promise<any[]> {
   const results: any[] = [];
   let startPosition = 1;
@@ -710,7 +713,11 @@ async function qbQueryAll(
     const paginatedQuery = `${baseQuery} STARTPOSITION ${startPosition} MAXRESULTS ${QB_PAGE_SIZE}`;
     const encodedQuery = encodeURIComponent(paginatedQuery);
     // Standardized URL: minorversion first, then query
-    const url = `${apiBase}/v3/company/${realmId}/query?minorversion=${QB_MINOR_VERSION}&query=${encodedQuery}`;
+    // Add include=invoiceLink for Invoice queries to get customer-facing payment links
+    let url = `${apiBase}/v3/company/${realmId}/query?minorversion=${QB_MINOR_VERSION}&query=${encodedQuery}`;
+    if (includeInvoiceLink && entityName === 'Invoice') {
+      url += '&include=invoiceLink';
+    }
     
     console.log(`Fetching ${entityName} from position ${startPosition}...`);
     
