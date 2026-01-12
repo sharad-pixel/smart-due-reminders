@@ -199,21 +199,6 @@ export function SenderIdentitySection({ formData, onChange }: SenderIdentitySect
           </>
         )}
 
-        {/* Reply-To Email */}
-        <div className="space-y-2">
-          <Label htmlFor="reply_to_email">Reply-To Email</Label>
-          <Input
-            id="reply_to_email"
-            type="email"
-            value={formData.reply_to_email || ""}
-            onChange={(e) => onChange("reply_to_email", e.target.value)}
-            placeholder="ar@yourcompany.com"
-          />
-          <p className="text-xs text-muted-foreground">
-            Where customer replies will be directed
-          </p>
-        </div>
-
         {/* Test Email Button */}
         <div className="pt-4 border-t">
           <div className="flex items-center justify-between">
