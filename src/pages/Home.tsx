@@ -5,6 +5,7 @@ import MarketingLayout from "@/components/MarketingLayout";
 import AnimatedHero from "@/components/marketing/AnimatedHero";
 import ScrollPipeline from "@/components/marketing/ScrollPipeline";
 import AnimatedMetrics from "@/components/marketing/AnimatedMetrics";
+import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";
 import EmailDemo from "@/components/marketing/EmailDemo";
 import PricingTeaser from "@/components/marketing/PricingTeaser";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
@@ -70,12 +71,16 @@ const Home = () => {
       <AnimatedHero />
       <DesignPartnersSection />
       <ScrollPipeline />
+      <CollectionIntelligenceShowcase />
       <AnimatedMetrics />
       <ValuePropositions />
       <FeatureGrid />
       <AIAgentsSection />
       <EmailDemo />
       <WhyDifferent />
+      <PricingTeaser />
+      <FAQAccordion />
+      <FinalCTA />
       <PricingTeaser />
       <FAQAccordion />
       <FinalCTA />
