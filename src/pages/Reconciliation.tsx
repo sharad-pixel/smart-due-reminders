@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -20,7 +22,8 @@ import {
   DollarSign,
   FileText,
   Loader2,
-  Building2
+  Building2,
+  X as XIcon
 } from "lucide-react";
 import { ReconciliationDetailModal } from "@/components/reconciliation/ReconciliationDetailModal";
 
@@ -35,6 +38,8 @@ interface Payment {
   invoice_number_hint: string | null;
   reconciliation_status: string;
   created_at: string;
+  quickbooks_payment_id?: string | null;
+  stripe_payment_id?: string | null;
   debtors?: {
     company_name: string;
     name: string;
@@ -58,12 +63,42 @@ interface PaymentLink {
 }
 
 const Reconciliation = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("needs_review");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [syncErrorFilter, setSyncErrorFilter] = useState<{
+    source: string | null;
+    errorType: string | null;
+    qbIds: string[];
+  }>({ source: null, errorType: null, qbIds: [] });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Handle URL params from sync error navigation
+  useEffect(() => {
+    const source = searchParams.get('source');
+    const errorType = searchParams.get('error_type');
+    const qbIdsParam = searchParams.get('qb_ids');
+    
+    if (source || errorType || qbIdsParam) {
+      setSyncErrorFilter({
+        source,
+        errorType,
+        qbIds: qbIdsParam ? qbIdsParam.split(',') : []
+      });
+      // Switch to a tab that shows sync issues
+      setActiveTab('sync_issues');
+    }
+  }, [searchParams]);
+
+  // Clear sync error filter
+  const clearSyncErrorFilter = () => {
+    setSyncErrorFilter({ source: null, errorType: null, qbIds: [] });
+    setSearchParams({});
+    setActiveTab('needs_review');
+  };
 
   // Fetch ALL payments to calculate proper counts for all tabs
   const { data: allPayments, isLoading: allPaymentsLoading } = useQuery({
@@ -87,8 +122,18 @@ const Reconciliation = () => {
   });
 
   // Filter payments based on active tab
-  const payments = allPayments?.filter((p) => {
-    if (activeTab === "needs_review") {
+  const payments = allPayments?.filter((p: Payment) => {
+    if (activeTab === "sync_issues") {
+      // Show payments related to sync errors (filter by QB IDs if provided)
+      if (syncErrorFilter.qbIds.length > 0) {
+        return syncErrorFilter.qbIds.includes(p.quickbooks_payment_id || '');
+      }
+      // Default: show all payments from the specified source that might have issues
+      if (syncErrorFilter.source === 'quickbooks') {
+        return !!p.quickbooks_payment_id;
+      }
+      return false;
+    } else if (activeTab === "needs_review") {
       return ["ai_suggested", "needs_review"].includes(p.reconciliation_status);
     } else if (activeTab === "account_matched") {
       // Payments matched to account but not yet to an invoice
@@ -362,30 +407,72 @@ const Reconciliation = () => {
           </div>
         </div>
 
+        {/* Sync Error Context Banner */}
+        {syncErrorFilter.source && (
+          <Alert className="border-amber-200 bg-amber-50/50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 flex items-center justify-between">
+              <span>Viewing sync issues from {syncErrorFilter.source === 'quickbooks' ? 'QuickBooks' : syncErrorFilter.source}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSyncErrorFilter}
+                className="h-6 px-2 text-xs text-amber-700 hover:bg-amber-100"
+              >
+                <XIcon className="h-3 w-3 mr-1" />
+                Clear filter
+              </Button>
+            </AlertTitle>
+            <AlertDescription className="text-amber-700">
+              {syncErrorFilter.errorType && (
+                <Badge variant="outline" className="mr-2 border-amber-300 text-amber-700">
+                  Error type: {syncErrorFilter.errorType.replace(/_/g, ' ')}
+                </Badge>
+              )}
+              {syncErrorFilter.qbIds.length > 0 && (
+                <span className="text-sm">
+                  Showing {syncErrorFilter.qbIds.length} transaction{syncErrorFilter.qbIds.length !== 1 ? 's' : ''} with sync errors
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto gap-1">
+            {syncErrorFilter.source && (
+              <TabsTrigger value="sync_issues" className="bg-amber-100 text-amber-800 data-[state=active]:bg-amber-200">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Sync Issues
+                {syncErrorFilter.qbIds.length > 0 && (
+                  <Badge className="ml-2 bg-amber-200 text-amber-800" variant="secondary">
+                    {syncErrorFilter.qbIds.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="needs_review">
               AI Suggested
-              {allPayments?.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length > 0 && (
+              {allPayments?.filter((p: Payment) => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length > 0 && (
                 <Badge className="ml-2" variant="secondary">
-                  {allPayments.filter(p => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length}
+                  {allPayments.filter((p: Payment) => ["ai_suggested", "needs_review"].includes(p.reconciliation_status)).length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="account_matched">
               Account Matched
-              {allPayments?.filter(p => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length > 0 && (
+              {allPayments?.filter((p: Payment) => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length > 0 && (
                 <Badge className="ml-2" variant="secondary">
-                  {allPayments.filter(p => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length}
+                  {allPayments.filter((p: Payment) => p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="unapplied">
               Unmatched
-              {allPayments?.filter(p => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length > 0 && (
+              {allPayments?.filter((p: Payment) => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length > 0 && (
                 <Badge className="ml-2" variant="secondary">
-                  {allPayments.filter(p => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length}
+                  {allPayments.filter((p: Payment) => !p.debtor_id && ["pending", "unapplied"].includes(p.reconciliation_status)).length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -403,7 +490,9 @@ const Reconciliation = () => {
                   <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-lg font-medium">No payments found</p>
                   <p className="text-sm text-muted-foreground">
-                    {activeTab === "needs_review"
+                    {activeTab === "sync_issues"
+                      ? "No matching transactions found for the sync errors. The errors may relate to invoices or customers."
+                      : activeTab === "needs_review"
                       ? "All AI suggestions have been reviewed"
                       : activeTab === "account_matched"
                       ? "No payments matched to accounts pending invoice matching"
@@ -411,6 +500,15 @@ const Reconciliation = () => {
                       ? "No unmatched payments"
                       : "No matched payments yet"}
                   </p>
+                  {activeTab === "sync_issues" && (
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={clearSyncErrorFilter}
+                    >
+                      View all payments
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (

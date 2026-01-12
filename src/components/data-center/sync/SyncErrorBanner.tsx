@@ -1,16 +1,17 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, ChevronDown, ChevronUp, Info, X, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Info, X, CheckCircle2, Wrench, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
-import { groupSyncErrors, getErrorTypeLabel, type GroupedErrors } from './syncErrorParser';
+import { useNavigate } from 'react-router-dom';
+import { groupSyncErrors, type GroupedErrors } from './syncErrorParser';
 
 interface SyncErrorBannerProps {
   errors: any[] | null | undefined;
   dismissedErrors?: string[] | null;
   objectType?: string; // e.g. "invoices", "customers"
   onViewDetails?: () => void;
-  onDismissError?: (errorMessage: string) => void;
-  onDismissAll?: () => void;
+  onDismissError?: (errorMessages: string[]) => Promise<void>;
+  onDismissAll?: () => Promise<void>;
 }
 
 export const SyncErrorBanner = ({ 
@@ -22,10 +23,16 @@ export const SyncErrorBanner = ({
   onDismissAll
 }: SyncErrorBannerProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [dismissingGroup, setDismissingGroup] = useState<string | null>(null);
+  const [dismissingAll, setDismissingAll] = useState(false);
+  const navigate = useNavigate();
+  
+  // Normalize errors to strings for comparison
+  const normalizeError = (e: any): string => typeof e === 'string' ? e : JSON.stringify(e);
   
   // Filter out dismissed errors before grouping
   const activeErrors = errors?.filter(e => {
-    const errorStr = typeof e === 'string' ? e : JSON.stringify(e);
+    const errorStr = normalizeError(e);
     return !dismissedErrors?.includes(errorStr);
   });
   
@@ -56,6 +63,52 @@ export const SyncErrorBanner = ({
   const fixableTypes = ['unsupported_status', 'invoice_status_error', 'contact_error', 'constraint_error'];
   const allFixable = grouped.groups.every(g => fixableTypes.includes(g.type));
 
+  // Handle dismissing a group of errors
+  const handleDismissGroup = async (group: typeof grouped.groups[0]) => {
+    if (!onDismissError || !group.details) return;
+    
+    setDismissingGroup(group.type);
+    try {
+      await onDismissError(group.details);
+    } finally {
+      setDismissingGroup(null);
+    }
+  };
+
+  // Handle dismissing all errors
+  const handleDismissAll = async () => {
+    if (!onDismissAll) return;
+    
+    setDismissingAll(true);
+    try {
+      await onDismissAll();
+    } finally {
+      setDismissingAll(false);
+    }
+  };
+
+  // Navigate to fix misaligned transactions
+  const handleNavigateToFix = (group: typeof grouped.groups[0]) => {
+    // Extract identifiers from errors if available
+    const searchParams = new URLSearchParams();
+    
+    // Try to extract QB IDs from error messages
+    const qbIds: string[] = [];
+    group.details?.forEach(detail => {
+      const match = detail.match(/qb_(?:invoice|payment|customer)_id=(\d+)/);
+      if (match) qbIds.push(match[1]);
+    });
+    
+    if (qbIds.length > 0) {
+      searchParams.set('qb_ids', qbIds.join(','));
+    }
+    searchParams.set('error_type', group.type);
+    searchParams.set('source', 'quickbooks');
+    
+    // Navigate to reconciliation page with filter
+    navigate(`/reconciliation?${searchParams.toString()}`);
+  };
+
   return (
     <Alert variant="default" className={allFixable ? "border-blue-200 bg-blue-50/50" : "border-amber-200 bg-amber-50/50"}>
       <AlertTriangle className={`h-4 w-4 ${allFixable ? 'text-blue-600' : 'text-amber-600'}`} />
@@ -66,10 +119,17 @@ export const SyncErrorBanner = ({
             variant="ghost"
             size="sm"
             className={`h-6 px-2 text-xs ${allFixable ? 'text-blue-700 hover:text-blue-800 hover:bg-blue-100' : 'text-amber-700 hover:text-amber-800 hover:bg-amber-100'}`}
-            onClick={onDismissAll}
+            onClick={handleDismissAll}
+            disabled={dismissingAll}
           >
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Dismiss all
+            {dismissingAll ? (
+              <span className="animate-pulse">Dismissing...</span>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Dismiss all
+              </>
+            )}
           </Button>
         )}
       </AlertTitle>
@@ -92,20 +152,38 @@ export const SyncErrorBanner = ({
                         <span className={allFixable ? 'text-blue-600' : 'text-amber-600'}> ({group.count}x)</span>
                       )}
                     </div>
-                    {onDismissError && group.details && group.details.length > 0 && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Fix button - navigate to transaction */}
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className={`h-5 w-5 p-0 shrink-0 ${allFixable ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-100' : 'text-amber-600 hover:text-amber-800 hover:bg-amber-100'}`}
-                        onClick={() => {
-                          // Dismiss all errors in this group
-                          group.details?.forEach(detail => onDismissError(detail));
-                        }}
-                        title="Mark as resolved (aligned with source system)"
+                        className={`h-6 px-2 text-xs gap-1 ${allFixable ? 'border-blue-300 text-blue-700 hover:bg-blue-100' : 'border-amber-300 text-amber-700 hover:bg-amber-100'}`}
+                        onClick={() => handleNavigateToFix(group)}
                       >
-                        <X className="h-3 w-3" />
+                        <Wrench className="h-3 w-3" />
+                        Fix
                       </Button>
-                    )}
+                      {/* Dismiss button */}
+                      {onDismissError && group.details && group.details.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 px-2 text-xs gap-1 ${allFixable ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-100' : 'text-amber-600 hover:text-amber-800 hover:bg-amber-100'}`}
+                          onClick={() => handleDismissGroup(group)}
+                          disabled={dismissingGroup === group.type}
+                          title="Mark as resolved (aligned with source system)"
+                        >
+                          {dismissingGroup === group.type ? (
+                            <span className="animate-pulse">...</span>
+                          ) : (
+                            <>
+                              <X className="h-3 w-3" />
+                              Ignore
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {group.remedy && (
                     <p className={`text-xs mt-0.5 ${allFixable ? 'text-blue-600/80' : 'text-amber-600/80'}`}>
@@ -144,7 +222,7 @@ export const SyncErrorBanner = ({
           <span className={`text-xs ${allFixable ? 'text-blue-600' : 'text-amber-600'}`}>
             {allFixable 
               ? 'These issues have been fixed. Re-run sync to resolve them.'
-              : `Click ✕ to mark issues as aligned with source system.`
+              : `Click "Fix" to review transactions or "Ignore" to dismiss.`
             }
           </span>
           {onViewDetails && (
