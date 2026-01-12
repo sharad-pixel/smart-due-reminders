@@ -14,9 +14,11 @@ export interface CollectionIntelligenceData {
   avg_response_sentiment: string | null;
   collection_score_updated_at: string | null;
   total_open_balance: number | null;
+  current_balance: number | null;
   payment_score: number | null;
   avg_days_to_pay: number | null;
   open_invoices_count: number | null;
+  disputed_invoices_count: number | null;
   max_days_past_due: number | null;
 }
 
@@ -71,8 +73,8 @@ export const useCollectionIntelligenceDashboard = () => {
           collection_intelligence_score, collection_health_tier,
           touchpoint_count, inbound_email_count, response_rate,
           avg_response_sentiment, collection_score_updated_at,
-          total_open_balance, payment_score, avg_days_to_pay,
-          open_invoices_count, max_days_past_due
+          total_open_balance, current_balance, payment_score, avg_days_to_pay,
+          open_invoices_count, disputed_invoices_count, max_days_past_due
         `)
         .eq("is_archived", false)
         .order("collection_intelligence_score", { ascending: true, nullsFirst: true });
@@ -158,8 +160,8 @@ export const useDebtorIntelligence = (debtorId: string) => {
           collection_intelligence_score, collection_health_tier,
           touchpoint_count, inbound_email_count, response_rate,
           avg_response_sentiment, collection_score_updated_at,
-          total_open_balance, payment_score, avg_days_to_pay,
-          open_invoices_count, max_days_past_due
+          total_open_balance, current_balance, payment_score, avg_days_to_pay,
+          open_invoices_count, disputed_invoices_count, max_days_past_due
         `)
         .eq("id", debtorId)
         .single();
