@@ -150,10 +150,12 @@ const Terms = () => {
               <div>
                 <h3 className="font-semibold text-foreground mb-2">3.2 Fees and Payment</h3>
                 <ul className="list-disc pl-6 space-y-1">
-                  <li><strong>Billing:</strong> Fees are billed in advance on a monthly or annual basis as specified in the Order Form</li>
-                  <li><strong>Payment Method:</strong> Customer shall provide valid payment information and authorize recurring charges</li>
+                  <li><strong>Billing:</strong> Subscription fees are billed in advance on a monthly or annual basis as specified in the Order Form</li>
+                  <li><strong>Payment Method:</strong> All payments are processed via credit card. Customer shall provide valid credit card information and authorize recurring charges for subscription fees</li>
+                  <li><strong>Overages:</strong> Usage overages beyond the subscribed plan limits will be billed using the same credit card payment method on file and are due immediately upon invoicing</li>
+                  <li><strong>Outstanding Balances:</strong> Customer will have thirty (30) days from the invoice date to settle all outstanding invoices. Failure to pay within this period may result in restriction of access to the platform until all balances are resolved</li>
                   <li><strong>Taxes:</strong> Fees are exclusive of taxes. Customer is responsible for all applicable taxes</li>
-                  <li><strong>Late Payments:</strong> Overdue amounts accrue interest at 1.5% per month or the maximum legal rate</li>
+                  <li><strong>Late Payments:</strong> Overdue amounts beyond the 30-day settlement period may accrue interest at 1.5% per month or the maximum legal rate, whichever is lower</li>
                 </ul>
               </div>
 
