@@ -28,7 +28,8 @@ import {
   Building2,
   Palette,
   Bell,
-  BarChart3
+  BarChart3,
+  ShieldCheck
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -508,6 +509,10 @@ const Layout = ({ children }: LayoutProps) => {
               >
                 Support
               </a>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                <ShieldCheck className="h-3 w-3 text-primary" />
+                <span className="text-xs font-medium text-primary">Responsible AI</span>
+              </div>
             </div>
             <div className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} Recouply.ai. All rights reserved.
