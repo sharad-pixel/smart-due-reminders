@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
-import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin } from "lucide-react";
+import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 interface MarketingLayoutProps {
@@ -318,10 +318,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               </Button>
             </div>
           </div>
-          <div className="text-center pt-8 border-t">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t">
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
             </p>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-primary">Responsible AI</span>
+            </div>
           </div>
         </div>
       </footer>
