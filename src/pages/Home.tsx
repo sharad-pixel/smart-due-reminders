@@ -81,9 +81,6 @@ const Home = () => {
       <PricingTeaser />
       <FAQAccordion />
       <FinalCTA />
-      <PricingTeaser />
-      <FAQAccordion />
-      <FinalCTA />
     </MarketingLayout>
   );
 };
