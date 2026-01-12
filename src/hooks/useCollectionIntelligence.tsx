@@ -145,7 +145,14 @@ export const useCollectionIntelligenceDashboard = () => {
   };
 };
 
-// Hook for single debtor intelligence
+// Extended data including invoice counts from real data
+export interface DebtorIntelligenceWithInvoices extends CollectionIntelligenceData {
+  paid_invoices_count: number;
+  overdue_invoices_count: number;
+  has_sufficient_data: boolean;
+}
+
+// Hook for single debtor intelligence with real invoice data
 export const useDebtorIntelligence = (debtorId: string) => {
   const [realtimeScore, setRealtimeScore] = useState<number | null>(null);
 
@@ -153,7 +160,8 @@ export const useDebtorIntelligence = (debtorId: string) => {
     queryKey: ["debtor-intelligence", debtorId],
     enabled: !!debtorId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch debtor data
+      const { data: debtorData, error: debtorError } = await supabase
         .from("debtors")
         .select(`
           id, company_name,
@@ -166,8 +174,36 @@ export const useDebtorIntelligence = (debtorId: string) => {
         .eq("id", debtorId)
         .single();
 
-      if (error) throw error;
-      return data as CollectionIntelligenceData;
+      if (debtorError) throw debtorError;
+
+      // Fetch real invoice counts for this debtor
+      const { data: invoices, error: invoicesError } = await supabase
+        .from("invoices")
+        .select("id, status, due_date")
+        .eq("debtor_id", debtorId);
+
+      if (invoicesError) {
+        console.error("Error fetching invoices:", invoicesError);
+      }
+
+      const today = new Date();
+      const paidInvoices = invoices?.filter(inv => inv.status === "paid") || [];
+      const overdueInvoices = invoices?.filter(inv => 
+        inv.status !== "paid" && inv.due_date && new Date(inv.due_date) < today
+      ) || [];
+      const totalInvoices = invoices?.length || 0;
+
+      // Determine if we have sufficient data for intelligence
+      const hasSufficientData = totalInvoices > 0 || 
+        (debtorData.touchpoint_count || 0) > 0 || 
+        (debtorData.inbound_email_count || 0) > 0;
+
+      return {
+        ...debtorData,
+        paid_invoices_count: paidInvoices.length,
+        overdue_invoices_count: overdueInvoices.length,
+        has_sufficient_data: hasSufficientData,
+      } as DebtorIntelligenceWithInvoices;
     },
   });
 

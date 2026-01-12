@@ -20,7 +20,7 @@ import {
   Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useDebtorIntelligence, useCollectionIntelligence } from "@/hooks/useCollectionIntelligence";
+import { useDebtorIntelligence, useCollectionIntelligence, DebtorIntelligenceWithInvoices } from "@/hooks/useCollectionIntelligence";
 import { cn } from "@/lib/utils";
 
 interface CollectionIntelligenceScorecardProps {
@@ -103,7 +103,10 @@ export function CollectionIntelligenceScorecard({
     return <TrendingDown className="h-4 w-4 text-red-600" />;
   };
 
-  const getInsightMessage = (tier: string | null) => {
+  const getInsightMessage = (tier: string | null, hasSufficientData: boolean) => {
+    if (!hasSufficientData) {
+      return { icon: Brain, message: "Still learning. Add invoices or activities to build intelligence.", className: "bg-blue-100 text-blue-700" };
+    }
     switch (tier) {
       case "Healthy":
         return { icon: CheckCircle, message: "Reliable payer. Standard follow-up cadence.", className: "bg-green-100 text-green-700" };
@@ -154,7 +157,17 @@ export function CollectionIntelligenceScorecard({
 
   const score = data.collection_intelligence_score;
   const tier = data.collection_health_tier;
-  const insight = getInsightMessage(tier);
+  
+  // Use REAL invoice data from the hook
+  const paidInvoices = data.paid_invoices_count ?? 0;
+  const overdueInvoices = data.overdue_invoices_count ?? 0;
+  const hasSufficientData = data.has_sufficient_data ?? false;
+  const pastDueBalance = data.total_open_balance || data.current_balance || 0;
+
+  // Check if we have any meaningful data
+  const hasInvoiceData = paidInvoices > 0 || overdueInvoices > 0 || (data.open_invoices_count || 0) > 0;
+  
+  const insight = getInsightMessage(tier, hasSufficientData);
   const InsightIcon = insight.icon;
 
   // Compact version for list/table view
@@ -188,13 +201,6 @@ export function CollectionIntelligenceScorecard({
       </div>
     );
   }
-
-  // Use available fields from the data
-  // Open invoices are the overdue ones (max_days_past_due > 0 means there are overdue)
-  const openInvoices = data.open_invoices_count || 0;
-  const overdueInvoices = (data.max_days_past_due || 0) > 0 ? Math.max(1, Math.floor(openInvoices * 0.5)) : 0;
-  const paidInvoices = Math.max(0, 10 - openInvoices); // Estimate based on typical account behavior
-  const pastDueBalance = data.total_open_balance || data.current_balance || 0;
 
   // Full scorecard matching landing page design
   return (
@@ -257,11 +263,17 @@ export function CollectionIntelligenceScorecard({
               <span>Invoices</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-green-600">{paidInvoices} paid</span>
-              <span className="text-muted-foreground">·</span>
-              <span className={overdueInvoices > 0 ? "text-red-600" : "text-muted-foreground"}>
-                {overdueInvoices} overdue
-              </span>
+              {hasInvoiceData ? (
+                <>
+                  <span className="text-green-600">{paidInvoices} paid</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className={overdueInvoices > 0 ? "text-red-600" : "text-muted-foreground"}>
+                    {overdueInvoices} overdue
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground italic">No invoices</span>
+              )}
             </div>
           </div>
 
