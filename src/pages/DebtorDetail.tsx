@@ -149,6 +149,7 @@ const DebtorDetail = () => {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [inboundReplies, setInboundReplies] = useState<any[]>([]);
   const [contacts, setContacts] = useState<DebtorContact[]>([]);
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", title: "", email: "", phone: "", outreach_enabled: true });
@@ -196,8 +197,37 @@ const DebtorDetail = () => {
       fetchAllTasks();
       fetchDebtorActivities();
       fetchContacts();
+      fetchInboundReplies();
     }
   }, [id]);
+
+  // Fetch inbound replies from inbound_emails table (aligns with scorecard)
+  const fetchInboundReplies = async () => {
+    if (!id) return;
+    try {
+      const { data, error } = await supabase
+        .from("inbound_emails")
+        .select(`
+          id,
+          created_at,
+          from_email,
+          subject,
+          body_text,
+          ai_summary,
+          ai_sentiment,
+          ai_intent,
+          invoice_id,
+          invoices(invoice_number)
+        `)
+        .eq("debtor_id", id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setInboundReplies(data || []);
+    } catch (error) {
+      console.error("Error fetching inbound replies:", error);
+    }
+  };
 
   const fetchContacts = async () => {
     if (!id) return;
@@ -980,8 +1010,8 @@ const DebtorDetail = () => {
           <TabsList>
             <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
-            <TabsTrigger value="responses">
-              Responses ({activities.filter(a => a.direction === 'inbound').length})
+            <TabsTrigger value="replies">
+              Replies ({inboundReplies.length})
             </TabsTrigger>
             <TabsTrigger value="outreach">Outreach History ({outreach.length})</TabsTrigger>
           </TabsList>
@@ -1120,30 +1150,74 @@ const DebtorDetail = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="responses">
+          <TabsContent value="replies">
             <Card>
               <CardHeader>
-                <CardTitle>Customer Responses</CardTitle>
+                <CardTitle>Inbound Replies</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Inbound replies from customer, automatically summarized and linked to outreach
+                  Customer replies received via email, automatically summarized with AI
                 </p>
               </CardHeader>
               <CardContent className="pt-6">
-                {activities.filter(a => a.direction === 'inbound').length === 0 ? (
+                {inboundReplies.length === 0 ? (
                   <div className="text-center py-12">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <p className="text-muted-foreground">No customer responses yet.</p>
+                    <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground">No inbound replies yet.</p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Responses to outreach efforts will appear here automatically.
+                      Customer replies to your outreach will appear here automatically.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {activities
-                      .filter(a => a.direction === 'inbound')
-                      .map((activity) => (
-                        <ResponseActivityCard key={activity.id} activity={activity} />
-                      ))}
+                    {inboundReplies.map((reply) => (
+                      <Card key={reply.id} className="border-l-4 border-l-primary">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">{reply.from_email}</span>
+                              {reply.ai_sentiment && (
+                                <Badge variant={
+                                  reply.ai_sentiment.toLowerCase() === 'positive' ? 'default' :
+                                  reply.ai_sentiment.toLowerCase() === 'negative' ? 'destructive' : 'secondary'
+                                } className="text-xs">
+                                  {reply.ai_sentiment}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(reply.created_at).toLocaleDateString()} at {new Date(reply.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          
+                          {reply.subject && (
+                            <p className="text-sm font-medium">{reply.subject}</p>
+                          )}
+                          
+                          {reply.ai_summary && (
+                            <div className="p-3 bg-muted/50 rounded-md">
+                              <p className="text-xs font-semibold text-muted-foreground mb-1">AI Summary</p>
+                              <p className="text-sm">{reply.ai_summary}</p>
+                            </div>
+                          )}
+
+                          {reply.ai_intent && (
+                            <Badge variant="outline" className="text-xs">
+                              Intent: {reply.ai_intent.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
+
+                          {reply.invoices && (
+                            <div className="flex items-center gap-2 pt-2 border-t">
+                              <FileText className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                Related to Invoice: {reply.invoices.invoice_number}
+                              </span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 )}
               </CardContent>
