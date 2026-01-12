@@ -520,10 +520,44 @@ Generate a JSON response with:
       generatedSubject = parsedSubject;
       generatedMessage = parsedMessage;
 
-      // If generateOnly, return the generated content without sending
+      // If generateOnly, save draft to ai_drafts table and return
       if (generateOnly) {
+        // Save the generated draft to ai_drafts for review
+        const { data: savedDraft, error: draftError } = await supabase
+          .from("ai_drafts")
+          .insert({
+            user_id: user.id,
+            invoice_id: null, // Account-level, not tied to single invoice
+            channel: "email",
+            step_number: 1,
+            subject: generatedSubject,
+            message_body: generatedMessage,
+            status: "pending_approval",
+            auto_approved: false,
+            days_past_due: 0,
+            applied_brand_snapshot: {
+              type: "account_level_outreach",
+              debtor_id: debtorId,
+              debtor_name: debtor.company_name || debtor.name,
+              context: contextSummary,
+              intelligence: intelligenceReport,
+              invoice_count: invoices?.length || 0,
+              total_amount: invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0,
+            },
+          })
+          .select()
+          .single();
+
+        if (draftError) {
+          logStep("Failed to save draft", draftError);
+        } else {
+          logStep("Draft saved to ai_drafts", { draftId: savedDraft?.id });
+        }
+
         return new Response(
           JSON.stringify({ 
+            success: true,
+            draftId: savedDraft?.id,
             subject: generatedSubject, 
             message: generatedMessage,
             context: contextSummary,
