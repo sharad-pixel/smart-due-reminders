@@ -445,15 +445,28 @@ export function generatePlainTextSignature(
 }
 
 /**
+ * Clean up any remaining placeholders from content
+ * This is a safety net to ensure no {{variable}} patterns slip through
+ */
+function cleanupPlaceholders(text: string): string {
+  if (!text) return text;
+  // Remove any remaining {{...}} placeholders
+  return text.replace(/\{\{[^}]+\}\}/g, '');
+}
+
+/**
  * Generate a full enterprise branded email with content, signature, and optional payment link
+ * Automatically cleans up any remaining placeholders as a safety net
  */
 export function generateBrandedEmail(
   content: string,
   branding: BrandingSettings,
   paymentOptions?: PaymentLinkOptions
 ): string {
+  // Clean up any remaining placeholders as safety net
+  const cleanContent = cleanupPlaceholders(content);
   const signature = generateEmailSignature(branding, paymentOptions);
-  const emailBody = content + signature;
+  const emailBody = cleanContent + signature;
   return wrapEmailContent(emailBody, branding);
 }
 

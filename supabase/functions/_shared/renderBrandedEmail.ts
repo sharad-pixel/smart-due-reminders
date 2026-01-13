@@ -291,12 +291,26 @@ function generateMinimalFooter(brand: BrandingConfig): string {
 }
 
 /**
+ * Clean up any remaining placeholders from content
+ * This is a safety net to ensure no {{variable}} patterns slip through
+ */
+function cleanupPlaceholders(text: string): string {
+  if (!text) return text;
+  // Remove any remaining {{...}} placeholders
+  return text.replace(/\{\{[^}]+\}\}/g, '');
+}
+
+/**
  * MAIN FUNCTION: Render a fully branded email
  * 
  * This is the single standardized wrapper used by ALL outbound email sending.
+ * Automatically cleans up any remaining placeholders as a safety net.
  */
 export function renderBrandedEmail(input: EmailRenderInput, personaName?: string): string {
-  const { brand, bodyHtml, cta, meta } = input;
+  const { brand, cta, meta } = input;
+  
+  // Clean up any remaining placeholders as safety net
+  const bodyHtml = cleanupPlaceholders(input.bodyHtml);
   
   const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
   const primaryColor = brand.primary_color || DEFAULT_PRIMARY_COLOR;
@@ -385,9 +399,14 @@ function lightenColor(hex: string, percent: number): string {
 /**
  * SIMPLE EMAIL FORMAT: Minimal HTML without branding template
  * Used when email_format = 'simple'
+ * Automatically cleans up any remaining placeholders as a safety net.
  */
 export function renderSimpleEmail(input: EmailRenderInput, personaName?: string): string {
-  const { brand, bodyHtml, cta } = input;
+  const { brand, cta } = input;
+  
+  // Clean up any remaining placeholders as safety net
+  const bodyHtml = cleanupPlaceholders(input.bodyHtml);
+  
   const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
   
   // Simple signature
