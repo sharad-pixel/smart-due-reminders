@@ -125,6 +125,13 @@ const AIWorkflows = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshResult, setRefreshResult] = useState<RefreshResult | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+  const [isRunningEngine, setIsRunningEngine] = useState(false);
+  const [engineResult, setEngineResult] = useState<{
+    cancelledDrafts: number;
+    generatedDrafts: number;
+    sentDrafts: number;
+    errors: string[];
+  } | null>(null);
 
   // Fetch outreach errors
   const { data: outreachErrors, refetch: refetchErrors } = useQuery({
@@ -206,6 +213,49 @@ const AIWorkflows = () => {
       toast.error("Failed to refresh outreach");
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Run the scheduled outreach engine manually
+  const handleRunOutreachEngine = async () => {
+    setIsRunningEngine(true);
+    setEngineResult(null);
+    try {
+      toast.info("Running scheduled outreach engine...");
+      
+      const { data, error } = await supabase.functions.invoke("scheduled-outreach-engine", {
+        body: {},
+      });
+
+      if (error) {
+        console.error("Engine error:", error);
+        toast.error("Failed to run outreach engine");
+        return;
+      }
+
+      setEngineResult(data);
+
+      const messages: string[] = [];
+      if (data?.cancelledDrafts > 0) messages.push(`${data.cancelledDrafts} draft(s) cancelled`);
+      if (data?.generatedDrafts > 0) messages.push(`${data.generatedDrafts} draft(s) generated`);
+      if (data?.sentDrafts > 0) messages.push(`${data.sentDrafts} email(s) sent`);
+      if (data?.errors?.length > 0) messages.push(`${data.errors.length} error(s)`);
+
+      if (messages.length > 0) {
+        toast.success(messages.join(", "));
+      } else {
+        toast.success("Outreach engine completed - no actions needed");
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["agent-schedule-drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["scheduled-outreach-drafts"] });
+      refetchErrors();
+    } catch (err) {
+      console.error("Engine exception:", err);
+      toast.error("Failed to run outreach engine");
+    } finally {
+      setIsRunningEngine(false);
     }
   };
 
@@ -1721,7 +1771,7 @@ const AIWorkflows = () => {
                   Manage AI-generated outreach and view scheduled communications
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {errorCount > 0 && (
                   <Button
                     variant="outline"
@@ -1737,10 +1787,19 @@ const AIWorkflows = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleRefreshOutreach}
-                  disabled={isRefreshing}
+                  disabled={isRefreshing || isRunningEngine}
                 >
                   <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
                   {isRefreshing ? "Processing..." : "Refresh Outreach"}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleRunOutreachEngine}
+                  disabled={isRunningEngine || isRefreshing}
+                  className="bg-primary"
+                >
+                  <Zap className={`h-4 w-4 mr-1 ${isRunningEngine ? "animate-pulse" : ""}`} />
+                  {isRunningEngine ? "Running Engine..." : "Run Outreach Engine"}
                 </Button>
               </div>
             </div>
@@ -1770,6 +1829,33 @@ const AIWorkflows = () => {
                     )}
                     {refreshResult.skippedCurrent > 0 && (
                       <span className="text-muted-foreground">{refreshResult.skippedCurrent} current-bucket skipped</span>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Engine Result Alert */}
+            {engineResult && (
+              <Alert className="bg-purple-500/10 border-purple-500/30">
+                <Zap className="h-4 w-4 text-purple-500" />
+                <AlertTitle>Outreach Engine Complete</AlertTitle>
+                <AlertDescription>
+                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                    {engineResult.cancelledDrafts > 0 && (
+                      <span className="text-amber-600 dark:text-amber-400">⊘ {engineResult.cancelledDrafts} draft(s) cancelled (paid invoices)</span>
+                    )}
+                    {engineResult.generatedDrafts > 0 && (
+                      <span className="text-purple-600 dark:text-purple-400">✓ {engineResult.generatedDrafts} draft(s) generated</span>
+                    )}
+                    {engineResult.sentDrafts > 0 && (
+                      <span className="text-green-600 dark:text-green-400">✓ {engineResult.sentDrafts} email(s) sent</span>
+                    )}
+                    {engineResult.errors?.length > 0 && (
+                      <span className="text-red-600 dark:text-red-400">✗ {engineResult.errors.length} error(s)</span>
+                    )}
+                    {engineResult.cancelledDrafts === 0 && engineResult.generatedDrafts === 0 && engineResult.sentDrafts === 0 && (
+                      <span className="text-muted-foreground">No actions needed - all outreach is up to date</span>
                     )}
                   </div>
                 </AlertDescription>
