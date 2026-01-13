@@ -305,3 +305,6 @@ verify_jwt = true
 
 [functions.account-intelligence]
 verify_jwt = true
+
+[functions.scheduled-outreach-engine]
+verify_jwt = false
