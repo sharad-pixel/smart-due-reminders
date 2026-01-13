@@ -109,7 +109,7 @@ const AIWorkflows = () => {
   const [generatingDrafts, setGeneratingDrafts] = useState(false);
   const [draftsByPersona, setDraftsByPersona] = useState<DraftsByPersona>({});
   const [loadingDrafts, setLoadingDrafts] = useState(false);
-  const [autoSending, setAutoSending] = useState(false);
+  
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [outreachFilterPersona, setOutreachFilterPersona] = useState<string | null>(null);
   const [generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
@@ -857,36 +857,6 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleAutoSendApprovedDrafts = async () => {
-    setAutoSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-template-based-messages');
-
-      if (error) throw error;
-
-      if (data?.sent > 0) {
-        toast.success(
-          `Sent ${data.sent} personalized message${data.sent !== 1 ? 's' : ''}${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`,
-          { duration: 6000 }
-        );
-      } else {
-        toast.info("No messages ready to send (check if invoices match template day offsets)");
-      }
-
-      if (data?.errors && data.errors.length > 0) {
-        toast.warning(`${data.errors.length} error${data.errors.length !== 1 ? 's' : ''} occurred`);
-      }
-
-      // Refresh templates after sending
-      await fetchDraftsByPersona();
-      await fetchStepDraftCounts();
-    } catch (error: any) {
-      console.error('Auto-send error:', error);
-      toast.error(error.message || "Failed to send messages");
-    } finally {
-      setAutoSending(false);
-    }
-  };
 
   const handleGenerateAllAITemplates = async () => {
     setGeneratingAllTemplates(true);
@@ -1305,15 +1275,6 @@ const AIWorkflows = () => {
                 <Sparkles className="h-4 w-4" />
               )}
               <span className="text-sm">{generatingAllTemplates ? "Generating..." : "Generate AI Templates"}</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleAutoSendApprovedDrafts}
-              disabled={autoSending}
-              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
-            >
-              <Mail className="h-4 w-4" />
-              <span className="text-sm">{autoSending ? "Sending..." : "Send Templates"}</span>
             </Button>
             <Button
               variant="outline" 
