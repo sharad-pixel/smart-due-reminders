@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
+import { personaTones, toneIntensityModifiers } from "../_shared/personaTones.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -391,41 +392,47 @@ Provide your analysis as a JSON object.`;
 
       logStep("Context for AI outreach", { hasIntelligence: !!intelligenceReport });
 
-      // Build the outreach prompt with intelligence report guidance
+      // Get user-selected persona and tone intensity from debtor settings
+      const selectedPersonaKey = debtor.account_outreach_persona || 'sam';
+      const selectedToneIntensity = debtor.account_outreach_tone || 3;
+      const selectedPersona = personaTones[selectedPersonaKey] || personaTones.sam;
+      const toneModifier = toneIntensityModifiers[selectedToneIntensity] || toneIntensityModifiers[3];
+      
+      logStep("Using selected persona and tone", { 
+        persona: selectedPersonaKey, 
+        toneIntensity: selectedToneIntensity,
+        toneLabel: toneModifier.label 
+      });
+
+      // Build the outreach prompt with intelligence report guidance AND user-selected persona/tone
       const intelligenceGuidance = intelligenceReport ? `
-COLLECTION INTELLIGENCE REPORT:
+COLLECTION INTELLIGENCE REPORT (for context only):
 - Risk Level: ${intelligenceReport.riskLevel} (Score: ${intelligenceReport.riskScore}/100)
 - Executive Summary: ${intelligenceReport.executiveSummary}
 - Payment Behavior: ${intelligenceReport.paymentBehavior}
 - Communication Sentiment: ${intelligenceReport.communicationSentiment}
-- Recommended Strategy: ${intelligenceReport.collectionStrategy}
 - Key Insights: ${intelligenceReport.keyInsights?.join("; ") || "None"}
-- Recommended Actions: ${intelligenceReport.recommendations?.join("; ") || "None"}
 
-CRITICAL TONE GUIDANCE based on intelligence:
-${intelligenceReport.riskLevel === "low" ? "- Use a friendly, appreciative tone. Acknowledge their good payment history. Frame this as a gentle reminder." : ""}
-${intelligenceReport.riskLevel === "medium" ? "- Use a professional, balanced tone. Be courteous but clear about the importance of resolving the balance." : ""}
-${intelligenceReport.riskLevel === "high" ? "- Use a firm but professional tone. Emphasize urgency without being aggressive. Focus on resolution options." : ""}
-${intelligenceReport.riskLevel === "critical" ? "- Use a direct, serious tone. Clearly state the consequences of non-payment. Offer immediate resolution paths." : ""}
-${intelligenceReport.communicationSentiment?.toLowerCase().includes("negative") ? "- Customer sentiment is negative. Be extra diplomatic and focus on problem-solving." : ""}
-${intelligenceReport.communicationSentiment?.toLowerCase().includes("positive") ? "- Customer has shown positive engagement. Leverage this relationship." : ""}
+NOTE: Use this intelligence for context, but follow the PERSONA INSTRUCTIONS below for tone.
 ` : "";
 
-      const systemPrompt = `You are a professional collections specialist crafting personalized outreach for accounts receivable. 
-Your tone should be tailored based on the Collection Intelligence Report provided.
+      // Apply tone intensity modifier
+      const toneIntensityGuidance = toneModifier.modifier ? `
+${toneModifier.modifier}
+` : "";
 
-Guidelines:
-- CRITICALLY IMPORTANT: Match your tone to the intelligence report's risk level and recommended strategy
-- Reference specific open invoices and their amounts
-- If there are open tasks (like disputes, payment plan requests, document requests), acknowledge them
-- If payment history exists, acknowledge their past payments positively
-- If there are high-priority tasks, address them directly
-- Always include a clear call to action aligned with the recommended strategy
-- Keep the message concise but comprehensive
-- Do not include placeholder text - use the actual data provided
-- Sign off professionally
+      const systemPrompt = `${selectedPersona.systemPromptGuidelines}
+
+${toneIntensityGuidance}
 
 ${intelligenceGuidance}
+
+IMPORTANT FOR ACCOUNT-LEVEL OUTREACH:
+- This is an account-level summary covering ALL open invoices
+- Reference the total outstanding balance and invoice count
+- If there are open tasks (disputes, payment plans), acknowledge them
+- If there's positive payment history, acknowledge it
+- Keep the message focused on the account as a whole
 
 Company name for signature: ${brandingSettings.business_name || "Collections Team"}`;
 
@@ -454,9 +461,10 @@ ${inboundEmails?.map(e => `- ${e.subject}: ${e.ai_summary || "No summary"} (Sent
 
 IMPORTANT INSTRUCTIONS:
 - Use the ACCOUNT DETAILS above as the source of truth for financial data
-- Generate a professional collection email based on the risk level and data provided
+- Generate a professional collection email following the persona guidelines in the system prompt
 - Do NOT refuse to generate the email or claim data inconsistencies
-- Adjust tone based on risk tier: low=friendly, medium=professional, high=firm, critical=urgent
+- Follow the selected persona (${selectedPersona.name}) and tone intensity (${toneModifier.label}) exactly
+- Do NOT auto-escalate tone based on days past due - use ONLY the configured persona
 
 Generate a JSON response with:
 {

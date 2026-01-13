@@ -7,8 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle } from "lucide-react";
+import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle, Volume2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { personaConfig } from "@/lib/personaConfig";
+import { ToneGauge } from "@/components/ToneGauge";
+import { toneIntensityModifiers } from "@/lib/personaTones";
 
 interface AccountOutreachSettingsProps {
   debtorId: string;
@@ -20,6 +24,8 @@ interface AccountOutreachSettingsProps {
     next_outreach_date: string | null;
     last_outreach_date: string | null;
     auto_send_outreach?: boolean;
+    account_outreach_persona?: string | null;
+    account_outreach_tone?: number | null;
   };
   onSettingsChange?: () => void;
 }
@@ -29,6 +35,15 @@ const FREQUENCY_OPTIONS = [
   { value: "biweekly", label: "Bi-weekly", days: 14 },
   { value: "monthly", label: "Monthly", days: 30 },
   { value: "custom", label: "Custom", days: null },
+];
+
+const PERSONA_OPTIONS = [
+  { value: "sam", label: "Sam", tone: "Warm & Friendly", description: "Gentle reminders, relationship-focused" },
+  { value: "james", label: "James", tone: "Direct & Professional", description: "Clear, businesslike communication" },
+  { value: "katy", label: "Katy", tone: "Serious & Assertive", description: "Urgent, escalation warnings" },
+  { value: "troy", label: "Troy", tone: "Firm & Formal", description: "Final notice, consequential" },
+  { value: "jimmy", label: "Jimmy", tone: "Legal & Uncompromising", description: "Pre-litigation pressure" },
+  { value: "rocco", label: "Rocco", tone: "Authoritative & Final", description: "Last internal resort" },
 ];
 
 export const AccountOutreachSettings = ({
@@ -42,6 +57,8 @@ export const AccountOutreachSettings = ({
   const [customDays, setCustomDays] = useState(initialSettings?.outreach_frequency_days || 7);
   const [nextDate, setNextDate] = useState(initialSettings?.next_outreach_date || "");
   const [autoSend, setAutoSend] = useState(initialSettings?.auto_send_outreach || false);
+  const [selectedPersona, setSelectedPersona] = useState(initialSettings?.account_outreach_persona || "sam");
+  const [toneIntensity, setToneIntensity] = useState(initialSettings?.account_outreach_tone || 3);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,6 +68,8 @@ export const AccountOutreachSettings = ({
       setCustomDays(initialSettings.outreach_frequency_days || 7);
       setNextDate(initialSettings.next_outreach_date || "");
       setAutoSend(initialSettings.auto_send_outreach || false);
+      setSelectedPersona(initialSettings.account_outreach_persona || "sam");
+      setToneIntensity(initialSettings.account_outreach_tone || 3);
     }
   }, [initialSettings]);
 
@@ -78,6 +97,8 @@ export const AccountOutreachSettings = ({
           outreach_frequency_days: frequencyDays,
           next_outreach_date: enabled ? calculatedNextDate : null,
           auto_send_outreach: autoSend,
+          account_outreach_persona: selectedPersona,
+          account_outreach_tone: toneIntensity,
         })
         .eq("id", debtorId);
 
@@ -210,17 +231,68 @@ export const AccountOutreachSettings = ({
               </RadioGroup>
             </div>
 
-            {/* AI Intelligence Features */}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+            {/* Tone & Persona Selection */}
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <span className="font-medium text-primary">AI-Powered Collection Intelligence</span>
+                <Volume2 className="h-5 w-5 text-primary" />
+                <span className="font-medium text-primary">Outreach Tone & Style</span>
               </div>
-              <ul className="text-sm text-muted-foreground space-y-2 ml-7">
+              
+              {/* Persona Selection */}
+              <div className="space-y-3">
+                <Label>Select AI Agent Persona</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {PERSONA_OPTIONS.map((persona) => {
+                    const config = personaConfig[persona.value];
+                    const isSelected = selectedPersona === persona.value;
+                    return (
+                      <button
+                        key={persona.value}
+                        type="button"
+                        onClick={() => setSelectedPersona(persona.value)}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          isSelected 
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/20" 
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <PersonaAvatar persona={persona.value} size="xs" />
+                          <span className="font-medium text-sm">{persona.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{persona.tone}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {PERSONA_OPTIONS.find(p => p.value === selectedPersona)?.description}
+                </p>
+              </div>
+
+              {/* Tone Intensity */}
+              <div className="space-y-3 pt-2 border-t">
+                <Label>Tone Intensity Adjustment</Label>
+                <ToneGauge 
+                  value={toneIntensity} 
+                  onChange={setToneIntensity}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Adjust the intensity level for the selected persona. Use softer tones for accounts not yet overdue.
+                </p>
+              </div>
+            </div>
+
+            {/* AI Intelligence Features */}
+            <div className="bg-muted/30 border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">AI-Powered Intelligence</span>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-7">
                 <li>• Analyzes all open invoices and aging buckets</li>
                 <li>• Reviews prior communication history and sentiment</li>
                 <li>• Considers payment patterns and risk scores</li>
-                <li>• Dynamically adjusts tone based on account risk level</li>
                 <li>• References outstanding tasks (disputes, payment plans)</li>
               </ul>
             </div>
@@ -280,15 +352,29 @@ export const AccountOutreachSettings = ({
                 )}
               </div>
 
-              {/* AI Intelligence Summary */}
+              {/* Current Settings Summary */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>How AI Determines Tone</Label>
-                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-2">
-                    <p><strong className="text-foreground">Low Risk:</strong> Friendly, appreciative reminders</p>
-                    <p><strong className="text-foreground">Medium Risk:</strong> Professional, balanced requests</p>
-                    <p><strong className="text-foreground">High Risk:</strong> Firm but courteous urgency</p>
-                    <p><strong className="text-foreground">Critical:</strong> Direct, resolution-focused</p>
+                  <Label>Current Configuration</Label>
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                    {/* Selected Persona */}
+                    <div className="flex items-center gap-2">
+                      <PersonaAvatar persona={selectedPersona} size="sm" />
+                      <div>
+                        <p className="font-medium text-sm">
+                          {PERSONA_OPTIONS.find(p => p.value === selectedPersona)?.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {PERSONA_OPTIONS.find(p => p.value === selectedPersona)?.tone}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Tone Intensity */}
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Tone Intensity: </span>
+                      <span className="font-medium">{toneIntensityModifiers[toneIntensity]?.label || "Standard"}</span>
+                    </div>
                   </div>
                 </div>
 

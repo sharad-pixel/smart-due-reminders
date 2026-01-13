@@ -2097,6 +2097,7 @@ export type Database = {
         Row: {
           account_outreach_enabled: boolean | null
           account_outreach_persona: string | null
+          account_outreach_tone: number | null
           address: string | null
           address_line1: string | null
           address_line2: string | null
@@ -2202,6 +2203,7 @@ export type Database = {
         Insert: {
           account_outreach_enabled?: boolean | null
           account_outreach_persona?: string | null
+          account_outreach_tone?: number | null
           address?: string | null
           address_line1?: string | null
           address_line2?: string | null
@@ -2307,6 +2309,7 @@ export type Database = {
         Update: {
           account_outreach_enabled?: boolean | null
           account_outreach_persona?: string | null
+          account_outreach_tone?: number | null
           address?: string | null
           address_line1?: string | null
           address_line2?: string | null
