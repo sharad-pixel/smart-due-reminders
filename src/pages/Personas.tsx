@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import MarketingLayout from "@/components/MarketingLayout";
 import { personaConfig } from "@/lib/personaConfig";
-import { MessageSquare, Target, Clock, TrendingUp } from "lucide-react";
+import { MessageSquare, Target, Clock, TrendingUp, Slack } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const sampleMessages: Record<string, string[]> = {
@@ -52,7 +52,8 @@ const strategies: Record<string, { approach: string; tactics: string[]; goal: st
       "Proactive support and assistance offers",
       "Summarize total balance across all invoices",
       "Answer questions and provide documentation",
-      "Build trust and maintain long-term relationships"
+      "Build trust and maintain long-term relationships",
+      "Connect users to Support on Slack for escalations"
     ],
     goal: "Provide helpful account support and encourage engagement before escalation"
   },
@@ -227,12 +228,19 @@ const Personas = () => {
                         Key Tactics & Features
                       </h4>
                       <ul className="grid md:grid-cols-2 gap-2">
-                        {strategy.tactics.map((tactic, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm">
-                            <span className="text-primary mt-1">•</span>
-                            <span className="text-muted-foreground">{tactic}</span>
-                          </li>
-                        ))}
+                        {strategy.tactics.map((tactic, i) => {
+                          const isSlackTactic = tactic.toLowerCase().includes('slack');
+                          return (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              {isSlackTactic ? (
+                                <Slack className="h-4 w-4 text-[#4A154B] mt-0.5 shrink-0" />
+                              ) : (
+                                <span className="text-primary mt-1">•</span>
+                              )}
+                              <span className="text-muted-foreground">{tactic}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
 
