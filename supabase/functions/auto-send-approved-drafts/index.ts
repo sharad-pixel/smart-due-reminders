@@ -157,6 +157,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Parse request body to check for specific draft IDs
+    let requestedDraftIds: string[] | null = null;
+    try {
+      const body = await req.json();
+      if (body?.draftIds && Array.isArray(body.draftIds) && body.draftIds.length > 0) {
+        requestedDraftIds = body.draftIds as string[];
+        console.log(`[AUTO-SEND] Requested specific draft IDs: ${(requestedDraftIds as string[]).join(', ')}`);
+      }
+    } catch {
+      // No body or invalid JSON - process all eligible drafts
+    }
+
     console.log('[AUTO-SEND] Starting auto-send approved drafts...');
 
     const supabaseAdmin = createClient(
@@ -176,9 +188,8 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const BATCH_SIZE = 50;
     
-    // CRITICAL: Only fetch drafts for ACTIVE invoices (Open, InPaymentPlan)
-    // Do NOT send emails to Paid, Canceled, Voided, Credited, or WrittenOff invoices
-    const { data: approvedDrafts, error: draftsError } = await supabaseAdmin
+    // Build the query
+    let query = supabaseAdmin
       .from('ai_drafts')
       .select(`
       *,
@@ -207,8 +218,18 @@ Deno.serve(async (req) => {
       `)
       .eq('status', 'approved')
       .is('sent_at', null)
-      .in('invoices.status', ['Open', 'InPaymentPlan']) // Only active invoices!
-      .lte('recommended_send_date', today)
+      .in('invoices.status', ['Open', 'InPaymentPlan']); // Only active invoices!
+    
+    // If specific draft IDs requested, filter to those; otherwise use date filter
+    if (requestedDraftIds && requestedDraftIds.length > 0) {
+      query = query.in('id', requestedDraftIds);
+    } else {
+      query = query.lte('recommended_send_date', today);
+    }
+    
+    // CRITICAL: Only fetch drafts for ACTIVE invoices (Open, InPaymentPlan)
+    // Do NOT send emails to Paid, Canceled, Voided, Credited, or WrittenOff invoices
+    const { data: approvedDrafts, error: draftsError } = await query
       .order('recommended_send_date', { ascending: true })
       .limit(BATCH_SIZE);
 

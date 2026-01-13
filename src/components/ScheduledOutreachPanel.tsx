@@ -623,8 +623,10 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     }
     
     try {
-      // Call the auto-send function which processes approved drafts
-      const { data, error } = await supabase.functions.invoke('auto-send-approved-drafts');
+      // Call the auto-send function with specific draft IDs
+      const { data, error } = await supabase.functions.invoke('auto-send-approved-drafts', {
+        body: { draftIds: idsToSend }
+      });
       
       if (error) throw error;
       
