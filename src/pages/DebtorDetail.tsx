@@ -930,7 +930,7 @@ const DebtorDetail = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Current Balance</p>
                 <p className="text-2xl font-bold">
-                  ${(debtor.current_balance || 0).toLocaleString()}
+                  ${(debtor.current_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="space-y-2">
@@ -1055,7 +1055,7 @@ const DebtorDetail = () => {
                           <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                           <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
                           <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
-                          <TableCell>${invoice.amount.toLocaleString()}</TableCell>
+                          <TableCell>${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(

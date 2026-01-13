@@ -117,7 +117,7 @@ export const OutreachDetailModal = ({
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <span className="font-mono font-medium">{outreach.invoices.invoice_number}</span>
                   <span className="text-muted-foreground">•</span>
-                  <span className="font-medium">${outreach.invoices.amount.toLocaleString()}</span>
+                  <span className="font-medium">${outreach.invoices.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <Button 
                   variant="ghost" 

@@ -194,7 +194,7 @@ export function PaymentActivityCard({
                 Payment Activity
               </CardTitle>
               <CardDescription>
-                {stats?.total || 0} payments • ${(stats?.totalAmount || 0).toLocaleString()} total
+                {stats?.total || 0} payments • ${(stats?.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export function PaymentActivityCard({
                       </TableCell>
                     )}
                     <TableCell className="font-semibold text-right tabular-nums">
-                      {payment.currency} {payment.amount.toLocaleString()}
+                      {payment.currency} {payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[120px] truncate">
                       {payment.reference || "—"}

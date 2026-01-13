@@ -628,7 +628,7 @@ function generateEmailHtml(data: {
   healthLabel: string;
 }): string {
   const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 
   const healthColor = data.healthLabel === 'Healthy' ? '#22c55e' :
     data.healthLabel === 'Caution' ? '#eab308' :

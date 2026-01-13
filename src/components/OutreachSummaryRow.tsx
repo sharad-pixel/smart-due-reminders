@@ -90,7 +90,7 @@ export const OutreachSummaryRow = ({
             {invoiceAmount !== null && invoiceAmount !== undefined && (
               <>
                 <span className="mx-1">•</span>
-                <span>${invoiceAmount.toLocaleString()}</span>
+                <span>${invoiceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </>
             )}
           </div>
