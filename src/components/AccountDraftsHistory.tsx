@@ -183,10 +183,9 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
           };
         });
 
-      // Process account-level drafts (get debtor info from applied_brand_snapshot or metadata)
+      // Process account-level drafts - use "nicolas" as the account-level agent
       const accountDraftItems: DraftItem[] = (accountResult.data || []).map((draft: any) => {
         const snapshot = draft.applied_brand_snapshot || {};
-        const personaKey = getPersonaFromDpd(draft.days_past_due);
 
         return {
           id: draft.id,
@@ -202,7 +201,7 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
           days_past_due: draft.days_past_due,
           step_number: draft.step_number,
           channel: draft.channel,
-          persona_key: personaKey,
+          persona_key: 'nicolas', // Nicolas is the account-level AI agent
           source_type: 'account_level' as const,
         };
       });
