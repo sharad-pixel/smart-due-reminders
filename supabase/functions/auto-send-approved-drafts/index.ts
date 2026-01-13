@@ -11,7 +11,7 @@ import {
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
-import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
+import { INBOUND_EMAIL_DOMAIN, getDebtorReplyToAddress } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -184,15 +184,32 @@ Deno.serve(async (req) => {
 
     // Get all approved drafts that haven't been sent yet
     // Include drafts where recommended_send_date is today or in the past (catch-up)
-    // Process in batches of 50 to avoid timeouts
+    // Process in batches to avoid timeouts
     const today = new Date().toISOString().split('T')[0];
-    const BATCH_SIZE = 50;
-    
-    // Build the query
-    let query = supabaseAdmin
+    const TOTAL_BATCH_SIZE = 50;
+    const INVOICE_BATCH_SIZE = requestedDraftIds && requestedDraftIds.length > 0 ? TOTAL_BATCH_SIZE : 25;
+    const ACCOUNT_BATCH_SIZE = requestedDraftIds && requestedDraftIds.length > 0 ? TOTAL_BATCH_SIZE : 25;
+
+    const extractDebtorIdFromSnapshot = (snapshot: any): string | null => {
+      if (!snapshot || typeof snapshot !== 'object') return null;
+      const context = (snapshot as any).context || {};
+      const invoices = (context as any).invoices || [];
+
+      return (
+        (snapshot as any).debtor_id ||
+        (context as any).debtor_id ||
+        (Array.isArray(invoices) && invoices.length > 0 ? invoices[0]?.debtor_id : null) ||
+        null
+      );
+    };
+
+    // ------------------------------
+    // Fetch INVOICE-LEVEL drafts
+    // ------------------------------
+    let invoiceDraftQuery = supabaseAdmin
       .from('ai_drafts')
       .select(`
-      *,
+        *,
         invoices!inner(
           id,
           status,
@@ -217,61 +234,105 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('status', 'approved')
-      .is('sent_at', null);
-    
-    // If specific draft IDs requested, filter to those; otherwise use date filter
+      .is('sent_at', null)
+      .not('invoice_id', 'is', null);
+
     if (requestedDraftIds && requestedDraftIds.length > 0) {
-      query = query.in('id', requestedDraftIds);
+      invoiceDraftQuery = invoiceDraftQuery.in('id', requestedDraftIds);
     } else {
-      query = query.lte('recommended_send_date', today);
+      invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', today);
     }
-    
-    // CRITICAL: Only fetch drafts for ACTIVE invoices (Open, InPaymentPlan)
-    // Do NOT send emails to Paid, Canceled, Voided, Credited, or WrittenOff invoices
-    const { data: approvedDrafts, error: draftsError } = await query
+
+    const { data: invoiceDrafts, error: invoiceDraftsError } = await invoiceDraftQuery
       .order('recommended_send_date', { ascending: true })
-      .limit(BATCH_SIZE);
+      .limit(INVOICE_BATCH_SIZE);
 
-    if (draftsError) {
-      console.error('[AUTO-SEND] Error fetching approved drafts:', draftsError);
-      throw draftsError;
+    if (invoiceDraftsError) {
+      console.error('[AUTO-SEND] Error fetching invoice-level drafts:', invoiceDraftsError);
+      throw invoiceDraftsError;
     }
 
-    console.log(`[AUTO-SEND] Found ${approvedDrafts?.length || 0} approved drafts to process`);
+    // ------------------------------
+    // Fetch ACCOUNT-LEVEL drafts (invoice_id is null)
+    // These are created by account-level outreach flows (e.g. send-account-summary)
+    // ------------------------------
+    let accountDraftQuery = supabaseAdmin
+      .from('ai_drafts')
+      .select(`
+        id,
+        user_id,
+        subject,
+        message_body,
+        status,
+        channel,
+        recommended_send_date,
+        applied_brand_snapshot,
+        created_at,
+        updated_at
+      `)
+      .eq('status', 'approved')
+      .is('sent_at', null)
+      .is('invoice_id', null);
+
+    if (requestedDraftIds && requestedDraftIds.length > 0) {
+      accountDraftQuery = accountDraftQuery.in('id', requestedDraftIds);
+    } else {
+      accountDraftQuery = accountDraftQuery.lte('recommended_send_date', today);
+    }
+
+    const { data: accountDrafts, error: accountDraftsError } = await accountDraftQuery
+      .order('recommended_send_date', { ascending: true })
+      .limit(ACCOUNT_BATCH_SIZE);
+
+    if (accountDraftsError) {
+      console.error('[AUTO-SEND] Error fetching account-level drafts:', accountDraftsError);
+      throw accountDraftsError;
+    }
+
+    const invoiceCount = invoiceDrafts?.length || 0;
+    const accountCount = accountDrafts?.length || 0;
+    const totalCount = invoiceCount + accountCount;
+
+    console.log(
+      `[AUTO-SEND] Found ${totalCount} approved drafts to process (${invoiceCount} invoice-level, ${accountCount} account-level)`
+    );
 
     let sentCount = 0;
     let skippedCount = 0;
     const errors: string[] = [];
 
-    for (const draft of approvedDrafts || []) {
-      const invoice = draft.invoices as any;
+    // ============================================================
+    // Process INVOICE-LEVEL drafts
+    // ============================================================
+    for (const draft of invoiceDrafts || []) {
+      const invoice = (draft as any).invoices as any;
       const debtor = invoice?.debtors as any;
-      
+
       // Only process active invoice statuses - mark others as skipped
-      if (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan' && invoice.status !== 'PartiallyPaid') {
-        console.log(`[AUTO-SEND] Skipping draft ${draft.id}: invoice ${invoice.id} status is ${invoice.status}`);
-        
+      if (invoice?.status !== 'Open' && invoice?.status !== 'InPaymentPlan' && invoice?.status !== 'PartiallyPaid') {
+        console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: invoice ${invoice?.id} status is ${invoice?.status}`);
+
         // Mark draft as skipped so it doesn't keep appearing
         await supabaseAdmin
           .from('ai_drafts')
-          .update({ 
+          .update({
             status: 'skipped',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', draft.id);
-        
+          .eq('id', (draft as any).id);
+
         skippedCount++;
         continue;
       }
 
       // Validate we have debtor info
       if (!debtor || !debtor.id) {
-        console.log(`[AUTO-SEND] Skipping draft ${draft.id}: no debtor found`);
+        console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: no debtor found`);
         skippedCount++;
         continue;
       }
 
-      console.log(`[AUTO-SEND] Processing draft ${draft.id} for invoice ${invoice.invoice_number}`);
+      console.log(`[AUTO-SEND] Processing invoice draft ${draft.id} for invoice ${invoice.invoice_number}`);
 
       try {
         // Get outreach contacts for this debtor
@@ -279,22 +340,22 @@ Deno.serve(async (req) => {
         const allEmails = outreachContacts.emails;
 
         if (allEmails.length === 0) {
-          console.log(`[AUTO-SEND] Skipping draft ${draft.id}: no email addresses found for debtor ${debtor.id}`);
+          console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: no email addresses found for debtor ${debtor.id}`);
           skippedCount++;
           continue;
         }
 
         // Get effective account ID for branding
-        const { data: effectiveAccountId } = await supabaseAdmin.rpc('get_effective_account_id', { 
-          p_user_id: invoice.user_id 
+        const { data: effectiveAccountId } = await supabaseAdmin.rpc('get_effective_account_id', {
+          p_user_id: invoice.user_id,
         });
         const brandingOwnerId = effectiveAccountId || invoice.user_id;
 
         // Fetch full branding settings for deterministic sender selection
         const { data: branding } = await supabaseAdmin
-          .from("branding_settings")
-          .select("*")
-          .eq("user_id", brandingOwnerId)
+          .from('branding_settings')
+          .select('*')
+          .eq('user_id', brandingOwnerId)
           .single();
 
         // Build branding config for deterministic sender selection
@@ -320,11 +381,11 @@ Deno.serve(async (req) => {
         // Get deterministic sender identity
         const sender = getSenderIdentity(brandingConfig);
         const brandSnapshot = captureBrandSnapshot(brandingConfig, sender);
-        
-        // Always use invoice-specific reply-to for routing inbound responses (do not allow branding overrides)
+
+        // Always use invoice-specific reply-to for routing inbound responses
         const replyToAddress = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
-        console.log(`[AUTO-SEND] Sender for draft ${draft.id}:`, {
+        console.log(`[AUTO-SEND] Sender for invoice draft ${draft.id}:`, {
           mode: sender.sendingMode,
           from: sender.fromEmail,
           fallback: sender.usedFallback,
@@ -332,65 +393,67 @@ Deno.serve(async (req) => {
 
         // Calculate days past due for template replacement
         const dueDate = new Date(invoice.due_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        const daysPastDue = Math.max(
+          0,
+          Math.floor((todayDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        );
 
         // Replace template variables in draft content
         const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue);
         let processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
-        
+
         // Ensure message has contact info, signature, and links
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
-        // Render branded HTML email using new standardized wrapper
+        // Render branded HTML email using standardized wrapper
         const emailHtml = renderBrandedEmail({
           brand: brandingConfig,
           subject: processedSubject,
           bodyHtml: processedBody.replace(/\n/g, '<br>'),
-          cta: branding?.stripe_payment_link ? {
-            label: `💳 Pay Now $${invoice.amount?.toLocaleString()}`,
-            url: branding.stripe_payment_link,
-          } : undefined,
+          cta: branding?.stripe_payment_link
+            ? {
+                label: `💳 Pay Now $${invoice.amount?.toLocaleString()}`,
+                url: branding.stripe_payment_link,
+              }
+            : undefined,
           meta: {
             invoiceId: invoice.id,
             debtorId: debtor.id,
           },
         });
 
-        console.log(`[AUTO-SEND] Sending email from ${sender.fromEmail} to ${allEmails.join(', ')}`);
+        console.log(`[AUTO-SEND] Sending invoice email from ${sender.fromEmail} to ${allEmails.join(', ')}`);
 
         // Send email via platform send-email function
-        const sendEmailResponse = await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({
-              to: allEmails,
-              from: sender.fromEmail,
-              reply_to: replyToAddress,
-              subject: processedSubject,
-              html: emailHtml,
-            }),
-          }
-        );
+        const sendEmailResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            to: allEmails,
+            from: sender.fromEmail,
+            reply_to: replyToAddress,
+            subject: processedSubject,
+            html: emailHtml,
+          }),
+        });
 
         const emailResult = await sendEmailResponse.json();
 
         if (!sendEmailResponse.ok) {
-          console.error(`[AUTO-SEND] Email send error for draft ${draft.id}:`, emailResult);
+          console.error(`[AUTO-SEND] Email send error for invoice draft ${draft.id}:`, emailResult);
           errors.push(`Draft ${draft.id}: ${emailResult.error || 'Email send failed'}`);
           continue;
         }
 
-        console.log(`[AUTO-SEND] Email sent successfully for draft ${draft.id}`);
+        console.log(`[AUTO-SEND] Email sent successfully for invoice draft ${draft.id}`);
 
-        // Log the outreach with brand snapshot
-        await supabaseAdmin.from("outreach_logs").insert({
+        // Log the outreach
+        await supabaseAdmin.from('outreach_logs').insert({
           user_id: invoice.user_id,
           invoice_id: invoice.id,
           debtor_id: debtor.id,
@@ -399,7 +462,7 @@ Deno.serve(async (req) => {
           message_body: processedBody,
           sent_to: allEmails.join(', '),
           sent_from: sender.fromEmail,
-          status: "sent",
+          status: 'sent',
           sent_at: new Date().toISOString(),
           delivery_metadata: {
             draft_id: draft.id,
@@ -411,15 +474,15 @@ Deno.serve(async (req) => {
           },
         });
 
-        // Log collection activity with brand snapshot
-        await supabaseAdmin.from("collection_activities").insert({
+        // Log collection activity
+        await supabaseAdmin.from('collection_activities').insert({
           user_id: invoice.user_id,
           debtor_id: debtor.id,
           invoice_id: invoice.id,
           linked_draft_id: draft.id,
-          activity_type: "outreach",
-          direction: "outbound",
-          channel: "email",
+          activity_type: 'outreach',
+          direction: 'outbound',
+          channel: 'email',
           subject: processedSubject,
           message_body: processedBody,
           sent_at: new Date().toISOString(),
@@ -438,14 +501,14 @@ Deno.serve(async (req) => {
 
         // Update invoice last_contact_date
         await supabaseAdmin
-          .from("invoices")
+          .from('invoices')
           .update({ last_contact_date: new Date().toISOString().split('T')[0] })
-          .eq("id", invoice.id);
+          .eq('id', invoice.id);
 
         // Mark draft as sent with status, timestamp, and brand snapshot for auditing
         await supabaseAdmin
           .from('ai_drafts')
-          .update({ 
+          .update({
             status: 'sent',
             sent_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -454,10 +517,211 @@ Deno.serve(async (req) => {
           .eq('id', draft.id);
 
         sentCount++;
-        console.log(`[AUTO-SEND] Successfully processed draft ${draft.id} for invoice ${invoice.invoice_number}`);
-
+        console.log(`[AUTO-SEND] Successfully processed invoice draft ${draft.id} for invoice ${invoice.invoice_number}`);
       } catch (error) {
-        console.error(`[AUTO-SEND] Exception processing draft ${draft.id}:`, error);
+        console.error(`[AUTO-SEND] Exception processing invoice draft ${draft.id}:`, error);
+        errors.push(`Draft ${draft.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    // ============================================================
+    // Process ACCOUNT-LEVEL drafts
+    // ============================================================
+    for (const draft of accountDrafts || []) {
+      const existingSnapshot =
+        (draft as any).applied_brand_snapshot &&
+        typeof (draft as any).applied_brand_snapshot === 'object' &&
+        !Array.isArray((draft as any).applied_brand_snapshot)
+          ? (draft as any).applied_brand_snapshot
+          : {};
+
+      const debtorId = extractDebtorIdFromSnapshot(existingSnapshot);
+      if (!debtorId) {
+        console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: no debtor_id found in applied_brand_snapshot`);
+
+        await supabaseAdmin
+          .from('ai_drafts')
+          .update({
+            status: 'skipped',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', (draft as any).id);
+
+        skippedCount++;
+        continue;
+      }
+
+      console.log(`[AUTO-SEND] Processing account draft ${draft.id} for debtor ${debtorId}`);
+
+      try {
+        const { data: debtor, error: debtorError } = await supabaseAdmin
+          .from('debtors')
+          .select('id, name, company_name, email, phone')
+          .eq('id', debtorId)
+          .single();
+
+        if (debtorError || !debtor) {
+          console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: debtor not found (${debtorError?.message || 'unknown'})`);
+          skippedCount++;
+          continue;
+        }
+
+        // Get outreach contacts for this debtor
+        const outreachContacts = await getOutreachContacts(supabaseAdmin, debtor.id, debtor);
+        const allEmails = outreachContacts.emails;
+
+        if (allEmails.length === 0) {
+          console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: no email addresses found for debtor ${debtor.id}`);
+          skippedCount++;
+          continue;
+        }
+
+        // Branding for the draft owner (team-safe)
+        const { data: effectiveAccountId } = await supabaseAdmin.rpc('get_effective_account_id', {
+          p_user_id: (draft as any).user_id,
+        });
+        const brandingOwnerId = effectiveAccountId || (draft as any).user_id;
+
+        const { data: branding } = await supabaseAdmin
+          .from('branding_settings')
+          .select('*')
+          .eq('user_id', brandingOwnerId)
+          .single();
+
+        const brandingConfig: BrandingConfig = {
+          business_name: branding?.business_name || 'Recouply',
+          from_name: branding?.from_name || branding?.business_name || 'Recouply',
+          logo_url: branding?.logo_url,
+          primary_color: branding?.primary_color || '#111827',
+          accent_color: branding?.accent_color || '#6366f1',
+          sending_mode: branding?.sending_mode || 'recouply_default',
+          from_email: branding?.from_email,
+          from_email_verified: branding?.from_email_verified || false,
+          verified_from_email: branding?.verified_from_email,
+          reply_to_email: branding?.reply_to_email,
+          email_signature: branding?.email_signature,
+          email_footer: branding?.email_footer,
+          footer_disclaimer: branding?.footer_disclaimer,
+          ar_page_public_token: branding?.ar_page_public_token,
+          ar_page_enabled: branding?.ar_page_enabled,
+          stripe_payment_link: branding?.stripe_payment_link,
+        };
+
+        const sender = getSenderIdentity(brandingConfig);
+        const brandSnapshot = captureBrandSnapshot(brandingConfig, sender);
+
+        // For account-level outreach, route replies by debtor
+        const replyToAddress = getDebtorReplyToAddress(debtor.id);
+
+        // Replace template variables in draft content (invoice vars will be empty)
+        const processedSubject = replaceTemplateVars(draft.subject || 'Account Summary', {}, debtor, branding, 0);
+        let processedBody = replaceTemplateVars(draft.message_body || '', {}, debtor, branding, 0);
+        processedBody = ensureMessageHasContactInfo(processedBody, branding);
+
+        const emailHtml = renderBrandedEmail({
+          brand: brandingConfig,
+          subject: processedSubject,
+          bodyHtml: processedBody.replace(/\n/g, '<br>'),
+          meta: {
+            debtorId: debtor.id,
+          },
+        });
+
+        console.log(`[AUTO-SEND] Sending account email from ${sender.fromEmail} to ${allEmails.join(', ')}`);
+
+        const sendEmailResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            to: allEmails,
+            from: sender.fromEmail,
+            reply_to: replyToAddress,
+            subject: processedSubject,
+            html: emailHtml,
+          }),
+        });
+
+        const emailResult = await sendEmailResponse.json();
+
+        if (!sendEmailResponse.ok) {
+          console.error(`[AUTO-SEND] Email send error for account draft ${draft.id}:`, emailResult);
+          errors.push(`Draft ${draft.id}: ${emailResult.error || 'Email send failed'}`);
+          continue;
+        }
+
+        // Log outreach
+        await supabaseAdmin.from('outreach_logs').insert({
+          user_id: (draft as any).user_id,
+          invoice_id: null,
+          debtor_id: debtor.id,
+          channel: (draft as any).channel || 'email',
+          subject: processedSubject,
+          message_body: processedBody,
+          sent_to: allEmails.join(', '),
+          sent_from: sender.fromEmail,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          delivery_metadata: {
+            draft_id: (draft as any).id,
+            reply_to: replyToAddress,
+            platform_send: true,
+            recipients_count: allEmails.length,
+            auto_sent: true,
+            outreach_type: 'account_level',
+            brand_snapshot: brandSnapshot,
+          },
+        });
+
+        // Log activity
+        await supabaseAdmin.from('collection_activities').insert({
+          user_id: (draft as any).user_id,
+          debtor_id: debtor.id,
+          invoice_id: null,
+          linked_draft_id: (draft as any).id,
+          activity_type: 'account_level_outreach',
+          direction: 'outbound',
+          channel: 'email',
+          subject: processedSubject,
+          message_body: processedBody,
+          sent_at: new Date().toISOString(),
+          metadata: {
+            from_email: sender.fromEmail,
+            from_name: sender.fromName,
+            reply_to_email: replyToAddress,
+            sending_mode: sender.sendingMode,
+            used_fallback: sender.usedFallback,
+            platform_send: true,
+            auto_sent: true,
+            recipients: allEmails,
+            outreach_type: 'account_level',
+            brand_snapshot: brandSnapshot,
+          },
+        });
+
+        // Preserve the existing snapshot (which contains debtor/invoice context) and append brand snapshot
+        const mergedSnapshot = {
+          ...existingSnapshot,
+          brand_snapshot: brandSnapshot,
+        };
+
+        // Mark draft as sent
+        await supabaseAdmin
+          .from('ai_drafts')
+          .update({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            applied_brand_snapshot: mergedSnapshot,
+          })
+          .eq('id', (draft as any).id);
+
+        sentCount++;
+        console.log(`[AUTO-SEND] Successfully processed account draft ${draft.id} for debtor ${debtor.id}`);
+      } catch (error) {
+        console.error(`[AUTO-SEND] Exception processing account draft ${draft.id}:`, error);
         errors.push(`Draft ${draft.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
