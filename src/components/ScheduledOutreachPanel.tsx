@@ -77,6 +77,7 @@ interface ScheduledItem {
   step_number?: number;
   created_at?: string;
   updated_at?: string;
+  invoice_status?: string; // Track invoice status for display
 }
 
 interface ScheduledOutreachPanelProps {
@@ -131,7 +132,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     else setLoading(true);
     
     try {
-      // Fetch invoice-level AI drafts (pending/approved)
+      // Fetch invoice-level AI drafts (pending/approved) for ACTIVE invoices only
+      // Exclude: Paid, Canceled, Voided, WrittenOff, Credited
       const invoiceDraftsQuery = supabase
         .from('ai_drafts')
         .select(`
@@ -146,12 +148,13 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
           channel,
           created_at,
           updated_at,
-          invoices(
+          invoices!inner(
             id,
             invoice_number,
             amount,
             aging_bucket,
             debtor_id,
+            status,
             debtors(id, company_name, account_outreach_enabled)
           )
         `)
@@ -159,6 +162,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
         .in('status', ['pending_approval', 'approved'])
         .is('sent_at', null)
         .not('invoice_id', 'is', null)
+        .in('invoices.status', ['Open', 'InPaymentPlan']) // Only active invoices
         .order('recommended_send_date', { ascending: true });
 
       // Fetch account-level AI drafts (invoice_id is null)
@@ -192,7 +196,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
       if (invoiceResult.error) throw invoiceResult.error;
       if (accountResult.error) throw accountResult.error;
 
-      // Map invoice-level drafts
+      // Map invoice-level drafts (already filtered to active invoices only)
       const invoiceItems: ScheduledItem[] = (invoiceResult.data || [])
         .filter((d: any) => d.invoices)
         .map((draft: any) => {
@@ -219,6 +223,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
             step_number: draft.step_number,
             created_at: draft.created_at,
             updated_at: draft.updated_at,
+            invoice_status: invoice?.status,
           };
         });
 
@@ -349,16 +354,33 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     }
   };
 
-  const getStatusBadge = (status: string, createdAt?: string, updatedAt?: string) => {
+  const getStatusBadge = (status: string, scheduledDate: string, createdAt?: string, updatedAt?: string) => {
     const date = updatedAt || createdAt;
     const formattedDate = date ? format(new Date(date), "MMM d, h:mm a") : '';
+    const scheduled = new Date(scheduledDate);
+    const now = new Date();
+    const isScheduledFuture = scheduled > now;
     
     if (status === 'approved') {
+      // Approved draft - differentiate between ready to send vs scheduled for future
+      if (isScheduledFuture) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 gap-1 w-fit">
+              <Calendar className="h-3 w-3" />
+              Scheduled
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">
+              Sends {format(scheduled, "MMM d")}
+            </span>
+          </div>
+        );
+      }
       return (
         <div className="flex flex-col gap-0.5">
           <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 gap-1 w-fit">
             <Check className="h-3 w-3" />
-            Approved
+            Ready to Send
           </Badge>
           {formattedDate && (
             <span className="text-[10px] text-muted-foreground">{formattedDate}</span>
@@ -366,11 +388,12 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
         </div>
       );
     }
+    // Pending approval
     return (
       <div className="flex flex-col gap-0.5">
-        <Badge variant="secondary" className="gap-1 w-fit">
+        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 gap-1 w-fit">
           <AlertCircle className="h-3 w-3" />
-          Pending
+          Needs Approval
         </Badge>
         {formattedDate && (
           <span className="text-[10px] text-muted-foreground">{formattedDate}</span>
@@ -473,7 +496,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                   Scheduled Outreach
                 </CardTitle>
                 <CardDescription>
-                  AI-generated drafts pending review or ready to send. Filter by type (Invoice or Account) and status.
+                  Approved drafts are sent automatically. "Needs Approval" requires your review before sending.
+                  Closed invoices (Paid, Canceled, Voided) are excluded from outreach.
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -525,13 +549,13 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending_approval">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending_approval">Needs Approval</SelectItem>
+                  <SelectItem value="approved">Ready / Scheduled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -616,7 +640,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                           {formatCurrency(item.amount)}
                         </TableCell>
                         <TableCell>
-                          {getStatusBadge(item.status, item.created_at, item.updated_at)}
+                          {getStatusBadge(item.status, item.scheduled_date, item.created_at, item.updated_at)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
