@@ -94,10 +94,13 @@ export function CollectionIntelligenceDashboard() {
     );
   }
 
-  // Get accounts requiring attention (Critical and At Risk)
-  const attentionAccounts = data
-    ?.filter((d) => d.collection_health_tier === "Critical" || d.collection_health_tier === "At Risk")
-    .slice(0, 6) || [];
+  // Filter to only show accounts with open balance
+  const accountsWithBalance = data?.filter((d) => (d.total_open_balance || 0) > 0) || [];
+
+  // Get accounts requiring attention (Critical and At Risk) - only those with open balance
+  const attentionAccounts = accountsWithBalance
+    .filter((d) => d.collection_health_tier === "Critical" || d.collection_health_tier === "At Risk")
+    .slice(0, 6);
 
   return (
     <Card className="overflow-hidden">
@@ -167,15 +170,15 @@ export function CollectionIntelligenceDashboard() {
           </div>
         )}
 
-        {/* All Accounts Grid */}
-        {data && data.length > 0 && (
+        {/* All Accounts Grid - only those with open balance */}
+        {accountsWithBalance.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              All Accounts ({data.length})
+              All Accounts ({accountsWithBalance.length})
             </h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto">
-              {data.map((account) => (
+              {accountsWithBalance.map((account) => (
                 <MiniScorecard 
                   key={account.id} 
                   account={account}
@@ -187,12 +190,12 @@ export function CollectionIntelligenceDashboard() {
         )}
 
         {/* Empty State */}
-        {(!data || data.length === 0) && (
+        {accountsWithBalance.length === 0 && (
           <div className="text-center py-8">
             <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold">No accounts found</h3>
+            <h3 className="font-semibold">No accounts with open balance</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Add accounts to start tracking collection intelligence
+              Accounts with outstanding balances will appear here
             </p>
           </div>
         )}
