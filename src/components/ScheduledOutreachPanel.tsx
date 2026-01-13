@@ -578,6 +578,21 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     return item?.status === 'pending_approval';
   }).length;
 
+  // Convert HTML to plain text for display
+  const stripHtmlTags = (html: string): string => {
+    // Replace <br/> and </p><p> with newlines
+    let text = html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n\n')
+      .replace(/<p>/gi, '')
+      .replace(/<\/p>/gi, '\n');
+    // Remove any remaining HTML tags
+    text = text.replace(/<[^>]*>/g, '');
+    // Clean up extra whitespace
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+    return text;
+  };
+
   const handlePreview = (item: ScheduledItem) => {
     setPreviewItem(item);
     setPreviewSubject(item.subject || '');
@@ -1068,8 +1083,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                       />
                     ) : (
                       <div className="p-4 bg-background rounded border max-h-[300px] overflow-y-auto">
-                        <div className="whitespace-pre-wrap text-sm">
-                          {previewBody || "No content"}
+                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                          {stripHtmlTags(previewBody) || "No content"}
                         </div>
                       </div>
                     )}
