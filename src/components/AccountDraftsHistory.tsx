@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { personaConfig } from "@/lib/personaConfig";
+import { personaConfig, getPersonaByName } from "@/lib/personaConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { DraftPreviewModal } from "@/components/DraftPreviewModal";
+import { toast } from "sonner";
 import { 
   Mail, 
   ChevronLeft, 
@@ -22,7 +24,8 @@ import {
   Clock,
   Send,
   XCircle,
-  Sparkles
+  Sparkles,
+  Eye
 } from "lucide-react";
 import {
   Select,
@@ -48,6 +51,7 @@ interface DraftItem {
   debtor_id: string;
   company_name: string;
   subject: string | null;
+  message_body?: string;
   status: string;
   created_at: string;
   sent_at: string | null;
@@ -84,6 +88,11 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  
+  // Draft preview modal state
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<DraftItem | null>(null);
+  const [loadingDraft, setLoadingDraft] = useState(false);
 
   const fetchDrafts = async () => {
     if (accountLoading || !effectiveAccountId) return;
@@ -219,7 +228,90 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
     fetchDrafts();
   }, [effectiveAccountId, accountLoading, debtorId]);
 
-  // Apply filters
+  // Handle opening draft preview
+  const handlePreviewDraft = async (draft: DraftItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLoadingDraft(true);
+    
+    try {
+      // Fetch full draft data including message_body
+      const { data, error } = await supabase
+        .from('ai_drafts')
+        .select('id, channel, subject, message_body, status, step_number, days_past_due')
+        .eq('id', draft.id)
+        .single();
+      
+      if (error) throw error;
+      
+      setSelectedDraft({
+        ...draft,
+        message_body: data.message_body,
+      });
+      setPreviewModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching draft:", error);
+      toast.error("Failed to load draft preview");
+    } finally {
+      setLoadingDraft(false);
+    }
+  };
+
+  // Handle draft actions
+  const handleApproveDraft = async (draftId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ status: 'approved' })
+        .eq('id', draftId);
+      
+      if (error) throw error;
+      
+      toast.success("Draft approved successfully");
+      fetchDrafts();
+    } catch (error) {
+      console.error("Error approving draft:", error);
+      toast.error("Failed to approve draft");
+    }
+  };
+
+  const handleEditDraft = async (draftId: string, subject: string, body: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ 
+          subject, 
+          message_body: body,
+          status: 'approved'
+        })
+        .eq('id', draftId);
+      
+      if (error) throw error;
+      
+      toast.success("Draft updated and approved");
+      fetchDrafts();
+    } catch (error) {
+      console.error("Error editing draft:", error);
+      toast.error("Failed to update draft");
+    }
+  };
+
+  const handleDiscardDraft = async (draftId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ status: 'discarded' })
+        .eq('id', draftId);
+      
+      if (error) throw error;
+      
+      toast.success("Draft discarded");
+      fetchDrafts();
+    } catch (error) {
+      console.error("Error discarding draft:", error);
+      toast.error("Failed to discard draft");
+    }
+  };
+
   const filteredDrafts = useMemo(() => {
     let result = [...drafts];
 
@@ -400,6 +492,7 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
                   <TableHead>Subject</TableHead>
                   <TableHead>Generated</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -409,14 +502,7 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
                   return (
                     <TableRow 
                       key={draft.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => {
-                        if (draft.invoice_id) {
-                          navigate(`/invoices/${draft.invoice_id}`);
-                        } else if (draft.debtor_id) {
-                          navigate(`/debtors/${draft.debtor_id}`);
-                        }
-                      }}
+                      className="hover:bg-muted/50"
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -448,6 +534,18 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(draft)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handlePreviewDraft(draft, e)}
+                          disabled={loadingDraft}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">Preview draft</span>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -487,6 +585,23 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
           </>
         )}
       </CardContent>
+
+      {/* Draft Preview Modal */}
+      <DraftPreviewModal
+        open={previewModalOpen}
+        onOpenChange={setPreviewModalOpen}
+        draft={selectedDraft ? {
+          id: selectedDraft.id,
+          channel: selectedDraft.channel,
+          subject: selectedDraft.subject,
+          message_body: selectedDraft.message_body || '',
+          persona_name: personaConfig[selectedDraft.persona_key]?.name,
+          invoice_number: selectedDraft.invoice_number || undefined,
+        } : null}
+        onApprove={handleApproveDraft}
+        onEdit={handleEditDraft}
+        onDiscard={handleDiscardDraft}
+      />
     </Card>
   );
 }
