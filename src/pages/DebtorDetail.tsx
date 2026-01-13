@@ -75,6 +75,8 @@ interface Debtor {
   next_outreach_date: string | null;
   last_outreach_date: string | null;
   account_outreach_persona: string | null;
+  account_outreach_tone: number | null;
+  auto_send_outreach: boolean | null;
   // Email status fields
   email_status: string | null;
   email_status_updated_at: string | null;
@@ -985,7 +987,9 @@ const DebtorDetail = () => {
             outreach_frequency_days: debtor.outreach_frequency_days || 7,
             next_outreach_date: debtor.next_outreach_date,
             last_outreach_date: debtor.last_outreach_date,
-            auto_send_outreach: (debtor as any).auto_send_outreach || false,
+            auto_send_outreach: debtor.auto_send_outreach || false,
+            account_outreach_persona: debtor.account_outreach_persona,
+            account_outreach_tone: debtor.account_outreach_tone,
           }}
           onSettingsChange={fetchDebtor}
         />
