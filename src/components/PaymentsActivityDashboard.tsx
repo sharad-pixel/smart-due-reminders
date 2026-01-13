@@ -106,12 +106,15 @@ export const PaymentsActivityDashboard = () => {
   const { data: paymentsData, isLoading: paymentsLoading } = usePaymentsActivity({
     filters,
     page,
-    pageSize: 15,
+    pageSize: 5,
   });
 
   const { data: summary, isLoading: summaryLoading } = usePaymentsSummary();
   const { data: transactionTypes = [] } = useTransactionTypes();
-  const { data: sourceSystems = [] } = useSourceSystems();
+  const { data: dynamicSources = [] } = useSourceSystems();
+  
+  // Always include stripe and quickbooks as source options
+  const sourceSystems = [...new Set(['stripe', 'quickbooks', ...dynamicSources])];
 
   const handleFilterChange = (key: keyof PaymentsFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -366,7 +369,7 @@ export const PaymentsActivityDashboard = () => {
             {paymentsData && paymentsData.totalPages > 1 && (
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Showing {((page - 1) * 15) + 1} - {Math.min(page * 15, paymentsData.totalCount)} of {paymentsData.totalCount}
+                  Showing {((page - 1) * 5) + 1} - {Math.min(page * 5, paymentsData.totalCount)} of {paymentsData.totalCount}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
