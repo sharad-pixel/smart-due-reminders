@@ -73,6 +73,7 @@ const DataCenter = lazy(() => import("./pages/DataCenter"));
 const DataCenterReview = lazy(() => import("./pages/DataCenterReview"));
 const DailyDigest = lazy(() => import("./pages/DailyDigest"));
 const Outreach = lazy(() => import("./pages/Outreach"));
+const OutreachHistory = lazy(() => import("./pages/OutreachHistory"));
 const Documents = lazy(() => import("./pages/Documents"));
 const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
 const Branding = lazy(() => import("./pages/Branding"));
@@ -196,6 +197,7 @@ const App = () => (
             <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
             <Route path="/daily-digest" element={<DailyDigest />} />
             <Route path="/outreach" element={<Outreach />} />
+            <Route path="/outreach-history" element={<OutreachHistory />} />
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
 
