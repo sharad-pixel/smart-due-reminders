@@ -132,8 +132,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     else setLoading(true);
     
     try {
-      // Fetch invoice-level AI drafts (pending/approved) for ACTIVE invoices only
-      // Exclude: Paid, Canceled, Voided, WrittenOff, Credited
+      // Fetch invoice-level AI drafts (pending/approved) 
+      // We'll filter inactive invoices on the client side after fetching
       const invoiceDraftsQuery = supabase
         .from('ai_drafts')
         .select(`
@@ -152,17 +152,17 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
             id,
             invoice_number,
             amount,
+            amount_outstanding,
             aging_bucket,
             debtor_id,
             status,
-            debtors(id, company_name, account_outreach_enabled)
+            debtors(id, company_name, account_outreach_enabled, total_open_balance)
           )
         `)
         .eq('user_id', effectiveAccountId)
         .in('status', ['pending_approval', 'approved'])
         .is('sent_at', null)
         .not('invoice_id', 'is', null)
-        .in('invoices.status', ['Open', 'InPaymentPlan']) // Only active invoices
         .order('recommended_send_date', { ascending: true });
 
       // Fetch account-level AI drafts (invoice_id is null)
@@ -196,9 +196,17 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
       if (invoiceResult.error) throw invoiceResult.error;
       if (accountResult.error) throw accountResult.error;
 
-      // Map invoice-level drafts (already filtered to active invoices only)
+      // Inactive invoice statuses to exclude from outreach
+      const excludedInvoiceStatuses = ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Credited'];
+      
+      // Map and filter invoice-level drafts - exclude inactive invoices on client side
       const invoiceItems: ScheduledItem[] = (invoiceResult.data || [])
-        .filter((d: any) => d.invoices)
+        .filter((d: any) => {
+          if (!d.invoices) return false;
+          // Exclude invoices with terminal statuses
+          const invoiceStatus = d.invoices.status;
+          return !excludedInvoiceStatuses.includes(invoiceStatus);
+        })
         .map((draft: any) => {
           const invoice = draft.invoices;
           const debtor = invoice?.debtors;
@@ -211,7 +219,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
             invoice_number: invoice?.invoice_number,
             debtor_id: debtor?.id,
             company_name: debtor?.company_name || 'Unknown',
-            amount: invoice?.amount || 0,
+            amount: invoice?.amount_outstanding || invoice?.amount || 0,
             scheduled_date: draft.recommended_send_date || new Date().toISOString(),
             days_past_due: draft.days_past_due || 0,
             aging_bucket: agingBucket,
@@ -227,18 +235,86 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
           };
         });
 
-      // Map account-level drafts
-      const accountItems: ScheduledItem[] = (accountResult.data || []).map((draft: any) => {
+      // For account-level drafts, we need to fetch debtor balances separately
+      const accountDrafts = accountResult.data || [];
+      
+      // Extract debtor IDs from snapshots - check multiple possible locations
+      const debtorIds = accountDrafts
+        .map((draft: any) => {
+          const snapshot = draft.applied_brand_snapshot || {};
+          const context = snapshot.context || {};
+          const invoices = context.invoices || [];
+          
+          // Check multiple possible locations for debtor_id
+          return snapshot.debtor_id || 
+                 context.debtor_id || 
+                 (invoices.length > 0 ? invoices[0].debtor_id : null) ||
+                 null;
+        })
+        .filter((id: string | null): id is string => !!id);
+
+      // Fetch debtor balances if we have IDs
+      let debtorBalances: Record<string, { balance: number; companyName: string }> = {};
+      if (debtorIds.length > 0) {
+        const { data: debtorsData } = await supabase
+          .from('debtors')
+          .select('id, total_open_balance, company_name')
+          .in('id', debtorIds);
+        
+        if (debtorsData) {
+          debtorBalances = debtorsData.reduce((acc, d) => {
+            acc[d.id] = { 
+              balance: d.total_open_balance || 0,
+              companyName: d.company_name || ''
+            };
+            return acc;
+          }, {} as Record<string, { balance: number; companyName: string }>);
+        }
+      }
+
+      // Map account-level drafts with real debtor balances
+      const accountItems: ScheduledItem[] = accountDrafts.map((draft: any) => {
         const snapshot = draft.applied_brand_snapshot || {};
+        const context = snapshot.context || {};
+        const invoices = context.invoices || [];
         const personaInfo = getPersonaForBucket('dpd_1_30'); // Default persona for account level
+        
+        // Get debtor ID from multiple possible locations
+        const debtorId = snapshot.debtor_id || 
+                        context.debtor_id || 
+                        (invoices.length > 0 ? invoices[0].debtor_id : '') ||
+                        '';
+        
+        // Get debtor info from our fetched data
+        const debtorInfo = debtorBalances[debtorId];
+        
+        // Calculate total outstanding from invoices in snapshot if no debtor balance
+        const snapshotTotal = invoices.reduce((sum: number, inv: any) => {
+          return sum + (inv.amount_outstanding || inv.amount || 0);
+        }, 0);
+        
+        // Use real debtor balance first, then snapshot invoice totals, then context values
+        const amount = debtorInfo?.balance || 
+                      snapshotTotal || 
+                      context.totalOutstanding ||
+                      context.totalAmount || 
+                      snapshot.total_amount || 
+                      0;
+
+        // Get company name - prefer real data, then snapshot
+        const companyName = debtorInfo?.companyName || 
+                           snapshot.debtor_name || 
+                           context.accountName || 
+                           snapshot.company_name || 
+                           'Account Summary';
 
         return {
           id: draft.id,
           invoice_id: null,
           invoice_number: null,
-          debtor_id: snapshot.debtor_id || '',
-          company_name: snapshot.debtor_name || snapshot.company_name || 'Account Summary',
-          amount: snapshot.total_amount || 0,
+          debtor_id: debtorId,
+          company_name: companyName,
+          amount: amount,
           scheduled_date: draft.recommended_send_date || new Date().toISOString(),
           days_past_due: draft.days_past_due || 0,
           aging_bucket: 'account_level',
