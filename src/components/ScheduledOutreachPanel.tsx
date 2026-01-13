@@ -30,7 +30,8 @@ import {
   Save,
   Trash2,
   CheckSquare,
-  Square
+  Square,
+  Send
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -144,6 +145,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
   const [isBulkApproving, setIsBulkApproving] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isSendingNow, setIsSendingNow] = useState(false);
+  const [sendingItemId, setSendingItemId] = useState<string | null>(null);
 
   const fetchScheduledOutreach = async (showRefreshing = false) => {
     if (accountLoading || !effectiveAccountId) return;
@@ -417,7 +420,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
   );
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   };
 
   const getScheduleLabel = (dateStr: string) => {
@@ -586,6 +589,70 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     const item = items.find(i => i.id === id);
     return item?.status === 'pending_approval';
   }).length;
+  
+  // Count approved items ready to send (scheduled for today or past)
+  const selectedReadyToSendCount = Array.from(selectedIds).filter(id => {
+    const item = items.find(i => i.id === id);
+    if (item?.status !== 'approved') return false;
+    const scheduled = new Date(item.scheduled_date);
+    return scheduled <= new Date();
+  }).length;
+  
+  // Helper to check if an item is ready to send now
+  const isReadyToSendNow = (item: ScheduledItem): boolean => {
+    if (item.status !== 'approved') return false;
+    const scheduled = new Date(item.scheduled_date);
+    return scheduled <= new Date();
+  };
+  
+  // Handle sending approved drafts immediately
+  const handleSendNow = async (draftIds?: string[]) => {
+    const idsToSend = draftIds || Array.from(selectedIds).filter(id => {
+      const item = items.find(i => i.id === id);
+      return isReadyToSendNow(item!);
+    });
+    
+    if (idsToSend.length === 0) {
+      toast.info("No approved drafts ready to send");
+      return;
+    }
+    
+    setIsSendingNow(true);
+    if (draftIds?.length === 1) {
+      setSendingItemId(draftIds[0]);
+    }
+    
+    try {
+      // Call the auto-send function which processes approved drafts
+      const { data, error } = await supabase.functions.invoke('auto-send-approved-drafts');
+      
+      if (error) throw error;
+      
+      if (data?.sent > 0) {
+        toast.success(
+          `Sent ${data.sent} message${data.sent !== 1 ? 's' : ''}${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`,
+          { duration: 5000 }
+        );
+      } else if (data?.skipped > 0) {
+        toast.info(`${data.skipped} message(s) skipped (no email addresses or inactive invoices)`);
+      } else {
+        toast.info("No messages were ready to send");
+      }
+      
+      if (data?.errors?.length > 0) {
+        toast.warning(`${data.errors.length} error(s) occurred during sending`);
+      }
+      
+      setSelectedIds(new Set());
+      fetchScheduledOutreach(true);
+    } catch (error: any) {
+      console.error("Error sending drafts:", error);
+      toast.error(error.message || "Failed to send messages");
+    } finally {
+      setIsSendingNow(false);
+      setSendingItemId(null);
+    }
+  };
 
   // Convert HTML to plain text for display
   const stripHtmlTags = (html: string): string => {
@@ -795,6 +862,18 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                       {isBulkApproving ? "Approving..." : `Approve (${selectedPendingCount})`}
                     </Button>
                   )}
+                  {selectedReadyToSendCount > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSendNow()}
+                      disabled={isSendingNow}
+                      className="text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Send className="h-4 w-4 mr-1" />
+                      {isSendingNow ? "Sending..." : `Send Now (${selectedReadyToSendCount})`}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -919,6 +998,22 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                                   <Check className="h-4 w-4" />
                                 </Button>
                               </>
+                            )}
+                            {isReadyToSendNow(item) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSendNow([item.id])}
+                                disabled={isSendingNow && sendingItemId === item.id}
+                                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                                title="Send now"
+                              >
+                                {isSendingNow && sendingItemId === item.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4" />
+                                )}
+                              </Button>
                             )}
                             <Button
                               variant="ghost"
