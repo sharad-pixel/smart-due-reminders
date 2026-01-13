@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, AlertTriangle, Clock, CalendarClock } from "lucide-react";
+import { CheckSquare, AlertTriangle, Clock, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useNavigate } from "react-router-dom";
 import { TaskDetailModal } from "./TaskDetailModal";
@@ -27,6 +27,8 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
   const [modalOpen, setModalOpen] = useState(false);
   const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -79,6 +81,16 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
   const openTasks = filteredTasks.filter(t => t.status === 'open');
   const inProgressTasks = filteredTasks.filter(t => t.status === 'in_progress');
   const urgentTasks = filteredTasks.filter(t => t.priority === 'urgent' && t.status !== 'done');
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTasks.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedTasks = filteredTasks.slice(startIndex, startIndex + pageSize);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [assignedToMeOnly]);
 
   const getTaskTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -156,7 +168,7 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
           </p>
         ) : (
           <>
-            {filteredTasks.slice(0, 5).map(task => {
+            {paginatedTasks.map(task => {
               const daysOpen = getDaysOpen(task.created_at);
               return (
                 <div
@@ -199,10 +211,34 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
               );
             })}
             
-            {filteredTasks.length > 5 && (
-              <p className="text-xs text-muted-foreground text-center">
-                +{filteredTasks.length - 5} more tasks
-              </p>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-xs text-muted-foreground">
+                  {startIndex + 1}-{Math.min(startIndex + pageSize, filteredTasks.length)} of {filteredTasks.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs px-2">{currentPage} / {totalPages}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             )}
           </>
         )}
