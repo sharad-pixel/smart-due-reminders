@@ -7,6 +7,11 @@ import { MessageSquare, Target, Clock, TrendingUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const sampleMessages: Record<string, string[]> = {
+  nicolas: [
+    "Hi [Customer Name], I'm reaching out regarding your account with [Business Name]. You currently have [X] open invoices totaling $[AMOUNT]. I wanted to check in and see if there's anything we can help with – whether that's answering questions, providing documentation, or discussing payment options.",
+    "Hello [Customer Name], this is a friendly account summary. Your current balance is $[AMOUNT] across [X] invoices. Please let us know if you'd like to discuss your account or need any assistance.",
+    "[Customer Name], I hope this message finds you well. I'm here to help with any questions about your account. Your current outstanding balance is $[AMOUNT]. Reply anytime and I'll be happy to assist."
+  ],
   sam: [
     "Hi [Customer Name], just a friendly reminder that Invoice #[NUMBER] for $[AMOUNT] was due on [DATE]. We'd love to help you get this sorted! Let us know if you need a payment link or have any questions. 😊",
     "Hey [Customer Name], checking in on Invoice #[NUMBER]. We know things can get busy – is there anything we can do to make payment easier for you?",
@@ -40,6 +45,17 @@ const sampleMessages: Record<string, string[]> = {
 };
 
 const strategies: Record<string, { approach: string; tactics: string[]; goal: string }> = {
+  nicolas: {
+    approach: "Supportive and relationship-building",
+    tactics: [
+      "Account-level communication (not invoice-specific)",
+      "Proactive support and assistance offers",
+      "Summarize total balance across all invoices",
+      "Answer questions and provide documentation",
+      "Build trust and maintain long-term relationships"
+    ],
+    goal: "Provide helpful account support and encourage engagement before escalation"
+  },
   sam: {
     approach: "Friendly and relationship-focused",
     tactics: [
@@ -108,6 +124,9 @@ const strategies: Record<string, { approach: string; tactics: string[]; goal: st
   }
 };
 
+// Define display order - Nicolas first as support agent, then by aging bucket
+const displayOrder = ['nicolas', 'sam', 'james', 'katy', 'troy', 'jimmy', 'rocco'];
+
 const Personas = () => {
   return (
     <MarketingLayout>
@@ -119,16 +138,17 @@ const Personas = () => {
               Meet Your AI Collections Team
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Six specialized AI agents that adapt their communication style based on how overdue an invoice is. 
+              Seven specialized AI agents that adapt their communication style based on account needs and how overdue an invoice is. 
               Each persona uses proven collections psychology while maintaining compliance and professionalism.
             </p>
           </div>
 
           {/* Personas */}
           <div className="space-y-16">
-          {Object.entries(personaConfig)
-            .filter(([key]) => key !== 'nicolas') // Nicolas is a special agent, not shown on public page
-            .map(([key, persona], index) => {
+            {displayOrder
+              .filter(key => personaConfig[key])
+              .map((key, index) => {
+              const persona = personaConfig[key];
               const strategy = strategies[key];
               const messages = sampleMessages[key];
 
@@ -149,7 +169,7 @@ const Personas = () => {
                             className="text-sm"
                             style={{ borderColor: persona.color, color: persona.color }}
                           >
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                            {key === 'nicolas' ? 'Account-Level Support' : `${persona.bucketMin}-${persona.bucketMax || "+"} Days Past Due`}
                           </Badge>
                         </div>
                         <CardDescription className="text-lg">
@@ -182,7 +202,7 @@ const Personas = () => {
                         <div>
                           <h4 className="font-semibold mb-1">Timing</h4>
                           <p className="text-sm text-muted-foreground">
-                            Days {persona.bucketMin}-{persona.bucketMax || "∞"}
+                            {key === 'nicolas' ? 'Any time (Account-level)' : `Days ${persona.bucketMin}-${persona.bucketMax || "∞"}`}
                           </p>
                         </div>
                       </div>
