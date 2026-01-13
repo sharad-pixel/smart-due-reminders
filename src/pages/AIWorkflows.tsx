@@ -22,7 +22,7 @@ import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
 import WorkflowGraph from "@/components/WorkflowGraph";
 import MessagePreview from "@/components/MessagePreview";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import UpcomingOutreachLog from "@/components/UpcomingOutreachLog";
+import { ScheduledOutreachPanel } from "@/components/ScheduledOutreachPanel";
 import AgentScheduleCards from "@/components/AgentScheduleCards";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
@@ -1849,8 +1849,8 @@ const AIWorkflows = () => {
           onPersonaSelect={setOutreachFilterPersona}
         />
 
-        {/* Upcoming Outreach Log */}
-        <UpcomingOutreachLog 
+        {/* Scheduled Outreach Panel */}
+        <ScheduledOutreachPanel 
           selectedPersona={outreachFilterPersona}
           onPersonaFilterClear={() => setOutreachFilterPersona(null)}
         />
