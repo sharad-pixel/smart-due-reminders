@@ -217,8 +217,7 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('status', 'approved')
-      .is('sent_at', null)
-      .in('invoices.status', ['Open', 'InPaymentPlan']); // Only active invoices!
+      .is('sent_at', null);
     
     // If specific draft IDs requested, filter to those; otherwise use date filter
     if (requestedDraftIds && requestedDraftIds.length > 0) {
@@ -248,8 +247,8 @@ Deno.serve(async (req) => {
       const invoice = draft.invoices as any;
       const debtor = invoice?.debtors as any;
       
-      // Only process Open or InPaymentPlan invoices - mark others as skipped
-      if (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan') {
+      // Only process active invoice statuses - mark others as skipped
+      if (invoice.status !== 'Open' && invoice.status !== 'InPaymentPlan' && invoice.status !== 'PartiallyPaid') {
         console.log(`[AUTO-SEND] Skipping draft ${draft.id}: invoice ${invoice.id} status is ${invoice.status}`);
         
         // Mark draft as skipped so it doesn't keep appearing
