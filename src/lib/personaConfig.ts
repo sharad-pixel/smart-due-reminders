@@ -4,6 +4,7 @@ import katyAvatar from "@/assets/personas/katy.png";
 import troyAvatar from "@/assets/personas/troy.png";
 import jimmyAvatar from "@/assets/personas/jimmy.png";
 import roccoAvatar from "@/assets/personas/rocco.png";
+import nicolasAvatar from "@/assets/personas/nicolas.png";
 
 export interface PersonaConfig {
   name: string;
@@ -17,6 +18,16 @@ export interface PersonaConfig {
 }
 
 export const personaConfig: Record<string, PersonaConfig> = {
+  nicolas: {
+    name: "Nicolas",
+    color: "#8b5cf6",
+    bgColor: "bg-purple-500",
+    avatar: nicolasAvatar,
+    bucketMin: -999,
+    bucketMax: -999,
+    description: "Account Summary Agent",
+    tone: "Professional account-level communications",
+  },
   sam: {
     name: "Sam",
     color: "#69B7FF",
