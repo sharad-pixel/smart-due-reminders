@@ -12,17 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle, Calendar, Bot } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle } from "lucide-react";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 
 import { AIInsightsCard } from "@/components/AIInsightsCard";
-import { AccountScheduledOutreachPanel } from "@/components/AccountScheduledOutreachPanel";
-import { AccountDraftsHistory } from "@/components/AccountDraftsHistory";
 
 interface Contact {
   name: string;
@@ -1110,27 +1107,6 @@ const Debtors = () => {
           </CardContent>
         </Card>
 
-        {/* Bottom Tabs for Scheduled Outreach and Drafts History */}
-        <Tabs defaultValue="scheduled" className="space-y-4 mt-6">
-          <TabsList>
-            <TabsTrigger value="scheduled" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              Scheduled Outreach
-            </TabsTrigger>
-            <TabsTrigger value="drafts" className="gap-2">
-              <Bot className="h-4 w-4" />
-              AI Drafts History
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="scheduled">
-            <AccountScheduledOutreachPanel showAllAccounts />
-          </TabsContent>
-
-          <TabsContent value="drafts">
-            <AccountDraftsHistory />
-          </TabsContent>
-        </Tabs>
 
       </div>
     </Layout>

@@ -27,8 +27,19 @@ import {
   Check,
   AlertCircle,
   Sparkles,
-  Save
+  Save,
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -110,6 +121,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
   const [previewBody, setPreviewBody] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<ScheduledItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchScheduledOutreach = async (showRefreshing = false) => {
     if (accountLoading || !effectiveAccountId) return;
@@ -416,6 +429,28 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    setIsDeleting(true);
+    
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .delete()
+        .eq('id', deleteItem.id);
+
+      if (error) throw error;
+      toast.success("Draft deleted");
+      setDeleteItem(null);
+      fetchScheduledOutreach(true);
+    } catch (error) {
+      console.error("Error deleting draft:", error);
+      toast.error("Failed to delete draft");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -594,14 +629,24 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                               <Eye className="h-4 w-4" />
                             </Button>
                             {item.status === 'pending_approval' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleApprove(item)}
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleApprove(item)}
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeleteItem(item)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -777,6 +822,28 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this pending draft for "{deleteItem?.company_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
