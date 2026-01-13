@@ -220,6 +220,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
+    { path: "/outreach-history", label: "Outreach History", icon: Mail },
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
