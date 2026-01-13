@@ -93,21 +93,29 @@ interface ScheduledOutreachPanelProps {
 
 const PAGE_SIZE = 15;
 
-const getPersonaForBucket = (agingBucket: string): { key: string; persona: PersonaConfig } | null => {
-  const mapping: Record<string, string> = {
-    'dpd_1_30': 'sam',
-    'dpd_31_60': 'james',
-    'dpd_61_90': 'katy',
-    'dpd_91_120': 'troy',
-    'dpd_121_150': 'jimmy',
-    'dpd_150_plus': 'rocco'
-  };
+// Get persona based on days past due - must match AgentScheduleCards logic exactly
+const getPersonaKeyByDpd = (daysPastDue: number | null | undefined): string => {
+  const dpd = daysPastDue ?? 0;
   
-  const key = mapping[agingBucket];
-  if (key && personaConfig[key]) {
-    return { key, persona: personaConfig[key] };
+  // Handle current/pre-due invoices - assign to Sam (0-30 DPD agent)
+  if (dpd <= 0) return "sam";
+  
+  // Handle past due invoices by finding matching persona bucket
+  for (const [key, config] of Object.entries(personaConfig)) {
+    if (key === 'nicolas') continue; // Skip account-level agent
+    
+    if (config.bucketMax === null) {
+      // Unbounded max (e.g., 150+ DPD)
+      if (dpd >= config.bucketMin) return key;
+    } else {
+      if (dpd >= config.bucketMin && dpd <= config.bucketMax) {
+        return key;
+      }
+    }
   }
-  return null;
+  
+  // Default fallback to Sam if no match
+  return "sam";
 };
 
 export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }: ScheduledOutreachPanelProps) {
@@ -223,7 +231,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
           const invoice = draft.invoices;
           const debtor = invoice?.debtors;
           const agingBucket = invoice?.aging_bucket || 'dpd_1_30';
-          const personaInfo = getPersonaForBucket(agingBucket);
+          // Use days_past_due from draft to match AgentScheduleCards logic
+          const personaKey = getPersonaKeyByDpd(draft.days_past_due);
 
           return {
             id: draft.id,
@@ -235,7 +244,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
             scheduled_date: draft.recommended_send_date || new Date().toISOString(),
             days_past_due: draft.days_past_due || 0,
             aging_bucket: agingBucket,
-            persona_key: personaInfo?.key || 'james',
+            persona_key: personaKey,
             source_type: 'invoice_workflow' as const,
             status: draft.status as 'pending_approval' | 'approved',
             subject: draft.subject,
