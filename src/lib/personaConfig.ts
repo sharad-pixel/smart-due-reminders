@@ -25,7 +25,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     avatar: nicolasAvatar,
     bucketMin: -999,
     bucketMax: -999,
-    description: "Account Summary Agent",
+    description: "(Special Agent) Support and Account Level Outreach",
     tone: "Professional account-level communications",
   },
   sam: {
