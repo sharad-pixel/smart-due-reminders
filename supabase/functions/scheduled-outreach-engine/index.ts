@@ -26,7 +26,8 @@ interface EngineResult {
 }
 
 // Terminal invoice statuses that should cancel outreach
-const TERMINAL_STATUSES = ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Credited'];
+// Note: Only using valid enum values - 'paid', 'canceled', 'voided' are lowercase variants
+const TERMINAL_STATUSES = ['Paid', 'Canceled', 'Voided', 'paid', 'canceled', 'voided', 'cancelled', 'void'];
 
 // Active statuses that allow outreach
 const ACTIVE_STATUSES = ['Open', 'InPaymentPlan', 'PartiallyPaid'];
