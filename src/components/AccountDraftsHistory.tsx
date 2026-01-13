@@ -25,7 +25,8 @@ import {
   Send,
   XCircle,
   Sparkles,
-  Eye
+  Eye,
+  Trash2
 } from "lucide-react";
 import {
   Select,
@@ -305,10 +306,31 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
       if (error) throw error;
       
       toast.success("Draft discarded");
+      setPreviewModalOpen(false);
       fetchDrafts();
     } catch (error) {
       console.error("Error discarding draft:", error);
       toast.error("Failed to discard draft");
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to permanently delete this draft?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .delete()
+        .eq('id', draftId);
+      
+      if (error) throw error;
+      
+      toast.success("Draft deleted permanently");
+      fetchDrafts();
+    } catch (error) {
+      console.error("Error deleting draft:", error);
+      toast.error("Failed to delete draft");
     }
   };
 
@@ -536,16 +558,29 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
                         {getStatusBadge(draft)}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handlePreviewDraft(draft, e)}
-                          disabled={loadingDraft}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Preview draft</span>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handlePreviewDraft(draft, e)}
+                            disabled={loadingDraft}
+                            className="h-8 w-8 p-0"
+                            title="Preview draft"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Preview draft</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleDeleteDraft(draft.id, e)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete draft"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete draft</span>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
