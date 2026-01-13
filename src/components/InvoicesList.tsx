@@ -301,7 +301,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                     </div>
                   </TableCell>
                   <TableCell>{invoice.debtors.company_name}</TableCell>
-                  <TableCell>${invoice.amount.toLocaleString()}</TableCell>
+                  <TableCell>${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                   <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(invoice.status)}>

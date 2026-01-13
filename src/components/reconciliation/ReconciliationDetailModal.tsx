@@ -171,7 +171,7 @@ export const ReconciliationDetailModal = ({
               <div>
                 <p className="text-sm text-muted-foreground">Payment Amount</p>
                 <p className="font-medium">
-                  {payment.currency} {payment.amount.toLocaleString()}
+                  {payment.currency} {payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
@@ -192,13 +192,13 @@ export const ReconciliationDetailModal = ({
             <div>
               <p className="text-sm text-muted-foreground">Allocated</p>
               <p className="text-lg font-bold">
-                {payment.currency} {totalAllocated.toLocaleString()}
+                {payment.currency} {totalAllocated.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Remaining</p>
               <p className={`text-lg font-bold ${remaining < 0 ? "text-red-600" : ""}`}>
-                {payment.currency} {remaining.toLocaleString()}
+                {payment.currency} {remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -253,7 +253,7 @@ export const ReconciliationDetailModal = ({
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{format(new Date(invoice.due_date), "MMM d, yyyy")}</TableCell>
                         <TableCell>
-                          {payment.currency} {invoice.amount_outstanding.toLocaleString()}
+                          {payment.currency} {invoice.amount_outstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           {isSelected ? (

@@ -507,7 +507,7 @@ export const TaskDetailModal = ({
                         {linkedInvoice.invoice_number}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        ${linkedInvoice.amount?.toLocaleString()} • {linkedInvoice.status}
+                        ${linkedInvoice.amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • {linkedInvoice.status}
                       </p>
                     </div>
                     <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

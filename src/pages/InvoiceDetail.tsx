@@ -227,6 +227,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     }
   }, [id]);
 
+  // Format currency with exactly 2 decimal places
+  const formatAmount = (amount: number | null | undefined): string => {
+    if (amount === null || amount === undefined) return '0.00';
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const getAgingBucket = (daysPastDue: number): string => {
     if (daysPastDue < 0) return 'current';
     if (daysPastDue <= 30) return 'dpd_1_30';
@@ -710,8 +716,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       if (amountChanged) {
         await checkAndProceed(
           "Invoice Amount",
-          `$${invoice.amount.toLocaleString()}`,
-          `$${parseFloat(editAmount).toLocaleString()}`,
+          `$${formatAmount(invoice.amount)}`,
+          `$${formatAmount(parseFloat(editAmount))}`,
           performSave
         );
         return;
@@ -732,8 +738,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     } else if (invoice.integration_source === "csv_upload" && (amountChanged || dueDateWillChange)) {
       await checkAndProceed(
         amountChanged ? "Invoice Amount" : "Due Date",
-        amountChanged ? `$${invoice.amount.toLocaleString()}` : invoice.due_date,
-        amountChanged ? `$${parseFloat(editAmount).toLocaleString()}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
+        amountChanged ? `$${formatAmount(invoice.amount)}` : invoice.due_date,
+        amountChanged ? `$${formatAmount(parseFloat(editAmount))}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
         performSave
       );
       return;
@@ -818,8 +824,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             invoice.id,
             user.id,
             "payment_applied",
-            `$${currentOutstanding.toLocaleString()} outstanding`,
-            `Payment of $${amount.toLocaleString()}`,
+            `$${formatAmount(currentOutstanding)} outstanding`,
+            `Payment of $${formatAmount(amount)}`,
             invoice.integration_source
           );
         }
@@ -847,8 +853,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             activity_type: "payment_received",
             channel: "system",
             direction: "inbound",
-            subject: `Payment of $${amount.toLocaleString()} received`,
-            message_body: `Payment received for Invoice #${invoice.invoice_number}. Amount: $${amount.toLocaleString()}${paymentMethod ? `. Method: ${paymentMethod}` : ""}${paymentReference ? `. Reference: ${paymentReference}` : ""}. ${newOutstanding <= 0 ? "Invoice fully paid." : `Remaining balance: $${newOutstanding.toLocaleString()}`}`,
+            subject: `Payment of $${formatAmount(amount)} received`,
+            message_body: `Payment received for Invoice #${invoice.invoice_number}. Amount: $${formatAmount(amount)}${paymentMethod ? `. Method: ${paymentMethod}` : ""}${paymentReference ? `. Reference: ${paymentReference}` : ""}. ${newOutstanding <= 0 ? "Invoice fully paid." : `Remaining balance: $${formatAmount(newOutstanding)}`}`,
             metadata: {
               payment_id: newPayment.id,
               payment_amount: amount,
@@ -874,15 +880,15 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             payment_method: paymentMethod || null,
             reference_number: paymentReference || null,
             transaction_date: paymentDate,
-            notes: `Payment applied. ${newOutstanding <= 0 ? 'Invoice fully paid.' : `Remaining: $${newOutstanding.toLocaleString()}`}`,
+            notes: `Payment applied. ${newOutstanding <= 0 ? 'Invoice fully paid.' : `Remaining: $${formatAmount(newOutstanding)}`}`,
             created_by: user.id,
           });
 
         const successMessage = isIntegrated
-          ? `Override saved. Payment of $${amount.toLocaleString()} applied. This will be reset on next sync.`
+          ? `Override saved. Payment of $${formatAmount(amount)} applied. This will be reset on next sync.`
           : newOutstanding <= 0 
             ? "Payment applied - Invoice marked as Paid" 
-            : `Payment of $${amount.toLocaleString()} applied - $${newOutstanding.toLocaleString()} remaining`;
+            : `Payment of $${formatAmount(amount)} applied - $${formatAmount(newOutstanding)} remaining`;
         
         toast.success(successMessage);
         
@@ -904,15 +910,15 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
       await checkAndProceed(
         "Apply Payment",
-        `Outstanding: $${currentOutstanding.toLocaleString()}`,
-        `Payment: $${amount.toLocaleString()}`,
+        `Outstanding: $${formatAmount(currentOutstanding)}`,
+        `Payment: $${formatAmount(amount)}`,
         performPayment
       );
     } else if (invoice.integration_source === "csv_upload") {
       await checkAndProceed(
         "Apply Payment",
-        `Outstanding: $${(invoice.amount_outstanding ?? invoice.amount).toLocaleString()}`,
-        `Payment: $${amount.toLocaleString()}`,
+        `Outstanding: $${formatAmount(invoice.amount_outstanding ?? invoice.amount)}`,
+        `Payment: $${formatAmount(amount)}`,
         performPayment
       );
     } else {
@@ -1249,10 +1255,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               <CardContent className="space-y-3">
                 {/* Show original amount if available and different from current */}
                 {invoice.amount_original && invoice.amount_original !== invoice.amount && (
-                  <div>
+                <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Original Amount</p>
                     <p className="text-lg font-medium text-muted-foreground line-through">
-                      {invoice.currency || 'USD'} ${invoice.amount_original.toLocaleString()}
+                      {invoice.currency || 'USD'} ${formatAmount(invoice.amount_original)}
                     </p>
                   </div>
                 )}
@@ -1261,14 +1267,14 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     {invoice.amount_original && invoice.amount_original !== invoice.amount ? 'Current Amount' : 'Amount'}
                   </p>
                   <p className="text-xl font-bold">
-                    {invoice.currency || 'USD'} ${invoice.amount.toLocaleString()}
+                    {invoice.currency || 'USD'} ${formatAmount(invoice.amount)}
                   </p>
                 </div>
                 {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Outstanding</p>
                     <p className={`text-lg font-semibold ${invoice.amount_outstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                      ${invoice.amount_outstanding.toLocaleString()}
+                      ${formatAmount(invoice.amount_outstanding)}
                     </p>
                   </div>
                 )}

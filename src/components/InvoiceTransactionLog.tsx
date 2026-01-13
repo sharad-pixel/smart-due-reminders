@@ -108,6 +108,8 @@ export const InvoiceTransactionLog = ({ invoiceId, currency = 'USD', onTransacti
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
