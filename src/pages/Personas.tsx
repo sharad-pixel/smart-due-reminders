@@ -126,7 +126,9 @@ const Personas = () => {
 
           {/* Personas */}
           <div className="space-y-16">
-            {Object.entries(personaConfig).map(([key, persona], index) => {
+          {Object.entries(personaConfig)
+            .filter(([key]) => key !== 'nicolas') // Nicolas is a special agent, not shown on public page
+            .map(([key, persona], index) => {
               const strategy = strategies[key];
               const messages = sampleMessages[key];
 
