@@ -97,7 +97,10 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
 
     const byPersona: Record<string, { key: string; nextApproved: Date | null; nextAny: Date | null; approvedCount: number; pendingCount: number; total: number; }> = {};
 
-    for (const key of Object.keys(personaConfig)) {
+    // Exclude nicolas from persona cards - he has a dedicated account-level card
+    const invoicePersonaKeys = Object.keys(personaConfig).filter(key => key !== 'nicolas');
+    
+    for (const key of invoicePersonaKeys) {
       byPersona[key] = {
         key,
         nextApproved: null,
@@ -156,7 +159,8 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
     }
 
     return {
-      personaSchedule: Object.keys(personaConfig).map((key) => ({
+      // Only include invoice-level personas (exclude nicolas)
+      personaSchedule: invoicePersonaKeys.map((key) => ({
         persona: personaConfig[key],
         ...byPersona[key],
       })),

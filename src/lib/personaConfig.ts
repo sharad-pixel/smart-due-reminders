@@ -33,7 +33,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     color: "#69B7FF",
     bgColor: "bg-green-500",
     avatar: samAvatar,
-    bucketMin: 1,
+    bucketMin: 0,
     bucketMax: 30,
     description: "Friendly 0-30 Day Reminder Agent",
     tone: "Warm and gentle reminder",
