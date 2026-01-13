@@ -256,33 +256,90 @@ Deno.serve(async (req) => {
     // Fetch ACCOUNT-LEVEL drafts (invoice_id is null)
     // These are created by account-level outreach flows (e.g. send-account-summary)
     // ------------------------------
-    let accountDraftQuery = supabaseAdmin
-      .from('ai_drafts')
-      .select(`
-        id,
-        user_id,
-        subject,
-        message_body,
-        status,
-        channel,
-        recommended_send_date,
-        applied_brand_snapshot,
-        created_at,
-        updated_at
-      `)
-      .eq('status', 'approved')
-      .is('sent_at', null)
-      .is('invoice_id', null);
+    // For account-level drafts, include those with NULL recommended_send_date (send immediately)
+    // or where recommended_send_date <= today
+    let accountDrafts: any[] = [];
+    let accountDraftsError: any = null;
 
     if (requestedDraftIds && requestedDraftIds.length > 0) {
-      accountDraftQuery = accountDraftQuery.in('id', requestedDraftIds);
+      // When specific IDs requested, just filter by those
+      const { data, error } = await supabaseAdmin
+        .from('ai_drafts')
+        .select(`
+          id,
+          user_id,
+          subject,
+          message_body,
+          status,
+          channel,
+          recommended_send_date,
+          applied_brand_snapshot,
+          created_at,
+          updated_at
+        `)
+        .eq('status', 'approved')
+        .is('sent_at', null)
+        .is('invoice_id', null)
+        .in('id', requestedDraftIds)
+        .order('recommended_send_date', { ascending: true, nullsFirst: true })
+        .limit(ACCOUNT_BATCH_SIZE);
+      accountDrafts = data || [];
+      accountDraftsError = error;
     } else {
-      accountDraftQuery = accountDraftQuery.lte('recommended_send_date', today);
-    }
+      // For automated runs: include NULL recommended_send_date (immediate) OR date <= today
+      const { data: nullDateDrafts, error: nullError } = await supabaseAdmin
+        .from('ai_drafts')
+        .select(`
+          id,
+          user_id,
+          subject,
+          message_body,
+          status,
+          channel,
+          recommended_send_date,
+          applied_brand_snapshot,
+          created_at,
+          updated_at
+        `)
+        .eq('status', 'approved')
+        .is('sent_at', null)
+        .is('invoice_id', null)
+        .is('recommended_send_date', null)
+        .order('created_at', { ascending: true })
+        .limit(ACCOUNT_BATCH_SIZE);
 
-    const { data: accountDrafts, error: accountDraftsError } = await accountDraftQuery
-      .order('recommended_send_date', { ascending: true })
-      .limit(ACCOUNT_BATCH_SIZE);
+      const { data: scheduledDrafts, error: scheduledError } = await supabaseAdmin
+        .from('ai_drafts')
+        .select(`
+          id,
+          user_id,
+          subject,
+          message_body,
+          status,
+          channel,
+          recommended_send_date,
+          applied_brand_snapshot,
+          created_at,
+          updated_at
+        `)
+        .eq('status', 'approved')
+        .is('sent_at', null)
+        .is('invoice_id', null)
+        .not('recommended_send_date', 'is', null)
+        .lte('recommended_send_date', today)
+        .order('recommended_send_date', { ascending: true })
+        .limit(ACCOUNT_BATCH_SIZE);
+
+      accountDraftsError = nullError || scheduledError;
+      // Combine and dedupe
+      const combined = [...(nullDateDrafts || []), ...(scheduledDrafts || [])];
+      const seen = new Set<string>();
+      accountDrafts = combined.filter(d => {
+        if (seen.has(d.id)) return false;
+        seen.add(d.id);
+        return true;
+      }).slice(0, ACCOUNT_BATCH_SIZE);
+    }
 
     if (accountDraftsError) {
       console.error('[AUTO-SEND] Error fetching account-level drafts:', accountDraftsError);
