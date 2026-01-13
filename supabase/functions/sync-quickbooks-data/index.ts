@@ -577,6 +577,7 @@ Deno.serve(async (req) => {
                 // QB returns amounts in dollars - store as-is (not multiplied by 100)
                 const amountApplied = line.Amount || 0;
 
+                // 1. Upsert to quickbooks_payments (existing behavior)
                 const { error: upsertError } = await supabaseAdmin
                   .from('quickbooks_payments')
                   .upsert({
@@ -599,6 +600,37 @@ Deno.serve(async (req) => {
 
                 if (!upsertError) {
                   paymentsSynced++;
+                  
+                  // 2. Also upsert to invoice_transactions for Payments Activity Dashboard
+                  if (invoiceId) {
+                    const externalTxnId = `qb_payment_${payment.Id}_${qbInvoiceId}`;
+                    const { error: txnError } = await supabaseAdmin
+                      .from('invoice_transactions')
+                      .upsert({
+                        invoice_id: invoiceId,
+                        user_id: user.id,
+                        transaction_type: 'payment',
+                        amount: amountApplied,
+                        transaction_date: paymentDate,
+                        payment_method: paymentMethod,
+                        reference_number: referenceNumber,
+                        source_system: 'quickbooks',
+                        external_transaction_id: externalTxnId,
+                        notes: `QuickBooks Payment #${payment.Id}`,
+                        metadata: {
+                          quickbooks_payment_id: payment.Id,
+                          quickbooks_invoice_id: qbInvoiceId,
+                          currency: currency.toUpperCase()
+                        }
+                      }, {
+                        onConflict: 'user_id,external_transaction_id'
+                      });
+                    
+                    if (txnError) {
+                      console.error('Invoice transaction upsert error:', txnError);
+                      // Don't add to errors array as primary sync succeeded
+                    }
+                  }
                 } else {
                   console.error('Payment upsert error:', upsertError);
                   errors.push(`PAYMENT_UPSERT_FAILED qb_payment_id=${payment.Id}: ${upsertError.message || JSON.stringify(upsertError)}`);
