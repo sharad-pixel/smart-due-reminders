@@ -28,8 +28,11 @@ import {
   AlertCircle,
   Sparkles,
   Save,
-  Trash2
+  Trash2,
+  CheckSquare,
+  Square
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,8 +80,11 @@ interface ScheduledItem {
   step_number?: number;
   created_at?: string;
   updated_at?: string;
-  invoice_status?: string; // Track invoice status for display
+  invoice_status?: string;
 }
+
+// Nicolas is the dedicated account-level agent
+const ACCOUNT_LEVEL_PERSONA = 'nicolas';
 
 interface ScheduledOutreachPanelProps {
   selectedPersona?: string | null;
@@ -124,6 +130,12 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
   const [isSaving, setIsSaving] = useState(false);
   const [deleteItem, setDeleteItem] = useState<ScheduledItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const fetchScheduledOutreach = async (showRefreshing = false) => {
     if (accountLoading || !effectiveAccountId) return;
@@ -273,11 +285,11 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
       }
 
       // Map account-level drafts with real debtor balances
+      // Account-level outreach always uses Nicolas as the agent
       const accountItems: ScheduledItem[] = accountDrafts.map((draft: any) => {
         const snapshot = draft.applied_brand_snapshot || {};
         const context = snapshot.context || {};
         const invoices = context.invoices || [];
-        const personaInfo = getPersonaForBucket('dpd_1_30'); // Default persona for account level
         
         // Get debtor ID from multiple possible locations
         const debtorId = snapshot.debtor_id || 
@@ -318,7 +330,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
           scheduled_date: draft.recommended_send_date || new Date().toISOString(),
           days_past_due: draft.days_past_due || 0,
           aging_bucket: 'account_level',
-          persona_key: personaInfo?.key || 'nicolas',
+          persona_key: ACCOUNT_LEVEL_PERSONA, // Always use Nicolas for account-level
           source_type: 'account_level' as const,
           status: draft.status as 'pending_approval' | 'approved',
           subject: draft.subject,
@@ -371,13 +383,22 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
       result = result.filter(item => item.status === statusFilter);
     }
 
-    // Persona filter
+    // Persona filter - handle 'nicolas' for account-level
     if (selectedPersona) {
-      result = result.filter(item => item.persona_key === selectedPersona);
+      if (selectedPersona === ACCOUNT_LEVEL_PERSONA) {
+        result = result.filter(item => item.source_type === 'account_level');
+      } else {
+        result = result.filter(item => item.persona_key === selectedPersona);
+      }
     }
 
     return result;
   }, [items, searchFilter, sourceFilter, statusFilter, selectedPersona]);
+  
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [searchFilter, sourceFilter, statusFilter, selectedPersona]);
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / PAGE_SIZE);
@@ -431,11 +452,10 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
   };
 
   const getStatusBadge = (status: string, scheduledDate: string, createdAt?: string, updatedAt?: string) => {
-    const date = updatedAt || createdAt;
-    const formattedDate = date ? format(new Date(date), "MMM d, h:mm a") : '';
     const scheduled = new Date(scheduledDate);
     const now = new Date();
     const isScheduledFuture = scheduled > now;
+    const scheduledDateFormatted = format(scheduled, "MMM d, h:mm a");
     
     if (status === 'approved') {
       // Approved draft - differentiate between ready to send vs scheduled for future
@@ -447,36 +467,116 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
               Scheduled
             </Badge>
             <span className="text-[10px] text-muted-foreground">
-              Sends {format(scheduled, "MMM d")}
+              Sends {format(scheduled, "MMM d, h:mm a")}
             </span>
           </div>
         );
       }
+      // Ready to send - show when it will be sent (next batch run)
       return (
         <div className="flex flex-col gap-0.5">
           <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 gap-1 w-fit">
             <Check className="h-3 w-3" />
             Ready to Send
           </Badge>
-          {formattedDate && (
-            <span className="text-[10px] text-muted-foreground">{formattedDate}</span>
-          )}
+          <span className="text-[10px] text-muted-foreground">
+            {scheduledDateFormatted}
+          </span>
         </div>
       );
     }
-    // Pending approval
+    // Pending approval - show when it's scheduled to be sent once approved
     return (
       <div className="flex flex-col gap-0.5">
         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 gap-1 w-fit">
           <AlertCircle className="h-3 w-3" />
           Needs Approval
         </Badge>
-        {formattedDate && (
-          <span className="text-[10px] text-muted-foreground">{formattedDate}</span>
-        )}
+        <span className="text-[10px] text-muted-foreground">
+          Target: {scheduledDateFormatted}
+        </span>
       </div>
     );
   };
+  
+  // Bulk selection handlers
+  const handleSelectAll = () => {
+    if (selectedIds.size === paginatedItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedItems.map(item => item.id)));
+    }
+  };
+  
+  const handleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+  
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkApproving(true);
+    
+    try {
+      const idsToApprove = Array.from(selectedIds).filter(id => {
+        const item = items.find(i => i.id === id);
+        return item?.status === 'pending_approval';
+      });
+      
+      if (idsToApprove.length === 0) {
+        toast.info("No pending drafts selected to approve");
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('ai_drafts')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .in('id', idsToApprove);
+
+      if (error) throw error;
+      toast.success(`${idsToApprove.length} draft(s) approved`);
+      setSelectedIds(new Set());
+      fetchScheduledOutreach(true);
+    } catch (error) {
+      console.error("Error bulk approving drafts:", error);
+      toast.error("Failed to approve drafts");
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
+  
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    
+    try {
+      const { error } = await supabase
+        .from('ai_drafts')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast.success(`${selectedIds.size} draft(s) deleted`);
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+      fetchScheduledOutreach(true);
+    } catch (error) {
+      console.error("Error bulk deleting drafts:", error);
+      toast.error("Failed to delete drafts");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+  
+  const selectedPendingCount = Array.from(selectedIds).filter(id => {
+    const item = items.find(i => i.id === id);
+    return item?.status === 'pending_approval';
+  }).length;
 
   const handlePreview = (item: ScheduledItem) => {
     setPreviewItem(item);
@@ -652,9 +752,55 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
             </div>
           ) : (
             <>
+              {/* Bulk Action Bar */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 p-3 mb-4 bg-muted rounded-lg border">
+                  <span className="text-sm font-medium">
+                    {selectedIds.size} selected
+                  </span>
+                  <div className="h-4 w-px bg-border" />
+                  {selectedPendingCount > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkApprove}
+                      disabled={isBulkApproving}
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      {isBulkApproving ? "Approving..." : `Approve (${selectedPendingCount})`}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                    disabled={isBulkDeleting}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    {isBulkDeleting ? "Deleting..." : "Delete"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
+              
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={paginatedItems.length > 0 && selectedIds.size === paginatedItems.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
                     <TableHead>Agent</TableHead>
                     <TableHead>Account / Invoice</TableHead>
                     <TableHead>Type</TableHead>
@@ -667,11 +813,21 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                 </TableHeader>
                 <TableBody>
                   {paginatedItems.map((item) => {
-                    const persona = personaConfig[item.persona_key];
+                    const persona = item.persona_key === ACCOUNT_LEVEL_PERSONA 
+                      ? { name: 'Nicolas', color: '#8b5cf6' } 
+                      : personaConfig[item.persona_key];
                     const scheduleInfo = getScheduleLabel(item.scheduled_date);
+                    const isSelected = selectedIds.has(item.id);
 
                     return (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} className={cn(isSelected && "bg-muted/50")}>
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectItem(item.id)}
+                            aria-label={`Select ${item.company_name}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <PersonaAvatar persona={item.persona_key} size="sm" />
@@ -738,16 +894,16 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
                                 >
                                   <Check className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDeleteItem(item)}
-                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteItem(item)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -789,6 +945,28 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
           )}
         </CardContent>
       </Card>
+      
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} Draft(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the selected {selectedIds.size} draft(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? "Deleting..." : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Preview Dialog */}
       <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>

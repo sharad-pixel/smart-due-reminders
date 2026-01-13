@@ -198,8 +198,21 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
     }
   };
 
+  // Special handler for account level (nicolas)
+  const handleAccountLevelClick = () => {
+    if (!onPersonaSelect) return;
+    
+    // Toggle - if already selected, clear selection
+    if (selectedPersona === 'nicolas') {
+      onPersonaSelect(null);
+    } else {
+      onPersonaSelect('nicolas');
+    }
+  };
+
   const accountNext = accountLevelStats.nextApproved || accountLevelStats.nextAny;
   const accountNextLabel = accountLevelStats.nextApproved ? "Next approved" : accountLevelStats.nextAny ? "Next pending" : "No upcoming";
+  const isAccountSelected = selectedPersona === 'nicolas';
 
   return (
     <Card>
@@ -216,29 +229,34 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {/* Account Level Outreach Card */}
+          {/* Account Level Outreach Card (Nicolas) */}
           <div 
             className={cn(
               "rounded-lg border p-3 bg-gradient-to-br from-purple-50 to-background dark:from-purple-950/30 dark:to-background transition-all",
-              "border-purple-200 dark:border-purple-800"
+              "border-purple-200 dark:border-purple-800",
+              onPersonaSelect && "cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/30",
+              isAccountSelected && "ring-2 ring-purple-500 bg-purple-100/50 dark:bg-purple-900/30"
             )}
+            onClick={handleAccountLevelClick}
           >
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-offset-background ring-purple-500">
-                <AvatarImage src={nicolasAvatar} alt="Nicolas - Account Level" />
+              <Avatar className={cn(
+                "h-10 w-10 ring-2 ring-offset-2 ring-offset-background ring-purple-500"
+              )}>
+                <AvatarImage src={nicolasAvatar} alt="Nicolas - Account Level Agent" />
                 <AvatarFallback className="bg-purple-500 text-white">
                   <Building2 className="h-5 w-5" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold text-sm">Account Level</p>
+                  <p className="font-semibold text-sm">Nicolas</p>
                   <Badge variant="outline" className="text-[10px] px-1.5 bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800">
-                    Summary
+                    Account
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  Consolidated account outreach
+                  Account Summary Agent
                 </p>
               </div>
             </div>
