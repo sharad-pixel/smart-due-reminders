@@ -2,6 +2,13 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getPersonaToneByDaysPastDue } from "../_shared/personaTones.ts";
+import { 
+  processDraftContent,
+  cleanupPlaceholders,
+  type InvoiceData,
+  type DebtorData,
+  type BrandingData
+} from "../_shared/draftContentEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -233,58 +240,53 @@ serve(async (req) => {
       }
 
       if (approvedTemplate) {
-        // Use approved template with variable replacement
-        const productDescription = invoice.product_description || '';
-        const currency = invoice.currency || 'USD';
-        const formatCurrency = (amt: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amt);
-        const formattedAmount = formatCurrency(invoice.amount || 0);
-        const formattedOutstanding = formatCurrency(amountOutstanding || 0);
-        const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        
-        const templateVars: Record<string, string> = {
-          '{{debtor_name}}': contactName,
-          '{{customer_name}}': contactName,
-          '{{name}}': contactName,
-          '{{company_name}}': businessName,
-          '{{customer_company}}': invoice.debtors.company_name || contactName,
-          '{{invoice_number}}': invoice.invoice_number,
-          '{{amount}}': formattedAmount,
-          '{{amount_outstanding}}': formattedOutstanding,
-          '{{balance}}': formattedOutstanding,
-          '{{currency}}': '', // Remove standalone currency since amount is formatted
-          '{{due_date}}': formattedDueDate,
-          '{{days_past_due}}': daysPastDue.toString(),
-          '{{business_name}}': businessName,
-          '{{payment_link}}': profile.stripe_payment_link_url || '',
-          '{{invoice_link}}': invoiceLink,
-          '{{integration_url}}': invoiceLink,
-          '{{product_description}}': productDescription,
-          '{{productDescription}}': productDescription,
-          '{{service_description}}': productDescription,
-          '{{description}}': productDescription,
+        // Use unified draft content engine for template processing
+        const invoiceData: InvoiceData = {
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          amount: invoice.amount || 0,
+          amount_outstanding: amountOutstanding,
+          currency: invoice.currency || 'USD',
+          due_date: invoice.due_date,
+          product_description: invoice.product_description,
+          external_link: invoice.external_link,
+          stripe_hosted_url: invoice.stripe_hosted_url,
+          integration_url: invoice.integration_url,
         };
 
-        email_subject = approvedTemplate.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
-        email_body = approvedTemplate.message_body_template;
+        const debtorData: DebtorData = {
+          id: invoice.debtors.id,
+          name: contactName,
+          company_name: invoice.debtors.company_name,
+        };
 
-        for (const [key, value] of Object.entries(templateVars)) {
-          email_subject = email_subject.replace(new RegExp(key, 'gi'), value);
-          email_body = email_body.replace(new RegExp(key, 'gi'), value);
-        }
-        
-        // Remove any remaining placeholders
-        email_subject = email_subject.replace(/\{\{[^}]+\}\}/g, '');
-        email_body = email_body.replace(/\{\{[^}]+\}\}/g, '');
+        const brandingData: BrandingData = {
+          business_name: businessName,
+          from_name: branding?.from_name,
+          email_signature: branding?.email_signature,
+          stripe_payment_link: profile.stripe_payment_link_url,
+          ar_page_public_token: branding?.ar_page_public_token,
+          ar_page_enabled: branding?.ar_page_enabled,
+        };
 
-        // Auto-append invoice link if it exists and isn't already in the message
-        if (invoiceLink && !email_body.includes(invoiceLink)) {
-          email_body += `\n\nView your invoice: ${invoiceLink}`;
-        }
+        // Process with unified engine
+        const processedContent = processDraftContent({
+          template: approvedTemplate.message_body_template,
+          subjectTemplate: approvedTemplate.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`,
+          invoice: invoiceData,
+          debtor: debtorData,
+          branding: brandingData,
+          contactName: contactName,
+          personaName: personaName,
+          daysPastDue: daysPastDue,
+          includeInvoiceLink: true,
+          includePaymentLink: true,
+          includeArPortal: true,
+          includeSignature: true,
+        });
 
-        // Add signature if available
-        if (branding?.email_signature) {
-          email_body += `\n\n${branding.email_signature}`;
-        }
+        email_subject = processedContent.cleanedSubject;
+        email_body = processedContent.cleanedBody;
 
         templateSource = `approved template (ID: ${approvedTemplate.id})`;
         autoApprove = true; // Auto-approve since we're using an approved template
@@ -452,24 +454,9 @@ Return JSON with email_subject and email_body fields. Use the actual values abov
       email_subject = parsedContent.email_subject;
       email_body = parsedContent.email_body;
       
-      // Post-process to replace any remaining placeholders that slipped through
-      const replaceRemainingPlaceholders = (text: string): string => {
-        return text
-          .replace(/\{\{customer_name\}\}/gi, contactName)
-          .replace(/\{\{company_name\}\}/gi, businessName)
-          .replace(/\{\{business_name\}\}/gi, businessName)
-          .replace(/\{\{debtor_name\}\}/gi, contactName)
-          .replace(/\{\{invoice_number\}\}/gi, invoice.invoice_number)
-          .replace(/\{\{amount\}\}/gi, formattedBalance)
-          .replace(/\{\{balance\}\}/gi, formattedBalance)
-          .replace(/\{\{due_date\}\}/gi, formattedDueDate)
-          .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
-          .replace(/\{\{payment_link\}\}/gi, profile.stripe_payment_link_url || '')
-          .replace(/\{\{[^}]+\}\}/g, ''); // Remove any other remaining placeholders
-      };
-      
-      email_subject = replaceRemainingPlaceholders(email_subject);
-      email_body = replaceRemainingPlaceholders(email_body);
+      // CRITICAL: Use unified engine to clean up any remaining placeholders from AI output
+      email_subject = cleanupPlaceholders(email_subject);
+      email_body = cleanupPlaceholders(email_body);
       
       templateSource = 'AI generated';
       // AI-generated content requires human review - do not auto-approve

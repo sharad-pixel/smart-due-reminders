@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { getPersonaToneByDaysPastDue } from '../_shared/personaTones.ts';
+import { cleanupPlaceholders, formatCurrency, formatDate, getInvoiceLink } from '../_shared/draftContentEngine.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -272,12 +273,15 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
         }
 
         const parsed = JSON.parse(toolCall.function.arguments);
-        const generatedContent = parsed.body;
+        let generatedContent = parsed.body;
 
         if (!generatedContent) {
           errors.push({ invoice_id: invoiceId, error: 'Empty message body' });
           continue;
         }
+
+        // CRITICAL: Clean up any remaining placeholders from AI output
+        generatedContent = cleanupPlaceholders(generatedContent);
 
         // Generate subject line
         const subjectPrompt = workflowStep?.subject_template || 

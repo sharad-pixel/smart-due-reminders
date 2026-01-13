@@ -1,5 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { getPersonaToneByDaysPastDue } from '../_shared/personaTones.ts';
+import { 
+  processDraftContent, 
+  calculateDaysPastDue,
+  type InvoiceData,
+  type DebtorData,
+  type BrandingData
+} from '../_shared/draftContentEngine.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -281,62 +288,52 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Replace template variables with proper formatting
-        const invoiceLink = (invoice as any).external_link || (invoice as any).stripe_hosted_url || invoice.integration_url || '';
-        const productDescription = invoice.product_description || '';
-        const currency = invoice.currency || 'USD';
-        const formatCurrency = (amt: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amt);
-        const formattedAmount = formatCurrency(invoice.amount || 0);
-        const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        
-        const templateVars: Record<string, string> = {
-          '{{debtor_name}}': debtorName,
-          '{{customer_name}}': debtorName,
-          '{{name}}': debtorName,
-          '{{company_name}}': businessName,
-          '{{customer_company}}': companyName,
-          '{{invoice_number}}': invoice.invoice_number,
-          '{{amount}}': formattedAmount,
-          '{{balance}}': formattedAmount,
-          '{{currency}}': '', // Remove standalone currency since amount is formatted
-          '{{due_date}}': formattedDueDate,
-          '{{days_past_due}}': daysPastDue.toString(),
-          '{{business_name}}': businessName,
-          '{{from_name}}': fromName,
-          '{{invoice_link}}': invoiceLink,
-          '{{integration_url}}': invoiceLink,
-          '{{product_description}}': productDescription,
-          '{{productDescription}}': productDescription,
-          '{{service_description}}': productDescription,
-          '{{description}}': productDescription,
-          '{{payment_link}}': branding?.stripe_payment_link || '',
+        // Use unified draft content engine for template processing
+        const invoiceData: InvoiceData = {
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          amount: invoice.amount || 0,
+          currency: invoice.currency || 'USD',
+          due_date: invoice.due_date,
+          product_description: invoice.product_description,
+          external_link: (invoice as any).external_link,
+          stripe_hosted_url: (invoice as any).stripe_hosted_url,
+          integration_url: invoice.integration_url,
         };
 
-        let processedBody = bodyTemplate;
-        let processedSubject = subjectTemplate;
-        
-        for (const [key, value] of Object.entries(templateVars)) {
-          processedBody = processedBody.replace(new RegExp(key, 'gi'), value);
-          processedSubject = processedSubject.replace(new RegExp(key, 'gi'), value);
-        }
-        
-        // Remove any remaining placeholders
-        processedBody = processedBody.replace(/\{\{[^}]+\}\}/g, '');
-        processedSubject = processedSubject.replace(/\{\{[^}]+\}\}/g, '');
+        const debtorData: DebtorData = {
+          id: debtor?.id,
+          name: debtorName,
+          company_name: companyName,
+        };
 
-        // Auto-append invoice link if it exists and isn't already in the message
-        if (invoiceLink && !processedBody.includes(invoiceLink)) {
-          processedBody += `\n\nView your invoice: ${invoiceLink}`;
-        }
+        const brandingDataObj: BrandingData = {
+          business_name: businessName,
+          from_name: fromName,
+          email_signature: branding?.email_signature,
+          stripe_payment_link: branding?.stripe_payment_link,
+          ar_page_public_token: branding?.ar_page_public_token,
+          ar_page_enabled: branding?.ar_page_enabled,
+        };
 
-        // If we have a product/service description, include it once for extra context
-        if (productDescription && !processedBody.toLowerCase().includes(productDescription.toLowerCase())) {
-          processedBody += `\n\nProduct/Service: ${productDescription}`;
-        }
-        // Add signature if available
-        if (branding?.email_signature) {
-          processedBody += `\n\n${branding.email_signature}`;
-        }
+        // Process with unified engine
+        const processedContent = processDraftContent({
+          template: bodyTemplate,
+          subjectTemplate: subjectTemplate,
+          invoice: invoiceData,
+          debtor: debtorData,
+          branding: brandingDataObj,
+          contactName: debtorName,
+          personaName: personaName,
+          daysPastDue: daysPastDue,
+          includeInvoiceLink: true,
+          includePaymentLink: true,
+          includeArPortal: true,
+          includeSignature: true,
+        });
+
+        const processedBody = processedContent.cleanedBody;
+        const processedSubject = processedContent.cleanedSubject;
 
         // Calculate recommended send date based on due date + step day_offset
         const stepTriggerDate = new Date(dueDate);

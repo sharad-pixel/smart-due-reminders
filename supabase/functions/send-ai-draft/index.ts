@@ -9,6 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
+import { cleanAndReplaceContent, type InvoiceData, type DebtorData, type BrandingData } from "../_shared/draftContentEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -157,145 +158,70 @@ serve(async (req) => {
       ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
       : '';
 
-    // Replace template variables in subject and body
-    const replaceTemplateVars = (text: string): string => {
-      if (!text) return text;
-      
-      const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
-      const customerCompany = debtor?.company_name || debtor?.name || 'Customer';
-      const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
-      const rawAmount = invoice?.amount || 0;
-      const currency = invoice?.currency || 'USD';
-      // Format amount with proper currency format
-      const amount = new Intl.NumberFormat('en-US', { 
-        style: 'currency', 
-        currency: currency,
-        minimumFractionDigits: 2 
-      }).format(rawAmount);
-      const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
-      const paymentLink = branding?.stripe_payment_link || '';
-      const businessName = branding?.business_name || 'Our Company';
-      const productDescription = invoice?.product_description || '';
-      // Prefer publicly shareable invoice links (Stripe hosted invoice URL) over internal dashboard links
-      const invoiceLink =
-        invoice?.external_link ||
-        invoice?.stripe_hosted_url ||
-        invoice?.integration_url ||
-        '';
-      
-      let result = text
-        // Customer/Debtor name variations - use actual customer name, NOT company
-        .replace(/\{\{customer_name\}\}/gi, customerName)
-        .replace(/\{\{customer name\}\}/gi, customerName)
-        .replace(/\{\{debtor_name\}\}/gi, customerName)
-        .replace(/\{\{debtor name\}\}/gi, customerName)
-        .replace(/\{\{name\}\}/gi, customerName)
-        // Company name - this is the CUSTOMER's company, not your business
-        .replace(/\{\{customer_company\}\}/gi, customerCompany)
-        .replace(/\{\{debtor_company\}\}/gi, customerCompany)
-        // Business name - YOUR business name
-        .replace(/\{\{company_name\}\}/gi, businessName)
-        .replace(/\{\{company name\}\}/gi, businessName)
-        .replace(/\{\{business_name\}\}/gi, businessName)
-        .replace(/\{\{businessName\}\}/gi, businessName)
-        // Invoice number variations
-        .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
-        .replace(/\{\{invoice number\}\}/gi, invoiceNumber)
-        .replace(/\{\{invoiceNumber\}\}/gi, invoiceNumber)
-        // Amount variations - use formatted currency
-        .replace(/\{\{amount\}\}/gi, amount)
-        .replace(/\{\{balance\}\}/gi, amount)
-        .replace(/\{\{total\}\}/gi, amount)
-        .replace(/\{\{invoice_amount\}\}/gi, amount)
-        .replace(/\{\{amount_outstanding\}\}/gi, amount)
-        // Currency
-        .replace(/\{\{currency\}\}/gi, '')  // Remove standalone currency since amount is formatted
-        // Due date variations
-        .replace(/\{\{due_date\}\}/gi, dueDate)
-        .replace(/\{\{due date\}\}/gi, dueDate)
-        .replace(/\{\{dueDate\}\}/gi, dueDate)
-        // Days past due
-        .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
-        .replace(/\{\{days past due\}\}/gi, String(daysPastDue))
-        .replace(/\{\{daysPastDue\}\}/gi, String(daysPastDue))
-        // Payment link variations - only include if we have one
-        .replace(/\{\{payment_link\}\}/gi, paymentLink || '')
-        .replace(/\{\{payment link\}\}/gi, paymentLink || '')
-        .replace(/\{\{paymentLink\}\}/gi, paymentLink || '')
-        .replace(/\{\{pay_link\}\}/gi, paymentLink || '')
-        .replace(/\{\{stripe_link\}\}/gi, paymentLink || '')
-        // AR Portal link
-        .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
-        .replace(/\{\{portal_link\}\}/gi, arPageUrl)
-        // Invoice link variations (external system link)
-        .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
-        .replace(/\{\{invoice link\}\}/gi, invoiceLink)
-        .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
-        .replace(/\{\{external_link\}\}/gi, invoiceLink)
-        .replace(/\{\{integration_url\}\}/gi, invoiceLink)
-        // Product/Service description variations
-        .replace(/\{\{product_description\}\}/gi, productDescription)
-        .replace(/\{\{product description\}\}/gi, productDescription)
-        .replace(/\{\{productDescription\}\}/gi, productDescription)
-        .replace(/\{\{service_description\}\}/gi, productDescription)
-        .replace(/\{\{description\}\}/gi, productDescription);
-      
-      // Auto-append invoice link if it exists and isn't already in the result
-      if (invoiceLink && !result.includes(invoiceLink)) {
-        result += `\n\nView your invoice: ${invoiceLink}`;
-      }
-
-      // If we have a product/service description, include it once for extra context
-      if (productDescription && !result.toLowerCase().includes(productDescription.toLowerCase())) {
-        result += `\n\nProduct/Service: ${productDescription}`;
-      }
-      
-      // Clean up any remaining placeholders that might have slipped through
-      result = result.replace(/\{\{[^}]+\}\}/g, '');
-      
-      return result;
-    };
-
-    // Apply template replacement to draft content
-    let processedBody = replaceTemplateVars(draft.message_body);
-    
-    // Append AR portal link if available and not already in body
-    if (arPageUrl && !processedBody.includes(arPageUrl)) {
-      processedBody += `\n\n📄 Access your account portal: ${arPageUrl}`;
-    }
-    
-    // Append payment link if available and not already in body
-    const paymentLink = branding?.stripe_payment_link || '';
-    if (paymentLink && !processedBody.includes(paymentLink)) {
-      processedBody += `\n\n💳 Make a payment: ${paymentLink}`;
-    }
-    
-    // Add signature/contact info if not already in body
-    if (branding?.email_signature && !processedBody.includes(branding.email_signature)) {
-      processedBody += `\n\n---\n${branding.email_signature}`;
-    } else if (!branding?.email_signature) {
-      // No branding signature - use the assigned agent persona
+    // Fetch persona name for signature
+    let personaName = 'Collections Team';
+    if (draft.agent_persona_id) {
       const { data: personaData } = await supabaseClient
         .from('ai_agent_personas')
         .select('name')
         .eq('id', draft.agent_persona_id)
         .single();
-      
-      const personaName = personaData?.name || 'Collections Team';
-      const businessName = branding?.business_name || 'Our Company';
-      
-      // Add contact info from escalation settings if available
-      const contactEmail = branding?.escalation_contact_email || '';
-      const contactPhone = branding?.escalation_contact_phone || '';
-      
-      let contactSection = `\n\n---\nBest regards,\n${personaName}\n${businessName}`;
-      if (contactEmail) contactSection += `\nEmail: ${contactEmail}`;
-      if (contactPhone) contactSection += `\nPhone: ${contactPhone}`;
-      
-      processedBody += contactSection;
+      personaName = personaData?.name || 'Collections Team';
     }
-    
-    const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder');
+
+    // Build invoice data for the unified engine
+    const invoiceData: InvoiceData = {
+      id: invoice.id,
+      invoice_number: invoice.invoice_number || invoice.reference_id || '',
+      amount: invoice.amount || 0,
+      amount_outstanding: invoice.amount_outstanding,
+      currency: invoice.currency || 'USD',
+      due_date: invoice.due_date,
+      product_description: invoice.product_description,
+      external_link: invoice.external_link,
+      stripe_hosted_url: invoice.stripe_hosted_url,
+      integration_url: invoice.integration_url,
+    };
+
+    // Build debtor data
+    const debtorData: DebtorData = {
+      id: debtor?.id,
+      name: debtor?.name,
+      company_name: debtor?.company_name,
+    };
+
+    // Build branding data
+    const brandingData: BrandingData = {
+      business_name: branding?.business_name,
+      from_name: branding?.from_name,
+      email_signature: branding?.email_signature,
+      email_footer: branding?.email_footer,
+      stripe_payment_link: branding?.stripe_payment_link,
+      ar_page_public_token: branding?.ar_page_public_token,
+      ar_page_enabled: branding?.ar_page_enabled,
+      escalation_contact_name: branding?.escalation_contact_name,
+      escalation_contact_email: branding?.escalation_contact_email,
+      escalation_contact_phone: branding?.escalation_contact_phone,
+    };
+
+    // Use unified draft content engine for processing
+    const processedBody = cleanAndReplaceContent(
+      draft.message_body,
+      invoiceData,
+      debtorData,
+      brandingData,
+      debtor?.name,
+      personaName
+    );
+
+    const processedSubject = cleanAndReplaceContent(
+      draft.subject || 'Payment Reminder',
+      invoiceData,
+      debtorData,
+      brandingData,
+      debtor?.name,
+      personaName
+    );
     // Fetch all outreach-enabled contacts with fallback to debtor record
     const outreachContacts = await getOutreachContacts(supabaseClient, debtor?.id, debtor);
     const allEmails = outreachContacts.emails;
