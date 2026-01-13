@@ -11,6 +11,7 @@ import { Clock, Mail, CheckCircle, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
+import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface AgentScheduleCardsProps {
   selectedPersona?: string | null;
@@ -18,17 +19,20 @@ interface AgentScheduleCardsProps {
 }
 
 const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleCardsProps) => {
+  const { effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
+  
   // Fetch drafts data for persona schedule
   const { data: draftsData, isLoading } = useQuery({
-    queryKey: ["agent-schedule-drafts"],
+    queryKey: ["agent-schedule-drafts", effectiveAccountId],
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     retry: 1,
+    enabled: !accountLoading && !!effectiveAccountId,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!effectiveAccountId) return [];
 
       // Fetch all unsent drafts (pending or approved) - no limit to get accurate counts
+      // Use same user_id filter as ScheduledOutreachPanel for consistency
       const { data, error } = await supabase
         .from("ai_drafts")
         .select(`
@@ -36,9 +40,10 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
           recommended_send_date, created_at, sent_at,
           days_past_due, invoice_id,
           invoices (
-            id, due_date
+            id, due_date, status
           )
         `)
+        .eq("user_id", effectiveAccountId)
         .in("status", ["pending_approval", "approved"])
         .is("sent_at", null)
         .order("recommended_send_date", { ascending: true });
@@ -93,7 +98,18 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
       return null;
     };
 
-    const upcoming = (draftsData || []).filter((d: any) => !d.sent_at);
+    // Inactive invoice statuses to exclude from outreach (same as ScheduledOutreachPanel)
+    const excludedInvoiceStatuses = ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Credited'];
+    
+    const upcoming = (draftsData || []).filter((d: any) => {
+      if (d.sent_at) return false;
+      // For invoice-level drafts, filter out inactive invoices
+      if (d.invoice_id && d.invoices) {
+        const invoiceStatus = d.invoices.status;
+        if (excludedInvoiceStatuses.includes(invoiceStatus)) return false;
+      }
+      return true;
+    });
 
     const byPersona: Record<string, { key: string; nextApproved: Date | null; nextAny: Date | null; approvedCount: number; pendingCount: number; total: number; }> = {};
 
