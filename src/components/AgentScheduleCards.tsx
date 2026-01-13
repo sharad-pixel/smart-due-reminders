@@ -7,9 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { personaConfig, getPersonaByDaysPastDue } from "@/lib/personaConfig";
-import { Clock, Mail, CheckCircle } from "lucide-react";
+import { Clock, Mail, CheckCircle, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import nicolasAvatar from "@/assets/personas/nicolas.png";
 
 interface AgentScheduleCardsProps {
   selectedPersona?: string | null;
@@ -33,7 +34,7 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
         .select(`
           id, status, step_number,
           recommended_send_date, created_at, sent_at,
-          days_past_due,
+          days_past_due, invoice_id,
           invoices (
             id, due_date
           )
@@ -47,7 +48,7 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
     },
   });
 
-  const personaSchedule = useMemo(() => {
+  const { personaSchedule, accountLevelStats } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -107,7 +108,32 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
       };
     }
 
+    // Account level stats (invoice_id is null)
+    let accountApproved = 0;
+    let accountPending = 0;
+    let accountNextApproved: Date | null = null;
+    let accountNextAny: Date | null = null;
+
     for (const draft of upcoming) {
+      // Check if this is an account-level draft (invoice_id is null)
+      if (draft.invoice_id === null) {
+        const scheduled = safeScheduledDateTime(draft.recommended_send_date) || safeScheduledDateTime(draft.created_at);
+        if (scheduled) {
+          if (draft.status === "approved") {
+            accountApproved += 1;
+            if (!accountNextApproved || scheduled < accountNextApproved) {
+              accountNextApproved = scheduled;
+            }
+          } else if (draft.status === "pending_approval") {
+            accountPending += 1;
+          }
+          if (!accountNextAny || scheduled < accountNextAny) {
+            accountNextAny = scheduled;
+          }
+        }
+        continue;
+      }
+
       const personaKey = getDraftPersonaKey(draft);
       if (!personaKey || !byPersona[personaKey]) continue;
 
@@ -129,10 +155,19 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
       }
     }
 
-    return Object.keys(personaConfig).map((key) => ({
-      persona: personaConfig[key],
-      ...byPersona[key],
-    }));
+    return {
+      personaSchedule: Object.keys(personaConfig).map((key) => ({
+        persona: personaConfig[key],
+        ...byPersona[key],
+      })),
+      accountLevelStats: {
+        approvedCount: accountApproved,
+        pendingCount: accountPending,
+        total: accountApproved + accountPending,
+        nextApproved: accountNextApproved,
+        nextAny: accountNextAny,
+      },
+    };
   }, [draftsData]);
 
   if (isLoading) {
@@ -142,8 +177,8 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
           <CardTitle className="text-lg">AI Collection Agents</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map(i => (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6, 7].map(i => (
               <Skeleton key={i} className="h-24 rounded-lg" />
             ))}
           </div>
@@ -163,6 +198,9 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
     }
   };
 
+  const accountNext = accountLevelStats.nextApproved || accountLevelStats.nextAny;
+  const accountNextLabel = accountLevelStats.nextApproved ? "Next approved" : accountLevelStats.nextAny ? "Next pending" : "No upcoming";
+
   return (
     <Card>
       <CardHeader>
@@ -177,7 +215,61 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* Account Level Outreach Card */}
+          <div 
+            className={cn(
+              "rounded-lg border p-3 bg-gradient-to-br from-purple-50 to-background dark:from-purple-950/30 dark:to-background transition-all",
+              "border-purple-200 dark:border-purple-800"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-offset-background ring-purple-500">
+                <AvatarImage src={nicolasAvatar} alt="Nicolas - Account Level" />
+                <AvatarFallback className="bg-purple-500 text-white">
+                  <Building2 className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm">Account Level</p>
+                  <Badge variant="outline" className="text-[10px] px-1.5 bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800">
+                    Summary
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  Consolidated account outreach
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-xs">
+                {accountLevelStats.approvedCount > 0 && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>{accountLevelStats.approvedCount} ready</span>
+                  </div>
+                )}
+                {accountLevelStats.pendingCount > 0 && (
+                  <div className="flex items-center gap-1 text-yellow-600">
+                    <Clock className="h-3 w-3" />
+                    <span>{accountLevelStats.pendingCount} pending</span>
+                  </div>
+                )}
+                {accountLevelStats.total === 0 && (
+                  <span className="text-muted-foreground">No outreach queued</span>
+                )}
+              </div>
+              {accountNext && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {format(accountNext, "MMM d h:mm a")}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Persona Cards */}
           {personaSchedule.map((row) => {
             const next = row.nextApproved || row.nextAny;
             const nextLabel = row.nextApproved ? "Next approved" : row.nextAny ? "Next pending" : "No upcoming";
