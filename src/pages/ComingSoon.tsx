@@ -461,6 +461,26 @@ const ComingSoon = () => {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-4 border-t border-border/50 bg-background/80">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <RecouplyLogo size="sm" />
+              <span className="text-sm text-muted-foreground">© 2026 Recouply. All rights reserved.</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                Privacy Policy
+              </a>
+              <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </MarketingLayout>
   );
 };
