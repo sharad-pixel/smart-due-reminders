@@ -202,7 +202,7 @@ const Startups = () => {
               Get Started for Free
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10" onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}>
+            <Button size="lg" variant="outline" className="border-white text-white bg-white/10 hover:bg-white/20" onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}>
               Book a Demo
             </Button>
           </div>
