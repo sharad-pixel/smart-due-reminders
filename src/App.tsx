@@ -123,10 +123,9 @@ const App = () => (
         <Sonner />
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* HOMEPAGE: Coming Soon landing page for launch */}
-            <Route path="/" element={<ComingSoon />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/app" element={<Index />} />
+            {/* Main app entry point */}
+            <Route path="/" element={<Index />} />
+            <Route path="/coming-soon" element={<ComingSoon />} />
 
             {/* Marketing & Info Pages */}
             <Route path="/design-partners" element={<ComingSoon />} />
