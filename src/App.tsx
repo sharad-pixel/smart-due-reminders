@@ -85,6 +85,7 @@ const EmailDeliveryReport = lazy(() => import("./pages/EmailDeliveryReport"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Upgrade = lazy(() => import("./pages/Upgrade"));
+const PaymentsActivity = lazy(() => import("./pages/PaymentsActivity"));
 
 // Contact
 const ContactUs = lazy(() => import("./pages/ContactUs"));
@@ -167,7 +168,7 @@ const App = () => (
 
             {/* Dashboard & Core App */}
             <Route path="/dashboard" element={<Dashboard />} />
-            
+            <Route path="/payments" element={<PaymentsActivity />} />
             {/* Legacy route support (older alerts/emails) */}
             <Route path="/accounts" element={<LegacyAccountsRedirect />} />
             <Route path="/accounts/:id" element={<LegacyAccountsRedirect />} />
