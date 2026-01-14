@@ -166,20 +166,29 @@ export const PaymentsActivityDashboard = () => {
               Track all payments collected via integrations and manual entry
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className={hasActiveFilters ? 'border-primary' : ''}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-            {hasActiveFilters && (
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
-                {Object.values(filters).filter(v => v && v !== 'all').length}
-              </Badge>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className={hasActiveFilters ? 'border-primary' : ''}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                  {Object.values(filters).filter(v => v && v !== 'all').length}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/payments')}
+            >
+              View All
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
