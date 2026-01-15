@@ -61,6 +61,7 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
@@ -89,20 +90,28 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) {
-        navigate("/login");
+
+      // Avoid redirecting to /login before we've completed the initial session check.
+      // This prevents breaking OAuth callback flows where the session is established asynchronously.
+      if (!session?.user && authChecked) {
+        const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"]; 
+        const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p));
+        if (!isPublic) navigate("/login", { replace: true });
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setAuthChecked(true);
       if (!session?.user) {
-        navigate("/login");
+        const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"]; 
+        const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p));
+        if (!isPublic) navigate("/login", { replace: true });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname, authChecked]);
 
   const handleSignOut = async () => {
     if (user) {
