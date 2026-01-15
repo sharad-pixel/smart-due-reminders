@@ -22,6 +22,8 @@ const Upgrade = () => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [additionalSeats, setAdditionalSeats] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const { role, loading: roleLoading, canManageBilling } = useUserRole();
   const { 
     plan: currentPlan, 
@@ -42,11 +44,43 @@ const Upgrade = () => {
     }
   }, []);
 
+  // Check if user is admin - admins should go to dashboard
   useEffect(() => {
-    if (billingInterval === 'year') {
-      setIsAnnual(true);
-    }
-  }, [billingInterval]);
+    const checkAdminStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setCheckingAdmin(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin, stripe_customer_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.is_admin) {
+          setIsAdmin(true);
+          // Admins should go to dashboard, not upgrade
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+
+        // Existing users with stripe_customer_id can also access dashboard
+        if (profile?.stripe_customer_id) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [navigate]);
 
   const handleUpgrade = async (planType: string) => {
     if (planType === 'enterprise') {
@@ -115,7 +149,15 @@ const Upgrade = () => {
     }
   };
 
-  if (subscriptionLoading || roleLoading) {
+  // Add billingInterval effect
+  useEffect(() => {
+    if (billingInterval === 'year') {
+      setIsAnnual(true);
+    }
+  }, [billingInterval]);
+
+  // Show loading while checking admin status or loading subscription data
+  if (checkingAdmin || subscriptionLoading || roleLoading) {
     return (
       <Layout>
         <div className="container mx-auto max-w-6xl py-8">
@@ -128,6 +170,11 @@ const Upgrade = () => {
         </div>
       </Layout>
     );
+  }
+
+  // If admin was detected, they've been redirected - don't render
+  if (isAdmin) {
+    return null;
   }
 
   // Check if this is a new user without any subscription (new signup flow)

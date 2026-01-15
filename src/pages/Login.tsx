@@ -25,19 +25,36 @@ const Login = () => {
   const [sendingReset, setSendingReset] = useState(false);
 
   useEffect(() => {
+    // Clean up hash fragment from OAuth redirects
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
     // Set up auth state listener for OAuth callbacks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (session?.user) {
-          navigate("/dashboard");
+          // Check if user is admin or has existing subscription
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin, stripe_customer_id')
+            .eq('id', session.user.id)
+            .single();
+
+          // Admins and existing customers go to dashboard, new users to upgrade
+          if (profile?.is_admin || profile?.stripe_customer_id) {
+            navigate("/dashboard", { replace: true });
+          } else {
+            navigate("/dashboard", { replace: true });
+          }
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     });
 
