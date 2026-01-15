@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import AdminAccountsHierarchy from "@/components/admin/AdminAccountsHierarchy";
 import {
   Search,
   UserX,
@@ -502,6 +503,8 @@ const AdminUserManagement = () => {
     { label: "30-Day Signups", value: stats?.recentSignups30d || 0, icon: Calendar, color: "text-orange-500", bg: "bg-orange-500/10" },
   ];
 
+  const [activeView, setActiveView] = useState<"users" | "accounts">("accounts");
+
   return (
     <AdminLayout title="User Management" description="Complete user data analysis, management, and exports">
       {/* Stats Grid */}
@@ -522,7 +525,31 @@ const AdminUserManagement = () => {
         })}
       </div>
 
-      {/* Main Content */}
+      {/* View Toggle */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant={activeView === "accounts" ? "default" : "outline"}
+          onClick={() => setActiveView("accounts")}
+          className="flex items-center gap-2"
+        >
+          <Building2 className="h-4 w-4" />
+          Account Hierarchy
+        </Button>
+        <Button
+          variant={activeView === "users" ? "default" : "outline"}
+          onClick={() => setActiveView("users")}
+          className="flex items-center gap-2"
+        >
+          <Users className="h-4 w-4" />
+          All Users
+        </Button>
+      </div>
+
+      {/* Account Hierarchy View */}
+      {activeView === "accounts" && <AdminAccountsHierarchy />}
+
+      {/* Users Table View */}
+      {activeView === "users" && (
       <Card>
         <CardHeader className="border-b">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -829,6 +856,7 @@ const AdminUserManagement = () => {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Suspend Dialog */}
       <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
