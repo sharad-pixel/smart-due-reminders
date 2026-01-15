@@ -143,7 +143,30 @@ export function getArPortalUrl(branding: BrandingData): string {
 export function cleanupPlaceholders(text: string): string {
   if (!text) return text;
   // Remove any remaining {{...}} placeholders
-  return text.replace(/\{\{[^}]+\}\}/g, '');
+  let result = text.replace(/\{\{[^}]+\}\}/g, '');
+  
+  // CRITICAL: Clean up malformed greetings where name is missing
+  // "Hi ," or "Hi  ," -> "Hi there,"
+  result = result.replace(/\bHi\s*,/gi, 'Hi there,');
+  result = result.replace(/\bDear\s*,/gi, 'Dear Customer,');
+  result = result.replace(/\bHello\s*,/gi, 'Hello,');
+  
+  // Clean up "at ." or "with ." patterns where company name is missing
+  result = result.replace(/\bat\s*\./gi, 'with your company.');
+  result = result.replace(/\bwith you at\s*\./gi, 'with you.');
+  result = result.replace(/\brelationship with\s*\./gi, 'relationship.');
+  
+  // Clean up raw numbers that should be currency (pattern like "for 2995" or "of 2995")
+  result = result.replace(/\b(for|of|is|totaling|totals)\s+(\d{1,3}(?:,?\d{3})*(?:\.\d{2})?)\b(?!\.\d)/gi, (match, preposition, num) => {
+    const cleanNum = parseFloat(num.replace(/,/g, ''));
+    if (!isNaN(cleanNum) && cleanNum > 100) {
+      const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cleanNum);
+      return `${preposition} ${formatted}`;
+    }
+    return match;
+  });
+  
+  return result;
 }
 
 /**
