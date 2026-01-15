@@ -23,22 +23,47 @@ const Auth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
+  const checkIfBlocked = async (userEmail: string, userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-blocked-user', {
+        body: { email: userEmail, userId }
+      });
+      
+      if (data?.blocked) {
+        await supabase.auth.signOut();
+        toast.error(`Access denied: ${data.reason || 'Your account has been blocked.'}`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error checking blocked status:', error);
+    }
+    return false;
+  };
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate("/dashboard");
+        // Check if user is blocked before allowing access
+        const isBlocked = await checkIfBlocked(session.user.email || '', session.user.id);
+        if (!isBlocked) {
+          navigate("/dashboard");
+        }
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate("/dashboard");
+        // Check if user is blocked before allowing access
+        const isBlocked = await checkIfBlocked(session.user.email || '', session.user.id);
+        if (!isBlocked) {
+          navigate("/dashboard");
+        }
       }
     });
 

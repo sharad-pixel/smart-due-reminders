@@ -59,6 +59,22 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           return;
         }
 
+        // Check if user is blocked
+        try {
+          const { data: blockData } = await supabase.functions.invoke('check-blocked-user', {
+            body: { email: user.email, userId: user.id }
+          });
+          
+          if (blockData?.blocked) {
+            console.log('[RequireSubscription] User is blocked, signing out');
+            await supabase.auth.signOut();
+            navigate('/login', { replace: true });
+            return;
+          }
+        } catch (blockError) {
+          console.error('[RequireSubscription] Error checking blocked status:', blockError);
+        }
+
         // Get user's subscription status and history
         const { data: profile } = await supabase
           .from('profiles')

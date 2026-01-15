@@ -211,6 +211,94 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'block_user': {
+        // Get user email
+        const { data: userProfile } = await supabaseClient
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (!userProfile?.email) {
+          return new Response(
+            JSON.stringify({ error: 'User email not found' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        // Add to blocked_users
+        const { data, error } = await supabaseClient
+          .from('blocked_users')
+          .upsert({
+            email: userProfile.email.toLowerCase(),
+            reason: updates?.reason || 'Blocked by admin',
+            blocked_by: adminUser.id,
+            blocked_at: new Date().toISOString(),
+            expires_at: updates?.expires_at || null,
+          }, {
+            onConflict: 'email'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Also suspend the user
+        await supabaseClient
+          .from('profiles')
+          .update({
+            is_suspended: true,
+            suspended_at: new Date().toISOString(),
+            suspended_reason: updates?.reason || 'Blocked by admin',
+            suspended_by: adminUser.id,
+          })
+          .eq('id', userId);
+
+        result = data;
+        actionDetails.email = userProfile.email;
+        actionDetails.reason = updates?.reason;
+        actionDetails.expires_at = updates?.expires_at;
+        break;
+      }
+
+      case 'unblock_user': {
+        // Get user email
+        const { data: userProfile } = await supabaseClient
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (userProfile?.email) {
+          // Remove from blocked_users
+          await supabaseClient
+            .from('blocked_users')
+            .delete()
+            .eq('email', userProfile.email.toLowerCase());
+        }
+
+        // Also unsuspend the user
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .update({
+            is_suspended: false,
+            suspended_at: null,
+            suspended_reason: null,
+            suspended_by: null,
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        actionDetails.email = userProfile?.email;
+        break;
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
