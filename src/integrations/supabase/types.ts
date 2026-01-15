@@ -496,6 +496,36 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_users: {
+        Row: {
+          blocked_at: string
+          blocked_by: string | null
+          created_at: string
+          email: string
+          expires_at: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          blocked_at?: string
+          blocked_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          blocked_at?: string
+          blocked_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       branding_settings: {
         Row: {
           accent_color: string | null
@@ -6198,6 +6228,7 @@ export type Database = {
         Args: { _account_id: string; _user_id: string }
         Returns: boolean
       }
+      is_email_blocked: { Args: { check_email: string }; Returns: boolean }
       is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_member_of_account: {

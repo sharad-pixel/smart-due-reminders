@@ -1,12 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,7 +14,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false }
+    });
 
     // Verify the caller is an admin
     const authHeader = req.headers.get('Authorization');
@@ -50,7 +51,7 @@ serve(async (req) => {
       });
     }
 
-    const { userId } = await req.json();
+    const { userId, blockEmail = true, reason } = await req.json();
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'userId is required' }), {
@@ -59,7 +60,37 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Admin ${callerUser.id} initiating deletion of user ${userId}`);
+    console.log(`Admin ${callerUser.id} initiating deletion of user ${userId} (blockEmail: ${blockEmail})`);
+
+    // Get user email before deletion for blocklist
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+
+    const userEmail = userProfile?.email;
+
+    // If blockEmail is true, add to blocked_users to prevent re-registration
+    if (blockEmail && userEmail) {
+      console.log(`Adding ${userEmail} to blocked_users list`);
+      const { error: blockError } = await supabase
+        .from('blocked_users')
+        .upsert({
+          email: userEmail.toLowerCase(),
+          reason: reason || 'User deleted by admin',
+          blocked_by: callerUser.id,
+          blocked_at: new Date().toISOString(),
+        }, {
+          onConflict: 'email'
+        });
+      
+      if (blockError) {
+        console.error('Error adding to blocklist:', blockError);
+      } else {
+        console.log(`Successfully blocked email: ${userEmail}`);
+      }
+    }
 
     const deletionResults: { table: string; success: boolean; error?: string }[] = [];
 
@@ -114,6 +145,9 @@ serve(async (req) => {
     // Delete in order respecting foreign key constraints
     // Start with child/dependent tables first
 
+    // Contacts first (depends on debtors)
+    await deleteFromTable('contacts');
+
     // Data Center related
     await deleteFromTable('data_center_staging_rows', 'upload_id');
     await deleteFromTable('data_center_uploads');
@@ -141,6 +175,10 @@ serve(async (req) => {
     await deleteFromTable('collection_outcomes');
     await deleteFromTable('collection_activities');
     await deleteFromTable('collection_tasks');
+
+    // Campaigns
+    await deleteFromTable('campaign_accounts');
+    await deleteFromTable('collection_campaigns');
 
     // AI related
     await deleteFromTable('ai_drafts');
@@ -192,6 +230,9 @@ serve(async (req) => {
 
     // Notifications
     await deleteFromTable('user_notifications');
+
+    // Integration settings
+    await deleteFromTable('integration_sync_settings');
 
     // Rate limiting and security
     await deleteFromTable('rate_limits', 'identifier');
@@ -255,6 +296,7 @@ serve(async (req) => {
         error: 'Failed to delete auth user', 
         details: deleteAuthError.message,
         dataDeleted: true,
+        emailBlocked: blockEmail && userEmail ? true : false,
         deletionResults
       }), {
         status: 500,
@@ -270,7 +312,9 @@ serve(async (req) => {
       action_type: 'user_deletion',
       details: { 
         deletion_results: deletionResults,
-        deleted_at: new Date().toISOString()
+        deleted_at: new Date().toISOString(),
+        email_blocked: blockEmail && userEmail ? userEmail : null,
+        reason
       },
     });
 
@@ -279,6 +323,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'User and all associated data deleted successfully',
+      emailBlocked: blockEmail && userEmail ? userEmail : null,
       deletionResults
     }), {
       status: 200,
