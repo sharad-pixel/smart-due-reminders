@@ -146,6 +146,21 @@ export function cleanupPlaceholders(text: string): string {
   return text.replace(/\{\{[^}]+\}\}/g, '');
 }
 
+/**
+ * Strip URLs from a subject line - URLs should only appear in email body
+ */
+export function sanitizeSubjectLine(subject: string): string {
+  if (!subject) return subject;
+  let result = subject;
+  // Remove URLs
+  result = result.replace(/https?:\/\/[^\s<>"]+/gi, '').trim();
+  // Clean up any leftover "View your invoice:" text without URL
+  result = result.replace(/View your invoice:\s*/gi, '').trim();
+  // Clean up extra whitespace
+  result = result.replace(/\s+/g, ' ').trim();
+  return result;
+}
+
 // ============================================================================
 // MAIN TEMPLATE REPLACEMENT FUNCTION
 // ============================================================================
@@ -375,7 +390,8 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
 
   // Step 4: CRITICAL - Clean up any remaining placeholders
   const cleanedBody = cleanupPlaceholders(body);
-  const cleanedSubject = cleanupPlaceholders(subject);
+  // CRITICAL: Also sanitize subject line to remove any URLs (they should only be in body)
+  const cleanedSubject = sanitizeSubjectLine(cleanupPlaceholders(subject));
 
   return {
     body,
@@ -412,4 +428,29 @@ export function cleanAndReplaceContent(
   
   // Then clean up any that couldn't be replaced
   return cleanupPlaceholders(replaced);
+}
+
+/**
+ * Clean and sanitize a subject line specifically
+ * Removes placeholders AND URLs from subjects
+ */
+export function cleanSubjectLine(
+  subject: string,
+  invoice: InvoiceData,
+  debtor: DebtorData,
+  branding: BrandingData,
+  contactName?: string,
+  personaName?: string
+): string {
+  // First replace any remaining variables
+  const replaced = replaceTemplateVariables(subject, {
+    invoice,
+    debtor,
+    branding,
+    contactName,
+    personaName,
+  });
+  
+  // Clean placeholders then sanitize for subject (removes URLs)
+  return sanitizeSubjectLine(cleanupPlaceholders(replaced));
 }
