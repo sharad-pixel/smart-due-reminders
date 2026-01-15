@@ -42,8 +42,13 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
 
   useEffect(() => {
     const checkSubscription = async () => {
-      // Skip check for exempt paths
-      if (isExemptPath) {
+      // Skip check for exempt paths (also handle hash fragments from OAuth)
+      const cleanPath = location.pathname.replace(/#.*$/, '');
+      const isExemptClean = exemptPaths.some(path => 
+        cleanPath === path || cleanPath.startsWith(path)
+      );
+      
+      if (isExemptPath || isExemptClean) {
         setHasSubscription(true);
         setIsChecking(false);
         return;

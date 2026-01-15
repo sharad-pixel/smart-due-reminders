@@ -35,6 +35,13 @@ const Upgrade = () => {
     refresh: refreshSubscription
   } = useSubscription();
 
+  // Clean up hash fragment from OAuth redirects
+  useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
+
   useEffect(() => {
     if (billingInterval === 'year') {
       setIsAnnual(true);
