@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[GET-MONTHLY-USAGE] ${step}${detailsStr}`);
 };
@@ -166,9 +166,15 @@ Deno.serve(async (req) => {
     ) {
       // IMPORTANT: use the plan invoice_limit as the allowance; if missing, default to Free (5)
       const includedAllowance = plan.invoice_limit ?? 5;
-      const includedInvoicesUsed = usage.included_invoices_used ?? 0;
-      const overageInvoices = usage.overage_invoices ?? 0;
-      const totalInvoicesUsed = includedInvoicesUsed + overageInvoices;
+
+      // invoice_usage may be populated by older logic that only increments included_invoices_used.
+      // Derive a clean breakdown so UI shows e.g. 5/5 +10 overage (instead of 15/5).
+      const rawIncluded = usage.included_invoices_used ?? 0;
+      const rawOverage = usage.overage_invoices ?? 0;
+      const totalInvoicesUsed = rawIncluded + rawOverage;
+
+      const includedInvoicesUsed = Math.min(totalInvoicesUsed, includedAllowance);
+      const overageInvoices = Math.max(0, totalInvoicesUsed - includedAllowance);
       const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
       const isOverLimit = totalInvoicesUsed > includedAllowance;
 
@@ -216,7 +222,7 @@ Deno.serve(async (req) => {
     }
 
     const actualInvoicesUsed = countableInvoices?.length || 0;
-    const overageInvoices = countableInvoices?.filter(inv => inv.is_overage).length || 0;
+    const overageInvoices = countableInvoices?.filter((inv: { is_overage?: boolean | null }) => !!inv.is_overage).length || 0;
     const includedInvoicesUsed = actualInvoicesUsed - overageInvoices;
 
     const includedAllowance = plan.invoice_limit || 0;
