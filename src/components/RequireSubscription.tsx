@@ -59,10 +59,10 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           return;
         }
 
-        // Get user's subscription status
+        // Get user's subscription status and history
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan_type, subscription_status, is_admin')
+          .select('plan_type, subscription_status, is_admin, stripe_customer_id, created_at')
           .eq('id', user.id)
           .single();
 
@@ -100,8 +100,10 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
         }
 
         const subscriptionStatus = profile?.subscription_status;
+        const planType = profile?.plan_type;
+        const hasStripeCustomer = !!profile?.stripe_customer_id;
         
-        // Allow access if user has an active/trialing/past_due subscription
+        // CASE 1: Active subscription members → allow access to dashboard
         const hasActiveSubscription = 
           subscriptionStatus === 'active' || 
           subscriptionStatus === 'trialing' ||
@@ -113,9 +115,30 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           return;
         }
 
-        // No active subscription - redirect to upgrade
-        console.log('[RequireSubscription] No active subscription, redirecting to upgrade', {
-          planType: profile?.plan_type,
+        // CASE 2: Existing members with expired/canceled subscriptions
+        // They had a subscription before (stripe_customer_id exists or plan_type is not 'free')
+        // Allow access - overages will be billed at $1.99 per invoice
+        const isExistingMemberWithExpiredSubscription = 
+          hasStripeCustomer || 
+          (planType && planType !== 'free') ||
+          subscriptionStatus === 'canceled' ||
+          subscriptionStatus === 'incomplete_expired';
+
+        if (isExistingMemberWithExpiredSubscription) {
+          console.log('[RequireSubscription] Existing member with expired subscription - allowing access with overage billing', {
+            planType,
+            subscriptionStatus,
+            hasStripeCustomer
+          });
+          setHasSubscription(true);
+          setIsChecking(false);
+          return;
+        }
+
+        // CASE 3: New users (free plan, no subscription history)
+        // Must select a plan before accessing the app
+        console.log('[RequireSubscription] New user without subscription, redirecting to upgrade', {
+          planType,
           subscriptionStatus
         });
         
