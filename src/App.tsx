@@ -102,6 +102,7 @@ const AdminDatabase = lazy(() => import("./pages/admin/AdminDatabase"));
 const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
 const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"));
 const AdminEmailTemplates = lazy(() => import("./pages/admin/AdminEmailTemplates"));
+const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 
 // Optimized QueryClient configuration
 const queryClient = new QueryClient({
@@ -205,6 +206,7 @@ const App = () => (
             {/* Admin Pages */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/user-management" element={<AdminUserManagement />} />
+            <Route path="/admin/users/:userId" element={<AdminUserDetail />} />
             <Route path="/admin/activity" element={<AdminActivityLogs />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/waitlist" element={<AdminWaitlist />} />

@@ -96,6 +96,73 @@ Deno.serve(async (req) => {
 
     if (profileError) throw profileError;
 
+    // Check if user is blocked
+    const { data: blockedUser } = await supabaseClient
+      .from('blocked_users')
+      .select('email, blocked_at, reason')
+      .eq('email', userProfile.email?.toLowerCase())
+      .maybeSingle();
+
+    // Get account relationships (where this user is a member)
+    const { data: accountRelationships } = await supabaseClient
+      .from('account_users')
+      .select(`
+        id,
+        account_id,
+        user_id,
+        role,
+        status,
+        is_owner,
+        email,
+        accepted_at,
+        invited_at
+      `)
+      .eq('user_id', userId);
+
+    // Get account owner details for each relationship
+    const accountRelationshipsWithOwners = [];
+    if (accountRelationships) {
+      for (const rel of accountRelationships) {
+        if (!rel.is_owner && rel.account_id) {
+          const { data: ownerProfile } = await supabaseClient
+            .from('profiles')
+            .select('id, name, email, company_name')
+            .eq('id', rel.account_id)
+            .single();
+          
+          accountRelationshipsWithOwners.push({
+            ...rel,
+            account_owner: ownerProfile,
+          });
+        } else {
+          accountRelationshipsWithOwners.push({
+            ...rel,
+            account_owner: null,
+          });
+        }
+      }
+    }
+
+    // Get team members if this user is an account owner
+    const { data: teamMembers } = await supabaseClient
+      .from('account_users')
+      .select(`
+        id,
+        user_id,
+        email,
+        role,
+        status,
+        is_owner,
+        accepted_at,
+        profiles:user_id (
+          id,
+          email,
+          name,
+          avatar_url
+        )
+      `)
+      .eq('account_id', userId);
+
     // Get feature overrides
     const { data: overrides } = await supabaseClient
       .from('user_feature_overrides')
@@ -116,13 +183,13 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    // Get usage statistics
+    // Get usage statistics - get more months
     const { data: invoiceUsage } = await supabaseClient
       .from('invoice_usage')
       .select('*')
       .eq('user_id', userId)
       .order('month', { ascending: false })
-      .limit(3);
+      .limit(12);
 
     const { count: invoiceCount } = await supabaseClient
       .from('invoices')
@@ -134,15 +201,32 @@ Deno.serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
+    // Merge blocked status into user profile
+    const enrichedUser = {
+      ...userProfile,
+      is_blocked: !!blockedUser,
+      blocked_at: blockedUser?.blocked_at || null,
+      blocked_reason: blockedUser?.reason || null,
+    };
+
     return new Response(
       JSON.stringify({
-        profile: userProfile,
+        user: enrichedUser,
+        accountRelationships: accountRelationshipsWithOwners || [],
+        teamMembers: teamMembers || [],
+        usageData: (invoiceUsage || []).map((u: any) => ({ month: u.month, count: u.count })),
+        adminActions: (actions || []).map((a: any) => ({
+          id: a.id,
+          action: a.action,
+          action_type: a.action_type,
+          details: a.details,
+          created_at: a.created_at,
+          admin_id: a.admin_id,
+        })),
         overrides: overrides || [],
-        actions: actions || [],
         stats: {
           invoice_count: invoiceCount || 0,
           debtor_count: debtorCount || 0,
-          usage_history: invoiceUsage || [],
         },
       }),
       {
