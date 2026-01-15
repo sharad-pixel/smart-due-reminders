@@ -59,8 +59,23 @@ const Login = () => {
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        // Existing sessions go to dashboard (RequireSubscription will handle gating)
-        navigate("/dashboard", { replace: true });
+        // Check subscription status for existing sessions too
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_status, is_admin, stripe_customer_id')
+          .eq('id', session.user.id)
+          .single();
+        
+        const hasActiveSubscription = 
+          profile?.is_admin ||
+          profile?.subscription_status === 'active' ||
+          (profile?.subscription_status === 'trialing' && profile?.stripe_customer_id);
+        
+        if (hasActiveSubscription) {
+          navigate("/dashboard", { replace: true });
+        } else {
+          navigate("/upgrade", { replace: true });
+        }
       }
     });
 
