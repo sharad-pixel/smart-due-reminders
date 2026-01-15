@@ -44,9 +44,9 @@ const Upgrade = () => {
     }
   }, []);
 
-  // Check if user is admin - admins should go to dashboard
+  // Check if user is admin or has active subscription - they should go to dashboard
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAccessStatus = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -56,7 +56,7 @@ const Upgrade = () => {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_admin, stripe_customer_id')
+          .select('is_admin, stripe_customer_id, subscription_status, plan_type')
           .eq('id', user.id)
           .single();
 
@@ -67,19 +67,24 @@ const Upgrade = () => {
           return;
         }
 
-        // Existing users with stripe_customer_id can also access dashboard
-        if (profile?.stripe_customer_id) {
+        // Users with ACTIVE paid subscriptions should go to dashboard
+        // (trialing users without payment should stay on upgrade page)
+        const hasActiveSubscription = 
+          profile?.subscription_status === 'active' || 
+          profile?.subscription_status === 'past_due';
+        
+        if (hasActiveSubscription && profile?.stripe_customer_id) {
           navigate('/dashboard', { replace: true });
           return;
         }
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('Error checking access status:', error);
       } finally {
         setCheckingAdmin(false);
       }
     };
 
-    checkAdminStatus();
+    checkAccessStatus();
   }, [navigate]);
 
   const handleUpgrade = async (planType: string) => {
@@ -284,14 +289,25 @@ const Upgrade = () => {
           </p>
         </div>
 
-        {/* New User Welcome Banner */}
-        {isNewUser && (
-          <Alert className="mb-8 border-primary/50 bg-primary/5">
-            <Zap className="h-4 w-4 text-primary" />
-            <AlertTitle>Welcome to Recouply.ai!</AlertTitle>
-            <AlertDescription>
-              Start your 7-day free trial with any plan. Your payment method will be saved for when the trial ends.
-              You can cancel anytime before the trial ends without being charged.
+        {/* Trial Status Banner - Show for trial users */}
+        {(isTrial || isNewUser) && (
+          <Alert className="mb-8 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+            <Zap className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 dark:text-amber-200">
+              {isNewUser ? "Start Your Free Trial" : "Free Trial Active"}
+            </AlertTitle>
+            <AlertDescription className="text-amber-700 dark:text-amber-300">
+              {isNewUser ? (
+                <>
+                  Get 7 days and 5 invoices free to explore Recouply.ai. 
+                  Select a plan below to continue using all features after your trial.
+                </>
+              ) : (
+                <>
+                  Your trial {trialEndDate ? `ends on ${trialEndDate}` : 'is active'}. 
+                  Select a plan below to continue using Recouply.ai when your trial ends.
+                </>
+              )}
             </AlertDescription>
           </Alert>
         )}

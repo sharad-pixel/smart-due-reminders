@@ -8,17 +8,24 @@ interface RequireSubscriptionProps {
 }
 
 /**
- * Gates access to the app for users without an active subscription.
- * Redirects new users (free plan with inactive status) to the upgrade page.
- * This enforces the requirement that users must select a paid plan to use the app.
+ * Gates access to the app for users without an active subscription or valid trial.
+ * 
+ * FREE TRIAL FLOW (like Lovable):
+ * - New users get 7 days free trial with 5 invoice credits
+ * - Trial is valid if: (now < trial_ends_at) AND (invoices_used < 5)
+ * - When trial expires OR credits exhausted → force redirect to /upgrade
+ * - Users must select a paid plan to continue using the app
+ * 
+ * EXEMPT PATHS: /profile, /settings, /upgrade, /billing, /checkout, etc.
+ * These are always accessible when logged in.
  */
 export function RequireSubscription({ children }: RequireSubscriptionProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
-  const [hasSubscription, setHasSubscription] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
 
-  // Pages that don't require an active subscription
+  // Pages that don't require an active subscription - always accessible when logged in
   const exemptPaths = [
     '/upgrade',
     '/checkout',
@@ -34,22 +41,21 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
     '/terms',
     '/privacy',
     '/cookies',
+    '/team', // Allow team page access for invites
   ];
 
-  const isExemptPath = exemptPaths.some(path => 
-    location.pathname === path || location.pathname.startsWith(path)
-  );
-
   useEffect(() => {
-    const checkSubscription = async () => {
-      // Skip check for exempt paths (also handle hash fragments from OAuth)
+    const checkAccess = async () => {
+      // Clean path (remove hash fragments from OAuth)
       const cleanPath = location.pathname.replace(/#.*$/, '');
-      const isExemptClean = exemptPaths.some(path => 
-        cleanPath === path || cleanPath.startsWith(path)
+      
+      // Check if this path is exempt
+      const isExemptPath = exemptPaths.some(path => 
+        cleanPath === path || cleanPath.startsWith(path + '/')
       );
       
-      if (isExemptPath || isExemptClean) {
-        setHasSubscription(true);
+      if (isExemptPath) {
+        setHasAccess(true);
         setIsChecking(false);
         return;
       }
@@ -58,8 +64,8 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          // Not logged in - let the normal auth flow handle it
-          setHasSubscription(true);
+          // Not logged in - let Layout handle redirect to login
+          setHasAccess(true);
           setIsChecking(false);
           return;
         }
@@ -80,16 +86,16 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           console.error('[RequireSubscription] Error checking blocked status:', blockError);
         }
 
-        // Get user's subscription status and history
+        // Get user's subscription status and trial info
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan_type, subscription_status, is_admin, stripe_customer_id, created_at')
+          .select('plan_type, subscription_status, is_admin, stripe_customer_id, trial_ends_at, created_at')
           .eq('id', user.id)
           .single();
 
         // Admins always have access
         if (profile?.is_admin) {
-          setHasSubscription(true);
+          setHasAccess(true);
           setIsChecking(false);
           return;
         }
@@ -104,66 +110,66 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           // Team members use owner's subscription - get owner's profile
           const { data: ownerProfile } = await supabase
             .from('profiles')
-            .select('plan_type, subscription_status')
+            .select('plan_type, subscription_status, trial_ends_at')
             .eq('id', effectiveAccountId)
             .single();
 
-          const ownerHasSubscription = 
-            ownerProfile?.subscription_status === 'active' || 
-            ownerProfile?.subscription_status === 'trialing' ||
-            ownerProfile?.subscription_status === 'past_due';
+          const ownerHasAccess = checkSubscriptionAccess(ownerProfile);
           
-          if (ownerHasSubscription) {
-            setHasSubscription(true);
+          if (ownerHasAccess) {
+            setHasAccess(true);
             setIsChecking(false);
             return;
           }
-        }
-
-        const subscriptionStatus = profile?.subscription_status;
-        const planType = profile?.plan_type;
-        const hasStripeCustomer = !!profile?.stripe_customer_id;
-        
-        // CASE 1: Active subscription members → allow access to dashboard
-        const hasActiveSubscription = 
-          subscriptionStatus === 'active' || 
-          subscriptionStatus === 'trialing' ||
-          subscriptionStatus === 'past_due';
-
-        if (hasActiveSubscription) {
-          setHasSubscription(true);
+          
+          // Owner doesn't have access, but team member can still go to /upgrade
+          console.log('[RequireSubscription] Team owner has no active subscription');
+          navigate('/upgrade', { replace: true });
+          setHasAccess(false);
           setIsChecking(false);
           return;
         }
 
-        // CASE 2: No active subscription → require upgrade before accessing the app
-        // (This includes expired/canceled subscriptions; users must renew/select a plan.)
-        console.log('[RequireSubscription] No active subscription, redirecting to upgrade', {
-          planType,
-          subscriptionStatus,
-          hasStripeCustomer,
+        // Check user's own subscription/trial access
+        const userHasAccess = checkSubscriptionAccess(profile);
+        
+        if (userHasAccess) {
+          // User has valid subscription or trial
+          setHasAccess(true);
+          setIsChecking(false);
+          return;
+        }
+
+        // Check trial invoice usage
+        const trialValid = await checkTrialValidity(user.id, profile);
+        
+        if (trialValid) {
+          setHasAccess(true);
+          setIsChecking(false);
+          return;
+        }
+
+        // No valid access - redirect to upgrade
+        console.log('[RequireSubscription] No valid subscription or trial, redirecting to upgrade', {
+          planType: profile?.plan_type,
+          subscriptionStatus: profile?.subscription_status,
+          trialEndsAt: profile?.trial_ends_at,
         });
 
-        // Use replace to prevent back button from going to the gated page
         navigate('/upgrade', { replace: true });
-        setHasSubscription(false);
+        setHasAccess(false);
         setIsChecking(false);
-        return;
       } catch (error) {
-        console.error('[RequireSubscription] Error checking subscription:', error);
+        console.error('[RequireSubscription] Error checking access:', error);
         // On error, allow access to prevent blocking legitimate users
-        setHasSubscription(true);
+        setHasAccess(true);
         setIsChecking(false);
       }
     };
 
-    checkSubscription();
-  }, [location.pathname, isExemptPath, navigate]);
-
-  // Re-check when location changes
-  useEffect(() => {
     setIsChecking(true);
-  }, [location.pathname]);
+    checkAccess();
+  }, [location.pathname, navigate]);
 
   if (isChecking) {
     return (
@@ -176,9 +182,99 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
     );
   }
 
-  if (!hasSubscription) {
+  if (!hasAccess) {
     return null;
   }
 
   return <>{children}</>;
+}
+
+/**
+ * Check if profile has active subscription access
+ */
+function checkSubscriptionAccess(profile: {
+  subscription_status?: string | null;
+  trial_ends_at?: string | null;
+} | null): boolean {
+  if (!profile) return false;
+  
+  const status = profile.subscription_status;
+  
+  // Active paid subscriptions
+  if (status === 'active' || status === 'past_due') {
+    return true;
+  }
+  
+  // Trialing with valid trial period
+  if (status === 'trialing' && profile.trial_ends_at) {
+    const trialEnds = new Date(profile.trial_ends_at);
+    if (trialEnds > new Date()) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if user is within their free trial limits (7 days, 5 invoices)
+ */
+async function checkTrialValidity(
+  userId: string, 
+  profile: { 
+    subscription_status?: string | null;
+    trial_ends_at?: string | null;
+    created_at?: string | null;
+  } | null
+): Promise<boolean> {
+  if (!profile) return false;
+  
+  // Only check trial for users without active subscriptions
+  const status = profile.subscription_status;
+  if (status === 'active' || status === 'past_due') {
+    return true; // Already has access
+  }
+
+  // Check trial time limit
+  const trialEndsAt = profile.trial_ends_at;
+  const createdAt = profile.created_at;
+  
+  // If trial_ends_at is set, use it
+  if (trialEndsAt) {
+    const trialEnds = new Date(trialEndsAt);
+    if (trialEnds <= new Date()) {
+      console.log('[RequireSubscription] Trial period expired');
+      return false;
+    }
+  } else if (createdAt) {
+    // Fallback: 7 days from account creation
+    const accountCreated = new Date(createdAt);
+    const trialEnds = new Date(accountCreated.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (trialEnds <= new Date()) {
+      console.log('[RequireSubscription] Trial period expired (based on created_at)');
+      return false;
+    }
+  }
+
+  // Check invoice usage limit (5 invoices during trial)
+  try {
+    const { data: usageData } = await supabase.functions.invoke('get-monthly-usage');
+    
+    if (usageData) {
+      const totalUsed = (usageData.includedInvoicesUsed || 0) + (usageData.overageInvoices || 0);
+      const trialLimit = 5;
+      
+      if (totalUsed >= trialLimit) {
+        console.log('[RequireSubscription] Trial invoice limit reached', { totalUsed, trialLimit });
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error('[RequireSubscription] Error checking invoice usage:', error);
+    // On error, be permissive
+    return true;
+  }
+
+  // Trial is still valid
+  return true;
 }

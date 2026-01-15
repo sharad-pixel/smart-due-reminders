@@ -303,13 +303,18 @@ const Signup = () => {
         console.error('Failed to send welcome email:', welcomeErr);
       }
 
-      // Update profile with business name and trial plan
+      // Update profile with business name and FREE trial (not starter)
+      // Users get 7 days free with 5 invoice credits, then must select a plan
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+      
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           business_name: validatedData.businessName,
-          plan_type: 'starter', // Default to starter for trial
-          subscription_status: 'trialing',
+          plan_type: 'free', // Start on free plan
+          subscription_status: 'trialing', // Trialing status for 7-day trial
+          trial_ends_at: trialEndsAt.toISOString(),
         })
         .eq('id', authData.user.id);
 
@@ -317,39 +322,13 @@ const Signup = () => {
         console.error('Profile update error:', profileError);
       }
 
-      // If session exists, redirect to Stripe checkout for payment info
+      // New flow: Don't require payment upfront - give 7-day trial with 5 invoices
+      // Users will be prompted to upgrade when trial expires or limits reached
       if (authData.session) {
-        toast.success("Account created! Setting up your trial...");
-        
-        // Create Stripe checkout session for trial signup
-        try {
-          const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
-            body: { 
-              planId: 'starter',
-              billingInterval: 'month',
-              isTrialSignup: true
-            }
-          });
-
-          if (checkoutError) {
-            console.error('Checkout error:', checkoutError);
-            toast.error("Failed to setup payment. You can add payment later in settings.");
-            navigate("/dashboard");
-            return;
-          }
-          
-          if (checkoutData?.url) {
-            // Redirect to Stripe checkout
-            window.location.href = checkoutData.url;
-            return;
-          }
-        } catch (checkoutErr) {
-          console.error('Checkout exception:', checkoutErr);
-          toast.error("Failed to setup payment. You can add payment later in settings.");
-          navigate("/dashboard");
-        }
+        toast.success("Welcome! You have 7 days and 5 invoices to explore Recouply.ai free.");
+        navigate("/dashboard");
       } else {
-        toast.success("Account created! Please check your email to verify your account, then set up payment.");
+        toast.success("Account created! Please check your email to verify your account.");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -420,7 +399,7 @@ const Signup = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Payment info required. Auto-converts to Starter ($199/mo) after trial unless cancelled.
+              No credit card required. Select a plan when you're ready.
             </p>
           </CardContent>
         </Card>
