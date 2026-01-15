@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
-    // Build query
+    // Build query for profiles
     let query = supabaseClient
       .from('profiles')
       .select(`
@@ -99,9 +99,29 @@ Deno.serve(async (req) => {
       throw error;
     }
 
+    // Fetch blocked status for all users
+    const userEmails = users?.map((u: any) => u.email?.toLowerCase()).filter(Boolean) || [];
+    const { data: blockedUsers } = await supabaseClient
+      .from('blocked_users')
+      .select('email, blocked_at, reason')
+      .in('email', userEmails);
+
+    // Create a map for quick lookup
+    const blockedMap = new Map(
+      (blockedUsers || []).map((b: any) => [b.email, { blocked_at: b.blocked_at, reason: b.reason }])
+    );
+
+    // Merge blocked status into users
+    const usersWithBlockStatus = users?.map((user: any) => ({
+      ...user,
+      is_blocked: blockedMap.has(user.email?.toLowerCase()),
+      blocked_at: blockedMap.get(user.email?.toLowerCase())?.blocked_at || null,
+      blocked_reason: blockedMap.get(user.email?.toLowerCase())?.reason || null,
+    }));
+
     return new Response(
       JSON.stringify({
-        users,
+        users: usersWithBlockStatus,
         total: count,
         limit,
         offset,

@@ -30,6 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Ban,
+  UserPlus,
 } from "lucide-react";
 import {
   Table,
@@ -77,6 +79,9 @@ interface UserProfile {
   plan_id: string | null;
   is_admin: boolean;
   is_suspended: boolean;
+  is_blocked?: boolean;
+  blocked_at?: string | null;
+  blocked_reason?: string | null;
   suspended_at: string | null;
   suspended_reason: string | null;
   suspended_by: string | null;
@@ -124,11 +129,13 @@ const AdminUserManagement = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPlan, setFilterPlan] = useState<string>("all");
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userDetailData, setUserDetailData] = useState<UserDetailData | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
+  const [blockReason, setBlockReason] = useState("");
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -199,9 +206,11 @@ const AdminUserManagement = () => {
       // Apply local filters
       if (filterStatus !== "all") {
         if (filterStatus === "active") {
-          filteredUsers = filteredUsers.filter((u: UserProfile) => !u.is_suspended);
+          filteredUsers = filteredUsers.filter((u: UserProfile) => !u.is_suspended && !u.is_blocked);
         } else if (filterStatus === "suspended") {
           filteredUsers = filteredUsers.filter((u: UserProfile) => u.is_suspended);
+        } else if (filterStatus === "blocked") {
+          filteredUsers = filteredUsers.filter((u: UserProfile) => u.is_blocked);
         } else if (filterStatus === "admin") {
           filteredUsers = filteredUsers.filter((u: UserProfile) => u.is_admin);
         }
@@ -348,6 +357,62 @@ const AdminUserManagement = () => {
     } catch (error: any) {
       console.error("Error deleting user:", error);
       toast.error(error.message || "Failed to delete user");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBlockClick = (user: UserProfile) => {
+    setSelectedUser(user);
+    setBlockReason("");
+    setBlockDialogOpen(true);
+  };
+
+  const handleBlock = async () => {
+    if (!selectedUser) return;
+
+    setActionLoading(selectedUser.id);
+    try {
+      const { error } = await supabase.functions.invoke("admin-update-user", {
+        body: {
+          userId: selectedUser.id,
+          action: "block_user",
+          updates: { reason: blockReason },
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`User ${selectedUser.email} has been blocked and cannot re-register`);
+      setBlockDialogOpen(false);
+      await fetchUsers();
+      await fetchStats();
+    } catch (error: any) {
+      console.error("Error blocking user:", error);
+      toast.error("Failed to block user");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnblock = async (user: UserProfile) => {
+    setActionLoading(user.id);
+    try {
+      const { error } = await supabase.functions.invoke("admin-update-user", {
+        body: {
+          userId: user.id,
+          action: "unblock_user",
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`User ${user.email} has been unblocked`);
+      await fetchUsers();
+      await fetchStats();
+    } catch (error: any) {
+      console.error("Error unblocking user:", error);
+      toast.error("Failed to unblock user");
     } finally {
       setActionLoading(null);
     }
@@ -515,6 +580,7 @@ const AdminUserManagement = () => {
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
                 <SelectItem value="admin">Admins Only</SelectItem>
               </SelectContent>
             </Select>
@@ -598,7 +664,19 @@ const AdminUserManagement = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {user.is_suspended ? (
+                            {user.is_blocked ? (
+                              <div>
+                                <Badge variant="destructive" className="bg-red-900">
+                                  <Ban className="h-3 w-3 mr-1" />
+                                  Blocked
+                                </Badge>
+                                {user.blocked_at && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {formatDate(new Date(user.blocked_at), "MMM d, yyyy")}
+                                  </div>
+                                )}
+                              </div>
+                            ) : user.is_suspended ? (
                               <div>
                                 <Badge variant="destructive">Suspended</Badge>
                                 {user.suspended_at && (
@@ -679,6 +757,25 @@ const AdminUserManagement = () => {
                                     </>
                                   )}
                                 </DropdownMenuItem>
+                                {/* Block/Unblock Actions */}
+                                {user.is_blocked ? (
+                                  <DropdownMenuItem
+                                    onClick={() => handleUnblock(user)}
+                                    disabled={actionLoading === user.id}
+                                  >
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Unblock User
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => handleBlockClick(user)}
+                                    disabled={actionLoading === user.id}
+                                    className="text-destructive"
+                                  >
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Block User (Permanent)
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => handleDeleteClick(user)}
@@ -766,6 +863,54 @@ const AdminUserManagement = () => {
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
               Suspend User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Dialog */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Ban className="h-5 w-5" />
+              Block User Permanently
+            </DialogTitle>
+            <DialogDescription>
+              This will add {selectedUser?.email} to the blocked list. They will not be able to:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Access the platform</li>
+                <li>Re-register with this email address</li>
+                <li>Sign in with OAuth providers (Google, etc.)</li>
+              </ul>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="blockReason">Reason for blocking (optional)</Label>
+              <Textarea
+                id="blockReason"
+                placeholder="Enter reason for blocking..."
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBlock}
+              disabled={actionLoading === selectedUser?.id}
+            >
+              {actionLoading === selectedUser?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Ban className="h-4 w-4 mr-2" />
+              )}
+              Block User Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
