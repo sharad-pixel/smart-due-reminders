@@ -214,7 +214,12 @@ Deno.serve(async (req) => {
         user: enrichedUser,
         accountRelationships: accountRelationshipsWithOwners || [],
         teamMembers: teamMembers || [],
-        usageData: (invoiceUsage || []).map((u: any) => ({ month: u.month, count: u.count })),
+        usageData: (invoiceUsage || []).map((u: any) => ({ 
+          month: u.month, 
+          count: (u.included_invoices_used || 0) + (u.overage_invoices || 0),
+          included_invoices_used: u.included_invoices_used || 0,
+          overage_invoices: u.overage_invoices || 0
+        })),
         adminActions: (actions || []).map((a: any) => ({
           id: a.id,
           action: a.action,
