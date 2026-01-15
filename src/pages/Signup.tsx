@@ -218,13 +218,14 @@ const Signup = () => {
           console.error('Failed to send admin alert:', alertErr);
         }
 
-        // Send welcome email
+        // Send welcome email and create in-app alert
         try {
           await supabase.functions.invoke('send-welcome-email', {
             body: { 
               email: validatedData.email,
               userName: validatedData.name,
-              companyName: validatedData.businessName
+              companyName: validatedData.businessName,
+              userId: user.id
             }
           });
         } catch (welcomeErr) {
@@ -288,13 +289,14 @@ const Signup = () => {
         console.error('Failed to send admin alert:', alertErr);
       }
 
-      // Send welcome email
+      // Send welcome email and create in-app alert
       try {
         await supabase.functions.invoke('send-welcome-email', {
           body: { 
             email: validatedData.email,
             userName: validatedData.name,
-            companyName: validatedData.businessName
+            companyName: validatedData.businessName,
+            userId: authData.user.id
           }
         });
       } catch (welcomeErr) {

@@ -177,7 +177,7 @@ serve(async (req) => {
 
     console.log("Welcome email sent successfully:", resendData);
 
-    // Mark welcome_email_sent_at in the profile to prevent duplicates
+    // Mark welcome_email_sent_at in the profile and create welcome alert
     if (supabaseUrl && supabaseServiceKey) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
@@ -190,6 +190,41 @@ serve(async (req) => {
         console.error("Failed to update welcome_email_sent_at:", updateError);
       } else {
         console.log("Marked welcome_email_sent_at for:", email);
+      }
+
+      // Create in-app welcome alert for the new user
+      if (userId) {
+        // Get user's organization_id from profile
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', userId)
+          .single();
+
+        const { error: alertError } = await supabase
+          .from('user_alerts')
+          .insert({
+            user_id: userId,
+            organization_id: userProfile?.organization_id || null,
+            alert_type: 'welcome',
+            severity: 'success',
+            title: '🎉 Welcome to Recouply.ai!',
+            message: `Hi ${displayName}! You're on your way to CashOps Excellence. Start by importing your accounts & invoices, then let our AI agents handle the rest.`,
+            action_url: '/debtors',
+            action_label: 'Add Your First Account',
+            is_read: false,
+            is_dismissed: false,
+            metadata: { 
+              userName: userName || null,
+              companyName: companyName || null
+            }
+          });
+
+        if (alertError) {
+          console.error("Failed to create welcome alert:", alertError);
+        } else {
+          console.log("Created welcome alert for user:", userId);
+        }
       }
     }
 
