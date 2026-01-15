@@ -97,7 +97,10 @@ serve(async (req) => {
     const templateOwnerId: string = invoice.user_id || user.id;
 
     // Fetch primary contact from debtor_contacts table
-    let contactName = invoice.debtors.name;
+    // CRITICAL: Always ensure we have a valid contact name - never leave it empty
+    let contactName = invoice.debtors.name || invoice.debtors.company_name || '';
+    const companyName = invoice.debtors.company_name || invoice.debtors.name || '';
+    
     if (invoice.debtors.id) {
       const { data: contacts } = await supabaseClient
         .from('debtor_contacts')
@@ -111,6 +114,12 @@ serve(async (req) => {
         contactName = primaryContact?.name || contacts[0]?.name || contactName;
         console.log(`Using contact name from debtor_contacts: ${contactName}`);
       }
+    }
+    
+    // CRITICAL: Final fallback - if still no contact name, use company name or generic
+    if (!contactName || contactName.trim() === '') {
+      contactName = companyName || 'Valued Customer';
+      console.log(`Using fallback contact name: ${contactName}`);
     }
 
     // Fetch payments applied to this invoice
@@ -377,13 +386,20 @@ CRITICAL COMPLIANCE RULES:
 
 ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
 - DO NOT USE ANY PLACEHOLDERS like {{variable}}, {variable}, [Name], [Your Name], or similar
+- NEVER leave blanks or empty spaces where data should be - every field must have a real value
 - Use these EXACT values in your message:
-  * Customer Name: ${contactName}
-  * Business Name: ${businessName}
+  * Customer Name: "${contactName}" (use this EXACT name, do not leave blank)
+  * Customer Company: "${companyName || contactName}" (use this for company references)
+  * Business Name: "${businessName}" (this is YOUR company name)
   * Invoice Number: ${invoice.invoice_number}
-  * Amount Due: ${formattedBalance}
+  * Amount Due: ${formattedBalance} (ALWAYS use this formatted amount with dollar sign)
   * Due Date: ${formattedDueDate}
   * Days Past Due: ${daysPastDue}
+
+FORMATTING RULES - VERY IMPORTANT:
+- ALWAYS show currency amounts WITH the dollar sign and formatting (e.g., "$2,995.00" NOT "2995")
+- Start the email with "Hi ${contactName}," or "Dear ${contactName},"
+- Reference the company as "${companyName || contactName}" when discussing business relationship
 - Sign the email as "${personaName}" from "${businessName}"
 ${taskContext}
 
@@ -401,7 +417,7 @@ OUTPUT FORMAT:
 You must respond in JSON format with the following structure:
 {
   "email_subject": "string (SHORT, in English, no placeholders, NO URLs)",
-  "email_body": "string (in English, simple HTML, no placeholders)"
+  "email_body": "string (in English, simple HTML, no placeholders, properly formatted currency)"
 }`;
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -416,23 +432,34 @@ You must respond in JSON format with the following structure:
             { role: "system", content: systemPrompt },
             {
               role: "user",
-              content: `Generate a collection message using these EXACT values (no placeholders):
+              content: `Generate a collection message using these EXACT values (no placeholders, no blank fields):
 
-Customer name: ${contactName}
-Customer company: ${invoice.debtors.company_name || contactName}
-Invoice number: ${invoice.invoice_number}
-Original Amount: ${formattedAmount}
-Amount Already Paid: ${formattedPaid}
-BALANCE DUE: ${formattedBalance}
-Due date: ${formattedDueDate}
-Days past due: ${daysPastDue}
-${profile.stripe_payment_link_url ? `Payment link: ${profile.stripe_payment_link_url}` : ''}
-${invoiceLink ? `Invoice link: ${invoiceLink}` : ''}
-${invoice.product_description ? `Product/Service: ${invoice.product_description}` : ''}
-Your business name: ${businessName}
-Agent name (sign as): ${personaName}
+CUSTOMER DETAILS:
+- Contact Name: "${contactName}" (greet them by this name)
+- Company: "${companyName || contactName}" (reference this for business relationship)
 
-Return JSON with email_subject and email_body fields. Use the actual values above, NOT placeholders.`,
+INVOICE DETAILS:
+- Invoice Number: ${invoice.invoice_number}
+- Original Amount: ${formattedAmount}
+- Amount Already Paid: ${formattedPaid}
+- BALANCE DUE: ${formattedBalance} (USE THIS EXACT FORMATTED AMOUNT WITH DOLLAR SIGN)
+- Due Date: ${formattedDueDate}
+- Days Past Due: ${daysPastDue}
+
+YOUR BUSINESS:
+- Business Name: ${businessName}
+- Sign as: ${personaName}
+${profile.stripe_payment_link_url ? `- Payment link: ${profile.stripe_payment_link_url}` : ''}
+${invoiceLink ? `- Invoice link: ${invoiceLink}` : ''}
+${invoice.product_description ? `- Product/Service: ${invoice.product_description}` : ''}
+
+CRITICAL: 
+1. Start with "Hi ${contactName}," or "Dear ${contactName},"
+2. Use "${formattedBalance}" for the balance (NOT raw numbers like "2995")
+3. Reference their company as "${companyName || contactName}"
+4. Sign off as "${personaName}" from "${businessName}"
+
+Return JSON with email_subject and email_body fields.`,
             },
           ],
         }),
