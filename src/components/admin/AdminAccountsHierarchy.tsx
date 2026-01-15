@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,7 @@ interface AccountData {
 }
 
 const AdminAccountsHierarchy = () => {
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -216,9 +218,9 @@ const AdminAccountsHierarchy = () => {
                 <Collapsible key={account.id} open={isExpanded} onOpenChange={() => toggleExpand(account.id)}>
                   <div className="border rounded-lg overflow-hidden">
                     {/* Parent Account Row */}
-                    <CollapsibleTrigger asChild>
-                      <div className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
-                        <div className="flex-shrink-0">
+                    <div className="flex items-center gap-4 p-4 hover:bg-muted/50">
+                      <CollapsibleTrigger asChild>
+                        <div className="flex-shrink-0 cursor-pointer">
                           {account.team_member_count > 0 ? (
                             isExpanded ? (
                               <ChevronDown className="h-5 w-5 text-muted-foreground" />
@@ -229,7 +231,12 @@ const AdminAccountsHierarchy = () => {
                             <div className="w-5" />
                           )}
                         </div>
-                        
+                      </CollapsibleTrigger>
+                      
+                      <div 
+                        className="flex items-center gap-4 flex-1 cursor-pointer"
+                        onClick={() => navigate(`/admin/users/${account.id}`)}
+                      >
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {account.name?.charAt(0) || account.email?.charAt(0) || "?"}
@@ -238,7 +245,7 @@ const AdminAccountsHierarchy = () => {
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">{account.name || account.email}</span>
+                            <span className="font-medium truncate hover:underline">{account.name || account.email}</span>
                             {account.is_admin && (
                               <Badge variant="secondary" className="text-xs">
                                 <Crown className="h-3 w-3 mr-1" />
@@ -256,65 +263,65 @@ const AdminAccountsHierarchy = () => {
                             )}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Plan & Subscription Info */}
-                        <div className="flex items-center gap-6 flex-shrink-0">
-                          <div className="text-center min-w-[80px]">
-                            <Badge variant="outline">
-                              {account.plans?.name || account.plan_type || "Free"}
-                            </Badge>
-                            {account.billing_interval && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {account.billing_interval}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="text-center min-w-[80px]">
-                            {getSubscriptionBadge(account)}
-                            {account.cancel_at_period_end && (
-                              <div className="text-xs text-orange-500 mt-1">
-                                Canceling
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Usage */}
-                          <div className="min-w-[120px]">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="text-muted-foreground">Usage</span>
-                              <span>{usage.used}/{usage.limit}</span>
+                      {/* Plan & Subscription Info */}
+                      <div className="flex items-center gap-6 flex-shrink-0">
+                        <div className="text-center min-w-[80px]">
+                          <Badge variant="outline">
+                            {account.plans?.name || account.plan_type || "Free"}
+                          </Badge>
+                          {account.billing_interval && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {account.billing_interval}
                             </div>
-                            <Progress value={usage.percentage} className="h-2" />
-                          </div>
+                          )}
+                        </div>
 
-                          {/* Team */}
-                          <div className="flex items-center gap-1 min-w-[60px]">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{account.team_member_count + 1}</span>
-                          </div>
+                        <div className="text-center min-w-[80px]">
+                          {getSubscriptionBadge(account)}
+                          {account.cancel_at_period_end && (
+                            <div className="text-xs text-orange-500 mt-1">
+                              Canceling
+                            </div>
+                          )}
+                        </div>
 
-                          {/* Billing */}
-                          <div className="min-w-[100px] text-right">
-                            {account.stripe_customer_id ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <CreditCard className="h-4 w-4 text-green-500" />
-                                <span className="text-xs text-muted-foreground">
-                                  {account.stripe_customer_id.slice(0, 10)}...
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">No billing</span>
-                            )}
-                            {account.current_period_end && (
-                              <div className="text-xs text-muted-foreground">
-                                Renews {formatDate(new Date(account.current_period_end), "MMM d")}
-                              </div>
-                            )}
+                        {/* Usage */}
+                        <div className="min-w-[120px]">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">Usage</span>
+                            <span>{usage.used}/{usage.limit}</span>
                           </div>
+                          <Progress value={usage.percentage} className="h-2" />
+                        </div>
+
+                        {/* Team */}
+                        <div className="flex items-center gap-1 min-w-[60px]">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{account.team_member_count + 1}</span>
+                        </div>
+
+                        {/* Billing */}
+                        <div className="min-w-[100px] text-right">
+                          {account.stripe_customer_id ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <CreditCard className="h-4 w-4 text-green-500" />
+                              <span className="text-xs text-muted-foreground">
+                                {account.stripe_customer_id.slice(0, 10)}...
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No billing</span>
+                          )}
+                          {account.current_period_end && (
+                            <div className="text-xs text-muted-foreground">
+                              Renews {formatDate(new Date(account.current_period_end), "MMM d")}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </CollapsibleTrigger>
+                    </div>
 
                     {/* Child Team Members */}
                     <CollapsibleContent>

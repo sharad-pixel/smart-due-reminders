@@ -86,7 +86,6 @@ Deno.serve(async (req) => {
           id,
           name,
           monthly_price,
-          annual_price,
           invoice_limit,
           overage_amount
         )
