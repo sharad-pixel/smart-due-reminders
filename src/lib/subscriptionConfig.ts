@@ -66,6 +66,7 @@ export const TRIAL_CONFIG = {
   trialDays: 7,
   invoiceLimit: 5,
   defaultPlan: 'starter' as const,
+  requirePaymentUpfront: true, // Require payment info before accessing app
 } as const;
 
 /**
