@@ -52,6 +52,7 @@ import { NavProfileAvatar } from "@/components/NavProfileAvatar";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/RequireSubscription";
+import { TrialBanner } from "@/components/TrialBanner";
 
 
 interface LayoutProps {
@@ -253,10 +254,16 @@ const Layout = ({ children }: LayoutProps) => {
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
+  // Check if trial banner should be shown (trial or free plan users)
+  const showTrialBanner = planType === 'free' || subscriptionStatus === 'trialing';
+
   return (
     <RequireSubscription>
     <div className="min-h-screen bg-background">
-      <nav className="fixed top-0 left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top">
+      {/* Trial countdown banner - shown at top of page for trial users */}
+      <TrialBanner />
+      
+      <nav className={`fixed left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top ${showTrialBanner ? 'top-[40px]' : 'top-0'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
@@ -490,7 +497,8 @@ const Layout = ({ children }: LayoutProps) => {
           )}
         </div>
       </nav>
-      <div className="h-16 sm:h-20"></div>
+      {/* Spacer for fixed navbar + optional trial banner */}
+      <div className={showTrialBanner ? "h-[104px] sm:h-[120px]" : "h-16 sm:h-20"}></div>
       
       {/* Banners - placed after nav spacer so they flow with content */}
       <SecurityAlert />
