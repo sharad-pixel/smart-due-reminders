@@ -32,21 +32,10 @@ const Login = () => {
 
     // Set up auth state listener for OAuth callbacks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session?.user) {
-          // Check if user is admin or has existing subscription
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_admin, stripe_customer_id')
-            .eq('id', session.user.id)
-            .single();
-
-          // Admins and existing customers go to dashboard, new users to upgrade
-          if (profile?.is_admin || profile?.stripe_customer_id) {
-            navigate("/dashboard", { replace: true });
-          } else {
-            navigate("/dashboard", { replace: true });
-          }
+          // Always land on /upgrade after OAuth; Upgrade page will redirect admins/existing customers.
+          navigate("/upgrade", { replace: true });
         }
       }
     );
@@ -140,7 +129,9 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: getAuthRedirectUrl('/dashboard'),
+          // Always come back to /upgrade so new users are forced into plan selection.
+          // Existing customers/admins will be redirected out of /upgrade automatically.
+          redirectTo: getAuthRedirectUrl('/upgrade'),
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',

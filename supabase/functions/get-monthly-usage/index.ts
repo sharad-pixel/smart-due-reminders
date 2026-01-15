@@ -164,12 +164,13 @@ Deno.serve(async (req) => {
       isFreeTier &&
       ((usage.included_invoices_used ?? 0) > 0 || (usage.overage_invoices ?? 0) > 0)
     ) {
-      const includedAllowance = plan.invoice_limit || 15;
+      // IMPORTANT: use the plan invoice_limit as the allowance; if missing, default to Free (5)
+      const includedAllowance = plan.invoice_limit ?? 5;
       const includedInvoicesUsed = usage.included_invoices_used ?? 0;
       const overageInvoices = usage.overage_invoices ?? 0;
       const totalInvoicesUsed = includedInvoicesUsed + overageInvoices;
       const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
-      const isOverLimit = overageInvoices > 0;
+      const isOverLimit = totalInvoicesUsed > includedAllowance;
 
       logStep("Using invoice_usage record for account-level overages", {
         subscriptionStatus,
