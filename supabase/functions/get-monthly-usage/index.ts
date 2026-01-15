@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     
     if (!plan) {
       const planTypeLimits: Record<string, number> = {
-        'free': 15,
+        'free': 5, // Free tier now has 5 invoice limit (same as trial)
         'starter': 100,
         'growth': 300,
         'professional': 500,
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       const planType = profile?.plan_type || 'free';
       plan = {
         name: planType,
-        invoice_limit: planTypeLimits[planType] ?? 15,
+        invoice_limit: planTypeLimits[planType] ?? 5,
         overage_amount: OVERAGE_RATE
       };
       

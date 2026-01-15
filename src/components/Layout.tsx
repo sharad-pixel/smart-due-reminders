@@ -50,6 +50,7 @@ import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NavProfileAvatar } from "@/components/NavProfileAvatar";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
+import { RequireSubscription } from "@/components/RequireSubscription";
 
 
 interface LayoutProps {
@@ -232,6 +233,7 @@ const Layout = ({ children }: LayoutProps) => {
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
   return (
+    <RequireSubscription>
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -526,6 +528,7 @@ const Layout = ({ children }: LayoutProps) => {
       <NicolasPageTip />
       <NicolasChat />
     </div>
+    </RequireSubscription>
   );
 };
 

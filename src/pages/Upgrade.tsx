@@ -123,8 +123,13 @@ const Upgrade = () => {
     );
   }
 
+  // Check if this is a new user without any subscription (new signup flow)
+  const isNewUser = currentPlan === 'free' && 
+                    (!subscriptionStatus || subscriptionStatus === 'inactive');
+
   // Team members can't upgrade - only account owners
-  if (!isAccountOwner || !canUpgrade) {
+  // But allow new users through (they haven't been assigned to a team yet)
+  if (!isNewUser && (!isAccountOwner || !canUpgrade)) {
     return (
       <Layout>
         <div className="container mx-auto max-w-4xl py-8">
@@ -162,8 +167,8 @@ const Upgrade = () => {
     );
   }
 
-  // Access control: Only owners and admins can manage billing
-  if (!canManageBilling) {
+  // Access control: Only owners, admins, and new users can manage billing
+  if (!isNewUser && !canManageBilling) {
     return (
       <Layout>
         <div className="container mx-auto max-w-4xl py-8">
@@ -214,14 +219,28 @@ const Upgrade = () => {
       <div className="container mx-auto max-w-6xl py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            {isOnFreePlan ? "Upgrade Your Plan" : "Manage Your Plan"}
+            {isNewUser ? "Select Your Plan" : isOnFreePlan ? "Upgrade Your Plan" : "Manage Your Plan"}
           </h1>
           <p className="text-muted-foreground">
-            {isOnFreePlan 
-              ? "Unlock more invoices and features with a paid plan."
-              : `You're on the ${currentPlan} plan`}
+            {isNewUser
+              ? "Choose a plan to get started with Recouply.ai. All plans include a 7-day free trial."
+              : isOnFreePlan 
+                ? "Unlock more invoices and features with a paid plan."
+                : `You're on the ${currentPlan} plan`}
           </p>
         </div>
+
+        {/* New User Welcome Banner */}
+        {isNewUser && (
+          <Alert className="mb-8 border-primary/50 bg-primary/5">
+            <Zap className="h-4 w-4 text-primary" />
+            <AlertTitle>Welcome to Recouply.ai!</AlertTitle>
+            <AlertDescription>
+              Start your 7-day free trial with any plan. Your payment method will be saved for when the trial ends.
+              You can cancel anytime before the trial ends without being charged.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Current Subscription Card */}
         {hasActiveSubscription && (
