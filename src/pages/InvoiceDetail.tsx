@@ -1100,7 +1100,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             ? `Generate a warm thank-you email acknowledging full payment received for invoice #${invoice.invoice_number}. The customer has paid the full amount of $${invoice.amount.toLocaleString()}. Express gratitude for their prompt payment and maintaining a good business relationship.`
             : `Generate a professional email acknowledging a partial payment received for invoice #${invoice.invoice_number}. Current outstanding balance is $${(invoice.amount_outstanding ?? invoice.amount).toLocaleString()} out of original $${invoice.amount.toLocaleString()}. Thank them for the payment and gently remind about the remaining balance.`,
           contextInvoiceId: invoice.id, // Pass UUID, not invoice_number
-          contextType: "invoice",
+          // IMPORTANT: tag this draft so sending is allowed even if the invoice is Paid
+          contextType: "payment_acknowledgment",
           paymentContext: {
             invoiceAmount: invoice.amount,
             outstandingAmount: invoice.amount_outstanding ?? invoice.amount,

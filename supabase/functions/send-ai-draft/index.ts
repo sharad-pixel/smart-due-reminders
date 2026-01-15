@@ -111,21 +111,36 @@ serve(async (req) => {
       );
     }
 
+    // Determine draft context (so we can allow payment acknowledgments on Paid invoices)
+    const { data: lastCmdLog } = await supabaseClient
+      .from("ai_command_logs")
+      .select("context_type")
+      .eq("draft_id", draft_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const draftContextType = (lastCmdLog?.context_type || "").toLowerCase();
+
     // CRITICAL: Prevent sending collection outreach to settled invoices
     // EXCEPT for payment acknowledgment/thank you messages which ARE intended for paid invoices
     const settledStatuses = ['Paid', 'Canceled', 'Voided', 'Credited', 'Written Off', 'paid', 'canceled', 'voided', 'credited', 'written off'];
-    const isPaymentAcknowledgment = 
+    const isPaymentAcknowledgment =
+      draftContextType === "payment_acknowledgment" ||
       (draft.subject?.toLowerCase().includes('thank') && draft.subject?.toLowerCase().includes('payment')) ||
-      (draft.message_body?.toLowerCase().includes('thank you for your payment')) ||
+      (draft.message_body?.toLowerCase().includes('thank you') && draft.message_body?.toLowerCase().includes('payment')) ||
       (draft.message_body?.toLowerCase().includes('acknowledge') && draft.message_body?.toLowerCase().includes('payment'));
-    
+
     if (settledStatuses.includes(invoice.status) && !isPaymentAcknowledgment) {
-      console.log(`Draft ${draft_id} blocked: invoice ${invoice.id} has status ${invoice.status} and is not a payment acknowledgment`);
+      console.log(
+        `Draft ${draft_id} blocked: invoice ${invoice.id} has status ${invoice.status}; context=${draftContextType || 'unknown'}`
+      );
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Cannot send collection outreach to ${invoice.status} invoices. Use "Send Payment Acknowledgment" for thank-you messages.`,
+          error: `Cannot send collection outreach to ${invoice.status} invoices.`,
           invoice_status: invoice.status,
+          draft_context: draftContextType || null,
         }),
         {
           status: 400,
@@ -133,9 +148,11 @@ serve(async (req) => {
         }
       );
     }
-    
+
     if (isPaymentAcknowledgment) {
-      console.log(`Payment acknowledgment draft ${draft_id} allowed for ${invoice.status} invoice ${invoice.id}`);
+      console.log(
+        `Payment acknowledgment draft ${draft_id} allowed for ${invoice.status} invoice ${invoice.id}; context=${draftContextType || 'heuristic'}`
+      );
     }
 
     const debtor = invoice.debtors;
