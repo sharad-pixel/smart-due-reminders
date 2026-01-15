@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,19 @@ import SEO from "@/components/SEO";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getSafeReturnTo = () => {
+    const from = (location.state as any)?.from;
+    if (typeof from !== "string") return null;
+    if (!from.startsWith("/")) return null;
+    // Avoid loops / sending users back to auth screens.
+    if (from === "/login" || from.startsWith("/login?") || from === "/signup" || from.startsWith("/signup?")) {
+      return null;
+    }
+    return from;
+  };
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,26 +45,22 @@ const Login = () => {
 
     // Set up auth state listener for OAuth callbacks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session?.user) {
-          // Check if user has active subscription
+          const returnTo = getSafeReturnTo();
+
+          // Determine if they are a paid customer/admin (trial users should still be able to reach /upgrade).
           const { data: profile } = await supabase
             .from('profiles')
-            .select('subscription_status, is_admin, stripe_customer_id')
+            .select('subscription_status, is_admin')
             .eq('id', session.user.id)
             .single();
-          
-          const hasActiveSubscription = 
-            profile?.is_admin ||
-            profile?.subscription_status === 'active' ||
-            (profile?.subscription_status === 'trialing' && profile?.stripe_customer_id);
-          
-          if (hasActiveSubscription) {
-            navigate("/dashboard", { replace: true });
-          } else {
-            // New users or users without active subscription go to upgrade
-            navigate("/upgrade", { replace: true });
-          }
+
+          const status = profile?.subscription_status;
+          const isPaidOrAdmin = !!profile?.is_admin || status === 'active' || status === 'past_due';
+
+          const target = returnTo === '/upgrade' && isPaidOrAdmin ? '/dashboard' : (returnTo ?? '/dashboard');
+          navigate(target, { replace: true });
         }
       }
     );
@@ -59,28 +68,24 @@ const Login = () => {
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        // Check subscription status for existing sessions too
+        const returnTo = getSafeReturnTo();
+
         const { data: profile } = await supabase
           .from('profiles')
-          .select('subscription_status, is_admin, stripe_customer_id')
+          .select('subscription_status, is_admin')
           .eq('id', session.user.id)
           .single();
-        
-        const hasActiveSubscription = 
-          profile?.is_admin ||
-          profile?.subscription_status === 'active' ||
-          (profile?.subscription_status === 'trialing' && profile?.stripe_customer_id);
-        
-        if (hasActiveSubscription) {
-          navigate("/dashboard", { replace: true });
-        } else {
-          navigate("/upgrade", { replace: true });
-        }
+
+        const status = profile?.subscription_status;
+        const isPaidOrAdmin = !!profile?.is_admin || status === 'active' || status === 'past_due';
+
+        const target = returnTo === '/upgrade' && isPaidOrAdmin ? '/dashboard' : (returnTo ?? '/dashboard');
+        navigate(target, { replace: true });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,9 +151,9 @@ const Login = () => {
           metadata: { email }
         });
       }
-      
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      const returnTo = getSafeReturnTo();
+      navigate(returnTo ?? "/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Login failed");
     } finally {

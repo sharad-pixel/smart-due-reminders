@@ -98,7 +98,9 @@ const Layout = ({ children }: LayoutProps) => {
       if (!session?.user && authChecked) {
         const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"]; 
         const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p));
-        if (!isPublic) navigate("/login", { replace: true });
+        if (!isPublic) {
+          navigate("/login", { replace: true, state: { from: location.pathname + location.search } });
+        }
       }
     });
 
@@ -108,12 +110,14 @@ const Layout = ({ children }: LayoutProps) => {
       if (!session?.user) {
         const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"]; 
         const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p));
-        if (!isPublic) navigate("/login", { replace: true });
+        if (!isPublic) {
+          navigate("/login", { replace: true, state: { from: location.pathname + location.search } });
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, location.pathname, authChecked]);
+  }, [navigate, location.pathname, location.search, authChecked]);
 
   const handleSignOut = async () => {
     if (user) {
