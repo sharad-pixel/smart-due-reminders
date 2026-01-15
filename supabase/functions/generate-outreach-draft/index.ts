@@ -371,7 +371,7 @@ CRITICAL COMPLIANCE RULES:
 - NEVER claim to be or act as a "collection agency" or legal authority
 - NEVER use harassment or intimidation
 - Write as if you are ${businessName}, NOT a third party
-- Include the payment link once in the email if available
+- Include the payment link once in the email BODY if available
 - Encourage the customer to pay or reply if there is a dispute or issue
 - If a Product/Service description is provided, mention it briefly (one short clause) to reduce confusion
 
@@ -387,6 +387,12 @@ ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
 - Sign the email as "${personaName}" from "${businessName}"
 ${taskContext}
 
+EMAIL SUBJECT RULES:
+- The subject should be SHORT and professional (under 60 characters ideal)
+- NEVER include URLs, links, or long identifiers in the subject
+- Good subject examples: "Payment Reminder: Invoice ${invoice.invoice_number}", "Outstanding Balance Reminder"
+- BAD subject examples: Including full invoice URLs or links
+
 OUTPUT FORMAT:
 - Use simple, clean HTML with <p> tags for paragraphs
 - Use <br> for line breaks within paragraphs
@@ -394,7 +400,7 @@ OUTPUT FORMAT:
 
 You must respond in JSON format with the following structure:
 {
-  "email_subject": "string (in English, no placeholders)",
+  "email_subject": "string (SHORT, in English, no placeholders, NO URLs)",
   "email_body": "string (in English, simple HTML, no placeholders)"
 }`;
 
@@ -457,6 +463,11 @@ Return JSON with email_subject and email_body fields. Use the actual values abov
       // CRITICAL: Use unified engine to clean up any remaining placeholders from AI output
       email_subject = cleanupPlaceholders(email_subject);
       email_body = cleanupPlaceholders(email_body);
+      
+      // CRITICAL: Strip any URLs from subject line - they should only be in the body
+      email_subject = email_subject.replace(/https?:\/\/[^\s<>"]+/gi, '').trim();
+      // Clean up any leftover "View your invoice:" text without URL
+      email_subject = email_subject.replace(/View your invoice:\s*/gi, '').trim();
       
       templateSource = 'AI generated';
       // AI-generated content requires human review - do not auto-approve

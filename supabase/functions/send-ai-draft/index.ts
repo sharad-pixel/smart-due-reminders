@@ -9,7 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
-import { cleanAndReplaceContent, type InvoiceData, type DebtorData, type BrandingData } from "../_shared/draftContentEngine.ts";
+import { cleanAndReplaceContent, cleanSubjectLine, type InvoiceData, type DebtorData, type BrandingData } from "../_shared/draftContentEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -214,7 +214,7 @@ serve(async (req) => {
       personaName
     );
 
-    const processedSubject = cleanAndReplaceContent(
+    const processedSubject = cleanSubjectLine(
       draft.subject || 'Payment Reminder',
       invoiceData,
       debtorData,
