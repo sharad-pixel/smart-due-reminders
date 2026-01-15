@@ -1836,29 +1836,43 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                             {draft.message_body}
                           </p>
                         </div>
-                        {draft.status === "pending_approval" && (
-                          <div className="flex gap-2">
+                        <div className="flex gap-2">
+                          {draft.status === "pending_approval" ? (
+                            <>
+                              <Button 
+                                onClick={() => handleSendDraft(draft.id)}
+                                disabled={sendingDraft === draft.id}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                {sendingDraft === draft.id ? "Sending..." : "Approve & Send"}
+                              </Button>
+                              <Button variant="outline" onClick={() => handleEditDraft(draft)} size="sm">
+                                Edit
+                              </Button>
+                            </>
+                          ) : draft.status === "approved" ? (
                             <Button 
                               onClick={() => handleSendDraft(draft.id)}
                               disabled={sendingDraft === draft.id}
                               size="sm"
+                              variant="secondary"
                               className="flex-1"
                             >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              {sendingDraft === draft.id ? "Sending..." : "Approve & Send"}
+                              <Mail className="h-3 w-3 mr-1" />
+                              {sendingDraft === draft.id ? "Sending..." : "Resend"}
                             </Button>
-                            <Button variant="outline" onClick={() => handleEditDraft(draft)} size="sm">
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDraftAction(draft.id, "discarded")}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                          ) : null}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDraftAction(draft.id, "discarded")}
+                            title="Delete draft"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
