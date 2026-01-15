@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
 import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck } from "lucide-react";
@@ -265,20 +265,20 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                   </button>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => navigate("/legal/terms")}
+                  <Link 
+                    to="/legal/terms"
                     className="text-muted-foreground hover:text-primary"
                   >
                     Terms of Service
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => navigate("/legal/privacy")}
+                  <Link 
+                    to="/legal/privacy"
                     className="text-muted-foreground hover:text-primary"
                   >
                     Privacy Policy
-                  </button>
+                  </Link>
                 </li>
                 <li>
                   <button 
@@ -322,9 +322,26 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
             </p>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium text-primary">Responsible AI</span>
+
+            <div className="flex items-center gap-4">
+              <nav aria-label="Legal" className="flex items-center gap-3 text-sm">
+                <Link to="/legal/privacy" className="text-muted-foreground hover:text-primary">
+                  Privacy
+                </Link>
+                <span className="text-muted-foreground/40">•</span>
+                <Link to="/legal/terms" className="text-muted-foreground hover:text-primary">
+                  Terms
+                </Link>
+                <span className="text-muted-foreground/40">•</span>
+                <Link to="/legal/cookies" className="text-muted-foreground hover:text-primary">
+                  Cookies
+                </Link>
+              </nav>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">Responsible AI</span>
+              </div>
             </div>
           </div>
         </div>
