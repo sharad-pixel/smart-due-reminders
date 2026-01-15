@@ -111,14 +111,20 @@ serve(async (req) => {
       );
     }
 
-    // CRITICAL: Prevent sending to settled invoices (Paid, Canceled, Voided, Credited, Written Off)
+    // CRITICAL: Prevent sending collection outreach to settled invoices
+    // EXCEPT for payment acknowledgment/thank you messages which ARE intended for paid invoices
     const settledStatuses = ['Paid', 'Canceled', 'Voided', 'Credited', 'Written Off', 'paid', 'canceled', 'voided', 'credited', 'written off'];
-    if (settledStatuses.includes(invoice.status)) {
-      console.log(`Draft ${draft_id} blocked: invoice ${invoice.id} has status ${invoice.status}`);
+    const isPaymentAcknowledgment = 
+      (draft.subject?.toLowerCase().includes('thank') && draft.subject?.toLowerCase().includes('payment')) ||
+      (draft.message_body?.toLowerCase().includes('thank you for your payment')) ||
+      (draft.message_body?.toLowerCase().includes('acknowledge') && draft.message_body?.toLowerCase().includes('payment'));
+    
+    if (settledStatuses.includes(invoice.status) && !isPaymentAcknowledgment) {
+      console.log(`Draft ${draft_id} blocked: invoice ${invoice.id} has status ${invoice.status} and is not a payment acknowledgment`);
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Cannot send outreach to ${invoice.status} invoices`,
+          error: `Cannot send collection outreach to ${invoice.status} invoices. Use "Send Payment Acknowledgment" for thank-you messages.`,
           invoice_status: invoice.status,
         }),
         {
@@ -126,6 +132,10 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+    
+    if (isPaymentAcknowledgment) {
+      console.log(`Payment acknowledgment draft ${draft_id} allowed for ${invoice.status} invoice ${invoice.id}`);
     }
 
     const debtor = invoice.debtors;
