@@ -136,37 +136,19 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           return;
         }
 
-        // CASE 2: Existing members with expired/canceled subscriptions
-        // They had a subscription before (stripe_customer_id exists or plan_type is not 'free')
-        // Allow access - overages will be billed at $1.99 per invoice
-        const isExistingMemberWithExpiredSubscription = 
-          hasStripeCustomer || 
-          (planType && planType !== 'free') ||
-          subscriptionStatus === 'canceled' ||
-          subscriptionStatus === 'incomplete_expired';
-
-        if (isExistingMemberWithExpiredSubscription) {
-          console.log('[RequireSubscription] Existing member with expired subscription - allowing access with overage billing', {
-            planType,
-            subscriptionStatus,
-            hasStripeCustomer
-          });
-          setHasSubscription(true);
-          setIsChecking(false);
-          return;
-        }
-
-        // CASE 3: New users (free plan, no subscription history)
-        // Must select a plan before accessing the app
-        console.log('[RequireSubscription] New user without subscription, redirecting to upgrade', {
+        // CASE 2: No active subscription → require upgrade before accessing the app
+        // (This includes expired/canceled subscriptions; users must renew/select a plan.)
+        console.log('[RequireSubscription] No active subscription, redirecting to upgrade', {
           planType,
-          subscriptionStatus
+          subscriptionStatus,
+          hasStripeCustomer,
         });
-        
+
         // Use replace to prevent back button from going to the gated page
         navigate('/upgrade', { replace: true });
         setHasSubscription(false);
         setIsChecking(false);
+        return;
       } catch (error) {
         console.error('[RequireSubscription] Error checking subscription:', error);
         // On error, allow access to prevent blocking legitimate users

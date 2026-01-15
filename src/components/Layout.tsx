@@ -29,7 +29,8 @@ import {
   Palette,
   Bell,
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -216,6 +217,17 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/profile", label: userName || "Profile", icon: UserIcon },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
