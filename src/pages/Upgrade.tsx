@@ -135,9 +135,11 @@ const Upgrade = () => {
     );
   }
 
-  // Check if this is a new user without any subscription (new signup flow)
-  const isNewUser = currentPlan === 'free' && 
-                    (!subscriptionStatus || subscriptionStatus === 'inactive');
+  // Check if this is a new user without any prior trial/subscription (new signup flow)
+  const hasAnyTrial = isTrial || subscriptionStatus === 'trialing' || !!trialEndsAt;
+  const isNewUser = currentPlan === 'free' &&
+                    (!subscriptionStatus || subscriptionStatus === 'inactive') &&
+                    !hasAnyTrial;
 
   // Team members can't upgrade - only account owners
   // But allow new users through (they haven't been assigned to a team yet)
