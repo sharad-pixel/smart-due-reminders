@@ -239,9 +239,11 @@ const Upgrade = () => {
           <p className="text-muted-foreground">
             {isNewUser
               ? "Choose a plan to get started with Recouply.ai. All plans include a 7-day free trial."
-              : isOnFreePlan 
-                ? "Unlock more invoices and features with a paid plan."
-                : `You're on the ${currentPlan} plan`}
+              : isTrial
+                ? "Select a plan to continue using Recouply.ai after your trial ends."
+                : isOnFreePlan 
+                  ? "Unlock more invoices and features with a paid plan."
+                  : `You're on the ${currentPlan} plan`}
           </p>
         </div>
 
