@@ -145,7 +145,8 @@ serve(async (req) => {
 
           logStep("Subscription details", { planType, billingInterval, subscriptionId });
 
-          // Build update payload
+          // Build update payload - IMPORTANT: Clear admin_override when Stripe subscription is activated
+          // This ensures Stripe-managed billing takes precedence over manual admin overrides
           const updatePayload = {
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
@@ -159,6 +160,11 @@ serve(async (req) => {
               ? new Date(subscription.trial_end * 1000).toISOString() 
               : null,
             cancel_at_period_end: subscription.cancel_at_period_end,
+            // Clear admin override - Stripe is now the source of truth
+            admin_override: false,
+            admin_override_at: null,
+            admin_override_by: null,
+            admin_override_notes: null,
           };
 
           // Try to update by user_id first (from session metadata), then by customer_id
@@ -202,6 +208,7 @@ serve(async (req) => {
         const billingInterval = getBillingInterval(subscription);
 
         // Update profile with latest subscription status
+        // Clear admin_override when Stripe subscription changes
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
@@ -216,6 +223,11 @@ serve(async (req) => {
               : null,
             cancel_at_period_end: subscription.cancel_at_period_end,
             subscription_status: subscription.status,
+            // Clear admin override - Stripe is now managing this subscription
+            admin_override: false,
+            admin_override_at: null,
+            admin_override_by: null,
+            admin_override_notes: null,
           })
           .eq('stripe_customer_id', customerId);
 
@@ -298,6 +310,7 @@ serve(async (req) => {
           const planType = getPlanFromSubscription(subscription);
           const billingInterval = getBillingInterval(subscription);
 
+          // Clear admin override on successful payment - Stripe is managing this now
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
@@ -312,6 +325,10 @@ serve(async (req) => {
               current_period_end: subscription.current_period_end 
                 ? new Date(subscription.current_period_end * 1000).toISOString() 
                 : null,
+              admin_override: false,
+              admin_override_at: null,
+              admin_override_by: null,
+              admin_override_notes: null,
             })
             .eq('stripe_customer_id', customerId);
 
