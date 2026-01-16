@@ -15,6 +15,7 @@ interface TrialUsage {
  * Trial Banner Component
  * Shows trial countdown and usage for users on a free trial.
  * Forces users to upgrade when trial expires or invoice limit is reached.
+ * Respects admin overrides - hides banner when admin_override is enabled.
  */
 export function TrialBanner() {
   const navigate = useNavigate();
@@ -24,6 +25,35 @@ export function TrialBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [hoursRemaining, setHoursRemaining] = useState<number | null>(null);
+  const [hasAdminOverride, setHasAdminOverride] = useState(false);
+  const [checkingOverride, setCheckingOverride] = useState(true);
+
+  // Check for admin override on the user's profile
+  useEffect(() => {
+    const checkAdminOverride = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          setCheckingOverride(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('admin_override')
+          .eq('id', session.user.id)
+          .single();
+
+        setHasAdminOverride(profile?.admin_override === true);
+      } catch (error) {
+        console.error('Error checking admin override:', error);
+      } finally {
+        setCheckingOverride(false);
+      }
+    };
+
+    checkAdminOverride();
+  }, []);
 
   // Calculate days and hours remaining
   useEffect(() => {
@@ -45,9 +75,9 @@ export function TrialBanner() {
         const { data } = await supabase.functions.invoke('get-monthly-usage');
         if (data) {
           setUsage({
-            includedInvoicesUsed: data.includedInvoicesUsed || 0,
-            overageInvoices: data.overageInvoices || 0,
-            includedAllowance: data.includedAllowance || 5,
+            includedInvoicesUsed: data.included_invoices_used || 0,
+            overageInvoices: data.overage_invoices || 0,
+            includedAllowance: data.included_allowance || 5,
           });
         }
       } catch (error) {
@@ -59,9 +89,13 @@ export function TrialBanner() {
   }, []);
 
   // Force redirect to billing when trial expires (except on allowed pages)
+  // Skip redirect if admin_override is enabled
   useEffect(() => {
     const allowedPaths = ['/billing', '/upgrade', '/profile', '/login', '/signup', '/auth'];
     const isOnAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path));
+    
+    // Don't redirect if admin override is enabled
+    if (hasAdminOverride) return;
     
     if (!isLoading && daysRemaining !== null && daysRemaining <= 0 && !isOnAllowedPath) {
       const isTrialUser = isTrial || subscriptionStatus === 'trialing';
@@ -71,10 +105,13 @@ export function TrialBanner() {
         navigate('/billing', { replace: true });
       }
     }
-  }, [isLoading, daysRemaining, isTrial, subscriptionStatus, plan, location.pathname, navigate]);
+  }, [isLoading, daysRemaining, isTrial, subscriptionStatus, plan, location.pathname, navigate, hasAdminOverride]);
 
-  // Don't show if loading, dismissed, or user has active subscription
-  if (isLoading || dismissed) return null;
+  // Don't show if loading, dismissed, has admin override, or user has active subscription
+  if (isLoading || checkingOverride || dismissed) return null;
+  
+  // Hide banner completely if admin_override is enabled
+  if (hasAdminOverride) return null;
   
   // Only show for trial users or free plan users
   const isTrialUser = isTrial || subscriptionStatus === 'trialing';
@@ -83,7 +120,7 @@ export function TrialBanner() {
   if (!isTrialUser && !isFreePlan) return null;
 
   const invoicesUsed = usage ? usage.includedInvoicesUsed + usage.overageInvoices : 0;
-  const invoiceLimit = 5; // Trial limit
+  const invoiceLimit = usage?.includedAllowance || 5; // Use allowance from backend
   const invoicesRemaining = Math.max(0, invoiceLimit - invoicesUsed);
   
   // Determine urgency level

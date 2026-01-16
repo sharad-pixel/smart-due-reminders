@@ -98,6 +98,35 @@ Deno.serve(async (req) => {
           }
         }
 
+        // IMPORTANT: If any subscription-related fields are being modified by admin,
+        // automatically enable admin_override to prevent sync-subscription from overwriting
+        const subscriptionFields = ['plan_type', 'subscription_status', 'trial_ends_at', 'current_period_end', 'invoice_limit'];
+        const isModifyingSubscription = subscriptionFields.some(field => updates?.[field] !== undefined);
+        
+        if (isModifyingSubscription) {
+          profileUpdates.admin_override = true;
+          profileUpdates.admin_override_at = new Date().toISOString();
+          profileUpdates.admin_override_by = adminUser.id;
+          profileUpdates.admin_override_notes = updates?.admin_override_notes || 
+            `Admin override set by ${adminUser.email || adminUser.id} on ${new Date().toISOString()}`;
+          
+          console.log('Enabling admin_override for subscription changes', { userId, fields: subscriptionFields.filter(f => updates?.[f] !== undefined) });
+        }
+
+        // Explicit admin_override toggle if provided
+        if (updates?.admin_override !== undefined) {
+          profileUpdates.admin_override = updates.admin_override;
+          if (updates.admin_override) {
+            profileUpdates.admin_override_at = new Date().toISOString();
+            profileUpdates.admin_override_by = adminUser.id;
+          } else {
+            // Clear override metadata when disabling
+            profileUpdates.admin_override_at = null;
+            profileUpdates.admin_override_by = null;
+            profileUpdates.admin_override_notes = null;
+          }
+        }
+
         if (Object.keys(profileUpdates).length === 0) {
           return new Response(
             JSON.stringify({ error: 'No valid updates provided' }),

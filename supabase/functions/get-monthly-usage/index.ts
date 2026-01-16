@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     // Get account owner's profile and plan (use effective account ID)
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('plan_id, plan_type, subscription_status')
+      .select('plan_id, plan_type, subscription_status, invoice_limit, admin_override')
       .eq('id', accountId)
       .single();
 
@@ -64,59 +64,76 @@ Deno.serve(async (req) => {
       throw new Error("Account profile not found");
     }
 
-    let plan;
-    
-    // Try to get plan by plan_id first, fall back to plan_type
-    if (profile?.plan_id) {
-      const { data: planData, error: planError } = await supabaseClient
-        .from('plans')
-        .select('*')
-        .eq('id', profile.plan_id)
-        .single();
-      
-      if (!planError && planData) {
-        plan = planData;
-      }
-    }
-    
-    // Fallback: look up by plan_type if plan_id didn't work
-    if (!plan && profile?.plan_type) {
-      const { data: planData, error: planError } = await supabaseClient
-        .from('plans')
-        .select('*')
-        .eq('name', profile.plan_type)
-        .single();
-      
-      if (!planError && planData) {
-        plan = planData;
-      }
-    }
+    // Check for admin override - use profile.invoice_limit directly if set
+    const hasAdminOverride = profile?.admin_override === true;
+    logStep("Profile loaded", { 
+      hasAdminOverride, 
+      profileInvoiceLimit: profile?.invoice_limit,
+      planType: profile?.plan_type 
+    });
 
-    // Fallback to hardcoded plan limits if no database plan found
+    let plan;
     const OVERAGE_RATE = 1.99; // $1.99 per invoice overage
     
-    if (!plan) {
-      const planTypeLimits: Record<string, number> = {
-        'free': 5, // Free tier now has 5 invoice limit (same as trial)
-        'starter': 100,
-        'growth': 300,
-        'professional': 500,
-        'pro': 500, // alias for professional
-        'enterprise': 10000 // effectively unlimited
-      };
-      
-      const planType = profile?.plan_type || 'free';
+    // If admin override is active and profile has invoice_limit, use that directly
+    if (hasAdminOverride && profile?.invoice_limit) {
       plan = {
-        name: planType,
-        invoice_limit: planTypeLimits[planType] ?? 5,
+        name: profile.plan_type || 'custom',
+        invoice_limit: profile.invoice_limit,
         overage_amount: OVERAGE_RATE
       };
-      
-      logStep("Using fallback plan limits", { planName: plan.name, limit: plan.invoice_limit });
+      logStep("Using admin override invoice limit", { limit: plan.invoice_limit });
     } else {
-      // Override overage amount to always use $1.99
-      plan.overage_amount = OVERAGE_RATE;
-      logStep("Plan loaded from database", { planName: plan.name, limit: plan.invoice_limit });
+      // Try to get plan by plan_id first, fall back to plan_type
+      if (profile?.plan_id) {
+        const { data: planData, error: planError } = await supabaseClient
+          .from('plans')
+          .select('*')
+          .eq('id', profile.plan_id)
+          .single();
+        
+        if (!planError && planData) {
+          plan = planData;
+        }
+      }
+      
+      // Fallback: look up by plan_type if plan_id didn't work
+      if (!plan && profile?.plan_type) {
+        const { data: planData, error: planError } = await supabaseClient
+          .from('plans')
+          .select('*')
+          .eq('name', profile.plan_type)
+          .single();
+        
+        if (!planError && planData) {
+          plan = planData;
+        }
+      }
+
+      // Fallback to hardcoded plan limits if no database plan found
+      if (!plan) {
+        const planTypeLimits: Record<string, number> = {
+          'free': 5, // Free tier now has 5 invoice limit (same as trial)
+          'starter': 100,
+          'growth': 300,
+          'professional': 500,
+          'pro': 500, // alias for professional
+          'enterprise': 10000 // effectively unlimited
+        };
+        
+        const planType = profile?.plan_type || 'free';
+        plan = {
+          name: planType,
+          invoice_limit: planTypeLimits[planType] ?? 5,
+          overage_amount: OVERAGE_RATE
+        };
+        
+        logStep("Using fallback plan limits", { planName: plan.name, limit: plan.invoice_limit });
+      } else {
+        // Override overage amount to always use $1.99
+        plan.overage_amount = OVERAGE_RATE;
+        logStep("Plan loaded from database", { planName: plan.name, limit: plan.invoice_limit });
+      }
     }
 
     // Get or create usage record for current month (use effective account ID)
