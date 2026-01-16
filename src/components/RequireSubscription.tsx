@@ -89,12 +89,20 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
         // Get user's subscription status and trial info
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan_type, subscription_status, is_admin, stripe_customer_id, trial_ends_at, created_at')
+          .select('plan_type, subscription_status, is_admin, stripe_customer_id, trial_ends_at, created_at, admin_override')
           .eq('id', user.id)
           .single();
 
         // Admins always have access
         if (profile?.is_admin) {
+          setHasAccess(true);
+          setIsChecking(false);
+          return;
+        }
+
+        // Users with admin override always have access
+        if (profile?.admin_override) {
+          console.log('[RequireSubscription] User has admin override, granting access');
           setHasAccess(true);
           setIsChecking(false);
           return;
