@@ -80,7 +80,7 @@ export function useSubscription(): SubscriptionState {
       // This ensures team members inherit parent's subscription
       const { data: ownerProfile } = await supabase
         .from('profiles')
-        .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at')
+        .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at, created_at')
         .eq('id', accountId)
         .maybeSingle();
 
@@ -104,17 +104,31 @@ export function useSubscription(): SubscriptionState {
     setSubscriptionStatus(profile.subscription_status || 'inactive');
     setBillingInterval(profile.billing_interval as 'month' | 'year' | null);
     setCurrentPeriodEnd(profile.current_period_end || null);
-    setTrialEndsAt(profile.trial_ends_at || null);
-    
+
+    // Compute trial end date robustly.
+    // Some accounts only have current_period_end populated during trialing.
+    const explicitTrialEnd: string | null = profile.trial_ends_at || null;
+    const isTrialing = profile.subscription_status === 'trialing';
+
+    const trialStart: string | null = profile.trial_used_at || profile.created_at || null;
+    const fallbackTrialEnd = trialStart
+      ? new Date(new Date(trialStart).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+    const computedTrialEnd: string | null =
+      explicitTrialEnd || (isTrialing ? (profile.current_period_end || fallbackTrialEnd) : null);
+
+    setTrialEndsAt(computedTrialEnd);
+
     // Check if in trial
-    if (profile.subscription_status === 'trialing' && profile.trial_ends_at) {
+    if (isTrialing && computedTrialEnd) {
       setIsTrial(true);
       // During trial, limit to 5 invoices
       setInvoiceLimit(TRIAL_INVOICE_LIMIT);
       setMaxAgents(FREE_MAX_AGENTS);
     } else {
       setIsTrial(false);
-      
+
       // Set limits based on plan for active subscriptions
       if (planType !== 'free' && profile.subscription_status === 'active') {
         const config = PLAN_CONFIGS[planType as keyof typeof PLAN_CONFIGS];
