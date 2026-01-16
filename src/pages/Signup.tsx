@@ -135,11 +135,11 @@ const Signup = () => {
   const handleGoogleSignIn = async () => {
     setOauthError(null);
     try {
-      // For Google OAuth, redirect to upgrade page so new users must select a plan
+      // Redirect back into the app; access control will send non-subscribed users to /upgrade.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: getAuthRedirectUrl('/upgrade'),
+          redirectTo: getAuthRedirectUrl('/dashboard'),
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',

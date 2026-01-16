@@ -166,9 +166,8 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Always come back to /upgrade so new users are forced into plan selection.
-          // Existing customers/admins will be redirected out of /upgrade automatically.
-          redirectTo: getAuthRedirectUrl('/upgrade'),
+          // Redirect back into the app; access control will send non-subscribed users to /upgrade.
+          redirectTo: getAuthRedirectUrl('/dashboard'),
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',

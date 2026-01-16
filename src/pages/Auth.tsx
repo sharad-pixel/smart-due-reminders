@@ -73,12 +73,11 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setOauthError(null);
     try {
-      // Redirect to upgrade page - the RequireSubscription gate will handle redirecting
-      // users with active subscriptions to dashboard
+      // Redirect back into the app; access control will send non-subscribed users to /upgrade.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: getAuthRedirectUrl('/upgrade'),
+          redirectTo: getAuthRedirectUrl('/dashboard'),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
