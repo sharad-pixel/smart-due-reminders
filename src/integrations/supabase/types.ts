@@ -4827,6 +4827,10 @@ export type Database = {
           address_autocomplete_api_key: string | null
           address_autocomplete_enabled: boolean | null
           address_autocomplete_provider: string | null
+          admin_override: boolean | null
+          admin_override_at: string | null
+          admin_override_by: string | null
+          admin_override_notes: string | null
           avatar_url: string | null
           billing_interval: string | null
           business_address: string | null
@@ -4887,6 +4891,10 @@ export type Database = {
           address_autocomplete_api_key?: string | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
+          admin_override?: boolean | null
+          admin_override_at?: string | null
+          admin_override_by?: string | null
+          admin_override_notes?: string | null
           avatar_url?: string | null
           billing_interval?: string | null
           business_address?: string | null
@@ -4947,6 +4955,10 @@ export type Database = {
           address_autocomplete_api_key?: string | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
+          admin_override?: boolean | null
+          admin_override_at?: string | null
+          admin_override_by?: string | null
+          admin_override_notes?: string | null
           avatar_url?: string | null
           billing_interval?: string | null
           business_address?: string | null

@@ -94,6 +94,9 @@ interface UserDetails {
   is_blocked: boolean;
   blocked_at: string | null;
   blocked_reason: string | null;
+  admin_override: boolean | null;
+  admin_override_at: string | null;
+  admin_override_notes: string | null;
   plans: {
     id: string;
     name: string;
@@ -578,6 +581,33 @@ const AdminUserDetail = () => {
                     <p className="text-xs text-muted-foreground">
                       Extend the subscription period without Stripe changes.
                     </p>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Admin Override Section */}
+                  <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-amber-600" />
+                        <Label className="font-medium text-amber-800 dark:text-amber-200">Admin Override</Label>
+                      </div>
+                      <Badge variant={user.admin_override ? "default" : "secondary"}>
+                        {user.admin_override ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, prevents automatic Stripe sync from overwriting subscription settings. 
+                      Changes above will automatically enable this override.
+                    </p>
+                    {user.admin_override && user.admin_override_at && (
+                      <p className="text-xs text-amber-600">
+                        Override enabled on {formatDate(new Date(user.admin_override_at), "MMM d, yyyy 'at' h:mm a")}
+                      </p>
+                    )}
+                    {user.admin_override_notes && (
+                      <p className="text-xs text-muted-foreground italic">{user.admin_override_notes}</p>
+                    )}
                   </div>
                   
                   <Separator />

@@ -110,7 +110,7 @@ serve(async (req) => {
     // Get account owner's profile to find their email for Stripe lookup
     const { data: ownerProfile, error: ownerError } = await supabase
       .from('profiles')
-      .select('id, email, stripe_customer_id, stripe_subscription_id, plan_type, billing_interval, subscription_status, current_period_end')
+      .select('id, email, stripe_customer_id, stripe_subscription_id, plan_type, billing_interval, subscription_status, current_period_end, admin_override, admin_override_at, invoice_limit, trial_ends_at')
       .eq('id', accountId)
       .single();
 
@@ -139,6 +139,28 @@ serve(async (req) => {
           current_period_end: ownerProfile.current_period_end,
           is_team_member: true,
           owner_email: ownerProfile.email,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if admin override is enabled - skip Stripe sync to preserve manual settings
+    if (ownerProfile.admin_override === true) {
+      logStep('Admin override enabled - skipping Stripe sync', { 
+        admin_override_at: ownerProfile.admin_override_at 
+      });
+      
+      return new Response(
+        JSON.stringify({
+          subscribed: ownerProfile.subscription_status === 'active' || ownerProfile.subscription_status === 'trialing',
+          plan_type: ownerProfile.plan_type || 'free',
+          billing_interval: ownerProfile.billing_interval || 'month',
+          subscription_status: ownerProfile.subscription_status || 'inactive',
+          current_period_end: ownerProfile.current_period_end,
+          trial_ends_at: ownerProfile.trial_ends_at,
+          invoice_limit: ownerProfile.invoice_limit,
+          admin_override: true,
+          message: 'Admin override active - using database values',
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

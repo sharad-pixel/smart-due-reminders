@@ -25,35 +25,48 @@ const UsageMeter = ({ compact = false }: UsageMeterProps) => {
   const navigate = useNavigate();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasAdminOverride, setHasAdminOverride] = useState(false);
 
-  const fetchUsage = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setLoading(false);
+          return;
+        }
+
+        // Check for admin override
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('admin_override')
+          .eq('id', session.user.id)
+          .single();
+
+        setHasAdminOverride(profile?.admin_override === true);
+
+        const { data, error } = await supabase.functions.invoke('get-monthly-usage');
+        if (!error && data) {
+          setUsage({
+            plan: data.plan_name || 'free',
+            invoiceAllowance: data.included_allowance,
+            includedUsed: data.included_invoices_used,
+            overageCount: data.overage_invoices,
+            totalUsed: data.total_invoices_used,
+            remaining: data.remaining_quota,
+            isOverLimit: data.is_over_limit,
+            overageRate: data.overage_rate || 1.5
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching usage:', error);
+      } finally {
         setLoading(false);
-        return;
       }
+    };
 
-
-      const { data, error } = await supabase.functions.invoke('get-monthly-usage');
-      if (!error && data) {
-        setUsage({
-          plan: data.plan_name || 'free',
-          invoiceAllowance: data.included_allowance,
-          includedUsed: data.included_invoices_used,
-          overageCount: data.overage_invoices,
-          totalUsed: data.total_invoices_used,
-          remaining: data.remaining_quota,
-          isOverLimit: data.is_over_limit,
-          overageRate: data.overage_rate || 1.5
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching usage:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchData();
+  }, []);
 
   if (loading || !usage) return null;
 
@@ -62,7 +75,10 @@ const UsageMeter = ({ compact = false }: UsageMeterProps) => {
     typeof usage.invoiceAllowance === 'number' 
       ? Math.min(100, (usage.includedUsed / usage.invoiceAllowance) * 100)
       : 0;
-  const isNearLimit = percentUsed >= 80;
+  const isNearLimit = percentUsed >= 80 && !hasAdminOverride;
+
+  // Don't show upgrade prompts if admin override is enabled
+  const showUpgradePrompt = isNearLimit && !isUnlimited && !hasAdminOverride;
 
   if (compact) {
     return (
@@ -120,7 +136,7 @@ const UsageMeter = ({ compact = false }: UsageMeterProps) => {
           </div>
         )}
 
-        {isNearLimit && !isUnlimited && (
+        {showUpgradePrompt && (
           <Button 
             variant="link" 
             className="p-0 h-auto text-sm"
