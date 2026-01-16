@@ -15,6 +15,7 @@ import { AccountHierarchy } from "@/components/AccountHierarchy";
 import { useAccountHierarchy } from "@/hooks/useAccountHierarchy";
 import ConsumptionTracker from "@/components/ConsumptionTracker";
 import { UsageIndicator } from "@/components/UsageIndicator";
+import { TrialCountdown } from "@/components/TrialCountdown";
 // Colorful gauge component
 const UsageGauge = ({ 
   used, 
@@ -365,6 +366,11 @@ const Billing = () => {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Trial Countdown - Shows only for trial/free users */}
+        <div className="mb-6">
+          <TrialCountdown variant="card" />
+        </div>
 
         {/* Usage & Term Overview Card */}
         <Card className="mb-6">

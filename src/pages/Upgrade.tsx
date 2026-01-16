@@ -226,6 +226,9 @@ const Upgrade = () => {
   const seatPrice = isAnnual ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice;
   const totalSeatCost = additionalSeats * seatPrice;
 
+  // Calculate days remaining in trial
+  const trialDaysRemaining = trialEndsAt ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
+
   return (
     <Layout>
       <div className="container mx-auto max-w-6xl py-8">
@@ -242,25 +245,35 @@ const Upgrade = () => {
           </p>
         </div>
 
-        {/* Trial Status Banner - Show for trial users */}
-        {(isTrial || isNewUser) && (
+        {/* Trial Status Banner - Show countdown for active trial users, "Start Trial" for new users only */}
+        {isNewUser && (
           <Alert className="mb-8 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
             <Zap className="h-4 w-4 text-amber-600" />
             <AlertTitle className="text-amber-800 dark:text-amber-200">
-              {isNewUser ? "Start Your Free Trial" : "Free Trial Active"}
+              Start Your Free Trial
             </AlertTitle>
             <AlertDescription className="text-amber-700 dark:text-amber-300">
-              {isNewUser ? (
-                <>
-                  Get 7 days and 5 invoices free to explore Recouply.ai. 
-                  Select a plan below to continue using all features after your trial.
-                </>
-              ) : (
-                <>
-                  Your trial {trialEndDate ? `ends on ${trialEndDate}` : 'is active'}. 
-                  Select a plan below to continue using Recouply.ai when your trial ends.
-                </>
-              )}
+              Get 7 days and 5 invoices free to explore Recouply.ai. 
+              Select a plan below to continue using all features after your trial.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Active trial users see countdown instead of "free trial" messaging */}
+        {isTrial && !isNewUser && trialDaysRemaining !== null && (
+          <Alert className={`mb-8 ${trialDaysRemaining <= 2 ? 'border-red-500/50 bg-red-50 dark:bg-red-950/20' : 'border-primary/50 bg-primary/5'}`}>
+            <Zap className={`h-4 w-4 ${trialDaysRemaining <= 2 ? 'text-red-600' : 'text-primary'}`} />
+            <AlertTitle className={trialDaysRemaining <= 2 ? 'text-red-800 dark:text-red-200' : ''}>
+              {trialDaysRemaining <= 0 
+                ? "Trial Expired" 
+                : `${trialDaysRemaining} Day${trialDaysRemaining !== 1 ? 's' : ''} Remaining in Trial`}
+            </AlertTitle>
+            <AlertDescription className={trialDaysRemaining <= 2 ? 'text-red-700 dark:text-red-300' : ''}>
+              {trialDaysRemaining <= 0 
+                ? "Your trial has expired. Please select a plan to continue using Recouply.ai."
+                : trialEndDate 
+                  ? `Your trial ends on ${trialEndDate}. Select a plan below to continue using Recouply.ai when your trial ends.`
+                  : 'Select a plan below to continue using Recouply.ai when your trial ends.'}
             </AlertDescription>
           </Alert>
         )}
