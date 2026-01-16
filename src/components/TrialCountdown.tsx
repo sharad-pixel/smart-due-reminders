@@ -19,24 +19,49 @@ interface TrialCountdownProps {
  * Can be used in Profile, Billing, and other pages
  */
 export function TrialCountdown({ variant = 'card', showUpgradeButton = true }: TrialCountdownProps) {
-  const { isTrial, trialEndsAt, subscriptionStatus, plan, isLoading } = useSubscription();
+  const {
+    isTrial,
+    trialEndsAt,
+    currentPeriodEnd,
+    subscriptionStatus,
+    isLoading,
+  } = useSubscription();
+
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [hoursRemaining, setHoursRemaining] = useState<number | null>(null);
   const [invoicesUsed, setInvoicesUsed] = useState(0);
+
   const invoiceLimit = 5;
 
-  // Calculate countdown
+  const effectiveTrialEndsAt =
+    trialEndsAt || (subscriptionStatus === 'trialing' ? currentPeriodEnd : null);
+
+  const isTrialUser = isTrial || subscriptionStatus === 'trialing';
+
+  // Calculate countdown (and keep it fresh)
   useEffect(() => {
-    if (trialEndsAt) {
-      const endDate = new Date(trialEndsAt);
+    if (!effectiveTrialEndsAt) {
+      setDaysRemaining(null);
+      setHoursRemaining(null);
+      return;
+    }
+
+    const tick = () => {
+      const endDate = new Date(effectiveTrialEndsAt);
       const now = new Date();
       const diffTime = endDate.getTime() - now.getTime();
+
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+
       setDaysRemaining(Math.max(0, diffDays));
       setHoursRemaining(Math.max(0, diffHours));
-    }
-  }, [trialEndsAt]);
+    };
+
+    tick();
+    const id = window.setInterval(tick, 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [effectiveTrialEndsAt]);
 
   // Fetch usage
   useEffect(() => {
@@ -53,19 +78,16 @@ export function TrialCountdown({ variant = 'card', showUpgradeButton = true }: T
     fetchUsage();
   }, []);
 
-  // Only show for trial/free users
-  const isTrialUser = isTrial || subscriptionStatus === 'trialing';
-  const isFreePlan = plan === 'free' && (!subscriptionStatus || subscriptionStatus === 'inactive');
-  
-  if (isLoading || (!isTrialUser && !isFreePlan)) return null;
+  // Only show for trial users
+  if (isLoading || !isTrialUser) return null;
 
   const isExpired = daysRemaining !== null && daysRemaining <= 0;
   const isExpiringSoon = daysRemaining !== null && daysRemaining <= 2;
   const progressPercent = daysRemaining !== null ? Math.max(0, ((7 - daysRemaining) / 7) * 100) : 0;
   const invoiceProgressPercent = (invoicesUsed / invoiceLimit) * 100;
 
-  const trialEndDate = trialEndsAt 
-    ? new Date(trialEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const trialEndDate = effectiveTrialEndsAt
+    ? new Date(effectiveTrialEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
 
   // Compact inline variant

@@ -130,10 +130,14 @@ export function TrialBanner() {
       return `Only ${invoicesRemaining} free invoice${invoicesRemaining !== 1 ? 's' : ''} remaining`;
     }
     
-    // Default message with dynamic countdown
+    // Default message
+    if (daysRemaining === null) {
+      return "Choose a plan to continue using Recouply.ai";
+    }
+
     return (
       <>
-        <span className="hidden sm:inline">Free trial: </span>
+        <span className="hidden sm:inline">Trial: </span>
         <span className="font-semibold">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''}</span>
         <span className="hidden sm:inline"> remaining</span>
         <span className="mx-2 opacity-60">•</span>

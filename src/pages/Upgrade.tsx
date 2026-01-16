@@ -220,6 +220,7 @@ const Upgrade = () => {
   const discountPercent = Math.round(ANNUAL_DISCOUNT_RATE * 100);
   const isOnFreePlan = currentPlan === 'free';
   const hasActiveSubscription = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
+  const isTrialing = isTrial || subscriptionStatus === 'trialing';
 
   // Calculate trial end date for display
   const trialEndDate = trialEndsAt ? new Date(trialEndsAt).toLocaleDateString() : null;
@@ -241,7 +242,7 @@ const Upgrade = () => {
           <p className="text-muted-foreground">
             {isNewUser
               ? "Choose a plan to get started with Recouply.ai. All plans include a 7-day free trial."
-              : isTrial
+              : isTrialing
                 ? "Select a plan to continue using Recouply.ai after your trial ends."
                 : isOnFreePlan 
                   ? "Unlock more invoices and features with a paid plan."
@@ -264,7 +265,7 @@ const Upgrade = () => {
         )}
         
         {/* Active trial users see countdown instead of "free trial" messaging */}
-        {isTrial && !isNewUser && trialDaysRemaining !== null && (
+        {isTrialing && !isNewUser && trialDaysRemaining !== null && (
           <Alert className={`mb-8 ${trialDaysRemaining <= 2 ? 'border-red-500/50 bg-red-50 dark:bg-red-950/20' : 'border-primary/50 bg-primary/5'}`}>
             <Zap className={`h-4 w-4 ${trialDaysRemaining <= 2 ? 'text-red-600' : 'text-primary'}`} />
             <AlertTitle className={trialDaysRemaining <= 2 ? 'text-red-800 dark:text-red-200' : ''}>
