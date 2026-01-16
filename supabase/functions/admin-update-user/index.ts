@@ -56,9 +56,9 @@ Deno.serve(async (req) => {
 
     const { userId, updates, action } = await req.json();
 
-    if (!userId || !action) {
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: userId, action' }),
+        JSON.stringify({ error: 'Missing required field: userId' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -66,10 +66,60 @@ Deno.serve(async (req) => {
       );
     }
 
-    let result;
-    let actionDetails: any = { action, userId };
+    // Default action for backwards compatibility
+    const effectiveAction = action || 'update_profile';
 
-    switch (action) {
+    let result;
+    let actionDetails: any = { action: effectiveAction, userId };
+
+    switch (effectiveAction) {
+      case 'update_profile': {
+        // Build the update object dynamically with only provided fields
+        const profileUpdates: Record<string, any> = {};
+        
+        if (updates?.name !== undefined) profileUpdates.name = updates.name;
+        if (updates?.company_name !== undefined) profileUpdates.company_name = updates.company_name;
+        if (updates?.plan_type !== undefined) profileUpdates.plan_type = updates.plan_type;
+        if (updates?.invoice_limit !== undefined) profileUpdates.invoice_limit = updates.invoice_limit;
+        if (updates?.subscription_status !== undefined) profileUpdates.subscription_status = updates.subscription_status;
+        if (updates?.trial_ends_at !== undefined) profileUpdates.trial_ends_at = updates.trial_ends_at;
+        if (updates?.current_period_end !== undefined) profileUpdates.current_period_end = updates.current_period_end;
+        
+        // Set trial_used_at if we're setting trial status
+        if (updates?.subscription_status === 'trialing' && updates?.trial_ends_at) {
+          const { data: currentProfile } = await supabaseClient
+            .from('profiles')
+            .select('trial_used_at')
+            .eq('id', userId)
+            .single();
+          
+          if (!currentProfile?.trial_used_at) {
+            profileUpdates.trial_used_at = new Date().toISOString();
+          }
+        }
+
+        if (Object.keys(profileUpdates).length === 0) {
+          return new Response(
+            JSON.stringify({ error: 'No valid updates provided' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .update(profileUpdates)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        actionDetails.updates = profileUpdates;
+        break;
+      }
       case 'update_plan': {
         if (!updates?.plan_id && !updates?.plan_type) {
           return new Response(
@@ -315,8 +365,8 @@ Deno.serve(async (req) => {
       .insert({
         admin_id: adminUser.id,
         target_user_id: userId,
-        action: action,
-        action_type: action,
+        action: effectiveAction,
+        action_type: effectiveAction,
         details: actionDetails,
       });
 

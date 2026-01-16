@@ -168,6 +168,9 @@ const AdminUserDetail = () => {
   const [editedCompany, setEditedCompany] = useState("");
   const [editedPlanType, setEditedPlanType] = useState("");
   const [editedInvoiceLimit, setEditedInvoiceLimit] = useState("");
+  const [editedSubscriptionStatus, setEditedSubscriptionStatus] = useState("");
+  const [editedTrialEndsAt, setEditedTrialEndsAt] = useState("");
+  const [editedCurrentPeriodEnd, setEditedCurrentPeriodEnd] = useState("");
   
   // Dialogs
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
@@ -211,6 +214,9 @@ const AdminUserDetail = () => {
         setEditedCompany(data.user.company_name || "");
         setEditedPlanType(data.user.plan_type || "free");
         setEditedInvoiceLimit(String(data.user.invoice_limit || 5));
+        setEditedSubscriptionStatus(data.user.subscription_status || "inactive");
+        setEditedTrialEndsAt(data.user.trial_ends_at ? data.user.trial_ends_at.slice(0, 10) : "");
+        setEditedCurrentPeriodEnd(data.user.current_period_end ? data.user.current_period_end.slice(0, 10) : "");
       }
     } catch (error: any) {
       console.error("Error fetching user details:", error);
@@ -227,11 +233,15 @@ const AdminUserDetail = () => {
       const response = await supabase.functions.invoke("admin-update-user", {
         body: {
           userId: user.id,
+          action: "update_profile",
           updates: {
             name: editedName,
             company_name: editedCompany,
             plan_type: editedPlanType,
             invoice_limit: parseInt(editedInvoiceLimit) || 5,
+            subscription_status: editedSubscriptionStatus,
+            trial_ends_at: editedTrialEndsAt ? new Date(editedTrialEndsAt).toISOString() : null,
+            current_period_end: editedCurrentPeriodEnd ? new Date(editedCurrentPeriodEnd).toISOString() : null,
           },
         },
       });
@@ -254,8 +264,8 @@ const AdminUserDetail = () => {
       const response = await supabase.functions.invoke("admin-update-user", {
         body: {
           userId: user.id,
-          action: "block",
-          reason: blockReason,
+          action: "block_user",
+          updates: { reason: blockReason },
         },
       });
 
@@ -276,7 +286,7 @@ const AdminUserDetail = () => {
       const response = await supabase.functions.invoke("admin-update-user", {
         body: {
           userId: user.id,
-          action: "unblock",
+          action: "unblock_user",
         },
       });
 
@@ -296,8 +306,8 @@ const AdminUserDetail = () => {
       const response = await supabase.functions.invoke("admin-update-user", {
         body: {
           userId: user.id,
-          action: "suspend",
-          reason: suspendReason,
+          action: "suspend_user",
+          updates: { reason: suspendReason },
         },
       });
 
@@ -318,7 +328,7 @@ const AdminUserDetail = () => {
       const response = await supabase.functions.invoke("admin-update-user", {
         body: {
           userId: user.id,
-          action: "unsuspend",
+          action: "unsuspend_user",
         },
       });
 
@@ -516,6 +526,23 @@ const AdminUserDetail = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Subscription Status</Label>
+                    <Select value={editedSubscriptionStatus} onValueChange={setEditedSubscriptionStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="trialing">Trialing</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="past_due">Past Due</SelectItem>
+                        <SelectItem value="canceled">Canceled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   <div className="space-y-2">
                     <Label>Invoice Limit</Label>
                     <Input 
@@ -524,7 +551,37 @@ const AdminUserDetail = () => {
                       onChange={(e) => setEditedInvoiceLimit(e.target.value)}
                     />
                   </div>
+                  
                   <Separator />
+                  
+                  <div className="space-y-2">
+                    <Label>Trial Ends At</Label>
+                    <Input 
+                      type="date"
+                      value={editedTrialEndsAt} 
+                      onChange={(e) => setEditedTrialEndsAt(e.target.value)}
+                      placeholder="YYYY-MM-DD"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Set or extend the trial period. Leave empty for no trial.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Current Period End</Label>
+                    <Input 
+                      type="date"
+                      value={editedCurrentPeriodEnd} 
+                      onChange={(e) => setEditedCurrentPeriodEnd(e.target.value)}
+                      placeholder="YYYY-MM-DD"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Extend the subscription period without Stripe changes.
+                    </p>
+                  </div>
+                  
+                  <Separator />
+                  
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Current Usage</span>
@@ -532,6 +589,7 @@ const AdminUserDetail = () => {
                     </div>
                     <Progress value={usagePercentage} />
                   </div>
+                  
                   {user.stripe_customer_id && (
                     <div className="pt-2">
                       <a 
