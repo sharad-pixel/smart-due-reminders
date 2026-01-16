@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { AlertTriangle, X, Zap } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { AlertTriangle, X, Zap, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,19 +17,24 @@ interface TrialUsage {
  * Forces users to upgrade when trial expires or invoice limit is reached.
  */
 export function TrialBanner() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isTrial, trialEndsAt, subscriptionStatus, plan, isLoading } = useSubscription();
   const [usage, setUsage] = useState<TrialUsage | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+  const [hoursRemaining, setHoursRemaining] = useState<number | null>(null);
 
-  // Calculate days remaining
+  // Calculate days and hours remaining
   useEffect(() => {
     if (trialEndsAt) {
       const endDate = new Date(trialEndsAt);
       const now = new Date();
       const diffTime = endDate.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
       setDaysRemaining(Math.max(0, diffDays));
+      setHoursRemaining(Math.max(0, diffHours));
     }
   }, [trialEndsAt]);
 
@@ -52,6 +57,21 @@ export function TrialBanner() {
 
     fetchUsage();
   }, []);
+
+  // Force redirect to billing when trial expires (except on allowed pages)
+  useEffect(() => {
+    const allowedPaths = ['/billing', '/upgrade', '/profile', '/login', '/signup', '/auth'];
+    const isOnAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path));
+    
+    if (!isLoading && daysRemaining !== null && daysRemaining <= 0 && !isOnAllowedPath) {
+      const isTrialUser = isTrial || subscriptionStatus === 'trialing';
+      const isFreePlan = plan === 'free' && (!subscriptionStatus || subscriptionStatus === 'inactive');
+      
+      if (isTrialUser || isFreePlan) {
+        navigate('/billing', { replace: true });
+      }
+    }
+  }, [isLoading, daysRemaining, isTrial, subscriptionStatus, plan, location.pathname, navigate]);
 
   // Don't show if loading, dismissed, or user has active subscription
   if (isLoading || dismissed) return null;
@@ -87,6 +107,9 @@ export function TrialBanner() {
     if (isExpired || isLimitReached) {
       return <AlertTriangle className="h-4 w-4 flex-shrink-0" />;
     }
+    if (isExpiringSoon) {
+      return <Clock className="h-4 w-4 flex-shrink-0" />;
+    }
     return <Zap className="h-4 w-4 flex-shrink-0" />;
   };
 
@@ -107,11 +130,11 @@ export function TrialBanner() {
       return `Only ${invoicesRemaining} free invoice${invoicesRemaining !== 1 ? 's' : ''} remaining`;
     }
     
-    // Default message
+    // Default message with dynamic countdown
     return (
       <>
         <span className="hidden sm:inline">Free trial: </span>
-        <span className="font-semibold">{daysRemaining} days</span>
+        <span className="font-semibold">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''}</span>
         <span className="hidden sm:inline"> remaining</span>
         <span className="mx-2 opacity-60">•</span>
         <span className="font-semibold">{invoicesUsed}/{invoiceLimit}</span>

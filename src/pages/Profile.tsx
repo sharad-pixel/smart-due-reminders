@@ -61,6 +61,7 @@ import { AccountHierarchy } from "@/components/AccountHierarchy";
 import { ProfileAvatarEditor } from "@/components/ProfileAvatarEditor";
 import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
+import { TrialCountdown } from "@/components/TrialCountdown";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
@@ -765,6 +766,9 @@ const Profile = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Trial Countdown - Shows only for trial/free users */}
+        <TrialCountdown variant="card" />
 
         {/* User Info Section */}
         <Card>
