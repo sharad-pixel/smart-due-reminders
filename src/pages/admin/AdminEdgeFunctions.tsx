@@ -29,50 +29,57 @@ interface FunctionTest extends FunctionConfig {
 
 const edgeFunctionConfigs: FunctionConfig[] = [
   // Email functions
-  { name: "send-email", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without to/from/subject - validation error" },
-  { name: "send-ai-draft", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth - requires draft_id" },
-  { name: "send-collection-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401/500 - requires auth + recipientEmail/subject/body" },
-  { name: "send-welcome-email", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "200 with valid payload", testPayload: { email: "test@example.com", companyName: "Test", userName: "Test", userId: "00000000-0000-0000-0000-000000000000" } },
-  { name: "send-admin-alert", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "200 with valid payload", testPayload: { type: "waitlist", email: "test@example.com", name: "Test" } },
-  { name: "send-task-assignment", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "send-account-summary", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "test-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "forward-inbound-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
+  { name: "send-email", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "⚠️ 400 validation - requires to/from/subject" },
+  { name: "send-ai-draft", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required + draft_id payload" },
+  { name: "send-collection-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required + email payload" },
+  { name: "send-welcome-email", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "✅ 200 with valid payload", testPayload: { email: "test@example.com", companyName: "Test", userName: "Test", userId: "00000000-0000-0000-0000-000000000000" } },
+  { name: "send-admin-alert", category: "email", requiresAuth: false, requiresPayload: true, expectedBehavior: "✅ 200 with valid payload", testPayload: { type: "waitlist", email: "test@example.com", name: "Test" } },
+  { name: "send-task-assignment", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required" },
+  { name: "send-account-summary", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required" },
+  { name: "test-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required" },
+  { name: "forward-inbound-email", category: "email", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required" },
   
-  // Webhook functions (public endpoints)
-  { name: "resend-inbound-tasks", category: "webhook", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without proper Resend payload" },
-  { name: "stripe-webhook", category: "webhook", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without signature" },
+  // Webhook functions (public endpoints - require external signatures)
+  { name: "resend-inbound-tasks", category: "webhook", requiresAuth: false, requiresPayload: true, expectedBehavior: "🔑 400 requires Resend webhook signature" },
+  { name: "stripe-webhook", category: "webhook", requiresAuth: false, requiresPayload: true, expectedBehavior: "🔑 400 requires Stripe signature header" },
+  { name: "resend-webhook", category: "webhook", requiresAuth: false, requiresPayload: true, expectedBehavior: "🔑 400 requires Resend webhook payload" },
   
   // AI functions
-  { name: "process-inbound-ai", category: "ai", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - processes pending emails" },
-  { name: "generate-bucket-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "400 without aging_bucket - validation error" },
-  { name: "generate-bulk-ai-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "400 without invoice_ids - validation error" },
-  { name: "process-persona-command", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401/500 - requires auth + command_text" },
-  { name: "regenerate-draft", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "400 without system_prompt/user_prompt/channel" },
-  { name: "ai-match-payments", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
+  { name: "process-inbound-ai", category: "ai", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - processes pending emails" },
+  { name: "generate-bucket-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "⚠️ 400 requires aging_bucket param" },
+  { name: "generate-bulk-ai-drafts", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "⚠️ 400 requires invoice_ids param" },
+  { name: "process-persona-command", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth + command_text required" },
+  { name: "regenerate-draft", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "⚠️ 400 requires prompt params" },
+  { name: "ai-match-payments", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required" },
+  { name: "ai-analytics", category: "ai", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth required" },
   
-  // Cron/scheduled functions
-  { name: "daily-digest-runner", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - runs digest job", testPayload: {} },
-  { name: "daily-cadence-scheduler", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - schedules cadence" },
-  { name: "daily-workflow-reassignment", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - reassigns workflows" },
-  { name: "auto-generate-collection-drafts", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - generates drafts" },
-  { name: "auto-send-approved-drafts", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - sends approved drafts" },
-  { name: "data-retention-cron", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "200 - cleans old data" },
+  // Cron/scheduled functions (should succeed without params)
+  { name: "daily-digest-runner", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - runs digest job", testPayload: {} },
+  { name: "daily-cadence-scheduler", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - schedules cadence" },
+  { name: "daily-workflow-reassignment", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - reassigns workflows" },
+  { name: "auto-generate-collection-drafts", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - generates drafts" },
+  { name: "auto-send-approved-drafts", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - sends approved drafts" },
+  { name: "data-retention-cron", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - cleans old data" },
+  { name: "daily-recalculate-scores", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - recalculates scores" },
+  { name: "daily-intelligence-reports", category: "cron", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - generates reports" },
   
-  // Admin functions
-  { name: "admin-list-users", category: "admin", requiresAuth: true, requiresPayload: false, expectedBehavior: "401 without auth" },
-  { name: "admin-update-user", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "admin-get-user-details", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "delete-user", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
+  // Admin functions (all require auth)
+  { name: "admin-list-users", category: "admin", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 admin auth required" },
+  { name: "admin-update-user", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 admin auth required" },
+  { name: "admin-get-user-details", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 admin auth required" },
+  { name: "admin-list-accounts", category: "admin", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 admin auth required" },
+  { name: "delete-user", category: "admin", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 admin auth required" },
   
   // Utility functions
-  { name: "calculate-payment-score", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without debtor_id - validation error" },
-  { name: "risk-engine", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "Calculates risk scores" },
-  { name: "get-monthly-usage", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "401 without auth" },
-  { name: "get-effective-features", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "401 without auth" },
-  { name: "check-whitelist", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "400 without email - validation error" },
-  { name: "encrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
-  { name: "decrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "401 without auth" },
+  { name: "calculate-payment-score", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "⚠️ 400 requires debtor_id or recalculate_all" },
+  { name: "risk-engine", category: "utility", requiresAuth: false, requiresPayload: false, expectedBehavior: "✅ 200 - calculates risk scores" },
+  { name: "get-monthly-usage", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
+  { name: "get-effective-features", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
+  { name: "check-whitelist", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "⚠️ 400 requires email param" },
+  { name: "encrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "⚠️ 400 requires value param (auth needed)" },
+  { name: "decrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth session required" },
+  { name: "sync-subscription", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
+  { name: "check-access", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
 ];
 
 const categoryIcons: Record<FunctionConfig["category"], React.ReactNode> = {
@@ -118,21 +125,40 @@ const AdminEdgeFunctions = () => {
       const responseTime = Date.now() - startTime;
       
       // Determine if this is an expected error based on function config
-      const isAuthError = response.error?.message?.includes("401") || response.error?.message?.includes("Missing authorization");
-      const isValidationError = response.error?.message?.includes("400") || 
-        response.error?.message?.includes("Missing") || 
-        response.error?.message?.includes("required") ||
-        response.error?.message?.includes("is required") ||
-        response.error?.message?.includes("signature") ||
-        response.error?.message?.includes("No signature");
+      const errorMsg = response.error?.message?.toLowerCase() || "";
       
-      // Expected errors: auth errors for auth-required endpoints, OR validation errors for payload-required endpoints
-      // Webhook endpoints (like stripe-webhook, resend-inbound-tasks) return validation errors without proper payloads
-      const isWebhookValidationError = config.category === "webhook" && (isValidationError || response.error?.message?.includes("400"));
-      const isExpectedError = (config.requiresAuth && isAuthError) || 
-        (config.requiresPayload && isValidationError) ||
-        isWebhookValidationError ||
-        (response.error?.message?.includes("500") && config.requiresPayload); // Some validation returns 500
+      // Auth errors - missing session, 401, unauthorized
+      const isAuthError = errorMsg.includes("401") || 
+        errorMsg.includes("missing authorization") ||
+        errorMsg.includes("auth session missing") ||
+        errorMsg.includes("unauthorized") ||
+        errorMsg.includes("not authenticated");
+      
+      // Validation errors - missing params, 400 errors
+      const isValidationError = errorMsg.includes("400") || 
+        errorMsg.includes("missing") || 
+        errorMsg.includes("required") ||
+        errorMsg.includes("must be provided") ||
+        errorMsg.includes("is required") ||
+        errorMsg.includes("validation");
+      
+      // Signature errors - webhook-specific
+      const isSignatureError = errorMsg.includes("signature") ||
+        errorMsg.includes("no signature");
+      
+      // Webhook endpoints always expect signature errors without proper headers
+      const isWebhookExpectedError = config.category === "webhook" && (isSignatureError || isValidationError);
+      
+      // Expected errors based on function requirements
+      const isExpectedError = 
+        // Auth-required functions return 401 when called without auth
+        (config.requiresAuth && isAuthError) || 
+        // Payload-required functions return validation errors without proper payload
+        (config.requiresPayload && !config.testPayload && (isValidationError || isSignatureError)) ||
+        // Webhooks need external signatures
+        isWebhookExpectedError ||
+        // Some functions return 500 on validation (edge case)
+        (errorMsg.includes("500") && config.requiresPayload && !config.testPayload);
 
       if (response.error) {
         // Extract status code from error message
