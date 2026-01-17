@@ -112,6 +112,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               About
             </button>
+            <button 
+              onClick={() => navigate("/blog/celebrate-cash")}
+              className="text-foreground hover:text-primary transition-colors py-2"
+            >
+              Blog
+            </button>
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
               <Button onClick={() => navigate("/login")} variant="ghost" size="sm">
                 Sign In
@@ -171,6 +177,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
                 <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
                 <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
+                <button onClick={() => { navigate("/blog/celebrate-cash"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Blog</button>
                 <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="w-full mt-2">
                   Get Started
                 </Button>
