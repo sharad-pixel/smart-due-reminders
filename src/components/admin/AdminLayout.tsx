@@ -65,7 +65,7 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate("/login");
+    navigate("/");
   };
 
   if (loading) {
