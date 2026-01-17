@@ -136,7 +136,21 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
             </div>
 
             {/* Content */}
-            <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h2:text-2xl prose-h2:md:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-p:text-muted-foreground prose-p:leading-relaxed prose-li:text-muted-foreground prose-strong:text-foreground">
+            <div className="
+              prose prose-lg dark:prose-invert max-w-none
+              prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-foreground
+              prose-h2:text-2xl prose-h2:md:text-3xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border/50 prose-h2:pb-3
+              prose-h3:text-xl prose-h3:md:text-2xl prose-h3:mt-8 prose-h3:mb-3
+              prose-p:text-muted-foreground prose-p:leading-relaxed prose-p:mb-4
+              prose-ul:my-4 prose-ul:pl-6 prose-ul:space-y-2
+              prose-ol:my-4 prose-ol:pl-6 prose-ol:space-y-2
+              prose-li:text-muted-foreground prose-li:leading-relaxed
+              prose-strong:text-foreground prose-strong:font-semibold
+              prose-em:text-foreground/90
+              prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:rounded-r-lg prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:not-italic
+              [&>p]:mb-4
+              [&>ul]:list-disc [&>ol]:list-decimal
+            ">
               {children}
             </div>
 
