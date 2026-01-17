@@ -130,7 +130,7 @@ const Layout = ({ children }: LayoutProps) => {
     }
     await supabase.auth.signOut();
     toast.success("Signed out successfully");
-    navigate("/login");
+    navigate("/");
   };
 
   const isActive = (path: string) => location.pathname === path;
