@@ -1,7 +1,7 @@
 import MarketingLayout from "@/components/MarketingLayout";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Clock, Linkedin, Twitter, Link2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Linkedin, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { BlogPost } from "@/lib/blogConfig";
@@ -24,10 +24,10 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
   };
 
-  const handleShareTwitter = () => {
+  const handleShareX = () => {
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(`${post.title} - Great read from @RecouplyAI`);
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+    window.open(`https://x.com/intent/tweet?url=${url}&text=${text}`, '_blank');
   };
 
   return (
@@ -120,11 +120,13 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
                 <Linkedin className="h-4 w-4" />
               </button>
               <button
-                onClick={handleShareTwitter}
+                onClick={handleShareX}
                 className="p-2.5 rounded-full bg-card border border-border hover:bg-muted hover:border-primary/50 transition-all shadow-sm"
-                title="Share on Twitter"
+                title="Share on X"
               >
-                <Twitter className="h-4 w-4" />
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
               </button>
               <button
                 onClick={handleCopyLink}
@@ -165,11 +167,13 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
                 <Linkedin className="h-5 w-5" />
               </button>
               <button
-                onClick={handleShareTwitter}
+                onClick={handleShareX}
                 className="p-2 rounded-full bg-muted hover:bg-primary/10 transition-colors"
-                title="Share on Twitter"
+                title="Share on X"
               >
-                <Twitter className="h-5 w-5" />
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
               </button>
               <button
                 onClick={handleCopyLink}
