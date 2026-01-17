@@ -322,13 +322,19 @@ const Signup = () => {
         console.error('Profile update error:', profileError);
       }
 
-      // New flow: Don't require payment upfront - give 7-day trial with 5 invoices
-      // Users will be prompted to upgrade when trial expires or limits reached
+      // Email verification is now required for email/password signups
+      // User will receive a confirmation email and must verify before accessing the app
       if (authData.session) {
+        // Session exists = auto-confirm is enabled (shouldn't happen with new config)
         toast.success("Welcome! You have 7 days and 5 invoices to explore Recouply.ai free.");
         navigate("/dashboard");
       } else {
-        toast.success("Account created! Please check your email to verify your account.");
+        // No session = email verification required
+        toast.success("Account created! Please check your email to verify your account before signing in.", {
+          duration: 8000,
+        });
+        // Redirect to login page so they can sign in after verification
+        navigate("/login");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
