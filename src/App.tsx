@@ -39,6 +39,9 @@ const Personas = lazy(() => import("./pages/Personas"));
 const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 
+// Blog Pages
+const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
+
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
@@ -148,6 +151,9 @@ const App = () => (
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/integrations/stripe-sync" element={<StripeSyncDiagnostics />} />
             <Route path="/investors" element={<Investors />} />
+
+            {/* Blog Pages */}
+            <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
 
             {/* Legal Pages */}
             <Route path="/legal/terms" element={<Terms />} />
