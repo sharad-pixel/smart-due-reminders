@@ -40,6 +40,7 @@ const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 
 // Blog Pages
+const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
 
 // Legal Pages
@@ -153,6 +154,7 @@ const App = () => (
             <Route path="/investors" element={<Investors />} />
 
             {/* Blog Pages */}
+            <Route path="/blog" element={<BlogIndex />} />
             <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
 
             {/* Legal Pages */}
