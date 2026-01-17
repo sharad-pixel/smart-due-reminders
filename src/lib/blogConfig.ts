@@ -1,4 +1,5 @@
 import celebrateCashHero from "@/assets/blog/celebrate-cash-hero.png";
+import powerOfOutreachHero from "@/assets/blog/power-of-outreach-hero.png";
 import founderImage from "@/assets/founder-sharad.jpg";
 
 export interface BlogAuthor {
@@ -53,12 +54,22 @@ export const blogPosts: BlogPost[] = [
     keywords: "cash collection, bookings, revenue, accounts receivable, collection intelligence, cash flow, SaaS finance",
     featured: true,
   },
-  // Add more blog posts here following the same structure
-  // {
-  //   slug: "your-next-post",
-  //   title: "Your Next Blog Post Title",
-  //   ...
-  // },
+  {
+    slug: "power-of-outreach",
+    title: "The Power of Outreach: Why Timely Payment Reminders Drive Cash Collection",
+    metaTitle: "Why Automated Payment Reminders Improve Collections | Recouply.ai",
+    metaDescription: "Timely outreach and automated payment reminders significantly increase collectability rates and reduce days to pay. Learn why early engagement matters.",
+    excerpt: "Timely outreach and automated payment reminders significantly increase collectability rates and reduce days to pay.",
+    category: "Collection Intelligence",
+    author: authors.sharad,
+    publishDate: "January 17, 2026",
+    publishDateISO: "2026-01-17",
+    readingTime: "6 min read",
+    heroImage: powerOfOutreachHero,
+    heroAlt: "Illustration showing automated digital outreach for payments with timeline, reminders, and dashboard",
+    keywords: "payment reminders, collections outreach, automated collections, accounts receivable, cash flow, collection intelligence",
+    featured: false,
+  },
 ];
 
 // Helper functions
