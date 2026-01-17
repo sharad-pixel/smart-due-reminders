@@ -280,6 +280,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                   </button>
                 </li>
                 <li>
+                  <button 
+                    onClick={() => navigate("/careers")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Careers
+                  </button>
+                </li>
+                <li>
                   <Link 
                     to="/legal/terms"
                     className="text-muted-foreground hover:text-primary"
