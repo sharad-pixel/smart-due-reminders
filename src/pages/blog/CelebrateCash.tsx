@@ -24,7 +24,6 @@ const CelebrateCash = () => {
         But over time, I noticed something uncomfortable: <strong>the celebration stopped at the promise.</strong>
       </p>
 
-      {/* Callout Box */}
       <blockquote className="not-prose my-8 p-6 md:p-8 bg-muted/50 border-l-4 border-primary rounded-r-xl">
         <p className="text-lg md:text-xl font-medium text-foreground leading-relaxed mb-0">
           A booking is not revenue.<br />
@@ -43,12 +42,15 @@ const CelebrateCash = () => {
 
       <p>
         Sales teams are built, trained, and incentivized around bookings.
+      </p>
+
+      <p>
         Finance and operations teams are left to manage collections reactively.
       </p>
 
-      <p className="font-medium text-foreground">This disconnect leads to:</p>
+      <p><strong>This disconnect leads to:</strong></p>
 
-      <ul className="space-y-2">
+      <ul>
         <li>Strong bookings but inconsistent cash flow</li>
         <li>Revenue growth on paper with increasing financial risk</li>
         <li>Manual follow-ups, scattered emails, and fragmented systems</li>
@@ -61,21 +63,19 @@ const CelebrateCash = () => {
 
       <h2>Cash Collection Completes the Deal</h2>
 
-      <p>
-        Collecting cash isn't an administrative task.
-        It's the final milestone of the deal lifecycle.
-      </p>
+      <p>Collecting cash isn't an administrative task.</p>
 
-      <p className="font-medium text-foreground">A customer only becomes a true customer when:</p>
+      <p>It's the final milestone of the deal lifecycle.</p>
 
-      <ul className="space-y-2">
+      <p><strong>A customer only becomes a true customer when:</strong></p>
+
+      <ul>
         <li>They receive value, and</li>
         <li>They pay for it</li>
       </ul>
 
       <p>Until then, the deal is incomplete.</p>
 
-      {/* Highlight Box */}
       <div className="not-prose my-8 p-6 md:p-8 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl">
         <p className="text-lg md:text-xl font-semibold text-foreground leading-relaxed">
           If bookings deserve a gong, cash collection deserves one too — because that's when value is fully realized for both the business and the customer.
@@ -90,17 +90,17 @@ const CelebrateCash = () => {
         Recouply.ai is a <strong>Collection Intelligence Platform</strong> designed to give cash the same level of focus, automation, and visibility that businesses apply to bookings.
       </p>
 
-      <p className="font-medium text-foreground">Traditional collections are often:</p>
+      <p><strong>Traditional collections are often:</strong></p>
 
-      <ul className="space-y-2">
+      <ul>
         <li>Manual and reactive</li>
         <li>Dependent on individuals and inboxes</li>
         <li>Lacking real-time insight and accountability</li>
       </ul>
 
-      <p className="font-medium text-foreground">Recouply.ai helps businesses:</p>
+      <p><strong>Recouply.ai helps businesses:</strong></p>
 
-      <ul className="space-y-2">
+      <ul>
         <li><strong>Automate</strong> and orchestrate collection workflows</li>
         <li><strong>Engage</strong> customers consistently and professionally</li>
         <li><strong>Gain visibility</strong> into payment behavior and risk in real-time</li>
@@ -115,9 +115,9 @@ const CelebrateCash = () => {
 
       <p>Cash flow isn't just a finance metric — it's a growth enabler.</p>
 
-      <p className="font-medium text-foreground">When businesses have full engagement and insight into how cash is collected:</p>
+      <p><strong>When businesses have full engagement and insight into how cash is collected:</strong></p>
 
-      <ul className="space-y-2">
+      <ul>
         <li>Forecasting improves</li>
         <li>Risk is identified earlier</li>
         <li>Teams operate proactively instead of reactively</li>
@@ -128,16 +128,14 @@ const CelebrateCash = () => {
 
       <h2>It's Time to Celebrate the Right Outcome</h2>
 
-      <p>
-        Bookings start the journey.<br />
-        Cash completes it.
-      </p>
+      <p>Bookings start the journey.</p>
+
+      <p>Cash completes it.</p>
 
       <p>
         If your business celebrates promises but not fulfillment, you're leaving value — and resilience — on the table.
       </p>
 
-      {/* Final Callout */}
       <div className="not-prose my-10 p-8 bg-card border-2 border-primary/30 rounded-2xl text-center">
         <p className="text-xl md:text-2xl font-bold text-foreground mb-0">
           Maybe it's time we start ringing the gong when the cash hits the bank.
