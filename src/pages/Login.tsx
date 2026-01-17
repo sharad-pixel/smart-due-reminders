@@ -13,6 +13,7 @@ import { getAuthRedirectUrl } from "@/lib/appConfig";
 import { Eye, EyeOff } from "lucide-react";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import SEO from "@/components/SEO";
+import MarketingLayout from "@/components/MarketingLayout";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -220,13 +221,13 @@ const Login = () => {
 
 
   return (
-    <>
+    <MarketingLayout>
       <SEO
         title="Sign In"
         description="Sign in to your Recouply.ai account to manage your collection intelligence dashboard."
         noindex={true}
       />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <div className="min-h-[70vh] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-6">
@@ -381,7 +382,7 @@ const Login = () => {
 
       </div>
       </div>
-    </>
+    </MarketingLayout>
   );
 };
 
