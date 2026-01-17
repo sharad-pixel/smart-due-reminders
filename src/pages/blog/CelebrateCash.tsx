@@ -14,14 +14,31 @@ const CelebrateCash = () => {
       <h2>Bookings Are Celebrated. Cash Is Quietly Chased.</h2>
 
       <p>
-        Early in my career, I worked at companies where closing a deal was an event.
-        A gong would ring. Slack would light up. Teams would celebrate.
+        Throughout my career, I've run deal desk and deal strategy operations, working closely with sales teams on some of the company's largest and most complex deals.
       </p>
 
-      <p>And they should — a booking represents momentum, trust, and growth.</p>
+      <p>I understand firsthand how difficult selling is.</p>
 
       <p>
-        But over time, I noticed something uncomfortable: <strong>the celebration stopped at the promise.</strong>
+        Getting a customer to commit to your product on paper is hard.
+        It requires trust, negotiation, persistence, and alignment across teams.
+      </p>
+
+      <p>
+        That moment — when a deal finally closes — should be celebrated.
+      </p>
+
+      <p>
+        A gong would ring.<br />
+        Slack would light up.<br />
+        Teams would celebrate.
+      </p>
+
+      <p>And rightly so — a booking represents momentum, trust, and belief in what you're building.</p>
+
+      <p>
+        But over time, I started noticing something uncomfortable:<br />
+        <strong>the celebration stopped at the promise.</strong>
       </p>
 
       <blockquote className="not-prose my-8 p-6 md:p-8 bg-muted/50 border-l-4 border-primary rounded-r-xl">
@@ -34,27 +51,45 @@ const CelebrateCash = () => {
 
       <p>That promise is only fulfilled when the cash is collected.</p>
 
-      <p>
-        Yet in most businesses, collections happen quietly in the background — with little visibility, limited ownership, and almost no celebration.
-      </p>
-
-      <h2>The Cost of Treating Cash as a Back-Office Function</h2>
+      <h2>A Booking Does Not Pay the Bills — Cash Does</h2>
 
       <p>
-        Sales teams are built, trained, and incentivized around bookings.
+        Getting a customer to sign is a huge milestone.
+        But a booking does not pay company expenses.
       </p>
+
+      <p><strong>Cash does.</strong></p>
 
       <p>
-        Finance and operations teams are left to manage collections reactively.
+        Payroll, infrastructure, vendors, growth investments — none of these are paid with bookings on a dashboard. They are paid with cash in the bank.
       </p>
 
-      <p><strong>This disconnect leads to:</strong></p>
+      <p>Yet in most organizations, collections happen quietly in the background:</p>
 
       <ul>
-        <li>Strong bookings but inconsistent cash flow</li>
-        <li>Revenue growth on paper with increasing financial risk</li>
-        <li>Manual follow-ups, scattered emails, and fragmented systems</li>
-        <li>Limited insight into customer payment behavior</li>
+        <li>No gong</li>
+        <li>No celebration</li>
+        <li>Limited visibility</li>
+        <li>Fragmented ownership</li>
+      </ul>
+
+      <p>
+        In some cases, the biggest deals — the ones that pay in full and on time — go completely unrecognized.
+      </p>
+
+      <h2>The Disconnect Between Sales and Cash</h2>
+
+      <p>
+        Sales teams are trained, incentivized, and celebrated around bookings.
+        Finance and operations teams are left to chase invoices after the fact — often with manual tools, scattered emails, and limited insight into customer behavior.
+      </p>
+
+      <p><strong>The result?</strong></p>
+
+      <ul>
+        <li>Strong bookings, weak cash flow</li>
+        <li>Revenue growth on paper, rising financial risk in reality</li>
+        <li>Collections treated as a back-office task instead of a core business function</li>
       </ul>
 
       <p>
@@ -67,20 +102,23 @@ const CelebrateCash = () => {
 
       <p>It's the final milestone of the deal lifecycle.</p>
 
-      <p><strong>A customer only becomes a true customer when:</strong></p>
+      <p><strong>A deal is only truly complete when:</strong></p>
 
       <ul>
-        <li>They receive value, and</li>
-        <li>They pay for it</li>
+        <li>The customer receives value, and</li>
+        <li>The company is paid in full</li>
       </ul>
-
-      <p>Until then, the deal is incomplete.</p>
 
       <div className="not-prose my-8 p-6 md:p-8 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl">
         <p className="text-lg md:text-xl font-semibold text-foreground leading-relaxed">
-          If bookings deserve a gong, cash collection deserves one too — because that's when value is fully realized for both the business and the customer.
+          If bookings deserve a gong, then deals that pay in full deserve one too — because that's when value is fully realized for both sides.
         </p>
       </div>
+
+      <p>
+        Celebrating cash doesn't diminish sales effort.<br />
+        It honors the full lifecycle of the deal.
+      </p>
 
       <h2>Why We Built Recouply.ai</h2>
 
@@ -103,12 +141,13 @@ const CelebrateCash = () => {
       <ul>
         <li><strong>Automate</strong> and orchestrate collection workflows</li>
         <li><strong>Engage</strong> customers consistently and professionally</li>
-        <li><strong>Gain visibility</strong> into payment behavior and risk in real-time</li>
+        <li><strong>Gain</strong> real-time visibility into payment behavior and risk</li>
         <li><strong>Reduce</strong> days to pay and prevent bad debt before it happens</li>
       </ul>
 
       <p>
-        Collections shouldn't be a last-mile scramble. They should be a strategic, intelligence-driven process.
+        Collections shouldn't be a last-mile scramble.<br />
+        They should be a strategic, intelligence-driven process.
       </p>
 
       <h2>Cash Flow Is a Growth Strategy</h2>
@@ -133,7 +172,13 @@ const CelebrateCash = () => {
       <p>Cash completes it.</p>
 
       <p>
-        If your business celebrates promises but not fulfillment, you're leaving value — and resilience — on the table.
+        Selling is hard — and bookings should be celebrated.<br />
+        But so should the deals that pay in full.
+      </p>
+
+      <p>
+        Because at the end of the day,<br />
+        a booking is a promise — cash is what builds the company.
       </p>
 
       <div className="not-prose my-10 p-8 bg-card border-2 border-primary/30 rounded-2xl text-center">
