@@ -42,6 +42,7 @@ const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
+const PowerOfOutreach = lazy(() => import("./pages/blog/PowerOfOutreach"));
 
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
@@ -156,6 +157,7 @@ const App = () => (
             {/* Blog Pages */}
             <Route path="/blog" element={<BlogIndex />} />
             <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
+            <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
 
             {/* Legal Pages */}
             <Route path="/legal/terms" element={<Terms />} />
