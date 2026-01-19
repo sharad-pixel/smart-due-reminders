@@ -36,10 +36,10 @@ export default function VerifyEmail() {
         setStatus('success');
         toast.success('Email verified successfully!');
         
-        // Redirect to login after 3 seconds
+        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+          navigate('/dashboard');
+        }, 2000);
       } catch (err) {
         console.error('Verification error:', err);
         setStatus('error');
@@ -106,10 +106,10 @@ export default function VerifyEmail() {
               </div>
               <div className="space-y-2">
                 <p className="text-foreground font-medium">Your email has been verified successfully!</p>
-                <p className="text-muted-foreground text-sm">Redirecting you to login...</p>
+                <p className="text-muted-foreground text-sm">Redirecting you to dashboard...</p>
               </div>
-              <Button onClick={() => navigate('/login')} className="mt-4">
-                Go to Login
+              <Button onClick={() => navigate('/dashboard')} className="mt-4">
+                Go to Dashboard
               </Button>
             </div>
           )}
