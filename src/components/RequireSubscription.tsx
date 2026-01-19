@@ -42,6 +42,8 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
     '/privacy',
     '/cookies',
     '/team', // Allow team page access for invites
+    '/verify-email',
+    '/email-verification-required',
   ];
 
   useEffect(() => {
@@ -89,9 +91,19 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
         // Get user's subscription status and trial info
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan_type, subscription_status, is_admin, stripe_customer_id, trial_ends_at, created_at, admin_override')
+          .select('plan_type, subscription_status, is_admin, stripe_customer_id, trial_ends_at, created_at, admin_override, email_verified')
           .eq('id', user.id)
           .single();
+
+        // Check email verification for non-OAuth users (OAuth users are auto-verified)
+        const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
+        if (!isOAuthUser && profile?.email_verified === false) {
+          console.log('[RequireSubscription] Email not verified, redirecting');
+          navigate('/email-verification-required', { replace: true });
+          setHasAccess(false);
+          setIsChecking(false);
+          return;
+        }
 
         // Admins always have access
         if (profile?.is_admin) {
