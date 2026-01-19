@@ -213,7 +213,10 @@ function generateRecouplyFooter(branding: BrandingSettings): string {
  */
 export function wrapEmailContent(body: string, branding: BrandingSettings = {}, personaName?: string): string {
   const businessName = branding.business_name || branding.from_name || personaName || "Recouply.ai";
-  const primaryColor = branding.primary_color || "#1e3a5f";
+  const primaryColor = branding.primary_color || "#3b82f6";
+  
+  // Generate lighter shade for gradient
+  const lighterColor = lightenColor(primaryColor, 20);
   
   return `
 <!DOCTYPE html>
@@ -234,14 +237,14 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}, 
   </noscript>
   <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f1f5f9; line-height: 1.6; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f1f5f9;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; line-height: 1.6; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
     <tr>
       <td style="padding: 40px 20px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05); overflow: hidden;">
           <!-- Header with branding -->
           <tr>
-            <td style="padding: 28px 36px; background: linear-gradient(135deg, ${primaryColor} 0%, #2d5a87 100%);">
+            <td style="padding: 28px 36px; background: linear-gradient(135deg, ${primaryColor} 0%, ${lighterColor} 100%);">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td>
@@ -282,6 +285,18 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}, 
   </table>
 </body>
 </html>`.trim();
+}
+
+/**
+ * Lighten a hex color for gradient effect
+ */
+function lightenColor(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, (num >> 16) + amt);
+  const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+  const B = Math.min(255, (num & 0x0000FF) + amt);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
 /**

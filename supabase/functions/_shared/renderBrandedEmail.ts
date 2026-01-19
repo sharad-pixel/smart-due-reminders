@@ -24,9 +24,9 @@ const COMPANY_INFO = {
   address: "Delaware, USA",
 } as const;
 
-// Default colors
-const DEFAULT_PRIMARY_COLOR = "#111827";
-const DEFAULT_ACCENT_COLOR = "#6366f1";
+// Default colors - using site's light theme blue and green
+const DEFAULT_PRIMARY_COLOR = "#3b82f6";
+const DEFAULT_ACCENT_COLOR = "#22c55e";
 
 export interface BrandingConfig {
   // Identity

@@ -59,10 +59,10 @@ serve(async (req) => {
 
     const displayName = userName || companyName || "there";
 
-    // Build email body content
+    // Build email body content with Collection Intelligence branding
     const bodyContent = `
       <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
-        🎉 Welcome to CashOps Excellence!
+        🎉 Welcome to Collection Intelligence!
       </h2>
       
       <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
@@ -70,31 +70,31 @@ serve(async (req) => {
       </p>
 
       <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
-        I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our platform. <strong>You're on your way to CashOps Excellence!</strong>
+        I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Collection Intelligence Platform. <strong>You're about to transform how you manage receivables.</strong>
       </p>
 
-      <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+      <div style="background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
         <p style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">
-          🚀 Your Journey to CashOps Excellence Starts Now
+          🚀 Your Collection Intelligence Journey Starts Now
         </p>
-        <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
+        <p style="margin: 12px 0 0; color: rgba(255, 255, 255, 0.9); font-size: 15px;">
           Six AI agents are ready to transform your collections
         </p>
       </div>
 
       <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
-        At Recouply.ai, we believe that managing cash flow shouldn't be a headache. That's why we've built an AI-powered CashOps platform that handles collections intelligently, preserves customer relationships, and gets you paid faster.
+        At Recouply.ai, we believe that managing receivables shouldn't be a headache. Our AI-powered Collection Intelligence Platform handles collections intelligently, preserves customer relationships, and accelerates your cash flow.
       </p>
 
-      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 24px; margin: 24px 0;">
-        <h3 style="margin: 0 0 16px; color: #1e3a5f; font-size: 18px; font-weight: 600;">
+      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 24px; margin: 24px 0; border: 1px solid #86efac;">
+        <h3 style="margin: 0 0 16px; color: #166534; font-size: 18px; font-weight: 600;">
           🤖 What Makes Recouply Different
         </h3>
-        <ul style="margin: 0; padding: 0 0 0 20px; color: #475569; font-size: 15px; line-height: 2;">
-          <li><strong>Six specialized AI agents</strong> working around the clock</li>
-          <li><strong>Intelligent escalation</strong> based on invoice aging and customer behavior</li>
-          <li><strong>Sentiment-aware messaging</strong> that preserves relationships</li>
-          <li><strong>Continuous learning</strong> – our agents get smarter with every interaction</li>
+        <ul style="margin: 0; padding: 0 0 0 20px; color: #15803d; font-size: 15px; line-height: 2;">
+          <li><strong>Six specialized AI agents</strong> working 24/7 on your collections</li>
+          <li><strong>Risk-aware automation</strong> based on payment behavior intelligence</li>
+          <li><strong>Human-in-the-loop AI</strong> — messages reviewed before sending</li>
+          <li><strong>Predictive insights</strong> that help you act before risk compounds</li>
           <li><strong>Complete visibility</strong> into your collections health</li>
         </ul>
       </div>
@@ -103,25 +103,25 @@ serve(async (req) => {
         🎯 Get Started in 3 Easy Steps
       </h3>
       <ol style="margin: 0; padding: 0 0 0 20px; color: #475569; font-size: 15px; line-height: 2.2;">
-        <li><strong>Import your accounts & invoices</strong> – Upload a CSV or add them manually</li>
-        <li><strong>Let AI configure your workflows</strong> – Automatic persona assignment by aging bucket</li>
-        <li><strong>Watch your cash flow improve</strong> – Get paid faster with less effort</li>
+        <li><strong>Import your accounts & invoices</strong> — Upload via Data Center or add manually</li>
+        <li><strong>Let AI configure your workflows</strong> — Automatic persona assignment by aging bucket</li>
+        <li><strong>Watch your recovery improve</strong> — Act earlier, recover smarter</li>
       </ol>
 
       <div style="text-align: center; margin: 32px 0;">
-<a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
-          Start Your CashOps Journey →
+        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+          Go to Dashboard →
         </a>
       </div>
 
-      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
+      <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
         <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
-          <strong>💡 Pro Tip:</strong> You'll also receive a Daily Collections Health Digest every morning with key metrics, AI insights, and recommended actions to keep your cash flow on track.
+          <strong>💡 Pro Tip:</strong> You'll receive a Daily Collections Health Digest every morning with key metrics, AI insights, and recommended actions to keep your cash flow healthy.
         </p>
       </div>
 
       <p style="margin: 24px 0; color: #475569; font-size: 15px; line-height: 1.7;">
-        I personally read every response. If you have questions, feedback, or just want to chat about how to optimize your CashOps strategy, hit reply – I'd love to hear from you.
+        I personally read every response. If you have questions, feedback, or just want to chat about your collections strategy, hit reply — I'd love to hear from you.
       </p>
 
       <p style="margin: 0 0 8px; color: #475569; font-size: 15px; line-height: 1.7;">
@@ -135,17 +135,17 @@ serve(async (req) => {
         <p style="margin: 4px 0 0; color: #64748b; font-size: 14px;">
           Founder & CEO, Recouply.ai
         </p>
-        <p style="margin: 4px 0 0; color: #64748b; font-size: 13px; font-style: italic;">
-          "Transforming how businesses manage cash flow"
+        <p style="margin: 4px 0 0; color: #3b82f6; font-size: 13px; font-style: italic;">
+          "Collect Your Money. Intelligently."
         </p>
       </div>
     `;
 
-    // Use shared branding wrapper
+    // Use shared branding wrapper with site colors
     const branding = {
       business_name: "Recouply.ai",
       from_name: "Sharad Chanana",
-      primary_color: "#1e3a5f"
+      primary_color: "#3b82f6"
     };
 
     const htmlContent = wrapEmailContent(bodyContent, branding);
@@ -160,7 +160,7 @@ serve(async (req) => {
         from: "Sharad Chanana - Recouply.ai <notifications@send.inbound.services.recouply.ai>",
         to: [email],
         reply_to: "sharad@recouply.ai",
-        subject: "🎉 Welcome to Recouply.ai – You're on Your Way to CashOps Excellence!",
+        subject: "🎉 Welcome to Recouply.ai — Your Collection Intelligence Platform",
         html: htmlContent,
       }),
     });
