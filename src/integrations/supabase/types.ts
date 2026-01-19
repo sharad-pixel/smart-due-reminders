@@ -4848,6 +4848,9 @@ export type Database = {
           current_period_end: string | null
           daily_digest_email_enabled: boolean | null
           email: string | null
+          email_verification_token: string | null
+          email_verification_token_expires_at: string | null
+          email_verified: boolean | null
           id: string
           invoice_limit: number | null
           is_account_locked: boolean | null
@@ -4912,6 +4915,9 @@ export type Database = {
           current_period_end?: string | null
           daily_digest_email_enabled?: boolean | null
           email?: string | null
+          email_verification_token?: string | null
+          email_verification_token_expires_at?: string | null
+          email_verified?: boolean | null
           id: string
           invoice_limit?: number | null
           is_account_locked?: boolean | null
@@ -4976,6 +4982,9 @@ export type Database = {
           current_period_end?: string | null
           daily_digest_email_enabled?: boolean | null
           email?: string | null
+          email_verification_token?: string | null
+          email_verification_token_expires_at?: string | null
+          email_verified?: boolean | null
           id?: string
           invoice_limit?: number | null
           is_account_locked?: boolean | null

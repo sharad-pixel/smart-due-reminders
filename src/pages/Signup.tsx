@@ -322,20 +322,27 @@ const Signup = () => {
         console.error('Profile update error:', profileError);
       }
 
-      // Email verification is now required for email/password signups
-      // User will receive a confirmation email and must verify before accessing the app
-      if (authData.session) {
-        // Session exists = auto-confirm is enabled (shouldn't happen with new config)
-        toast.success("Welcome! You have 7 days and 5 invoices to explore Recouply.ai free.");
-        navigate("/dashboard");
-      } else {
-        // No session = email verification required
-        toast.success("Account created! Please check your email to verify your account before signing in.", {
-          duration: 8000,
+      // Send custom verification email via our edge function
+      try {
+        const { error: verifyError } = await supabase.functions.invoke('send-verification-email', {
+          body: { email: validatedData.email, userId: authData.user.id }
         });
-        // Redirect to login page so they can sign in after verification
-        navigate("/login");
+        
+        if (verifyError) {
+          console.error('Failed to send verification email:', verifyError);
+          toast.error("Account created but verification email failed. Please request a new one.");
+        } else {
+          toast.success("Account created! Please check your email to verify your account.", {
+            duration: 8000,
+          });
+        }
+      } catch (verifyErr) {
+        console.error('Verification email error:', verifyErr);
+        toast.error("Account created but verification email failed. Please request a new one.");
       }
+
+      // Redirect to verification required page
+      navigate("/email-verification-required");
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];

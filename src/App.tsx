@@ -55,6 +55,8 @@ const Security = lazy(() => import("./pages/Security"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const EmailVerificationRequired = lazy(() => import("./pages/EmailVerificationRequired"));
 
 // Dashboard & Core App Pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -171,6 +173,8 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/email-verification-required" element={<EmailVerificationRequired />} />
 
             {/* Payment & Contact */}
             <Route path="/checkout" element={<Checkout />} />
