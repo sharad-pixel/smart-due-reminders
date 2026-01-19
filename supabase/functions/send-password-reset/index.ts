@@ -69,11 +69,11 @@ serve(async (req) => {
       );
     }
 
-    // Create Recouply.ai branded email content
+    // Create Recouply.ai branded email content with site colors
     const branding: BrandingSettings = {
       business_name: "Recouply.ai",
       from_name: "Recouply.ai",
-      primary_color: "#1e3a5f",
+      primary_color: "#3b82f6",
     };
 
     const emailContent = `
