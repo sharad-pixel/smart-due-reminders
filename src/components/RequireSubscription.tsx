@@ -148,20 +148,33 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           .rpc('get_effective_account_id', { p_user_id: user.id });
 
         const isTeamMember = effectiveAccountId && effectiveAccountId !== user.id;
+        
+        console.log('[RequireSubscription] Team member check:', {
+          userId: user.id,
+          effectiveAccountId,
+          isTeamMember
+        });
 
         if (isTeamMember) {
           // Team members use owner's subscription - get owner's profile
-          const { data: ownerProfile } = await supabase
+          const { data: ownerProfile, error: ownerError } = await supabase
             .from('profiles')
             .select('name, email, company_name, plan_type, subscription_status, trial_ends_at')
             .eq('id', effectiveAccountId)
             .single();
 
+          console.log('[RequireSubscription] Owner profile fetched:', {
+            ownerProfile,
+            ownerError
+          });
+
           // Check owner subscription status for team member lockout
           const ownerStatus = ownerProfile?.subscription_status;
           
+          console.log('[RequireSubscription] Checking owner status:', ownerStatus);
+          
           if (ownerStatus === 'past_due') {
-            console.log('[RequireSubscription] Parent account is past due');
+            console.log('[RequireSubscription] Parent account is past due - LOCKING OUT');
             setTeamMemberLockout({
               isLocked: true,
               reason: 'past_due',
@@ -175,7 +188,7 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           }
 
           if (ownerStatus === 'canceled') {
-            console.log('[RequireSubscription] Parent account subscription is canceled');
+            console.log('[RequireSubscription] Parent account subscription is canceled - LOCKING OUT');
             setTeamMemberLockout({
               isLocked: true,
               reason: 'canceled',
@@ -188,7 +201,24 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
             return;
           }
 
+          // Check if owner status is inactive (no subscription at all)
+          if (ownerStatus === 'inactive' || !ownerStatus) {
+            console.log('[RequireSubscription] Parent account has no active subscription - LOCKING OUT');
+            setTeamMemberLockout({
+              isLocked: true,
+              reason: 'expired',
+              ownerName: ownerProfile?.name || null,
+              ownerEmail: ownerProfile?.email || null,
+              ownerCompanyName: ownerProfile?.company_name || null,
+            });
+            setHasAccess(false);
+            setIsChecking(false);
+            return;
+          }
+
           const ownerHasAccess = checkSubscriptionAccess(ownerProfile);
+          
+          console.log('[RequireSubscription] Owner access check result:', ownerHasAccess);
           
           if (ownerHasAccess) {
             setHasAccess(true);
@@ -197,7 +227,7 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           }
           
           // Owner doesn't have valid subscription - show lockout modal for team member
-          console.log('[RequireSubscription] Team owner subscription expired or invalid');
+          console.log('[RequireSubscription] Team owner subscription expired or invalid - LOCKING OUT');
           setTeamMemberLockout({
             isLocked: true,
             reason: 'expired',
