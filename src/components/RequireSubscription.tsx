@@ -128,22 +128,8 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           return;
         }
 
-        // Admins always have access
-        if (profile?.is_admin) {
-          setHasAccess(true);
-          setIsChecking(false);
-          return;
-        }
-
-        // Users with admin override always have access
-        if (profile?.admin_override) {
-          console.log('[RequireSubscription] User has admin override, granting access');
-          setHasAccess(true);
-          setIsChecking(false);
-          return;
-        }
-
-        // Check if user is a team member (they use owner's subscription)
+        // Check if user is a team member FIRST - team member lockout takes precedence
+        // This ensures even admins who are team members respect parent account status
         const { data: effectiveAccountId } = await supabase
           .rpc('get_effective_account_id', { p_user_id: user.id });
 
@@ -236,6 +222,22 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
             ownerCompanyName: ownerProfile?.company_name || null,
           });
           setHasAccess(false);
+          setIsChecking(false);
+          return;
+        }
+
+        // After team member check, check admin status
+        // Admins always have access (to their own account data)
+        if (profile?.is_admin) {
+          setHasAccess(true);
+          setIsChecking(false);
+          return;
+        }
+
+        // Users with admin override always have access
+        if (profile?.admin_override) {
+          console.log('[RequireSubscription] User has admin override, granting access');
+          setHasAccess(true);
           setIsChecking(false);
           return;
         }
