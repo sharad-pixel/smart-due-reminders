@@ -156,6 +156,12 @@ export function cleanupPlaceholders(text: string): string {
   result = result.replace(/\bwith you at\s*\./gi, 'with you.');
   result = result.replace(/\brelationship with\s*\./gi, 'relationship.');
   
+  // CRITICAL: Replace generic "Our Company" with nothing or proper fallback
+  // This handles cases where branding.business_name was not set
+  result = result.replace(/\bfrom Our Company\b/gi, '');
+  result = result.replace(/\bOur Company family\b/gi, 'our valued customers');
+  result = result.replace(/\bOur Company\b/gi, 'our team');
+  
   // Clean up raw numbers that should be currency (pattern like "for 2995" or "of 2995")
   result = result.replace(/\b(for|of|is|totaling|totals)\s+(\d{1,3}(?:,?\d{3})*(?:\.\d{2})?)\b(?!\.\d)/gi, (match, preposition, num) => {
     const cleanNum = parseFloat(num.replace(/,/g, ''));
@@ -208,10 +214,14 @@ export function replaceTemplateVariables(
   const { invoice, debtor, branding, contactName, personaName, daysPastDue: providedDpd } = input;
 
   // Resolve values with proper fallbacks
+  // CRITICAL: customerName is the contact/person name, customerCompany is the ACCOUNT company name
   const customerName = contactName || debtor.name || debtor.company_name || 'Valued Customer';
   const customerCompany = debtor.company_name || debtor.name || 'Customer';
-  const businessName = branding.business_name || branding.from_name || 'Our Company';
-  const fromName = branding.from_name || businessName;
+  
+  // CRITICAL: businessName is the SENDER's company (from branding), not the customer's company
+  // Never fall back to generic "Our Company" - use the actual branding value or a more specific fallback
+  const businessName = branding.business_name || branding.from_name || '';
+  const fromName = branding.from_name || businessName || 'Collections Team';
   
   // Calculate days past due if not provided
   const daysPastDue = providedDpd ?? calculateDaysPastDue(invoice.due_date);
@@ -397,10 +407,14 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     body += `\n\n---\n${branding.email_signature}`;
   } else if (includeSignature && !branding.email_signature) {
     // Default signature using persona/business name
+    // CRITICAL: Never use generic "Our Company" fallback
     const agentName = personaName || 'Collections Team';
-    const businessName = branding.business_name || 'Our Company';
+    const senderBusinessName = branding.business_name || branding.from_name || '';
     
-    let contactSection = `\n\n---\nBest regards,\n${agentName}\n${businessName}`;
+    let contactSection = `\n\n---\nBest regards,\n${agentName}`;
+    if (senderBusinessName) {
+      contactSection += `\n${senderBusinessName}`;
+    }
     if (branding.escalation_contact_email) {
       contactSection += `\nEmail: ${branding.escalation_contact_email}`;
     }
