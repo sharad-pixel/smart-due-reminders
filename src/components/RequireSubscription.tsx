@@ -2,9 +2,18 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { TeamMemberLockoutModal } from './TeamMemberLockoutModal';
 
 interface RequireSubscriptionProps {
   children: ReactNode;
+}
+
+interface TeamMemberLockoutState {
+  isLocked: boolean;
+  reason: 'past_due' | 'expired' | 'canceled' | 'locked';
+  ownerName: string | null;
+  ownerEmail: string | null;
+  ownerCompanyName: string | null;
 }
 
 /**
@@ -16,6 +25,10 @@ interface RequireSubscriptionProps {
  * - When trial expires OR credits exhausted → force redirect to /upgrade
  * - Users must select a paid plan to continue using the app
  * 
+ * TEAM MEMBER LOCKOUT:
+ * - Team members are locked out when parent account is past_due, expired, canceled, or locked
+ * - Shows a modal with parent account info instead of redirecting
+ * 
  * EXEMPT PATHS: /profile, /settings, /upgrade, /billing, /checkout, etc.
  * These are always accessible when logged in.
  */
@@ -24,6 +37,13 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [teamMemberLockout, setTeamMemberLockout] = useState<TeamMemberLockoutState>({
+    isLocked: false,
+    reason: 'expired',
+    ownerName: null,
+    ownerEmail: null,
+    ownerCompanyName: null,
+  });
 
   // Pages that don't require an active subscription - always accessible when logged in
   const exemptPaths = [
@@ -48,6 +68,9 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
 
   useEffect(() => {
     const checkAccess = async () => {
+      // Reset lockout state on each check
+      setTeamMemberLockout(prev => ({ ...prev, isLocked: false }));
+      
       // Clean path (remove hash fragments from OAuth)
       const cleanPath = location.pathname.replace(/#.*$/, '');
       
@@ -130,9 +153,40 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
           // Team members use owner's subscription - get owner's profile
           const { data: ownerProfile } = await supabase
             .from('profiles')
-            .select('plan_type, subscription_status, trial_ends_at')
+            .select('name, email, company_name, plan_type, subscription_status, trial_ends_at')
             .eq('id', effectiveAccountId)
             .single();
+
+          // Check owner subscription status for team member lockout
+          const ownerStatus = ownerProfile?.subscription_status;
+          
+          if (ownerStatus === 'past_due') {
+            console.log('[RequireSubscription] Parent account is past due');
+            setTeamMemberLockout({
+              isLocked: true,
+              reason: 'past_due',
+              ownerName: ownerProfile?.name || null,
+              ownerEmail: ownerProfile?.email || null,
+              ownerCompanyName: ownerProfile?.company_name || null,
+            });
+            setHasAccess(false);
+            setIsChecking(false);
+            return;
+          }
+
+          if (ownerStatus === 'canceled') {
+            console.log('[RequireSubscription] Parent account subscription is canceled');
+            setTeamMemberLockout({
+              isLocked: true,
+              reason: 'canceled',
+              ownerName: ownerProfile?.name || null,
+              ownerEmail: ownerProfile?.email || null,
+              ownerCompanyName: ownerProfile?.company_name || null,
+            });
+            setHasAccess(false);
+            setIsChecking(false);
+            return;
+          }
 
           const ownerHasAccess = checkSubscriptionAccess(ownerProfile);
           
@@ -142,9 +196,15 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
             return;
           }
           
-          // Owner doesn't have access, but team member can still go to /upgrade
-          console.log('[RequireSubscription] Team owner has no active subscription');
-          navigate('/upgrade', { replace: true });
+          // Owner doesn't have valid subscription - show lockout modal for team member
+          console.log('[RequireSubscription] Team owner subscription expired or invalid');
+          setTeamMemberLockout({
+            isLocked: true,
+            reason: 'expired',
+            ownerName: ownerProfile?.name || null,
+            ownerEmail: ownerProfile?.email || null,
+            ownerCompanyName: ownerProfile?.company_name || null,
+          });
           setHasAccess(false);
           setIsChecking(false);
           return;
@@ -202,6 +262,21 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
     );
   }
 
+  // Show lockout modal for team members with restricted access
+  if (teamMemberLockout.isLocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <TeamMemberLockoutModal
+          open={true}
+          ownerName={teamMemberLockout.ownerName}
+          ownerEmail={teamMemberLockout.ownerEmail}
+          ownerCompanyName={teamMemberLockout.ownerCompanyName}
+          lockoutReason={teamMemberLockout.reason}
+        />
+      </div>
+    );
+  }
+
   if (!hasAccess) {
     return null;
   }
@@ -220,8 +295,8 @@ function checkSubscriptionAccess(profile: {
   
   const status = profile.subscription_status;
   
-  // Active paid subscriptions
-  if (status === 'active' || status === 'past_due') {
+  // Active paid subscriptions (past_due still grants access for owners, but not for team members)
+  if (status === 'active') {
     return true;
   }
   
@@ -240,7 +315,7 @@ function checkSubscriptionAccess(profile: {
  * Check if user is within their free trial limits (7 days, 5 invoices)
  */
 async function checkTrialValidity(
-  userId: string, 
+  _userId: string, 
   profile: { 
     subscription_status?: string | null;
     trial_ends_at?: string | null;
@@ -251,7 +326,7 @@ async function checkTrialValidity(
   
   // Only check trial for users without active subscriptions
   const status = profile.subscription_status;
-  if (status === 'active' || status === 'past_due') {
+  if (status === 'active') {
     return true; // Already has access
   }
 
