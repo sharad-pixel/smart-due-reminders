@@ -115,7 +115,25 @@ export function TeamMemberLockoutModal({
           {ownerEmail && (
             <Button 
               variant="default"
-              onClick={() => window.location.href = `mailto:${ownerEmail}?subject=Account Access Issue - ${getReasonTitle()}&body=Hello ${ownerName || 'Admin'},%0D%0A%0D%0AI'm a team member on your Recouply account and currently unable to access the platform due to: ${getReasonTitle()}.%0D%0A%0D%0ACould you please help resolve this issue?%0D%0A%0D%0AThank you!`}
+              onClick={() => {
+                const subject = encodeURIComponent(`URGENT: Account Access Issue - ${getReasonTitle()} on Recouply.ai`);
+                const body = encodeURIComponent(
+`Hello ${ownerName || 'Admin'},
+
+I'm a team member on your Recouply.ai account and currently unable to access the platform.
+
+Issue: ${getReasonTitle()}
+
+To restore access, please visit: https://smart-due-reminders.lovable.app/upgrade
+
+If you have any questions, you can also contact Recouply.ai support at support@recouply.ai.
+
+Thank you for your prompt attention to this matter.
+
+Best regards`
+                );
+                window.location.href = `mailto:${ownerEmail}?subject=${subject}&body=${body}`;
+              }}
             >
               <Mail className="mr-2 h-4 w-4" />
               Contact Account Owner
