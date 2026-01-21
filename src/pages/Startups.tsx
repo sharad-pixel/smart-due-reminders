@@ -58,7 +58,7 @@ const Startups = () => {
                 Collection Intelligence for Startups
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Grow Faster Without Hiring a Finance Team
+                Grow Faster Without Adding Finance Headcount
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
                 Automate 100% of invoice follow-up with AI agents that work 24/7—keeping your burn low while recovering every dollar owed.
