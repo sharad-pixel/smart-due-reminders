@@ -148,6 +148,26 @@ const DailyDigest = () => {
         </Card>
       ) : (
         <>
+          {/* Account Status Alert for Expired/Past Due */}
+          {digest.health_label === 'Critical' && (
+            <Card className="border-destructive bg-destructive/5">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                  <div>
+                    <p className="font-semibold text-destructive">Account Requires Attention</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your account subscription may require renewal to maintain full access to Recouply.ai features.
+                    </p>
+                  </div>
+                  <Button asChild variant="destructive" size="sm" className="ml-auto shrink-0">
+                    <Link to="/upgrade">Upgrade Now</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Health Score Banner */}
           <Card className="overflow-hidden">
             <div className={`h-2 ${getHealthColor(digest.health_label)}`} />
