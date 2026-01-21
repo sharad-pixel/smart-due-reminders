@@ -345,6 +345,27 @@ const AdminUserDetail = () => {
     }
   };
 
+  const handleClearOverride = async () => {
+    if (!user) return;
+    try {
+      const response = await supabase.functions.invoke("admin-update-user", {
+        body: {
+          userId: user.id,
+          action: "update_profile",
+          updates: { admin_override: false },
+        },
+      });
+
+      if (response.error) throw response.error;
+      
+      toast.success("Admin override cleared - Stripe sync will resume");
+      fetchUserDetails();
+    } catch (error: any) {
+      console.error("Error clearing override:", error);
+      toast.error("Failed to clear override");
+    }
+  };
+
   const getStatusBadge = () => {
     if (!user) return null;
     if (user.is_blocked) {
@@ -586,15 +607,33 @@ const AdminUserDetail = () => {
                   <Separator />
                   
                   {/* Admin Override Section */}
-                  <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 space-y-3">
+                  <div className={`p-4 rounded-lg border space-y-3 ${
+                    user.admin_override 
+                      ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800" 
+                      : "bg-muted/30 border-border"
+                  }`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-amber-600" />
-                        <Label className="font-medium text-amber-800 dark:text-amber-200">Admin Override</Label>
+                        <Shield className={`h-4 w-4 ${user.admin_override ? "text-amber-600" : "text-muted-foreground"}`} />
+                        <Label className={`font-medium ${user.admin_override ? "text-amber-800 dark:text-amber-200" : ""}`}>
+                          Admin Override
+                        </Label>
                       </div>
-                      <Badge variant={user.admin_override ? "default" : "secondary"}>
-                        {user.admin_override ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={user.admin_override ? "default" : "secondary"}>
+                          {user.admin_override ? "Active" : "Inactive"}
+                        </Badge>
+                        {user.admin_override && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleClearOverride}
+                            disabled={saving}
+                          >
+                            Clear Override
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       When enabled, prevents automatic Stripe sync from overwriting subscription settings. 
