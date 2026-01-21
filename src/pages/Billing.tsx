@@ -512,7 +512,7 @@ const Billing = () => {
                     <>
                       {!profile?.stripe_subscription_id ? (
                         <Button onClick={() => navigate('/upgrade')} className="w-full">
-                          Upgrade to Paid Plan
+                          Upgrade Plan
                         </Button>
                       ) : (
                         <Button variant="outline" onClick={() => navigate('/upgrade')} className="w-full">
