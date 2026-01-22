@@ -1,5 +1,6 @@
 import celebrateCashHero from "@/assets/blog/celebrate-cash-hero.png";
 import powerOfOutreachHero from "@/assets/blog/power-of-outreach-hero.png";
+import cashLeakageHero from "@/assets/blog/cash-leakage-hero.png";
 import founderImage from "@/assets/founder-sharad.jpg";
 
 export interface BlogAuthor {
@@ -69,6 +70,22 @@ export const blogPosts: BlogPost[] = [
     heroAlt: "Illustration showing automated digital outreach for payments with timeline, reminders, and dashboard",
     keywords: "payment reminders, collections outreach, automated collections, accounts receivable, cash flow, collection intelligence",
     featured: false,
+  },
+  {
+    slug: "cash-leakage",
+    title: "How Finance Teams Lose Cash Without Realizing It",
+    metaTitle: "How Finance Teams Lose Cash Without Realizing It | Recouply.ai",
+    metaDescription: "Finance teams lose cash quietly through delayed outreach and reactive AR processes. Learn how collections intelligence prevents silent cash leakage.",
+    excerpt: "Finance teams don't lose cash dramatically — they lose it quietly through delayed outreach, lack of visibility, and reactive AR processes.",
+    category: "Collection Intelligence",
+    author: authors.sharad,
+    publishDate: "January 22, 2026",
+    publishDateISO: "2026-01-22",
+    readingTime: "8 min read",
+    heroImage: cashLeakageHero,
+    heroAlt: "Visualization of invoices fading and dissolving representing silent cash leakage in accounts receivable",
+    keywords: "collections intelligence, accounts receivable automation, invoice collectibility, early invoice follow-up, AR cash leakage",
+    featured: true,
   },
 ];
 
