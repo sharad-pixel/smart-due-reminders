@@ -68,11 +68,21 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
 
   useEffect(() => {
     const checkAccess = async () => {
-      // Reset lockout state on each check
-      setTeamMemberLockout(prev => ({ ...prev, isLocked: false }));
+      // CRITICAL: Reset all state at the start of each check
+      // This ensures lockout is re-evaluated on every route change
+      setHasAccess(false);
+      setTeamMemberLockout({
+        isLocked: false,
+        reason: 'expired',
+        ownerName: null,
+        ownerEmail: null,
+        ownerCompanyName: null,
+      });
       
       // Clean path (remove hash fragments from OAuth)
       const cleanPath = location.pathname.replace(/#.*$/, '');
+      
+      console.log('[RequireSubscription] Checking access for path:', cleanPath);
       
       // Check if this path is exempt
       const isExemptPath = exemptPaths.some(path => 
@@ -80,6 +90,7 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
       );
       
       if (isExemptPath) {
+        console.log('[RequireSubscription] Path is exempt:', cleanPath);
         setHasAccess(true);
         setIsChecking(false);
         return;
@@ -142,6 +153,8 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
         });
 
         if (isTeamMember) {
+          console.log('[RequireSubscription] User is a TEAM MEMBER - checking parent account status for path:', cleanPath);
+          
           // Team members use owner's subscription - get owner's profile
           const { data: ownerProfile, error: ownerError } = await supabase
             .from('profiles')
@@ -151,78 +164,72 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
 
           console.log('[RequireSubscription] Owner profile fetched:', {
             ownerProfile,
-            ownerError
+            ownerError,
+            path: cleanPath
           });
 
-          // Check owner subscription status for team member lockout
-          const ownerStatus = ownerProfile?.subscription_status;
-          
-          console.log('[RequireSubscription] Checking owner status:', ownerStatus);
-          
-          if (ownerStatus === 'past_due') {
-            console.log('[RequireSubscription] Parent account is past due - LOCKING OUT');
+          if (ownerError) {
+            console.error('[RequireSubscription] Error fetching owner profile - LOCKING OUT for safety');
             setTeamMemberLockout({
               isLocked: true,
-              reason: 'past_due',
-              ownerName: ownerProfile?.name || null,
-              ownerEmail: ownerProfile?.email || null,
-              ownerCompanyName: ownerProfile?.company_name || null,
+              reason: 'expired',
+              ownerName: null,
+              ownerEmail: null,
+              ownerCompanyName: null,
             });
             setHasAccess(false);
             setIsChecking(false);
             return;
           }
 
-          if (ownerStatus === 'canceled') {
-            console.log('[RequireSubscription] Parent account subscription is canceled - LOCKING OUT');
+          // Check owner subscription status for team member lockout
+          const ownerStatus = ownerProfile?.subscription_status;
+          
+          console.log('[RequireSubscription] Checking owner status:', ownerStatus, 'for path:', cleanPath);
+          
+          // Helper function to lock out team member
+          const lockOutTeamMember = (reason: 'past_due' | 'expired' | 'canceled' | 'locked') => {
+            console.log(`[RequireSubscription] LOCKING OUT team member - reason: ${reason}, path: ${cleanPath}`);
             setTeamMemberLockout({
               isLocked: true,
-              reason: 'canceled',
+              reason,
               ownerName: ownerProfile?.name || null,
               ownerEmail: ownerProfile?.email || null,
               ownerCompanyName: ownerProfile?.company_name || null,
             });
             setHasAccess(false);
             setIsChecking(false);
+          };
+          
+          if (ownerStatus === 'past_due') {
+            lockOutTeamMember('past_due');
+            return;
+          }
+
+          if (ownerStatus === 'canceled') {
+            lockOutTeamMember('canceled');
             return;
           }
 
           // Check if owner status is inactive (no subscription at all)
           if (ownerStatus === 'inactive' || !ownerStatus) {
-            console.log('[RequireSubscription] Parent account has no active subscription - LOCKING OUT');
-            setTeamMemberLockout({
-              isLocked: true,
-              reason: 'expired',
-              ownerName: ownerProfile?.name || null,
-              ownerEmail: ownerProfile?.email || null,
-              ownerCompanyName: ownerProfile?.company_name || null,
-            });
-            setHasAccess(false);
-            setIsChecking(false);
+            lockOutTeamMember('expired');
             return;
           }
 
           const ownerHasAccess = checkSubscriptionAccess(ownerProfile);
           
-          console.log('[RequireSubscription] Owner access check result:', ownerHasAccess);
+          console.log('[RequireSubscription] Owner access check result:', ownerHasAccess, 'for path:', cleanPath);
           
           if (ownerHasAccess) {
+            console.log('[RequireSubscription] Team member granted access via owner subscription for path:', cleanPath);
             setHasAccess(true);
             setIsChecking(false);
             return;
           }
           
           // Owner doesn't have valid subscription - show lockout modal for team member
-          console.log('[RequireSubscription] Team owner subscription expired or invalid - LOCKING OUT');
-          setTeamMemberLockout({
-            isLocked: true,
-            reason: 'expired',
-            ownerName: ownerProfile?.name || null,
-            ownerEmail: ownerProfile?.email || null,
-            ownerCompanyName: ownerProfile?.company_name || null,
-          });
-          setHasAccess(false);
-          setIsChecking(false);
+          lockOutTeamMember('expired');
           return;
         }
 
@@ -279,16 +286,19 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
       }
     };
 
+    // Set checking to true BEFORE starting the async check
+    // This ensures content is hidden while we verify access
     setIsChecking(true);
     checkAccess();
   }, [location.pathname, navigate]);
 
+  // CRITICAL: Always show loading while checking to prevent content flash
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Verifying access...</p>
         </div>
       </div>
     );
