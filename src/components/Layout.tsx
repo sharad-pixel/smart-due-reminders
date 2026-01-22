@@ -53,6 +53,7 @@ import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/RequireSubscription";
 import { TrialBanner } from "@/components/TrialBanner";
+import { AccountLockoutBanner } from "@/components/AccountLockoutBanner";
 
 
 interface LayoutProps {
@@ -260,6 +261,19 @@ const Layout = ({ children }: LayoutProps) => {
 
   // Check if trial banner should be shown (trial or free plan users)
   const showTrialBanner = planType === 'free' || subscriptionStatus === 'trialing';
+
+  // Check if lockout banner should be shown (for degraded subscription states)
+  const getLockoutReason = (): 'past_due' | 'expired' | 'canceled' | 'locked' | null => {
+    const status = displaySubscriptionStatus;
+    if (status === 'past_due') return 'past_due';
+    if (status === 'canceled') return 'canceled';
+    // For team members, also check if owner has inactive status
+    if (isTeamMember && (!status || status === 'inactive')) return 'expired';
+    return null;
+  };
+  
+  const lockoutReason = getLockoutReason();
+  const showLockoutBanner = lockoutReason !== null;
 
   return (
     <RequireSubscription>
@@ -507,6 +521,17 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Banners - placed after nav spacer so they flow with content */}
       <SecurityAlert />
       
+      {/* Lockout banner for degraded subscription states */}
+      {showLockoutBanner && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <AccountLockoutBanner
+            lockoutReason={lockoutReason}
+            isTeamMember={isTeamMember}
+            ownerEmail={ownerEmail}
+            ownerName={ownerName}
+          />
+        </div>
+      )}
       {/* Team Member Banner */}
       {isTeamMember && !accountLoading && (
         <div className="bg-primary/10 border-b border-primary/20 px-4 py-2">
