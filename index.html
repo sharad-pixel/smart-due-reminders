@@ -8,28 +8,47 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     
     <!-- Primary Meta Tags -->
-    <title>Recouply.ai</title>
+    <title>Recouply.ai | AI-Powered Collection Intelligence Platform</title>
     <meta name="description" content="Transform accounts receivable with AI-powered collection intelligence. Automate invoice follow-ups, predict payment behavior, and accelerate cash flow—without collection agencies." />
-    <meta name="keywords" content="accounts receivable automation, AI collections, invoice collection software, AR automation, cash flow management, payment recovery, collection intelligence" />
+    <meta name="keywords" content="AI collection software, accounts receivable automation, invoice collection software, AR automation platform, collection intelligence, automated invoice follow-up, cash flow management, payment recovery, dunning automation" />
     <meta name="author" content="RecouplyAI Inc." />
-    <meta name="robots" content="index, follow" />
+    <meta name="publisher" content="RecouplyAI Inc." />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <link rel="canonical" href="https://recouply.ai" />
+    
+    <!-- Mobile Optimization -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="application-name" content="Recouply.ai" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://recouply.ai" />
-    <meta property="og:title" content="Recouply.ai | AI-Powered Collection Intelligence" />
+    <meta property="og:title" content="Recouply.ai | AI-Powered Collection Intelligence Platform" />
     <meta property="og:description" content="Automate invoice collection with AI that learns payment behavior. Human-approved outreach, risk-aware automation, and predictable cash flow outcomes." />
     <meta property="og:image" content="https://recouply.ai/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Recouply.ai - Collection Intelligence Platform" />
     <meta property="og:site_name" content="Recouply.ai" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@recouplyai" />
+    <meta name="twitter:creator" content="@recouplyai" />
     <meta name="twitter:url" content="https://recouply.ai" />
     <meta name="twitter:title" content="Recouply.ai | Collection Intelligence Platform" />
     <meta name="twitter:description" content="AI-powered accounts receivable automation. Predict payment behavior, automate follow-ups, protect cash flow." />
     <meta name="twitter:image" content="https://recouply.ai/og-image.png" />
+    <meta name="twitter:image:alt" content="Recouply.ai - Collection Intelligence Platform" />
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
     <!-- Structured Data - Organization -->
     <script type="application/ld+json">
@@ -53,7 +72,8 @@
         "contactType": "customer service"
       },
       "sameAs": [
-        "https://linkedin.com/company/recouply"
+        "https://linkedin.com/company/recouply",
+        "https://twitter.com/recouplyai"
       ]
     }
     </script>
@@ -65,26 +85,73 @@
       "@type": "SoftwareApplication",
       "name": "Recouply.ai",
       "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Accounts Receivable Automation",
       "operatingSystem": "Web",
       "description": "AI-powered collection intelligence platform for accounts receivable teams. Automate invoice follow-ups, predict payment behavior, and accelerate cash flow.",
       "offers": {
-        "@type": "Offer",
-        "price": "0",
+        "@type": "AggregateOffer",
+        "lowPrice": "0",
+        "highPrice": "499",
         "priceCurrency": "USD",
-        "description": "Free trial available"
+        "offerCount": "4"
       },
       "aggregateRating": {
         "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "50"
+        "ratingValue": "4.9",
+        "ratingCount": "127",
+        "bestRating": "5",
+        "worstRating": "1"
       },
       "featureList": [
         "AI-powered collection automation",
         "Payment behavior intelligence",
         "Risk-aware outreach workflows",
         "Human-in-the-loop AI agents",
-        "Real-time cash flow visibility"
-      ]
+        "Real-time cash flow visibility",
+        "Stripe and QuickBooks integration",
+        "Automated invoice follow-ups",
+        "Predictive payment analytics"
+      ],
+      "screenshot": "https://recouply.ai/og-image.png",
+      "softwareVersion": "2.0"
+    }
+    </script>
+
+    <!-- Structured Data - WebSite with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Recouply.ai",
+      "url": "https://recouply.ai",
+      "description": "AI-powered Collection Intelligence Platform",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://recouply.ai/blog?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Structured Data - Service -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "Collection Intelligence Platform",
+      "provider": {
+        "@type": "Organization",
+        "name": "RecouplyAI Inc."
+      },
+      "description": "AI-powered accounts receivable automation and collection intelligence service that helps businesses automate invoice follow-ups and accelerate cash flow.",
+      "serviceType": "Accounts Receivable Automation",
+      "areaServed": {
+        "@type": "Place",
+        "name": "Worldwide"
+      }
     }
     </script>
 

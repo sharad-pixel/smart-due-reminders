@@ -15,7 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { CostComparisonSection } from "@/components/marketing/CostComparisonSection";
-import SEO from "@/components/SEO";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 
 /**
  * Pricing page with monthly/annual billing toggle
@@ -200,13 +201,22 @@ const Pricing = () => {
   // Calculate discount percentage for display
   const discountPercent = Math.round(ANNUAL_DISCOUNT_RATE * 100);
 
+  // Pricing FAQs for structured data
+  const pricingFaqs = [
+    { question: 'What is included in the free trial?', answer: 'All plans include a 7-day free trial with full platform access, all six AI agents, and risk-aware automation. No credit card required to explore.' },
+    { question: 'How is pricing calculated?', answer: 'Pricing is based on your monthly active invoice volume. All plans include unlimited users and full feature access.' },
+    { question: 'Can I switch plans at any time?', answer: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.' },
+  ];
+
   return (
     <MarketingLayout>
-      <SEO
-        title="Pricing | AI Collection Software for SMB & SaaS"
-        description="Simple, transparent pricing based on active invoice volume. All plans include six AI agents, risk-aware automation, and full platform access. Start free trial."
+      <SEOHead
+        title={PAGE_SEO.pricing.title}
+        description={PAGE_SEO.pricing.description}
+        keywords={PAGE_SEO.pricing.keywords}
         canonical="https://recouply.ai/pricing"
-        keywords="collection software pricing, AR automation cost, invoice collection pricing, AI accounts receivable pricing"
+        breadcrumbs={[{ name: 'Pricing', url: 'https://recouply.ai/pricing' }]}
+        structuredData={generateFAQSchema(pricingFaqs)}
       />
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">

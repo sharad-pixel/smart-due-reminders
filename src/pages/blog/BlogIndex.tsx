@@ -1,9 +1,10 @@
 import MarketingLayout from "@/components/MarketingLayout";
-import SEO from "@/components/SEO";
+import SEOHead from "@/components/SEOHead";
 import BlogCard from "@/components/blog/BlogCard";
 import { blogPosts, getFeaturedPosts, getAllCategories } from "@/lib/blogConfig";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 const BlogIndex = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -19,11 +20,12 @@ const BlogIndex = () => {
 
   return (
     <MarketingLayout>
-      <SEO
-        title="Blog | Recouply.ai"
-        description="Insights on Collection Intelligence, accounts receivable automation, and cash flow optimization from the Recouply.ai team."
+      <SEOHead
+        title={PAGE_SEO.blog.title}
+        description={PAGE_SEO.blog.description}
+        keywords={PAGE_SEO.blog.keywords}
         canonical="https://recouply.ai/blog"
-        keywords="collection intelligence, accounts receivable, cash flow, AR automation, fintech blog"
+        breadcrumbs={[{ name: 'Blog', url: 'https://recouply.ai/blog' }]}
       />
 
       <div className="py-12 md:py-16 lg:py-20">
