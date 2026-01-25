@@ -47,7 +47,7 @@ serve(async (req) => {
     // Otherwise, process all users (platform-level cron job only)
     let usersQuery = supabase
       .from('profiles')
-      .select('id, email, name, welcome_email_sent_at, daily_digest_email_enabled')
+      .select('id, email, name, welcome_email_sent_at, daily_digest_email_enabled, subscription_status, plan_type, trial_ends_at')
       .not('email', 'is', null);
     
     if (targetUserId) {
@@ -465,6 +465,10 @@ serve(async (req) => {
               highRiskCustomersCount,
               healthScore,
               healthLabel,
+              // Include subscription status for account status banner in email
+              subscriptionStatus: (user as any).subscription_status || null,
+              planType: (user as any).plan_type || 'free',
+              trialEndsAt: (user as any).trial_ends_at || null,
             };
             
             logStep('Email data prepared for user', {
@@ -626,9 +630,75 @@ function generateEmailHtml(data: {
   highRiskCustomersCount: number;
   healthScore: number;
   healthLabel: string;
+  subscriptionStatus?: string | null;
+  planType?: string | null;
+  trialEndsAt?: string | null;
 }): string {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+  
+  // Determine if account has subscription issues
+  const hasSubscriptionIssue = ['past_due', 'canceled', 'expired', 'inactive'].includes(data.subscriptionStatus || '');
+  const isPastDue = data.subscriptionStatus === 'past_due';
+  const isCanceled = data.subscriptionStatus === 'canceled';
+  const isExpired = data.subscriptionStatus === 'expired' || (data.subscriptionStatus === 'inactive' && data.planType !== 'free');
+  
+  // Format trial end date if applicable
+  const trialEndFormatted = data.trialEndsAt 
+    ? new Date(data.trialEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
+  // Generate subscription status banner HTML if needed
+  let subscriptionBannerHtml = '';
+  if (isPastDue) {
+    subscriptionBannerHtml = `
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <h3 style="color: #991b1b; margin: 0 0 8px; font-size: 16px;">⚠️ Payment Past Due</h3>
+        <p style="color: #b91c1c; margin: 0 0 12px; font-size: 14px; line-height: 1.5;">
+          Your payment is past due. Please update your payment method to restore full access to all features.
+        </p>
+        <a href="https://recouply.ai/billing" style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+          Update Payment →
+        </a>
+      </div>
+    `;
+  } else if (isCanceled) {
+    subscriptionBannerHtml = `
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <h3 style="color: #991b1b; margin: 0 0 8px; font-size: 16px;">⚠️ Subscription Canceled</h3>
+        <p style="color: #b91c1c; margin: 0 0 12px; font-size: 14px; line-height: 1.5;">
+          Your subscription has been canceled. Reactivate now to continue using all Recouply.ai features.
+        </p>
+        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+          Reactivate Subscription →
+        </a>
+      </div>
+    `;
+  } else if (isExpired) {
+    subscriptionBannerHtml = `
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <h3 style="color: #991b1b; margin: 0 0 8px; font-size: 16px;">⚠️ Subscription Expired</h3>
+        <p style="color: #b91c1c; margin: 0 0 12px; font-size: 14px; line-height: 1.5;">
+          Your subscription has expired. Renew now to restore full access to Recouply.ai.
+        </p>
+        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+          Renew Subscription →
+        </a>
+      </div>
+    `;
+  } else if (data.subscriptionStatus === 'trialing' && trialEndFormatted) {
+    subscriptionBannerHtml = `
+      <div style="background: #fefce8; border: 1px solid #fde047; border-left: 4px solid #eab308; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <h3 style="color: #854d0e; margin: 0 0 8px; font-size: 16px;">🎯 Free Trial Active</h3>
+        <p style="color: #a16207; margin: 0 0 12px; font-size: 14px; line-height: 1.5;">
+          Your free trial ends on <strong>${trialEndFormatted}</strong>. Upgrade now to continue collecting cash faster.
+        </p>
+        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: #eab308; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+          Upgrade Now →
+        </a>
+      </div>
+    `;
+  }
 
   const healthColor = data.healthLabel === 'Healthy' ? '#22c55e' :
     data.healthLabel === 'Caution' ? '#eab308' :
@@ -651,6 +721,8 @@ function generateEmailHtml(data: {
     
     <div style="padding: 32px;">
       <p style="font-size: 16px; color: #374151; margin: 0 0 24px;">Hi ${data.name},</p>
+      
+      ${subscriptionBannerHtml}
       
       <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px; text-align: center;">
         <div style="display: inline-block; background: ${healthColor}; color: white; padding: 8px 24px; border-radius: 24px; font-weight: 600; font-size: 18px;">

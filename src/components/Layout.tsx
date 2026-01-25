@@ -263,12 +263,24 @@ const Layout = ({ children }: LayoutProps) => {
   const showTrialBanner = planType === 'free' || subscriptionStatus === 'trialing';
 
   // Check if lockout banner should be shown (for degraded subscription states)
+  // This runs after accountLoading is complete to ensure proper status checking
   const getLockoutReason = (): 'past_due' | 'expired' | 'canceled' | 'locked' | null => {
+    // Don't show banner while still loading account info
+    if (accountLoading) return null;
+    
     const status = displaySubscriptionStatus;
+    
+    // Check for explicit degraded states
     if (status === 'past_due') return 'past_due';
     if (status === 'canceled') return 'canceled';
-    // For team members, also check if owner has inactive status
+    if (status === 'expired') return 'expired';
+    
+    // For team members, check if owner's subscription is inactive/missing
     if (isTeamMember && (!status || status === 'inactive')) return 'expired';
+    
+    // For account owners, check for inactive subscription (excluding free trial users)
+    if (!isTeamMember && subscriptionStatus === 'inactive' && planType !== 'free') return 'expired';
+    
     return null;
   };
   
