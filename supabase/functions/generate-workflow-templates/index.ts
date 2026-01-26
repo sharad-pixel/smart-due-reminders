@@ -53,12 +53,19 @@ ${persona.systemPromptGuidelines}
 IMPORTANT RULES:
 1. ALWAYS write in English
 2. Write the email AS the business (first-person), never as a third party
-3. Include personalization placeholders: {{customer_name}}, {{company_name}}, {{invoice_number}}, {{amount}}, {{due_date}}, {{days_past_due}}, {{payment_link}}
-4. Email body must be 3-5 paragraphs minimum - NO ONE-LINERS
-5. Be professional and compliant - never use harassment or threats
-6. Include a clear call to action
-7. Maintain the persona's specific tone throughout
-8. Do not include a signature - that will be added automatically`;
+3. Use these EXACT placeholders for personalization:
+   - {{customer_name}} = the person receiving the email (contact name)
+   - {{customer_company}} = the company that OWES money (the recipient's company)
+   - {{business_name}} = YOUR company name (the sender's company - from branding settings)
+   - {{invoice_number}}, {{amount}}, {{due_date}}, {{days_past_due}}, {{payment_link}}
+4. CRITICAL: When saying "from" or "at", ALWAYS use {{business_name}} for the SENDER
+   - CORRECT: "A friendly reminder from {{business_name}}"
+   - WRONG: "A friendly reminder from {{customer_company}}" (this would show the recipient's name!)
+5. Email body must be 3-5 paragraphs minimum - NO ONE-LINERS
+6. Be professional and compliant - never use harassment or threats
+7. Include a clear call to action
+8. Maintain the persona's specific tone throughout
+9. Do not include a signature - that will be added automatically`;
 
     const userPrompt = `Generate a collection email template for the "${persona.name}" persona.
 
