@@ -558,26 +558,26 @@ export const useStatusActionWarning = ({
   const isIntegratedInvoice = integrationSource && 
     ["stripe", "quickbooks", "xero"].includes(integrationSource);
 
-  const checkStatusActionAndProceed = async (
+  const checkStatusActionAndProceed = (
     actionName: string,
     actionDetails: string,
-    action: () => Promise<void>
+    action: () => void | Promise<void>
   ) => {
     // For non-integrated invoices, proceed directly
     if (!isIntegratedInvoice) {
-      await action();
+      action();
       return;
     }
 
     // For integrated invoices, show warning
-    setStatusActionContext({ actionName, actionDetails, onConfirm: action });
-    setPendingStatusAction(() => action);
+    setStatusActionContext({ actionName, actionDetails, onConfirm: async () => { action(); } });
+    setPendingStatusAction(() => async () => { action(); });
     setStatusWarningOpen(true);
   };
 
-  const handleStatusActionProceed = async () => {
+  const handleStatusActionProceed = () => {
     if (pendingStatusAction) {
-      await pendingStatusAction();
+      pendingStatusAction();
     }
     setPendingStatusAction(null);
     setStatusActionContext(null);
