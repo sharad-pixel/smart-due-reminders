@@ -244,8 +244,13 @@ export function replaceTemplateVariables(
   const agentName = personaName || 'Collections Team';
 
   // Build comprehensive replacement map (case-insensitive)
+  // CRITICAL DISTINCTION:
+  // - customer_name, customer_company, debtor_* = the RECIPIENT (who owes money)
+  // - business_name, company_name, from_name = the SENDER (who is collecting)
   const replacements: Record<string, string> = {
-    // Customer/Debtor name variations
+    // ========================================
+    // RECIPIENT (Customer/Debtor) variables
+    // ========================================
     '{{customer_name}}': customerName,
     '{{customer name}}': customerName,
     '{{debtor_name}}': customerName,
@@ -253,15 +258,27 @@ export function replaceTemplateVariables(
     '{{name}}': customerName,
     '{{contact_name}}': customerName,
     
-    // Company name variations
+    // Customer company - the company that OWES money
     '{{customer_company}}': customerCompany,
+    '{{customer company}}': customerCompany,
     '{{debtor_company}}': customerCompany,
+    '{{debtor company}}': customerCompany,
+    '{{account_name}}': customerCompany,
+    
+    // ========================================
+    // SENDER (Your Business) variables
+    // ========================================
+    // CRITICAL: These refer to the SENDER's business from branding settings
     '{{company_name}}': businessName,
     '{{company name}}': businessName,
     '{{business_name}}': businessName,
     '{{businessName}}': businessName,
+    '{{sender_company}}': businessName,
+    '{{your_company}}': businessName,
+    '{{our_company}}': businessName,
     '{{from_name}}': fromName,
     '{{fromName}}': fromName,
+    '{{sender_name}}': fromName,
     
     // Invoice number variations
     '{{invoice_number}}': invoice.invoice_number,
@@ -322,10 +339,9 @@ export function replaceTemplateVariables(
     '{{service}}': productDescription,
     '{{product}}': productDescription,
     
-    // Agent/Persona name
+    // Agent/Persona name (for email signatures)
     '{{agent_name}}': agentName,
     '{{persona_name}}': agentName,
-    '{{sender_name}}': agentName,
   };
 
   let result = text;

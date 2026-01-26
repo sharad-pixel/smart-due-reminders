@@ -370,16 +370,23 @@ serve(async (req) => {
       const formattedBalance = formatCurrency(amountOutstanding, invoice.currency || 'USD');
       const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       
-      const systemPrompt = `You are ${personaName}, drafting a professional collections message for ${businessName} to send to their customer about an overdue invoice.
+      const systemPrompt = `You are ${personaName}, drafting a professional collections message on behalf of ${businessName} (the SENDER company).
+You are contacting "${contactName}" at "${companyName || contactName}" (the CUSTOMER/RECIPIENT who owes money).
 
 ${personaGuidelines}
+
+CRITICAL - SENDER vs RECIPIENT DISTINCTION:
+- SENDER (your company): "${businessName}" - this is the company collecting the debt
+- RECIPIENT (customer): "${contactName}" at "${companyName || contactName}" - this is who you're contacting
+- NEVER confuse these! When saying "from" or referencing who is sending the email, ALWAYS use "${businessName}"
+- When addressing the recipient or discussing their account, use "${contactName}" or "${companyName || contactName}"
 
 CRITICAL COMPLIANCE RULES:
 - ALWAYS write in English. Never use any other language.
 - Be respectful and non-threatening
 - NEVER claim to be or act as a "collection agency" or legal authority
 - NEVER use harassment or intimidation
-- Write as if you are ${businessName}, NOT a third party
+- Write as if you ARE ${businessName}, NOT a third party
 - Include the payment link once in the email BODY if available
 - Encourage the customer to pay or reply if there is a dispute or issue
 - If a Product/Service description is provided, mention it briefly (one short clause) to reduce confusion
@@ -388,9 +395,9 @@ ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
 - DO NOT USE ANY PLACEHOLDERS like {{variable}}, {variable}, [Name], [Your Name], or similar
 - NEVER leave blanks or empty spaces where data should be - every field must have a real value
 - Use these EXACT values in your message:
-  * Customer Name: "${contactName}" (use this EXACT name, do not leave blank)
-  * Customer Company: "${companyName || contactName}" (use this for company references)
-  * Business Name: "${businessName}" (this is YOUR company name)
+  * Customer Name (recipient): "${contactName}" (the person you're contacting)
+  * Customer Company (recipient's company): "${companyName || contactName}" (the company that owes money)
+  * Your Company (sender): "${businessName}" (YOUR company name - the one sending this email)
   * Invoice Number: ${invoice.invoice_number}
   * Amount Due: ${formattedBalance} (ALWAYS use this formatted amount with dollar sign)
   * Due Date: ${formattedDueDate}
@@ -399,7 +406,7 @@ ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
 FORMATTING RULES - VERY IMPORTANT:
 - ALWAYS show currency amounts WITH the dollar sign and formatting (e.g., "$2,995.00" NOT "2995")
 - Start the email with "Hi ${contactName}," or "Dear ${contactName},"
-- Reference the company as "${companyName || contactName}" when discussing business relationship
+- When saying "a reminder from..." use "${businessName}" (your company, the sender)
 - Sign the email as "${personaName}" from "${businessName}"
 ${taskContext}
 
