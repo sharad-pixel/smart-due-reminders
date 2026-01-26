@@ -137,8 +137,12 @@ export const IntegrationOverrideWarning = ({
 
   const handleOverride = () => {
     if (!acknowledgeChecked) return;
-    onProceed();
+    // Close the AlertDialog first to avoid stacked portals leaving a lingering overlay.
     onOpenChange(false);
+    // Defer the next UI action (often opens another Dialog) until after unmount.
+    setTimeout(() => {
+      onProceed();
+    }, 0);
   };
 
   const sourceLabel = getSourceLabel(integrationSource);
@@ -289,8 +293,12 @@ export const IntegrationStatusActionWarning = ({
 
   const handleOverride = () => {
     if (!acknowledgeChecked) return;
-    onProceed();
+    // Close the AlertDialog first to avoid stacked portals leaving a lingering overlay.
     onOpenChange(false);
+    // Defer the next UI action (often opens another Dialog) until after unmount.
+    setTimeout(() => {
+      onProceed();
+    }, 0);
   };
 
   const sourceLabel = getSourceLabel(integrationSource);

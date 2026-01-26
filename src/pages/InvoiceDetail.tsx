@@ -942,16 +942,11 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       }
     };
 
-    // Check if we need to show override warning
-    if (invoice.integration_source && ["stripe", "quickbooks", "xero"].includes(invoice.integration_source)) {
-      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
-      await checkAndProceed(
-        "Apply Payment",
-        `Outstanding: $${formatAmount(currentOutstanding)}`,
-        `Payment: $${formatAmount(amount)}`,
-        performPayment
-      );
-    } else if (invoice.integration_source === "csv_upload") {
+    // IMPORTANT: For integrated invoices (Stripe/QuickBooks/Xero), we already showed a mandatory
+    // status-action warning before opening this modal. Showing a second nested AlertDialog here
+    // can leave the UI stuck on an overlay ("black screen") due to stacked portals.
+    // We still keep the CSV soft warning here.
+    if (invoice.integration_source === "csv_upload") {
       await checkAndProceed(
         "Apply Payment",
         `Outstanding: $${formatAmount(invoice.amount_outstanding ?? invoice.amount)}`,
@@ -1082,17 +1077,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       }
     };
 
-    // Check if we need to show override warning
+    // See note in handleApplyPayment(): avoid a second nested warning for integrated invoices.
     const actionLabel = creditWriteOffType === 'credit' ? 'Credit' : 'Write-off';
-    if (invoice.integration_source && ["stripe", "quickbooks", "xero"].includes(invoice.integration_source)) {
-      const currentOutstanding = invoice.amount_outstanding ?? invoice.amount;
-      await checkAndProceed(
-        `Apply ${actionLabel}`,
-        `Outstanding: $${currentOutstanding.toLocaleString()}`,
-        `${actionLabel}: $${amount.toLocaleString()}`,
-        performCreditWriteOff
-      );
-    } else if (invoice.integration_source === "csv_upload") {
+    if (invoice.integration_source === "csv_upload") {
       await checkAndProceed(
         `Apply ${actionLabel}`,
         `Outstanding: $${(invoice.amount_outstanding ?? invoice.amount).toLocaleString()}`,
