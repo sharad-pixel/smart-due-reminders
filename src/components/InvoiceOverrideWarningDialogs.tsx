@@ -238,6 +238,158 @@ export const IntegrationOverrideWarning = ({
   );
 };
 
+// ==============================================
+// INTEGRATION STATUS ACTION WARNING
+// For Apply Payment, Write Off, Credit, Status Changes
+// ==============================================
+
+interface IntegrationStatusActionWarningProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onProceed: () => void;
+  integrationSource: string;
+  integrationUrl?: string | null;
+  actionName: string;
+  actionDetails: string;
+}
+
+export const IntegrationStatusActionWarning = ({
+  open,
+  onOpenChange,
+  onProceed,
+  integrationSource,
+  integrationUrl,
+  actionName,
+  actionDetails,
+}: IntegrationStatusActionWarningProps) => {
+  const [acknowledgeChecked, setAcknowledgeChecked] = useState(false);
+
+  // Reset checkbox when dialog opens
+  useEffect(() => {
+    if (open) {
+      setAcknowledgeChecked(false);
+    }
+  }, [open]);
+
+  const getSourceLabel = (source: string) => {
+    const labels: Record<string, string> = {
+      stripe: "Stripe",
+      quickbooks: "QuickBooks",
+      xero: "Xero",
+    };
+    return labels[source] || source;
+  };
+
+  const handleEditInSource = () => {
+    if (integrationUrl) {
+      window.open(integrationUrl, "_blank");
+    }
+    onOpenChange(false);
+  };
+
+  const handleOverride = () => {
+    if (!acknowledgeChecked) return;
+    onProceed();
+    onOpenChange(false);
+  };
+
+  const sourceLabel = getSourceLabel(integrationSource);
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="border-amber-200 dark:border-amber-800 max-w-lg">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-full">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <AlertDialogTitle className="text-amber-900 dark:text-amber-100">
+              Integrated Invoice Warning
+            </AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="text-base">
+            This invoice is synced from{" "}
+            <span className="font-semibold text-amber-700 dark:text-amber-300">
+              {sourceLabel}
+            </span>
+            . Payments and status changes should be recorded in the source system.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3 my-2">
+          {/* Action preview */}
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge className="bg-amber-600 hover:bg-amber-600">{actionName}</Badge>
+            </div>
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              {actionDetails}
+            </p>
+          </div>
+
+          {/* Strong recommendation */}
+          <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg border border-amber-200 dark:border-amber-800">
+            <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Recommended: Update in {sourceLabel}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Record payments in {sourceLabel} and they will automatically sync to Recouply. 
+                Manual overrides here may be overwritten on the next sync.
+              </p>
+            </div>
+          </div>
+
+          {/* Audit trail notice */}
+          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              If you proceed, this action will be logged in the invoice history for audit purposes.
+            </p>
+          </div>
+
+          {/* Acknowledgment checkbox */}
+          <div className="flex items-center space-x-2 p-3 border border-amber-200 dark:border-amber-800 rounded-lg bg-amber-50/50 dark:bg-amber-950/50">
+            <Checkbox
+              id="acknowledge-status-override"
+              checked={acknowledgeChecked}
+              onCheckedChange={(checked) => setAcknowledgeChecked(checked === true)}
+            />
+            <label
+              htmlFor="acknowledge-status-override"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              I understand this is a manual override and may not sync back to {sourceLabel}
+            </label>
+          </div>
+        </div>
+
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          {integrationUrl && (
+            <Button
+              variant="outline"
+              onClick={handleEditInSource}
+              className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open {sourceLabel}
+            </Button>
+          )}
+          <Button
+            onClick={handleOverride}
+            disabled={!acknowledgeChecked}
+            className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+          >
+            Proceed with Manual Override
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
 // Hook to manage override warning state
 interface UseOverrideWarningOptions {
   integrationSource: string | null | undefined;
@@ -375,4 +527,79 @@ export const logOverrideAndUpdateInvoice = async (
       override_count: (currentInvoice?.override_count || 0) + 1,
     })
     .eq("id", invoiceId);
+};
+
+// ==============================================
+// Hook for Status Action Warnings (Apply Payment, Credit, Write Off, Status Change)
+// ==============================================
+
+interface StatusActionContext {
+  actionName: string;
+  actionDetails: string;
+  onConfirm: () => Promise<void>;
+}
+
+interface UseStatusActionWarningOptions {
+  integrationSource: string | null | undefined;
+  integrationUrl?: string | null;
+  invoiceId: string;
+}
+
+export const useStatusActionWarning = ({ 
+  integrationSource, 
+  integrationUrl, 
+  invoiceId 
+}: UseStatusActionWarningOptions) => {
+  const [statusWarningOpen, setStatusWarningOpen] = useState(false);
+  const [statusActionContext, setStatusActionContext] = useState<StatusActionContext | null>(null);
+  const [pendingStatusAction, setPendingStatusAction] = useState<(() => Promise<void>) | null>(null);
+
+  // Check if this is an integrated invoice that needs warning
+  const isIntegratedInvoice = integrationSource && 
+    ["stripe", "quickbooks", "xero"].includes(integrationSource);
+
+  const checkStatusActionAndProceed = async (
+    actionName: string,
+    actionDetails: string,
+    action: () => Promise<void>
+  ) => {
+    // For non-integrated invoices, proceed directly
+    if (!isIntegratedInvoice) {
+      await action();
+      return;
+    }
+
+    // For integrated invoices, show warning
+    setStatusActionContext({ actionName, actionDetails, onConfirm: action });
+    setPendingStatusAction(() => action);
+    setStatusWarningOpen(true);
+  };
+
+  const handleStatusActionProceed = async () => {
+    if (pendingStatusAction) {
+      await pendingStatusAction();
+    }
+    setPendingStatusAction(null);
+    setStatusActionContext(null);
+  };
+
+  const StatusActionWarningDialog = () =>
+    statusActionContext ? (
+      <IntegrationStatusActionWarning
+        open={statusWarningOpen}
+        onOpenChange={setStatusWarningOpen}
+        onProceed={handleStatusActionProceed}
+        integrationSource={integrationSource || ""}
+        integrationUrl={integrationUrl}
+        actionName={statusActionContext.actionName}
+        actionDetails={statusActionContext.actionDetails}
+      />
+    ) : null;
+
+  return {
+    checkStatusActionAndProceed,
+    StatusActionWarningDialog,
+    isIntegratedInvoice,
+    invoiceId,
+  };
 };
