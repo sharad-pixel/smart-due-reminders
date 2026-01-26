@@ -1368,7 +1368,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   variant="default"
                   size="sm"
                   className="justify-start"
-                  onClick={() => setApplyPaymentOpen(true)}
+                  onClick={() => {
+                    if (isIntegratedInvoice) {
+                      checkStatusActionAndProceed(
+                        "Apply Payment",
+                        `You are about to manually record a payment of an outstanding amount. This action should typically be done in the source system to ensure accurate sync.`,
+                        async () => setApplyPaymentOpen(true)
+                      );
+                    } else {
+                      setApplyPaymentOpen(true);
+                    }
+                  }}
                   disabled={invoice.status === "Paid"}
                 >
                   <DollarSign className="h-3.5 w-3.5 mr-1.5" />
@@ -1379,8 +1389,19 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   size="sm"
                   className="justify-start"
                   onClick={() => {
-                    setCreditWriteOffType('credit');
-                    setCreditWriteOffOpen(true);
+                    if (isIntegratedInvoice) {
+                      checkStatusActionAndProceed(
+                        "Apply Credit",
+                        `You are about to apply a credit to this invoice. This action should typically be done in the source system to ensure accurate sync.`,
+                        async () => {
+                          setCreditWriteOffType('credit');
+                          setCreditWriteOffOpen(true);
+                        }
+                      );
+                    } else {
+                      setCreditWriteOffType('credit');
+                      setCreditWriteOffOpen(true);
+                    }
                   }}
                   disabled={invoice.status === "Paid" || invoice.status === "Credited"}
                 >
@@ -1392,8 +1413,19 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   size="sm"
                   className="justify-start"
                   onClick={() => {
-                    setCreditWriteOffType('write_off');
-                    setCreditWriteOffOpen(true);
+                    if (isIntegratedInvoice) {
+                      checkStatusActionAndProceed(
+                        "Write Off",
+                        `You are about to write off this invoice. This action should typically be done in the source system to ensure accurate sync.`,
+                        async () => {
+                          setCreditWriteOffType('write_off');
+                          setCreditWriteOffOpen(true);
+                        }
+                      );
+                    } else {
+                      setCreditWriteOffType('write_off');
+                      setCreditWriteOffOpen(true);
+                    }
                   }}
                   disabled={invoice.status === "Paid" || invoice.status === "WrittenOff"}
                 >
