@@ -1373,7 +1373,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                       checkStatusActionAndProceed(
                         "Apply Payment",
                         `You are about to manually record a payment of an outstanding amount. This action should typically be done in the source system to ensure accurate sync.`,
-                        async () => setApplyPaymentOpen(true)
+                        () => setApplyPaymentOpen(true)
                       );
                     } else {
                       setApplyPaymentOpen(true);
@@ -1393,7 +1393,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                       checkStatusActionAndProceed(
                         "Apply Credit",
                         `You are about to apply a credit to this invoice. This action should typically be done in the source system to ensure accurate sync.`,
-                        async () => {
+                        () => {
                           setCreditWriteOffType('credit');
                           setCreditWriteOffOpen(true);
                         }
@@ -1417,7 +1417,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                       checkStatusActionAndProceed(
                         "Write Off",
                         `You are about to write off this invoice. This action should typically be done in the source system to ensure accurate sync.`,
-                        async () => {
+                        () => {
                           setCreditWriteOffType('write_off');
                           setCreditWriteOffOpen(true);
                         }
