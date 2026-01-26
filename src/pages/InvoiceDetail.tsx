@@ -29,7 +29,7 @@ import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
 
 import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
 import { IntegrationSourceBanner } from "@/components/IntegrationSourceBanner";
-import { useOverrideWarning, logOverrideAndUpdateInvoice } from "@/components/InvoiceOverrideWarningDialogs";
+import { useOverrideWarning, useStatusActionWarning, logOverrideAndUpdateInvoice } from "@/components/InvoiceOverrideWarningDialogs";
 import { OutreachTimeline } from "@/components/OutreachTimeline";
 
 interface Invoice {
@@ -196,10 +196,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [applyingCreditWriteOff, setApplyingCreditWriteOff] = useState(false);
   const [transactionRefreshKey, setTransactionRefreshKey] = useState(0);
 
-  // Override warning hook
+  // Override warning hook (for field edits)
   const { checkAndProceed, CSVWarningDialog, IntegrationWarningDialog } = useOverrideWarning({
     integrationSource: invoice?.integration_source,
     integrationUrl: invoice?.integration_url,
+    invoiceId: id || "",
+  });
+
+  // Status action warning hook (for Apply Payment, Credit, Write Off, Status Changes)
+  const { checkStatusActionAndProceed, StatusActionWarningDialog, isIntegratedInvoice } = useStatusActionWarning({
+    integrationSource: invoice?.integration_source,
+    integrationUrl: invoice?.integration_url || invoice?.stripe_hosted_url,
     invoiceId: id || "",
   });
 
@@ -384,18 +391,48 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   };
 
   const handleStatusChange = async (newStatus: "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled") => {
-    try {
-      const { error } = await supabase
-        .from("invoices")
-        .update({ status: newStatus })
-        .eq("id", id);
+    if (!invoice) return;
 
-      if (error) throw error;
-      toast.success(`Invoice marked as ${newStatus}`);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update status");
-    }
+    const performStatusChange = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Log override if integrated invoice
+        if (isIntegratedInvoice && user) {
+          await logOverrideAndUpdateInvoice(
+            supabase,
+            invoice.id,
+            user.id,
+            'status_change',
+            invoice.status,
+            newStatus,
+            invoice.integration_source
+          );
+        }
+
+        const { error } = await supabase
+          .from("invoices")
+          .update({ status: newStatus })
+          .eq("id", id);
+
+        if (error) throw error;
+        
+        const successMessage = isIntegratedInvoice
+          ? `Status changed to ${newStatus}. This manual override has been logged.`
+          : `Invoice marked as ${newStatus}`;
+        toast.success(successMessage);
+        fetchData();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update status");
+      }
+    };
+
+    // Show warning for integrated invoices
+    await checkStatusActionAndProceed(
+      `Change Status to ${newStatus}`,
+      `This will change the invoice status from "${invoice.status}" to "${newStatus}". This change should typically be made in the source system.`,
+      performStatusChange
+    );
   };
 
   const handleDraftAction = async (draftId: string, action: "approved" | "discarded") => {
@@ -1317,6 +1354,14 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>Status Actions</CardTitle>
+                {isIntegratedInvoice && (
+                  <CardDescription className="flex items-start gap-2 mt-2 p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-amber-800 dark:text-amber-200">
+                      This is an integrated invoice. Payments and status changes should be recorded in the source system for accurate sync.
+                    </span>
+                  </CardDescription>
+                )}
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2">
                 <Button
@@ -2308,6 +2353,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         {/* Override Warning Dialogs */}
         <CSVWarningDialog />
         <IntegrationWarningDialog />
+        <StatusActionWarningDialog />
       </div>
     </Layout>
   );
