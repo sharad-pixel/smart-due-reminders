@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { sanitizeSubjectLine } from "../_shared/draftContentEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -185,7 +186,8 @@ serve(async (req) => {
     }
 
     // Replace template variables in subject and body
-    const processedSubject = replaceTemplateVars(subject, invoice, debtor, branding, daysPastDue);
+    // CRITICAL: Sanitize subject to remove any URLs - they should only appear in email body
+    const processedSubject = sanitizeSubjectLine(replaceTemplateVars(subject, invoice, debtor, branding, daysPastDue));
     const processedBody = replaceTemplateVars(body, invoice, debtor, branding, daysPastDue);
 
     // Generate the From address using company name

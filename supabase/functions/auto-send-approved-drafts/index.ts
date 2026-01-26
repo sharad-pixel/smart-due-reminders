@@ -12,6 +12,7 @@ import {
 } from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { INBOUND_EMAIL_DOMAIN, getDebtorReplyToAddress } from "../_shared/emailConfig.ts";
+import { sanitizeSubjectLine } from "../_shared/draftContentEngine.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -458,7 +459,8 @@ Deno.serve(async (req) => {
         );
 
         // Replace template variables in draft content
-        const processedSubject = replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue);
+        // CRITICAL: Sanitize subject to remove any URLs - they should only appear in email body
+        const processedSubject = sanitizeSubjectLine(replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue));
         let processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
 
         // Ensure message has contact info, signature, and links
@@ -671,7 +673,8 @@ Deno.serve(async (req) => {
         const replyToAddress = getDebtorReplyToAddress(debtor.id);
 
         // Replace template variables in draft content (invoice vars will be empty)
-        const processedSubject = replaceTemplateVars(draft.subject || 'Account Summary', {}, debtor, branding, 0);
+        // CRITICAL: Sanitize subject to remove any URLs - they should only appear in email body
+        const processedSubject = sanitizeSubjectLine(replaceTemplateVars(draft.subject || 'Account Summary', {}, debtor, branding, 0));
         let processedBody = replaceTemplateVars(draft.message_body || '', {}, debtor, branding, 0);
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
