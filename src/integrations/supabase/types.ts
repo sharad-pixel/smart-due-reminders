@@ -4138,6 +4138,45 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_leads: {
+        Row: {
+          company: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          name: string | null
+          source: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       marketing_snippets: {
         Row: {
           created_at: string
