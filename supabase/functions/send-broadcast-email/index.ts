@@ -12,7 +12,7 @@ interface BroadcastRequest {
   subject?: string;
   body_html?: string;
   body_text?: string;
-  audience?: "all_active" | "paid_only" | "free_only" | "specific_emails";
+  audience?: "all_active" | "paid_only" | "free_only" | "specific_emails" | "all_leads";
   specific_emails?: string[];
   test_mode?: boolean;
   test_email?: string;
@@ -146,8 +146,26 @@ serve(async (req) => {
 
     if (audience === "specific_emails" && specific_emails?.length) {
       recipients = specific_emails.map((email) => ({ email, name: null }));
+    } else if (audience === "all_leads") {
+      // Fetch from marketing_leads table
+      const { data: leads, error: leadsError } = await supabase
+        .from("marketing_leads")
+        .select("email, name")
+        .eq("status", "active");
+
+      if (leadsError) {
+        console.error("Failed to fetch leads:", leadsError);
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch leads" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      recipients = (leads || [])
+        .filter((l) => l.email)
+        .map((l) => ({ email: l.email!, name: l.name }));
     } else {
-      // Build query based on audience
+      // Build query based on audience (existing user profiles)
       let query = supabase
         .from("profiles")
         .select("email, name, plan_type, subscription_status")
