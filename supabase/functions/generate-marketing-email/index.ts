@@ -15,8 +15,9 @@ interface GenerateRequest {
   cta_link?: string;
 }
 
-// Lovable AI endpoint - no API key required
-const LOVABLE_AI_URL = "https://ai-gateway.lovable.ai/v1/chat/completions";
+// Lovable AI gateway endpoint
+// NOTE: This requires LOVABLE_API_KEY (auto-provisioned in Lovable Cloud)
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,6 +28,14 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+     if (!lovableApiKey) {
+       return new Response(
+         JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }),
+         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+       );
+     }
 
     // Verify admin access
     const authHeader = req.headers.get("Authorization");
@@ -123,6 +132,7 @@ Generate the email content now.`;
     const response = await fetch(LOVABLE_AI_URL, {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -140,8 +150,15 @@ Generate the email content now.`;
       const errorData = await response.text();
       console.error("Lovable AI error:", errorData);
       return new Response(
-        JSON.stringify({ error: "Failed to generate email content" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            response.status === 429
+              ? "AI rate limit exceeded. Please try again in a minute."
+              : response.status === 402
+                ? "AI credits exhausted. Please add credits to continue."
+                : "Failed to generate email content",
+        }),
+        { status: response.status === 429 || response.status === 402 ? response.status : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
