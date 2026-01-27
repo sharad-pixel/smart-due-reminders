@@ -308,3 +308,6 @@ verify_jwt = true
 
 [functions.scheduled-outreach-engine]
 verify_jwt = false
+
+[functions.handle-unsubscribe]
+verify_jwt = false
