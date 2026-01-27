@@ -3208,6 +3208,33 @@ export type Database = {
         }
         Relationships: []
       }
+      email_unsubscribes: {
+        Row: {
+          email: string
+          id: string
+          reason: string | null
+          source: string | null
+          token: string | null
+          unsubscribed_at: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          reason?: string | null
+          source?: string | null
+          token?: string | null
+          unsubscribed_at?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          reason?: string | null
+          source?: string | null
+          token?: string | null
+          unsubscribed_at?: string
+        }
+        Relationships: []
+      }
       image_moderation_logs: {
         Row: {
           categories: Json | null
@@ -4149,6 +4176,7 @@ export type Database = {
           source: string | null
           status: string
           tags: string[] | null
+          unsubscribe_token: string | null
           updated_at: string
         }
         Insert: {
@@ -4161,6 +4189,7 @@ export type Database = {
           source?: string | null
           status?: string
           tags?: string[] | null
+          unsubscribe_token?: string | null
           updated_at?: string
         }
         Update: {
@@ -4173,6 +4202,7 @@ export type Database = {
           source?: string | null
           status?: string
           tags?: string[] | null
+          unsubscribe_token?: string | null
           updated_at?: string
         }
         Relationships: []

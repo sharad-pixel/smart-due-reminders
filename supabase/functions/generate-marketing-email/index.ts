@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -16,7 +15,8 @@ interface GenerateRequest {
   cta_link?: string;
 }
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+// Lovable AI endpoint - no API key required
+const LOVABLE_AI_URL = "https://ai-gateway.lovable.ai/v1/chat/completions";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,13 +61,6 @@ serve(async (req) => {
       );
     }
 
-    if (!openAIApiKey) {
-      return new Response(
-        JSON.stringify({ error: "OpenAI API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const payload: GenerateRequest = await req.json();
     const {
       email_type,
@@ -78,7 +71,7 @@ serve(async (req) => {
       cta_link,
     } = payload;
 
-    console.log("Generating marketing email:", { email_type, topic, tone });
+    console.log("Generating marketing email with Lovable AI:", { email_type, topic, tone });
 
     const toneDescriptions: Record<string, string> = {
       professional: "formal, business-appropriate, and authoritative",
@@ -107,6 +100,7 @@ Guidelines:
 - Focus on value and benefits to the reader
 - Make the content scannable
 - End with a clear call-to-action
+- IMPORTANT: Do NOT include unsubscribe links in the body - these will be added automatically
 
 Return your response as a JSON object with this structure:
 {
@@ -125,14 +119,14 @@ ${cta_link ? `Call-to-action link: ${cta_link}` : ""}
 
 Generate the email content now.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Use Lovable AI gateway
+    const response = await fetch(LOVABLE_AI_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${openAIApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -143,8 +137,8 @@ Generate the email content now.`;
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
+      const errorData = await response.text();
+      console.error("Lovable AI error:", errorData);
       return new Response(
         JSON.stringify({ error: "Failed to generate email content" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
