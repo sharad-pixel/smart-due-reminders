@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ import { CollectionTask } from "@/hooks/useCollectionTasks";
 import { CollectionIntelligenceCard } from "@/components/CollectionIntelligenceCard";
 import { CollectionIntelligenceDashboard } from "@/components/CollectionIntelligenceDashboard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
 
 interface Invoice {
   id: string;
@@ -57,6 +58,7 @@ interface DashboardTask {
 const Dashboard = () => {
   const navigate = useNavigate();
   const accountInfo = useEffectiveAccount();
+  const { data: orgAvgDPD } = useOrgAvgDPD();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -514,8 +516,17 @@ const Dashboard = () => {
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{stats.avgDaysPastDue}</div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">For open invoices</p>
+              <div className={`text-lg sm:text-2xl font-bold ${
+                (orgAvgDPD?.avg_dpd || 0) > 60 ? "text-destructive" :
+                (orgAvgDPD?.avg_dpd || 0) > 30 ? "text-orange-500" : ""
+              }`}>
+                {orgAvgDPD?.avg_dpd !== null && orgAvgDPD?.avg_dpd !== undefined 
+                  ? orgAvgDPD.avg_dpd 
+                  : stats.avgDaysPastDue}
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                Across {orgAvgDPD?.total_open_invoices || stats.openInvoicesCount} open invoices
+              </p>
             </CardContent>
           </Card>
         </div>

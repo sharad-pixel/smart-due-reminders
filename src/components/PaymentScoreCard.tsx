@@ -83,15 +83,17 @@ export const PaymentScoreCard = ({
   const getBreakdown = () => {
     const breakdown: Array<{ text: string; impact: "positive" | "negative" | "neutral" }> = [];
 
-    if (avgDaysToPay !== null) {
-      if (avgDaysToPay <= 5) {
-        breakdown.push({ text: `Average days to pay: ${avgDaysToPay.toFixed(1)} (excellent)`, impact: "positive" });
+    if (avgDaysToPay !== null && avgDaysToPay !== undefined) {
+      if (avgDaysToPay === 0) {
+        breakdown.push({ text: "Average DPD: 0 days (all current)", impact: "positive" });
       } else if (avgDaysToPay <= 15) {
-        breakdown.push({ text: `Average days to pay: ${avgDaysToPay.toFixed(1)} (good)`, impact: "neutral" });
+        breakdown.push({ text: `Average DPD: ${avgDaysToPay.toFixed(0)} days (good)`, impact: "neutral" });
       } else if (avgDaysToPay <= 30) {
-        breakdown.push({ text: `Average days to pay: ${avgDaysToPay.toFixed(1)} (fair)`, impact: "negative" });
+        breakdown.push({ text: `Average DPD: ${avgDaysToPay.toFixed(0)} days (fair)`, impact: "neutral" });
+      } else if (avgDaysToPay <= 60) {
+        breakdown.push({ text: `Average DPD: ${avgDaysToPay.toFixed(0)} days (elevated)`, impact: "negative" });
       } else {
-        breakdown.push({ text: `Average days to pay: ${avgDaysToPay.toFixed(1)} (poor)`, impact: "negative" });
+        breakdown.push({ text: `Average DPD: ${avgDaysToPay.toFixed(0)} days (critical)`, impact: "negative" });
       }
     }
 
