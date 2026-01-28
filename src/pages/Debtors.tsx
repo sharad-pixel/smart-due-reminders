@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
+import { useAccountsAvgDPD, getAccountAvgDPD } from "@/hooks/useAvgDPD";
 
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 
@@ -72,6 +73,7 @@ const ROWS_PER_PAGE = 25;
 
 const Debtors = () => {
   const navigate = useNavigate();
+  const { data: accountsAvgDPD } = useAccountsAvgDPD();
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [filteredDebtors, setFilteredDebtors] = useState<Debtor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -842,12 +844,20 @@ const Debtors = () => {
                           <Clock className="h-3 w-3" />
                           <span>Avg DPD</span>
                         </div>
-                        <p className={`font-semibold text-sm tabular-nums ${
-                          (debtor.avg_days_to_pay || 0) > 60 ? "text-destructive" :
-                          (debtor.avg_days_to_pay || 0) > 30 ? "text-orange-500" : "text-foreground"
-                        }`}>
-                          {debtor.avg_days_to_pay ? `${Math.round(debtor.avg_days_to_pay)} days` : "—"}
-                        </p>
+                        {(() => {
+                          const calculatedDpd = getAccountAvgDPD(accountsAvgDPD, debtor.id);
+                          const displayDpd = calculatedDpd ?? debtor.avg_days_to_pay;
+                          return (
+                            <p className={`font-semibold text-sm tabular-nums ${
+                              (displayDpd || 0) > 60 ? "text-destructive" :
+                              (displayDpd || 0) > 30 ? "text-orange-500" : "text-foreground"
+                            }`}>
+                              {displayDpd !== null && displayDpd !== undefined && displayDpd > 0 
+                                ? `${Math.round(displayDpd)} days` 
+                                : "—"}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <div className="bg-muted/50 rounded-md p-2">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
@@ -1049,12 +1059,21 @@ const Debtors = () => {
                           {debtor.open_invoices_count || 0}
                         </TableCell>
                         <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
-                          <span className={`font-medium tabular-nums ${
-                            (debtor.avg_days_to_pay || 0) > 60 ? "text-destructive" :
-                            (debtor.avg_days_to_pay || 0) > 30 ? "text-orange-500" : ""
-                          }`}>
-                            {debtor.avg_days_to_pay ? Math.round(debtor.avg_days_to_pay) : "—"}
-                          </span>
+                          {(() => {
+                            // Use calculated Avg DPD from hook, fallback to stored value
+                            const calculatedDpd = getAccountAvgDPD(accountsAvgDPD, debtor.id);
+                            const displayDpd = calculatedDpd ?? debtor.avg_days_to_pay;
+                            return (
+                              <span className={`font-medium tabular-nums ${
+                                (displayDpd || 0) > 60 ? "text-destructive" :
+                                (displayDpd || 0) > 30 ? "text-orange-500" : ""
+                              }`}>
+                                {displayDpd !== null && displayDpd !== undefined && displayDpd > 0 
+                                  ? Math.round(displayDpd) 
+                                  : "—"}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-center" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           {/* Risk Score: Higher = Riskier (inverted colors) */}

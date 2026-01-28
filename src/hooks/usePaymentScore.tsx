@@ -140,6 +140,8 @@ export const useDebtorDashboard = () => {
           return sum + days;
         }, 0);
         avgDaysToPay = Math.round(totalDays / paidInvoices.length);
+        // Cap at 365 to avoid extreme outliers
+        avgDaysToPay = Math.min(avgDaysToPay, 365);
       }
 
       const totalDebtors = data.length;
