@@ -146,10 +146,17 @@ export function cleanupPlaceholders(text: string): string {
   let result = text.replace(/\{\{[^}]+\}\}/g, '');
   
   // CRITICAL: Clean up malformed greetings where name is missing
-  // "Hi ," or "Hi  ," -> "Hi there,"
-  result = result.replace(/\bHi\s*,/gi, 'Hi there,');
-  result = result.replace(/\bDear\s*,/gi, 'Dear Customer,');
-  result = result.replace(/\bHello\s*,/gi, 'Hello,');
+  // Handle various patterns: "Hello ," "Hello  ," "Hello," with extra spaces
+  // Convert to proper greeting with fallback
+  result = result.replace(/\bHi\s*,\s*/gi, 'Hi there, ');
+  result = result.replace(/\bHello\s*,\s*/gi, 'Hello, ');
+  result = result.replace(/\bDear\s*,\s*/gi, 'Dear Customer, ');
+  
+  // Handle "Hi [empty]," patterns more aggressively - any greeting followed by just comma
+  result = result.replace(/\b(Hi|Hello|Dear)\s+,/gi, '$1 there,');
+  
+  // Clean up double spaces that result from placeholder removal
+  result = result.replace(/\s{2,}/g, ' ');
   
   // Clean up "at ." or "with ." patterns where company name is missing
   result = result.replace(/\bat\s*\./gi, 'with your company.');
