@@ -4,10 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, ExternalLink, AlertTriangle } from "lucide-react";
+import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, ExternalLink, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PersonaAvatar } from "./PersonaAvatar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface OutreachTimelineProps {
   invoiceId: string;
@@ -44,33 +47,31 @@ interface AggregatedError {
 
 export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: OutreachTimelineProps) {
   const navigate = useNavigate();
+  const [failedOpen, setFailedOpen] = useState(false);
+  const [sentOpen, setSentOpen] = useState(true);
   
   const { data, isLoading } = useQuery({
     queryKey: ["outreach-timeline-v2", invoiceId],
     staleTime: 30_000,
     queryFn: async () => {
-      // Get outreach tracking record
       const { data: outreach } = await supabase
         .from("invoice_outreach")
         .select("*")
         .eq("invoice_id", invoiceId)
         .maybeSingle();
 
-      // Get all outreach logs for this invoice (using new table)
       const { data: logs } = await supabase
         .from("outreach_log")
         .select("*")
         .eq("invoice_id", invoiceId)
         .order("sent_at", { ascending: false });
 
-      // Calculate days past due
       const today = new Date();
       const due = new Date(invoiceDueDate);
       const daysPastDue = differenceInDays(today, due);
       const currentBucket = daysPastDue > 0 ? getBucketForDays(daysPastDue) : null;
       const currentAgent = currentBucket ? AGENT_MAP[currentBucket] : null;
 
-      // Calculate next email if outreach is active
       let nextEmail = null;
       if (outreach?.is_active && currentBucket) {
         const bucketEntered = new Date(outreach.bucket_entered_at);
@@ -85,11 +86,9 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
         }
       }
 
-      // Aggregate and count logs
       const successLogs = (logs || []).filter(log => log.status === 'sent' || log.status === 'delivered');
       const failedLogs = (logs || []).filter(log => log.status !== 'sent' && log.status !== 'delivered');
       
-      // Aggregate failed logs by error message
       const errorAggregation: Record<string, AggregatedError> = {};
       failedLogs.forEach((log: any) => {
         const key = `${log.status}-${log.error_message || 'Unknown error'}`;
@@ -142,7 +141,6 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
 
   const { outreach, successLogs, aggregatedErrors, totalFailed, totalBounced, daysPastDue, currentAgent, nextEmail } = data || {};
 
-  // Not past due yet
   if (!daysPastDue || daysPastDue <= 0) {
     return (
       <Card>
@@ -163,18 +161,6 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
     );
   }
 
-  const getBucketLabel = (bucket: string) => {
-    switch (bucket) {
-      case 'dpd_1_30': return '1-30 Days';
-      case 'dpd_31_60': return '31-60 Days';
-      case 'dpd_61_90': return '61-90 Days';
-      case 'dpd_91_120': return '91-120 Days';
-      case 'dpd_121_150': return '121-150 Days';
-      case 'dpd_150_plus': return '150+ Days';
-      default: return bucket;
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -183,165 +169,192 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
           Outreach History
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Current Status */}
-        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Current Agent</span>
-            {currentAgent && (
-              <div className="flex items-center gap-2">
-                <PersonaAvatar persona={currentAgent.key} size="xs" />
-                <span className="font-medium">{currentAgent.name}</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Days Past Due</span>
-            <Badge variant={daysPastDue > 90 ? "destructive" : daysPastDue > 30 ? "secondary" : "outline"}>
-              {daysPastDue} days
-            </Badge>
-          </div>
-          
-          {nextEmail && outreach?.is_active && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Next Email</span>
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-sm">
-                  Step {nextEmail.step} {nextEmail.daysUntil === 0 ? '(Today)' : `(in ${nextEmail.daysUntil} days)`}
-                </span>
-              </div>
-            </div>
-          )}
-          
-          {outreach && !outreach.is_active && outreach.completed_at && (
-            <div className="flex items-center gap-2 text-green-600 pt-1">
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="text-sm font-medium">Outreach completed - Invoice settled</span>
-            </div>
-          )}
-          
-          {!outreach && daysPastDue > 0 && (
-            <div className="flex items-center gap-2 text-amber-600 pt-1">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">Outreach will start on next scheduled run (9 AM UTC)</span>
-            </div>
-          )}
-        </div>
-
-        {/* Failed Emails Summary - Aggregated */}
-        {aggregatedErrors && aggregatedErrors.length > 0 && (
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <h4 className="text-sm font-medium">Failed Emails</h4>
-                <Badge variant="destructive" className="text-xs">
-                  {totalFailed} total {totalBounced && totalBounced > 0 ? `(${totalBounced} bounced)` : ''}
-                </Badge>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs h-7"
-                onClick={() => navigate('/reports/email-delivery')}
-              >
-                View All
-                <ExternalLink className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-            
-            <div className="space-y-2">
-              {aggregatedErrors.slice(0, 3).map((error, index) => (
-                <div 
-                  key={index}
-                  className="flex items-start gap-3 p-3 bg-destructive/5 border border-destructive/20 rounded-lg"
-                >
-                  <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="destructive" className="text-xs">
-                        {error.status}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {error.count} occurrence{error.count > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <p className="text-xs text-destructive mt-1 line-clamp-2">
-                      {error.errorMessage}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Last: {format(new Date(error.latestDate), 'MMM d, h:mm a')} • {error.recipientEmail}
-                    </p>
+      <CardContent className="space-y-3">
+        {/* Current Status - Compact Table */}
+        <Table>
+          <TableBody>
+            <TableRow className="hover:bg-transparent border-0">
+              <TableCell className="py-2 pl-0 text-muted-foreground font-medium w-1/3">Current Agent</TableCell>
+              <TableCell className="py-2 pr-0 text-right">
+                {currentAgent && (
+                  <div className="flex items-center justify-end gap-2">
+                    <PersonaAvatar persona={currentAgent.key} size="xs" />
+                    <span className="font-medium">{currentAgent.name}</span>
                   </div>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-transparent border-0">
+              <TableCell className="py-2 pl-0 text-muted-foreground font-medium">Days Past Due</TableCell>
+              <TableCell className="py-2 pr-0 text-right">
+                <Badge variant={daysPastDue > 90 ? "destructive" : daysPastDue > 30 ? "secondary" : "outline"}>
+                  {daysPastDue} days
+                </Badge>
+              </TableCell>
+            </TableRow>
+            {nextEmail && outreach?.is_active && (
+              <TableRow className="hover:bg-transparent border-0">
+                <TableCell className="py-2 pl-0 text-muted-foreground font-medium">Next Email</TableCell>
+                <TableCell className="py-2 pr-0 text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm">
+                      Step {nextEmail.step} {nextEmail.daysUntil === 0 ? '(Today)' : `(in ${nextEmail.daysUntil} days)`}
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            {outreach && !outreach.is_active && outreach.completed_at && (
+              <TableRow className="hover:bg-transparent border-0">
+                <TableCell colSpan={2} className="py-2 px-0">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Outreach completed - Invoice settled</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            {!outreach && daysPastDue > 0 && (
+              <TableRow className="hover:bg-transparent border-0">
+                <TableCell colSpan={2} className="py-2 px-0">
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">Outreach starts at 9 AM UTC</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        {/* Failed Emails - Collapsible */}
+        {aggregatedErrors && aggregatedErrors.length > 0 && (
+          <Collapsible open={failedOpen} onOpenChange={setFailedOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between p-3 bg-destructive/5 border border-destructive/20 rounded-lg hover:bg-destructive/10 transition-colors">
+                <div className="flex items-center gap-2">
+                  {failedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span className="font-medium text-sm">Failed Emails</span>
+                  <Badge variant="destructive" className="text-xs">
+                    {totalFailed} total
+                  </Badge>
                 </div>
-              ))}
-              
-              {aggregatedErrors.length > 3 && (
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
-                  className="w-full text-xs"
-                  onClick={() => navigate('/reports/email-delivery')}
+                  className="text-xs h-6 px-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/reports/email-delivery');
+                  }}
                 >
-                  View {aggregatedErrors.length - 3} more error types
+                  View All
+                  <ExternalLink className="h-3 w-3 ml-1" />
                 </Button>
-              )}
-            </div>
-          </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs">Error</TableHead>
+                      <TableHead className="text-xs text-right">Count</TableHead>
+                      <TableHead className="text-xs text-right">Last Attempt</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aggregatedErrors.map((error, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="py-2">
+                          <Badge variant="destructive" className="text-xs">
+                            {error.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-2 max-w-[200px]">
+                          <p className="text-xs text-destructive truncate" title={error.errorMessage}>
+                            {error.errorMessage}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{error.recipientEmail}</p>
+                        </TableCell>
+                        <TableCell className="py-2 text-right text-xs text-muted-foreground">
+                          {error.count}x
+                        </TableCell>
+                        <TableCell className="py-2 text-right text-xs text-muted-foreground whitespace-nowrap">
+                          {format(new Date(error.latestDate), 'MMM d, h:mm a')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
-        {/* Successful Email History */}
+        {/* Sent Emails - Collapsible */}
         {successLogs && successLogs.length > 0 && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              Sent Emails
-              <Badge variant="secondary" className="text-xs">{successLogs.length}</Badge>
-            </h4>
-            <div className="space-y-3">
-              {successLogs.slice(0, 5).map((log: any) => {
-                const agent = AGENT_MAP[log.aging_bucket];
-                return (
-                  <div 
-                    key={log.id}
-                    className="flex gap-3 p-3 bg-muted/30 rounded-lg"
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        {agent && <PersonaAvatar persona={agent.key} size="xs" />}
-                        <span className="font-medium text-sm">{log.agent_name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          Step {log.step_number}
-                        </Badge>
-                        <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          {log.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-medium truncate">{log.subject}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(log.sent_at), 'MMM d, yyyy h:mm a')} • {log.recipient_email}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {successLogs.length > 5 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  +{successLogs.length - 5} more emails sent
-                </p>
-              )}
-            </div>
-          </div>
+          <Collapsible open={sentOpen} onOpenChange={setSentOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors">
+                <div className="flex items-center gap-2">
+                  {sentOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-sm">Sent Emails</span>
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    {successLogs.length}
+                  </Badge>
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Agent</TableHead>
+                      <TableHead className="text-xs">Subject</TableHead>
+                      <TableHead className="text-xs text-right">Sent</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {successLogs.map((log: any) => {
+                      const agent = AGENT_MAP[log.aging_bucket];
+                      return (
+                        <TableRow key={log.id}>
+                          <TableCell className="py-2">
+                            <div className="flex items-center gap-2">
+                              {agent && <PersonaAvatar persona={agent.key} size="xs" />}
+                              <div>
+                                <span className="text-sm font-medium">{log.agent_name}</span>
+                                <Badge variant="outline" className="text-xs ml-2">
+                                  Step {log.step_number}
+                                </Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 max-w-[200px]">
+                            <p className="text-sm truncate" title={log.subject}>{log.subject}</p>
+                            <p className="text-xs text-muted-foreground">{log.recipient_email}</p>
+                          </TableCell>
+                          <TableCell className="py-2 text-right text-xs text-muted-foreground whitespace-nowrap">
+                            {format(new Date(log.sent_at), 'MMM d, h:mm a')}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
         {(!successLogs || successLogs.length === 0) && (!aggregatedErrors || aggregatedErrors.length === 0) && outreach?.is_active && (
-          <div className="text-center py-4 text-muted-foreground text-sm border-t">
+          <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
             <Mail className="h-6 w-6 mx-auto mb-2 opacity-50" />
             <p>No emails sent yet</p>
             <p className="text-xs">First email will be sent on Day 0 of the aging bucket</p>
