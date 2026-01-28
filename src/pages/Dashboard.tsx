@@ -23,6 +23,9 @@ import { CollectionIntelligenceCard } from "@/components/CollectionIntelligenceC
 import { CollectionIntelligenceDashboard } from "@/components/CollectionIntelligenceDashboard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
+import { KnowledgeBaseAgent } from "@/components/KnowledgeBaseAgent";
+import { IntegrationSetupModal } from "@/components/IntegrationSetupModal";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 interface Invoice {
   id: string;
@@ -59,6 +62,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const accountInfo = useEffectiveAccount();
   const { data: orgAvgDPD } = useOrgAvgDPD();
+  const onboardingStatus = useOnboardingStatus();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -66,6 +70,10 @@ const Dashboard = () => {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
+  const [integrationModal, setIntegrationModal] = useState<{ open: boolean; type: "stripe" | "quickbooks" | null }>({ 
+    open: false, 
+    type: null 
+  });
   const [stats, setStats] = useState({
     totalOutstanding: 0,
     totalRecovered: 0,
@@ -409,6 +417,19 @@ const Dashboard = () => {
         {/* Usage Indicator */}
         <UsageIndicator />
 
+        {/* Knowledge Base Agent - Onboarding & Setup */}
+        {!onboardingStatus.isLoading && (
+          <KnowledgeBaseAgent
+            stripeConnected={onboardingStatus.stripeConnected}
+            quickbooksConnected={onboardingStatus.quickbooksConnected}
+            hasAccounts={onboardingStatus.hasAccounts}
+            hasInvoices={onboardingStatus.hasInvoices}
+            workflowsConfigured={onboardingStatus.workflowsConfigured}
+            onSetupStripe={() => setIntegrationModal({ open: true, type: "stripe" })}
+            onSetupQuickBooks={() => setIntegrationModal({ open: true, type: "quickbooks" })}
+          />
+        )}
+
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
@@ -674,6 +695,14 @@ const Dashboard = () => {
           onArchive={handleTaskArchive}
           onAssign={handleTaskAssign}
           onNoteAdded={fetchDashboardData}
+        />
+
+        {/* Integration Setup Modal */}
+        <IntegrationSetupModal
+          open={integrationModal.open}
+          onOpenChange={(open) => setIntegrationModal({ ...integrationModal, open })}
+          integrationType={integrationModal.type}
+          onComplete={fetchDashboardData}
         />
       </div>
     </Layout>
