@@ -14,6 +14,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -79,69 +85,83 @@ export function SavedViewsManager({
   return (
     <>
       <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Bookmark className="h-4 w-4" />
-              {activeView ? activeView.name : 'Saved Views'}
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            {savedViews.length > 0 ? (
-              <>
-                {savedViews.map((view) => (
-                  <DropdownMenuItem
-                    key={view.id}
-                    onClick={() => onLoad(view)}
-                    className="flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      {view.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                      {view.name}
-                    </span>
-                    {activeView?.id === view.id && <Check className="h-4 w-4" />}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </>
-            ) : (
-              <DropdownMenuItem disabled>No saved views</DropdownMenuItem>
-            )}
-            
-            {activeView && (
-              <>
-                <DropdownMenuItem onClick={handleUpdateCurrent}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Update "{activeView.name}"
-                </DropdownMenuItem>
-                {!activeView.is_default && (
-                  <DropdownMenuItem onClick={() => onSetDefault(activeView.id)}>
-                    <Star className="h-4 w-4 mr-2" />
-                    Set as Default
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem 
-                  onClick={() => onDelete(activeView.id)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete View
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onClear}>
-                  Clear Active View
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            
-            <DropdownMenuItem onClick={() => setSaveDialogOpen(true)}>
-              <Save className="h-4 w-4 mr-2" />
-              Save New View
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Bookmark className="h-4 w-4" />
+                      {activeView ? activeView.name : 'Saved Views'}
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {savedViews.length > 0 ? (
+                      <>
+                        {savedViews.map((view) => (
+                          <DropdownMenuItem
+                            key={view.id}
+                            onClick={() => onLoad(view)}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="flex items-center gap-2">
+                              {view.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                              {view.name}
+                            </span>
+                            {activeView?.id === view.id && <Check className="h-4 w-4" />}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                      </>
+                    ) : (
+                      <DropdownMenuItem disabled>No saved views</DropdownMenuItem>
+                    )}
+                    
+                    {activeView && (
+                      <>
+                        <DropdownMenuItem onClick={handleUpdateCurrent}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Update "{activeView.name}"
+                        </DropdownMenuItem>
+                        {!activeView.is_default && (
+                          <DropdownMenuItem onClick={() => onSetDefault(activeView.id)}>
+                            <Star className="h-4 w-4 mr-2" />
+                            Set as Default
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          onClick={() => onDelete(activeView.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete View
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={onClear}>
+                          Clear Active View
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    
+                    <DropdownMenuItem onClick={() => setSaveDialogOpen(true)}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save New View
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p className="font-medium">Save & Load Views</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Click to save your current filters, sorting, and widget layout. Load saved views to quickly switch between configurations.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
