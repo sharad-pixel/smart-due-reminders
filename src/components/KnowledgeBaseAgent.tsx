@@ -151,7 +151,7 @@ export const KnowledgeBaseAgent = ({
           title: "Export Data",
           description: "Download your data in CSV or Excel format",
           icon: Download,
-          path: "/invoices",
+          path: "/data-center",
           isCompleted: false,
         },
         {
