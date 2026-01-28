@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   CheckCircle2,
   Circle,
   Database,
@@ -49,6 +50,8 @@ interface KnowledgeBaseAgentProps {
   onSetupQuickBooks?: () => void;
 }
 
+const COLLAPSED_STORAGE_KEY = "recouply-kb-collapsed";
+
 export const KnowledgeBaseAgent = ({
   stripeConnected = false,
   quickbooksConnected = false,
@@ -59,7 +62,15 @@ export const KnowledgeBaseAgent = ({
   onSetupQuickBooks,
 }: KnowledgeBaseAgentProps) => {
   const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    return saved === "true";
+  });
   const [expandedSection, setExpandedSection] = useState<string | null>("getting-started");
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, String(isCollapsed));
+  }, [isCollapsed]);
 
   const sections = [
     {
@@ -179,7 +190,7 @@ export const KnowledgeBaseAgent = ({
 
   return (
     <Card className="border-primary/20 shadow-md">
-      <CardHeader className="pb-4">
+      <CardHeader className={isCollapsed ? "pb-4" : "pb-4"}>
         <div className="flex items-start gap-4">
           <img
             src={nicolasAvatar}
@@ -194,24 +205,46 @@ export const KnowledgeBaseAgent = ({
                 Nicolas Guide
               </Badge>
             </div>
-            <CardDescription>
-              I'll help you get Recouply.ai set up for success. Complete these steps to automate your collections.
-            </CardDescription>
+            {!isCollapsed && (
+              <CardDescription>
+                I'll help you get Recouply.ai set up for success. Complete these steps to automate your collections.
+              </CardDescription>
+            )}
+            {isCollapsed && (
+              <CardDescription className="text-xs">
+                {completedSteps} of {totalSteps} steps complete
+              </CardDescription>
+            )}
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="shrink-0"
+          >
+            {isCollapsed ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronUp className="h-4 w-4" />
+            )}
+          </Button>
         </div>
 
-        {/* Progress indicator */}
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Setup Progress</span>
-            <span className="font-medium">
-              {completedSteps} of {totalSteps} complete
-            </span>
+        {/* Progress indicator - only show when expanded */}
+        {!isCollapsed && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Setup Progress</span>
+              <span className="font-medium">
+                {completedSteps} of {totalSteps} complete
+              </span>
+            </div>
+            <Progress value={progressPercent} className="h-2" />
           </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
+        )}
       </CardHeader>
 
+      {!isCollapsed && (
       <CardContent className="space-y-3">
         {sections.map((section) => {
           const SectionIcon = section.icon;
@@ -383,6 +416,7 @@ export const KnowledgeBaseAgent = ({
           </div>
         </div>
       </CardContent>
+      )}
     </Card>
   );
 };
