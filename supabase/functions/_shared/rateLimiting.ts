@@ -171,3 +171,84 @@ export function detectBotBehavior(req: Request): { isBot: boolean; reason?: stri
   
   return { isBot: false };
 }
+
+/**
+ * Simple circuit breaker for external service calls
+ * Prevents cascade failures when downstream services are unhealthy
+ */
+export interface CircuitBreakerState {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+}
+
+const circuitBreakers = new Map<string, CircuitBreakerState>();
+
+export function getCircuitBreaker(serviceName: string): CircuitBreakerState {
+  if (!circuitBreakers.has(serviceName)) {
+    circuitBreakers.set(serviceName, { failures: 0, lastFailure: 0, isOpen: false });
+  }
+  return circuitBreakers.get(serviceName)!;
+}
+
+export function recordFailure(serviceName: string, maxFailures = 5, resetTimeMs = 30000): boolean {
+  const state = getCircuitBreaker(serviceName);
+  const now = Date.now();
+  
+  // Reset if enough time has passed
+  if (state.isOpen && now - state.lastFailure > resetTimeMs) {
+    state.failures = 0;
+    state.isOpen = false;
+  }
+  
+  state.failures++;
+  state.lastFailure = now;
+  
+  if (state.failures >= maxFailures) {
+    state.isOpen = true;
+    console.warn(`[CIRCUIT-BREAKER] Circuit opened for ${serviceName} after ${maxFailures} failures`);
+  }
+  
+  return state.isOpen;
+}
+
+export function recordSuccess(serviceName: string): void {
+  const state = getCircuitBreaker(serviceName);
+  state.failures = 0;
+  state.isOpen = false;
+}
+
+export function isCircuitOpen(serviceName: string): boolean {
+  const state = getCircuitBreaker(serviceName);
+  const now = Date.now();
+  
+  // Auto-recover after 30 seconds
+  if (state.isOpen && now - state.lastFailure > 30000) {
+    state.failures = 0;
+    state.isOpen = false;
+  }
+  
+  return state.isOpen;
+}
+
+/**
+ * Create a response with standard error structure
+ */
+export function createErrorResponse(
+  message: string,
+  code: string,
+  status: number,
+  corsHeaders: Record<string, string>
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: message,
+      code,
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
+}

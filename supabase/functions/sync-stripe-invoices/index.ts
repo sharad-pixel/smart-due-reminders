@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { checkRateLimit, rateLimitExceededResponse } from '../_shared/rateLimiting.ts';
 
 type StripeInvoice = any;
 type StripeCustomer = any;
@@ -10,6 +11,12 @@ type StripeListResponse<T> = { data: T[] };
 
 const STRIPE_API_BASE = "https://api.stripe.com";
 
+// Stripe API timeout - 15 seconds per request
+const STRIPE_TIMEOUT_MS = 15000;
+
+// Batch size for processing invoices to prevent memory issues
+const INVOICE_BATCH_SIZE = 25;
+
 const buildStripeUrl = (path: string, params: Array<[string, string]> = []) => {
   const url = new URL(`${STRIPE_API_BASE}${path}`);
   for (const [k, v] of params) url.searchParams.append(k, v);
@@ -17,19 +24,27 @@ const buildStripeUrl = (path: string, params: Array<[string, string]> = []) => {
 };
 
 async function stripeGetJson<T = any>(stripeKey: string, path: string, params: Array<[string, string]> = []): Promise<T> {
-  const res = await fetch(buildStripeUrl(path, params), {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${stripeKey}`,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), STRIPE_TIMEOUT_MS);
+  
+  try {
+    const res = await fetch(buildStripeUrl(path, params), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${stripeKey}`,
+      },
+      signal: controller.signal,
+    });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Stripe API error (${res.status}) GET ${path}: ${text || res.statusText}`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Stripe API error (${res.status}) GET ${path}: ${text || res.statusText}`);
+    }
+
+    return await res.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return await res.json();
 }
 
 
@@ -98,6 +113,13 @@ Deno.serve(async (req) => {
     const user = userData.user;
     if (!user?.id) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
+
+    // Rate limiting - sync is a heavy operation, limit to 10 per hour
+    const rateLimitResult = await checkRateLimit(user.id, 'data_import');
+    if (!rateLimitResult.allowed) {
+      logStep("Rate limit exceeded", { userId: user.id });
+      return rateLimitExceededResponse(rateLimitResult, corsHeaders);
+    }
 
     // Get the effective account ID for team support
     const { data: effectiveAccountData } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });

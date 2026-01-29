@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, rateLimitExceededResponse } from '../_shared/rateLimiting.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +28,9 @@ interface PaymentScoreCalculation {
   breakdown: string[];
 }
 
+// Batch size for processing debtors to prevent memory issues
+const BATCH_SIZE = 50;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -47,6 +51,13 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) throw new Error("Not authenticated");
+    
+    // Rate limiting for bulk operations
+    const rateLimitResult = await checkRateLimit(user.id, recalculate_all ? 'data_import' : 'api_call');
+    if (!rateLimitResult.allowed) {
+      console.log(`[CALCULATE-PAYMENT-SCORE] Rate limit exceeded for user ${user.id}`);
+      return rateLimitExceededResponse(rateLimitResult, corsHeaders);
+    }
 
     let debtorIds: string[] = [];
     
@@ -65,31 +76,42 @@ serve(async (req) => {
 
     const results: PaymentScoreCalculation[] = [];
 
-    for (const dId of debtorIds) {
-      const score = await calculatePaymentScore(supabaseClient, user.id, dId);
-      results.push(score);
+    // Process in batches to prevent memory issues and timeouts
+    for (let i = 0; i < debtorIds.length; i += BATCH_SIZE) {
+      const batch = debtorIds.slice(i, i + BATCH_SIZE);
       
-      // Update debtor record with calculated scores
-      await supabaseClient
-        .from("debtors")
-        .update({
-          payment_score: score.payment_score,
-          payment_risk_tier: score.payment_risk_tier,
-          avg_days_to_pay: score.avg_days_to_pay,
-          max_days_past_due: score.max_days_past_due,
-          open_invoices_count: score.open_invoices_count,
-          disputed_invoices_count: score.disputed_invoices_count,
-          in_payment_plan_invoices_count: score.in_payment_plan_invoices_count,
-          written_off_invoices_count: score.written_off_invoices_count,
-          aging_mix_current_pct: score.aging_mix.current_pct,
-          aging_mix_1_30_pct: score.aging_mix.dpd_1_30_pct,
-          aging_mix_31_60_pct: score.aging_mix.dpd_31_60_pct,
-          aging_mix_61_90_pct: score.aging_mix.dpd_61_90_pct,
-          aging_mix_91_120_pct: score.aging_mix.dpd_91_120_pct,
-          aging_mix_121_plus_pct: score.aging_mix.dpd_121_plus_pct,
-          payment_score_last_calculated: new Date().toISOString(),
-        })
-        .eq("id", dId);
+      // Process batch in parallel for better performance
+      const batchResults = await Promise.all(
+        batch.map(dId => calculatePaymentScore(supabaseClient, user.id, dId))
+      );
+      
+      results.push(...batchResults);
+      
+      // Batch update debtor records
+      for (const score of batchResults) {
+        await supabaseClient
+          .from("debtors")
+          .update({
+            payment_score: score.payment_score,
+            payment_risk_tier: score.payment_risk_tier,
+            avg_days_to_pay: score.avg_days_to_pay,
+            max_days_past_due: score.max_days_past_due,
+            open_invoices_count: score.open_invoices_count,
+            disputed_invoices_count: score.disputed_invoices_count,
+            in_payment_plan_invoices_count: score.in_payment_plan_invoices_count,
+            written_off_invoices_count: score.written_off_invoices_count,
+            aging_mix_current_pct: score.aging_mix.current_pct,
+            aging_mix_1_30_pct: score.aging_mix.dpd_1_30_pct,
+            aging_mix_31_60_pct: score.aging_mix.dpd_31_60_pct,
+            aging_mix_61_90_pct: score.aging_mix.dpd_61_90_pct,
+            aging_mix_91_120_pct: score.aging_mix.dpd_91_120_pct,
+            aging_mix_121_plus_pct: score.aging_mix.dpd_121_plus_pct,
+            payment_score_last_calculated: new Date().toISOString(),
+          })
+          .eq("id", score.debtor_id);
+      }
+      
+      console.log(`[CALCULATE-PAYMENT-SCORE] Processed batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(debtorIds.length / BATCH_SIZE)}`);
     }
 
     return new Response(

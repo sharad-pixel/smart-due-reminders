@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { isCircuitOpen, recordFailure, recordSuccess } from '../_shared/rateLimiting.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +28,7 @@ interface SendEmailRequest {
 // Retry configuration for transient failures
 const MAX_RETRIES = 3;
 const INITIAL_DELAY_MS = 500;
+const RESEND_SERVICE_NAME = 'resend_api';
 
 // Sleep utility
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -86,6 +88,26 @@ serve(async (req) => {
       {
         status: 405,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  // Check circuit breaker before attempting to send
+  if (isCircuitOpen(RESEND_SERVICE_NAME)) {
+    console.warn('[SEND-EMAIL] Circuit breaker open for Resend API');
+    return new Response(
+      JSON.stringify({ 
+        error: "Email service temporarily unavailable",
+        code: "SERVICE_UNAVAILABLE",
+        retry_after: 30 
+      }),
+      {
+        status: 503,
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
       }
     );
   }
@@ -202,8 +224,18 @@ serve(async (req) => {
 
     if (!resendResponse.ok) {
       console.error("Resend API error", { status: resendResponse.status, data: resendData, duration });
+      
+      // Record failure for circuit breaker (5xx errors or rate limits)
+      if (resendResponse.status >= 500 || resendResponse.status === 429) {
+        recordFailure(RESEND_SERVICE_NAME);
+      }
+      
       return new Response(
-        JSON.stringify({ error: "Failed to send email", details: resendData }),
+        JSON.stringify({ 
+          error: "Failed to send email", 
+          details: resendData,
+          code: "SEND_FAILED"
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -211,6 +243,9 @@ serve(async (req) => {
       );
     }
 
+    // Record success - helps circuit breaker recover
+    recordSuccess(RESEND_SERVICE_NAME);
+    
     console.log("Email sent successfully", { messageId: resendData.id, duration });
 
     return new Response(
@@ -227,8 +262,16 @@ serve(async (req) => {
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error("Error calling Resend API", { error: err, duration });
+    
+    // Record failure for circuit breaker
+    recordFailure(RESEND_SERVICE_NAME);
+    
     return new Response(
-      JSON.stringify({ error: "Failed to send email after retries" }),
+      JSON.stringify({ 
+        error: "Failed to send email after retries",
+        code: "SEND_ERROR",
+        retry_after: 60
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
