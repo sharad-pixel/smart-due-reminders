@@ -327,6 +327,7 @@ Deno.serve(async (req) => {
         }
 
         const normalizedEmail = email.toLowerCase().trim();
+        let existingUserInviteToken: string | null = null; // For existing users who need to accept
 
         // Check if this email is already a pending invite for THIS account
         const { data: existingPendingInvite } = await supabaseClient
@@ -392,7 +393,12 @@ Deno.serve(async (req) => {
             );
           }
 
-          // Add existing user to team (immediately active)
+          // Add existing user to team with pending status (they need to accept)
+          // Generate invite token so they can explicitly accept
+          const { data: tokenData } = await supabaseClient.rpc('generate_invite_token');
+          const inviteToken = tokenData as string;
+          const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
           const { data, error } = await supabaseClient
             .from('account_users')
             .insert({
@@ -400,20 +406,55 @@ Deno.serve(async (req) => {
               user_id: existingUser.id,
               email: email,
               role: role || 'member',
-              status: 'active',
+              status: 'pending', // Pending until they accept
               is_owner: false,
-              accepted_at: new Date().toISOString(),
+              invite_token: inviteToken,
+              invite_expires_at: inviteExpiresAt,
             })
             .select()
             .single();
 
           if (error) throw error;
 
-          // Sync billing - new active user
+          // Sync billing - pending invites count as billable seats (charged upfront)
           const seatCount = await getBillableSeatCount(supabaseClient, managingAccountId);
           await updateStripeSeatQuantity(supabaseClient, managingAccountId, seatCount, user.id);
 
-          result = { success: true, data, message: 'Team member added successfully' };
+          // Store for email sending below
+          existingUserInviteToken = inviteToken;
+          
+          // Get inviter and owner profiles for email
+          const { data: inviterProfile } = await supabaseClient
+            .from('profiles')
+            .select('name, email')
+            .eq('id', user.id)
+            .single();
+          
+          const { data: ownerProfile } = await supabaseClient
+            .from('profiles')
+            .select('name')
+            .eq('id', managingAccountId)
+            .single();
+
+          // Send invite email to existing user (with accept link)
+          try {
+            await supabaseClient.functions.invoke('send-seat-reassignment', {
+              body: {
+                newUserEmail: email,
+                newUserName: existingUser.email?.split('@')[0] || null,
+                role: role || 'member',
+                inviteToken: inviteToken, // Include token so they get accept link
+                isExistingUser: true,
+                accountOwnerName: ownerProfile?.name || 'your team',
+                reassignedByName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
+              },
+            });
+            logStep('Sent invite email to existing user', { email });
+          } catch (emailError) {
+            logStep('Failed to send invite email to existing user', { error: emailError });
+          }
+
+          result = { success: true, data, message: 'Invitation sent - user needs to accept to join the team', isExistingUser: true };
         } else {
           // Generate secure invite token
           logStep('Generating invite token for new user', { email });
@@ -890,7 +931,12 @@ Deno.serve(async (req) => {
         const accountOwnerName = ownerProfile?.name || 'your team';
 
         if (existingUser) {
-          // Add existing user with same role (immediately active)
+          // Existing user - create pending invite so they can explicitly accept
+          // This ensures they acknowledge joining the team
+          const { data: tokenData } = await supabaseClient.rpc('generate_invite_token');
+          const inviteToken = tokenData as string;
+          const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
           const { data, error } = await supabaseClient
             .from('account_users')
             .insert({
@@ -898,29 +944,32 @@ Deno.serve(async (req) => {
               user_id: existingUser.id,
               email: email,
               role: currentMember.role,
-              status: 'active',
+              status: 'pending', // Pending until they accept
               is_owner: false,
-              accepted_at: new Date().toISOString(),
+              invite_token: inviteToken,
+              invite_expires_at: inviteExpiresAt,
             })
             .select()
             .single();
 
           if (error) throw error;
 
-          // Send reassignment emails to both users
+          // Send reassignment emails to both users - with invite link for existing user to accept
           try {
             await supabaseClient.functions.invoke('send-seat-reassignment', {
               body: {
                 newUserEmail: email,
+                newUserName: existingUser.email?.split('@')[0] || null,
                 role: currentMember.role,
-                isExistingUser: true,
+                inviteToken: inviteToken, // Include token so they get accept link
+                isExistingUser: true, // They have an account but need to accept
                 oldUserEmail: oldUserEmail,
                 oldUserName: oldUserName,
                 accountOwnerName: accountOwnerName,
                 reassignedByName: reassignedByName,
               },
             });
-            logStep('Sent reassignment emails (existing user)', { newUserEmail: email, oldUserEmail });
+            logStep('Sent reassignment emails (existing user with invite)', { newUserEmail: email, oldUserEmail });
           } catch (emailError) {
             logStep('Failed to send reassignment emails', { error: emailError });
           }
@@ -929,7 +978,7 @@ Deno.serve(async (req) => {
           result = { 
             success: true, 
             data, 
-            message: `Seat reassigned to ${email} successfully`,
+            message: `Invitation sent to ${email} - they will need to accept to join the team`,
             previousUser: oldUserEmail
           };
         } else {
