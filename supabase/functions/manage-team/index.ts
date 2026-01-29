@@ -40,7 +40,7 @@ const logStep = (step: string, details?: any) => {
 };
 
 interface TeamAction {
-  action: 'invite' | 'deactivate' | 'reactivate' | 'reassign' | 'resend_invite' | 'changeRole' | 'list' | 'getAssignedTasksCount' | 'disable' | 'enable' | 'transfer_ownership';
+  action: 'invite' | 'deactivate' | 'reactivate' | 'reassign' | 'resend_invite' | 'resend_welcome' | 'changeRole' | 'list' | 'getAssignedTasksCount' | 'disable' | 'enable' | 'transfer_ownership';
   email?: string;
   userId?: string;
   memberId?: string;
@@ -1127,6 +1127,96 @@ Deno.serve(async (req) => {
           message: isReassignment 
             ? 'Reassignment invitation resent successfully' 
             : 'Invitation resent successfully' 
+        };
+        break;
+      }
+
+      case 'resend_welcome': {
+        const targetUserId = userId || memberId;
+
+        // Get the active member
+        let activeMember;
+        const { data: memberByUserId } = await supabaseClient
+          .from('account_users')
+          .select('id, email, role, status, user_id, profiles!account_users_user_id_fkey (name, email)')
+          .eq('account_id', managingAccountId)
+          .eq('user_id', targetUserId)
+          .eq('status', 'active')
+          .maybeSingle();
+        
+        if (memberByUserId) {
+          activeMember = memberByUserId;
+        } else {
+          // Try by id
+          const { data: memberById } = await supabaseClient
+            .from('account_users')
+            .select('id, email, role, status, user_id, profiles!account_users_user_id_fkey (name, email)')
+            .eq('account_id', managingAccountId)
+            .eq('id', targetUserId)
+            .eq('status', 'active')
+            .maybeSingle();
+          activeMember = memberById;
+        }
+
+        if (!activeMember) {
+          return new Response(
+            JSON.stringify({ error: 'Active team member not found' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const memberProfile = activeMember.profiles as any;
+        const memberEmail = memberProfile?.email || activeMember.email;
+        const memberName = memberProfile?.name;
+
+        if (!memberEmail) {
+          return new Response(
+            JSON.stringify({ error: 'No email found for this member' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get inviter's profile
+        const { data: inviterProfile } = await supabaseClient
+          .from('profiles')
+          .select('name, email')
+          .eq('id', user.id)
+          .single();
+        
+        // Get account owner's profile
+        const { data: ownerProfile } = await supabaseClient
+          .from('profiles')
+          .select('name')
+          .eq('id', managingAccountId)
+          .single();
+
+        const reassignedByName = inviterProfile?.name || inviterProfile?.email || 'A team admin';
+        const accountOwnerName = ownerProfile?.name || 'your team';
+
+        // Send welcome email for existing users (they're already active, just need notification)
+        try {
+          await supabaseClient.functions.invoke('send-seat-reassignment', {
+            body: {
+              newUserEmail: memberEmail,
+              newUserName: memberName,
+              role: activeMember.role,
+              isExistingUser: true, // They're active, so existing user flow
+              accountOwnerName: accountOwnerName,
+              reassignedByName: reassignedByName,
+            },
+          });
+          logStep('Resend welcome email sent', { email: memberEmail });
+        } catch (emailError) {
+          logStep('Failed to send welcome email', { error: emailError });
+          return new Response(
+            JSON.stringify({ error: 'Failed to send welcome email' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        result = { 
+          success: true, 
+          message: `Welcome email resent to ${memberEmail}` 
         };
         break;
       }
