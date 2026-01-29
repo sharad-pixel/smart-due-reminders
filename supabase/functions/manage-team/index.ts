@@ -744,6 +744,20 @@ Deno.serve(async (req) => {
           );
         }
 
+        // Check if new email is the account owner's email
+        const { data: ownerProfileForCheck } = await supabaseClient
+          .from('profiles')
+          .select('email')
+          .eq('id', managingAccountId)
+          .maybeSingle();
+        
+        if (ownerProfileForCheck?.email?.toLowerCase() === email.toLowerCase()) {
+          return new Response(
+            JSON.stringify({ error: 'Cannot reassign to the account owner email' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         // Check if new email already exists in team (any status)
         const { data: existingMembers } = await supabaseClient
           .from('account_users')
@@ -1185,22 +1199,45 @@ Deno.serve(async (req) => {
             )
           `)
           .eq('account_id', managingAccountId)
-          .neq('status', 'reassigned') // Hide reassigned entries
           .order('is_owner', { ascending: false })
           .order('status', { ascending: true })
           .order('created_at', { ascending: false });
 
         if (error) throw error;
 
+        // Exclude fully reassigned entries (where the replacement has already accepted)
+        // Show reassigned entries only when they have a pending replacement
+        const pendingEmails = new Set(
+          data?.filter((m: any) => m.status === 'pending').map((m: any) => (m.email || m.profiles?.email)?.toLowerCase()) || []
+        );
+        
+        const filteredData = data?.filter((m: any) => {
+          // Keep all non-reassigned entries
+          if (m.status !== 'reassigned') return true;
+          
+          // For reassigned entries, only show if there's a pending invite for this seat
+          // Check if there's a pending invite created after this was reassigned
+          const reassignedEmail = m.profiles?.email || m.email;
+          if (!reassignedEmail) return false;
+          
+          // Find if any pending member was created after this one was disabled
+          const hasActivePendingReplacement = data?.some((pending: any) => 
+            pending.status === 'pending' && 
+            new Date(pending.created_at) > new Date(m.disabled_at || m.updated_at)
+          );
+          
+          return hasActivePendingReplacement;
+        }) || [];
+
         // Calculate seat counts
-        const activeNonOwners = data?.filter(m => m.status === 'active' && !m.is_owner) || [];
+        const activeNonOwners = filteredData.filter((m: any) => m.status === 'active' && !m.is_owner);
         const billableSeats = activeNonOwners.length;
 
         result = { 
           success: true, 
-          data,
+          data: filteredData,
           billableSeats,
-          totalMembers: data?.length || 0
+          totalMembers: filteredData.length
         };
         break;
       }
