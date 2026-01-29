@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
 
           const { data: branding } = await supabaseAdmin
             .from('branding_settings')
-            .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, email_signature')
+            .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, email_signature, auto_approve_drafts')
             .eq('user_id', brandingOwnerId)
             .maybeSingle();
 
@@ -298,8 +298,9 @@ Deno.serve(async (req) => {
           if (paymentLink) body += `\n\n💳 Make a payment: ${paymentLink}`;
           body += `\n\nThank you for your business.\n\n---\n${businessName}`;
 
-          // Create the draft
-          const draftStatus = isWorkflowApproved ? 'approved' : 'pending_approval';
+          // Create the draft - auto-approve if workflow is approved OR user has auto_approve_drafts enabled
+          const shouldAutoApprove = isWorkflowApproved || branding?.auto_approve_drafts === true;
+          const draftStatus = shouldAutoApprove ? 'approved' : 'pending_approval';
           const { error: draftError } = await supabaseAdmin
             .from('ai_drafts')
             .insert({
@@ -312,7 +313,7 @@ Deno.serve(async (req) => {
               status: draftStatus,
               recommended_send_date: targetDateStr,
               days_past_due: daysPastDue,
-              auto_approved: isWorkflowApproved
+              auto_approved: shouldAutoApprove
             });
 
           if (draftError) {

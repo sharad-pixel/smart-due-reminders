@@ -533,6 +533,7 @@ export type Database = {
           ar_page_enabled: boolean | null
           ar_page_last_updated_at: string | null
           ar_page_public_token: string | null
+          auto_approve_drafts: boolean
           business_name: string
           created_at: string | null
           email_footer: string | null
@@ -567,6 +568,7 @@ export type Database = {
           ar_page_enabled?: boolean | null
           ar_page_last_updated_at?: string | null
           ar_page_public_token?: string | null
+          auto_approve_drafts?: boolean
           business_name: string
           created_at?: string | null
           email_footer?: string | null
@@ -601,6 +603,7 @@ export type Database = {
           ar_page_enabled?: boolean | null
           ar_page_last_updated_at?: string | null
           ar_page_public_token?: string | null
+          auto_approve_drafts?: boolean
           business_name?: string
           created_at?: string | null
           email_footer?: string | null

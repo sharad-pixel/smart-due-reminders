@@ -24,8 +24,11 @@ import {
   EyeOff,
   Save,
   AlertCircle,
-  Bot
+  Bot,
+  Zap,
+  AlertTriangle
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 
 interface BrandingSettings {
@@ -61,6 +64,8 @@ interface BrandingSettings {
   email_format: "simple" | "enhanced" | null;
   // AI persona signatures
   use_persona_signatures: boolean | null;
+  // Auto-approve drafts
+  auto_approve_drafts: boolean | null;
 }
 
 export default function Branding() {
@@ -282,6 +287,32 @@ export default function Branding() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Auto-Approve Drafts Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <Zap className="h-5 w-5 text-amber-500" />
+                    <div>
+                      <p className="font-medium">Auto-Approve Outreach Drafts</p>
+                      <p className="text-sm text-muted-foreground">
+                        New AI-generated drafts will be automatically approved and scheduled for sending
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.auto_approve_drafts || false}
+                    onCheckedChange={(checked) => handleChange("auto_approve_drafts", checked)}
+                  />
+                </div>
+
+                {formData.auto_approve_drafts && (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 text-sm">
+                      With auto-approve enabled, AI drafts will be sent automatically on their scheduled dates without manual review.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* AI Persona Signatures Toggle */}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-3">
