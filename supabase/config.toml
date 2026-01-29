@@ -231,6 +231,9 @@ verify_jwt = false
 [functions.send-team-invite]
 verify_jwt = true
 
+[functions.send-seat-reassignment]
+verify_jwt = true
+
 [functions.accept-team-invite]
 verify_jwt = false
 

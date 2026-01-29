@@ -847,6 +847,24 @@ Deno.serve(async (req) => {
           .eq('email', email)
           .maybeSingle();
 
+        // Get inviter and owner profiles for email context
+        const { data: inviterProfile } = await supabaseClient
+          .from('profiles')
+          .select('name, email')
+          .eq('id', user.id)
+          .single();
+        
+        const { data: ownerProfile } = await supabaseClient
+          .from('profiles')
+          .select('name')
+          .eq('id', managingAccountId)
+          .single();
+
+        const oldUserEmail = currentMember.profiles?.email || currentMember.email;
+        const oldUserName = currentMember.profiles?.name;
+        const reassignedByName = inviterProfile?.name || inviterProfile?.email || 'A team admin';
+        const accountOwnerName = ownerProfile?.name || 'your team';
+
         if (existingUser) {
           // Add existing user with same role (immediately active)
           const { data, error } = await supabaseClient
@@ -865,12 +883,30 @@ Deno.serve(async (req) => {
 
           if (error) throw error;
 
+          // Send reassignment emails to both users
+          try {
+            await supabaseClient.functions.invoke('send-seat-reassignment', {
+              body: {
+                newUserEmail: email,
+                role: currentMember.role,
+                isExistingUser: true,
+                oldUserEmail: oldUserEmail,
+                oldUserName: oldUserName,
+                accountOwnerName: accountOwnerName,
+                reassignedByName: reassignedByName,
+              },
+            });
+            logStep('Sent reassignment emails (existing user)', { newUserEmail: email, oldUserEmail });
+          } catch (emailError) {
+            logStep('Failed to send reassignment emails', { error: emailError });
+          }
+
           // No seat count change - seat is transferred
           result = { 
             success: true, 
             data, 
             message: `Seat reassigned to ${email} successfully`,
-            previousUser: currentMember.profiles?.email
+            previousUser: oldUserEmail
           };
         } else {
           // Generate invite token for new user
@@ -896,39 +932,30 @@ Deno.serve(async (req) => {
 
           if (error) throw error;
 
-          // Get profiles for email
-          const { data: inviterProfile } = await supabaseClient
-            .from('profiles')
-            .select('name, email')
-            .eq('id', user.id)
-            .single();
-          
-          const { data: ownerProfile } = await supabaseClient
-            .from('profiles')
-            .select('name')
-            .eq('id', managingAccountId)
-            .single();
-
-          // Send invite email
+          // Send reassignment emails to both users
           try {
-            await supabaseClient.functions.invoke('send-team-invite', {
+            await supabaseClient.functions.invoke('send-seat-reassignment', {
               body: {
-                email: email,
+                newUserEmail: email,
                 role: currentMember.role,
-                inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
-                accountOwnerName: ownerProfile?.name || 'your team',
                 inviteToken: inviteToken,
+                isExistingUser: false,
+                oldUserEmail: oldUserEmail,
+                oldUserName: oldUserName,
+                accountOwnerName: accountOwnerName,
+                reassignedByName: reassignedByName,
               },
             });
+            logStep('Sent reassignment emails (new user)', { newUserEmail: email, oldUserEmail });
           } catch (emailError) {
-            logStep('Failed to send reassign invite email', { error: emailError });
+            logStep('Failed to send reassignment emails', { error: emailError });
           }
 
           result = { 
             success: true, 
             data, 
             message: `Invitation sent to ${email}. Seat will transfer when accepted.`,
-            previousUser: currentMember.profiles?.email
+            previousUser: oldUserEmail
           };
         }
         break;
