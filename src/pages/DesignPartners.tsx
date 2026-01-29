@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
@@ -69,13 +70,11 @@ const DesignPartners = () => {
             Join our Design Partner Program and work directly with our team to shape 
             the next generation of AI-powered accounts receivable automation.
           </p>
-          <Button 
-            size="lg" 
-            className="gap-2"
-            onClick={() => window.location.href = 'mailto:partners@recouply.ai?subject=Design Partner Program Interest'}
-          >
-            Apply Now
-            <ArrowRight className="w-4 h-4" />
+          <Button size="lg" className="gap-2" asChild>
+            <Link to="/contact">
+              Apply Now
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </Button>
         </div>
       </section>
@@ -140,16 +139,12 @@ const DesignPartners = () => {
                     We're accepting a limited number of design partners to ensure 
                     we can provide personalized attention to each team.
                   </p>
-                  <Button 
-                    className="w-full gap-2"
-                    onClick={() => window.location.href = 'mailto:partners@recouply.ai?subject=Design Partner Program Interest'}
-                  >
-                    Contact Us
-                    <ArrowRight className="w-4 h-4" />
+                  <Button className="w-full gap-2" asChild>
+                    <Link to="/contact">
+                      Contact Us
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-4 text-center">
-                    Or email us directly at partners@recouply.ai
-                  </p>
                 </CardContent>
               </Card>
             </div>
