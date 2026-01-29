@@ -64,6 +64,7 @@ const Team = () => {
   const [reassignEmail, setReassignEmail] = useState("");
   const [isReassigning, setIsReassigning] = useState(false);
   const [isResendingInvite, setIsResendingInvite] = useState<string | null>(null);
+  const [isResendingWelcome, setIsResendingWelcome] = useState<string | null>(null);
   const [showTransferOwnershipDialog, setShowTransferOwnershipDialog] = useState(false);
   const [selectedNewOwner, setSelectedNewOwner] = useState<TeamMember | null>(null);
   const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
@@ -324,6 +325,28 @@ const Team = () => {
       toast.error(error.message || "Failed to resend invitation");
     } finally {
       setIsResendingInvite(null);
+    }
+  };
+
+  const handleResendWelcome = async (member: TeamMember) => {
+    setIsResendingWelcome(member.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-team", {
+        body: {
+          action: "resend_welcome",
+          memberId: member.id,
+          userId: member.user_id,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Welcome email resent successfully");
+    } catch (error: any) {
+      console.error("Error resending welcome email:", error);
+      toast.error(error.message || "Failed to resend welcome email");
+    } finally {
+      setIsResendingWelcome(null);
     }
   };
 
@@ -827,6 +850,20 @@ const Team = () => {
                       <>
                         {member.status === "active" && (
                           <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResendWelcome(member)}
+                              disabled={isResendingWelcome === member.id}
+                              className="h-8 text-xs"
+                            >
+                              {isResendingWelcome === member.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3 mr-1" />
+                              )}
+                              Resend Welcome
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
