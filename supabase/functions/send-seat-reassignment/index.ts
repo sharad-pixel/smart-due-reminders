@@ -82,8 +82,20 @@ Deno.serve(async (req) => {
       let newUserBodyContent: string;
       let newUserSubject: string;
       
-      if (isExistingUser) {
-        // Existing user - immediate access, link to dashboard
+      // Key distinction:
+      // - isExistingUser=true AND no inviteToken → truly active, go to dashboard
+      // - isExistingUser=true BUT has inviteToken → needs to accept invite first
+      // - isExistingUser=false → new user, needs to create account
+      const needsInviteAcceptance = !isExistingUser || inviteToken;
+      
+      logStep('Email flow determination', { 
+        isExistingUser, 
+        hasInviteToken: !!inviteToken,
+        needsInviteAcceptance 
+      });
+      
+      if (isExistingUser && !inviteToken) {
+        // Truly existing active user - immediate access, link to dashboard
         newUserSubject = `You've been added to ${accountOwnerName}'s team on Recouply.ai`;
         newUserBodyContent = `
           <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
@@ -127,51 +139,94 @@ Deno.serve(async (req) => {
           </div>
         `;
       } else {
-        // New user - needs to accept invite and set up account
+        // User needs to accept invite - either new user or existing user with pending invite
         const setupLink = `${siteUrl}/accept-invite?token=${inviteToken}`;
-        newUserSubject = `You're invited to join ${accountOwnerName}'s team on Recouply.ai`;
-        newUserBodyContent = `
-          <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
-            🎉 You're Invited to Join a Team!
-          </h2>
-          
-          <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
-            <strong>${reassignedByName}</strong> has invited you to join <strong>${accountOwnerName}'s</strong> team on Recouply.ai, the AI-powered CashOps platform.
-          </p>
-
-          <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
-            <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
-              Your Role: ${role.charAt(0).toUpperCase() + role.slice(1)}
+        
+        if (isExistingUser) {
+          // Existing user who needs to accept the team invite
+          newUserSubject = `You're invited to join ${accountOwnerName}'s team on Recouply.ai`;
+          newUserBodyContent = `
+            <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
+              🎉 You've Been Invited to Join a Team!
+            </h2>
+            
+            <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+              <strong>${reassignedByName}</strong> has invited you to join <strong>${accountOwnerName}'s</strong> team on Recouply.ai.
             </p>
-            <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
-              You'll have access to the team's collections data and AI agents
+
+            <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+              <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
+                Your Role: ${role.charAt(0).toUpperCase() + role.slice(1)}
+              </p>
+              <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
+                You'll have access to the team's collections data and AI agents
+              </p>
+            </div>
+
+            <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; padding: 16px; margin: 24px 0;">
+              <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
+                <strong>✅ You already have an account!</strong> Just click below to accept the invitation and join the team.
+              </p>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${setupLink}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
+                Accept Invitation →
+              </a>
+            </div>
+
+            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
+              <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+                <strong>⏰ Important:</strong> This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+              </p>
+            </div>
+          `;
+        } else {
+          // Brand new user - needs to create account
+          newUserSubject = `You're invited to join ${accountOwnerName}'s team on Recouply.ai`;
+          newUserBodyContent = `
+            <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
+              🎉 You're Invited to Join a Team!
+            </h2>
+            
+            <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+              <strong>${reassignedByName}</strong> has invited you to join <strong>${accountOwnerName}'s</strong> team on Recouply.ai, the AI-powered CashOps platform.
             </p>
-          </div>
 
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${setupLink}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
-              Accept & Set Up Account →
-            </a>
-          </div>
+            <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+              <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
+                Your Role: ${role.charAt(0).toUpperCase() + role.slice(1)}
+              </p>
+              <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
+                You'll have access to the team's collections data and AI agents
+              </p>
+            </div>
 
-          <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; padding: 16px; margin: 24px 0;">
-            <h4 style="margin: 0 0 12px; color: #166534; font-size: 15px; font-weight: 600;">
-              📋 What happens next:
-            </h4>
-            <ol style="margin: 0; padding-left: 20px; color: #166534; font-size: 14px; line-height: 1.8;">
-              <li>Click the button above to accept the invitation</li>
-              <li>Create your account with a secure password</li>
-              <li>Complete your profile setup</li>
-              <li>Start collaborating with your team!</li>
-            </ol>
-          </div>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${setupLink}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);">
+                Accept & Set Up Account →
+              </a>
+            </div>
 
-          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
-            <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
-              <strong>⏰ Important:</strong> This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.
-            </p>
-          </div>
-        `;
+            <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; padding: 16px; margin: 24px 0;">
+              <h4 style="margin: 0 0 12px; color: #166534; font-size: 15px; font-weight: 600;">
+                📋 What happens next:
+              </h4>
+              <ol style="margin: 0; padding-left: 20px; color: #166534; font-size: 14px; line-height: 1.8;">
+                <li>Click the button above to accept the invitation</li>
+                <li>Create your account with a secure password</li>
+                <li>Complete your profile setup</li>
+                <li>Start collaborating with your team!</li>
+              </ol>
+            </div>
+
+            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
+              <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+                <strong>⏰ Important:</strong> This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+              </p>
+            </div>
+          `;
+        }
       }
 
       const newUserHtml = wrapEmailContent(newUserBodyContent, branding);
