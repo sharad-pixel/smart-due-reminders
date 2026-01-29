@@ -791,10 +791,12 @@ const Team = () => {
                           </div>
                         )}
                         {member.status === "pending" && (
-                          <Badge variant="outline" className="border-warning text-warning">Pending</Badge>
+                          <Badge variant="outline" className="border-warning text-warning">Invite Pending</Badge>
                         )}
                         {member.status === "reassigned" && (
-                          <Badge variant="outline" className="text-muted-foreground">Reassigned</Badge>
+                          <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-50">
+                            Reassignment in Process
+                          </Badge>
                         )}
                       </>
                     )}
@@ -898,6 +900,11 @@ const Team = () => {
                               Reassign
                             </Button>
                           </>
+                        )}
+                        {member.status === "reassigned" && (
+                          <span className="text-xs text-muted-foreground italic">
+                            Awaiting new member acceptance
+                          </span>
                         )}
                       </>
                     )}
