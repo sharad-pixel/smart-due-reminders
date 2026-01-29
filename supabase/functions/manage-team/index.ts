@@ -990,7 +990,7 @@ Deno.serve(async (req) => {
 
         if (!pendingMember) {
           return new Response(
-            JSON.stringify({ error: 'Team member not found' }),
+            JSON.stringify({ error: 'Pending invitation not found' }),
             { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -1032,23 +1032,78 @@ Deno.serve(async (req) => {
           .eq('id', managingAccountId)
           .single();
 
-        // Send invite email
-        try {
-          await supabaseClient.functions.invoke('send-team-invite', {
-            body: {
-              email: pendingMember.email,
-              role: pendingMember.role,
-              inviterName: inviterProfile?.name || inviterProfile?.email || 'A team admin',
-              accountOwnerName: ownerProfile?.name || 'your team',
-              inviteToken: inviteToken,
-            },
-          });
-          logStep('Resend invite email sent', { email: pendingMember.email });
-        } catch (emailError) {
-          logStep('Failed to resend invite email', { error: emailError });
+        const inviterName = inviterProfile?.name || inviterProfile?.email || 'A team admin';
+        const accountOwnerName = ownerProfile?.name || 'your team';
+
+        // Check if this is a reassignment (there's a previous reassigned entry for this account)
+        const { data: previousReassigned } = await supabaseClient
+          .from('account_users')
+          .select('id, email, user_id')
+          .eq('account_id', managingAccountId)
+          .eq('status', 'reassigned')
+          .order('disabled_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // If there's a previous reassigned user, get their profile for name
+        let oldUserName: string | null = null;
+        let oldUserEmail: string | null = null;
+        if (previousReassigned) {
+          oldUserEmail = previousReassigned.email;
+          if (previousReassigned.user_id) {
+            const { data: oldUserProfile } = await supabaseClient
+              .from('profiles')
+              .select('name, email')
+              .eq('id', previousReassigned.user_id)
+              .maybeSingle();
+            oldUserName = oldUserProfile?.name;
+            oldUserEmail = oldUserProfile?.email || previousReassigned.email;
+          }
         }
 
-        result = { success: true, message: 'Invitation resent successfully' };
+        // Determine if we should send reassignment email (with old user context) or regular invite
+        const isReassignment = previousReassigned && previousReassigned.email !== pendingMember.email;
+
+        try {
+          if (isReassignment) {
+            // Send reassignment email (includes context about the seat transfer)
+            await supabaseClient.functions.invoke('send-seat-reassignment', {
+              body: {
+                newUserEmail: pendingMember.email,
+                role: pendingMember.role,
+                inviteToken: inviteToken,
+                isExistingUser: false,
+                oldUserEmail: oldUserEmail,
+                oldUserName: oldUserName,
+                accountOwnerName: accountOwnerName,
+                reassignedByName: inviterName,
+              },
+            });
+            logStep('Resend reassignment invite email sent', { email: pendingMember.email, oldUserEmail });
+          } else {
+            // Send standard invite email
+            await supabaseClient.functions.invoke('send-team-invite', {
+              body: {
+                email: pendingMember.email,
+                role: pendingMember.role,
+                inviterName: inviterName,
+                accountOwnerName: accountOwnerName,
+                inviteToken: inviteToken,
+              },
+            });
+            logStep('Resend invite email sent', { email: pendingMember.email });
+          }
+        } catch (emailError) {
+          logStep('Failed to resend invite email', { error: emailError });
+          // Don't fail the whole operation if email fails
+        }
+
+        result = { 
+          success: true, 
+          message: isReassignment 
+            ? 'Reassignment invitation resent successfully' 
+            : 'Invitation resent successfully' 
+        };
         break;
       }
 
