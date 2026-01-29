@@ -38,6 +38,7 @@ const WhyCollectionsMatter = lazy(() => import("./pages/WhyCollectionsMatter"));
 const Personas = lazy(() => import("./pages/Personas"));
 const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
+const DesignPartners = lazy(() => import("./pages/DesignPartners"));
 const Careers = lazy(() => import("./pages/Careers"));
 
 // Blog Pages
@@ -140,7 +141,7 @@ const App = () => (
             <Route path="/coming-soon" element={<ComingSoon />} />
 
             {/* Marketing & Info Pages */}
-            <Route path="/design-partners" element={<ComingSoon />} />
+            <Route path="/design-partners" element={<DesignPartners />} />
             <Route path="/features" element={<Features />} />
             <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
             <Route path="/pricing" element={<Pricing />} />
