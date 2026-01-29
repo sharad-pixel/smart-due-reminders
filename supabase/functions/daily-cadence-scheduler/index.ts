@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
 
         const { data: branding } = await supabaseAdmin
           .from('branding_settings')
-          .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature')
+          .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature, auto_approve_drafts')
           .eq('user_id', brandingOwnerId)
           .single();
 
@@ -330,8 +330,9 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Determine draft status: auto-approve if workflow is approved OR template is approved
-        const draftStatus = (isWorkflowApproved || useTemplate) ? 'approved' : 'pending_approval';
+        // Determine draft status: auto-approve if workflow is approved, template is approved, OR user has auto_approve_drafts enabled
+        const shouldAutoApprove = isWorkflowApproved || useTemplate || branding?.auto_approve_drafts === true;
+        const draftStatus = shouldAutoApprove ? 'approved' : 'pending_approval';
 
         // Create the draft using UPSERT to handle race conditions
         // The unique constraint (invoice_id, step_number) will prevent duplicates
@@ -347,7 +348,7 @@ Deno.serve(async (req) => {
             status: draftStatus,
             recommended_send_date: todayStr,
             days_past_due: daysPastDue,
-            auto_approved: isWorkflowApproved || useTemplate
+            auto_approved: shouldAutoApprove
           }, {
             onConflict: 'invoice_id,step_number',
             ignoreDuplicates: true

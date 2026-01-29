@@ -196,10 +196,10 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Get branding settings
+        // Get branding settings (including auto_approve_drafts)
         const { data: branding } = await supabaseAdmin
           .from('branding_settings')
-          .select('*')
+          .select('*, auto_approve_drafts')
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
@@ -350,6 +350,14 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
+        // Determine draft status - auto-approve if enabled in branding settings
+        const autoApprove = branding?.auto_approve_drafts === true;
+        const draftStatus = autoApprove ? 'approved' : 'pending_approval';
+        
+        if (autoApprove) {
+          console.log(`Auto-approve enabled for user ${invoice.user_id}, creating approved draft`);
+        }
+
         // Create draft in database using the approved template
         const { error: draftError } = await supabaseAdmin
           .from('ai_drafts')
@@ -362,9 +370,10 @@ Deno.serve(async (req) => {
             step_number: nextStep.step_order,
             subject: processedSubject,
             message_body: processedBody,
-            status: 'pending_approval',
+            status: draftStatus,
             recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
             days_past_due: daysPastDue,
+            auto_approved: autoApprove,
           });
 
         if (draftError) {
