@@ -59,7 +59,14 @@ Deno.serve(async (req) => {
       reassignedByName
     } = body;
 
-    logStep('Processing reassignment emails', { newUserEmail, oldUserEmail, isExistingUser });
+    logStep('Processing reassignment emails', { 
+      newUserEmail, 
+      newUserName,
+      oldUserEmail, 
+      oldUserName,
+      isExistingUser,
+      hasInviteToken: !!inviteToken
+    });
 
     const siteUrl = Deno.env.get('SITE_URL') || 'https://recouply.ai';
     const results: { newUserSent: boolean; oldUserSent: boolean; errors: string[] } = {

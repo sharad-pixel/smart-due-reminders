@@ -744,25 +744,35 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Check if new email already exists in team
+        // Check if new email already exists in team (any status)
         const { data: existingMembers } = await supabaseClient
           .from('account_users')
-          .select('id, user_id, email, profiles!account_users_user_id_fkey (email)')
-          .eq('account_id', managingAccountId)
-          .neq('status', 'reassigned');
+          .select('id, user_id, email, status, profiles!account_users_user_id_fkey (email)')
+          .eq('account_id', managingAccountId);
 
-        const emailExists = existingMembers?.some(
+        // Find any existing entry with this email
+        const existingEntry = existingMembers?.find(
           (m: any) => 
             (m.email?.toLowerCase() === email.toLowerCase() || 
              m.profiles?.email?.toLowerCase() === email.toLowerCase()) && 
             m.id !== currentMember.id
         );
 
-        if (emailExists) {
+        // If email exists with active/pending/disabled status, reject
+        if (existingEntry && existingEntry.status !== 'reassigned') {
           return new Response(
             JSON.stringify({ error: 'This email is already a team member' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        }
+
+        // If email exists with 'reassigned' status, delete the old entry first to avoid unique constraint
+        if (existingEntry && existingEntry.status === 'reassigned') {
+          logStep('Cleaning up old reassigned entry', { email, existingEntryId: existingEntry.id });
+          await supabaseClient
+            .from('account_users')
+            .delete()
+            .eq('id', existingEntry.id);
         }
 
         // For pending invites, just update the email and resend with new token
