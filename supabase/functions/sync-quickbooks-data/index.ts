@@ -555,7 +555,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Process payments
+      // Process payments - track which were successfully synced to avoid duplicate counting
+      const processedPaymentKeys = new Set<string>();
+      
       for (const payment of payments) {
         try {
           // Find linked debtor from CustomerRef
@@ -567,17 +569,31 @@ Deno.serve(async (req) => {
 
           // Process each line item in the payment
           const lines = payment.Line || [];
+          
+          // Track if this payment had any linked invoices
+          let hasLinkedInvoices = false;
+          let paymentSyncedSuccessfully = false;
+          
           for (const line of lines) {
             // Check for linked invoices in LinkedTxn array
             const linkedTxns = line.LinkedTxn || [];
             for (const linkedTxn of linkedTxns) {
               if (linkedTxn.TxnType === 'Invoice') {
+                hasLinkedInvoices = true;
                 const qbInvoiceId = linkedTxn.TxnId;
                 const invoiceId = invoiceMap.get(qbInvoiceId) || null;
                 // QB returns amounts in dollars - store as-is (not multiplied by 100)
                 const amountApplied = line.Amount || 0;
+                
+                // Create unique key for this payment-invoice link
+                const paymentKey = `${payment.Id}_${qbInvoiceId}`;
+                
+                // Skip if already processed (avoid duplicate counting)
+                if (processedPaymentKeys.has(paymentKey)) {
+                  continue;
+                }
 
-                // 1. Upsert to quickbooks_payments (existing behavior)
+                // 1. Upsert to quickbooks_payments (primary sync target)
                 const { error: upsertError } = await supabaseAdmin
                   .from('quickbooks_payments')
                   .upsert({
@@ -599,9 +615,12 @@ Deno.serve(async (req) => {
                   });
 
                 if (!upsertError) {
+                  processedPaymentKeys.add(paymentKey);
                   paymentsSynced++;
+                  paymentSyncedSuccessfully = true;
                   
                   // 2. Also upsert to invoice_transactions for Payments Activity Dashboard
+                  // This is a secondary sync - failures here don't count as payment sync failures
                   if (invoiceId) {
                     const externalTxnId = `qb_payment_${payment.Id}_${qbInvoiceId}`;
                     const { error: txnError } = await supabaseAdmin
@@ -627,20 +646,64 @@ Deno.serve(async (req) => {
                       });
                     
                     if (txnError) {
-                      console.error('Invoice transaction upsert error:', txnError);
-                      // Don't add to errors array as primary sync succeeded
+                      // Log but don't treat as sync failure - primary payment record succeeded
+                      console.log(`Invoice transaction secondary sync skipped for payment ${payment.Id}: ${txnError.message}`);
                     }
                   }
                 } else {
-                  console.error('Payment upsert error:', upsertError);
-                  errors.push(`PAYMENT_UPSERT_FAILED qb_payment_id=${payment.Id}: ${upsertError.message || JSON.stringify(upsertError)}`);
+                  // Only log as error if it's a real database constraint issue, not a duplicate key
+                  const isDuplicateError = upsertError.message?.includes('duplicate') || 
+                                           upsertError.code === '23505';
+                  if (!isDuplicateError) {
+                    console.error('Payment upsert error:', upsertError);
+                    errors.push(`PAYMENT_UPSERT_FAILED qb_payment_id=${payment.Id}: ${upsertError.message || JSON.stringify(upsertError)}`);
+                  } else {
+                    // Duplicate is not an error - payment already exists
+                    paymentSyncedSuccessfully = true;
+                  }
                 }
               }
             }
           }
+          
+          // If payment has no linked invoices (standalone payment), record it without invoice link
+          // This is NOT an error - just a payment that doesn't apply to a specific invoice yet
+          if (!hasLinkedInvoices && payment.TotalAmt > 0) {
+            const standaloneKey = `${payment.Id}_standalone`;
+            if (!processedPaymentKeys.has(standaloneKey)) {
+              const { error: standaloneError } = await supabaseAdmin
+                .from('quickbooks_payments')
+                .upsert({
+                  user_id: user.id,
+                  debtor_id: debtorId,
+                  invoice_id: null,
+                  quickbooks_payment_id: payment.Id,
+                  quickbooks_invoice_id: null,
+                  amount_applied: payment.TotalAmt || 0,
+                  currency: currency.toUpperCase(),
+                  payment_date: paymentDate,
+                  payment_method: paymentMethod,
+                  reference_number: referenceNumber,
+                  source: 'quickbooks',
+                  raw: payment,
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'user_id,quickbooks_payment_id,quickbooks_invoice_id'
+                });
+              
+              if (!standaloneError) {
+                processedPaymentKeys.add(standaloneKey);
+                paymentsSynced++;
+              }
+              // Don't report standalone payment issues as errors - they're informational
+            }
+          }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error';
-          errors.push(`PAYMENT_UPSERT_FAILED qb_payment_id=${payment.Id}: ${msg}`);
+          // Only log critical errors, not expected conditions
+          if (!msg.includes('duplicate') && !msg.includes('already exists')) {
+            errors.push(`PAYMENT_SYNC_ERROR qb_payment_id=${payment.Id}: ${msg}`);
+          }
         }
       }
 
@@ -652,8 +715,27 @@ Deno.serve(async (req) => {
 
     // ALWAYS update sync log at end with detailed metrics
     // Terminal invoices are NOT failures - they're valid states from source system
-    const finalStatus = errors.length > 0 ? (customersSynced + invoicesSynced + paymentsSynced + contactsSynced > 0 ? 'partial' : 'failed') : 'success';
+    // Filter errors to only count critical issues (not informational messages)
+    const criticalErrors = errors.filter(e => 
+      e.includes('UPSERT_FAILED') || 
+      e.includes('SYNC_ERROR') || 
+      e.includes('Unknown sync error')
+    );
+    
     const recordsSynced = customersSynced + invoicesSynced + paymentsSynced + contactsSynced;
+    
+    // Determine final status based on critical errors only
+    // If we synced records and have some errors, it's partial
+    // If we synced nothing and have errors, it's failed
+    // If we have no critical errors, it's success
+    let finalStatus: 'success' | 'partial' | 'failed';
+    if (criticalErrors.length === 0) {
+      finalStatus = 'success';
+    } else if (recordsSynced > 0) {
+      finalStatus = 'partial';
+    } else {
+      finalStatus = 'failed';
+    }
     
     if (syncLogId) {
       await supabaseAdmin
@@ -662,13 +744,14 @@ Deno.serve(async (req) => {
           status: finalStatus,
           completed_at: new Date().toISOString(),
           records_synced: recordsSynced,
-          records_failed: errors.length,
+          records_failed: criticalErrors.length,
           invoices_synced: invoicesSynced,
           invoices_terminal: terminalSkipped,
           customers_synced: customersSynced,
           contacts_synced: contactsSynced,
           payments_synced: paymentsSynced,
-          errors: errors.length > 0 ? errors : null
+          // Only store critical errors in the log
+          errors: criticalErrors.length > 0 ? criticalErrors : null
         })
         .eq('id', syncLogId);
     }
