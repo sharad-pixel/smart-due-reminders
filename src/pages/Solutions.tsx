@@ -2,13 +2,25 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Home, Briefcase, Store, Building2 } from "lucide-react";
+import { Home, Briefcase, Store, Building2, User } from "lucide-react";
 import SEO from "@/components/SEO";
 
 const Solutions = () => {
   const navigate = useNavigate();
 
   const industries = [
+    {
+      icon: User,
+      title: "Solo Pro",
+      description: "For independent operators and sole proprietors",
+      benefits: [
+        "Full platform power at $49/month",
+        "All 6 AI agents with no feature limits",
+        "25 invoices included, pay-as-you-grow pricing",
+        "Enterprise-grade intelligence, solo-sized"
+      ],
+      link: "/solutions/solo-pro"
+    },
     {
       icon: Home,
       title: "Small Businesses",
