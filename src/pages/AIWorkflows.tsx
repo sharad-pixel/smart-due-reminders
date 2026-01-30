@@ -28,7 +28,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/OutreachStatusCards";
-import { OutreachStatusDashboard } from "@/components/OutreachStatusDashboard";
 
 interface WorkflowStep {
   id: string;
@@ -72,17 +71,6 @@ interface DraftsByPersona {
   };
 }
 
-interface RefreshResult {
-  workflowsCreated: number;
-  workflowsFixed: number;
-  skippedCurrent: number;
-  schedulerResult?: {
-    drafted: number;
-    sent: number;
-    failed: number;
-  };
-}
-
 const AIWorkflows = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -122,8 +110,6 @@ const AIWorkflows = () => {
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshResult, setRefreshResult] = useState<RefreshResult | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [isRunningEngine, setIsRunningEngine] = useState(false);
   const [engineResult, setEngineResult] = useState<{
@@ -173,48 +159,6 @@ const AIWorkflows = () => {
     },
     onError: () => toast.error("Failed to retry"),
   });
-
-  // Refresh outreach handler
-  const handleRefreshOutreach = async () => {
-    setIsRefreshing(true);
-    setRefreshResult(null);
-    try {
-      toast.info("Scanning all invoices and generating outreach...");
-      
-      const { data, error } = await supabase.functions.invoke("ensure-invoice-workflows", {
-        body: {},
-      });
-
-      if (error) {
-        console.error("Refresh error:", error);
-        toast.error("Failed to refresh outreach");
-        return;
-      }
-
-      const result = data as RefreshResult;
-      setRefreshResult(result);
-
-      const messages: string[] = [];
-      if (result?.workflowsCreated > 0) messages.push(`${result.workflowsCreated} workflow(s) assigned`);
-      if (result?.workflowsFixed > 0) messages.push(`${result.workflowsFixed} workflow(s) fixed`);
-      if (result?.schedulerResult?.drafted > 0) messages.push(`${result.schedulerResult.drafted} draft(s) created`);
-      if (result?.schedulerResult?.sent > 0) messages.push(`${result.schedulerResult.sent} email(s) sent`);
-      if (result?.skippedCurrent > 0) messages.push(`${result.skippedCurrent} current-bucket skipped`);
-
-      if (messages.length > 0) {
-        toast.success(messages.join(", "));
-      } else {
-        toast.success("All invoices are up to date");
-      }
-
-      refetchErrors();
-    } catch (err) {
-      console.error("Refresh exception:", err);
-      toast.error("Failed to refresh outreach");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   // Run the scheduled outreach engine manually
   const handleRunOutreachEngine = async () => {
@@ -1288,10 +1232,7 @@ const AIWorkflows = () => {
           </div>
         </div>
 
-        {/* New Simplified Outreach Dashboard */}
-        <OutreachStatusDashboard />
-
-        {/* Legacy Outreach Status Cards - kept for backwards compatibility */}
+        {/* Unified Outreach Status */}
         <OutreachStatusCards onRefresh={() => {
           fetchInvoiceCounts();
           fetchDraftsByPersona();
@@ -1745,57 +1686,18 @@ const AIWorkflows = () => {
                   </Button>
                 )}
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshOutreach}
-                  disabled={isRefreshing || isRunningEngine}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
-                  {isRefreshing ? "Processing..." : "Refresh Outreach"}
-                </Button>
-                <Button
                   size="sm"
                   onClick={handleRunOutreachEngine}
-                  disabled={isRunningEngine || isRefreshing}
+                  disabled={isRunningEngine}
                   className="bg-primary"
                 >
                   <Zap className={`h-4 w-4 mr-1 ${isRunningEngine ? "animate-pulse" : ""}`} />
-                  {isRunningEngine ? "Running Engine..." : "Run Outreach Engine"}
+                  {isRunningEngine ? "Running..." : "Run Outreach Engine"}
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Refresh Result Alert */}
-            {refreshResult && (
-              <Alert className="bg-primary/5 border-primary/20">
-                <Zap className="h-4 w-4" />
-                <AlertTitle>Outreach Refresh Complete</AlertTitle>
-                <AlertDescription>
-                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                    {refreshResult.workflowsCreated > 0 && (
-                      <span className="text-green-600 dark:text-green-400">✓ {refreshResult.workflowsCreated} workflow(s) assigned</span>
-                    )}
-                    {refreshResult.workflowsFixed > 0 && (
-                      <span className="text-blue-600 dark:text-blue-400">✓ {refreshResult.workflowsFixed} workflow(s) fixed</span>
-                    )}
-                    {refreshResult.schedulerResult?.drafted > 0 && (
-                      <span className="text-purple-600 dark:text-purple-400">✓ {refreshResult.schedulerResult.drafted} draft(s) created</span>
-                    )}
-                    {refreshResult.schedulerResult?.sent > 0 && (
-                      <span className="text-green-600 dark:text-green-400">✓ {refreshResult.schedulerResult.sent} email(s) sent</span>
-                    )}
-                    {refreshResult.schedulerResult?.failed > 0 && (
-                      <span className="text-red-600 dark:text-red-400">✗ {refreshResult.schedulerResult.failed} failed</span>
-                    )}
-                    {refreshResult.skippedCurrent > 0 && (
-                      <span className="text-muted-foreground">{refreshResult.skippedCurrent} current-bucket skipped</span>
-                    )}
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Engine Result Alert */}
             {engineResult && (
               <Alert className="bg-purple-500/10 border-purple-500/30">

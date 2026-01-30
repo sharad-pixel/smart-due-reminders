@@ -6374,6 +6374,7 @@ export type Database = {
         | "discarded"
         | "sent"
         | "skipped"
+        | "cancelled"
       invoice_status:
         | "Open"
         | "Paid"
@@ -6554,6 +6555,7 @@ export const Constants = {
         "discarded",
         "sent",
         "skipped",
+        "cancelled",
       ],
       invoice_status: [
         "Open",
