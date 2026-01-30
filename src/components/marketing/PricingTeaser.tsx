@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
 import { PLAN_CONFIGS, INVOICE_PRICING, SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 
-// Use centralized pricing config
+// Use centralized pricing config - Business plans only (excludes Solo Pro for teaser)
 const plans = [
   { name: "Starter", price: PLAN_CONFIGS.starter.monthlyPrice, invoices: "100", highlight: false },
   { name: "Growth", price: PLAN_CONFIGS.growth.monthlyPrice, invoices: "300", highlight: true },
@@ -50,7 +50,7 @@ const PricingTeaser = () => {
             Automate Collections for Less Than One Employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Starts at ${PLAN_CONFIGS.starter.monthlyPrice}/mo. Scales to Enterprise. 6 AI agents included.
+            Starts at ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo for independents. Business plans from ${PLAN_CONFIGS.starter.monthlyPrice}/mo.
           </p>
         </div>
 

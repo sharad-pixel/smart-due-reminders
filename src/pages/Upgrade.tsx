@@ -211,6 +211,7 @@ const Upgrade = () => {
     );
   }
 
+  // Business plans only - Solo Pro is excluded from upgrade page (for independents, not businesses)
   const plans = [
     { key: 'starter', ...PLAN_CONFIGS.starter, icon: Sparkles, popular: false },
     { key: 'growth', ...PLAN_CONFIGS.growth, icon: Zap, popular: true },
