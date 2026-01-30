@@ -1,37 +1,45 @@
 import { PLAN_CONFIGS, type PlanType } from './subscriptionConfig';
 
-// Stripe disconnected - all users get free access with 15 invoice limit
+// Plan features configuration
 export const PLAN_FEATURES = {
   free: {
     can_use_invoice_line_items: true,
-    invoice_limit: 15,
+    invoice_limit: 5,
+    can_have_team_users: false,
+    can_manage_roles: false,
+    max_invited_users: 0,
+    max_agents: 6,
+  },
+  solo_pro: {
+    can_use_invoice_line_items: true,
+    invoice_limit: 25,
     can_have_team_users: true,
     can_manage_roles: true,
-    max_invited_users: 5,
+    max_invited_users: 1,
     max_agents: 6,
   },
   starter: {
     can_use_invoice_line_items: true,
     invoice_limit: 100,
-    can_have_team_users: false,
-    can_manage_roles: false,
-    max_invited_users: 0,
-    max_agents: 2,
+    can_have_team_users: true,
+    can_manage_roles: true,
+    max_invited_users: 10,
+    max_agents: 6,
   },
   growth: {
     can_use_invoice_line_items: true,
     invoice_limit: 300,
     can_have_team_users: true,
-    can_manage_roles: false,
-    max_invited_users: 3,
-    max_agents: 5,
+    can_manage_roles: true,
+    max_invited_users: 25,
+    max_agents: 6,
   },
   professional: {
     can_use_invoice_line_items: true,
     invoice_limit: 500,
     can_have_team_users: true,
     can_manage_roles: true,
-    max_invited_users: 10,
+    max_invited_users: 50,
     max_agents: 6,
   },
   enterprise: {

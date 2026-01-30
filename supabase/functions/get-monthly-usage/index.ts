@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
       if (!plan) {
         const planTypeLimits: Record<string, number> = {
           'free': 5, // Free tier now has 5 invoice limit (same as trial)
+          'solo_pro': 25, // Solo Pro: $49/mo, 25 invoices
           'starter': 100,
           'growth': 300,
           'professional': 500,

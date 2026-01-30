@@ -27,11 +27,14 @@ const logStep = (step: string, details?: any) => {
 };
 
 // ============================================================================
-// STRIPE PRICE ID TO PLAN MAPPING - Updated December 2024
+// STRIPE PRICE ID TO PLAN MAPPING - Updated January 2025
 // Maps both monthly and annual price IDs to plan types
-// New pricing: Starter $199, Growth $499, Professional $799
+// New pricing: Solo Pro $49, Starter $199, Growth $499, Professional $799
 // ============================================================================
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
+  // Solo Pro prices (January 2025)
+  'price_1SvLJHBfb0dWgtCDMHCSyVWo': 'solo_pro',    // $49/month
+  'price_1SvLJMBfb0dWgtCDxlaprYD9': 'solo_pro',    // annual
   // Current monthly prices (December 2024)
   'price_1ScbGXBfb0dWgtCDpDqTtrC7': 'starter',      // $199/month
   'price_1ScbGbBfb0dWgtCDLjXblCw4': 'growth',       // $499/month

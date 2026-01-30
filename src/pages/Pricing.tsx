@@ -25,6 +25,18 @@ import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 
 const plans = [
   {
+    name: "Solo Pro",
+    monthlyPrice: PLAN_CONFIGS.solo_pro.monthlyPrice,
+    annualPrice: PLAN_CONFIGS.solo_pro.annualPrice,
+    equivalentMonthly: PLAN_CONFIGS.solo_pro.equivalentMonthly,
+    period: "/month",
+    invoiceLimit: "Up to 25 active invoices/month",
+    description: "Perfect for independent operators and sole proprietors.",
+    cta: "Start 7-Day Trial",
+    planType: "solo_pro",
+    popular: false
+  },
+  {
     name: "Starter",
     monthlyPrice: PLAN_CONFIGS.starter.monthlyPrice,
     annualPrice: PLAN_CONFIGS.starter.annualPrice,
@@ -95,6 +107,11 @@ const enterpriseFeatures = [
 
 const icpBenefits = [
   {
+    title: "Solo Operators",
+    description: "Independent consultants and sole proprietors with lean operations needing full platform power",
+    link: "/solutions/solo-pro"
+  },
+  {
     title: "Small Businesses",
     description: "Six AI-assisted agents guiding follow-ups, payment links in every message, risk-aware workflows",
     link: "/solutions/small-businesses"
@@ -108,11 +125,6 @@ const icpBenefits = [
     title: "SaaS Companies",
     description: "Reduce revenue leakage with proactive intelligence, Finance & RevOps-friendly workflows",
     link: "/solutions/saas"
-  },
-  {
-    title: "SMB & Local Services",
-    description: "Risk-aware collections, intelligence that compounds, designed to preserve customer relationships",
-    link: "/solutions/small-businesses"
   }
 ];
 
@@ -273,7 +285,7 @@ const Pricing = () => {
         </div>
 
         <div className="container mx-auto max-w-7xl px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
             {plans.map((plan) => (
               <div
                 key={plan.name}

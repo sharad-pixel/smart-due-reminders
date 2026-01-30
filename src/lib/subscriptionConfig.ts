@@ -1,7 +1,8 @@
 /**
  * Stripe Subscription Configuration
  * 
- * PRICING STRUCTURE (Updated December 2024):
+ * PRICING STRUCTURE (Updated January 2025):
+ * - Solo Pro: $49/month (25 invoices)
  * - Starter: $199/month
  * - Growth: $499/month
  * - Professional: $799/month
@@ -18,11 +19,13 @@
 
 export const STRIPE_PRICES = {
   monthly: {
+    solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',     // $49/month - 25 invoices
     starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',      // $199/month - 100 invoices
     growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',       // $499/month - 300 invoices
     professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ', // $799/month - 500 invoices
   },
   annual: {
+    solo_pro: 'price_1SvLJMBfb0dWgtCDxlaprYD9',     // $470.40/year - 25 invoices
     starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $1,910.40/year - 100 invoices
     growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $4,790.40/year - 300 invoices
     professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $7,670.40/year - 500 invoices
@@ -37,6 +40,8 @@ export const STRIPE_PRICES = {
 } as const;
 
 export const STRIPE_PRODUCTS = {
+  solo_pro: 'prod_Tt7YjFBzHHYQop',
+  solo_proAnnual: 'prod_Tt7Y4h6hvnrUzF',
   starter: 'prod_TZkmWC1MyKQXpP',
   starterAnnual: 'prod_TZkm7G0Mg8x9se',
   growth: 'prod_TZkmds8B5fChZF',
@@ -102,7 +107,7 @@ export function calculateEquivalentMonthly(annualPrice: number): number {
   return Math.round((annualPrice / 12) * 100) / 100;
 }
 
-export type PlanType = 'free' | 'starter' | 'growth' | 'professional' | 'enterprise';
+export type PlanType = 'free' | 'solo_pro' | 'starter' | 'growth' | 'professional' | 'enterprise';
 export type BillingInterval = 'month' | 'year';
 
 export interface PlanConfig {
@@ -120,6 +125,24 @@ export interface PlanConfig {
 
 // Plan configurations with updated pricing
 export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
+  solo_pro: {
+    name: 'solo_pro',
+    displayName: 'Solo Pro',
+    monthlyPrice: 49,
+    annualPrice: calculateAnnualPrice(49),          // $470.40/year
+    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(49)), // $39.20/month
+    invoiceLimit: 25,
+    perInvoiceRate: INVOICE_PRICING.perInvoice,
+    maxAgents: 6,
+    features: [
+      'Up to 25 invoices/month',
+      'All 6 AI collection agents',
+      'Stripe & QuickBooks integrations',
+      'Email campaigns',
+      'Full automation suite',
+      'Collection intelligence dashboard',
+    ],
+  },
   starter: {
     name: 'starter',
     displayName: 'Starter',
