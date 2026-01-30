@@ -119,6 +119,11 @@ export const PAGE_SEO = {
     description: 'Tailored collection intelligence solutions for SaaS, professional services, and small businesses. Industry-specific workflows and integrations.',
     keywords: 'AR solutions, industry AR automation, SaaS collections, professional services AR',
   },
+  soloPro: {
+    title: 'Solo Pro Plan | Full AI Collections for Independent Operators | Recouply.ai',
+    description: 'Full-powered AI collection platform for sole proprietors and independent operators. $49/month for 25 invoices with all 6 AI agents and complete automation.',
+    keywords: 'solo collections software, independent operator billing, freelancer invoice collection, sole proprietor AR automation',
+  },
 };
 
 // Structured data generators

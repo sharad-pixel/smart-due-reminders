@@ -81,8 +81,15 @@ Deno.serve(async (req) => {
         can_manage_roles: false,
         max_invited_users: 0,
       },
+      solo_pro: {
+        can_use_invoice_line_items: true,
+        invoice_limit: 25,
+        can_have_team_users: true,
+        can_manage_roles: true,
+        max_invited_users: 1,
+      },
       starter: {
-        can_use_invoice_line_items: false,
+        can_use_invoice_line_items: true,
         invoice_limit: 100,
         can_have_team_users: true,
         can_manage_roles: true,

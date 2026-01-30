@@ -26,6 +26,7 @@ const Solutions = lazy(() => import("./pages/Solutions"));
 const SmallBusinesses = lazy(() => import("./pages/solutions/SmallBusinesses"));
 const SaaS = lazy(() => import("./pages/solutions/SaaS"));
 const ProfessionalServices = lazy(() => import("./pages/solutions/ProfessionalServices"));
+const SoloPro = lazy(() => import("./pages/solutions/SoloPro"));
 const Startups = lazy(() => import("./pages/Startups"));
 const SMB = lazy(() => import("./pages/SMB"));
 const Enterprise = lazy(() => import("./pages/Enterprise"));
@@ -149,6 +150,7 @@ const App = () => (
             <Route path="/ai-command-center" element={<AICommandCenter />} />
             <Route path="/why-collections-matter" element={<WhyCollectionsMatter />} />
             <Route path="/solutions" element={<Solutions />} />
+            <Route path="/solutions/solo-pro" element={<SoloPro />} />
             <Route path="/solutions/small-businesses" element={<SmallBusinesses />} />
             <Route path="/solutions/saas" element={<SaaS />} />
             <Route path="/solutions/professional-services" element={<ProfessionalServices />} />

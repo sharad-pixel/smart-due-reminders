@@ -22,17 +22,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Updated price IDs - December 2024
+// Updated price IDs - January 2025
 const PRICE_IDS: Record<string, Record<string, string>> = {
   month: {
+    solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',     // $49/month
     starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',      // $199/month
     growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',       // $499/month
     professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ', // $799/month
   },
   year: {
-    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $191,040/year (annual)
-    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $479,040/year (annual)
-    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $767,040/year (annual)
+    solo_pro: 'price_1SvLJMBfb0dWgtCDxlaprYD9',     // $470.40/year (annual)
+    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $1,910.40/year (annual)
+    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $4,790.40/year (annual)
+    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $7,670.40/year (annual)
   }
 };
 
