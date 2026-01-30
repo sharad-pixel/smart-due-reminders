@@ -7,47 +7,62 @@ import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Stripe plan configuration
+// Stripe plan configuration - includes all plans for checkout
 const STRIPE_PLANS = [
+  {
+    id: 'solo_pro',
+    name: 'Solo Pro',
+    priceId: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',
+    productId: 'prod_Tt7YjFBzHHYQop',
+    price: 49,
+    description: '25 invoices per month with AI-powered collections',
+    features: [
+      "Up to 25 invoices per month",
+      "All 6 AI collection agents",
+      "Stripe & QuickBooks integrations",
+      "Email campaigns",
+      "Full automation suite"
+    ]
+  },
   {
     id: 'starter',
     name: 'Starter Plan',
-    priceId: 'price_1SX2cyFaeMMSBqclAGkxSliI',
-    productId: 'prod_TU0eI8uJBt4uFu',
-    price: 99,
-    description: '50 invoices per month with AI-powered collections',
+    priceId: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',
+    productId: 'prod_TZkmWC1MyKQXpP',
+    price: 199,
+    description: '100 invoices per month with AI-powered collections',
     features: [
-      "Up to 50 invoices per month",
-      "AI email reminders",
-      "Manual SMS sending",
-      "Stripe payment link embedding",
-      "Dashboard analytics"
+      "Up to 100 invoices per month",
+      "All 6 AI collection agents",
+      "Stripe & QuickBooks integrations",
+      "Email campaigns",
+      "Full automation suite"
     ]
   },
   {
     id: 'growth',
     name: 'Growth Plan',
-    priceId: 'price_1SX2dkFaeMMSBqclPIjUA6N2',
-    productId: 'prod_TU0f7AKZA4QVKe',
-    price: 199,
-    description: '200 invoices per month with AI-powered collections',
+    priceId: 'price_1ScbGbBfb0dWgtCDLjXblCw4',
+    productId: 'prod_TZkmds8B5fChZF',
+    price: 499,
+    description: '300 invoices per month with AI-powered collections',
     features: [
-      "Up to 200 invoices per month",
-      "Full AI cadence automation",
-      "Automated SMS sending",
+      "Up to 300 invoices per month",
+      "All 6 AI collection agents",
+      "Multi-user support",
       "Promise-to-pay tracking",
-      "Multi-user support"
+      "Advanced analytics"
     ]
   },
   {
     id: 'professional',
     name: 'Professional Plan',
-    priceId: 'price_1SX2duFaeMMSBqclrYq4rikr',
-    productId: 'prod_TU0fTQf4l1UgT9',
-    price: 399,
+    priceId: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ',
+    productId: 'prod_TZkm0viKFTgHDi',
+    price: 799,
     description: '500 invoices per month with AI-powered collections and team features',
     features: [
-      "Unlimited invoices",
+      "Up to 500 invoices per month",
       "Team permissions",
       "Priority AI throughput",
       "Advanced CRM integration",
