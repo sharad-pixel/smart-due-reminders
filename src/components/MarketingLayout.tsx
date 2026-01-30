@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
-import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck } from "lucide-react";
+import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck, User } from "lucide-react";
 import { useState } from "react";
 
 interface MarketingLayoutProps {
@@ -74,6 +74,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   ];
 
   const solutionsItems = [
+    { icon: User, title: "Solo Pro", description: "Full power for independents", path: "/solutions/solo-pro" },
     { icon: Rocket, title: "Startups", description: "Scale collections from day one", path: "/startups" },
     { icon: Users, title: "SMB", description: "Right-sized for growing teams", path: "/smb" },
     { icon: Building2, title: "Enterprise", description: "Full-scale deployment", path: "/enterprise" },
