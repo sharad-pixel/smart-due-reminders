@@ -136,7 +136,7 @@ const Security = () => {
             </p>
             <div className="flex justify-center pt-6">
               <Button size="lg" variant="outline" asChild>
-                <a href="#contact">Contact Security Team</a>
+                <Link to="/contact-us">Contact Security Team</Link>
               </Button>
             </div>
           </div>
@@ -403,82 +403,6 @@ const Security = () => {
         </div>
       </section>
 
-      {/* Contact Security Team */}
-      <section id="contact" className="py-20 px-4">
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4 mx-auto">
-                <Mail className="h-8 w-8 text-primary" />
-              </div>
-              <CardTitle className="text-2xl md:text-3xl">Contact Our Security Team</CardTitle>
-              <CardDescription className="text-base">
-                Need more information about our security or compliance practices? 
-                We're here to help.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                      placeholder="john@company.com"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company *</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    required
-                    placeholder="Acme Inc."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message *</Label>
-                  <Textarea
-                    id="message"
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    required
-                    rows={5}
-                    placeholder="Tell us about your security or compliance inquiry..."
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                  <p className="text-sm text-muted-foreground">
-                    Or email us directly at{" "}
-                    <a href="mailto:security@recouply.ai" className="text-primary hover:underline">
-                      security@recouply.ai
-                    </a>
-                  </p>
-                  <Button type="submit" size="lg" disabled={submitting}>
-                    {submitting ? "Sending..." : "Send Message"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
 
       {/* Footer CTA */}
       <section className="py-20 px-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
