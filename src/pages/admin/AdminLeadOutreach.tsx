@@ -13,16 +13,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { useDropzone } from "react-dropzone";
-import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, BarChart3, Zap, Search, UserPlus } from "lucide-react";
+import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, BarChart3, Zap, Search, UserPlus, ClipboardPaste } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MarketingLeadStats } from "@/components/admin/MarketingLeadStats";
 import { MarketingCampaignCard } from "@/components/admin/MarketingCampaignCard";
 import { LeadSegmentFilter } from "@/components/admin/LeadSegmentFilter";
 import { CreateCampaignModal, CampaignFormData } from "@/components/admin/CreateCampaignModal";
 import { LeadScoreBadge } from "@/components/admin/LeadScoreBadge";
+import { BulkEmailImportModal } from "@/components/admin/BulkEmailImportModal";
+import { BroadcastActionsCard } from "@/components/admin/BroadcastActionsCard";
 
 interface MarketingLead {
   id: string;
@@ -46,12 +58,14 @@ interface EmailBroadcast {
   id: string;
   subject: string;
   body_html: string;
+  body_text?: string | null;
   status: string;
   total_recipients: number | null;
   sent_count: number | null;
   failed_count: number | null;
   sent_at: string | null;
   created_at: string;
+  audience?: string | null;
 }
 
 interface MarketingCampaign {
@@ -81,8 +95,11 @@ export default function AdminLeadOutreach() {
   const [showCompose, setShowCompose] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showDeleteCampaign, setShowDeleteCampaign] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [activeSegment, setActiveSegment] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -313,6 +330,125 @@ export default function AdminLeadOutreach() {
     },
   });
 
+  // Delete campaign mutation
+  const deleteCampaignMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // First unassign all leads from this campaign
+      await supabase
+        .from("marketing_leads")
+        .update({ campaign_id: null })
+        .eq("campaign_id", id);
+      
+      const { error } = await supabase.from("marketing_campaigns").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Campaign deleted");
+      setShowDeleteCampaign(null);
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns", "marketing-leads"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Delete broadcasts mutation
+  const deleteBroadcastsMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("email_broadcasts").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Broadcasts deleted");
+      queryClient.invalidateQueries({ queryKey: ["email-broadcasts"] });
+    },
+  });
+
+  // Bulk import leads
+  const bulkImportLeads = async (emails: string[], segment: string, leadScore: number) => {
+    setIsImporting(true);
+    try {
+      const leadsToInsert = emails.map(email => ({
+        email,
+        segment,
+        lead_score: leadScore,
+        source: "bulk_paste",
+        status: "active",
+      }));
+
+      let inserted = 0;
+      const batchSize = 100;
+
+      for (let i = 0; i < leadsToInsert.length; i += batchSize) {
+        const batch = leadsToInsert.slice(i, i + batchSize);
+        const { data: insertedData } = await supabase
+          .from("marketing_leads")
+          .upsert(batch, { onConflict: "email", ignoreDuplicates: true })
+          .select();
+        inserted += insertedData?.length || 0;
+      }
+
+      const duplicates = emails.length - inserted;
+      toast.success(`Imported ${inserted} leads${duplicates > 0 ? ` (${duplicates} duplicates skipped)` : ""}`);
+      setShowBulkImport(false);
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
+    } catch (err) {
+      console.error("Bulk import error:", err);
+      toast.error("Failed to import leads");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Assign bulk imported emails to campaign
+  const assignEmailsToCampaign = async (emails: string[], campaignId: string) => {
+    try {
+      const { error } = await supabase
+        .from("marketing_leads")
+        .update({ campaign_id: campaignId })
+        .in("email", emails);
+      if (error) throw error;
+
+      // Update campaign lead count
+      const { data: count } = await supabase
+        .from("marketing_leads")
+        .select("id", { count: "exact" })
+        .eq("campaign_id", campaignId);
+      
+      await supabase
+        .from("marketing_campaigns")
+        .update({ total_leads: count?.length || 0 })
+        .eq("id", campaignId);
+
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns"] });
+    } catch (err) {
+      console.error("Campaign assignment error:", err);
+    }
+  };
+
+  // Duplicate broadcast for resend
+  const handleDuplicateBroadcast = (broadcast: EmailBroadcast) => {
+    setEmailForm({
+      subject: broadcast.subject,
+      body_html: broadcast.body_html,
+      body_text: broadcast.body_text || "",
+    });
+    setShowCompose(true);
+    toast.info("Broadcast content loaded. Edit and send!");
+  };
+
+  // Resend broadcast
+  const handleResendBroadcast = async (broadcast: EmailBroadcast) => {
+    setEmailForm({
+      subject: broadcast.subject,
+      body_html: broadcast.body_html,
+      body_text: broadcast.body_text || "",
+    });
+    setShowCompose(true);
+  };
+
+
+
   // CSV Upload handler
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -530,6 +666,10 @@ export default function AdminLeadOutreach() {
             <Button variant="outline" onClick={() => { refetchLeads(); refetchCampaigns(); }}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
+            </Button>
+            <Button variant="outline" onClick={() => setShowBulkImport(true)}>
+              <ClipboardPaste className="h-4 w-4 mr-2" />
+              Paste Emails
             </Button>
             <Button variant="outline" onClick={() => setShowCreateCampaign(true)}>
               <Target className="h-4 w-4 mr-2" />
@@ -975,6 +1115,15 @@ export default function AdminLeadOutreach() {
                     campaign={campaign}
                     onToggleStatus={(id, status) => updateCampaignStatus.mutate({ id, status })}
                     onViewDetails={(c) => toast.info(`Campaign details for ${c.name}`)}
+                    onDelete={(id) => setShowDeleteCampaign(id)}
+                    onDuplicate={(c) => {
+                      setShowCreateCampaign(true);
+                      toast.info("Edit campaign details to duplicate");
+                    }}
+                    onSendToLeads={(c) => {
+                      setSelectedCampaignId(c.id);
+                      setShowCompose(true);
+                    }}
                   />
                 ))}
               </div>
@@ -982,69 +1131,14 @@ export default function AdminLeadOutreach() {
           </TabsContent>
 
           <TabsContent value="broadcasts" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Broadcast History</CardTitle>
-                <CardDescription>Recent email broadcasts and their performance</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {broadcastsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : broadcasts.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Mail className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No broadcasts sent yet.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Recipients</TableHead>
-                        <TableHead>Sent</TableHead>
-                        <TableHead>Failed</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {broadcasts.map((broadcast) => (
-                        <TableRow key={broadcast.id}>
-                          <TableCell className="font-medium max-w-[300px] truncate">
-                            {broadcast.subject}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                broadcast.status === "completed"
-                                  ? "default"
-                                  : broadcast.status === "sending"
-                                  ? "secondary"
-                                  : broadcast.status === "failed"
-                                  ? "destructive"
-                                  : "outline"
-                              }
-                            >
-                              {broadcast.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{broadcast.total_recipients || 0}</TableCell>
-                          <TableCell className="text-green-600">{broadcast.sent_count || 0}</TableCell>
-                          <TableCell className="text-red-600">{broadcast.failed_count || 0}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {broadcast.sent_at
-                              ? format(new Date(broadcast.sent_at), "MMM d, yyyy h:mm a")
-                              : format(new Date(broadcast.created_at), "MMM d, yyyy")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+            <BroadcastActionsCard
+              broadcasts={broadcasts}
+              isLoading={broadcastsLoading}
+              onDelete={(ids) => deleteBroadcastsMutation.mutate(ids)}
+              onResend={handleResendBroadcast}
+              onDuplicate={handleDuplicateBroadcast}
+              isDeleting={deleteBroadcastsMutation.isPending}
+            />
           </TabsContent>
         </Tabs>
 
@@ -1061,6 +1155,37 @@ export default function AdminLeadOutreach() {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Bulk Import Modal */}
+        <BulkEmailImportModal
+          open={showBulkImport}
+          onOpenChange={setShowBulkImport}
+          onImport={bulkImportLeads}
+          isImporting={isImporting}
+          campaigns={campaigns.filter(c => c.status !== "completed").map(c => ({ id: c.id, name: c.name }))}
+          onAssignToCampaign={assignEmailsToCampaign}
+        />
+
+        {/* Delete Campaign Confirmation */}
+        <AlertDialog open={!!showDeleteCampaign} onOpenChange={() => setShowDeleteCampaign(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Campaign?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this campaign. Leads assigned to this campaign will be unassigned but not deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => showDeleteCampaign && deleteCampaignMutation.mutate(showDeleteCampaign)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Create Campaign Modal */}
         <CreateCampaignModal

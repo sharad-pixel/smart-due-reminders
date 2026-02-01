@@ -2,7 +2,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, BarChart2, Users, Mail, MousePointerClick, Target } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Play, 
+  Pause, 
+  BarChart2, 
+  Users, 
+  Mail, 
+  MousePointerClick, 
+  Target, 
+  MoreVertical,
+  Trash2,
+  Edit,
+  Copy,
+  Send
+} from "lucide-react";
 import { format } from "date-fns";
 
 interface MarketingCampaign {
@@ -26,6 +46,9 @@ interface MarketingCampaignCardProps {
   campaign: MarketingCampaign;
   onToggleStatus: (id: string, newStatus: string) => void;
   onViewDetails: (campaign: MarketingCampaign) => void;
+  onDelete?: (id: string) => void;
+  onDuplicate?: (campaign: MarketingCampaign) => void;
+  onSendToLeads?: (campaign: MarketingCampaign) => void;
 }
 
 const campaignTypeColors: Record<string, string> = {
@@ -47,6 +70,9 @@ export const MarketingCampaignCard = ({
   campaign,
   onToggleStatus,
   onViewDetails,
+  onDelete,
+  onDuplicate,
+  onSendToLeads,
 }: MarketingCampaignCardProps) => {
   const openRate = campaign.emails_sent && campaign.opens
     ? ((campaign.opens / campaign.emails_sent) * 100).toFixed(1)
@@ -62,21 +88,56 @@ export const MarketingCampaignCard = ({
     <Card className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{campaign.name}</CardTitle>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg truncate">{campaign.name}</CardTitle>
             {campaign.description && (
               <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
                 {campaign.description}
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 ml-2">
             <Badge className={campaignTypeColors[campaign.campaign_type] || "bg-slate-100"}>
               {campaign.campaign_type}
             </Badge>
             <Badge className={statusColors[campaign.status] || "bg-slate-100"}>
               {campaign.status}
             </Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onViewDetails(campaign)}>
+                  <BarChart2 className="h-4 w-4 mr-2" />
+                  View Details
+                </DropdownMenuItem>
+                {onSendToLeads && campaign.total_leads && campaign.total_leads > 0 && (
+                  <DropdownMenuItem onClick={() => onSendToLeads(campaign)}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send to Leads
+                  </DropdownMenuItem>
+                )}
+                {onDuplicate && (
+                  <DropdownMenuItem onClick={() => onDuplicate(campaign)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {onDelete && (
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(campaign.id)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Campaign
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
