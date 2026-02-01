@@ -4168,14 +4168,140 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_campaigns: {
+        Row: {
+          campaign_type: string
+          clicks: number | null
+          conversions: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          emails_sent: number | null
+          ends_at: string | null
+          id: string
+          min_lead_score: number | null
+          name: string
+          opens: number | null
+          started_at: string | null
+          status: string
+          target_company_size: string | null
+          target_industry: string | null
+          target_segment: string | null
+          total_leads: number | null
+          updated_at: string
+        }
+        Insert: {
+          campaign_type?: string
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails_sent?: number | null
+          ends_at?: string | null
+          id?: string
+          min_lead_score?: number | null
+          name: string
+          opens?: number | null
+          started_at?: string | null
+          status?: string
+          target_company_size?: string | null
+          target_industry?: string | null
+          target_segment?: string | null
+          total_leads?: number | null
+          updated_at?: string
+        }
+        Update: {
+          campaign_type?: string
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails_sent?: number | null
+          ends_at?: string | null
+          id?: string
+          min_lead_score?: number | null
+          name?: string
+          opens?: number | null
+          started_at?: string | null
+          status?: string
+          target_company_size?: string | null
+          target_industry?: string | null
+          target_segment?: string | null
+          total_leads?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_lead_activities: {
+        Row: {
+          activity_type: string
+          broadcast_id: string | null
+          campaign_id: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          activity_type: string
+          broadcast_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          activity_type?: string
+          broadcast_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_lead_activities_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "email_broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_lead_activities_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_leads: {
         Row: {
+          campaign_id: string | null
           company: string | null
+          company_size: string | null
           created_at: string
           created_by: string | null
           email: string
           id: string
+          industry: string | null
+          last_engaged_at: string | null
+          lead_score: number | null
+          lifecycle_stage: string | null
           name: string | null
+          notes: string | null
+          segment: string | null
           source: string | null
           status: string
           tags: string[] | null
@@ -4183,12 +4309,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          campaign_id?: string | null
           company?: string | null
+          company_size?: string | null
           created_at?: string
           created_by?: string | null
           email: string
           id?: string
+          industry?: string | null
+          last_engaged_at?: string | null
+          lead_score?: number | null
+          lifecycle_stage?: string | null
           name?: string | null
+          notes?: string | null
+          segment?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
@@ -4196,12 +4330,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          campaign_id?: string | null
           company?: string | null
+          company_size?: string | null
           created_at?: string
           created_by?: string | null
           email?: string
           id?: string
+          industry?: string | null
+          last_engaged_at?: string | null
+          lead_score?: number | null
+          lifecycle_stage?: string | null
           name?: string | null
+          notes?: string | null
+          segment?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
