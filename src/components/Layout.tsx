@@ -576,12 +576,9 @@ const Layout = ({ children }: LayoutProps) => {
               <Link to="/legal/terms" className="hover:text-foreground transition-colors">
                 Terms of Service
               </Link>
-              <a 
-                href="mailto:support@recouply.ai" 
-                className="hover:text-foreground transition-colors"
-              >
+              <Link to="/contact-us" className="hover:text-foreground transition-colors">
                 Support
-              </a>
+              </Link>
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
                 <ShieldCheck className="h-3 w-3 text-primary" />
                 <span className="text-xs font-medium text-primary">Responsible AI</span>
