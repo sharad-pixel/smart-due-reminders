@@ -211,12 +211,16 @@ const Upgrade = () => {
     );
   }
 
-  // Business plans only - Solo Pro is excluded from upgrade page (for independents, not businesses)
-  const plans = [
-    { key: 'starter', ...PLAN_CONFIGS.starter, icon: Sparkles, popular: false },
-    { key: 'growth', ...PLAN_CONFIGS.growth, icon: Zap, popular: true },
-    { key: 'professional', ...PLAN_CONFIGS.professional, icon: Crown, popular: false },
+  // All plans available for upgrade - Solo Pro for independents, business plans for teams
+  const allPlans = [
+    { key: 'solo_pro', ...PLAN_CONFIGS.solo_pro, icon: Sparkles, popular: false, forIndividuals: true },
+    { key: 'starter', ...PLAN_CONFIGS.starter, icon: Sparkles, popular: false, forIndividuals: false },
+    { key: 'growth', ...PLAN_CONFIGS.growth, icon: Zap, popular: true, forIndividuals: false },
+    { key: 'professional', ...PLAN_CONFIGS.professional, icon: Crown, popular: false, forIndividuals: false },
   ];
+
+  // Show all plans - users can choose based on their needs
+  const plans = allPlans;
 
   const discountPercent = Math.round(ANNUAL_DISCOUNT_RATE * 100);
   const isOnFreePlan = currentPlan === 'free';
@@ -343,7 +347,7 @@ const Upgrade = () => {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {plans.map((plan) => {
             const isCurrentPlan = currentPlan === plan.key;
             const Icon = plan.icon;
