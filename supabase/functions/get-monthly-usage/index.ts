@@ -222,18 +222,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Count actual Open and InPaymentPlan invoices created this month (use effective account ID)
-    const monthStart = `${currentMonth}-01`;
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const monthEnd = nextMonth.toISOString().split('T')[0];
-
+    // Count ALL active Open and InPaymentPlan invoices (not just current month)
+    // This is the correct approach for usage-based billing - we count all active invoices
     const { data: countableInvoices, error: countError } = await supabaseClient
       .from('invoices')
       .select('id, is_overage')
       .eq('user_id', accountId)
-      .in('status', ['Open', 'InPaymentPlan'])
-      .gte('created_at', monthStart)
-      .lt('created_at', monthEnd);
+      .in('status', ['Open', 'InPaymentPlan']);
 
     if (countError) {
       throw new Error(`Error counting invoices: ${countError.message}`);
@@ -247,7 +242,7 @@ Deno.serve(async (req) => {
     const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
     const isOverLimit = actualInvoicesUsed > includedAllowance;
 
-    logStep("Actual invoice count", {
+    logStep("Active invoice count", {
       total: actualInvoicesUsed,
       included: includedInvoicesUsed,
       overage: overageInvoices
