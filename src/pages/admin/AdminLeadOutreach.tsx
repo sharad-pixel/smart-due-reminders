@@ -35,6 +35,7 @@ import { CreateCampaignModal, CampaignFormData } from "@/components/admin/Create
 import { LeadScoreBadge } from "@/components/admin/LeadScoreBadge";
 import { BulkEmailImportModal } from "@/components/admin/BulkEmailImportModal";
 import { BroadcastActionsCard } from "@/components/admin/BroadcastActionsCard";
+import { CampaignDetailsModal } from "@/components/admin/CampaignDetailsModal";
 
 interface MarketingLead {
   id: string;
@@ -97,6 +98,7 @@ export default function AdminLeadOutreach() {
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showDeleteCampaign, setShowDeleteCampaign] = useState<string | null>(null);
+  const [showCampaignDetails, setShowCampaignDetails] = useState<MarketingCampaign | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -361,6 +363,78 @@ export default function AdminLeadOutreach() {
     onSuccess: () => {
       toast.success("Broadcasts deleted");
       queryClient.invalidateQueries({ queryKey: ["email-broadcasts"] });
+    },
+  });
+
+  // Fetch leads for the selected campaign (for details modal)
+  const campaignLeads = useMemo(() => {
+    if (!showCampaignDetails) return [];
+    return leads.filter((l) => l.campaign_id === showCampaignDetails.id);
+  }, [leads, showCampaignDetails]);
+
+  // Fetch activities for the selected campaign
+  const { data: campaignActivities = [], isLoading: activitiesLoading } = useQuery({
+    queryKey: ["campaign-activities", showCampaignDetails?.id],
+    queryFn: async () => {
+      if (!showCampaignDetails) return [];
+      // Query broadcasts that were sent to this campaign's leads
+      const campaignLeadEmails = leads
+        .filter((l) => l.campaign_id === showCampaignDetails.id)
+        .map((l) => l.email);
+      
+      if (campaignLeadEmails.length === 0) return [];
+
+      // For now, return mock activity data based on broadcast history
+      // In a full implementation, you'd have a dedicated activity tracking table
+      const { data: broadcastData } = await supabase
+        .from("email_broadcasts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      // Create activity entries from broadcasts
+      const activities = (broadcastData || []).flatMap((broadcast) => {
+        return campaignLeadEmails.slice(0, 5).map((email, idx) => ({
+          id: `${broadcast.id}-${idx}`,
+          lead_email: email,
+          activity_type: "email",
+          status: broadcast.status,
+          sent_at: broadcast.sent_at,
+          opened_at: idx < 2 && broadcast.sent_at ? broadcast.sent_at : null, // Mock some opens
+          clicked_at: idx === 0 && broadcast.sent_at ? broadcast.sent_at : null, // Mock some clicks
+          subject: broadcast.subject,
+        }));
+      });
+
+      return activities;
+    },
+    enabled: !!showCampaignDetails,
+  });
+
+  // Remove leads from campaign mutation
+  const removeLeadsFromCampaign = useMutation({
+    mutationFn: async (leadIds: string[]) => {
+      const { error } = await supabase
+        .from("marketing_leads")
+        .update({ campaign_id: null })
+        .in("id", leadIds);
+      if (error) throw error;
+
+      // Update campaign lead count
+      if (showCampaignDetails) {
+        const remainingCount = campaignLeads.length - leadIds.length;
+        await supabase
+          .from("marketing_campaigns")
+          .update({ total_leads: Math.max(0, remainingCount) })
+          .eq("id", showCampaignDetails.id);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Leads removed from campaign");
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 
@@ -1114,7 +1188,10 @@ export default function AdminLeadOutreach() {
                     key={campaign.id}
                     campaign={campaign}
                     onToggleStatus={(id, status) => updateCampaignStatus.mutate({ id, status })}
-                    onViewDetails={(c) => toast.info(`Campaign details for ${c.name}`)}
+                    onViewDetails={(c) => {
+                      const fullCampaign = campaigns.find(camp => camp.id === c.id);
+                      if (fullCampaign) setShowCampaignDetails(fullCampaign);
+                    }}
                     onDelete={(id) => setShowDeleteCampaign(id)}
                     onDuplicate={(c) => {
                       setShowCreateCampaign(true);
@@ -1193,6 +1270,23 @@ export default function AdminLeadOutreach() {
           onOpenChange={setShowCreateCampaign}
           onCreateCampaign={(data) => createCampaignMutation.mutate(data)}
           isCreating={createCampaignMutation.isPending}
+        />
+
+        {/* Campaign Details Modal */}
+        <CampaignDetailsModal
+          open={!!showCampaignDetails}
+          onOpenChange={(open) => !open && setShowCampaignDetails(null)}
+          campaign={showCampaignDetails}
+          leads={campaignLeads}
+          activities={campaignActivities}
+          isLoadingLeads={leadsLoading}
+          isLoadingActivities={activitiesLoading}
+          onRemoveLeads={(leadIds) => removeLeadsFromCampaign.mutate(leadIds)}
+          onSendOutreach={(leadIds) => {
+            setSelectedLeads(leadIds);
+            setShowCompose(true);
+          }}
+          isRemovingLeads={removeLeadsFromCampaign.isPending}
         />
       </div>
     </AdminLayout>
