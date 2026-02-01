@@ -8,8 +8,8 @@
 export const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Collection Intelligence Platform",
-  description: "Collection Intelligence Platform that analyzes every touchpoint—accounts, communications, payments, tasks, and notes—to maximize receivables recovery.",
+  tagline: "Accounts Receivable & Collection Intelligence Platform",
+  description: "Accounts Receivable & Collection Intelligence Platform that analyzes every touchpoint—accounts, communications, payments, tasks, and notes—to maximize receivables recovery.",
   website: "https://recouply.ai",
   emails: {
     collections: "collections@recouply.ai",

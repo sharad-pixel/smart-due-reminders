@@ -7,7 +7,7 @@ export const SITE_CONFIG = {
   siteName: 'Recouply.ai',
   siteUrl: 'https://recouply.ai',
   companyName: 'RecouplyAI Inc.',
-  description: 'AI-powered Collection Intelligence Platform that automates invoice follow-ups, predicts payment behavior, and accelerates cash flow without collection agencies.',
+  description: 'AI-powered Accounts Receivable & Collection Intelligence Platform that automates invoice follow-ups, predicts payment behavior, and accelerates cash flow without collection agencies.',
   logo: 'https://recouply.ai/favicon.png',
   ogImage: 'https://recouply.ai/og-image.png',
   twitterHandle: '@recouplyai',
@@ -50,9 +50,9 @@ export const TARGET_KEYWORDS = {
 // Page-specific SEO configurations
 export const PAGE_SEO = {
   home: {
-    title: 'Recouply.ai | AI-Powered Collection Intelligence Platform',
-    description: 'Transform accounts receivable with AI collection intelligence. Automate invoice follow-ups, predict payment behavior, and accelerate cash flow—without collection agencies.',
-    keywords: 'AI collection software, accounts receivable automation, invoice collection, AR automation, cash flow management, payment recovery, collection intelligence platform',
+    title: 'Recouply.ai | AI-Powered Accounts Receivable & Collection Intelligence Platform',
+    description: 'Transform accounts receivable with AI-powered AR and collection intelligence. Automate invoice follow-ups, predict payment behavior, and accelerate cash flow—without collection agencies.',
+    keywords: 'AI collection software, accounts receivable automation, AR intelligence, invoice collection, AR automation, cash flow management, payment recovery, collection intelligence platform',
   },
   features: {
     title: 'AI Collection Features | Automated AR & Invoice Management | Recouply.ai',
@@ -300,7 +300,7 @@ export const generateArticleSchema = (article: {
 export const generateServiceSchema = () => ({
   '@context': 'https://schema.org',
   '@type': 'Service',
-  name: 'Collection Intelligence Platform',
+  name: 'Accounts Receivable & Collection Intelligence Platform',
   provider: {
     '@type': 'Organization',
     name: SITE_CONFIG.companyName,

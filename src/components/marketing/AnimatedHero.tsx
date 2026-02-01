@@ -119,12 +119,12 @@ const AnimatedHero = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-8 animate-fade-in">
             <span className="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-            Collection Intelligence Platform
+            Accounts Receivable Intelligence Platform
           </div>
           
           {/* Supporting tagline */}
           <p className="text-sm text-muted-foreground mb-4 animate-fade-in">
-            All collection activities in one place — AI-powered, audit-ready, built for seamless handoffs
+            All AR and collection activities in one place — AI-powered, audit-ready, built for seamless handoffs
           </p>
 
           {/* Typewriter Headline */}

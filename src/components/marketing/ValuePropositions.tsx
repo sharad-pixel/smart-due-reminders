@@ -11,16 +11,16 @@ const ValuePropositions = () => {
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Solutions
+            AR Solutions
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            One System. Complete Visibility.
+            One AR System. Complete Visibility.
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Recouply.ai centralizes every collection action, customer interaction, and outcome into a single, transparent system
+            Recouply.ai centralizes every accounts receivable action, customer interaction, and outcome into a single, transparent system
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            This unified view enables smarter automation today — and better decisions with customers tomorrow
+            This unified AR view enables smarter automation today — and better decisions with customers tomorrow
           </p>
         </div>
         

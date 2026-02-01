@@ -428,7 +428,7 @@ const Pricing = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-4">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-              Collection Intelligence Platform
+              Accounts Receivable Intelligence Platform
             </div>
           </div>
           <h2 className="text-3xl font-bold text-center mb-4">

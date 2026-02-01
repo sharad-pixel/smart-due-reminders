@@ -50,7 +50,7 @@ const SMB = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
                 <Brain className="h-4 w-4" />
-                Collection Intelligence for SMBs
+                AR & Collection Intelligence for SMBs
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 AI-Assisted Collections With Human Oversight
@@ -141,10 +141,10 @@ const SMB = () => {
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-6 flex items-center gap-3">
                 <Brain className="h-8 w-8 text-primary" />
-                Collection Intelligence Dashboard
+                AR Intelligence Dashboard
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Visibility into risk signals, payment patterns, and communication sentiment. Know where your money is and what actions will move the needle.
+                Visibility into AR risk signals, payment patterns, and communication sentiment. Know where your money is and what actions will move the needle.
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">

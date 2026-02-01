@@ -14,10 +14,10 @@ const SmallBusinesses = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "Collection Intelligence for Small Businesses | Recouply.ai";
+    document.title = "AR & Collection Intelligence for Small Businesses | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for small businesses, service providers, and contractors. Getting smarter with every invoice while protecting customer relationships.');
+      metaDescription.setAttribute('content', 'Six AI agents recovering AR revenue 24/7 for small businesses, service providers, and contractors. Getting smarter with every invoice while protecting customer relationships.');
     }
     
     loadMarketingCopy();
@@ -68,13 +68,13 @@ const SmallBusinesses = () => {
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <Store className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">For Small Businesses</span>
+            <span className="text-sm font-medium">AR Intelligence for Small Businesses</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Six AI Agents Recovering Your Revenue—24/7
+            Six AI Agents Recovering Your AR Revenue—24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Stop chasing payments. Our six AI agents handle outreach around the clock, 
+            Stop chasing AR payments. Our six AI agents handle accounts receivable outreach around the clock, 
             getting smarter with every interaction—at a fraction of the cost of one employee.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

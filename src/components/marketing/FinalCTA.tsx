@@ -36,7 +36,7 @@ const FinalCTA = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
               <Sparkles className="h-4 w-4 animate-pulse" />
-              Collection Intelligence Platform
+              Accounts Receivable Intelligence Platform
             </div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">

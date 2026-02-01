@@ -36,14 +36,14 @@ const CollectionIntelligence = () => {
         <div className="container mx-auto text-center max-w-5xl">
           <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8 border border-primary/20">
             <Brain className="h-5 w-5" />
-            <span>Collection Intelligence Platform</span>
+            <span>AR & Collection Intelligence Platform</span>
             <Zap className="h-4 w-4" />
             <span>Automation</span>
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              Collection Intelligence
+              AR & Collection Intelligence
             </span>
             <br />
             <span className="text-foreground">Powered by AI</span>
@@ -51,7 +51,7 @@ const CollectionIntelligence = () => {
           
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
             Transform your accounts receivable with AI that reads, understands, and acts on every customer communication. 
-            Inbound emails become actionable tasks. Tasks drive automated workflows. Recovery rates improve with every interaction.
+            Inbound emails become actionable AR tasks. Tasks drive automated workflows. Recovery rates improve with every interaction.
           </p>
           
           <div className="flex gap-4 justify-center flex-wrap mb-12">
