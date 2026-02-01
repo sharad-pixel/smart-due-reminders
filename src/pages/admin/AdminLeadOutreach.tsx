@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { useDropzone } from "react-dropzone";
-import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, BarChart3, Zap, Search, UserPlus, ClipboardPaste } from "lucide-react";
+import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, BarChart3, Zap, Search, UserPlus, ClipboardPaste, BellOff } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MarketingLeadStats } from "@/components/admin/MarketingLeadStats";
 import { MarketingCampaignCard } from "@/components/admin/MarketingCampaignCard";
@@ -37,7 +37,8 @@ import { BulkEmailImportModal } from "@/components/admin/BulkEmailImportModal";
 import { BroadcastActionsCard } from "@/components/admin/BroadcastActionsCard";
 import { CampaignDetailsModal } from "@/components/admin/CampaignDetailsModal";
 import { SendEmailModal } from "@/components/admin/SendEmailModal";
-import { BellOff } from "lucide-react";
+import { PricingTierCampaigns, PRICING_TIER_CAMPAIGNS } from "@/components/admin/PricingTierCampaigns";
+import { AssignLeadsToCampaignModal } from "@/components/admin/AssignLeadsToCampaignModal";
 
 interface MarketingLead {
   id: string;
@@ -102,6 +103,7 @@ export default function AdminLeadOutreach() {
   const [showDeleteCampaign, setShowDeleteCampaign] = useState<string | null>(null);
   const [showCampaignDetails, setShowCampaignDetails] = useState<MarketingCampaign | null>(null);
   const [showSendEmail, setShowSendEmail] = useState(false);
+  const [showAssignToCampaign, setShowAssignToCampaign] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -185,6 +187,22 @@ export default function AdminLeadOutreach() {
     converted: leads.filter(l => l.lifecycle_stage === "customer").length,
     unsubscribed: leads.filter(l => l.status === "unsubscribed").length,
   }), [leads]);
+
+  // Count leads by pricing tier campaign
+  const leadsCountByTier = useMemo(() => {
+    const tierCounts: Record<string, number> = {};
+    PRICING_TIER_CAMPAIGNS.forEach(tier => {
+      // Find campaigns matching this tier
+      const tierCampaign = campaigns.find(c => 
+        c.name.toLowerCase().includes(tier.tier.replace("_", " ")) ||
+        c.name.toLowerCase().includes(tier.tier)
+      );
+      if (tierCampaign) {
+        tierCounts[tier.tier] = leads.filter(l => l.campaign_id === tierCampaign.id).length;
+      }
+    });
+    return tierCounts;
+  }, [leads, campaigns]);
 
   // Count active (non-unsubscribed) selected leads
   const activeSelectedLeads = useMemo(() => {
@@ -1084,16 +1102,14 @@ export default function AdminLeadOutreach() {
                       Send Email ({activeSelectedLeads.length})
                     </Button>
                     {campaigns.filter(c => c.status !== "completed").length > 0 && (
-                      <Select onValueChange={(v) => assignLeadsToCampaign.mutate({ leadIds: selectedLeads, campaignId: v })}>
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="Assign to campaign..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {campaigns.filter(c => c.status !== "completed").map((c) => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAssignToCampaign(true)}
+                      >
+                        <Target className="h-4 w-4 mr-1" />
+                        Assign to Campaign
+                      </Button>
                     )}
                     <Button
                       variant="destructive"
@@ -1200,7 +1216,26 @@ export default function AdminLeadOutreach() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="campaigns" className="space-y-4">
+          <TabsContent value="campaigns" className="space-y-6">
+            {/* Pricing Tier Campaigns */}
+            <PricingTierCampaigns
+              existingCampaigns={campaigns.map(c => ({ id: c.id, name: c.name }))}
+              onCreateCampaign={(campaign) => {
+                createCampaignMutation.mutate({
+                  name: campaign.name,
+                  description: campaign.description,
+                  campaign_type: campaign.campaign_type,
+                  target_segment: campaign.target_segment,
+                  target_industry: "all",
+                  target_company_size: "all",
+                  min_lead_score: 0,
+                });
+              }}
+              isCreating={createCampaignMutation.isPending}
+              leadsCountByTier={leadsCountByTier}
+            />
+
+            {/* Other Campaigns */}
             {campaignsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin" />
@@ -1211,36 +1246,41 @@ export default function AdminLeadOutreach() {
                   <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No Campaigns Yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Create your first marketing campaign to start engaging leads
+                    Create pricing tier campaigns above to start engaging leads
                   </p>
-                  <Button onClick={() => setShowCreateCampaign(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Campaign
-                  </Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {campaigns.map((campaign) => (
-                  <MarketingCampaignCard
-                    key={campaign.id}
-                    campaign={campaign}
-                    onToggleStatus={(id, status) => updateCampaignStatus.mutate({ id, status })}
-                    onViewDetails={(c) => {
-                      const fullCampaign = campaigns.find(camp => camp.id === c.id);
-                      if (fullCampaign) setShowCampaignDetails(fullCampaign);
-                    }}
-                    onDelete={(id) => setShowDeleteCampaign(id)}
-                    onDuplicate={(c) => {
-                      setShowCreateCampaign(true);
-                      toast.info("Edit campaign details to duplicate");
-                    }}
-                    onSendToLeads={(c) => {
-                      setSelectedCampaignId(c.id);
-                      setShowCompose(true);
-                    }}
-                  />
-                ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">All Campaigns</h3>
+                  <Button variant="outline" size="sm" onClick={() => setShowCreateCampaign(true)}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Custom Campaign
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {campaigns.map((campaign) => (
+                    <MarketingCampaignCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      onToggleStatus={(id, status) => updateCampaignStatus.mutate({ id, status })}
+                      onViewDetails={(c) => {
+                        const fullCampaign = campaigns.find(camp => camp.id === c.id);
+                        if (fullCampaign) setShowCampaignDetails(fullCampaign);
+                      }}
+                      onDelete={(id) => setShowDeleteCampaign(id)}
+                      onDuplicate={(c) => {
+                        setShowCreateCampaign(true);
+                        toast.info("Edit campaign details to duplicate");
+                      }}
+                      onSendToLeads={(c) => {
+                        setSelectedCampaignId(c.id);
+                        setShowCompose(true);
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </TabsContent>
@@ -1336,6 +1376,30 @@ export default function AdminLeadOutreach() {
             setSelectedLeads([]);
             queryClient.invalidateQueries({ queryKey: ["email-broadcasts", "marketing-leads"] });
           }}
+        />
+
+        {/* Assign Leads to Campaign Modal */}
+        <AssignLeadsToCampaignModal
+          open={showAssignToCampaign}
+          onOpenChange={setShowAssignToCampaign}
+          campaigns={campaigns.filter(c => c.status !== "completed").map(c => ({
+            id: c.id,
+            name: c.name,
+            total_leads: c.total_leads,
+            status: c.status,
+          }))}
+          selectedLeadsCount={selectedLeads.length}
+          onAssign={(campaignId) => {
+            assignLeadsToCampaign.mutate(
+              { leadIds: selectedLeads, campaignId },
+              {
+                onSuccess: () => {
+                  setShowAssignToCampaign(false);
+                },
+              }
+            );
+          }}
+          isAssigning={assignLeadsToCampaign.isPending}
         />
       </div>
     </AdminLayout>
