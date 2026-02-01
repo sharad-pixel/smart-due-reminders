@@ -30,7 +30,9 @@ import {
   Send, 
   Copy, 
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Target,
+  Edit
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -46,14 +48,22 @@ interface EmailBroadcast {
   sent_at: string | null;
   created_at: string;
   audience?: string | null;
+  campaign_id?: string | null;
+}
+
+interface Campaign {
+  id: string;
+  name: string;
 }
 
 interface BroadcastActionsCardProps {
   broadcasts: EmailBroadcast[];
+  campaigns?: Campaign[];
   isLoading: boolean;
   onDelete: (ids: string[]) => void;
   onResend: (broadcast: EmailBroadcast) => void;
   onDuplicate: (broadcast: EmailBroadcast) => void;
+  onEdit?: (broadcast: EmailBroadcast) => void;
   isDeleting?: boolean;
 }
 
@@ -67,15 +77,22 @@ const statusConfig: Record<string, { variant: "default" | "secondary" | "destruc
 
 export const BroadcastActionsCard = ({
   broadcasts,
+  campaigns = [],
   isLoading,
   onDelete,
   onResend,
   onDuplicate,
+  onEdit,
   isDeleting,
 }: BroadcastActionsCardProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [previewBroadcast, setPreviewBroadcast] = useState<EmailBroadcast | null>(null);
+
+  const getCampaignName = (campaignId: string | null | undefined) => {
+    if (!campaignId) return null;
+    return campaigns.find(c => c.id === campaignId)?.name || null;
+  };
 
   const toggleSelectAll = () => {
     if (selectedIds.length === broadcasts.length) {
@@ -152,63 +169,83 @@ export const BroadcastActionsCard = ({
                           />
                         </TableHead>
                         <TableHead>Subject</TableHead>
+                        <TableHead>Campaign</TableHead>
                         <TableHead>Recipients</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {draftBroadcasts.map((broadcast) => (
-                        <TableRow key={broadcast.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedIds.includes(broadcast.id)}
-                              onCheckedChange={() => toggleSelect(broadcast.id)}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium max-w-[300px] truncate">
-                            {broadcast.subject || "(No subject)"}
-                          </TableCell>
-                          <TableCell>{broadcast.total_recipients || 0}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {format(new Date(broadcast.created_at), "MMM d, yyyy")}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setPreviewBroadcast(broadcast)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Preview
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onResend(broadcast)}>
-                                  <Send className="h-4 w-4 mr-2" />
-                                  Send Now
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onDuplicate(broadcast)}>
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Duplicate
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedIds([broadcast.id]);
-                                    setShowDeleteConfirm(true);
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {draftBroadcasts.map((broadcast) => {
+                        const campaignName = getCampaignName(broadcast.campaign_id);
+                        return (
+                          <TableRow key={broadcast.id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedIds.includes(broadcast.id)}
+                                onCheckedChange={() => toggleSelect(broadcast.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium max-w-[250px] truncate">
+                              {broadcast.subject || "(No subject)"}
+                            </TableCell>
+                            <TableCell>
+                              {campaignName ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Target className="h-3 w-3 mr-1" />
+                                  {campaignName}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>{broadcast.total_recipients || 0}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {format(new Date(broadcast.created_at), "MMM d, yyyy")}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setPreviewBroadcast(broadcast)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Preview
+                                  </DropdownMenuItem>
+                                  {onEdit && (
+                                    <DropdownMenuItem onClick={() => onEdit(broadcast)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit Draft
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => onResend(broadcast)}>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Send Now
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onDuplicate(broadcast)}>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedIds([broadcast.id]);
+                                      setShowDeleteConfirm(true);
+                                    }}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -230,6 +267,7 @@ export const BroadcastActionsCard = ({
                           />
                         </TableHead>
                         <TableHead>Subject</TableHead>
+                        <TableHead>Campaign</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Sent</TableHead>
                         <TableHead>Failed</TableHead>
@@ -240,6 +278,7 @@ export const BroadcastActionsCard = ({
                     <TableBody>
                       {sentBroadcasts.map((broadcast) => {
                         const config = statusConfig[broadcast.status] || statusConfig.draft;
+                        const campaignName = getCampaignName(broadcast.campaign_id);
                         return (
                           <TableRow key={broadcast.id}>
                             <TableCell>
@@ -248,8 +287,18 @@ export const BroadcastActionsCard = ({
                                 onCheckedChange={() => toggleSelect(broadcast.id)}
                               />
                             </TableCell>
-                            <TableCell className="font-medium max-w-[250px] truncate">
+                            <TableCell className="font-medium max-w-[200px] truncate">
                               {broadcast.subject}
+                            </TableCell>
+                            <TableCell>
+                              {campaignName ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Target className="h-3 w-3 mr-1" />
+                                  {campaignName}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge variant={config.variant}>{config.label}</Badge>
@@ -342,6 +391,13 @@ export const BroadcastActionsCard = ({
                 <p className="text-sm text-muted-foreground">Subject:</p>
                 <p className="font-medium">{previewBroadcast.subject}</p>
               </div>
+              {previewBroadcast.campaign_id && getCampaignName(previewBroadcast.campaign_id) && (
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Campaign:</span>
+                  <Badge variant="secondary">{getCampaignName(previewBroadcast.campaign_id)}</Badge>
+                </div>
+              )}
               <div
                 className="p-4 border rounded-lg bg-white prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: previewBroadcast.body_html }}
