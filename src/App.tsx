@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ScrollToTop from "./components/ScrollToTop";
 import { CookieConsentProvider } from "./components/CookieConsentProvider";
+import { AccessProvider } from "./contexts/AccessContext";
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -131,12 +132,13 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <CookieConsentProvider>
-        <ScrollToTop />
-        <Toaster />
-        <Sonner />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+      <AccessProvider>
+        <CookieConsentProvider>
+          <ScrollToTop />
+          <Toaster />
+          <Sonner />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             {/* Main app entry point */}
             <Route path="/" element={<Index />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
@@ -245,6 +247,7 @@ const App = () => (
           </Routes>
         </Suspense>
       </CookieConsentProvider>
+      </AccessProvider>
     </BrowserRouter>
   </QueryClientProvider>
 );
