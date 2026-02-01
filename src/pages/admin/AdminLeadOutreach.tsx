@@ -70,6 +70,7 @@ interface EmailBroadcast {
   sent_at: string | null;
   created_at: string;
   audience?: string | null;
+  campaign_id?: string | null;
 }
 
 interface MarketingCampaign {
@@ -534,6 +535,9 @@ export default function AdminLeadOutreach() {
       body_html: broadcast.body_html,
       body_text: broadcast.body_text || "",
     });
+    if (broadcast.campaign_id) {
+      setSelectedCampaignId(broadcast.campaign_id);
+    }
     setShowCompose(true);
     toast.info("Broadcast content loaded. Edit and send!");
   };
@@ -545,7 +549,24 @@ export default function AdminLeadOutreach() {
       body_html: broadcast.body_html,
       body_text: broadcast.body_text || "",
     });
+    if (broadcast.campaign_id) {
+      setSelectedCampaignId(broadcast.campaign_id);
+    }
     setShowCompose(true);
+  };
+
+  // Edit draft broadcast
+  const handleEditDraft = (broadcast: EmailBroadcast) => {
+    setEmailForm({
+      subject: broadcast.subject,
+      body_html: broadcast.body_html,
+      body_text: broadcast.body_text || "",
+    });
+    if (broadcast.campaign_id) {
+      setSelectedCampaignId(broadcast.campaign_id);
+    }
+    setShowCompose(true);
+    toast.info("Draft loaded for editing");
   };
 
 
@@ -1288,10 +1309,12 @@ export default function AdminLeadOutreach() {
           <TabsContent value="broadcasts" className="space-y-4">
             <BroadcastActionsCard
               broadcasts={broadcasts}
+              campaigns={campaigns.map(c => ({ id: c.id, name: c.name }))}
               isLoading={broadcastsLoading}
               onDelete={(ids) => deleteBroadcastsMutation.mutate(ids)}
               onResend={handleResendBroadcast}
               onDuplicate={handleDuplicateBroadcast}
+              onEdit={handleEditDraft}
               isDeleting={deleteBroadcastsMutation.isPending}
             />
           </TabsContent>
@@ -1362,7 +1385,7 @@ export default function AdminLeadOutreach() {
           onRemoveLeads={(leadIds) => removeLeadsFromCampaign.mutate(leadIds)}
           onSendOutreach={(leadIds) => {
             setSelectedLeads(leadIds);
-            setShowCompose(true);
+            setShowSendEmail(true);
           }}
           isRemovingLeads={removeLeadsFromCampaign.isPending}
         />
@@ -1372,9 +1395,11 @@ export default function AdminLeadOutreach() {
           open={showSendEmail}
           onOpenChange={setShowSendEmail}
           selectedLeads={leads.filter(l => selectedLeads.includes(l.id))}
+          campaigns={campaigns.map(c => ({ id: c.id, name: c.name }))}
+          defaultCampaignId={showCampaignDetails?.id || selectedCampaignId}
           onSuccess={() => {
             setSelectedLeads([]);
-            queryClient.invalidateQueries({ queryKey: ["email-broadcasts", "marketing-leads"] });
+            queryClient.invalidateQueries({ queryKey: ["email-broadcasts", "marketing-leads", "marketing-campaigns"] });
           }}
         />
 

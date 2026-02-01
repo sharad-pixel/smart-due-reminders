@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Sparkles, Mail, Loader2, X, AlertTriangle } from "lucide-react";
+import { Send, Sparkles, Mail, Loader2, Save, AlertTriangle } from "lucide-react";
 
 interface Lead {
   id: string;
@@ -19,10 +19,17 @@ interface Lead {
   status: string;
 }
 
+interface Campaign {
+  id: string;
+  name: string;
+}
+
 interface SendEmailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedLeads: Lead[];
+  campaigns?: Campaign[];
+  defaultCampaignId?: string | null;
   onSuccess?: () => void;
 }
 
@@ -30,12 +37,16 @@ export function SendEmailModal({
   open,
   onOpenChange,
   selectedLeads,
+  campaigns = [],
+  defaultCampaignId = null,
   onSuccess,
 }: SendEmailModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [emailForm, setEmailForm] = useState({ subject: "", body_html: "", body_text: "" });
   const [aiPrompt, setAiPrompt] = useState({ topic: "", tone: "professional", email_type: "outreach" });
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(defaultCampaignId);
 
   // Filter out unsubscribed leads
   const activeLeads = selectedLeads.filter(l => l.status !== "unsubscribed");
@@ -74,6 +85,40 @@ export function SendEmailModal({
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!emailForm.subject.trim() || !emailForm.body_html.trim()) {
+      toast.error("Subject and body are required");
+      return;
+    }
+
+    setIsSavingDraft(true);
+    try {
+      const { error } = await supabase
+        .from("email_broadcasts")
+        .insert({
+          subject: emailForm.subject,
+          body_html: emailForm.body_html,
+          body_text: emailForm.body_text || null,
+          audience: "specific_emails",
+          status: "draft",
+          total_recipients: activeLeads.length,
+          campaign_id: selectedCampaignId,
+        });
+
+      if (error) throw error;
+
+      toast.success("Draft saved successfully");
+      onOpenChange(false);
+      setEmailForm({ subject: "", body_html: "", body_text: "" });
+      onSuccess?.();
+    } catch (err) {
+      console.error("Save draft error:", err);
+      toast.error("Failed to save draft");
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   const handleSendEmail = async (testMode = false) => {
     if (!emailForm.subject.trim() || !emailForm.body_html.trim()) {
       toast.error("Subject and body are required");
@@ -89,7 +134,7 @@ export function SendEmailModal({
     try {
       const targetEmails = activeLeads.map(l => l.email);
 
-      // Create broadcast record
+      // Create broadcast record with campaign link
       const { data: broadcast, error: broadcastError } = await supabase
         .from("email_broadcasts")
         .insert({
@@ -99,6 +144,7 @@ export function SendEmailModal({
           audience: "specific_emails",
           status: testMode ? "draft" : "sending",
           total_recipients: testMode ? 1 : targetEmails.length,
+          campaign_id: selectedCampaignId,
         })
         .select()
         .single();
@@ -120,12 +166,26 @@ export function SendEmailModal({
 
       if (sendError) throw sendError;
 
-      // Update last_engaged_at for sent leads
+      // Update last_engaged_at for sent leads and campaign stats
       if (!testMode) {
         await supabase
           .from("marketing_leads")
           .update({ last_engaged_at: new Date().toISOString() })
           .in("email", targetEmails);
+
+        // Update campaign emails_sent count
+        if (selectedCampaignId) {
+          const { data: campaign } = await supabase
+            .from("marketing_campaigns")
+            .select("emails_sent")
+            .eq("id", selectedCampaignId)
+            .single();
+
+          await supabase
+            .from("marketing_campaigns")
+            .update({ emails_sent: (campaign?.emails_sent || 0) + targetEmails.length })
+            .eq("id", selectedCampaignId);
+        }
       }
 
       toast.success(testMode ? "Test email sent to your email" : `Email sent to ${targetEmails.length} leads`);
@@ -155,6 +215,29 @@ export function SendEmailModal({
             Compose and send an email to {activeLeads.length} selected lead{activeLeads.length !== 1 ? "s" : ""}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Campaign Selector */}
+        {campaigns.length > 0 && (
+          <div className="flex items-center gap-3 py-2 border-b">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Assign to Campaign:</Label>
+            <Select
+              value={selectedCampaignId || "none"}
+              onValueChange={(v) => setSelectedCampaignId(v === "none" ? null : v)}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select campaign (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Campaign</SelectItem>
+                {campaigns.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Recipient Summary */}
         <div className="flex flex-wrap gap-2 py-2 border-b">
@@ -303,9 +386,17 @@ export function SendEmailModal({
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="flex-shrink-0 pt-4 border-t">
+        <DialogFooter className="flex-shrink-0 pt-4 border-t gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
+          </Button>
+          <Button 
+            variant="secondary" 
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft || !emailForm.subject || !emailForm.body_html}
+          >
+            {isSavingDraft ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Save Draft
           </Button>
           <Button 
             variant="outline" 

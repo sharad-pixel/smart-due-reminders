@@ -2980,6 +2980,7 @@ export type Database = {
           audience_filter: Json | null
           body_html: string
           body_text: string | null
+          campaign_id: string | null
           created_at: string
           created_by: string | null
           failed_count: number | null
@@ -2998,6 +2999,7 @@ export type Database = {
           audience_filter?: Json | null
           body_html: string
           body_text?: string | null
+          campaign_id?: string | null
           created_at?: string
           created_by?: string | null
           failed_count?: number | null
@@ -3016,6 +3018,7 @@ export type Database = {
           audience_filter?: Json | null
           body_html?: string
           body_text?: string | null
+          campaign_id?: string | null
           created_at?: string
           created_by?: string | null
           failed_count?: number | null
@@ -3030,6 +3033,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "email_broadcasts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_broadcasts_template_id_fkey"
             columns: ["template_id"]
