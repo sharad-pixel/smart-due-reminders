@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -14,10 +14,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { useDropzone } from "react-dropzone";
-import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye } from "lucide-react";
+import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, BarChart3, Zap, Search, UserPlus } from "lucide-react";
 import * as XLSX from "xlsx";
+import { MarketingLeadStats } from "@/components/admin/MarketingLeadStats";
+import { MarketingCampaignCard } from "@/components/admin/MarketingCampaignCard";
+import { LeadSegmentFilter } from "@/components/admin/LeadSegmentFilter";
+import { CreateCampaignModal, CampaignFormData } from "@/components/admin/CreateCampaignModal";
+import { LeadScoreBadge } from "@/components/admin/LeadScoreBadge";
 
 interface MarketingLead {
   id: string;
@@ -28,6 +33,13 @@ interface MarketingLead {
   tags: string[] | null;
   status: string;
   created_at: string;
+  lead_score: number | null;
+  segment: string | null;
+  industry: string | null;
+  company_size: string | null;
+  last_engaged_at: string | null;
+  campaign_id: string | null;
+  lifecycle_stage: string | null;
 }
 
 interface EmailBroadcast {
@@ -42,17 +54,49 @@ interface EmailBroadcast {
   created_at: string;
 }
 
+interface MarketingCampaign {
+  id: string;
+  name: string;
+  description: string | null;
+  campaign_type: string;
+  target_segment: string | null;
+  target_industry: string | null;
+  target_company_size: string | null;
+  min_lead_score: number | null;
+  status: string;
+  started_at: string | null;
+  ends_at: string | null;
+  total_leads: number | null;
+  emails_sent: number | null;
+  opens: number | null;
+  clicks: number | null;
+  conversions: number | null;
+  created_at: string;
+}
+
 export default function AdminLeadOutreach() {
   const queryClient = useQueryClient();
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [activeSegment, setActiveSegment] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   
   // Form states
-  const [newLead, setNewLead] = useState({ email: "", name: "", company: "", source: "manual" });
+  const [newLead, setNewLead] = useState({ 
+    email: "", 
+    name: "", 
+    company: "", 
+    source: "manual",
+    industry: "",
+    company_size: "",
+    lead_score: 0
+  });
   const [emailForm, setEmailForm] = useState({ subject: "", body_html: "", body_text: "" });
   const [aiPrompt, setAiPrompt] = useState({ topic: "", tone: "professional", email_type: "product_update" as const });
 
@@ -63,9 +107,22 @@ export default function AdminLeadOutreach() {
       const { data, error } = await supabase
         .from("marketing_leads")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("lead_score", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data as MarketingLead[];
+    },
+  });
+
+  // Fetch campaigns
+  const { data: campaigns = [], isLoading: campaignsLoading, refetch: refetchCampaigns } = useQuery({
+    queryKey: ["marketing-campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("marketing_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as MarketingCampaign[];
     },
   });
 
@@ -83,6 +140,72 @@ export default function AdminLeadOutreach() {
     },
   });
 
+  // Compute stats
+  const stats = useMemo(() => {
+    const weekAgo = subDays(new Date(), 7);
+    const newLeads = leads.filter(l => new Date(l.created_at) >= weekAgo).length;
+    const hotLeads = leads.filter(l => (l.lead_score || 0) >= 80).length;
+    const activeCampaigns = campaigns.filter(c => c.status === "active").length;
+    const totalSent = broadcasts.reduce((sum, b) => sum + (b.sent_count || 0), 0);
+    const converted = leads.filter(l => l.lifecycle_stage === "customer").length;
+    const conversionRate = leads.length > 0 ? (converted / leads.length) * 100 : 0;
+
+    return { totalLeads: leads.length, newLeads, hotLeads, activeCampaigns, totalSent, conversionRate };
+  }, [leads, campaigns, broadcasts]);
+
+  // Compute segment counts
+  const segmentCounts = useMemo(() => ({
+    all: leads.length,
+    new: leads.filter(l => l.segment === "new" || !l.segment).length,
+    engaged: leads.filter(l => l.segment === "engaged").length,
+    hot: leads.filter(l => (l.lead_score || 0) >= 80).length,
+    cold: leads.filter(l => l.segment === "cold" || (l.lead_score || 0) < 20).length,
+    converted: leads.filter(l => l.lifecycle_stage === "customer").length,
+  }), [leads]);
+
+  // Filter leads
+  const filteredLeads = useMemo(() => {
+    let result = leads;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(l =>
+        l.email.toLowerCase().includes(query) ||
+        l.name?.toLowerCase().includes(query) ||
+        l.company?.toLowerCase().includes(query)
+      );
+    }
+
+    // Segment filter
+    if (activeSegment !== "all") {
+      switch (activeSegment) {
+        case "new":
+          result = result.filter(l => l.segment === "new" || !l.segment);
+          break;
+        case "engaged":
+          result = result.filter(l => l.segment === "engaged");
+          break;
+        case "hot":
+          result = result.filter(l => (l.lead_score || 0) >= 80);
+          break;
+        case "cold":
+          result = result.filter(l => l.segment === "cold" || (l.lead_score || 0) < 20);
+          break;
+        case "converted":
+          result = result.filter(l => l.lifecycle_stage === "customer");
+          break;
+      }
+    }
+
+    // Campaign filter
+    if (selectedCampaignId) {
+      result = result.filter(l => l.campaign_id === selectedCampaignId);
+    }
+
+    return result;
+  }, [leads, searchQuery, activeSegment, selectedCampaignId]);
+
   // Add lead mutation
   const addLeadMutation = useMutation({
     mutationFn: async (lead: typeof newLead) => {
@@ -91,13 +214,17 @@ export default function AdminLeadOutreach() {
         name: lead.name || null,
         company: lead.company || null,
         source: lead.source,
+        industry: lead.industry || null,
+        company_size: lead.company_size || null,
+        lead_score: lead.lead_score || 0,
+        segment: "new",
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Lead added successfully");
       setShowAddLead(false);
-      setNewLead({ email: "", name: "", company: "", source: "manual" });
+      setNewLead({ email: "", name: "", company: "", source: "manual", industry: "", company_size: "", lead_score: 0 });
       queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
     },
     onError: (error: Error) => {
@@ -118,6 +245,74 @@ export default function AdminLeadOutreach() {
     },
   });
 
+  // Create campaign mutation
+  const createCampaignMutation = useMutation({
+    mutationFn: async (campaign: CampaignFormData) => {
+      const { error } = await supabase.from("marketing_campaigns").insert({
+        name: campaign.name,
+        description: campaign.description || null,
+        campaign_type: campaign.campaign_type,
+        target_segment: campaign.target_segment !== "all" ? campaign.target_segment : null,
+        target_industry: campaign.target_industry !== "all" ? campaign.target_industry : null,
+        target_company_size: campaign.target_company_size !== "all" ? campaign.target_company_size : null,
+        min_lead_score: campaign.min_lead_score,
+        status: "draft",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Campaign created");
+      setShowCreateCampaign(false);
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Update campaign status
+  const updateCampaignStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const updates: Record<string, any> = { status };
+      if (status === "active" && !campaigns.find(c => c.id === id)?.started_at) {
+        updates.started_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("marketing_campaigns").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Campaign updated");
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+    },
+  });
+
+  // Assign leads to campaign
+  const assignLeadsToCampaign = useMutation({
+    mutationFn: async ({ leadIds, campaignId }: { leadIds: string[]; campaignId: string }) => {
+      const { error } = await supabase
+        .from("marketing_leads")
+        .update({ campaign_id: campaignId })
+        .in("id", leadIds);
+      if (error) throw error;
+
+      // Update campaign lead count
+      const { data: count } = await supabase
+        .from("marketing_leads")
+        .select("id", { count: "exact" })
+        .eq("campaign_id", campaignId);
+      
+      await supabase
+        .from("marketing_campaigns")
+        .update({ total_leads: count?.length || 0 })
+        .eq("id", campaignId);
+    },
+    onSuccess: () => {
+      toast.success("Leads assigned to campaign");
+      setSelectedLeads([]);
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns"] });
+    },
+  });
+
   // CSV Upload handler
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -132,14 +327,17 @@ export default function AdminLeadOutreach() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
 
-        // Map columns - look for email, name, company
         const leadsToInsert = jsonData
           .filter((row) => row.email || row.Email || row.EMAIL)
           .map((row) => ({
             email: (row.email || row.Email || row.EMAIL || "").toString().toLowerCase().trim(),
             name: (row.name || row.Name || row.NAME || row["First Name"] || row["Full Name"] || null)?.toString() || null,
             company: (row.company || row.Company || row.COMPANY || row.Organization || null)?.toString() || null,
+            industry: (row.industry || row.Industry || null)?.toString() || null,
+            company_size: (row.company_size || row["Company Size"] || null)?.toString() || null,
             source: "csv_upload",
+            segment: "new",
+            lead_score: 10,
           }));
 
         if (leadsToInsert.length === 0) {
@@ -147,26 +345,19 @@ export default function AdminLeadOutreach() {
           return;
         }
 
-        // Insert in batches
         let inserted = 0;
-        let duplicates = 0;
         const batchSize = 100;
 
         for (let i = 0; i < leadsToInsert.length; i += batchSize) {
           const batch = leadsToInsert.slice(i, i + batchSize);
-          const { error, data: insertedData } = await supabase
+          const { data: insertedData } = await supabase
             .from("marketing_leads")
             .upsert(batch, { onConflict: "email", ignoreDuplicates: true })
             .select();
-
-          if (error) {
-            console.error("Batch insert error:", error);
-          } else {
-            inserted += insertedData?.length || 0;
-          }
+          inserted += insertedData?.length || 0;
         }
 
-        duplicates = leadsToInsert.length - inserted;
+        const duplicates = leadsToInsert.length - inserted;
         toast.success(`Imported ${inserted} leads${duplicates > 0 ? ` (${duplicates} duplicates skipped)` : ""}`);
         queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
       } catch (err) {
@@ -230,7 +421,7 @@ export default function AdminLeadOutreach() {
 
     const targetEmails = selectedLeads.length > 0
       ? leads.filter((l) => selectedLeads.includes(l.id)).map((l) => l.email)
-      : leads.filter((l) => l.status === "active").map((l) => l.email);
+      : filteredLeads.filter((l) => l.status === "active").map((l) => l.email);
 
     if (!testMode && targetEmails.length === 0) {
       toast.error("No leads selected");
@@ -239,15 +430,14 @@ export default function AdminLeadOutreach() {
 
     setIsSending(true);
     try {
-      // Create broadcast record
       const { data: broadcast, error: broadcastError } = await supabase
         .from("email_broadcasts")
         .insert({
           subject: emailForm.subject,
           body_html: emailForm.body_html,
           body_text: emailForm.body_text || null,
-          audience: selectedLeads.length > 0 ? "selected_leads" : "all_leads",
-          audience_filter: selectedLeads.length > 0 ? { lead_ids: selectedLeads } : null,
+          audience: selectedLeads.length > 0 ? "selected_leads" : "filtered_leads",
+          audience_filter: { segment: activeSegment, campaign_id: selectedCampaignId },
           status: testMode ? "draft" : "sending",
           total_recipients: testMode ? 1 : targetEmails.length,
         })
@@ -256,7 +446,6 @@ export default function AdminLeadOutreach() {
 
       if (broadcastError) throw broadcastError;
 
-      // Send via edge function
       const { error: sendError } = await supabase.functions.invoke("send-broadcast-email", {
         body: {
           broadcast_id: broadcast.id,
@@ -285,10 +474,10 @@ export default function AdminLeadOutreach() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedLeads.length === leads.length) {
+    if (selectedLeads.length === filteredLeads.length) {
       setSelectedLeads([]);
     } else {
-      setSelectedLeads(leads.map((l) => l.id));
+      setSelectedLeads(filteredLeads.map((l) => l.id));
     }
   };
 
@@ -299,13 +488,52 @@ export default function AdminLeadOutreach() {
   };
 
   return (
-    <AdminLayout title="Lead Generation & Outreach" description="Manage marketing leads and send email campaigns">
+    <AdminLayout title="Marketing Command Center" description="Manage leads, campaigns, and email outreach">
       <div className="space-y-6">
-        <div className="flex items-center justify-end">
+        {/* Stats Dashboard */}
+        <MarketingLeadStats
+          totalLeads={stats.totalLeads}
+          newLeads={stats.newLeads}
+          hotLeads={stats.hotLeads}
+          campaignsActive={stats.activeCampaigns}
+          emailsSent={stats.totalSent}
+          conversionRate={stats.conversionRate}
+        />
+
+        {/* Action Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search leads..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-64"
+              />
+            </div>
+            {campaigns.length > 0 && (
+              <Select value={selectedCampaignId || "all"} onValueChange={(v) => setSelectedCampaignId(v === "all" ? null : v)}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by campaign" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Campaigns</SelectItem>
+                  {campaigns.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => refetchLeads()}>
+            <Button variant="outline" onClick={() => { refetchLeads(); refetchCampaigns(); }}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
+            </Button>
+            <Button variant="outline" onClick={() => setShowCreateCampaign(true)}>
+              <Target className="h-4 w-4 mr-2" />
+              New Campaign
             </Button>
             <Dialog open={showCompose} onOpenChange={setShowCompose}>
               <DialogTrigger asChild>
@@ -320,7 +548,7 @@ export default function AdminLeadOutreach() {
                   <DialogDescription>
                     {selectedLeads.length > 0
                       ? `Send to ${selectedLeads.length} selected leads`
-                      : `Send to all ${leads.filter((l) => l.status === "active").length} active leads`}
+                      : `Send to ${filteredLeads.filter((l) => l.status === "active").length} ${activeSegment !== "all" ? activeSegment : ""} leads`}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -402,7 +630,6 @@ export default function AdminLeadOutreach() {
                   </TabsContent>
                 </Tabs>
 
-                {/* Email form - shown for both tabs */}
                 <div className="space-y-4 mt-4 border-t pt-4">
                   <div>
                     <Label>Subject</Label>
@@ -423,12 +650,10 @@ export default function AdminLeadOutreach() {
                     />
                   </div>
                   {emailForm.body_html && (
-                    <div>
-                      <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview Email
-                      </Button>
-                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview Email
+                    </Button>
                   )}
                 </div>
 
@@ -462,12 +687,23 @@ export default function AdminLeadOutreach() {
               Leads ({leads.length})
             </TabsTrigger>
             <TabsTrigger value="campaigns">
+              <Target className="h-4 w-4 mr-2" />
+              Campaigns ({campaigns.length})
+            </TabsTrigger>
+            <TabsTrigger value="broadcasts">
               <Mail className="h-4 w-4 mr-2" />
-              Campaigns ({broadcasts.length})
+              Broadcasts ({broadcasts.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="space-y-4">
+            {/* Segment Filter */}
+            <LeadSegmentFilter
+              activeSegment={activeSegment}
+              onSegmentChange={setActiveSegment}
+              counts={segmentCounts}
+            />
+
             {/* Upload and Add buttons */}
             <div className="flex gap-4 flex-wrap">
               <Card className="flex-1 min-w-[250px]">
@@ -491,7 +727,7 @@ export default function AdminLeadOutreach() {
                   <Dialog open={showAddLead} onOpenChange={setShowAddLead}>
                     <DialogTrigger asChild>
                       <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
-                        <Plus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <UserPlus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium">Add Lead Manually</p>
                         <p className="text-xs text-muted-foreground mt-1">Enter email and details</p>
                       </div>
@@ -510,21 +746,61 @@ export default function AdminLeadOutreach() {
                             placeholder="lead@example.com"
                           />
                         </div>
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={newLead.name}
-                            onChange={(e) => setNewLead((l) => ({ ...l, name: e.target.value }))}
-                            placeholder="John Doe"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Name</Label>
+                            <Input
+                              value={newLead.name}
+                              onChange={(e) => setNewLead((l) => ({ ...l, name: e.target.value }))}
+                              placeholder="John Doe"
+                            />
+                          </div>
+                          <div>
+                            <Label>Company</Label>
+                            <Input
+                              value={newLead.company}
+                              onChange={(e) => setNewLead((l) => ({ ...l, company: e.target.value }))}
+                              placeholder="Acme Corp"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label>Company</Label>
-                          <Input
-                            value={newLead.company}
-                            onChange={(e) => setNewLead((l) => ({ ...l, company: e.target.value }))}
-                            placeholder="Acme Corp"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Industry</Label>
+                            <Select
+                              value={newLead.industry}
+                              onValueChange={(v) => setNewLead((l) => ({ ...l, industry: v }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="saas">SaaS</SelectItem>
+                                <SelectItem value="fintech">FinTech</SelectItem>
+                                <SelectItem value="healthcare">Healthcare</SelectItem>
+                                <SelectItem value="ecommerce">E-commerce</SelectItem>
+                                <SelectItem value="professional_services">Professional Services</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Company Size</Label>
+                            <Select
+                              value={newLead.company_size}
+                              onValueChange={(v) => setNewLead((l) => ({ ...l, company_size: v }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1-10">1-10</SelectItem>
+                                <SelectItem value="11-50">11-50</SelectItem>
+                                <SelectItem value="51-200">51-200</SelectItem>
+                                <SelectItem value="201-500">201-500</SelectItem>
+                                <SelectItem value="500+">500+</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         <div>
                           <Label>Source</Label>
@@ -565,18 +841,30 @@ export default function AdminLeadOutreach() {
                 <div>
                   <CardTitle>Marketing Leads</CardTitle>
                   <CardDescription>
-                    {selectedLeads.length > 0 ? `${selectedLeads.length} selected` : `${leads.length} total leads`}
+                    {selectedLeads.length > 0 ? `${selectedLeads.length} selected` : `${filteredLeads.length} leads shown`}
                   </CardDescription>
                 </div>
                 {selectedLeads.length > 0 && (
                   <div className="flex gap-2">
+                    {campaigns.filter(c => c.status !== "completed").length > 0 && (
+                      <Select onValueChange={(v) => assignLeadsToCampaign.mutate({ leadIds: selectedLeads, campaignId: v })}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue placeholder="Assign to campaign..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {campaigns.filter(c => c.status !== "completed").map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => deleteLeadsMutation.mutate(selectedLeads)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
-                      Delete Selected
+                      Delete
                     </Button>
                   </div>
                 )}
@@ -586,10 +874,10 @@ export default function AdminLeadOutreach() {
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : leads.length === 0 ? (
+                ) : filteredLeads.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No leads yet. Upload a CSV or add manually.</p>
+                    <p>No leads found. Upload a CSV or add manually.</p>
                   </div>
                 ) : (
                   <Table>
@@ -597,37 +885,51 @@ export default function AdminLeadOutreach() {
                       <TableRow>
                         <TableHead className="w-10">
                           <Checkbox
-                            checked={selectedLeads.length === leads.length && leads.length > 0}
+                            checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
                             onCheckedChange={toggleSelectAll}
                           />
                         </TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Lead</TableHead>
                         <TableHead>Company</TableHead>
+                        <TableHead>Score</TableHead>
+                        <TableHead>Stage</TableHead>
                         <TableHead>Source</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Added</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {leads.map((lead) => (
-                        <TableRow key={lead.id}>
+                      {filteredLeads.slice(0, 100).map((lead) => (
+                        <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50">
                           <TableCell>
                             <Checkbox
                               checked={selectedLeads.includes(lead.id)}
                               onCheckedChange={() => toggleLead(lead.id)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{lead.email}</TableCell>
-                          <TableCell>{lead.name || "-"}</TableCell>
-                          <TableCell>{lead.company || "-"}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{lead.source || "unknown"}</Badge>
+                            <div>
+                              <p className="font-medium">{lead.name || lead.email}</p>
+                              {lead.name && <p className="text-xs text-muted-foreground">{lead.email}</p>}
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={lead.status === "active" ? "default" : "secondary"}>
-                              {lead.status}
+                            <div>
+                              <p className="font-medium">{lead.company || "-"}</p>
+                              {lead.industry && (
+                                <p className="text-xs text-muted-foreground capitalize">{lead.industry}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <LeadScoreBadge score={lead.lead_score || 0} size="sm" />
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {lead.lifecycle_stage || "lead"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{lead.source || "unknown"}</Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {format(new Date(lead.created_at), "MMM d, yyyy")}
@@ -637,14 +939,52 @@ export default function AdminLeadOutreach() {
                     </TableBody>
                   </Table>
                 )}
+                {filteredLeads.length > 100 && (
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    Showing first 100 of {filteredLeads.length} leads
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="campaigns" className="space-y-4">
+            {campaignsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : campaigns.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No Campaigns Yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first marketing campaign to start engaging leads
+                  </p>
+                  <Button onClick={() => setShowCreateCampaign(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Campaign
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {campaigns.map((campaign) => (
+                  <MarketingCampaignCard
+                    key={campaign.id}
+                    campaign={campaign}
+                    onToggleStatus={(id, status) => updateCampaignStatus.mutate({ id, status })}
+                    onViewDetails={(c) => toast.info(`Campaign details for ${c.name}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="broadcasts" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Campaign History</CardTitle>
+                <CardTitle>Broadcast History</CardTitle>
                 <CardDescription>Recent email broadcasts and their performance</CardDescription>
               </CardHeader>
               <CardContent>
@@ -655,7 +995,7 @@ export default function AdminLeadOutreach() {
                 ) : broadcasts.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Mail className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No campaigns sent yet.</p>
+                    <p>No broadcasts sent yet.</p>
                   </div>
                 ) : (
                   <Table>
@@ -721,6 +1061,14 @@ export default function AdminLeadOutreach() {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Create Campaign Modal */}
+        <CreateCampaignModal
+          open={showCreateCampaign}
+          onOpenChange={setShowCreateCampaign}
+          onCreateCampaign={(data) => createCampaignMutation.mutate(data)}
+          isCreating={createCampaignMutation.isPending}
+        />
       </div>
     </AdminLayout>
   );
