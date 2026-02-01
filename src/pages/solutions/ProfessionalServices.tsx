@@ -14,10 +14,10 @@ const ProfessionalServices = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "Collection Intelligence for Professional Services | Recouply.ai";
+    document.title = "AR & Collection Intelligence for Professional Services | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Six AI agents recovering revenue 24/7 for agencies, consultants, accounting firms, and professional service providers. Getting smarter with every invoice.');
+      metaDescription.setAttribute('content', 'Six AI agents recovering AR revenue 24/7 for agencies, consultants, accounting firms, and professional service providers. Getting smarter with every invoice.');
     }
     
     loadMarketingCopy();
@@ -66,13 +66,13 @@ const ProfessionalServices = () => {
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <Briefcase className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">For Professional Services</span>
+            <span className="text-sm font-medium">AR Intelligence for Professional Services</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Six AI Agents Handling Your Collections—24/7
+            Six AI Agents Handling Your AR Collections—24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Never send an awkward "just checking in" email again. Our AI agents work around the clock, 
+            Never send an awkward "just checking in" email again. Our AI agents work around the clock on your accounts receivable, 
             learning and improving with every interaction—at a fraction of the cost of one employee.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

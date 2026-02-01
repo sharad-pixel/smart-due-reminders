@@ -64,13 +64,13 @@ const Enterprise = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
                 <Building className="h-4 w-4" />
-                Built for Enterprise
+                Enterprise AR Intelligence
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Ideal for Enterprise Companies with High Volume Transactions
+                Enterprise AR & Collection Intelligence for High Volume
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Built for enterprise companies processing thousands of invoices monthly. AI agents trained on your CRM data, CS cases, and customer history—automating high-volume collections with enterprise-grade security and governance.
+                Built for enterprise companies processing thousands of invoices monthly. AI agents trained on your CRM data, CS cases, and AR history—automating high-volume accounts receivable with enterprise-grade security and governance.
               </p>
               <div className="flex gap-4 flex-wrap">
                 <Button size="lg" onClick={() => navigate("/contact-us")} className="text-lg px-8">
@@ -101,10 +101,10 @@ const Enterprise = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Built for High Volume Transaction Processing
+            Built for High Volume AR Processing
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Ideal for enterprise companies processing 10,000+ invoices per month with complex collection workflows
+            Ideal for enterprise companies processing 10,000+ AR invoices per month with complex collection workflows
           </p>
           
           <div className="grid md:grid-cols-2 gap-8">
@@ -275,10 +275,10 @@ const Enterprise = () => {
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Handle High Volume Transactions?
+            Ready for Enterprise AR Intelligence?
           </h2>
           <p className="text-lg opacity-90 mb-8">
-            Built for enterprise companies with complex, high-volume collection needs. Let's discuss how Recouply.ai can automate your operations at scale.
+            Built for enterprise companies with complex, high-volume AR needs. Let's discuss how Recouply.ai can automate your accounts receivable at scale.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" variant="secondary" onClick={() => navigate("/contact-us")} className="text-lg px-8">

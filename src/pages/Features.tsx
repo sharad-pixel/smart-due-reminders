@@ -21,16 +21,16 @@ const Features = () => {
         <div className="container mx-auto text-center max-w-4xl">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
             <Brain className="h-4 w-4" />
-            Collection Intelligence Platform
+            Accounts Receivable & Collection Intelligence Platform
           </div>
           <h1 className="text-5xl font-bold mb-6">
-            Six AI Agents Powering Your <span className="text-primary">Collection Intelligence</span>
+            Six AI Agents Powering Your <span className="text-primary">AR Intelligence</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-4">
-            AI-assisted agents that learn from payment behavior, communication signals, and account context—helping you act earlier, recover smarter.
+            AI-assisted agents that learn from payment behavior, communication signals, and AR context—helping you act earlier, recover smarter.
           </p>
           <p className="text-lg text-primary font-medium">
-            "Intelligence that compounds with every interaction. Human-approved, risk-aware."
+            "AR intelligence that compounds with every interaction. Human-approved, risk-aware."
           </p>
         </div>
       </section>
@@ -154,9 +154,9 @@ const Features = () => {
               <div className="bg-primary/10 w-14 h-14 rounded-lg flex items-center justify-center mb-4">
                 <Brain className="h-7 w-7 text-primary" />
               </div>
-              <h2 className="text-3xl font-bold mb-4">Collection Intelligence Dashboard</h2>
+              <h2 className="text-3xl font-bold mb-4">AR Intelligence Dashboard</h2>
               <p className="text-muted-foreground mb-4">
-                Centralized visibility into risk signals, payment patterns, and communication sentiment. Monitor what matters and surface the actions that will move the needle.
+                Centralized visibility into AR risk signals, payment patterns, and communication sentiment. Monitor what matters and surface the actions that will move the needle.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
@@ -268,14 +268,14 @@ const Features = () => {
             <CardContent className="p-8">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <h2 className="text-3xl font-bold mb-4">Collection Intelligence That Compounds</h2>
+                  <h2 className="text-3xl font-bold mb-4">AR Intelligence That Compounds</h2>
                   <p className="text-muted-foreground mb-6">
-                    Every touchpoint—account signals, inbound communications, payment patterns, task resolutions—feeds intelligence that helps teams act earlier and recover smarter.
+                    Every touchpoint—account signals, inbound communications, payment patterns, task resolutions—feeds AR intelligence that helps teams act earlier and recover smarter.
                   </p>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">Account intelligence: payment behavior, risk signals, and collection context</span>
+                      <span className="text-muted-foreground">Account intelligence: AR behavior, risk signals, and collection context</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
@@ -290,8 +290,8 @@ const Features = () => {
                 <div className="text-center">
                   <div className="inline-block p-6 bg-card rounded-2xl border">
                     <Brain className="w-16 h-16 text-primary mx-auto mb-4" />
-                    <p className="text-xl font-bold mb-2">Collection Intelligence Platform</p>
-                    <p className="text-sm text-muted-foreground">Every touchpoint analyzed to maximize recovery</p>
+                    <p className="text-xl font-bold mb-2">AR & Collection Intelligence</p>
+                    <p className="text-sm text-muted-foreground">Every touchpoint analyzed to maximize AR recovery</p>
                   </div>
                 </div>
               </div>
@@ -302,7 +302,7 @@ const Features = () => {
 
       <section className="py-20 px-4 bg-primary text-primary-foreground">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-4">Experience Collection Intelligence Today</h2>
+          <h2 className="text-4xl font-bold mb-4">Experience AR Intelligence Today</h2>
           <p className="text-lg mb-4 opacity-90">
             AI-assisted agents that learn from every touchpoint—guided by signals, approved by you.
           </p>

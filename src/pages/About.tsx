@@ -180,17 +180,17 @@ const About = () => {
             </Badge>
             
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Collection Intelligence Designed by Real Operators
+              AR & Collection Intelligence Designed by Real Operators
             </h2>
             
             <p className="text-lg text-muted-foreground leading-relaxed mb-4">
               Recouply.ai was created to solve a real problem: companies struggle with late payments, 
               messy AR workflows, inaccurate billing, broken aging reports, and manual collections processes. 
               Built from real enterprise RevOps experience, Recouply.ai delivers a smarter, automated 
-              approach to collections — turning AR chaos into clarity.
+              approach to accounts receivable — turning AR chaos into clarity.
             </p>
             <p className="text-sm text-muted-foreground/80 mb-8">
-              One centralized platform replaces scattered spreadsheets and disconnected inboxes with AI-powered automation and built-in audit logs.
+              One centralized AR platform replaces scattered spreadsheets and disconnected inboxes with AI-powered automation and built-in audit logs.
             </p>
           </div>
           

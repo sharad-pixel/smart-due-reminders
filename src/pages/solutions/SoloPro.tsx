@@ -50,14 +50,14 @@ const SoloPro = () => {
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <User className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">For Solo Operators</span>
+            <span className="text-sm font-medium">AR Intelligence for Solo Operators</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Full Platform Power at a Solo Price
+            Full AR Platform Power at a Solo Price
           </h1>
           <p className="text-xl text-muted-foreground mb-4">
-            Six AI agents, complete automation, and all integrations—designed for independent operators 
-            who need enterprise-grade collection intelligence without the enterprise price tag.
+            Six AI agents, complete AR automation, and all integrations—designed for independent operators 
+            who need enterprise-grade accounts receivable intelligence without the enterprise price tag.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <div className="text-3xl font-bold text-primary">

@@ -75,25 +75,25 @@ const Solutions = () => {
     <MarketingLayout>
       <SEO
         title="AR Automation Solutions by Industry | Recouply.ai"
-        description="AI collection intelligence built for your industry—SaaS, professional services, SMB. Six agents that learn payment behavior and preserve customer relationships."
+        description="AI accounts receivable and collection intelligence built for your industry—SaaS, professional services, SMB. Six agents that learn payment behavior and preserve customer relationships."
         canonical="https://recouply.ai/solutions"
-        keywords="AR automation by industry, SaaS collections, professional services AR, small business invoice collection"
+        keywords="AR automation by industry, SaaS AR collections, professional services accounts receivable, small business invoice collection"
       />
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              Collection Intelligence Engine
+              Accounts Receivable Intelligence Engine
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Six AI Agents Built for Your Industry
+              Six AI Agents Built for Your AR Challenges
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-              Recouply.ai deploys six specialized agents that learn from payment behavior and account context—
+              Recouply.ai deploys six specialized AR agents that learn from payment behavior and account context—
               helping you act earlier, recover smarter, and preserve relationships.
             </p>
             <p className="text-lg text-primary font-medium">
-              "Proactive intelligence, human-controlled outcomes."
+              "Proactive AR intelligence, human-controlled outcomes."
             </p>
           </div>
 

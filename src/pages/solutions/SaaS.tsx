@@ -74,7 +74,7 @@ const SaaS = () => {
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <Building2 className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">For SaaS Companies</span>
+            <span className="text-sm font-medium">AR Intelligence for SaaS</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Six AI Agents Reducing ARR Leakage—24/7
