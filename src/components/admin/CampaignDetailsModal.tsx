@@ -22,7 +22,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  BellOff,
+  AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
 import { LeadScoreBadge } from "./LeadScoreBadge";
@@ -37,6 +39,7 @@ interface MarketingLead {
   lifecycle_stage: string | null;
   last_engaged_at: string | null;
   created_at: string;
+  status: string;
 }
 
 interface OutreachActivity {
@@ -122,6 +125,16 @@ export function CampaignDetailsModal({
     );
   }, [leads, searchQuery]);
 
+  // Count active (non-unsubscribed) selected leads
+  const activeSelectedLeads = useMemo(() => {
+    return filteredLeads.filter(l => selectedLeadIds.includes(l.id) && l.status !== "unsubscribed");
+  }, [filteredLeads, selectedLeadIds]);
+
+  // Count unsubscribed leads
+  const unsubscribedCount = useMemo(() => {
+    return leads.filter(l => l.status === "unsubscribed").length;
+  }, [leads]);
+
   // Calculate campaign metrics
   const metrics = useMemo(() => {
     if (!campaign) return { openRate: 0, clickRate: 0, conversionRate: 0 };
@@ -139,18 +152,22 @@ export function CampaignDetailsModal({
     return { openRate, clickRate, conversionRate };
   }, [campaign]);
 
-  // Toggle lead selection
+  // Toggle lead selection (skip unsubscribed)
   const toggleLeadSelection = (id: string) => {
+    const lead = leads.find(l => l.id === id);
+    if (lead?.status === "unsubscribed") return;
+    
     setSelectedLeadIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
   const toggleSelectAll = () => {
-    if (selectedLeadIds.length === filteredLeads.length) {
+    const activeLeads = filteredLeads.filter(l => l.status !== "unsubscribed");
+    if (selectedLeadIds.length === activeLeads.length) {
       setSelectedLeadIds([]);
     } else {
-      setSelectedLeadIds(filteredLeads.map((l) => l.id));
+      setSelectedLeadIds(activeLeads.map((l) => l.id));
     }
   };
 
@@ -162,8 +179,8 @@ export function CampaignDetailsModal({
   };
 
   const handleSendOutreach = () => {
-    if (onSendOutreach && selectedLeadIds.length > 0) {
-      onSendOutreach(selectedLeadIds);
+    if (onSendOutreach && activeSelectedLeads.length > 0) {
+      onSendOutreach(activeSelectedLeads.map(l => l.id));
     }
   };
 
@@ -254,6 +271,11 @@ export function CampaignDetailsModal({
             <TabsTrigger value="leads">
               <Users className="h-4 w-4 mr-2" />
               Assigned Leads ({leads.length})
+              {unsubscribedCount > 0 && (
+                <Badge variant="outline" className="ml-2 text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  {unsubscribedCount} unsub
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="activity">
               <TrendingUp className="h-4 w-4 mr-2" />
@@ -262,6 +284,16 @@ export function CampaignDetailsModal({
           </TabsList>
 
           <TabsContent value="leads" className="flex-1 overflow-hidden flex flex-col mt-4">
+            {/* Unsubscribed Warning */}
+            {unsubscribedCount > 0 && (
+              <div className="flex items-center gap-2 p-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                <span className="text-amber-800">
+                  {unsubscribedCount} lead{unsubscribedCount !== 1 ? "s have" : " has"} unsubscribed and cannot receive emails
+                </span>
+              </div>
+            )}
+
             {/* Search and Actions */}
             <div className="flex items-center gap-3 mb-3 flex-shrink-0">
               <div className="relative flex-1">
@@ -275,9 +307,14 @@ export function CampaignDetailsModal({
               </div>
               {selectedLeadIds.length > 0 && (
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleSendOutreach}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleSendOutreach}
+                    disabled={activeSelectedLeads.length === 0}
+                  >
                     <Send className="h-3 w-3 mr-1" />
-                    Send ({selectedLeadIds.length})
+                    Send ({activeSelectedLeads.length})
                   </Button>
                   <Button 
                     size="sm" 
@@ -316,8 +353,8 @@ export function CampaignDetailsModal({
                       <TableHead className="w-10">
                         <Checkbox
                           checked={
-                            filteredLeads.length > 0 &&
-                            selectedLeadIds.length === filteredLeads.length
+                            filteredLeads.filter(l => l.status !== "unsubscribed").length > 0 &&
+                            selectedLeadIds.length === filteredLeads.filter(l => l.status !== "unsubscribed").length
                           }
                           onCheckedChange={toggleSelectAll}
                         />
@@ -330,22 +367,33 @@ export function CampaignDetailsModal({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeads.map((lead) => (
-                      <TableRow key={lead.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedLeadIds.includes(lead.id)}
-                            onCheckedChange={() => toggleLeadSelection(lead.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{lead.name || lead.email}</p>
-                            {lead.name && (
-                              <p className="text-xs text-muted-foreground">{lead.email}</p>
-                            )}
-                          </div>
-                        </TableCell>
+                    {filteredLeads.map((lead) => {
+                      const isUnsubscribed = lead.status === "unsubscribed";
+                      return (
+                        <TableRow key={lead.id} className={isUnsubscribed ? "opacity-60 bg-muted/30" : ""}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedLeadIds.includes(lead.id)}
+                              onCheckedChange={() => toggleLeadSelection(lead.id)}
+                              disabled={isUnsubscribed}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <p className="font-medium">{lead.name || lead.email}</p>
+                                {lead.name && (
+                                  <p className="text-xs text-muted-foreground">{lead.email}</p>
+                                )}
+                              </div>
+                              {isUnsubscribed && (
+                                <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                                  <BellOff className="h-3 w-3 mr-1" />
+                                  Unsub
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                         <TableCell>{lead.company || "-"}</TableCell>
                         <TableCell>
                           <LeadScoreBadge score={lead.lead_score || 0} size="sm" />
@@ -360,8 +408,9 @@ export function CampaignDetailsModal({
                             ? format(new Date(lead.last_engaged_at), "MMM d, yyyy")
                             : "Never"}
                         </TableCell>
-                      </TableRow>
-                    ))}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}

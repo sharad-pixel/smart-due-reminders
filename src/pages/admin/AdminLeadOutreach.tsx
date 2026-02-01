@@ -36,6 +36,8 @@ import { LeadScoreBadge } from "@/components/admin/LeadScoreBadge";
 import { BulkEmailImportModal } from "@/components/admin/BulkEmailImportModal";
 import { BroadcastActionsCard } from "@/components/admin/BroadcastActionsCard";
 import { CampaignDetailsModal } from "@/components/admin/CampaignDetailsModal";
+import { SendEmailModal } from "@/components/admin/SendEmailModal";
+import { BellOff } from "lucide-react";
 
 interface MarketingLead {
   id: string;
@@ -99,6 +101,7 @@ export default function AdminLeadOutreach() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showDeleteCampaign, setShowDeleteCampaign] = useState<string | null>(null);
   const [showCampaignDetails, setShowCampaignDetails] = useState<MarketingCampaign | null>(null);
+  const [showSendEmail, setShowSendEmail] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -180,7 +183,13 @@ export default function AdminLeadOutreach() {
     hot: leads.filter(l => (l.lead_score || 0) >= 80).length,
     cold: leads.filter(l => l.segment === "cold" || (l.lead_score || 0) < 20).length,
     converted: leads.filter(l => l.lifecycle_stage === "customer").length,
+    unsubscribed: leads.filter(l => l.status === "unsubscribed").length,
   }), [leads]);
+
+  // Count active (non-unsubscribed) selected leads
+  const activeSelectedLeads = useMemo(() => {
+    return leads.filter(l => selectedLeads.includes(l.id) && l.status !== "unsubscribed");
+  }, [leads, selectedLeads]);
 
   // Filter leads
   const filteredLeads = useMemo(() => {
@@ -1055,11 +1064,25 @@ export default function AdminLeadOutreach() {
                 <div>
                   <CardTitle>Marketing Leads</CardTitle>
                   <CardDescription>
-                    {selectedLeads.length > 0 ? `${selectedLeads.length} selected` : `${filteredLeads.length} leads shown`}
+                    {selectedLeads.length > 0 
+                      ? `${selectedLeads.length} selected${activeSelectedLeads.length < selectedLeads.length ? ` (${selectedLeads.length - activeSelectedLeads.length} unsubscribed)` : ""}`
+                      : `${filteredLeads.length} leads shown`}
+                    {segmentCounts.unsubscribed > 0 && selectedLeads.length === 0 && (
+                      <span className="text-amber-600 ml-2">• {segmentCounts.unsubscribed} unsubscribed</span>
+                    )}
                   </CardDescription>
                 </div>
                 {selectedLeads.length > 0 && (
                   <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowSendEmail(true)}
+                      disabled={activeSelectedLeads.length === 0}
+                    >
+                      <Send className="h-4 w-4 mr-1" />
+                      Send Email ({activeSelectedLeads.length})
+                    </Button>
                     {campaigns.filter(c => c.status !== "completed").length > 0 && (
                       <Select onValueChange={(v) => assignLeadsToCampaign.mutate({ leadIds: selectedLeads, campaignId: v })}>
                         <SelectTrigger className="w-48">
@@ -1112,44 +1135,59 @@ export default function AdminLeadOutreach() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLeads.slice(0, 100).map((lead) => (
-                        <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50">
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedLeads.includes(lead.id)}
-                              onCheckedChange={() => toggleLead(lead.id)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{lead.name || lead.email}</p>
-                              {lead.name && <p className="text-xs text-muted-foreground">{lead.email}</p>}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{lead.company || "-"}</p>
-                              {lead.industry && (
-                                <p className="text-xs text-muted-foreground capitalize">{lead.industry}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <LeadScoreBadge score={lead.lead_score || 0} size="sm" />
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="capitalize">
-                              {lead.lifecycle_stage || "lead"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{lead.source || "unknown"}</Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {format(new Date(lead.created_at), "MMM d, yyyy")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {filteredLeads.slice(0, 100).map((lead) => {
+                        const isUnsubscribed = lead.status === "unsubscribed";
+                        return (
+                          <TableRow 
+                            key={lead.id} 
+                            className={`cursor-pointer hover:bg-muted/50 ${isUnsubscribed ? "opacity-60 bg-muted/30" : ""}`}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedLeads.includes(lead.id)}
+                                onCheckedChange={() => toggleLead(lead.id)}
+                                disabled={isUnsubscribed}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <p className="font-medium">{lead.name || lead.email}</p>
+                                  {lead.name && <p className="text-xs text-muted-foreground">{lead.email}</p>}
+                                </div>
+                                {isUnsubscribed && (
+                                  <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                                    <BellOff className="h-3 w-3 mr-1" />
+                                    Unsubscribed
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{lead.company || "-"}</p>
+                                {lead.industry && (
+                                  <p className="text-xs text-muted-foreground capitalize">{lead.industry}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <LeadScoreBadge score={lead.lead_score || 0} size="sm" />
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {lead.lifecycle_stage || "lead"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{lead.source || "unknown"}</Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {format(new Date(lead.created_at), "MMM d, yyyy")}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -1287,6 +1325,17 @@ export default function AdminLeadOutreach() {
             setShowCompose(true);
           }}
           isRemovingLeads={removeLeadsFromCampaign.isPending}
+        />
+
+        {/* Send Email Modal */}
+        <SendEmailModal
+          open={showSendEmail}
+          onOpenChange={setShowSendEmail}
+          selectedLeads={leads.filter(l => selectedLeads.includes(l.id))}
+          onSuccess={() => {
+            setSelectedLeads([]);
+            queryClient.invalidateQueries({ queryKey: ["email-broadcasts", "marketing-leads"] });
+          }}
         />
       </div>
     </AdminLayout>
