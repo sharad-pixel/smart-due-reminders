@@ -13,23 +13,23 @@ const Enterprise = () => {
   const capabilities = [
     {
       icon: Database,
-      title: "Deep System Integration",
-      description: "AI agents trained on Salesforce RCA, CS Case notes, NetSuite AR data, and customer history for contextual outreach."
+      title: "D&B-Level PAYDEX Credit Scoring",
+      description: "Enterprise-grade credit intelligence with 1–100 PAYDEX-style scoring based on weighted payment experiences, trend analysis, and behavioral signals."
     },
     {
       icon: Brain,
-      title: "Full Invoice-Volume Automation",
-      description: "Handle 10,000+ invoices per month with intelligent routing, prioritization, and escalation."
+      title: "Expansion Risk Intelligence",
+      description: "Credit limit recommendations and payment trend forecasting to inform safe expansion decisions—know which accounts can handle increased credit before you extend it."
     },
     {
       icon: AlertTriangle,
-      title: "Early-Warning Risk Scoring",
-      description: "Proactive alerts identify at-risk accounts before they become delinquent."
+      title: "Predictive Risk Assessment",
+      description: "Multi-factor scoring analyzes invoice behavior (50%), payment patterns (20%), customer health (15%), and operational signals (15%) to predict delinquency risk."
     },
     {
       icon: Shield,
       title: "Enterprise Governance & Audit",
-      description: "Full audit trails, role-based access, and compliance-ready documentation."
+      description: "Full audit trails, role-based access, and compliance-ready documentation for every credit decision."
     }
   ];
 
@@ -101,10 +101,10 @@ const Enterprise = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Built for High Volume AR Processing
+            Credit Intelligence That Protects Growth
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Ideal for enterprise companies processing 10,000+ AR invoices per month with complex collection workflows
+            D&B-level credit scoring and risk intelligence to mitigate exposure on customer expansions and new credit decisions
           </p>
           
           <div className="grid md:grid-cols-2 gap-8">
@@ -153,19 +153,23 @@ const Enterprise = () => {
             </div>
             
             <Card className="bg-card p-8">
-              <h3 className="font-bold mb-6">AI Agents Learn From:</h3>
+              <h3 className="font-bold mb-6">Credit Intelligence Signals:</h3>
               <div className="space-y-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="font-semibold">Revenue Cloud / RCA Data</p>
-                  <p className="text-sm text-muted-foreground">Contract value, MRR, risk categories</p>
+                  <p className="font-semibold">PAYDEX Score (1–100)</p>
+                  <p className="text-sm text-muted-foreground">Weighted payment experiences with recency bias for accurate credit ratings</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="font-semibold">CS Case History</p>
-                  <p className="text-sm text-muted-foreground">Open tickets, churn signals, relationship notes</p>
+                  <p className="font-semibold">Payment Trend Analysis</p>
+                  <p className="text-sm text-muted-foreground">Improving, Stable, or Declining patterns over rolling 6-month windows</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="font-semibold">Payment Behavior</p>
-                  <p className="text-sm text-muted-foreground">Historical patterns, risk scores, response rates</p>
+                  <p className="font-semibold">Credit Limit Recommendations</p>
+                  <p className="text-sm text-muted-foreground">Data-driven limits based on historical high credit and risk multipliers</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="font-semibold">Expansion Risk Score</p>
+                  <p className="text-sm text-muted-foreground">Multi-factor assessment before extending additional credit or terms</p>
                 </div>
               </div>
             </Card>
@@ -249,23 +253,27 @@ const Enterprise = () => {
 
       {/* Stats */}
       <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="grid md:grid-cols-4 gap-8 text-center">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid md:grid-cols-5 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">10K+</div>
-              <p className="text-muted-foreground">Invoices/Month</p>
+              <div className="text-4xl font-bold text-primary mb-2">PAYDEX</div>
+              <p className="text-muted-foreground">Credit Scoring</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">6</div>
-              <p className="text-muted-foreground">AI Agents</p>
+              <div className="text-4xl font-bold text-primary mb-2">1–100</div>
+              <p className="text-muted-foreground">Score Range</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-primary mb-2">4</div>
+              <p className="text-muted-foreground">Risk Factors</p>
             </div>
             <div>
               <div className="text-4xl font-bold text-primary mb-2">SOC 2</div>
               <p className="text-muted-foreground">Compliant</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">Custom</div>
-              <p className="text-muted-foreground">Pricing</p>
+              <div className="text-4xl font-bold text-primary mb-2">Real-Time</div>
+              <p className="text-muted-foreground">Risk Updates</p>
             </div>
           </div>
         </div>
