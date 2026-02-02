@@ -373,7 +373,9 @@ export default function AdminLeadOutreach() {
       toast.success("Leads assigned to campaign");
       setSelectedLeads([]);
       setShowAssignToCampaign(false);
-      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns", "lead-campaign-progress"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-campaign-progress"] });
     },
   });
 
@@ -476,7 +478,8 @@ export default function AdminLeadOutreach() {
     },
     onSuccess: () => {
       toast.success("Leads removed from campaign");
-      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -539,7 +542,8 @@ export default function AdminLeadOutreach() {
         .update({ total_leads: count?.length || 0 })
         .eq("id", campaignId);
 
-      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
     } catch (err) {
       console.error("Campaign assignment error:", err);
     }
@@ -1416,7 +1420,9 @@ export default function AdminLeadOutreach() {
           defaultCampaignId={showCampaignDetails?.id || selectedCampaignId}
           onSuccess={() => {
             setSelectedLeads([]);
-            queryClient.invalidateQueries({ queryKey: ["email-broadcasts", "marketing-leads", "marketing-campaigns"] });
+            queryClient.invalidateQueries({ queryKey: ["email-broadcasts"] });
+            queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
+            queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
           }}
         />
 
