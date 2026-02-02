@@ -171,7 +171,9 @@ export function CampaignDetailsModal({
     },
     onSuccess: () => {
       toast.success("Leads removed from campaign");
-      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns", "lead-campaign-progress"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-campaign-progress"] });
       onRemoveLeads?.([]);
     },
     onError: (error: Error) => {
