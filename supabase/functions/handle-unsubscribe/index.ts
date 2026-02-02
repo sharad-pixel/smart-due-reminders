@@ -32,7 +32,7 @@ serve(async (req) => {
     if (!token && !email) {
       return new Response(
         generateUnsubscribePage("Invalid Request", "Missing unsubscribe token or email.", false),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html" } }
+        { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } }
       );
     }
 
@@ -59,13 +59,13 @@ serve(async (req) => {
         if (existing) {
           return new Response(
             generateUnsubscribePage("Already Unsubscribed", `${existing.email} has already been unsubscribed.`, true),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "text/html" } }
+            { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
           );
         }
 
         return new Response(
           generateUnsubscribePage("Invalid Link", "This unsubscribe link is invalid or expired.", false),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "text/html" } }
+          { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
         );
       }
 
@@ -75,7 +75,7 @@ serve(async (req) => {
     if (!leadEmail) {
       return new Response(
         generateUnsubscribePage("Invalid Request", "Could not determine email address.", false),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html" } }
+        { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } }
       );
     }
 
@@ -106,13 +106,13 @@ serve(async (req) => {
 
     return new Response(
       generateUnsubscribePage("Unsubscribed Successfully", `${leadEmail} has been removed from our marketing list.`, true),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "text/html" } }
+      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   } catch (error: unknown) {
     console.error("Unsubscribe error:", error);
     return new Response(
       generateUnsubscribePage("Error", "An error occurred. Please try again or contact support.", false),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "text/html" } }
+      { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   }
 });
