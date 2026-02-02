@@ -308,6 +308,7 @@ export function CampaignDetailsModal({
               campaignId={campaign.id}
               campaignName={campaign.name}
               pricingTier={campaign.pricing_tier}
+              leadsCount={leads.filter(l => l.status !== "unsubscribed").length}
             />
           </TabsContent>
 
@@ -315,6 +316,7 @@ export function CampaignDetailsModal({
             <CampaignLeadsTable
               leads={leads}
               leadProgress={leadProgress}
+              campaignId={campaign.id}
               isLoading={isLoadingLeads}
               onRemoveLeads={(ids) => removeLeadsMutation.mutate(ids)}
               isRemovingLeads={removeLeadsMutation.isPending}

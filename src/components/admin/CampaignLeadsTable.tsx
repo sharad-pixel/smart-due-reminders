@@ -12,10 +12,14 @@ import {
   BellOff,
   Clock,
   CheckCircle2,
-  Send
+  Send,
+  Mail
 } from "lucide-react";
 import { format } from "date-fns";
 import { LeadScoreBadge } from "./LeadScoreBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface MarketingLead {
   id: string;
@@ -43,6 +47,7 @@ interface LeadProgress {
 interface CampaignLeadsTableProps {
   leads: MarketingLead[];
   leadProgress?: LeadProgress[];
+  campaignId?: string;
   isLoading?: boolean;
   onRemoveLeads?: (leadIds: string[]) => void;
   isRemovingLeads?: boolean;
@@ -51,10 +56,12 @@ interface CampaignLeadsTableProps {
 export function CampaignLeadsTable({
   leads,
   leadProgress = [],
+  campaignId,
   isLoading,
   onRemoveLeads,
   isRemovingLeads,
 }: CampaignLeadsTableProps) {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
 
@@ -70,10 +77,39 @@ export function CampaignLeadsTable({
     );
   }, [leads, searchQuery]);
 
+  // Active leads (not unsubscribed)
+  const activeLeads = useMemo(() => filteredLeads.filter(l => l.status !== "unsubscribed"), [filteredLeads]);
+
   // Get progress for a lead
   const getLeadProgress = (leadId: string): LeadProgress | undefined => {
     return leadProgress.find(p => p.lead_id === leadId);
   };
+
+  // Send to selected leads mutation
+  const sendToSelectedMutation = useMutation({
+    mutationFn: async (stepNumber: number) => {
+      if (!campaignId) throw new Error("Campaign ID required");
+      
+      const { data, error } = await supabase.functions.invoke("send-campaign-outreach", {
+        body: {
+          campaign_id: campaignId,
+          step_number: stepNumber,
+          lead_ids: selectedLeadIds,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Sent ${data.sent_count} emails successfully`);
+      setSelectedLeadIds([]);
+      queryClient.invalidateQueries({ queryKey: ["lead-campaign-progress", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   // Get progress badge
   const getProgressBadge = (progress: LeadProgress | undefined) => {
@@ -116,6 +152,15 @@ export function CampaignLeadsTable({
     );
   };
 
+  // Get next step for lead
+  const getNextStep = (progress: LeadProgress | undefined): number | null => {
+    if (!progress) return 0;
+    if (!progress.step_0_sent_at) return 0;
+    if (!progress.step_1_sent_at) return 1;
+    if (!progress.step_2_sent_at) return 2;
+    return null; // Completed
+  };
+
   // Toggle lead selection (skip unsubscribed)
   const toggleLeadSelection = (id: string) => {
     const lead = leads.find(l => l.id === id);
@@ -127,7 +172,6 @@ export function CampaignLeadsTable({
   };
 
   const toggleSelectAll = () => {
-    const activeLeads = filteredLeads.filter(l => l.status !== "unsubscribed");
     if (selectedLeadIds.length === activeLeads.length) {
       setSelectedLeadIds([]);
     } else {
@@ -164,20 +208,35 @@ export function CampaignLeadsTable({
           />
         </div>
         {selectedLeadIds.length > 0 && (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={handleRemoveLeads}
-            disabled={isRemovingLeads}
-            className="text-destructive hover:text-destructive"
-          >
-            {isRemovingLeads ? (
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            ) : (
-              <UserMinus className="h-3 w-3 mr-1" />
-            )}
-            Remove ({selectedLeadIds.length})
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => sendToSelectedMutation.mutate(0)}
+              disabled={sendToSelectedMutation.isPending}
+            >
+              {sendToSelectedMutation.isPending ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Mail className="h-3 w-3 mr-1" />
+              )}
+              Send Next Step ({selectedLeadIds.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleRemoveLeads}
+              disabled={isRemovingLeads}
+              className="text-destructive hover:text-destructive"
+            >
+              {isRemovingLeads ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <UserMinus className="h-3 w-3 mr-1" />
+              )}
+              Remove
+            </Button>
+          </div>
         )}
       </div>
 
@@ -193,10 +252,7 @@ export function CampaignLeadsTable({
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox
-                    checked={
-                      filteredLeads.filter(l => l.status !== "unsubscribed").length > 0 &&
-                      selectedLeadIds.length === filteredLeads.filter(l => l.status !== "unsubscribed").length
-                    }
+                    checked={activeLeads.length > 0 && selectedLeadIds.length === activeLeads.length}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
@@ -204,6 +260,7 @@ export function CampaignLeadsTable({
                 <TableHead>Company</TableHead>
                 <TableHead>Score</TableHead>
                 <TableHead>Workflow Progress</TableHead>
+                <TableHead>Next Send</TableHead>
                 <TableHead>Last Engaged</TableHead>
               </TableRow>
             </TableHeader>
@@ -211,6 +268,7 @@ export function CampaignLeadsTable({
               {filteredLeads.map((lead) => {
                 const isUnsubscribed = lead.status === "unsubscribed";
                 const progress = getLeadProgress(lead.id);
+                const nextStep = getNextStep(progress);
                 
                 return (
                   <TableRow key={lead.id} className={isUnsubscribed ? "opacity-60 bg-muted/30" : ""}>
@@ -243,6 +301,17 @@ export function CampaignLeadsTable({
                     </TableCell>
                     <TableCell>
                       {getProgressBadge(progress)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {nextStep !== null ? (
+                        <span className="text-muted-foreground">
+                          {progress?.next_send_at 
+                            ? format(new Date(progress.next_send_at), "MMM d, HH:mm")
+                            : "Ready now"}
+                        </span>
+                      ) : (
+                        <span className="text-green-600">Done</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {lead.last_engaged_at
