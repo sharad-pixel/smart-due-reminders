@@ -29,6 +29,30 @@ const COMPANY_INFO = {
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
 /**
+ * Convert plain text with line breaks to proper HTML with paragraphs
+ */
+function formatBodyAsHtml(body: string): string {
+  if (!body) return "";
+  
+  // If already contains HTML tags, return as-is
+  if (/<[a-z][\s\S]*>/i.test(body)) {
+    return body;
+  }
+  
+  // Split by double newlines to create paragraphs
+  const paragraphs = body.split(/\n\n+/);
+  
+  return paragraphs
+    .map(paragraph => {
+      const lines = paragraph.trim().split(/\n/).map(line => line.trim()).filter(Boolean);
+      if (lines.length === 0) return "";
+      return `<p style="margin: 0 0 16px 0; line-height: 1.6;">${lines.join("<br>")}</p>`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+/**
  * Generate CAN-SPAM compliant email footer with unsubscribe link
  */
 function generateComplianceFooter(unsubscribeUrl: string, email: string): string {
@@ -165,8 +189,9 @@ serve(async (req) => {
 
       // Generate test unsubscribe URL
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(targetEmail!)}`;
-      const htmlWithFooter = emailHtml + generateComplianceFooter(unsubscribeUrl, targetEmail!);
-      const textWithFooter = (emailText || "") + generateComplianceFooterText(unsubscribeUrl, targetEmail!);
+      const formattedBody = formatBodyAsHtml(emailHtml!);
+      const htmlWithFooter = formattedBody + generateComplianceFooter(unsubscribeUrl, targetEmail!);
+      const textWithFooter = (emailText || emailHtml || "") + generateComplianceFooterText(unsubscribeUrl, targetEmail!);
 
       const { error: sendError } = await supabase.functions.invoke("send-email", {
         body: {
@@ -272,17 +297,18 @@ serve(async (req) => {
           try {
             // Replace user-specific variables
             const personalizedSubject = emailSubject!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
-            let personalizedHtml = emailHtml!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
-            let personalizedText = emailText?.replace(/\{\{user_name\}\}/g, recipient.name || "there");
+            const rawBody = emailHtml!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
+            let personalizedText = (emailText || emailHtml || "").replace(/\{\{user_name\}\}/g, recipient.name || "there");
 
             // Generate personalized unsubscribe URL
             const unsubscribeUrl = recipient.unsubscribe_token
               ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${recipient.unsubscribe_token}`
               : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(recipient.email)}`;
 
-            // Add CAN-SPAM compliant footer
-            personalizedHtml += generateComplianceFooter(unsubscribeUrl, recipient.email);
-            personalizedText = (personalizedText || "") + generateComplianceFooterText(unsubscribeUrl, recipient.email);
+            // Format body and add CAN-SPAM compliant footer
+            const formattedBody = formatBodyAsHtml(rawBody);
+            const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl, recipient.email);
+            personalizedText = personalizedText + generateComplianceFooterText(unsubscribeUrl, recipient.email);
 
             const { error: sendError } = await supabase.functions.invoke("send-email", {
               body: {
