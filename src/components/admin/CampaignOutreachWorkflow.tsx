@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Mail, 
   Clock, 
@@ -16,7 +15,7 @@ import {
   Save,
   Check,
   Calendar,
-  AlertCircle
+  Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,6 +38,7 @@ interface CampaignOutreachWorkflowProps {
   campaignId: string;
   campaignName: string;
   pricingTier?: string | null;
+  leadsCount?: number;
 }
 
 const WORKFLOW_STEPS = [
@@ -50,7 +50,8 @@ const WORKFLOW_STEPS = [
 export function CampaignOutreachWorkflow({ 
   campaignId, 
   campaignName,
-  pricingTier 
+  pricingTier,
+  leadsCount = 0,
 }: CampaignOutreachWorkflowProps) {
   const queryClient = useQueryClient();
   const [activeStep, setActiveStep] = useState(0);
@@ -71,15 +72,20 @@ export function CampaignOutreachWorkflow({
         .eq("campaign_id", campaignId)
         .order("step_number");
       if (error) throw error;
-      
-      // Update form state with existing data
+      return data as CampaignOutreachEmail[];
+    },
+  });
+
+  // Sync form state when outreach emails are loaded
+  useEffect(() => {
+    if (outreachEmails.length > 0) {
       const forms: Record<number, { subject: string; body_html: string; body_text: string }> = {
         0: { subject: "", body_html: "", body_text: "" },
         1: { subject: "", body_html: "", body_text: "" },
         2: { subject: "", body_html: "", body_text: "" },
       };
       
-      (data || []).forEach((email: CampaignOutreachEmail) => {
+      outreachEmails.forEach((email) => {
         forms[email.step_number] = {
           subject: email.subject || "",
           body_html: email.body_html || "",
@@ -87,10 +93,8 @@ export function CampaignOutreachWorkflow({
         };
       });
       setEmailForms(forms);
-      
-      return data as CampaignOutreachEmail[];
-    },
-  });
+    }
+  }, [outreachEmails]);
 
   // Save email draft mutation
   const saveEmailMutation = useMutation({
@@ -104,6 +108,7 @@ export function CampaignOutreachWorkflow({
             subject: form.subject,
             body_html: form.body_html,
             body_text: form.body_text || null,
+            updated_at: new Date().toISOString(),
           })
           .eq("id", existingEmail.id);
         if (error) throw error;
@@ -141,13 +146,41 @@ export function CampaignOutreachWorkflow({
       
       const { error } = await supabase
         .from("campaign_outreach_emails")
-        .update({ status: "approved" })
+        .update({ status: "approved", updated_at: new Date().toISOString() })
         .eq("id", existingEmail.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Email step approved");
+      toast.success("Email step approved and ready to send");
       queryClient.invalidateQueries({ queryKey: ["campaign-outreach-emails", campaignId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Send outreach mutation
+  const sendOutreachMutation = useMutation({
+    mutationFn: async ({ stepNumber, testMode }: { stepNumber: number; testMode: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("send-campaign-outreach", {
+        body: {
+          campaign_id: campaignId,
+          step_number: stepNumber,
+          test_mode: testMode,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      if (variables.testMode) {
+        toast.success("Test email sent to your inbox");
+      } else {
+        toast.success(`Sent ${data.sent_count} emails successfully`);
+        queryClient.invalidateQueries({ queryKey: ["campaign-outreach-emails", campaignId] });
+        queryClient.invalidateQueries({ queryKey: ["lead-campaign-progress", campaignId] });
+        queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -158,7 +191,6 @@ export function CampaignOutreachWorkflow({
   const handleGenerateEmail = async (stepNumber: number) => {
     setIsGenerating(true);
     try {
-      const stepInfo = WORKFLOW_STEPS[stepNumber];
       const tierName = pricingTier ? pricingTier.replace("_", " ") : "general";
       
       const prompts: Record<number, string> = {
@@ -226,7 +258,7 @@ export function CampaignOutreachWorkflow({
       case "approved":
         return <Badge className="text-xs bg-green-100 text-green-800">Approved</Badge>;
       case "active":
-        return <Badge className="text-xs bg-blue-100 text-blue-800">Active</Badge>;
+        return <Badge className="text-xs bg-blue-100 text-blue-800">Sent</Badge>;
       default:
         return null;
     }
@@ -289,110 +321,144 @@ export function CampaignOutreachWorkflow({
           ))}
         </TabsList>
 
-        {WORKFLOW_STEPS.map((step) => (
-          <TabsContent key={step.step} value={String(step.step)} className="mt-4 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">{step.label}</CardTitle>
-                    <CardDescription className="text-xs">{step.description}</CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateEmail(step.step)}
-                    disabled={isGenerating}
-                  >
-                    {isGenerating ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-1" />
-                    )}
-                    Generate with AI
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Subject Line</Label>
-                  <Input
-                    placeholder="Enter email subject..."
-                    value={emailForms[step.step]?.subject || ""}
-                    onChange={(e) => setEmailForms(prev => ({
-                      ...prev,
-                      [step.step]: { ...prev[step.step], subject: e.target.value }
-                    }))}
-                  />
-                </div>
-                
-                <div>
-                  <Label>Email Body (HTML)</Label>
-                  <Textarea
-                    placeholder="Enter email content... Use {{user_name}} for personalization."
-                    value={emailForms[step.step]?.body_html || ""}
-                    onChange={(e) => setEmailForms(prev => ({
-                      ...prev,
-                      [step.step]: { ...prev[step.step], body_html: e.target.value }
-                    }))}
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                </div>
-
-                <div>
-                  <Label>Plain Text Version (Optional)</Label>
-                  <Textarea
-                    placeholder="Plain text fallback..."
-                    value={emailForms[step.step]?.body_text || ""}
-                    onChange={(e) => setEmailForms(prev => ({
-                      ...prev,
-                      [step.step]: { ...prev[step.step], body_text: e.target.value }
-                    }))}
-                    className="min-h-[80px]"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSaveStep(step.step)}
-                    disabled={saveEmailMutation.isPending}
-                  >
-                    {saveEmailMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-1" />
-                    )}
-                    Save Draft
-                  </Button>
-                  
-                  {getStepStatus(step.step) === "draft" && (
+        {WORKFLOW_STEPS.map((step) => {
+          const status = getStepStatus(step.step);
+          const canSend = (status === "approved" || status === "active") && leadsCount > 0;
+          
+          return (
+            <TabsContent key={step.step} value={String(step.step)} className="mt-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base">{step.label}</CardTitle>
+                      <CardDescription className="text-xs">{step.description}</CardDescription>
+                    </div>
                     <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => approveStepMutation.mutate(step.step)}
-                      disabled={approveStepMutation.isPending}
+                      onClick={() => handleGenerateEmail(step.step)}
+                      disabled={isGenerating}
                     >
-                      {approveStepMutation.isPending ? (
+                      {isGenerating ? (
                         <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                       ) : (
-                        <Check className="h-4 w-4 mr-1" />
+                        <Sparkles className="h-4 w-4 mr-1" />
                       )}
-                      Approve Step
+                      Generate with AI
                     </Button>
-                  )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Subject Line</Label>
+                    <Input
+                      placeholder="Enter email subject..."
+                      value={emailForms[step.step]?.subject || ""}
+                      onChange={(e) => setEmailForms(prev => ({
+                        ...prev,
+                        [step.step]: { ...prev[step.step], subject: e.target.value }
+                      }))}
+                    />
+                  </div>
                   
-                  {getStepStatus(step.step) === "approved" && (
-                    <Badge className="bg-green-100 text-green-800 self-center">
-                      <Check className="h-3 w-3 mr-1" />
-                      Ready to Send
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+                  <div>
+                    <Label>Email Body (HTML)</Label>
+                    <Textarea
+                      placeholder="Enter email content... Use {{user_name}} for personalization."
+                      value={emailForms[step.step]?.body_html || ""}
+                      onChange={(e) => setEmailForms(prev => ({
+                        ...prev,
+                        [step.step]: { ...prev[step.step], body_html: e.target.value }
+                      }))}
+                      className="min-h-[200px] font-mono text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Plain Text Version (Optional)</Label>
+                    <Textarea
+                      placeholder="Plain text fallback..."
+                      value={emailForms[step.step]?.body_text || ""}
+                      onChange={(e) => setEmailForms(prev => ({
+                        ...prev,
+                        [step.step]: { ...prev[step.step], body_text: e.target.value }
+                      }))}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="flex justify-between items-center gap-2 pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSaveStep(step.step)}
+                        disabled={saveEmailMutation.isPending}
+                      >
+                        {saveEmailMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-1" />
+                        )}
+                        Save Draft
+                      </Button>
+                      
+                      {status === "draft" && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => approveStepMutation.mutate(step.step)}
+                          disabled={approveStepMutation.isPending}
+                        >
+                          {approveStepMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4 mr-1" />
+                          )}
+                          Approve
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {(status === "approved" || status === "active") && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => sendOutreachMutation.mutate({ stepNumber: step.step, testMode: true })}
+                            disabled={sendOutreachMutation.isPending}
+                          >
+                            {sendOutreachMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Mail className="h-4 w-4 mr-1" />
+                            )}
+                            Send Test
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => sendOutreachMutation.mutate({ stepNumber: step.step, testMode: false })}
+                            disabled={sendOutreachMutation.isPending || leadsCount === 0}
+                          >
+                            {sendOutreachMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Play className="h-4 w-4 mr-1" />
+                            )}
+                            Send to {leadsCount} Lead{leadsCount !== 1 ? "s" : ""}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );
