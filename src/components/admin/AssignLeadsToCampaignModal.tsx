@@ -19,6 +19,7 @@ interface Campaign {
   name: string;
   total_leads: number | null;
   status: string;
+  pricing_tier?: string | null;
 }
 
 interface AssignLeadsToCampaignModalProps {
@@ -30,39 +31,39 @@ interface AssignLeadsToCampaignModalProps {
   isAssigning: boolean;
 }
 
-const getTierIcon = (name: string) => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes("solo")) return Users;
-  if (lowerName.includes("starter")) return Rocket;
-  if (lowerName.includes("growth")) return TrendingUp;
-  if (lowerName.includes("professional")) return Crown;
+const getTierIcon = (campaign: Campaign) => {
+  const tier = campaign.pricing_tier;
+  if (tier === "solo_pro") return Users;
+  if (tier === "starter") return Rocket;
+  if (tier === "growth") return TrendingUp;
+  if (tier === "professional") return Crown;
   return Users;
 };
 
-const getTierColor = (name: string) => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes("solo")) return "text-blue-500";
-  if (lowerName.includes("starter")) return "text-emerald-500";
-  if (lowerName.includes("growth")) return "text-orange-500";
-  if (lowerName.includes("professional")) return "text-purple-500";
+const getTierColor = (campaign: Campaign) => {
+  const tier = campaign.pricing_tier;
+  if (tier === "solo_pro") return "text-blue-500";
+  if (tier === "starter") return "text-emerald-500";
+  if (tier === "growth") return "text-orange-500";
+  if (tier === "professional") return "text-purple-500";
   return "text-primary";
 };
 
-const getTierBgColor = (name: string) => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes("solo")) return "bg-blue-500/10";
-  if (lowerName.includes("starter")) return "bg-emerald-500/10";
-  if (lowerName.includes("growth")) return "bg-orange-500/10";
-  if (lowerName.includes("professional")) return "bg-purple-500/10";
+const getTierBgColor = (campaign: Campaign) => {
+  const tier = campaign.pricing_tier;
+  if (tier === "solo_pro") return "bg-blue-500/10";
+  if (tier === "starter") return "bg-emerald-500/10";
+  if (tier === "growth") return "bg-orange-500/10";
+  if (tier === "professional") return "bg-purple-500/10";
   return "bg-primary/10";
 };
 
-const getTierPrice = (name: string): number | null => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes("solo")) return PLAN_CONFIGS.solo_pro.monthlyPrice;
-  if (lowerName.includes("starter")) return PLAN_CONFIGS.starter.monthlyPrice;
-  if (lowerName.includes("growth")) return PLAN_CONFIGS.growth.monthlyPrice;
-  if (lowerName.includes("professional")) return PLAN_CONFIGS.professional.monthlyPrice;
+const getTierPrice = (campaign: Campaign): number | null => {
+  const tier = campaign.pricing_tier;
+  if (tier === "solo_pro") return PLAN_CONFIGS.solo_pro.monthlyPrice;
+  if (tier === "starter") return PLAN_CONFIGS.starter.monthlyPrice;
+  if (tier === "growth") return PLAN_CONFIGS.growth.monthlyPrice;
+  if (tier === "professional") return PLAN_CONFIGS.professional.monthlyPrice;
   return null;
 };
 
@@ -82,16 +83,8 @@ export const AssignLeadsToCampaignModal = ({
   };
 
   // Filter to show pricing-tier campaigns first, then others
-  const pricingCampaigns = campaigns.filter((c) =>
-    c.name.toLowerCase().includes("solo") ||
-    c.name.toLowerCase().includes("starter") ||
-    c.name.toLowerCase().includes("growth") ||
-    c.name.toLowerCase().includes("professional")
-  );
-
-  const otherCampaigns = campaigns.filter(
-    (c) => !pricingCampaigns.some((p) => p.id === c.id)
-  );
+  const pricingCampaigns = campaigns.filter((c) => c.pricing_tier);
+  const otherCampaigns = campaigns.filter((c) => !c.pricing_tier);
 
   const sortedCampaigns = [...pricingCampaigns, ...otherCampaigns];
 
@@ -123,10 +116,10 @@ export const AssignLeadsToCampaignModal = ({
               className="space-y-3"
             >
               {sortedCampaigns.map((campaign) => {
-                const Icon = getTierIcon(campaign.name);
-                const iconColor = getTierColor(campaign.name);
-                const bgColor = getTierBgColor(campaign.name);
-                const price = getTierPrice(campaign.name);
+                const Icon = getTierIcon(campaign);
+                const iconColor = getTierColor(campaign);
+                const bgColor = getTierBgColor(campaign);
+                const price = getTierPrice(campaign);
 
                 return (
                   <div

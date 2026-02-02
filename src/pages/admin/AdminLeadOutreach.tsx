@@ -91,6 +91,7 @@ interface MarketingCampaign {
   clicks: number | null;
   conversions: number | null;
   created_at: string;
+  pricing_tier: string | null;
 }
 
 export default function AdminLeadOutreach() {
@@ -193,13 +194,12 @@ export default function AdminLeadOutreach() {
   const leadsCountByTier = useMemo(() => {
     const tierCounts: Record<string, number> = {};
     PRICING_TIER_CAMPAIGNS.forEach(tier => {
-      // Find campaigns matching this tier
-      const tierCampaign = campaigns.find(c => 
-        c.name.toLowerCase().includes(tier.tier.replace("_", " ")) ||
-        c.name.toLowerCase().includes(tier.tier)
-      );
+      // Find campaigns with matching pricing_tier
+      const tierCampaign = campaigns.find(c => c.pricing_tier === tier.tier);
       if (tierCampaign) {
         tierCounts[tier.tier] = leads.filter(l => l.campaign_id === tierCampaign.id).length;
+      } else {
+        tierCounts[tier.tier] = 0;
       }
     });
     return tierCounts;
@@ -292,9 +292,9 @@ export default function AdminLeadOutreach() {
     },
   });
 
-  // Create campaign mutation
+  // Create campaign mutation (with pricing_tier support)
   const createCampaignMutation = useMutation({
-    mutationFn: async (campaign: CampaignFormData) => {
+    mutationFn: async (campaign: CampaignFormData & { pricing_tier?: string }) => {
       const { error } = await supabase.from("marketing_campaigns").insert({
         name: campaign.name,
         description: campaign.description || null,
@@ -304,6 +304,7 @@ export default function AdminLeadOutreach() {
         target_company_size: campaign.target_company_size !== "all" ? campaign.target_company_size : null,
         min_lead_score: campaign.min_lead_score,
         status: "draft",
+        pricing_tier: campaign.pricing_tier || null,
       });
       if (error) throw error;
     },
@@ -333,14 +334,29 @@ export default function AdminLeadOutreach() {
     },
   });
 
-  // Assign leads to campaign
+  // Assign leads to campaign (with progress tracking)
   const assignLeadsToCampaign = useMutation({
     mutationFn: async ({ leadIds, campaignId }: { leadIds: string[]; campaignId: string }) => {
+      // Update marketing_leads with campaign_id
       const { error } = await supabase
         .from("marketing_leads")
         .update({ campaign_id: campaignId })
         .in("id", leadIds);
       if (error) throw error;
+
+      // Create progress tracking records for each lead
+      const progressRecords = leadIds.map(leadId => ({
+        lead_id: leadId,
+        campaign_id: campaignId,
+        current_step: 0,
+        status: "active",
+        next_send_at: new Date().toISOString(), // Ready to send Day 0 immediately
+      }));
+
+      // Upsert progress records (in case lead was previously assigned)
+      await supabase
+        .from("lead_campaign_progress")
+        .upsert(progressRecords, { onConflict: "lead_id,campaign_id" });
 
       // Update campaign lead count
       const { data: count } = await supabase
@@ -356,7 +372,8 @@ export default function AdminLeadOutreach() {
     onSuccess: () => {
       toast.success("Leads assigned to campaign");
       setSelectedLeads([]);
-      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns"] });
+      setShowAssignToCampaign(false);
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns", "lead-campaign-progress"] });
     },
   });
 

@@ -123,20 +123,17 @@ export const PricingTierCampaigns = ({
 }: PricingTierCampaignsProps) => {
   const [creatingTier, setCreatingTier] = useState<string | null>(null);
 
-  const campaignExists = (tierName: string) => {
-    return existingCampaigns.some(
-      (c) => c.name.toLowerCase().includes(tierName.toLowerCase()) ||
-             c.name.toLowerCase().includes(tierName.replace("_", " ").toLowerCase())
-    );
+  const campaignExists = (tier: string) => {
+    return existingCampaigns.some((c: any) => c.pricing_tier === tier);
   };
 
   const handleCreate = (tier: PricingTierCampaign) => {
     setCreatingTier(tier.tier);
     onCreateCampaign({
-      name: tier.name,
+      name: `${tier.displayName} Tier Campaign`,
       description: tier.description,
       campaign_type: "acquisition",
-      target_segment: "all",
+      target_segment: tier.targetAudience,
       pricing_tier: tier.tier,
     });
   };

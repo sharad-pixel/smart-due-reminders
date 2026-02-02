@@ -702,6 +702,56 @@ export type Database = {
           },
         ]
       }
+      campaign_outreach_emails: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          day_offset: number
+          id: string
+          status: string
+          step_number: number
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          day_offset?: number
+          id?: string
+          status?: string
+          step_number: number
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          day_offset?: number
+          id?: string
+          status?: string
+          step_number?: number
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_outreach_emails_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_activities: {
         Row: {
           activity_type: string
@@ -4151,6 +4201,66 @@ export type Database = {
           },
         ]
       }
+      lead_campaign_progress: {
+        Row: {
+          assigned_at: string
+          campaign_id: string
+          created_at: string
+          current_step: number
+          id: string
+          lead_id: string
+          next_send_at: string | null
+          status: string
+          step_0_sent_at: string | null
+          step_1_sent_at: string | null
+          step_2_sent_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          campaign_id: string
+          created_at?: string
+          current_step?: number
+          id?: string
+          lead_id: string
+          next_send_at?: string | null
+          status?: string
+          step_0_sent_at?: string | null
+          step_1_sent_at?: string | null
+          step_2_sent_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          campaign_id?: string
+          created_at?: string
+          current_step?: number
+          id?: string
+          lead_id?: string
+          next_send_at?: string | null
+          status?: string
+          step_0_sent_at?: string | null
+          step_1_sent_at?: string | null
+          step_2_sent_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_campaign_progress_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_campaign_progress_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           attempt_time: string | null
@@ -4192,6 +4302,7 @@ export type Database = {
           min_lead_score: number | null
           name: string
           opens: number | null
+          pricing_tier: string | null
           started_at: string | null
           status: string
           target_company_size: string | null
@@ -4213,6 +4324,7 @@ export type Database = {
           min_lead_score?: number | null
           name: string
           opens?: number | null
+          pricing_tier?: string | null
           started_at?: string | null
           status?: string
           target_company_size?: string | null
@@ -4234,6 +4346,7 @@ export type Database = {
           min_lead_score?: number | null
           name?: string
           opens?: number | null
+          pricing_tier?: string | null
           started_at?: string | null
           status?: string
           target_company_size?: string | null
