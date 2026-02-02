@@ -114,15 +114,18 @@ serve(async (req) => {
       .select("*")
       .eq("campaign_id", campaign_id)
       .eq("step_number", targetStep)
-      .eq("status", "approved")
+      .in("status", ["approved", "active"]) // Allow both approved and active (already sent once)
       .single();
 
     if (templateError || !emailTemplate) {
+      console.log("Template query error:", templateError);
       return new Response(
-        JSON.stringify({ error: `No approved email template found for step ${targetStep}` }),
+        JSON.stringify({ error: `No approved email template found for step ${targetStep}. Please create and approve the template first.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(`Using template for step ${targetStep}:`, emailTemplate.subject);
 
     // Get leads for this campaign
     let leadsQuery = supabase
