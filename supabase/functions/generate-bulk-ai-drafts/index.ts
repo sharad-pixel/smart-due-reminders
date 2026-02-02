@@ -294,6 +294,10 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
         stepTriggerDate.setDate(stepTriggerDate.getDate() + stepDayOffset);
         const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
 
+        // Determine draft status based on auto_approve_drafts setting
+        const shouldAutoApprove = branding?.auto_approve_drafts === true;
+        const draftStatus = shouldAutoApprove ? 'approved' : 'pending_approval';
+
         // Create draft in database
         const { data: draft, error: draftError } = await supabaseClient
           .from('ai_drafts')
@@ -305,7 +309,8 @@ ${branding?.email_signature ? `\nSignature block to include:\n${branding.email_s
             step_number: workflowStep?.step_order || 1,
             subject: subjectPrompt,
             message_body: generatedContent,
-            status: 'pending_approval',
+            status: draftStatus,
+            auto_approved: shouldAutoApprove,
             recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
             days_past_due: daysPastDue,
           })

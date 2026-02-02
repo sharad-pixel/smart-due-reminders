@@ -111,7 +111,7 @@ serve(async (req) => {
     // Fetch user's branding settings (using effective account)
     const { data: branding, error: brandingError } = await supabase
       .from("branding_settings")
-      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, footer_disclaimer, logo_url, primary_color, accent_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, email_format, email_wrapper_enabled, sending_mode, from_email_verified, verified_from_email")
+      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, footer_disclaimer, logo_url, primary_color, accent_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, email_format, email_wrapper_enabled, sending_mode, from_email_verified, verified_from_email, auto_approve_drafts")
       .eq("user_id", brandingOwnerId)
       .single();
 
@@ -538,6 +538,10 @@ Generate a JSON response with:
 
       // If generateOnly, save draft to ai_drafts table and return
       if (generateOnly) {
+        // Determine draft status based on auto_approve_drafts setting
+        const shouldAutoApprove = branding?.auto_approve_drafts === true;
+        const draftStatus = shouldAutoApprove ? 'approved' : 'pending_approval';
+
         // Save the generated draft to ai_drafts for review
         const { data: savedDraft, error: draftError } = await supabase
           .from("ai_drafts")
@@ -548,8 +552,8 @@ Generate a JSON response with:
             step_number: 1,
             subject: generatedSubject,
             message_body: generatedMessage,
-            status: "pending_approval",
-            auto_approved: false,
+            status: draftStatus,
+            auto_approved: shouldAutoApprove,
             days_past_due: 0,
             applied_brand_snapshot: {
               type: "account_level_outreach",
