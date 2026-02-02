@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { renderEmail, getSenderIdentity, BrandingConfig } from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { personaTones, toneIntensityModifiers } from "../_shared/personaTones.ts";
 
@@ -110,7 +111,7 @@ serve(async (req) => {
     // Fetch user's branding settings (using effective account)
     const { data: branding, error: brandingError } = await supabase
       .from("branding_settings")
-      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, logo_url, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .select("business_name, from_name, from_email, reply_to_email, email_signature, email_footer, footer_disclaimer, logo_url, primary_color, accent_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, email_format, email_wrapper_enabled, sending_mode, from_email_verified, verified_from_email")
       .eq("user_id", brandingOwnerId)
       .single();
 
@@ -120,16 +121,23 @@ serve(async (req) => {
 
     const brandingSettings = branding || {
       business_name: "Recouply.ai",
-      from_name: null,
-      from_email: null,
-      reply_to_email: null,
-      email_signature: null,
-      email_footer: null,
-      logo_url: null,
+      from_name: undefined,
+      from_email: undefined,
+      reply_to_email: undefined,
+      email_signature: undefined,
+      email_footer: undefined,
+      footer_disclaimer: undefined,
+      logo_url: undefined,
       primary_color: "#1e3a5f",
-      ar_page_public_token: null,
+      accent_color: undefined,
+      ar_page_public_token: undefined,
       ar_page_enabled: false,
-      stripe_payment_link: null,
+      stripe_payment_link: undefined,
+      email_format: 'simple' as const,
+      email_wrapper_enabled: true,
+      sending_mode: undefined,
+      from_email_verified: undefined,
+      verified_from_email: undefined,
     };
 
     // Check if we need to generate AI content (either generateOnly OR no subject/message provided)
@@ -666,15 +674,37 @@ Generate a JSON response with:
       ${linksHtml}
     `;
 
-    // Generate fully branded email HTML using shared template (uses Recouply.ai fallback)
-    const emailHtml = generateBrandedEmail(
-      emailContent,
-      brandingSettings,
-      {
-        paymentUrl: paymentUrl,
-        amount: totalAmount,
-      }
-    );
+    // Build branded email using the same format as invoice workflow (respects email_format setting)
+    const brandingConfig: BrandingConfig = {
+      business_name: brandingSettings.business_name,
+      from_name: brandingSettings.from_name || undefined,
+      logo_url: brandingSettings.logo_url || undefined,
+      primary_color: brandingSettings.primary_color || undefined,
+      accent_color: brandingSettings.accent_color || undefined,
+      email_signature: brandingSettings.email_signature || undefined,
+      email_footer: brandingSettings.email_footer || undefined,
+      footer_disclaimer: brandingSettings.footer_disclaimer || undefined,
+      email_format: (brandingSettings.email_format as 'simple' | 'enhanced') || 'simple',
+      email_wrapper_enabled: brandingSettings.email_wrapper_enabled ?? true,
+      ar_page_public_token: brandingSettings.ar_page_public_token || undefined,
+      ar_page_enabled: brandingSettings.ar_page_enabled ?? false,
+      stripe_payment_link: brandingSettings.stripe_payment_link || undefined,
+    };
+
+    // Use renderEmail which respects email_format setting (simple vs enhanced)
+    const emailHtml = renderEmail({
+      brand: brandingConfig,
+      subject: generatedSubject || "",
+      bodyHtml: emailContent,
+      cta: paymentUrl ? {
+        label: `Pay Now${totalAmount ? ` $${totalAmount.toLocaleString()}` : ''}`,
+        url: paymentUrl,
+      } : undefined,
+      meta: {
+        debtorId: debtorId,
+        templateType: 'account_level_outreach',
+      },
+    });
 
     logStep(`Sending branded email via platform from ${fromEmail} to ${allEmails.join(', ')}`);
 
