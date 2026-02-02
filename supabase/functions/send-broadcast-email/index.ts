@@ -38,19 +38,13 @@ function generateComplianceFooter(unsubscribeUrl: string, email: string): string
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
     <tr>
       <td style="text-align: center; padding: 20px 0;">
-        <p style="margin: 0 0 8px; font-size: 12px; color: #64748b;">
-          You received this email because you subscribed to updates from Recouply.ai
-        </p>
-        <p style="margin: 0 0 16px; font-size: 12px; color: #64748b;">
+        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
           ${COMPANY_INFO.legalName} • ${COMPANY_INFO.address}
         </p>
-        <p style="margin: 0;">
-          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 13px; text-decoration: underline;">
-            Unsubscribe from marketing emails
+        <p style="margin: 0 0 8px;">
+          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 12px; text-decoration: underline;">
+            Unsubscribe
           </a>
-        </p>
-        <p style="margin: 8px 0 0; font-size: 11px; color: #94a3b8;">
-          This email was sent to ${email}
         </p>
       </td>
     </tr>
@@ -61,14 +55,9 @@ function generateComplianceFooter(unsubscribeUrl: string, email: string): string
 function generateComplianceFooterText(unsubscribeUrl: string, email: string): string {
   return `
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You received this email because you subscribed to updates from Recouply.ai
+---
 ${COMPANY_INFO.legalName} • ${COMPANY_INFO.address}
-
-Unsubscribe from marketing emails: ${unsubscribeUrl}
-
-This email was sent to ${email}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+Unsubscribe: ${unsubscribeUrl}`;
 }
 
 serve(async (req) => {
