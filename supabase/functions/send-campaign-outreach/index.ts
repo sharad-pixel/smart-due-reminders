@@ -16,26 +16,20 @@ interface SendCampaignOutreachRequest {
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
 // CAN-SPAM compliant footer
-function generateComplianceFooter(unsubscribeUrl: string, email: string): string {
+function generateComplianceFooter(unsubscribeUrl: string): string {
   return `
 <!-- CAN-SPAM Compliant Footer -->
 <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
     <tr>
       <td style="text-align: center; padding: 20px 0;">
-        <p style="margin: 0 0 8px; font-size: 12px; color: #64748b;">
-          You received this email because you expressed interest in Recouply.ai
-        </p>
-        <p style="margin: 0 0 16px; font-size: 12px; color: #64748b;">
+        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
           RecouplyAI Inc. • Delaware, USA
         </p>
-        <p style="margin: 0;">
-          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 13px; text-decoration: underline;">
-            Unsubscribe from marketing emails
+        <p style="margin: 0 0 8px;">
+          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 12px; text-decoration: underline;">
+            Unsubscribe
           </a>
-        </p>
-        <p style="margin: 8px 0 0; font-size: 11px; color: #94a3b8;">
-          This email was sent to ${email}
         </p>
       </td>
     </tr>
@@ -43,17 +37,12 @@ function generateComplianceFooter(unsubscribeUrl: string, email: string): string
 </div>`;
 }
 
-function generateComplianceFooterText(unsubscribeUrl: string, email: string): string {
+function generateComplianceFooterText(unsubscribeUrl: string): string {
   return `
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You received this email because you expressed interest in Recouply.ai
+---
 RecouplyAI Inc. • Delaware, USA
-
-Unsubscribe: ${unsubscribeUrl}
-
-This email was sent to ${email}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+Unsubscribe: ${unsubscribeUrl}`;
 }
 
 serve(async (req) => {
@@ -191,9 +180,9 @@ serve(async (req) => {
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(testEmail)}`;
       const personalizedSubject = `[TEST] ${emailTemplate.subject?.replace(/\{\{user_name\}\}/g, "Test User") || "No Subject"}`;
       const personalizedHtml = (emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User") + 
-        generateComplianceFooter(unsubscribeUrl, testEmail);
+        generateComplianceFooter(unsubscribeUrl);
       const personalizedText = (emailTemplate.body_text || "").replace(/\{\{user_name\}\}/g, "Test User") + 
-        generateComplianceFooterText(unsubscribeUrl, testEmail);
+        generateComplianceFooterText(unsubscribeUrl);
 
       const { error: sendError } = await supabase.functions.invoke("send-email", {
         body: {
@@ -236,9 +225,9 @@ serve(async (req) => {
               : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(lead.email)}`;
 
             const personalizedHtml = (emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
-              generateComplianceFooter(unsubscribeUrl, lead.email);
+              generateComplianceFooter(unsubscribeUrl);
             const personalizedText = (emailTemplate.body_text || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
-              generateComplianceFooterText(unsubscribeUrl, lead.email);
+              generateComplianceFooterText(unsubscribeUrl);
 
             const { error: sendError } = await supabase.functions.invoke("send-email", {
               body: {
