@@ -15,6 +15,32 @@ interface SendCampaignOutreachRequest {
 
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
+/**
+ * Convert plain text with line breaks to proper HTML with paragraphs
+ * Preserves the visual structure of the original text
+ */
+function formatBodyAsHtml(body: string): string {
+  if (!body) return "";
+  
+  // If already contains HTML tags, return as-is
+  if (/<[a-z][\s\S]*>/i.test(body)) {
+    return body;
+  }
+  
+  // Split by double newlines to create paragraphs
+  const paragraphs = body.split(/\n\n+/);
+  
+  return paragraphs
+    .map(paragraph => {
+      // Convert single newlines within a paragraph to <br>
+      const lines = paragraph.trim().split(/\n/).map(line => line.trim()).filter(Boolean);
+      if (lines.length === 0) return "";
+      return `<p style="margin: 0 0 16px 0; line-height: 1.6;">${lines.join("<br>")}</p>`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 // CAN-SPAM compliant footer
 function generateComplianceFooter(unsubscribeUrl: string): string {
   return `
@@ -182,9 +208,9 @@ serve(async (req) => {
 
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(testEmail)}`;
       const personalizedSubject = `[TEST] ${emailTemplate.subject?.replace(/\{\{user_name\}\}/g, "Test User") || "No Subject"}`;
-      const personalizedHtml = (emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User") + 
-        generateComplianceFooter(unsubscribeUrl);
-      const personalizedText = (emailTemplate.body_text || "").replace(/\{\{user_name\}\}/g, "Test User") + 
+      const formattedBody = formatBodyAsHtml((emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User"));
+      const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl);
+      const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User") + 
         generateComplianceFooterText(unsubscribeUrl);
 
       const { error: sendError } = await supabase.functions.invoke("send-email", {
@@ -227,9 +253,9 @@ serve(async (req) => {
               ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${lead.unsubscribe_token}`
               : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(lead.email)}`;
 
-            const personalizedHtml = (emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
-              generateComplianceFooter(unsubscribeUrl);
-            const personalizedText = (emailTemplate.body_text || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
+            const formattedBody = formatBodyAsHtml((emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there"));
+            const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl);
+            const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
               generateComplianceFooterText(unsubscribeUrl);
 
             const { error: sendError } = await supabase.functions.invoke("send-email", {
