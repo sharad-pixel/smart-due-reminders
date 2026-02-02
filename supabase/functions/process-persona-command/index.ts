@@ -182,7 +182,7 @@ serve(async (req) => {
     // Get branding settings for email customization
     const { data: brandingSettings } = await supabaseAdmin
       .from('branding_settings')
-      .select('business_name, from_name, email_signature, email_footer, primary_color, logo_url, ar_page_public_token, ar_page_enabled, ar_contact_email')
+      .select('business_name, from_name, email_signature, email_footer, primary_color, logo_url, ar_page_public_token, ar_page_enabled, ar_contact_email, auto_approve_drafts')
       .eq('user_id', brandingOwnerId)
       .single();
     
@@ -674,12 +674,17 @@ Please craft a helpful, professional response. Since we don't have specific acco
       stepNumber = (lastDraft?.step_number ?? 0) + 1;
     }
 
+    // Determine draft status based on auto_approve_drafts setting
+    const shouldAutoApprove = brandingSettings?.auto_approve_drafts === true;
+    const draftStatus = shouldAutoApprove ? 'approved' : 'pending_approval';
+
     const draftData: any = {
       user_id: user.id,
       channel: parsed.channel,
       subject,
       message_body: messageBody,
-      status: 'pending_approval',
+      status: draftStatus,
+      auto_approved: shouldAutoApprove,
       step_number: stepNumber,
       days_past_due: daysPastDue,
       agent_persona_id: personaRecord?.id,
