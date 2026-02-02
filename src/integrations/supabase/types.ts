@@ -2214,6 +2214,7 @@ export type Database = {
           country: string | null
           created_at: string | null
           credit_limit: number | null
+          credit_limit_recommendation: number | null
           crm_account_id: string | null
           crm_account_id_external: string | null
           crm_system: string | null
@@ -2257,10 +2258,14 @@ export type Database = {
           outreach_paused_at: string | null
           outreach_paused_reason: string | null
           outreach_type: string | null
+          paydex_rating: string | null
+          paydex_score: number | null
+          payment_experience_summary: Json | null
           payment_risk_tier: string | null
           payment_score: number | null
           payment_score_last_calculated: string | null
           payment_terms_default: string | null
+          payment_trend: string | null
           phone: string | null
           postal_code: string | null
           quickbooks_customer_id: string | null
@@ -2320,6 +2325,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
+          credit_limit_recommendation?: number | null
           crm_account_id?: string | null
           crm_account_id_external?: string | null
           crm_system?: string | null
@@ -2363,10 +2369,14 @@ export type Database = {
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
           outreach_type?: string | null
+          paydex_rating?: string | null
+          paydex_score?: number | null
+          payment_experience_summary?: Json | null
           payment_risk_tier?: string | null
           payment_score?: number | null
           payment_score_last_calculated?: string | null
           payment_terms_default?: string | null
+          payment_trend?: string | null
           phone?: string | null
           postal_code?: string | null
           quickbooks_customer_id?: string | null
@@ -2426,6 +2436,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
+          credit_limit_recommendation?: number | null
           crm_account_id?: string | null
           crm_account_id_external?: string | null
           crm_system?: string | null
@@ -2469,10 +2480,14 @@ export type Database = {
           outreach_paused_at?: string | null
           outreach_paused_reason?: string | null
           outreach_type?: string | null
+          paydex_rating?: string | null
+          paydex_score?: number | null
+          payment_experience_summary?: Json | null
           payment_risk_tier?: string | null
           payment_score?: number | null
           payment_score_last_calculated?: string | null
           payment_terms_default?: string | null
+          payment_trend?: string | null
           phone?: string | null
           postal_code?: string | null
           quickbooks_customer_id?: string | null
