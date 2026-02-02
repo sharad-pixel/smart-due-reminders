@@ -55,6 +55,25 @@ interface CreditRiskResult {
   score_components: ScoreComponents;
   last_score_change_reason: string;
   ai_risk_analysis?: AIRiskAnalysis | null;
+  // D&B PAYDEX-style metrics
+  paydex_score: number | null;
+  paydex_rating: string;
+  payment_trend: string;
+  credit_limit_recommendation: number | null;
+  payment_experience_summary: PaymentExperienceSummary | null;
+}
+
+interface PaymentExperienceSummary {
+  prompt_payments_pct: number;  // Paid by due date
+  slow_payments_pct: number;    // 1-30 days late
+  very_slow_payments_pct: number; // 31-60 days late
+  delinquent_payments_pct: number; // 60+ days late
+  weighted_avg_days_beyond_terms: number;
+  total_payment_experiences: number;
+  high_credit_amount: number;
+  current_owing: number;
+  past_due_amount: number;
+  payment_manner_description: string;
 }
 
 interface AIRiskAnalysis {
@@ -482,7 +501,13 @@ async function calculateCreditRiskScore(
       payment_score: result.credit_risk_score,
       payment_risk_tier: result.risk_tier,
       risk_status_note: result.risk_status_note,
-      risk_last_calculated_at: new Date().toISOString()
+      risk_last_calculated_at: new Date().toISOString(),
+      // D&B PAYDEX-style fields
+      paydex_score: result.paydex_score,
+      paydex_rating: result.paydex_rating,
+      payment_trend: result.payment_trend,
+      credit_limit_recommendation: result.credit_limit_recommendation,
+      payment_experience_summary: result.payment_experience_summary
     })
     .eq('id', debtorId);
 
@@ -783,7 +808,13 @@ function createInsufficientDataResult(
       factors: []
     },
     last_score_change_reason: 'Insufficient data for scoring',
-    ai_risk_analysis: null
+    ai_risk_analysis: null,
+    // D&B PAYDEX fields
+    paydex_score: null,
+    paydex_rating: 'Insufficient Data',
+    payment_trend: 'Unknown',
+    credit_limit_recommendation: null,
+    payment_experience_summary: null
   };
 }
 
@@ -1175,6 +1206,23 @@ function calculateFullCreditRiskScore(
   const riskTier = getRiskTier(creditRiskScore);
   const healthTier = getHealthTier(collectionsHealthScore);
 
+  // Calculate PAYDEX-style metrics
+  const paydexResult = calculatePaydexScore(paidInvoices, openInvoices, now);
+  
+  // Calculate average payment amount for credit limit
+  const avgPaymentAmount = paidInvoices.length > 0
+    ? paidInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0) / paidInvoices.length
+    : 0;
+  
+  // Calculate credit limit recommendation
+  const creditLimitRecommendation = calculateCreditLimitRecommendation(
+    paydexResult.paydexScore,
+    paydexResult.paymentExperience?.high_credit_amount || largestOverdueAmount,
+    paydexResult.paymentExperience?.current_owing || totalOutstanding,
+    avgPaymentAmount,
+    paydexResult.paymentTrend
+  );
+
   return {
     credit_risk_score: creditRiskScore,
     risk_tier: riskTier,
@@ -1219,7 +1267,13 @@ function calculateFullCreditRiskScore(
       factors
     },
     last_score_change_reason: '',
-    ai_risk_analysis: null
+    ai_risk_analysis: null,
+    // D&B PAYDEX fields
+    paydex_score: paydexResult.paydexScore,
+    paydex_rating: paydexResult.paydexRating,
+    payment_trend: paydexResult.paymentTrend,
+    credit_limit_recommendation: creditLimitRecommendation,
+    payment_experience_summary: paydexResult.paymentExperience
   };
 }
 
@@ -1244,4 +1298,249 @@ function getHealthTier(score: number): string {
 function generateStatusNote(healthTier: string, riskTier: string, penalties: { reason: string }[]): string {
   const topPenalties = penalties.slice(0, 2).map(p => p.reason).join('. ');
   return `${healthTier} health, ${riskTier} risk. ${topPenalties}`.trim();
+}
+
+/**
+ * Calculate PAYDEX-style score (D&B methodology)
+ * PAYDEX: 1-100 scale based on weighted payment experiences
+ * 80-100 = Prompt (pays on/before terms)
+ * 50-79 = Slow (1-30 days late)
+ * 20-49 = Very Slow (31-90 days late)
+ * 1-19 = Delinquent/Severely Late (90+ days)
+ */
+function calculatePaydexScore(
+  paidInvoices: Invoice[],
+  openInvoices: Invoice[],
+  now: number
+): { 
+  paydexScore: number | null; 
+  paydexRating: string; 
+  paymentTrend: string;
+  paymentExperience: PaymentExperienceSummary | null;
+} {
+  if (paidInvoices.length < 2) {
+    return { 
+      paydexScore: null, 
+      paydexRating: 'Insufficient Data', 
+      paymentTrend: 'Unknown',
+      paymentExperience: null
+    };
+  }
+
+  // Categorize all payment experiences
+  let promptCount = 0;      // On time or early
+  let slowCount = 0;        // 1-30 days late
+  let verySlowCount = 0;    // 31-60 days late
+  let delinquentCount = 0;  // 60+ days late
+
+  let totalWeightedDaysBeyond = 0;
+  let totalWeight = 0;
+  let highCredit = 0;
+
+  // Calculate payment timing for each paid invoice
+  const paymentExperiences: { daysBeyond: number; amount: number; date: Date }[] = [];
+
+  for (const inv of paidInvoices) {
+    if (!inv.payment_date || !inv.due_date) continue;
+
+    const paymentDate = new Date(inv.payment_date);
+    const dueDate = new Date(inv.due_date);
+    const daysBeyond = Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+    const amount = inv.outstanding_amount || inv.amount || 0;
+
+    highCredit = Math.max(highCredit, amount);
+    paymentExperiences.push({ daysBeyond, amount, date: paymentDate });
+
+    // Weight by recency - more recent payments count more (D&B methodology)
+    const recencyWeight = Math.max(0.5, 1 - (now - paymentDate.getTime()) / (365 * 24 * 60 * 60 * 1000));
+    const amountWeight = Math.log10(Math.max(10, amount)) / 5; // Log scale for amount weight
+
+    const weight = recencyWeight * amountWeight;
+    totalWeightedDaysBeyond += Math.max(0, daysBeyond) * weight;
+    totalWeight += weight;
+
+    // Categorize
+    if (daysBeyond <= 0) {
+      promptCount++;
+    } else if (daysBeyond <= 30) {
+      slowCount++;
+    } else if (daysBeyond <= 60) {
+      verySlowCount++;
+    } else {
+      delinquentCount++;
+    }
+  }
+
+  const totalExperiences = promptCount + slowCount + verySlowCount + delinquentCount;
+  if (totalExperiences === 0) {
+    return { 
+      paydexScore: null, 
+      paydexRating: 'Insufficient Data', 
+      paymentTrend: 'Unknown',
+      paymentExperience: null
+    };
+  }
+
+  // Calculate weighted average days beyond terms
+  const weightedAvgDaysBeyond = totalWeight > 0 ? totalWeightedDaysBeyond / totalWeight : 0;
+
+  // PAYDEX Score Calculation (D&B formula approximation)
+  // Perfect (0 days beyond) = 80 base
+  // Each day beyond reduces score
+  let paydexScore: number;
+  
+  if (weightedAvgDaysBeyond <= 0) {
+    // Prompt payers: 80-100
+    const promptPct = promptCount / totalExperiences;
+    paydexScore = 80 + Math.round(promptPct * 20);
+  } else if (weightedAvgDaysBeyond <= 14) {
+    // Generally prompt with minor delays: 70-79
+    paydexScore = 79 - Math.round(weightedAvgDaysBeyond * 0.6);
+  } else if (weightedAvgDaysBeyond <= 30) {
+    // Slow 1-30: 50-69
+    paydexScore = 69 - Math.round((weightedAvgDaysBeyond - 14) * 1.2);
+  } else if (weightedAvgDaysBeyond <= 60) {
+    // Very Slow 31-60: 30-49
+    paydexScore = 49 - Math.round((weightedAvgDaysBeyond - 30) * 0.6);
+  } else if (weightedAvgDaysBeyond <= 90) {
+    // Delinquent 61-90: 20-29
+    paydexScore = 29 - Math.round((weightedAvgDaysBeyond - 60) * 0.3);
+  } else {
+    // Severely delinquent 90+: 1-19
+    paydexScore = Math.max(1, 19 - Math.round((weightedAvgDaysBeyond - 90) * 0.2));
+  }
+
+  paydexScore = Math.max(1, Math.min(100, paydexScore));
+
+  // Determine PAYDEX Rating
+  let paydexRating: string;
+  if (paydexScore >= 80) {
+    paydexRating = 'Prompt';
+  } else if (paydexScore >= 70) {
+    paydexRating = 'Generally Prompt';
+  } else if (paydexScore >= 50) {
+    paydexRating = 'Slow Pay';
+  } else if (paydexScore >= 30) {
+    paydexRating = 'Very Slow Pay';
+  } else if (paydexScore >= 20) {
+    paydexRating = 'Delinquent';
+  } else {
+    paydexRating = 'Severely Delinquent';
+  }
+
+  // Calculate Payment Trend (last 3 months vs previous 3 months)
+  const threeMonthsAgo = now - (90 * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = now - (180 * 24 * 60 * 60 * 1000);
+
+  const recentPayments = paymentExperiences.filter(p => p.date.getTime() >= threeMonthsAgo);
+  const olderPayments = paymentExperiences.filter(p => 
+    p.date.getTime() >= sixMonthsAgo && p.date.getTime() < threeMonthsAgo
+  );
+
+  let paymentTrend = 'Stable';
+  if (recentPayments.length >= 2 && olderPayments.length >= 2) {
+    const recentAvg = recentPayments.reduce((sum, p) => sum + p.daysBeyond, 0) / recentPayments.length;
+    const olderAvg = olderPayments.reduce((sum, p) => sum + p.daysBeyond, 0) / olderPayments.length;
+
+    const trendDiff = olderAvg - recentAvg; // Positive = improving
+    if (trendDiff > 10) {
+      paymentTrend = 'Improving';
+    } else if (trendDiff > 5) {
+      paymentTrend = 'Slightly Improving';
+    } else if (trendDiff < -10) {
+      paymentTrend = 'Declining';
+    } else if (trendDiff < -5) {
+      paymentTrend = 'Slightly Declining';
+    }
+  }
+
+  // Calculate current owing and past due
+  let currentOwing = 0;
+  let pastDueAmount = 0;
+  for (const inv of openInvoices) {
+    const amount = inv.outstanding_amount || inv.amount || 0;
+    currentOwing += amount;
+    if (inv.due_date && new Date(inv.due_date).getTime() < now) {
+      pastDueAmount += amount;
+    }
+  }
+
+  // Payment manner description
+  let mannerDescription: string;
+  if (paydexScore >= 80) {
+    mannerDescription = 'Pays within terms. Excellent payment history.';
+  } else if (paydexScore >= 70) {
+    mannerDescription = 'Generally pays within terms with occasional minor delays.';
+  } else if (paydexScore >= 50) {
+    mannerDescription = 'Pays 14-30 days beyond terms. Monitor closely.';
+  } else if (paydexScore >= 30) {
+    mannerDescription = 'Pays 31-60 days beyond terms. High collection effort required.';
+  } else {
+    mannerDescription = 'Pays 60+ days beyond terms. Severe collection risk.';
+  }
+
+  const paymentExperience: PaymentExperienceSummary = {
+    prompt_payments_pct: Math.round((promptCount / totalExperiences) * 100),
+    slow_payments_pct: Math.round((slowCount / totalExperiences) * 100),
+    very_slow_payments_pct: Math.round((verySlowCount / totalExperiences) * 100),
+    delinquent_payments_pct: Math.round((delinquentCount / totalExperiences) * 100),
+    weighted_avg_days_beyond_terms: Math.round(weightedAvgDaysBeyond),
+    total_payment_experiences: totalExperiences,
+    high_credit_amount: highCredit,
+    current_owing: currentOwing,
+    past_due_amount: pastDueAmount,
+    payment_manner_description: mannerDescription
+  };
+
+  return { paydexScore, paydexRating, paymentTrend, paymentExperience };
+}
+
+/**
+ * Calculate credit limit recommendation based on payment behavior
+ * Uses D&B-style methodology
+ */
+function calculateCreditLimitRecommendation(
+  paydexScore: number | null,
+  highCredit: number,
+  currentOwing: number,
+  avgPaymentAmount: number,
+  paymentTrend: string
+): number | null {
+  if (paydexScore === null) return null;
+
+  // Base credit limit on historical high credit and PAYDEX
+  let multiplier: number;
+  
+  if (paydexScore >= 80) {
+    multiplier = 2.0;  // Can extend 2x their highest credit
+  } else if (paydexScore >= 70) {
+    multiplier = 1.5;
+  } else if (paydexScore >= 50) {
+    multiplier = 1.0;  // Keep at current level
+  } else if (paydexScore >= 30) {
+    multiplier = 0.5;  // Reduce credit
+  } else {
+    multiplier = 0.25; // Severely reduce or cash only
+  }
+
+  // Adjust for trend
+  if (paymentTrend === 'Improving') {
+    multiplier *= 1.1;
+  } else if (paymentTrend === 'Declining') {
+    multiplier *= 0.8;
+  }
+
+  // Calculate base credit limit
+  const baseCredit = Math.max(highCredit, avgPaymentAmount * 3);
+  const recommendedLimit = Math.round(baseCredit * multiplier);
+
+  // Round to nice numbers
+  if (recommendedLimit >= 100000) {
+    return Math.round(recommendedLimit / 10000) * 10000;
+  } else if (recommendedLimit >= 10000) {
+    return Math.round(recommendedLimit / 1000) * 1000;
+  } else if (recommendedLimit >= 1000) {
+    return Math.round(recommendedLimit / 100) * 100;
+  }
+  return recommendedLimit;
 }

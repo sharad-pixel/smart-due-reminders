@@ -51,6 +51,25 @@ export interface EnterpriseScoreResult {
   ai_sentiment_category: string | null;
   score_components: ScoreComponents | null;
   last_score_change_reason: string | null;
+  // D&B PAYDEX-style fields
+  paydex_score: number | null;
+  paydex_rating: string | null;
+  payment_trend: string | null;
+  credit_limit_recommendation: number | null;
+  payment_experience_summary: PaymentExperienceSummary | null;
+}
+
+export interface PaymentExperienceSummary {
+  prompt_payments_pct: number;
+  slow_payments_pct: number;
+  very_slow_payments_pct: number;
+  delinquent_payments_pct: number;
+  weighted_avg_days_beyond_terms: number;
+  total_payment_experiences: number;
+  high_credit_amount: number;
+  current_owing: number;
+  past_due_amount: number;
+  payment_manner_description: string;
 }
 
 export const useRiskEngine = (debtorId?: string) => {
@@ -136,7 +155,12 @@ export const useRiskEngine = (debtorId?: string) => {
           ai_sentiment_score,
           ai_sentiment_category,
           score_components,
-          last_score_change_reason
+          last_score_change_reason,
+          paydex_score,
+          paydex_rating,
+          payment_trend,
+          credit_limit_recommendation,
+          payment_experience_summary
         `)
         .eq("id", debtorId)
         .single();
@@ -144,7 +168,8 @@ export const useRiskEngine = (debtorId?: string) => {
       if (error) throw error;
       return {
         ...data,
-        score_components: data.score_components as unknown as ScoreComponents | null
+        score_components: data.score_components as unknown as ScoreComponents | null,
+        payment_experience_summary: data.payment_experience_summary as unknown as PaymentExperienceSummary | null
       } as EnterpriseScoreResult;
     },
     enabled: !!debtorId,
