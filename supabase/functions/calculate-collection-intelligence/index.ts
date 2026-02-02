@@ -177,21 +177,50 @@ async function calculateIntelligence(
   const overdueAmount = overdueInvoices.reduce((sum: number, inv: any) => sum + (inv.amount_outstanding || inv.amount || 0), 0);
   const totalOpenAmount = openInvoices.reduce((sum: number, inv: any) => sum + (inv.amount_outstanding || inv.amount || 0), 0);
 
-  // Deduct for overdue invoices
+  // Calculate max days past due for any invoice
+  let maxDaysPastDue = 0;
+  overdueInvoices.forEach((inv: any) => {
+    if (inv.due_date) {
+      const dpd = Math.floor((now.getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24));
+      if (dpd > maxDaysPastDue) maxDaysPastDue = dpd;
+    }
+  });
+
+  // Deduct for overdue invoices (increased deduction)
   if (overdueInvoices.length > 0) {
-    const overdueDeduction = Math.min(overdueInvoices.length * 5, 20);
+    const overdueDeduction = Math.min(overdueInvoices.length * 8, 30);
     score -= overdueDeduction;
     breakdown.push(`-${overdueDeduction} pts: ${overdueInvoices.length} overdue invoice(s)`);
   }
 
-  // Deduct for high overdue amounts
-  if (overdueAmount > 10000) {
+  // Deduct based on days past due (critical factor)
+  if (maxDaysPastDue >= 90) {
+    score -= 25;
+    breakdown.push(`-25 pts: Severely overdue (${maxDaysPastDue} days past due)`);
+  } else if (maxDaysPastDue >= 60) {
+    score -= 15;
+    breakdown.push(`-15 pts: Significantly overdue (${maxDaysPastDue} days past due)`);
+  } else if (maxDaysPastDue >= 30) {
     score -= 10;
-    breakdown.push(`-10 pts: High overdue balance ($${overdueAmount.toLocaleString()})`);
-  } else if (overdueAmount > 5000) {
+    breakdown.push(`-10 pts: Overdue (${maxDaysPastDue} days past due)`);
+  } else if (maxDaysPastDue > 0) {
     score -= 5;
-    breakdown.push(`-5 pts: Moderate overdue balance ($${overdueAmount.toLocaleString()})`);
+    breakdown.push(`-5 pts: Recently overdue (${maxDaysPastDue} days past due)`);
   }
+
+  // Deduct for high overdue amounts (increased deduction)
+  if (overdueAmount > 10000) {
+    score -= 20;
+    breakdown.push(`-20 pts: High overdue balance ($${overdueAmount.toLocaleString()})`);
+  } else if (overdueAmount > 5000) {
+    score -= 12;
+    breakdown.push(`-12 pts: Moderate overdue balance ($${overdueAmount.toLocaleString()})`);
+  } else if (overdueAmount > 1000) {
+    score -= 5;
+    breakdown.push(`-5 pts: Overdue balance ($${overdueAmount.toLocaleString()})`);
+  }
+
+  // Note: "No payment history" penalty moved below after paidInvoices is defined
 
   // Bonus for recent payments
   if (paidLast30Days > 0) {
@@ -221,6 +250,12 @@ async function calculateIntelligence(
   }
 
   const onTimeRate = paidInvoices.length > 0 ? (onTimePayments / paidInvoices.length) * 100 : 50;
+
+  // Penalty for no payment history when there are overdue invoices
+  if (paidInvoices.length === 0 && overdueInvoices.length > 0) {
+    score -= 15;
+    breakdown.push(`-15 pts: No payment history with overdue invoices`);
+  }
 
   // Score based on payment practices
   if (avgDaysToPay > 60) {
