@@ -1612,12 +1612,18 @@ export type Database = {
       }
       daily_digests: {
         Row: {
+          accounts_delinquent: number | null
+          accounts_prompt_payers: number | null
+          accounts_slow_payers: number | null
           ar_1_30: number | null
           ar_120_plus: number | null
           ar_31_60: number | null
           ar_61_90: number | null
           ar_91_120: number | null
           ar_current: number | null
+          avg_paydex_rating: string | null
+          avg_paydex_score: number | null
+          avg_payment_trend: string | null
           collection_trend: string | null
           created_at: string | null
           digest_date: string
@@ -1633,18 +1639,26 @@ export type Database = {
           payments_collected_last_7_days: number | null
           payments_collected_prev_7_days: number | null
           payments_collected_today: number | null
+          portfolio_risk_summary: Json | null
           tasks_created_today: number | null
           total_ar_outstanding: number | null
+          total_credit_limit_recommended: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          accounts_delinquent?: number | null
+          accounts_prompt_payers?: number | null
+          accounts_slow_payers?: number | null
           ar_1_30?: number | null
           ar_120_plus?: number | null
           ar_31_60?: number | null
           ar_61_90?: number | null
           ar_91_120?: number | null
           ar_current?: number | null
+          avg_paydex_rating?: string | null
+          avg_paydex_score?: number | null
+          avg_payment_trend?: string | null
           collection_trend?: string | null
           created_at?: string | null
           digest_date: string
@@ -1660,18 +1674,26 @@ export type Database = {
           payments_collected_last_7_days?: number | null
           payments_collected_prev_7_days?: number | null
           payments_collected_today?: number | null
+          portfolio_risk_summary?: Json | null
           tasks_created_today?: number | null
           total_ar_outstanding?: number | null
+          total_credit_limit_recommended?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          accounts_delinquent?: number | null
+          accounts_prompt_payers?: number | null
+          accounts_slow_payers?: number | null
           ar_1_30?: number | null
           ar_120_plus?: number | null
           ar_31_60?: number | null
           ar_61_90?: number | null
           ar_91_120?: number | null
           ar_current?: number | null
+          avg_paydex_rating?: string | null
+          avg_paydex_score?: number | null
+          avg_payment_trend?: string | null
           collection_trend?: string | null
           created_at?: string | null
           digest_date?: string
@@ -1687,8 +1709,10 @@ export type Database = {
           payments_collected_last_7_days?: number | null
           payments_collected_prev_7_days?: number | null
           payments_collected_today?: number | null
+          portfolio_risk_summary?: Json | null
           tasks_created_today?: number | null
           total_ar_outstanding?: number | null
+          total_credit_limit_recommended?: number | null
           updated_at?: string | null
           user_id?: string
         }
