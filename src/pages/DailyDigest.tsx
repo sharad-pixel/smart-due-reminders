@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDailyDigest } from '@/hooks/useDailyDigest';
+import { useDailyDigest, PortfolioRiskSummary } from '@/hooks/useDailyDigest';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { CreditIntelligenceCard } from '@/components/digest/CreditIntelligenceCard';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
@@ -279,7 +280,17 @@ const DailyDigest = () => {
             </Card>
           </div>
 
-          {/* AR Aging Breakdown */}
+          {/* Credit Intelligence Card */}
+          <CreditIntelligenceCard
+            avgPaydexScore={digest.avg_paydex_score}
+            avgPaydexRating={digest.avg_paydex_rating}
+            accountsPromptPayers={digest.accounts_prompt_payers || 0}
+            accountsSlowPayers={digest.accounts_slow_payers || 0}
+            accountsDelinquent={digest.accounts_delinquent || 0}
+            avgPaymentTrend={digest.avg_payment_trend}
+            totalCreditLimitRecommended={digest.total_credit_limit_recommended || 0}
+            portfolioRiskSummary={digest.portfolio_risk_summary}
+          />
           <Card>
             <CardHeader>
               <CardTitle>AR Aging Breakdown</CardTitle>

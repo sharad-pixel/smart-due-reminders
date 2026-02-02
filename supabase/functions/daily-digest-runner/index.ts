@@ -269,6 +269,104 @@ serve(async (req) => {
           sixtyPlusInvoicesCount: sixtyPlusInvoices?.length || 0 
         });
 
+        // ==========================================
+        // PAYDEX / CREDIT INTELLIGENCE SCORING
+        // ==========================================
+        // Fetch all debtors with PAYDEX scores for this account
+        const { data: debtorsWithPaydex } = await supabase
+          .from('debtors')
+          .select('id, company_name, paydex_score, paydex_rating, payment_trend, credit_limit_recommendation, total_open_balance')
+          .eq('user_id', accountId)
+          .not('paydex_score', 'is', null);
+
+        // Calculate portfolio-level PAYDEX metrics
+        let avgPaydexScore: number | null = null;
+        let avgPaydexRating = 'N/A';
+        let accountsPromptPayers = 0;
+        let accountsSlowPayers = 0;
+        let accountsDelinquent = 0;
+        let avgPaymentTrend = 'Stable';
+        let totalCreditLimitRecommended = 0;
+        let portfolioRiskSummary: any = null;
+
+        if (debtorsWithPaydex && debtorsWithPaydex.length > 0) {
+          // Calculate average PAYDEX score
+          const totalPaydex = debtorsWithPaydex.reduce((sum, d) => sum + (d.paydex_score || 0), 0);
+          avgPaydexScore = Math.round(totalPaydex / debtorsWithPaydex.length);
+
+          // Determine overall portfolio rating based on avg PAYDEX
+          if (avgPaydexScore >= 80) {
+            avgPaydexRating = 'Prompt';
+          } else if (avgPaydexScore >= 70) {
+            avgPaydexRating = 'Slow 1-15';
+          } else if (avgPaydexScore >= 60) {
+            avgPaydexRating = 'Slow 16-30';
+          } else if (avgPaydexScore >= 50) {
+            avgPaydexRating = 'Slow 31-60';
+          } else if (avgPaydexScore >= 40) {
+            avgPaydexRating = 'Slow 61-90';
+          } else if (avgPaydexScore >= 20) {
+            avgPaydexRating = 'Slow 91+';
+          } else {
+            avgPaydexRating = 'Severely Delinquent';
+          }
+
+          // Count accounts by payment behavior
+          for (const debtor of debtorsWithPaydex) {
+            const score = debtor.paydex_score || 0;
+            if (score >= 80) {
+              accountsPromptPayers++;
+            } else if (score >= 50) {
+              accountsSlowPayers++;
+            } else {
+              accountsDelinquent++;
+            }
+
+            // Sum credit limit recommendations
+            totalCreditLimitRecommended += Number(debtor.credit_limit_recommendation || 0);
+          }
+
+          // Determine overall payment trend
+          const trendCounts = { Improving: 0, Stable: 0, Declining: 0 };
+          for (const debtor of debtorsWithPaydex) {
+            if (debtor.payment_trend && trendCounts[debtor.payment_trend as keyof typeof trendCounts] !== undefined) {
+              trendCounts[debtor.payment_trend as keyof typeof trendCounts]++;
+            }
+          }
+          
+          if (trendCounts.Declining > trendCounts.Improving && trendCounts.Declining > trendCounts.Stable) {
+            avgPaymentTrend = 'Declining';
+          } else if (trendCounts.Improving > trendCounts.Declining && trendCounts.Improving > trendCounts.Stable) {
+            avgPaymentTrend = 'Improving';
+          } else {
+            avgPaymentTrend = 'Stable';
+          }
+
+          // Build portfolio risk summary
+          portfolioRiskSummary = {
+            total_accounts_scored: debtorsWithPaydex.length,
+            prompt_payers_pct: Math.round((accountsPromptPayers / debtorsWithPaydex.length) * 100),
+            slow_payers_pct: Math.round((accountsSlowPayers / debtorsWithPaydex.length) * 100),
+            delinquent_pct: Math.round((accountsDelinquent / debtorsWithPaydex.length) * 100),
+            avg_score: avgPaydexScore,
+            rating: avgPaydexRating,
+            trend: avgPaymentTrend,
+            total_ar_at_risk: debtorsWithPaydex
+              .filter(d => (d.paydex_score || 0) < 50)
+              .reduce((sum, d) => sum + Number(d.total_open_balance || 0), 0),
+          };
+
+          logStep('PAYDEX portfolio metrics calculated', {
+            avgPaydexScore,
+            avgPaydexRating,
+            accountsPromptPayers,
+            accountsSlowPayers,
+            accountsDelinquent,
+            avgPaymentTrend,
+            totalCreditLimitRecommended
+          });
+        }
+
         // HEALTH SCORE CALCULATION - Enterprise Risk Scoring System
         // Uses weighted factors aligned with risk-engine scoring:
         // - 40% Outstanding Balance & Aging Concentration
@@ -389,6 +487,15 @@ serve(async (req) => {
           high_risk_ar_outstanding: highRiskArOutstanding,
           health_score: healthScore,
           health_label: healthLabel,
+          // PAYDEX / Credit Intelligence fields
+          avg_paydex_score: avgPaydexScore,
+          avg_paydex_rating: avgPaydexRating !== 'N/A' ? avgPaydexRating : null,
+          accounts_prompt_payers: accountsPromptPayers,
+          accounts_slow_payers: accountsSlowPayers,
+          accounts_delinquent: accountsDelinquent,
+          avg_payment_trend: avgPaymentTrend,
+          total_credit_limit_recommended: totalCreditLimitRecommended,
+          portfolio_risk_summary: portfolioRiskSummary,
           updated_at: new Date().toISOString(),
         };
 

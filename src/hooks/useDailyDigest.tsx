@@ -1,6 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface PortfolioRiskSummary {
+  total_accounts_scored: number;
+  prompt_payers_pct: number;
+  slow_payers_pct: number;
+  delinquent_pct: number;
+  avg_score: number;
+  rating: string;
+  trend: string;
+  total_ar_at_risk: number;
+}
+
 export interface DailyDigest {
   id: string;
   user_id: string;
@@ -25,6 +36,15 @@ export interface DailyDigest {
   health_label: string;
   email_sent_at: string | null;
   created_at: string;
+  // PAYDEX / Credit Intelligence fields
+  avg_paydex_score: number | null;
+  avg_paydex_rating: string | null;
+  accounts_prompt_payers: number;
+  accounts_slow_payers: number;
+  accounts_delinquent: number;
+  avg_payment_trend: string | null;
+  total_credit_limit_recommended: number;
+  portfolio_risk_summary: PortfolioRiskSummary | null;
 }
 
 export const useDailyDigest = (date?: string) => {
@@ -50,7 +70,7 @@ export const useDailyDigest = (date?: string) => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as DailyDigest | null;
+      return data as unknown as DailyDigest | null;
     },
   });
 };
@@ -77,7 +97,7 @@ export const useLatestDigest = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as DailyDigest | null;
+      return data as unknown as DailyDigest | null;
     },
   });
 };
@@ -103,7 +123,7 @@ export const useDigestHistory = (limit = 30) => {
         .limit(limit);
 
       if (error) throw error;
-      return data as DailyDigest[];
+      return data as unknown as DailyDigest[];
     },
   });
 };
