@@ -1,33 +1,23 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Users, 
   Mail, 
   MousePointerClick, 
   Target, 
-  Calendar,
-  Search,
-  Send,
-  UserMinus,
   TrendingUp,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  BellOff,
+  Calendar,
   AlertTriangle
 } from "lucide-react";
-import { format } from "date-fns";
-import { LeadScoreBadge } from "./LeadScoreBadge";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { CampaignOutreachWorkflow } from "./CampaignOutreachWorkflow";
+import { CampaignLeadsTable } from "./CampaignLeadsTable";
 
 interface MarketingLead {
   id: string;
@@ -40,17 +30,6 @@ interface MarketingLead {
   last_engaged_at: string | null;
   created_at: string;
   status: string;
-}
-
-interface OutreachActivity {
-  id: string;
-  lead_email: string;
-  activity_type: string;
-  status: string;
-  sent_at: string | null;
-  opened_at: string | null;
-  clicked_at: string | null;
-  subject: string | null;
 }
 
 interface MarketingCampaign {
@@ -68,6 +47,7 @@ interface MarketingCampaign {
   clicks: number | null;
   conversions: number | null;
   created_at: string;
+  pricing_tier?: string | null;
 }
 
 interface CampaignDetailsModalProps {
@@ -75,7 +55,7 @@ interface CampaignDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   campaign: MarketingCampaign | null;
   leads: MarketingLead[];
-  activities: OutreachActivity[];
+  activities?: any[];
   isLoadingLeads?: boolean;
   isLoadingActivities?: boolean;
   onRemoveLeads?: (leadIds: string[]) => void;
@@ -98,37 +78,38 @@ const campaignTypeColors: Record<string, string> = {
   promotion: "bg-pink-100 text-pink-800",
 };
 
+const tierColors: Record<string, string> = {
+  solo_pro: "bg-blue-100 text-blue-800",
+  starter: "bg-emerald-100 text-emerald-800",
+  growth: "bg-orange-100 text-orange-800",
+  professional: "bg-purple-100 text-purple-800",
+};
+
 export function CampaignDetailsModal({
   open,
   onOpenChange,
   campaign,
   leads,
-  activities,
   isLoadingLeads,
-  isLoadingActivities,
   onRemoveLeads,
-  onSendOutreach,
   isRemovingLeads,
 }: CampaignDetailsModalProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
-  // Filter leads by search
-  const filteredLeads = useMemo(() => {
-    if (!searchQuery) return leads;
-    const query = searchQuery.toLowerCase();
-    return leads.filter(
-      (l) =>
-        l.email.toLowerCase().includes(query) ||
-        l.name?.toLowerCase().includes(query) ||
-        l.company?.toLowerCase().includes(query)
-    );
-  }, [leads, searchQuery]);
-
-  // Count active (non-unsubscribed) selected leads
-  const activeSelectedLeads = useMemo(() => {
-    return filteredLeads.filter(l => selectedLeadIds.includes(l.id) && l.status !== "unsubscribed");
-  }, [filteredLeads, selectedLeadIds]);
+  // Fetch lead progress for this campaign
+  const { data: leadProgress = [] } = useQuery({
+    queryKey: ["lead-campaign-progress", campaign?.id],
+    queryFn: async () => {
+      if (!campaign) return [];
+      const { data, error } = await supabase
+        .from("lead_campaign_progress")
+        .select("*")
+        .eq("campaign_id", campaign.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!campaign,
+  });
 
   // Count unsubscribed leads
   const unsubscribedCount = useMemo(() => {
@@ -152,43 +133,57 @@ export function CampaignDetailsModal({
     return { openRate, clickRate, conversionRate };
   }, [campaign]);
 
-  // Toggle lead selection (skip unsubscribed)
-  const toggleLeadSelection = (id: string) => {
-    const lead = leads.find(l => l.id === id);
-    if (lead?.status === "unsubscribed") return;
+  // Calculate workflow progress
+  const workflowStats = useMemo(() => {
+    const total = leadProgress.length;
+    const completed = leadProgress.filter(p => p.step_2_sent_at).length;
+    const inProgress = leadProgress.filter(p => p.step_0_sent_at && !p.step_2_sent_at).length;
+    const pending = total - completed - inProgress;
     
-    setSelectedLeadIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
+    return { total, completed, inProgress, pending };
+  }, [leadProgress]);
 
-  const toggleSelectAll = () => {
-    const activeLeads = filteredLeads.filter(l => l.status !== "unsubscribed");
-    if (selectedLeadIds.length === activeLeads.length) {
-      setSelectedLeadIds([]);
-    } else {
-      setSelectedLeadIds(activeLeads.map((l) => l.id));
-    }
-  };
+  // Remove leads mutation
+  const removeLeadsMutation = useMutation({
+    mutationFn: async (leadIds: string[]) => {
+      // Remove from marketing_leads campaign assignment
+      const { error } = await supabase
+        .from("marketing_leads")
+        .update({ campaign_id: null })
+        .in("id", leadIds);
+      if (error) throw error;
 
-  const handleRemoveLeads = () => {
-    if (onRemoveLeads && selectedLeadIds.length > 0) {
-      onRemoveLeads(selectedLeadIds);
-      setSelectedLeadIds([]);
-    }
-  };
+      // Also remove from lead_campaign_progress
+      await supabase
+        .from("lead_campaign_progress")
+        .delete()
+        .in("lead_id", leadIds)
+        .eq("campaign_id", campaign?.id);
 
-  const handleSendOutreach = () => {
-    if (onSendOutreach && activeSelectedLeads.length > 0) {
-      onSendOutreach(activeSelectedLeads.map(l => l.id));
-    }
-  };
+      // Update campaign lead count
+      if (campaign) {
+        const remainingCount = leads.length - leadIds.length;
+        await supabase
+          .from("marketing_campaigns")
+          .update({ total_leads: Math.max(0, remainingCount) })
+          .eq("id", campaign.id);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Leads removed from campaign");
+      queryClient.invalidateQueries({ queryKey: ["marketing-leads", "marketing-campaigns", "lead-campaign-progress"] });
+      onRemoveLeads?.([]);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   if (!campaign) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -198,6 +193,11 @@ export function CampaignDetailsModal({
               </DialogDescription>
             </div>
             <div className="flex gap-2">
+              {campaign.pricing_tier && (
+                <Badge className={tierColors[campaign.pricing_tier] || "bg-slate-100"}>
+                  {campaign.pricing_tier.replace("_", " ")}
+                </Badge>
+              )}
               <Badge className={campaignTypeColors[campaign.campaign_type] || "bg-slate-100"}>
                 {campaign.campaign_type}
               </Badge>
@@ -209,7 +209,7 @@ export function CampaignDetailsModal({
         </DialogHeader>
 
         {/* Campaign Stats */}
-        <div className="grid grid-cols-4 gap-3 py-4 border-b flex-shrink-0">
+        <div className="grid grid-cols-5 gap-3 py-4 border-b flex-shrink-0">
           <Card className="p-3">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <Users className="h-3 w-3" />
@@ -223,6 +223,15 @@ export function CampaignDetailsModal({
               Emails Sent
             </div>
             <p className="text-xl font-bold">{campaign.emails_sent || 0}</p>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <Calendar className="h-3 w-3" />
+              Workflow Progress
+            </div>
+            <p className="text-xl font-bold">
+              {workflowStats.completed}/{workflowStats.total}
+            </p>
           </Card>
           <Card className="p-3">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
@@ -265,239 +274,133 @@ export function CampaignDetailsModal({
           </div>
         </div>
 
+        {/* Unsubscribed Warning */}
+        {unsubscribedCount > 0 && (
+          <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-sm flex-shrink-0">
+            <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+            <span className="text-amber-800">
+              {unsubscribedCount} lead{unsubscribedCount !== 1 ? "s have" : " has"} unsubscribed and will not receive emails
+            </span>
+          </div>
+        )}
+
         {/* Tabs */}
-        <Tabs defaultValue="leads" className="flex-1 flex flex-col overflow-hidden">
+        <Tabs defaultValue="outreach" className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="flex-shrink-0">
+            <TabsTrigger value="outreach">
+              <Mail className="h-4 w-4 mr-2" />
+              Outreach Workflow
+            </TabsTrigger>
             <TabsTrigger value="leads">
               <Users className="h-4 w-4 mr-2" />
               Assigned Leads ({leads.length})
-              {unsubscribedCount > 0 && (
-                <Badge variant="outline" className="ml-2 text-xs bg-amber-50 text-amber-700 border-amber-200">
-                  {unsubscribedCount} unsub
-                </Badge>
-              )}
             </TabsTrigger>
-            <TabsTrigger value="activity">
+            <TabsTrigger value="analytics">
               <TrendingUp className="h-4 w-4 mr-2" />
-              Outreach Activity ({activities.length})
+              Analytics
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="leads" className="flex-1 overflow-hidden flex flex-col mt-4">
-            {/* Unsubscribed Warning */}
-            {unsubscribedCount > 0 && (
-              <div className="flex items-center gap-2 p-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                <span className="text-amber-800">
-                  {unsubscribedCount} lead{unsubscribedCount !== 1 ? "s have" : " has"} unsubscribed and cannot receive emails
-                </span>
-              </div>
-            )}
-
-            {/* Search and Actions */}
-            <div className="flex items-center gap-3 mb-3 flex-shrink-0">
-              <div className="relative flex-1">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search leads..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              {selectedLeadIds.length > 0 && (
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleSendOutreach}
-                    disabled={activeSelectedLeads.length === 0}
-                  >
-                    <Send className="h-3 w-3 mr-1" />
-                    Send ({activeSelectedLeads.length})
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleRemoveLeads}
-                    disabled={isRemovingLeads}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    {isRemovingLeads ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <UserMinus className="h-3 w-3 mr-1" />
-                    )}
-                    Remove ({selectedLeadIds.length})
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Leads Table */}
-            <ScrollArea className="flex-1">
-              {isLoadingLeads ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : filteredLeads.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No leads assigned to this campaign</p>
-                  <p className="text-sm mt-1">Add leads from the Leads tab</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={
-                            filteredLeads.filter(l => l.status !== "unsubscribed").length > 0 &&
-                            selectedLeadIds.length === filteredLeads.filter(l => l.status !== "unsubscribed").length
-                          }
-                          onCheckedChange={toggleSelectAll}
-                        />
-                      </TableHead>
-                      <TableHead>Lead</TableHead>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Score</TableHead>
-                      <TableHead>Stage</TableHead>
-                      <TableHead>Last Engaged</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLeads.map((lead) => {
-                      const isUnsubscribed = lead.status === "unsubscribed";
-                      return (
-                        <TableRow key={lead.id} className={isUnsubscribed ? "opacity-60 bg-muted/30" : ""}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedLeadIds.includes(lead.id)}
-                              onCheckedChange={() => toggleLeadSelection(lead.id)}
-                              disabled={isUnsubscribed}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <p className="font-medium">{lead.name || lead.email}</p>
-                                {lead.name && (
-                                  <p className="text-xs text-muted-foreground">{lead.email}</p>
-                                )}
-                              </div>
-                              {isUnsubscribed && (
-                                <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                                  <BellOff className="h-3 w-3 mr-1" />
-                                  Unsub
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                        <TableCell>{lead.company || "-"}</TableCell>
-                        <TableCell>
-                          <LeadScoreBadge score={lead.lead_score || 0} size="sm" />
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize text-xs">
-                            {lead.lifecycle_stage || "lead"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {lead.last_engaged_at
-                            ? format(new Date(lead.last_engaged_at), "MMM d, yyyy")
-                            : "Never"}
-                        </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </ScrollArea>
+          <TabsContent value="outreach" className="flex-1 overflow-auto mt-4">
+            <CampaignOutreachWorkflow 
+              campaignId={campaign.id}
+              campaignName={campaign.name}
+              pricingTier={campaign.pricing_tier}
+            />
           </TabsContent>
 
-          <TabsContent value="activity" className="flex-1 overflow-hidden mt-4">
-            <ScrollArea className="h-full">
-              {isLoadingActivities ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : activities.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No outreach activity yet</p>
-                  <p className="text-sm mt-1">Send emails to leads to see activity here</p>
-                </div>
-              ) : (
+          <TabsContent value="leads" className="flex-1 overflow-hidden mt-4">
+            <CampaignLeadsTable
+              leads={leads}
+              leadProgress={leadProgress}
+              isLoading={isLoadingLeads}
+              onRemoveLeads={(ids) => removeLeadsMutation.mutate(ids)}
+              isRemovingLeads={removeLeadsMutation.isPending}
+            />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="flex-1 overflow-auto mt-4">
+            <div className="space-y-4">
+              {/* Workflow Funnel */}
+              <Card className="p-4">
+                <h3 className="font-medium mb-4">Workflow Funnel</h3>
                 <div className="space-y-3">
-                  {activities.map((activity) => (
-                    <Card key={activity.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-sm">{activity.lead_email}</p>
-                            {activity.opened_at ? (
-                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Opened
-                              </Badge>
-                            ) : activity.sent_at ? (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                <Mail className="h-3 w-3 mr-1" />
-                                Sent
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs bg-slate-50 text-slate-700">
-                                <Clock className="h-3 w-3 mr-1" />
-                                Pending
-                              </Badge>
-                            )}
-                            {activity.clicked_at && (
-                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                                <MousePointerClick className="h-3 w-3 mr-1" />
-                                Clicked
-                              </Badge>
-                            )}
-                          </div>
-                          {activity.subject && (
-                            <p className="text-sm text-muted-foreground truncate">
-                              {activity.subject}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {activity.sent_at
-                            ? format(new Date(activity.sent_at), "MMM d, h:mm a")
-                            : "Not sent"}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Leads Assigned</span>
+                    <div className="flex items-center gap-2">
+                      <Progress value={100} className="w-32 h-2" />
+                      <span className="text-sm font-medium w-12 text-right">{leads.length}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Day 0 Sent</span>
+                    <div className="flex items-center gap-2">
+                      <Progress 
+                        value={leads.length > 0 ? (leadProgress.filter(p => p.step_0_sent_at).length / leads.length) * 100 : 0} 
+                        className="w-32 h-2" 
+                      />
+                      <span className="text-sm font-medium w-12 text-right">
+                        {leadProgress.filter(p => p.step_0_sent_at).length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Day 3 Sent</span>
+                    <div className="flex items-center gap-2">
+                      <Progress 
+                        value={leads.length > 0 ? (leadProgress.filter(p => p.step_1_sent_at).length / leads.length) * 100 : 0} 
+                        className="w-32 h-2" 
+                      />
+                      <span className="text-sm font-medium w-12 text-right">
+                        {leadProgress.filter(p => p.step_1_sent_at).length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Day 7 Sent (Completed)</span>
+                    <div className="flex items-center gap-2">
+                      <Progress 
+                        value={leads.length > 0 ? (leadProgress.filter(p => p.step_2_sent_at).length / leads.length) * 100 : 0} 
+                        className="w-32 h-2" 
+                      />
+                      <span className="text-sm font-medium w-12 text-right">
+                        {leadProgress.filter(p => p.step_2_sent_at).length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-600 font-medium">Conversions</span>
+                    <div className="flex items-center gap-2">
+                      <Progress 
+                        value={leads.length > 0 ? ((campaign.conversions || 0) / leads.length) * 100 : 0} 
+                        className="w-32 h-2 [&>div]:bg-green-500" 
+                      />
+                      <span className="text-sm font-medium w-12 text-right text-green-600">
+                        {campaign.conversions || 0}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </ScrollArea>
+              </Card>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="p-4 text-center">
+                  <p className="text-3xl font-bold text-blue-600">{workflowStats.pending}</p>
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                </Card>
+                <Card className="p-4 text-center">
+                  <p className="text-3xl font-bold text-amber-600">{workflowStats.inProgress}</p>
+                  <p className="text-sm text-muted-foreground">In Progress</p>
+                </Card>
+                <Card className="p-4 text-center">
+                  <p className="text-3xl font-bold text-green-600">{workflowStats.completed}</p>
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
-
-        {/* Footer Info */}
-        <div className="flex items-center justify-between pt-4 border-t text-xs text-muted-foreground flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Created {format(new Date(campaign.created_at), "MMM d, yyyy")}
-            </span>
-            {campaign.started_at && (
-              <span className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                Started {format(new Date(campaign.started_at), "MMM d, yyyy")}
-              </span>
-            )}
-          </div>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
