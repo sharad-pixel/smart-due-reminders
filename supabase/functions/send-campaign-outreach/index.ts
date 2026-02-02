@@ -213,15 +213,23 @@ serve(async (req) => {
       const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User") + 
         generateComplianceFooterText(unsubscribeUrl);
 
-      const { error: sendError } = await supabase.functions.invoke("send-email", {
-        body: {
+      // Direct fetch for internal function-to-function calls
+      const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
           to: testEmail,
           from: PLATFORM_FROM_EMAIL,
           subject: personalizedSubject,
           html: personalizedHtml,
           text: personalizedText,
-        },
+        }),
       });
+      
+      const sendError = !sendEmailResponse.ok ? await sendEmailResponse.json() : null;
 
       if (sendError) {
         console.error("Test email failed:", sendError);
@@ -258,15 +266,23 @@ serve(async (req) => {
             const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
               generateComplianceFooterText(unsubscribeUrl);
 
-            const { error: sendError } = await supabase.functions.invoke("send-email", {
-              body: {
+            // Direct fetch for internal function-to-function calls
+            const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({
                 to: lead.email,
                 from: PLATFORM_FROM_EMAIL,
                 subject: personalizedSubject,
                 html: personalizedHtml,
                 text: personalizedText,
-              },
+              }),
             });
+            
+            const sendError = !sendEmailResponse.ok ? await sendEmailResponse.json() : null;
 
             if (sendError) {
               console.error(`Failed to send to ${lead.email}:`, sendError);
