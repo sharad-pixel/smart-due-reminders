@@ -205,6 +205,15 @@ export default function AdminLeadOutreach() {
     return tierCounts;
   }, [leads, campaigns]);
 
+  // Create campaign lookup map for quick access
+  const campaignLookup = useMemo(() => {
+    const lookup: Record<string, { name: string; status: string }> = {};
+    campaigns.forEach(c => {
+      lookup[c.id] = { name: c.name, status: c.status };
+    });
+    return lookup;
+  }, [campaigns]);
+
   // Count active (non-unsubscribed) selected leads
   const activeSelectedLeads = useMemo(() => {
     return leads.filter(l => selectedLeads.includes(l.id) && l.status !== "unsubscribed");
@@ -336,7 +345,7 @@ export default function AdminLeadOutreach() {
 
   // Assign leads to campaign (with progress tracking)
   const assignLeadsToCampaign = useMutation({
-    mutationFn: async ({ leadIds, campaignId }: { leadIds: string[]; campaignId: string }) => {
+    mutationFn: async ({ leadIds, campaignId }: { leadIds: string[]; campaignId: string | null }) => {
       // Update marketing_leads with campaign_id
       const { error } = await supabase
         .from("marketing_leads")
@@ -344,33 +353,36 @@ export default function AdminLeadOutreach() {
         .in("id", leadIds);
       if (error) throw error;
 
-      // Create progress tracking records for each lead
-      const progressRecords = leadIds.map(leadId => ({
-        lead_id: leadId,
-        campaign_id: campaignId,
-        current_step: 0,
-        status: "active",
-        next_send_at: new Date().toISOString(), // Ready to send Day 0 immediately
-      }));
+      // If assigning to a campaign (not unassigning), create progress records
+      if (campaignId) {
+        // Create progress tracking records for each lead
+        const progressRecords = leadIds.map(leadId => ({
+          lead_id: leadId,
+          campaign_id: campaignId,
+          current_step: 0,
+          status: "active",
+          next_send_at: new Date().toISOString(), // Ready to send Day 0 immediately
+        }));
 
-      // Upsert progress records (in case lead was previously assigned)
-      await supabase
-        .from("lead_campaign_progress")
-        .upsert(progressRecords, { onConflict: "lead_id,campaign_id" });
+        // Upsert progress records (in case lead was previously assigned)
+        await supabase
+          .from("lead_campaign_progress")
+          .upsert(progressRecords, { onConflict: "lead_id,campaign_id" });
 
-      // Update campaign lead count
-      const { data: count } = await supabase
-        .from("marketing_leads")
-        .select("id", { count: "exact" })
-        .eq("campaign_id", campaignId);
-      
-      await supabase
-        .from("marketing_campaigns")
-        .update({ total_leads: count?.length || 0 })
-        .eq("id", campaignId);
+        // Update campaign lead count
+        const { data: count } = await supabase
+          .from("marketing_leads")
+          .select("id", { count: "exact" })
+          .eq("campaign_id", campaignId);
+        
+        await supabase
+          .from("marketing_campaigns")
+          .update({ total_leads: count?.length || 0 })
+          .eq("id", campaignId);
+      }
     },
-    onSuccess: () => {
-      toast.success("Leads assigned to campaign");
+    onSuccess: (_, variables) => {
+      toast.success(variables.campaignId ? "Leads assigned to campaign" : "Leads unassigned from campaign");
       setSelectedLeads([]);
       setShowAssignToCampaign(false);
       queryClient.invalidateQueries({ queryKey: ["marketing-leads"] });
@@ -1153,6 +1165,20 @@ export default function AdminLeadOutreach() {
                         Assign to Campaign
                       </Button>
                     )}
+                    {selectedLeads.some(id => leads.find(l => l.id === id)?.campaign_id) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const leadsWithCampaign = selectedLeads.filter(id => leads.find(l => l.id === id)?.campaign_id);
+                          assignLeadsToCampaign.mutate({ leadIds: leadsWithCampaign, campaignId: null });
+                        }}
+                        disabled={assignLeadsToCampaign.isPending}
+                      >
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Unassign Campaign
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1186,9 +1212,9 @@ export default function AdminLeadOutreach() {
                         </TableHead>
                         <TableHead>Lead</TableHead>
                         <TableHead>Company</TableHead>
+                        <TableHead>Campaign</TableHead>
                         <TableHead>Score</TableHead>
                         <TableHead>Stage</TableHead>
-                        <TableHead>Source</TableHead>
                         <TableHead>Added</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1230,15 +1256,30 @@ export default function AdminLeadOutreach() {
                               </div>
                             </TableCell>
                             <TableCell>
+                              {lead.campaign_id && campaignLookup[lead.campaign_id] ? (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs truncate max-w-[140px] ${
+                                    campaignLookup[lead.campaign_id].status === "active" 
+                                      ? "bg-green-50 text-green-700 border-green-200" 
+                                      : "bg-muted"
+                                  }`}
+                                  title={campaignLookup[lead.campaign_id].name}
+                                >
+                                  <Target className="h-3 w-3 mr-1 shrink-0" />
+                                  <span className="truncate">{campaignLookup[lead.campaign_id].name}</span>
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <LeadScoreBadge score={lead.lead_score || 0} size="sm" />
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className="capitalize">
                                 {lead.lifecycle_stage || "lead"}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{lead.source || "unknown"}</Badge>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {format(new Date(lead.created_at), "MMM d, yyyy")}
