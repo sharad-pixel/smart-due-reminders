@@ -5081,6 +5081,147 @@ export type Database = {
           },
         ]
       }
+      payment_plan_installments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          notes: string | null
+          paid_at: string | null
+          payment_id: string | null
+          payment_plan_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          payment_plan_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          payment_plan_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_plan_installments_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_plan_installments_payment_plan_id_fkey"
+            columns: ["payment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "payment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_plans: {
+        Row: {
+          accepted_at: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          debtor_id: string
+          frequency: string
+          id: string
+          installment_amount: number
+          invoice_ids: Json | null
+          notes: string | null
+          number_of_installments: number
+          organization_id: string | null
+          plan_name: string | null
+          proposed_at: string | null
+          public_token: string | null
+          start_date: string
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          debtor_id: string
+          frequency?: string
+          id?: string
+          installment_amount: number
+          invoice_ids?: Json | null
+          notes?: string | null
+          number_of_installments?: number
+          organization_id?: string | null
+          plan_name?: string | null
+          proposed_at?: string | null
+          public_token?: string | null
+          start_date: string
+          status?: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          debtor_id?: string
+          frequency?: string
+          id?: string
+          installment_amount?: number
+          invoice_ids?: Json | null
+          notes?: string | null
+          number_of_installments?: number
+          organization_id?: string | null
+          plan_name?: string | null
+          proposed_at?: string | null
+          public_token?: string | null
+          start_date?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_plans_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
