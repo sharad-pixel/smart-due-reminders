@@ -110,7 +110,7 @@ serve(async (req) => {
           try {
             const score = await calculatePaymentScore(supabaseAdmin, userId, debtor.id);
             
-            // Update debtor record with calculated scores
+            // Update debtor record with calculated scores AND recalculated balance
             const { error: updateError } = await supabaseAdmin
               .from("debtors")
               .update({
@@ -129,6 +129,9 @@ serve(async (req) => {
                 aging_mix_91_120_pct: score.aging_mix.dpd_91_120_pct,
                 aging_mix_121_plus_pct: score.aging_mix.dpd_121_plus_pct,
                 payment_score_last_calculated: new Date().toISOString(),
+                // CRITICAL: Always sync balance fields from actual invoice data
+                total_open_balance: score.total_open_balance,
+                current_balance: score.total_open_balance,
               })
               .eq("id", debtor.id);
 
@@ -202,13 +205,14 @@ interface PaymentScoreCalculation {
   disputed_invoices_count: number;
   in_payment_plan_invoices_count: number;
   written_off_invoices_count: number;
+  total_open_balance: number;
   aging_mix: {
     current_pct: number;
     dpd_1_30_pct: number;
     dpd_31_60_pct: number;
     dpd_61_90_pct: number;
-    dpd_91_120_pct: number;
     dpd_121_plus_pct: number;
+    dpd_91_120_pct: number;
   };
   breakdown: string[];
 }
@@ -238,6 +242,7 @@ async function calculatePaymentScore(
       disputed_invoices_count: 0,
       in_payment_plan_invoices_count: 0,
       written_off_invoices_count: 0,
+      total_open_balance: 0, // No invoices = zero balance
       aging_mix: {
         current_pct: 0,
         dpd_1_30_pct: 0,
@@ -290,12 +295,17 @@ async function calculatePaymentScore(
   }
 
   // Calculate aging mix for outstanding invoices
+  // Include PartiallyPaid invoices in open balance calculation
   const openInvoices = invoices.filter((inv: any) => 
-    inv.status === "Open" || inv.status === "InPaymentPlan"
+    inv.status === "Open" || inv.status === "InPaymentPlan" || inv.status === "PartiallyPaid"
   );
   
   const openInvoicesCount = openInvoices.length;
-  const totalOutstanding = openInvoices.reduce((sum: number, inv: any) => sum + parseFloat(inv.amount), 0);
+  // Use amount_outstanding if available, otherwise fallback to amount
+  const totalOutstanding = openInvoices.reduce((sum: number, inv: any) => {
+    const outstandingAmount = parseFloat(inv.amount_outstanding ?? inv.amount ?? 0);
+    return sum + outstandingAmount;
+  }, 0);
   
   const agingBuckets = {
     current: 0,
@@ -438,6 +448,7 @@ async function calculatePaymentScore(
     disputed_invoices_count: disputedCount,
     in_payment_plan_invoices_count: inPaymentPlanCount,
     written_off_invoices_count: writtenOffCount,
+    total_open_balance: totalOutstanding,
     aging_mix: agingMix,
     breakdown,
   };
