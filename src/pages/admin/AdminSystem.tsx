@@ -5,36 +5,81 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Save, RefreshCw } from "lucide-react";
+import { Settings, Save, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useSystemConfig } from "@/hooks/useSystemConfig";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminSystem = () => {
+  const { config: systemConfig, loading: configLoading, saveAllConfig, refetch } = useSystemConfig();
+  
   const [config, setConfig] = useState({
     maintenanceMode: false,
     signupsEnabled: true,
-    maxInvoicesPerUser: 15,
+    maxInvoicesPerUser: 5,
     emailNotificationsEnabled: true,
     founderEmail: "sharad@recouply.ai",
   });
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Sync local state with fetched config
+  useEffect(() => {
+    if (!configLoading) {
+      setConfig(prev => ({
+        ...prev,
+        maintenanceMode: systemConfig.maintenanceMode,
+        signupsEnabled: systemConfig.signupsEnabled,
+        maxInvoicesPerUser: systemConfig.maxInvoicesPerFreeUser,
+        emailNotificationsEnabled: systemConfig.emailNotificationsEnabled,
+      }));
+    }
+  }, [configLoading, systemConfig]);
 
   const handleSave = async () => {
-    setLoading(true);
+    setSaving(true);
     try {
-      // This would typically save to a system_config table
-      toast({ title: "Configuration saved", description: "System settings updated" });
+      const success = await saveAllConfig({
+        maintenanceMode: config.maintenanceMode,
+        signupsEnabled: config.signupsEnabled,
+        maxInvoicesPerFreeUser: config.maxInvoicesPerUser,
+        emailNotificationsEnabled: config.emailNotificationsEnabled,
+      });
+      
+      if (success) {
+        toast({ title: "Configuration saved", description: "System settings updated successfully" });
+      } else {
+        throw new Error("Failed to save");
+      }
     } catch (error) {
       toast({ title: "Error", description: "Failed to save configuration", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (configLoading) {
+    return (
+      <AdminLayout title="System Configuration" description="Platform-wide settings">
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="System Configuration" description="Platform-wide settings">
       <div className="max-w-2xl space-y-6">
+        {config.maintenanceMode && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Maintenance Mode is ON.</strong> Non-admin users will see a maintenance page and cannot access the platform.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -142,10 +187,14 @@ const AdminSystem = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={loading}>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={refetch} disabled={saving}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            Save Configuration
+            {saving ? "Saving..." : "Save Configuration"}
           </Button>
         </div>
       </div>

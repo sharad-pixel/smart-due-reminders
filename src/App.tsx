@@ -6,6 +6,7 @@ import { lazy, Suspense } from "react";
 import ScrollToTop from "./components/ScrollToTop";
 import { CookieConsentProvider } from "./components/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
+import { MaintenanceGuard } from "./components/MaintenanceGuard";
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -134,11 +135,12 @@ const App = () => (
     <BrowserRouter>
       <AccessProvider>
         <CookieConsentProvider>
-          <ScrollToTop />
-          <Toaster />
-          <Sonner />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+          <MaintenanceGuard>
+            <ScrollToTop />
+            <Toaster />
+            <Sonner />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
             {/* Main app entry point */}
             <Route path="/" element={<Index />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
@@ -242,11 +244,12 @@ const App = () => (
             <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
             <Route path="/admin/leads" element={<AdminLeadOutreach />} />
 
-            {/* 404 - Keep at bottom */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </CookieConsentProvider>
+              {/* 404 - Keep at bottom */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+          </MaintenanceGuard>
+        </CookieConsentProvider>
       </AccessProvider>
     </BrowserRouter>
   </QueryClientProvider>

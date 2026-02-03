@@ -70,7 +70,7 @@ export function getRequiredPlanForFeature(feature: keyof typeof PLAN_FEATURES.fr
 }
 
 export function getInvoiceLimit(planType: PlanType | 'pro' | null): number {
-  if (!planType || planType === 'free') return 15;
+  if (!planType || planType === 'free') return 5;
   
   // Map 'pro' to 'professional' for backwards compatibility
   const normalizedPlan = planType === 'pro' ? 'professional' : planType;
