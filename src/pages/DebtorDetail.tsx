@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2, PauseCircle, PlayCircle, Search } from "lucide-react";
+import { ArrowLeft, Edit, Archive, Mail, Phone as PhoneIcon, Building, MapPin, Copy, Check, MessageSquare, Clock, ExternalLink, FileText, FileSpreadsheet, Plus, UserPlus, User, Trash2, PauseCircle, PlayCircle, Search, DollarSign } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ContactCard } from "@/components/ContactCard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -36,6 +36,9 @@ import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { AccountScheduledOutreachPanel } from "@/components/AccountScheduledOutreachPanel";
 import { AccountDraftsHistory } from "@/components/AccountDraftsHistory";
+import { PaymentPlanModal } from "@/components/PaymentPlanModal";
+import { PaymentPlansList } from "@/components/PaymentPlansList";
+import { usePaymentPlans } from "@/hooks/usePaymentPlans";
 
 interface Debtor {
   id: string;
@@ -164,6 +167,8 @@ const DebtorDetail = () => {
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [isResumingOutreach, setIsResumingOutreach] = useState(false);
+  const [isPaymentPlanOpen, setIsPaymentPlanOpen] = useState(false);
+  const { paymentPlans, refetch: refetchPaymentPlans } = usePaymentPlans(id);
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -755,6 +760,10 @@ const DebtorDetail = () => {
               <Plus className="h-4 w-4 mr-2" />
               Create Invoice
             </Button>
+            <Button onClick={() => setIsPaymentPlanOpen(true)} variant="outline">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Payment Plan
+            </Button>
             <Button onClick={() => setIsAccountSummaryOpen(true)} variant="outline">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               AI Outreach
@@ -1016,6 +1025,9 @@ const DebtorDetail = () => {
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList className="flex-wrap">
             <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
+            <TabsTrigger value="payment-plans">
+              Payment Plans ({paymentPlans?.length || 0})
+            </TabsTrigger>
             <TabsTrigger value="scheduled">Scheduled Outreach</TabsTrigger>
             <TabsTrigger value="drafts">AI Drafts</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
@@ -1083,6 +1095,28 @@ const DebtorDetail = () => {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payment-plans">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Payment Plans</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create structured payment arrangements with AR dashboard links
+                    </p>
+                  </div>
+                  <Button onClick={() => setIsPaymentPlanOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Payment Plan
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <PaymentPlansList debtorId={id!} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1535,6 +1569,26 @@ const DebtorDetail = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Payment Plan Modal */}
+        <PaymentPlanModal
+          open={isPaymentPlanOpen}
+          onOpenChange={setIsPaymentPlanOpen}
+          debtorId={id!}
+          debtorName={debtor.company_name || debtor.name}
+          invoices={invoices.map(inv => ({
+            id: inv.id,
+            invoice_number: inv.invoice_number,
+            amount: inv.amount,
+            status: inv.status,
+            due_date: inv.due_date,
+          }))}
+          contacts={contacts}
+          onPlanCreated={() => {
+            refetchPaymentPlans();
+            fetchInvoices();
+          }}
+        />
       </div>
     </Layout>
   );
