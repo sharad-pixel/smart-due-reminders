@@ -6,7 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { getSenderIdentity, renderEmail, type BrandingConfig } from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 import { cleanAndReplaceContent, cleanSubjectLine, type InvoiceData, type DebtorData, type BrandingData } from "../_shared/draftContentEngine.ts";
@@ -256,8 +256,23 @@ serve(async (req) => {
     
     console.log(`Outreach contacts: ${allEmails.length} emails, ${allPhones.length} phones`);
 
-    // Generate the From address using company name
-    const fromEmail = getEmailFromAddress(branding || {});
+    // Build branding config for the new email renderer
+    const brandingConfig: BrandingConfig = {
+      business_name: branding?.business_name,
+      from_name: branding?.from_name,
+      logo_url: branding?.logo_url,
+      primary_color: branding?.primary_color,
+      email_signature: branding?.email_signature,
+      email_footer: branding?.email_footer,
+      email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
+      ar_page_public_token: branding?.ar_page_public_token,
+      ar_page_enabled: branding?.ar_page_enabled,
+      stripe_payment_link: branding?.stripe_payment_link,
+    };
+
+    // Get sender identity using the new deterministic system
+    const senderIdentity = getSenderIdentity(brandingConfig);
+    const fromEmail = senderIdentity.fromEmail;
 
     let sendResult = { success: false, message: "", replyTo: "" };
     let sentFrom = fromEmail;
@@ -276,15 +291,21 @@ serve(async (req) => {
       // Format message body with line breaks
       const formattedBody = processedBody.replace(/\n/g, "<br>");
 
-      // Build fully branded email with signature and payment link
-      const emailHtml = generateBrandedEmail(
-        formattedBody,
-        branding || {},
-        {
+      // Build email using the new renderEmail function that respects email_format setting
+      const emailHtml = renderEmail({
+        brand: brandingConfig,
+        subject: processedSubject,
+        bodyHtml: formattedBody,
+        cta: branding?.stripe_payment_link ? {
+          label: `Pay Invoice - $${invoice.amount?.toLocaleString() || '0'}`,
+          url: branding.stripe_payment_link,
+        } : undefined,
+        meta: {
           invoiceId: invoice.id,
-          amount: invoice.amount,
-        }
-      );
+          debtorId: debtor?.id,
+          agentName: personaName,
+        },
+      });
 
       // Send to ALL outreach-enabled contacts
       const sendEmailResponse = await fetch(
