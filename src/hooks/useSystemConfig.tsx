@@ -82,6 +82,11 @@ export function useSystemConfig() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      if (!user) {
+        setError('You must be logged in to update system configuration');
+        return false;
+      }
+
       const updates = [
         { key: 'maintenance_mode', value: newConfig.maintenanceMode },
         { key: 'signups_enabled', value: newConfig.signupsEnabled },
@@ -89,19 +94,29 @@ export function useSystemConfig() {
         { key: 'email_notifications_enabled', value: newConfig.emailNotificationsEnabled },
       ];
 
+      const errors: string[] = [];
+      
       for (const update of updates) {
         const { error } = await supabase
           .from('system_config')
           .upsert({
             key: update.key,
             value: update.value,
-            updated_by: user?.id,
+            updated_by: user.id,
             updated_at: new Date().toISOString(),
           }, {
             onConflict: 'key',
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error(`Error updating ${update.key}:`, error);
+          errors.push(`${update.key}: ${error.message}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        setError(errors.join(', '));
+        return false;
       }
 
       await fetchConfig();
