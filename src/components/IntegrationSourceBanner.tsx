@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, RefreshCw, Undo2, FileText, Upload, Link2, AlertTriangle, CheckCircle } from "lucide-react";
+import { ExternalLink, Undo2, FileText, Upload, Link2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -36,39 +36,9 @@ export const IntegrationSourceBanner = ({
   onSync,
   onDiscardOverrides,
 }: IntegrationSourceBannerProps) => {
-  const [syncing, setSyncing] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [overrideLogs, setOverrideLogs] = useState<OverrideLog[]>([]);
   const [showOverrides, setShowOverrides] = useState(false);
-
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("sync-stripe-invoices");
-      if (error) throw error;
-      
-      // Show enhanced notification based on sync results
-      if (data?.overrides_reset && data.overrides_reset > 0) {
-        toast.success(
-          `Stripe sync complete. ${data.overrides_reset} local override${data.overrides_reset > 1 ? 's were' : ' was'} reset to Stripe values.`,
-          { duration: 5000 }
-        );
-      } else if (data?.conflicts_detected && data.conflicts_detected > 0) {
-        toast.success(
-          `Sync complete. ${data.conflicts_detected} conflict${data.conflicts_detected > 1 ? 's' : ''} detected and resolved.`,
-          { duration: 5000 }
-        );
-      } else {
-        toast.success(`Sync complete. ${data?.invoices_synced || 0} invoice${data?.invoices_synced !== 1 ? 's' : ''} synced.`);
-      }
-      
-      onSync?.();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sync");
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const handleDiscardOverrides = async () => {
     setDiscarding(true);
@@ -175,16 +145,6 @@ export const IntegrationSourceBanner = ({
                 View in Stripe
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
-              onClick={handleSync}
-              disabled={syncing}
-            >
-              <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing..." : "Sync Now"}
-            </Button>
           </div>
         </AlertDescription>
       </Alert>
@@ -219,16 +179,6 @@ export const IntegrationSourceBanner = ({
                     View in Stripe
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300"
-                  onClick={handleSync}
-                  disabled={syncing}
-                >
-                  <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? "animate-spin" : ""}`} />
-                  {syncing ? "Syncing..." : "Sync Now"}
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
