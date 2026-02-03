@@ -39,6 +39,7 @@ import { CampaignDetailsModal } from "@/components/admin/CampaignDetailsModal";
 import { SendEmailModal } from "@/components/admin/SendEmailModal";
 import { PricingTierCampaigns, PRICING_TIER_CAMPAIGNS } from "@/components/admin/PricingTierCampaigns";
 import { AssignLeadsToCampaignModal } from "@/components/admin/AssignLeadsToCampaignModal";
+import { LeadTableFilters } from "@/components/admin/LeadTableFilters";
 
 interface MarketingLead {
   id: string;
@@ -112,6 +113,13 @@ export default function AdminLeadOutreach() {
   const [activeSegment, setActiveSegment] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  
+  // Column filters
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [scoreFilter, setScoreFilter] = useState("all");
+  const [campaignColumnFilter, setCampaignColumnFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState("all");
+  const [industryFilter, setIndustryFilter] = useState("all");
   
   // Form states
   const [newLead, setNewLead] = useState({ 
@@ -219,6 +227,50 @@ export default function AdminLeadOutreach() {
     return leads.filter(l => selectedLeads.includes(l.id) && l.status !== "unsubscribed");
   }, [leads, selectedLeads]);
 
+  // Build filter options dynamically from data
+  const filterOptions = useMemo(() => {
+    const statuses = new Set(leads.map(l => l.status));
+    const stages = new Set(leads.map(l => l.lifecycle_stage || "lead"));
+    const industries = new Set(leads.map(l => l.industry).filter(Boolean));
+    
+    return {
+      statusOptions: [
+        { value: "all", label: "All Status" },
+        ...Array.from(statuses).map(s => ({ 
+          value: s, 
+          label: s === "unsubscribed" ? "Unsubscribed" : s.charAt(0).toUpperCase() + s.slice(1) 
+        })),
+      ],
+      stageOptions: [
+        { value: "all", label: "All Stages" },
+        ...Array.from(stages).map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })),
+      ],
+      industryOptions: [
+        { value: "all", label: "All Industries" },
+        ...Array.from(industries).map(s => ({ value: s as string, label: (s as string).replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) })),
+      ],
+      campaignOptions: [
+        { value: "all", label: "All Campaigns" },
+        { value: "unassigned", label: "Unassigned" },
+        ...campaigns.map(c => ({ value: c.id, label: c.name })),
+      ],
+    };
+  }, [leads, campaigns]);
+
+  // Check if any column filters are active
+  const hasActiveColumnFilters = useMemo(() => {
+    return statusFilter !== "all" || scoreFilter !== "all" || campaignColumnFilter !== "all" || stageFilter !== "all" || industryFilter !== "all";
+  }, [statusFilter, scoreFilter, campaignColumnFilter, stageFilter, industryFilter]);
+
+  // Clear all column filters
+  const clearAllFilters = () => {
+    setStatusFilter("all");
+    setScoreFilter("all");
+    setCampaignColumnFilter("all");
+    setStageFilter("all");
+    setIndustryFilter("all");
+  };
+
   // Filter leads
   const filteredLeads = useMemo(() => {
     let result = leads;
@@ -233,7 +285,7 @@ export default function AdminLeadOutreach() {
       );
     }
 
-    // Segment filter
+    // Segment filter (top-level)
     if (activeSegment !== "all") {
       switch (activeSegment) {
         case "new":
@@ -254,13 +306,48 @@ export default function AdminLeadOutreach() {
       }
     }
 
-    // Campaign filter
+    // Campaign filter (header dropdown - legacy)
     if (selectedCampaignId) {
       result = result.filter(l => l.campaign_id === selectedCampaignId);
     }
 
+    // Column filters
+    if (statusFilter !== "all") {
+      result = result.filter(l => l.status === statusFilter);
+    }
+
+    if (scoreFilter !== "all") {
+      switch (scoreFilter) {
+        case "hot":
+          result = result.filter(l => (l.lead_score || 0) >= 80);
+          break;
+        case "warm":
+          result = result.filter(l => (l.lead_score || 0) >= 50 && (l.lead_score || 0) < 80);
+          break;
+        case "cold":
+          result = result.filter(l => (l.lead_score || 0) < 50);
+          break;
+      }
+    }
+
+    if (campaignColumnFilter !== "all") {
+      if (campaignColumnFilter === "unassigned") {
+        result = result.filter(l => !l.campaign_id);
+      } else {
+        result = result.filter(l => l.campaign_id === campaignColumnFilter);
+      }
+    }
+
+    if (stageFilter !== "all") {
+      result = result.filter(l => (l.lifecycle_stage || "lead") === stageFilter);
+    }
+
+    if (industryFilter !== "all") {
+      result = result.filter(l => l.industry === industryFilter);
+    }
+
     return result;
-  }, [leads, searchQuery, activeSegment, selectedCampaignId]);
+  }, [leads, searchQuery, activeSegment, selectedCampaignId, statusFilter, scoreFilter, campaignColumnFilter, stageFilter, industryFilter]);
 
   // Add lead mutation
   const addLeadMutation = useMutation({
@@ -1190,7 +1277,27 @@ export default function AdminLeadOutreach() {
                   </div>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Column Filters */}
+                <LeadTableFilters
+                  statusFilter={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  statusOptions={filterOptions.statusOptions}
+                  scoreFilter={scoreFilter}
+                  onScoreChange={setScoreFilter}
+                  campaignFilter={campaignColumnFilter}
+                  onCampaignChange={setCampaignColumnFilter}
+                  campaignOptions={filterOptions.campaignOptions}
+                  stageFilter={stageFilter}
+                  onStageChange={setStageFilter}
+                  stageOptions={filterOptions.stageOptions}
+                  industryFilter={industryFilter}
+                  onIndustryChange={setIndustryFilter}
+                  industryOptions={filterOptions.industryOptions}
+                  hasActiveFilters={hasActiveColumnFilters}
+                  onClearAll={clearAllFilters}
+                />
+
                 {leadsLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -1198,7 +1305,7 @@ export default function AdminLeadOutreach() {
                 ) : filteredLeads.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No leads found. Upload a CSV or add manually.</p>
+                    <p>No leads found{hasActiveColumnFilters ? " matching filters" : ". Upload a CSV or add manually."}</p>
                   </div>
                 ) : (
                   <Table>
