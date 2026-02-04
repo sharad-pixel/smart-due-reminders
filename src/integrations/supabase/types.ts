@@ -218,6 +218,13 @@ export type Database = {
             foreignKeyName: "ai_creations_created_debtor_id_fkey"
             columns: ["created_debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "ai_creations_created_debtor_id_fkey"
+            columns: ["created_debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -438,6 +445,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ar_summary_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "ar_summary_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -697,6 +711,13 @@ export type Database = {
             foreignKeyName: "campaign_accounts_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "campaign_accounts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -820,6 +841,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "collection_activities_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "collection_activities_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -1022,6 +1050,13 @@ export type Database = {
             foreignKeyName: "collection_outcomes_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "collection_outcomes_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -1165,6 +1200,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "collection_activities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_tasks_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
           },
           {
             foreignKeyName: "collection_tasks_debtor_id_fkey"
@@ -1419,6 +1461,13 @@ export type Database = {
             foreignKeyName: "contacts_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "contacts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -1594,6 +1643,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cs_cases_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "cs_cases_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -2120,6 +2176,13 @@ export type Database = {
             foreignKeyName: "debtor_contacts_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "debtor_contacts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -2131,6 +2194,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      debtor_portal_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       debtor_risk_history: {
         Row: {
@@ -2191,6 +2281,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "debtor_risk_history_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "debtor_risk_history_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -2744,6 +2841,13 @@ export type Database = {
             foreignKeyName: "documents_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "documents_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -3040,6 +3144,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "email_activity_log_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "email_activity_log_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -3501,6 +3612,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_emails_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "inbound_emails_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -4228,6 +4346,13 @@ export type Database = {
             foreignKeyName: "invoices_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "invoices_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -4594,6 +4719,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "messages_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -4965,6 +5097,13 @@ export type Database = {
             foreignKeyName: "outreach_logs_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "outreach_logs_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -5210,6 +5349,13 @@ export type Database = {
             foreignKeyName: "payment_plans_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "payment_plans_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -5281,6 +5427,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "data_center_uploads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
           },
           {
             foreignKeyName: "payments_debtor_id_fkey"
@@ -5607,6 +5760,13 @@ export type Database = {
             foreignKeyName: "quickbooks_payments_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "quickbooks_payments_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -5807,6 +5967,13 @@ export type Database = {
             foreignKeyName: "rca_records_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "rca_records_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -5896,6 +6063,13 @@ export type Database = {
             foreignKeyName: "score_change_logs_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "score_change_logs_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -5981,6 +6155,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sent_template_messages_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
           {
             foreignKeyName: "sent_template_messages_debtor_id_fkey"
             columns: ["debtor_id"]
@@ -6553,6 +6734,13 @@ export type Database = {
             foreignKeyName: "user_alerts_debtor_id_fkey"
             columns: ["debtor_id"]
             isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "user_alerts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
             referencedRelation: "debtors"
             referencedColumns: ["id"]
           },
@@ -6718,7 +6906,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      debtor_contact_emails: {
+        Row: {
+          debtor_id: string | null
+          email: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_team_invite: {

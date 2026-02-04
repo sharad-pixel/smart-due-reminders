@@ -75,6 +75,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Team = lazy(() => import("./pages/Team"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const PublicPaymentPlanPage = lazy(() => import("./pages/PublicPaymentPlanPage"));
+const DebtorPortalPage = lazy(() => import("./pages/DebtorPortalPage"));
 
 // Feature Pages
 const AIWorkflows = lazy(() => import("./pages/AIWorkflows"));
@@ -220,6 +221,7 @@ const App = () => (
             <Route path="/branding" element={<Branding />} />
             <Route path="/ar/:token" element={<PublicARPage />} />
             <Route path="/payment-plan/:token" element={<PublicPaymentPlanPage />} />
+            <Route path="/debtor-portal" element={<DebtorPortalPage />} />
             <Route path="/ar-upload" element={<ARDataUpload />} />
             <Route path="/reconciliation" element={<Reconciliation />} />
             <Route path="/ar-aging" element={<ARAging />} />

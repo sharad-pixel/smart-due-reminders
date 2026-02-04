@@ -1,0 +1,184 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+interface VerifyTokenRequest {
+  token: string;
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  try {
+    const { token } = await req.json() as VerifyTokenRequest;
+    
+    if (!token) {
+      return new Response(
+        JSON.stringify({ valid: false, error: "Token is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[VERIFY-DEBTOR-TOKEN] Verifying token");
+
+    // Create Supabase client with service role
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Find and validate token
+    const { data: tokenData, error: tokenError } = await supabase
+      .from("debtor_portal_tokens")
+      .select("*")
+      .eq("token", token)
+      .single();
+
+    if (tokenError || !tokenData) {
+      console.log("[VERIFY-DEBTOR-TOKEN] Token not found");
+      return new Response(
+        JSON.stringify({ valid: false, error: "Invalid or expired link" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if token is expired
+    const expiresAt = new Date(tokenData.expires_at);
+    if (expiresAt < new Date()) {
+      console.log("[VERIFY-DEBTOR-TOKEN] Token expired");
+      return new Response(
+        JSON.stringify({ valid: false, error: "This link has expired. Please request a new one." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const email = tokenData.email;
+    console.log("[VERIFY-DEBTOR-TOKEN] Token valid for email:", email);
+
+    // Mark token as used (optional - could allow multiple uses within expiry)
+    await supabase
+      .from("debtor_portal_tokens")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", tokenData.id);
+
+    // Get active payment plans for this email's debtors
+    const { data: contacts, error: contactsError } = await supabase
+      .from("contacts")
+      .select(`
+        id,
+        email,
+        debtor_id,
+        debtors!inner (
+          id,
+          company_name,
+          reference_id,
+          user_id
+        )
+      `)
+      .ilike("email", email);
+
+    if (contactsError) {
+      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching contacts:", contactsError);
+      throw contactsError;
+    }
+
+    const debtorIds = [...new Set(contacts?.map(c => c.debtor_id) || [])];
+
+    if (debtorIds.length === 0) {
+      return new Response(
+        JSON.stringify({ valid: true, email, paymentPlans: [] }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch active payment plans with installments
+    const { data: plans, error: plansError } = await supabase
+      .from("payment_plans")
+      .select(`
+        id,
+        plan_name,
+        total_amount,
+        number_of_installments,
+        installment_amount,
+        frequency,
+        start_date,
+        status,
+        public_token,
+        notes,
+        proposed_at,
+        created_at,
+        debtor_id,
+        user_id
+      `)
+      .in("debtor_id", debtorIds)
+      .in("status", ["proposed", "accepted", "active"])
+      .order("created_at", { ascending: false });
+
+    if (plansError) {
+      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching plans:", plansError);
+      throw plansError;
+    }
+
+    // Enrich plans with debtor info and installments
+    const enrichedPlans = await Promise.all((plans || []).map(async (plan) => {
+      // Get debtor info - debtors is an object from the inner join
+      const contact = contacts?.find(c => c.debtor_id === plan.debtor_id);
+      const debtorData = contact?.debtors as { id: string; company_name: string; reference_id: string; user_id: string } | undefined;
+      
+      // Get installments
+      const { data: installments } = await supabase
+        .from("payment_plan_installments")
+        .select("*")
+        .eq("payment_plan_id", plan.id)
+        .order("installment_number");
+
+      // Get branding
+      const { data: branding } = await supabase
+        .from("branding_settings")
+        .select("business_name, logo_url, primary_color, stripe_payment_link")
+        .eq("user_id", plan.user_id)
+        .single();
+
+      return {
+        ...plan,
+        debtor: debtorData ? {
+          company_name: debtorData.company_name,
+          reference_id: debtorData.reference_id,
+        } : null,
+        installments: installments || [],
+        branding: branding || null,
+      };
+    }));
+
+    console.log("[VERIFY-DEBTOR-TOKEN] Returning", enrichedPlans.length, "active plans");
+
+    return new Response(
+      JSON.stringify({ 
+        valid: true, 
+        email,
+        paymentPlans: enrichedPlans,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[VERIFY-DEBTOR-TOKEN] Error:", error);
+    return new Response(
+      JSON.stringify({ valid: false, error: "Failed to verify token" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
