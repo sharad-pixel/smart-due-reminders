@@ -38,6 +38,7 @@ interface PaymentPlan {
   notes: string | null;
   proposed_at: string | null;
   created_at: string;
+  debtor_id: string;
   debtor: {
     company_name: string;
     reference_id: string;
@@ -67,9 +68,12 @@ interface Invoice {
   amount_paid: number | null;
   due_date: string;
   status: string;
-  description: string | null;
+  product_description: string | null;
+  po_number: string | null;
+  reference_id: string | null;
   days_past_due: number;
   balance_due: number;
+  debtor_id: string;
   debtor: {
     company_name: string;
     reference_id: string;
@@ -245,62 +249,102 @@ export default function DebtorPortalPage() {
     return "Vendor";
   };
 
-  // Group data by vendor (branding business_name with fallbacks)
-  const groupByVendor = () => {
-    const vendorMap: Record<string, {
+  // Group data by vendor and then by debtor account
+  const groupByVendorAndDebtor = () => {
+    // First, create a map of vendor -> debtor -> data
+    const vendorDebtorMap: Record<string, Record<string, {
+      debtorId: string;
+      debtorName: string;
+      debtorReferenceId: string | null;
+      paymentPlans: PaymentPlan[];
+      invoices: Invoice[];
+    }>> = {};
+
+    // Track vendor metadata
+    const vendorMeta: Record<string, {
       businessName: string;
       logoUrl: string | null;
       primaryColor: string | null;
       stripePaymentLink: string | null;
       arPageUrl: string | null;
-      paymentPlans: PaymentPlan[];
-      invoices: Invoice[];
     }> = {};
 
     paymentPlans.forEach(plan => {
       const vendorName = getVendorName(plan.branding);
-      const vendorKey = vendorName;
+      const debtorId = plan.debtor_id;
+      const debtorName = plan.debtor?.company_name || "Unknown Account";
+      const debtorRefId = plan.debtor?.reference_id || null;
       const arPageUrl = plan.branding?.ar_page_enabled && plan.branding?.ar_page_public_token 
         ? `/ar/${plan.branding.ar_page_public_token}` 
         : null;
-      if (!vendorMap[vendorKey]) {
-        vendorMap[vendorKey] = {
+
+      if (!vendorMeta[vendorName]) {
+        vendorMeta[vendorName] = {
           businessName: vendorName,
           logoUrl: plan.branding?.logo_url || null,
           primaryColor: plan.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: plan.branding?.stripe_payment_link || null,
           arPageUrl,
+        };
+      }
+
+      if (!vendorDebtorMap[vendorName]) {
+        vendorDebtorMap[vendorName] = {};
+      }
+      if (!vendorDebtorMap[vendorName][debtorId]) {
+        vendorDebtorMap[vendorName][debtorId] = {
+          debtorId,
+          debtorName,
+          debtorReferenceId: debtorRefId,
           paymentPlans: [],
           invoices: [],
         };
       }
-      vendorMap[vendorKey].paymentPlans.push(plan);
+      vendorDebtorMap[vendorName][debtorId].paymentPlans.push(plan);
     });
 
     invoices.forEach(invoice => {
       const vendorName = getVendorName(invoice.branding);
-      const vendorKey = vendorName;
+      const debtorId = invoice.debtor_id;
+      const debtorName = invoice.debtor?.company_name || "Unknown Account";
+      const debtorRefId = invoice.debtor?.reference_id || null;
       const arPageUrl = invoice.branding?.ar_page_enabled && invoice.branding?.ar_page_public_token 
         ? `/ar/${invoice.branding.ar_page_public_token}` 
         : null;
-      if (!vendorMap[vendorKey]) {
-        vendorMap[vendorKey] = {
+
+      if (!vendorMeta[vendorName]) {
+        vendorMeta[vendorName] = {
           businessName: vendorName,
           logoUrl: invoice.branding?.logo_url || null,
           primaryColor: invoice.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: invoice.branding?.stripe_payment_link || null,
           arPageUrl,
+        };
+      }
+
+      if (!vendorDebtorMap[vendorName]) {
+        vendorDebtorMap[vendorName] = {};
+      }
+      if (!vendorDebtorMap[vendorName][debtorId]) {
+        vendorDebtorMap[vendorName][debtorId] = {
+          debtorId,
+          debtorName,
+          debtorReferenceId: debtorRefId,
           paymentPlans: [],
           invoices: [],
         };
       }
-      vendorMap[vendorKey].invoices.push(invoice);
+      vendorDebtorMap[vendorName][debtorId].invoices.push(invoice);
     });
 
-    return Object.values(vendorMap);
+    // Convert to array structure
+    return Object.entries(vendorDebtorMap).map(([vendorName, debtors]) => ({
+      ...vendorMeta[vendorName],
+      debtorAccounts: Object.values(debtors),
+    }));
   };
 
-  const vendors = groupByVendor();
+  const vendors = groupByVendorAndDebtor();
 
   // Email entry form (no token)
   if (!token && !verifiedEmail) {
@@ -784,8 +828,8 @@ export default function DebtorPortalPage() {
                     <FileText className="h-5 w-5" />
                     Invoice #{selectedInvoice.invoice_number}
                   </CardTitle>
-                  {selectedInvoice.description && (
-                    <CardDescription>{selectedInvoice.description}</CardDescription>
+                  {selectedInvoice.product_description && (
+                    <CardDescription>{selectedInvoice.product_description}</CardDescription>
                   )}
                 </div>
                 <Badge className={isOverdue ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>
@@ -981,12 +1025,16 @@ export default function DebtorPortalPage() {
 
         {/* Vendor Sections */}
         {vendors.map((vendor, vendorIndex) => {
-          const vendorTotalInvoiceBalance = vendor.invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
-          const vendorOverdueInvoices = vendor.invoices.filter(inv => inv.days_past_due > 0);
-          const vendorPlanBalance = vendor.paymentPlans.reduce((sum, plan) => {
+          // Calculate totals across all debtor accounts
+          const allPlans = vendor.debtorAccounts.flatMap(d => d.paymentPlans);
+          const allInvoices = vendor.debtorAccounts.flatMap(d => d.invoices);
+          const vendorTotalInvoiceBalance = allInvoices.reduce((sum, inv) => sum + inv.balance_due, 0);
+          const vendorOverdueInvoices = allInvoices.filter(inv => inv.days_past_due > 0);
+          const vendorPlanBalance = allPlans.reduce((sum, plan) => {
             const totalPaid = plan.installments.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
             return sum + (plan.total_amount - totalPaid);
           }, 0);
+          const hasMultipleDebtorAccounts = vendor.debtorAccounts.length > 1;
 
           return (
             <Card key={vendorIndex} className="overflow-hidden">
@@ -1009,7 +1057,7 @@ export default function DebtorPortalPage() {
                 <div className="flex-1">
                   <h2 className="text-lg font-bold text-white">{vendor.businessName}</h2>
                   <p className="text-white/80 text-sm">
-                    {vendor.paymentPlans.length} plan{vendor.paymentPlans.length !== 1 ? 's' : ''} • {vendor.invoices.length} invoice{vendor.invoices.length !== 1 ? 's' : ''}
+                    {vendor.debtorAccounts.length} account{vendor.debtorAccounts.length !== 1 ? 's' : ''} • {allPlans.length} plan{allPlans.length !== 1 ? 's' : ''} • {allInvoices.length} invoice{allInvoices.length !== 1 ? 's' : ''}
                   </p>
                   {vendor.arPageUrl && (
                     <a 
@@ -1036,7 +1084,7 @@ export default function DebtorPortalPage() {
               <CardContent className="pt-6 space-y-6">
                 {/* Vendor Summary */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {vendor.paymentPlans.length > 0 && (
+                  {allPlans.length > 0 && (
                     <div className="p-4 bg-purple-50 rounded-lg">
                       <p className="text-sm text-purple-700 mb-1">Payment Plan Balance</p>
                       <p className="text-xl font-bold text-purple-900">
@@ -1044,7 +1092,7 @@ export default function DebtorPortalPage() {
                       </p>
                     </div>
                   )}
-                  {vendor.invoices.length > 0 && (
+                  {allInvoices.length > 0 && (
                     <div className={`p-4 rounded-lg ${vendorOverdueInvoices.length > 0 ? 'bg-red-50' : 'bg-blue-50'}`}>
                       <p className={`text-sm mb-1 ${vendorOverdueInvoices.length > 0 ? 'text-red-700' : 'text-blue-700'}`}>
                         Invoice Balance
@@ -1062,183 +1110,228 @@ export default function DebtorPortalPage() {
                   )}
                 </div>
 
-                {/* Payment Plans */}
-                {vendor.paymentPlans.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-purple-600" />
-                      Payment Plans
-                    </h3>
-                    <div className="space-y-3">
-                      {vendor.paymentPlans.map((plan) => {
-                        const paidCount = plan.installments.filter(i => i.status === "paid").length;
-                        const totalPaid = plan.installments
-                          .filter(i => i.status === "paid")
-                          .reduce((sum, i) => sum + i.amount, 0);
-                        const remainingBalance = plan.total_amount - totalPaid;
-                        
-                        // Check if debtor approval is needed
-                        // Show approve button if:
-                        // 1. Plan is proposed/draft AND debtor hasn't approved yet (regardless of dual_approval flag)
-                        // 2. For dual approval: both approvals needed
-                        // 3. For single approval: just debtor approval activates the plan
-                        const isPendingPlan = plan.status === "proposed" || plan.status === "draft";
-                        const needsDebtorApproval = isPendingPlan && !plan.debtor_approved_at;
-                        const hasDebtorApproval = !!plan.debtor_approved_at;
-                        const hasAdminApproval = !!plan.admin_approved_at;
-                        const isDualApproval = plan.requires_dual_approval === true;
+                {/* Debtor Accounts */}
+                {vendor.debtorAccounts.map((debtorAccount, debtorIndex) => {
+                  const accountPlanBalance = debtorAccount.paymentPlans.reduce((sum, plan) => {
+                    const totalPaid = plan.installments.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
+                    return sum + (plan.total_amount - totalPaid);
+                  }, 0);
+                  const accountInvoiceBalance = debtorAccount.invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
+                  const accountOverdueInvoices = debtorAccount.invoices.filter(inv => inv.days_past_due > 0);
 
-                        return (
-                          <div 
-                            key={plan.id} 
-                            className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${needsDebtorApproval ? 'border-l-orange-500 bg-orange-50/50' : hasDebtorApproval && isPendingPlan && isDualApproval && !hasAdminApproval ? 'border-l-blue-500 bg-blue-50/50' : 'border-l-purple-500'}`}
-                            onClick={() => setSelectedPlan(plan)}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-medium">
-                                    {plan.plan_name || "Payment Plan"}
-                                  </span>
-                                  <Badge className={statusColors[plan.status] || "bg-gray-100"}>
-                                    {plan.status}
-                                  </Badge>
-                                  {needsDebtorApproval && (
-                                    <Badge className="bg-orange-100 text-orange-800">
-                                      Needs Your Approval
-                                    </Badge>
-                                  )}
-                                  {hasDebtorApproval && isPendingPlan && isDualApproval && !hasAdminApproval && (
-                                    <Badge className="bg-blue-100 text-blue-800">
-                                      Awaiting Vendor Approval
-                                    </Badge>
-                                  )}
-                                </div>
+                  return (
+                    <div key={debtorAccount.debtorId} className={`${hasMultipleDebtorAccounts ? 'border rounded-lg p-4 bg-muted/20' : ''}`}>
+                      {/* Account Header - only show if multiple accounts */}
+                      {hasMultipleDebtorAccounts && (
+                        <div className="mb-4 pb-3 border-b">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-semibold text-lg flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                {debtorAccount.debtorName}
+                              </h3>
+                              {debtorAccount.debtorReferenceId && (
                                 <p className="text-sm text-muted-foreground">
-                                  {plan.number_of_installments} {plan.frequency} payments • 
-                                  Started {format(new Date(plan.start_date), "MMM d, yyyy")}
+                                  Ref: {debtorAccount.debtorReferenceId}
                                 </p>
-                                
-                                {/* Approval Status - show for pending plans */}
-                                {isPendingPlan && (
-                                  <div className="flex items-center gap-3 mt-2 text-xs">
-                                    <span className={`flex items-center gap-1 ${hasDebtorApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
-                                      <UserCheck className="h-3 w-3" />
-                                      You: {hasDebtorApproval ? 'Approved' : 'Pending'}
-                                    </span>
-                                    {isDualApproval && (
-                                      <span className={`flex items-center gap-1 ${hasAdminApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
-                                        <ShieldCheck className="h-3 w-3" />
-                                        Vendor: {hasAdminApproval ? 'Approved' : 'Pending'}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-right space-y-2">
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Remaining</p>
-                                  <p className="text-lg font-bold" style={{ color: vendor.primaryColor }}>
-                                    ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {paidCount}/{plan.installments.length} paid
-                                  </p>
-                                </div>
-                                
-                                {/* Approve Button */}
-                                {needsDebtorApproval && (
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-green-600 hover:bg-green-700"
-                                    onClick={(e) => handleApprovePlan(plan.id, e)}
-                                    disabled={approvingPlanId === plan.id}
-                                  >
-                                    {approvingPlanId === plan.id ? (
-                                      <>
-                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                        Approving...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        Approve Plan
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
+                              )}
+                            </div>
+                            <div className="text-right text-sm">
+                              <p className="text-muted-foreground">Total Balance</p>
+                              <p className="font-bold text-lg">
+                                ${(accountPlanBalance + accountInvoiceBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </p>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                        </div>
+                      )}
 
-                {/* Invoices */}
-                {vendor.invoices.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-blue-600" />
-                      Open Invoices
-                    </h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Invoice #</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead className="text-right">Paid</TableHead>
-                          <TableHead className="text-right">Balance</TableHead>
-                          <TableHead></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {vendor.invoices.map((invoice) => {
-                          const isOverdue = invoice.days_past_due > 0;
-                          
-                          return (
-                            <TableRow 
-                              key={invoice.id} 
-                              className="cursor-pointer hover:bg-muted/50"
-                              onClick={() => setSelectedInvoice(invoice)}
-                            >
-                              <TableCell className="font-medium">#{invoice.invoice_number}</TableCell>
-                              <TableCell>{format(new Date(invoice.due_date), "MMM d, yyyy")}</TableCell>
-                              <TableCell>
-                                {isOverdue ? (
-                                  <Badge className="bg-red-100 text-red-800">
-                                    {invoice.days_past_due}d overdue
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-yellow-100 text-yellow-800">
-                                    {invoice.status}
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right font-mono">
-                                ${invoice.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-green-600">
-                                ${(invoice.amount_paid || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className={`text-right font-mono font-bold ${isOverdue ? 'text-red-600' : ''}`}>
-                                ${invoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell>
-                                <Button variant="ghost" size="sm">
-                                  View
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                      {/* Payment Plans */}
+                      {debtorAccount.paymentPlans.length > 0 && (
+                        <div className="mb-4">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-purple-600" />
+                            Payment Plans
+                          </h4>
+                          <div className="space-y-3">
+                            {debtorAccount.paymentPlans.map((plan) => {
+                              const paidCount = plan.installments.filter(i => i.status === "paid").length;
+                              const totalPaid = plan.installments
+                                .filter(i => i.status === "paid")
+                                .reduce((sum, i) => sum + i.amount, 0);
+                              const remainingBalance = plan.total_amount - totalPaid;
+                              
+                              const isPendingPlan = plan.status === "proposed" || plan.status === "draft";
+                              const needsDebtorApproval = isPendingPlan && !plan.debtor_approved_at;
+                              const hasDebtorApproval = !!plan.debtor_approved_at;
+                              const hasAdminApproval = !!plan.admin_approved_at;
+                              const isDualApproval = plan.requires_dual_approval === true;
+
+                              return (
+                                <div 
+                                  key={plan.id} 
+                                  className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${needsDebtorApproval ? 'border-l-orange-500 bg-orange-50/50' : hasDebtorApproval && isPendingPlan && isDualApproval && !hasAdminApproval ? 'border-l-blue-500 bg-blue-50/50' : 'border-l-purple-500'}`}
+                                  onClick={() => setSelectedPlan(plan)}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-medium">
+                                          {plan.plan_name || "Payment Plan"}
+                                        </span>
+                                        <Badge className={statusColors[plan.status] || "bg-gray-100"}>
+                                          {plan.status}
+                                        </Badge>
+                                        {needsDebtorApproval && (
+                                          <Badge className="bg-orange-100 text-orange-800">
+                                            Needs Your Approval
+                                          </Badge>
+                                        )}
+                                        {hasDebtorApproval && isPendingPlan && isDualApproval && !hasAdminApproval && (
+                                          <Badge className="bg-blue-100 text-blue-800">
+                                            Awaiting Vendor Approval
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {plan.number_of_installments} {plan.frequency} payments • 
+                                        Started {format(new Date(plan.start_date), "MMM d, yyyy")}
+                                      </p>
+                                      
+                                      {isPendingPlan && (
+                                        <div className="flex items-center gap-3 mt-2 text-xs">
+                                          <span className={`flex items-center gap-1 ${hasDebtorApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                            <UserCheck className="h-3 w-3" />
+                                            You: {hasDebtorApproval ? 'Approved' : 'Pending'}
+                                          </span>
+                                          {isDualApproval && (
+                                            <span className={`flex items-center gap-1 ${hasAdminApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                              <ShieldCheck className="h-3 w-3" />
+                                              Vendor: {hasAdminApproval ? 'Approved' : 'Pending'}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="text-right space-y-2">
+                                      <div>
+                                        <p className="text-sm text-muted-foreground">Remaining</p>
+                                        <p className="text-lg font-bold" style={{ color: vendor.primaryColor }}>
+                                          ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {paidCount}/{plan.installments.length} paid
+                                        </p>
+                                      </div>
+                                      
+                                      {needsDebtorApproval && (
+                                        <Button 
+                                          size="sm" 
+                                          className="bg-green-600 hover:bg-green-700"
+                                          onClick={(e) => handleApprovePlan(plan.id, e)}
+                                          disabled={approvingPlanId === plan.id}
+                                        >
+                                          {approvingPlanId === plan.id ? (
+                                            <>
+                                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                              Approving...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                              Approve Plan
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Invoices */}
+                      {debtorAccount.invoices.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                            Open Invoices
+                            {accountOverdueInvoices.length > 0 && (
+                              <Badge className="bg-red-100 text-red-800 ml-2">
+                                {accountOverdueInvoices.length} overdue
+                              </Badge>
+                            )}
+                          </h4>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Invoice #</TableHead>
+                                  <TableHead>Product/Service</TableHead>
+                                  <TableHead>Due Date</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead className="text-right">Amount</TableHead>
+                                  <TableHead className="text-right">Balance</TableHead>
+                                  <TableHead></TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {debtorAccount.invoices.map((invoice) => {
+                                  const isOverdue = invoice.days_past_due > 0;
+                                  
+                                  return (
+                                    <TableRow 
+                                      key={invoice.id} 
+                                      className="cursor-pointer hover:bg-muted/50"
+                                      onClick={() => setSelectedInvoice(invoice)}
+                                    >
+                                      <TableCell className="font-medium">#{invoice.invoice_number}</TableCell>
+                                      <TableCell className="max-w-[200px]">
+                                        {invoice.product_description ? (
+                                          <span className="truncate block" title={invoice.product_description}>
+                                            {invoice.product_description}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground italic">—</span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>{format(new Date(invoice.due_date), "MMM d, yyyy")}</TableCell>
+                                      <TableCell>
+                                        {isOverdue ? (
+                                          <Badge className="bg-red-100 text-red-800">
+                                            {invoice.days_past_due}d overdue
+                                          </Badge>
+                                        ) : (
+                                          <Badge className="bg-yellow-100 text-yellow-800">
+                                            {invoice.status}
+                                          </Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-right font-mono">
+                                        ${invoice.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      </TableCell>
+                                      <TableCell className={`text-right font-mono font-bold ${isOverdue ? 'text-red-600' : ''}`}>
+                                        ${invoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Button variant="ghost" size="sm">
+                                          View
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           );
