@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
-import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck, User } from "lucide-react";
+import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck, User, CreditCard } from "lucide-react";
 import { useState } from "react";
 
 interface MarketingLayoutProps {
@@ -119,6 +119,12 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               Blog
             </button>
+            <button 
+              onClick={() => navigate("/debtor-portal")}
+              className="text-foreground hover:text-primary transition-colors py-2"
+            >
+              Payment Portal
+            </button>
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
               <Button onClick={() => navigate("/login")} variant="ghost" size="sm">
                 Sign In
@@ -179,6 +185,10 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
                 <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                 <button onClick={() => { navigate("/blog"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Blog</button>
+                <button onClick={() => { navigate("/debtor-portal"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Payment Portal
+                </button>
                 <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="w-full mt-2">
                   Get Started
                 </Button>
