@@ -190,6 +190,97 @@ export function usePaymentPlans(debtorId?: string) {
     },
   });
 
+  // Update payment plan details
+  const updatePaymentPlan = useMutation({
+    mutationFn: async ({
+      planId,
+      planName,
+      frequency,
+      startDate,
+      numberOfInstallments,
+      notes,
+    }: {
+      planId: string;
+      planName?: string;
+      frequency?: string;
+      startDate?: Date;
+      numberOfInstallments?: number;
+      notes?: string;
+    }) => {
+      const { data: existingPlan, error: fetchError } = await supabase
+        .from("payment_plans")
+        .select("*")
+        .eq("id", planId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const updateData: Record<string, any> = {};
+      if (planName !== undefined) updateData.plan_name = planName;
+      if (frequency !== undefined) updateData.frequency = frequency;
+      if (notes !== undefined) updateData.notes = notes;
+
+      // If installments or start date changes, recalculate installments
+      const needsInstallmentRecalc = 
+        (numberOfInstallments !== undefined && numberOfInstallments !== existingPlan.number_of_installments) ||
+        (startDate !== undefined);
+
+      if (startDate !== undefined) updateData.start_date = format(startDate, "yyyy-MM-dd");
+      if (numberOfInstallments !== undefined) {
+        updateData.number_of_installments = numberOfInstallments;
+        updateData.installment_amount = Number((existingPlan.total_amount / numberOfInstallments).toFixed(2));
+      }
+
+      const { error: updateError } = await supabase
+        .from("payment_plans")
+        .update(updateData)
+        .eq("id", planId);
+
+      if (updateError) throw updateError;
+
+      // Recalculate installments if needed
+      if (needsInstallmentRecalc) {
+        const newNumInstallments = numberOfInstallments || existingPlan.number_of_installments;
+        const newStartDate = startDate || new Date(existingPlan.start_date);
+        const newFrequency = frequency || existingPlan.frequency;
+
+        // Delete existing installments
+        await supabase
+          .from("payment_plan_installments")
+          .delete()
+          .eq("payment_plan_id", planId);
+
+        // Create new installments
+        const installmentAmount = Number((existingPlan.total_amount / newNumInstallments).toFixed(2));
+        const regularTotal = installmentAmount * (newNumInstallments - 1);
+        const lastInstallmentAmount = Number((existingPlan.total_amount - regularTotal).toFixed(2));
+
+        const dueDates = calculateInstallmentDates(newStartDate, newNumInstallments, newFrequency);
+        const installments = dueDates.map((dueDate, index) => ({
+          payment_plan_id: planId,
+          installment_number: index + 1,
+          due_date: format(dueDate, "yyyy-MM-dd"),
+          amount: index === newNumInstallments - 1 ? lastInstallmentAmount : installmentAmount,
+          status: "pending",
+        }));
+
+        const { error: installmentsError } = await supabase
+          .from("payment_plan_installments")
+          .insert(installments);
+
+        if (installmentsError) throw installmentsError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payment-plans", debtorId] });
+      toast.success("Payment plan updated");
+    },
+    onError: (error: any) => {
+      console.error("Error updating payment plan:", error);
+      toast.error(error.message || "Failed to update payment plan");
+    },
+  });
+
   // Update payment plan status
   const updatePlanStatus = useMutation({
     mutationFn: async ({ planId, status }: { planId: string; status: string }) => {
@@ -238,14 +329,113 @@ export function usePaymentPlans(debtorId?: string) {
     },
   });
 
+  // Resend payment plan link to debtor contacts
+  const resendPlanLink = useMutation({
+    mutationFn: async ({ planId, emails }: { planId: string; emails: string[] }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get the plan details
+      const { data: plan, error: planError } = await supabase
+        .from("payment_plans")
+        .select("*")
+        .eq("id", planId)
+        .single();
+
+      if (planError) throw planError;
+
+      // Get debtor details
+      const { data: debtor } = await supabase
+        .from("debtors")
+        .select("company_name, name")
+        .eq("id", plan.debtor_id)
+        .single();
+
+      // Get branding
+      const { data: branding } = await supabase
+        .from("branding_settings")
+        .select("business_name, from_name, from_email, primary_color")
+        .eq("user_id", user.id)
+        .single();
+
+      const businessName = branding?.business_name || "Recouply";
+      const debtorName = debtor?.company_name || debtor?.name || "Customer";
+      const arUrl = getPaymentPlanARUrl(plan.public_token);
+
+      const emailBody = `
+Dear ${debtorName},
+
+This is a reminder about your payment plan with ${businessName}.
+
+**Payment Plan Details:**
+- Total Amount: $${plan.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+- Number of Installments: ${plan.number_of_installments}
+- Payment Frequency: ${plan.frequency.replace("-", " ")}
+- First Payment Due: ${format(new Date(plan.start_date), "MMMM d, yyyy")}
+
+To review your payment schedule and make payments, please visit your AR Dashboard:
+${arUrl}
+
+If you have any questions, please reply to this email.
+
+Best regards,
+${businessName}
+      `.trim();
+
+      const htmlBody = emailBody
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br>");
+
+      // Send email
+      const { error: sendError } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: emails,
+          from: `${businessName} <notifications@send.inbound.services.recouply.ai>`,
+          subject: `Payment Plan Reminder - ${businessName}`,
+          html: `<div style="font-family: Arial, sans-serif; max-width: 600px;">${htmlBody}</div>`,
+          text: emailBody,
+        },
+      });
+
+      if (sendError) throw sendError;
+
+      // Log the activity
+      await supabase.from("collection_activities").insert({
+        user_id: user.id,
+        debtor_id: plan.debtor_id,
+        activity_type: "payment_plan_reminder",
+        channel: "email",
+        direction: "outbound",
+        subject: `Payment Plan Reminder - ${businessName}`,
+        message_body: emailBody,
+        sent_at: new Date().toISOString(),
+        metadata: {
+          payment_plan_id: planId,
+          sent_to: emails,
+        },
+      });
+
+      return { sentTo: emails.length };
+    },
+    onSuccess: (data) => {
+      toast.success(`Payment plan link sent to ${data.sentTo} contact(s)`);
+    },
+    onError: (error: any) => {
+      console.error("Error resending payment plan link:", error);
+      toast.error(error.message || "Failed to send payment plan link");
+    },
+  });
+
   return {
     paymentPlans,
     isLoading,
     refetch,
     fetchInstallments,
     createPaymentPlan,
+    updatePaymentPlan,
     updatePlanStatus,
     markInstallmentPaid,
+    resendPlanLink,
   };
 }
 
