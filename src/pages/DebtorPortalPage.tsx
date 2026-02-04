@@ -249,62 +249,102 @@ export default function DebtorPortalPage() {
     return "Vendor";
   };
 
-  // Group data by vendor (branding business_name with fallbacks)
-  const groupByVendor = () => {
-    const vendorMap: Record<string, {
+  // Group data by vendor and then by debtor account
+  const groupByVendorAndDebtor = () => {
+    // First, create a map of vendor -> debtor -> data
+    const vendorDebtorMap: Record<string, Record<string, {
+      debtorId: string;
+      debtorName: string;
+      debtorReferenceId: string | null;
+      paymentPlans: PaymentPlan[];
+      invoices: Invoice[];
+    }>> = {};
+
+    // Track vendor metadata
+    const vendorMeta: Record<string, {
       businessName: string;
       logoUrl: string | null;
       primaryColor: string | null;
       stripePaymentLink: string | null;
       arPageUrl: string | null;
-      paymentPlans: PaymentPlan[];
-      invoices: Invoice[];
     }> = {};
 
     paymentPlans.forEach(plan => {
       const vendorName = getVendorName(plan.branding);
-      const vendorKey = vendorName;
+      const debtorId = plan.debtor_id;
+      const debtorName = plan.debtor?.company_name || "Unknown Account";
+      const debtorRefId = plan.debtor?.reference_id || null;
       const arPageUrl = plan.branding?.ar_page_enabled && plan.branding?.ar_page_public_token 
         ? `/ar/${plan.branding.ar_page_public_token}` 
         : null;
-      if (!vendorMap[vendorKey]) {
-        vendorMap[vendorKey] = {
+
+      if (!vendorMeta[vendorName]) {
+        vendorMeta[vendorName] = {
           businessName: vendorName,
           logoUrl: plan.branding?.logo_url || null,
           primaryColor: plan.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: plan.branding?.stripe_payment_link || null,
           arPageUrl,
+        };
+      }
+
+      if (!vendorDebtorMap[vendorName]) {
+        vendorDebtorMap[vendorName] = {};
+      }
+      if (!vendorDebtorMap[vendorName][debtorId]) {
+        vendorDebtorMap[vendorName][debtorId] = {
+          debtorId,
+          debtorName,
+          debtorReferenceId: debtorRefId,
           paymentPlans: [],
           invoices: [],
         };
       }
-      vendorMap[vendorKey].paymentPlans.push(plan);
+      vendorDebtorMap[vendorName][debtorId].paymentPlans.push(plan);
     });
 
     invoices.forEach(invoice => {
       const vendorName = getVendorName(invoice.branding);
-      const vendorKey = vendorName;
+      const debtorId = invoice.debtor_id;
+      const debtorName = invoice.debtor?.company_name || "Unknown Account";
+      const debtorRefId = invoice.debtor?.reference_id || null;
       const arPageUrl = invoice.branding?.ar_page_enabled && invoice.branding?.ar_page_public_token 
         ? `/ar/${invoice.branding.ar_page_public_token}` 
         : null;
-      if (!vendorMap[vendorKey]) {
-        vendorMap[vendorKey] = {
+
+      if (!vendorMeta[vendorName]) {
+        vendorMeta[vendorName] = {
           businessName: vendorName,
           logoUrl: invoice.branding?.logo_url || null,
           primaryColor: invoice.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: invoice.branding?.stripe_payment_link || null,
           arPageUrl,
+        };
+      }
+
+      if (!vendorDebtorMap[vendorName]) {
+        vendorDebtorMap[vendorName] = {};
+      }
+      if (!vendorDebtorMap[vendorName][debtorId]) {
+        vendorDebtorMap[vendorName][debtorId] = {
+          debtorId,
+          debtorName,
+          debtorReferenceId: debtorRefId,
           paymentPlans: [],
           invoices: [],
         };
       }
-      vendorMap[vendorKey].invoices.push(invoice);
+      vendorDebtorMap[vendorName][debtorId].invoices.push(invoice);
     });
 
-    return Object.values(vendorMap);
+    // Convert to array structure
+    return Object.entries(vendorDebtorMap).map(([vendorName, debtors]) => ({
+      ...vendorMeta[vendorName],
+      debtorAccounts: Object.values(debtors),
+    }));
   };
 
-  const vendors = groupByVendor();
+  const vendors = groupByVendorAndDebtor();
 
   // Email entry form (no token)
   if (!token && !verifiedEmail) {
