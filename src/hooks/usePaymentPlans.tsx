@@ -426,6 +426,86 @@ ${businessName}
     },
   });
 
+  // Delete a payment plan and its installments
+  const deletePaymentPlan = useMutation({
+    mutationFn: async (planId: string) => {
+      // Delete installments first (due to FK constraint)
+      await supabase
+        .from("payment_plan_installments")
+        .delete()
+        .eq("payment_plan_id", planId);
+
+      // Delete the plan
+      const { error } = await supabase
+        .from("payment_plans")
+        .delete()
+        .eq("id", planId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payment-plans", debtorId] });
+      toast.success("Payment plan deleted");
+    },
+    onError: (error: any) => {
+      console.error("Error deleting payment plan:", error);
+      toast.error(error.message || "Failed to delete payment plan");
+    },
+  });
+
+  // Regenerate installments for a payment plan
+  const regenerateInstallments = useMutation({
+    mutationFn: async (planId: string) => {
+      // Get the plan details
+      const { data: plan, error: fetchError } = await supabase
+        .from("payment_plans")
+        .select("*")
+        .eq("id", planId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete existing installments
+      await supabase
+        .from("payment_plan_installments")
+        .delete()
+        .eq("payment_plan_id", planId);
+
+      // Recalculate and create new installments
+      const installmentAmount = Number((plan.total_amount / plan.number_of_installments).toFixed(2));
+      const regularTotal = installmentAmount * (plan.number_of_installments - 1);
+      const lastInstallmentAmount = Number((plan.total_amount - regularTotal).toFixed(2));
+
+      const dueDates = calculateInstallmentDates(
+        new Date(plan.start_date),
+        plan.number_of_installments,
+        plan.frequency
+      );
+
+      const installments = dueDates.map((dueDate, index) => ({
+        payment_plan_id: planId,
+        installment_number: index + 1,
+        due_date: format(dueDate, "yyyy-MM-dd"),
+        amount: index === plan.number_of_installments - 1 ? lastInstallmentAmount : installmentAmount,
+        status: "pending",
+      }));
+
+      const { error: installmentsError } = await supabase
+        .from("payment_plan_installments")
+        .insert(installments);
+
+      if (installmentsError) throw installmentsError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payment-plans", debtorId] });
+      toast.success("Installments regenerated");
+    },
+    onError: (error: any) => {
+      console.error("Error regenerating installments:", error);
+      toast.error(error.message || "Failed to regenerate installments");
+    },
+  });
+
   return {
     paymentPlans,
     isLoading,
@@ -436,6 +516,8 @@ ${businessName}
     updatePlanStatus,
     markInstallmentPaid,
     resendPlanLink,
+    deletePaymentPlan,
+    regenerateInstallments,
   };
 }
 

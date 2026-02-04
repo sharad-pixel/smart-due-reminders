@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2, Send, Edit2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2, Send, Edit2, Trash2, RefreshCw } from "lucide-react";
 import { usePaymentPlans, PaymentPlan, PaymentPlanInstallment, getPaymentPlanARUrl } from "@/hooks/usePaymentPlans";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -45,7 +46,8 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [resendModalOpen, setResendModalOpen] = useState(false);
-  const { markInstallmentPaid, updatePlanStatus } = usePaymentPlans(plan.debtor_id);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const { markInstallmentPaid, updatePlanStatus, deletePaymentPlan, regenerateInstallments } = usePaymentPlans(plan.debtor_id);
 
   // Fetch installments when expanded
   const { data: installments, isLoading: loadingInstallments } = useQuery({
@@ -75,6 +77,8 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
 
   const canResend = plan.status !== "cancelled" && plan.status !== "completed" && plan.status !== "defaulted";
   const canEdit = plan.status === "draft" || plan.status === "proposed";
+  const canDelete = plan.status === "draft" || plan.status === "proposed" || plan.status === "cancelled";
+  const canRegenerate = plan.status === "draft" || plan.status === "proposed";
 
   return (
     <Card className="overflow-hidden">
@@ -157,8 +161,8 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
               </div>
             </div>
 
-            {/* Resend & Edit Actions */}
-            <div className="flex gap-2">
+            {/* Resend, Edit, Regenerate & Delete Actions */}
+            <div className="flex gap-2 flex-wrap">
               {canResend && (
                 <Button 
                   variant="outline" 
@@ -177,6 +181,28 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                 >
                   <Edit2 className="h-4 w-4 mr-1" />
                   Edit Plan
+                </Button>
+              )}
+              {canRegenerate && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => regenerateInstallments.mutate(plan.id)}
+                  disabled={regenerateInstallments.isPending}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1 ${regenerateInstallments.isPending ? 'animate-spin' : ''}`} />
+                  Regenerate
+                </Button>
+              )}
+              {canDelete && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
                 </Button>
               )}
             </div>
@@ -287,6 +313,27 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
         onOpenChange={setResendModalOpen}
         plan={plan}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment Plan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this payment plan? This will remove the plan and all its installments. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletePaymentPlan.mutate(plan.id)}
+            >
+              {deletePaymentPlan.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

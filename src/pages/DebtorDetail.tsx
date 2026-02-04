@@ -704,7 +704,16 @@ const DebtorDetail = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-4xl font-bold text-primary">{debtor.company_name}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold text-primary">{debtor.company_name}</h1>
+                {/* Payment Plan Badge - show if any active payment plans exist */}
+                {(paymentPlans && paymentPlans.some(p => ["proposed", "accepted", "active"].includes(p.status))) && (
+                  <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    Payment Plan Active
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm font-mono text-muted-foreground">{debtor.reference_id}</span>
                 <Button
