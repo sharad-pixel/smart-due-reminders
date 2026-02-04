@@ -194,10 +194,10 @@ serve(async (req) => {
         id,
         invoice_number,
         amount,
-        amount_paid,
+        amount_outstanding,
         due_date,
         status,
-        description,
+        product_description,
         debtor_id,
         user_id,
         is_on_payment_plan,
@@ -292,7 +292,7 @@ serve(async (req) => {
       return {
         ...invoice,
         days_past_due: daysPastDue,
-        balance_due: invoice.amount - (invoice.amount_paid || 0),
+        balance_due: invoice.amount_outstanding ?? invoice.amount,
         debtor: debtorData ? {
           company_name: debtorData.company_name,
           reference_id: debtorData.reference_id,
