@@ -102,7 +102,9 @@ serve(async (req) => {
       );
     }
 
-    // Check if there are active payment plans for these debtors
+    // Check if there are any active payment plans OR open invoices for these debtors.
+    // Note: Invoice "overdue" is derived from due_date (DPD), not a database status.
+
     const { data: activePlans, error: plansError } = await supabase
       .from("payment_plans")
       .select("id, debtor_id, user_id")
@@ -114,12 +116,31 @@ serve(async (req) => {
       throw plansError;
     }
 
-    if (!activePlans || activePlans.length === 0) {
-      console.log("[DEBTOR-PORTAL-LINK] No active plans for email:", normalizedEmail);
+    const { data: openInvoices, error: invoicesError } = await supabase
+      .from("invoices")
+      .select("id, debtor_id, user_id, status, is_on_payment_plan")
+      .in("debtor_id", debtorIds)
+      .in("status", ["Open", "PartiallyPaid"])
+      .eq("is_on_payment_plan", false);
+
+    if (invoicesError) {
+      console.error("[DEBTOR-PORTAL-LINK] Error checking invoices:", invoicesError);
+      throw invoicesError;
+    }
+
+    const hasPlans = (activePlans?.length || 0) > 0;
+    const hasInvoices = (openInvoices?.length || 0) > 0;
+
+    if (!hasPlans && !hasInvoices) {
+      console.log(
+        "[DEBTOR-PORTAL-LINK] No active plans or open invoices for email:",
+        normalizedEmail
+      );
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "If this email is associated with payment plans, you will receive a link shortly." 
+        JSON.stringify({
+          success: true,
+          message:
+            "If this email is associated with invoices or payment plans, you will receive a link shortly.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -141,8 +162,8 @@ serve(async (req) => {
 
     console.log("[DEBTOR-PORTAL-LINK] Token created:", tokenData.id);
 
-    // Get branding from the first plan's owner for email styling
-    const planOwnerId = activePlans[0].user_id;
+    // Get branding from the first matching account owner for email styling
+    const planOwnerId = (activePlans?.[0]?.user_id || openInvoices?.[0]?.user_id) as string;
     const { data: branding } = await supabase
       .from("branding_settings")
       .select("business_name, logo_url, primary_color")
