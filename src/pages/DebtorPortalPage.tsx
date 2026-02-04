@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { 
   DollarSign, Calendar, CheckCircle, Clock, XCircle, 
   Building2, ExternalLink, Mail, Loader2, ArrowLeft,
-  CreditCard
+  CreditCard, FileText, AlertTriangle
 } from "lucide-react";
 
 interface Installment {
@@ -51,6 +51,28 @@ interface PaymentPlan {
   } | null;
 }
 
+interface Invoice {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  amount_paid: number | null;
+  due_date: string;
+  status: string;
+  description: string | null;
+  days_past_due: number;
+  balance_due: number;
+  debtor: {
+    company_name: string;
+    reference_id: string;
+  } | null;
+  branding: {
+    business_name: string;
+    logo_url: string | null;
+    primary_color: string | null;
+    stripe_payment_link: string | null;
+  } | null;
+}
+
 const statusColors: Record<string, string> = {
   proposed: "bg-blue-100 text-blue-800",
   accepted: "bg-green-100 text-green-800",
@@ -79,7 +101,9 @@ export default function DebtorPortalPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<PaymentPlan | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Verify token on load
@@ -104,6 +128,7 @@ export default function DebtorPortalPage() {
       if (data.valid) {
         setVerifiedEmail(data.email);
         setPaymentPlans(data.paymentPlans || []);
+        setInvoices(data.invoices || []);
       } else {
         setError(data.error || "Invalid or expired link");
       }
@@ -401,9 +426,146 @@ export default function DebtorPortalPage() {
     );
   }
 
-  // Plans list view
-  const primaryColor = paymentPlans[0]?.branding?.primary_color || "#1e3a5f";
-  const businessName = paymentPlans[0]?.branding?.business_name || "Payment Portal";
+  // Selected invoice detail view
+  if (selectedInvoice) {
+    const primaryColor = selectedInvoice.branding?.primary_color || "#1e3a5f";
+    const isOverdue = selectedInvoice.days_past_due > 0;
+
+    return (
+      <div className="min-h-screen bg-slate-50">
+        {/* Header */}
+        <div className="w-full py-6 px-4" style={{ backgroundColor: primaryColor }}>
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-4">
+              {selectedInvoice.branding?.logo_url ? (
+                <img 
+                  src={selectedInvoice.branding.logo_url} 
+                  alt={selectedInvoice.branding.business_name} 
+                  className="h-10 w-auto bg-white rounded p-1"
+                />
+              ) : (
+                <Building2 className="h-8 w-8 text-white" />
+              )}
+              <div>
+                <h1 className="text-xl font-bold text-white">
+                  {selectedInvoice.branding?.business_name || "Invoice Details"}
+                </h1>
+                {selectedInvoice.debtor && (
+                  <p className="text-white/80 text-sm">
+                    Account: {selectedInvoice.debtor.company_name}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
+          <Button
+            variant="ghost"
+            onClick={() => setSelectedInvoice(null)}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Overview
+          </Button>
+
+          {/* Invoice Overview */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Invoice #{selectedInvoice.invoice_number}
+                  </CardTitle>
+                  {selectedInvoice.description && (
+                    <CardDescription>{selectedInvoice.description}</CardDescription>
+                  )}
+                </div>
+                <Badge className={isOverdue ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>
+                  {isOverdue ? `${selectedInvoice.days_past_due} days overdue` : selectedInvoice.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="p-4 bg-muted/50 rounded-lg text-center">
+                  <p className="text-sm text-muted-foreground">Invoice Amount</p>
+                  <p className="text-2xl font-bold">
+                    ${selectedInvoice.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg text-center">
+                  <p className="text-sm text-green-700">Amount Paid</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    ${(selectedInvoice.amount_paid || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className={`p-4 rounded-lg text-center ${isOverdue ? 'bg-red-50' : 'bg-blue-50'}`}>
+                  <p className={`text-sm ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>Balance Due</p>
+                  <p className={`text-2xl font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
+                    ${selectedInvoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">Due Date</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {format(new Date(selectedInvoice.due_date), "MMMM d, yyyy")}
+                  </p>
+                </div>
+                {selectedInvoice.debtor && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Reference</p>
+                    <p className="font-medium">{selectedInvoice.debtor.reference_id}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Link */}
+          {selectedInvoice.branding?.stripe_payment_link && selectedInvoice.balance_due > 0 && (
+            <Card className="border-primary">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold">Ready to pay this invoice?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Click the button to securely pay your balance of ${selectedInvoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}.
+                    </p>
+                  </div>
+                  <Button asChild size="lg">
+                    <a href={selectedInvoice.branding.stripe_payment_link} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Pay Now
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Main portal view - Plans and Invoices list
+  const primaryColor = paymentPlans[0]?.branding?.primary_color || invoices[0]?.branding?.primary_color || "#1e3a5f";
+  const businessName = paymentPlans[0]?.branding?.business_name || invoices[0]?.branding?.business_name || "Payment Portal";
+  const logoUrl = paymentPlans[0]?.branding?.logo_url || invoices[0]?.branding?.logo_url;
+  const stripePaymentLink = paymentPlans[0]?.branding?.stripe_payment_link || invoices[0]?.branding?.stripe_payment_link;
+
+  // Calculate totals
+  const totalInvoiceBalance = invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
+  const overdueInvoices = invoices.filter(inv => inv.days_past_due > 0);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -411,9 +573,9 @@ export default function DebtorPortalPage() {
       <div className="w-full py-6 px-4" style={{ backgroundColor: primaryColor }}>
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {paymentPlans[0]?.branding?.logo_url ? (
+            {logoUrl ? (
               <img 
-                src={paymentPlans[0].branding.logo_url} 
+                src={logoUrl} 
                 alt={businessName} 
                 className="h-10 w-auto bg-white rounded p-1"
               />
@@ -429,70 +591,199 @@ export default function DebtorPortalPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto py-8 px-4">
-        <h2 className="text-2xl font-bold mb-6">Your Active Payment Plans</h2>
+      <div className="max-w-3xl mx-auto py-8 px-4 space-y-8">
         
-        {paymentPlans.length === 0 ? (
+        {/* Summary Cards */}
+        {(paymentPlans.length > 0 || invoices.length > 0) && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {paymentPlans.length > 0 && (
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full bg-purple-500 text-white">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-purple-700">Active Payment Plans</p>
+                      <p className="text-2xl font-bold text-purple-900">{paymentPlans.length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {invoices.length > 0 && (
+              <Card className={overdueInvoices.length > 0 ? "bg-gradient-to-br from-red-50 to-red-100 border-red-200" : "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200"}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-full text-white ${overdueInvoices.length > 0 ? 'bg-red-500' : 'bg-blue-500'}`}>
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className={`text-sm ${overdueInvoices.length > 0 ? 'text-red-700' : 'text-blue-700'}`}>
+                        Open Invoices
+                      </p>
+                      <p className={`text-2xl font-bold ${overdueInvoices.length > 0 ? 'text-red-900' : 'text-blue-900'}`}>
+                        ${totalInvoiceBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </p>
+                      {overdueInvoices.length > 0 && (
+                        <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          {overdueInvoices.length} overdue
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Quick Pay Button */}
+        {stripePaymentLink && totalInvoiceBalance > 0 && (
+          <Card className="border-primary bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-lg">Make a Payment</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Pay your outstanding balance securely online.
+                  </p>
+                </div>
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <a href={stripePaymentLink} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Pay Now
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Payment Plans Section */}
+        {paymentPlans.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-purple-600" />
+              Payment Plans
+            </h2>
+            <div className="space-y-4">
+              {paymentPlans.map((plan) => {
+                const paidCount = plan.installments.filter(i => i.status === "paid").length;
+                const totalPaid = plan.installments
+                  .filter(i => i.status === "paid")
+                  .reduce((sum, i) => sum + i.amount, 0);
+                const remainingBalance = plan.total_amount - totalPaid;
+
+                return (
+                  <Card 
+                    key={plan.id} 
+                    className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-purple-500"
+                    onClick={() => setSelectedPlan(plan)}
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">
+                              {plan.plan_name || "Payment Plan"}
+                            </h3>
+                            <Badge className={statusColors[plan.status] || "bg-gray-100"}>
+                              {plan.status}
+                            </Badge>
+                          </div>
+                          {plan.debtor && (
+                            <p className="text-sm text-muted-foreground">
+                              {plan.debtor.company_name}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {plan.number_of_installments} {plan.frequency} payments • 
+                            Started {format(new Date(plan.start_date), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Remaining</p>
+                          <p className="text-xl font-bold text-primary">
+                            ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {paidCount}/{plan.installments.length} paid
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Open Invoices Section */}
+        {invoices.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Open Invoices
+            </h2>
+            <div className="space-y-3">
+              {invoices.map((invoice) => {
+                const isOverdue = invoice.days_past_due > 0;
+                
+                return (
+                  <Card 
+                    key={invoice.id} 
+                    className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${isOverdue ? 'border-l-red-500' : 'border-l-blue-500'}`}
+                    onClick={() => setSelectedInvoice(invoice)}
+                  >
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">#{invoice.invoice_number}</h3>
+                            {isOverdue && (
+                              <Badge className="bg-red-100 text-red-800">
+                                {invoice.days_past_due}d overdue
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Due {format(new Date(invoice.due_date), "MMM d, yyyy")}
+                            {invoice.debtor && ` • ${invoice.debtor.company_name}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-lg font-bold ${isOverdue ? 'text-red-600' : 'text-foreground'}`}>
+                            ${invoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </p>
+                          {invoice.amount_paid && invoice.amount_paid > 0 && (
+                            <p className="text-xs text-green-600">
+                              ${invoice.amount_paid.toLocaleString("en-US", { minimumFractionDigits: 2 })} paid
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {paymentPlans.length === 0 && invoices.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
-              <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold text-lg mb-2">No Active Payment Plans</h3>
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="font-semibold text-lg mb-2">All Caught Up!</h3>
               <p className="text-muted-foreground">
-                You don't have any active payment plans at this time.
+                You don't have any open invoices or active payment plans at this time.
               </p>
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-4">
-            {paymentPlans.map((plan) => {
-              const paidCount = plan.installments.filter(i => i.status === "paid").length;
-              const totalPaid = plan.installments
-                .filter(i => i.status === "paid")
-                .reduce((sum, i) => sum + i.amount, 0);
-              const remainingBalance = plan.total_amount - totalPaid;
-
-              return (
-                <Card 
-                  key={plan.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedPlan(plan)}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">
-                            {plan.plan_name || "Payment Plan"}
-                          </h3>
-                          <Badge className={statusColors[plan.status] || "bg-gray-100"}>
-                            {plan.status}
-                          </Badge>
-                        </div>
-                        {plan.debtor && (
-                          <p className="text-sm text-muted-foreground">
-                            {plan.debtor.company_name}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground">
-                          {plan.number_of_installments} {plan.frequency} payments • 
-                          Started {format(new Date(plan.start_date), "MMM d, yyyy")}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Remaining</p>
-                        <p className="text-xl font-bold text-primary">
-                          ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {paidCount}/{plan.installments.length} paid
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
         )}
 
         {/* Footer */}

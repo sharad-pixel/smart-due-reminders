@@ -106,7 +106,7 @@ serve(async (req) => {
 
     if (debtorIds.length === 0) {
       return new Response(
-        JSON.stringify({ valid: true, email, paymentPlans: [] }),
+        JSON.stringify({ valid: true, email, paymentPlans: [], invoices: [] }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -137,6 +137,32 @@ serve(async (req) => {
     if (plansError) {
       console.error("[VERIFY-DEBTOR-TOKEN] Error fetching plans:", plansError);
       throw plansError;
+    }
+
+    // Fetch open invoices for all debtors (not on a payment plan)
+    const { data: invoices, error: invoicesError } = await supabase
+      .from("invoices")
+      .select(`
+        id,
+        invoice_number,
+        amount,
+        amount_paid,
+        due_date,
+        status,
+        description,
+        debtor_id,
+        user_id,
+        is_on_payment_plan,
+        created_at
+      `)
+      .in("debtor_id", debtorIds)
+      .in("status", ["open", "overdue", "partial"])
+      .eq("is_on_payment_plan", false)
+      .order("due_date", { ascending: true });
+
+    if (invoicesError) {
+      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching invoices:", invoicesError);
+      throw invoicesError;
     }
 
     // Enrich plans with debtor info and installments
@@ -170,13 +196,43 @@ serve(async (req) => {
       };
     }));
 
-    console.log("[VERIFY-DEBTOR-TOKEN] Returning", enrichedPlans.length, "active plans");
+    // Enrich invoices with debtor info and branding
+    const enrichedInvoices = await Promise.all((invoices || []).map(async (invoice) => {
+      const contact = contacts?.find(c => c.debtor_id === invoice.debtor_id);
+      const debtorData = contact?.debtors as { id: string; company_name: string; reference_id: string; user_id: string } | undefined;
+
+      // Get branding for the invoice owner
+      const { data: branding } = await supabase
+        .from("branding_settings")
+        .select("business_name, logo_url, primary_color, stripe_payment_link")
+        .eq("user_id", invoice.user_id)
+        .single();
+
+      // Calculate days past due
+      const dueDate = new Date(invoice.due_date);
+      const today = new Date();
+      const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      return {
+        ...invoice,
+        days_past_due: daysPastDue,
+        balance_due: invoice.amount - (invoice.amount_paid || 0),
+        debtor: debtorData ? {
+          company_name: debtorData.company_name,
+          reference_id: debtorData.reference_id,
+        } : null,
+        branding: branding || null,
+      };
+    }));
+
+    console.log("[VERIFY-DEBTOR-TOKEN] Returning", enrichedPlans.length, "active plans and", enrichedInvoices.length, "open invoices");
 
     return new Response(
       JSON.stringify({ 
         valid: true, 
         email,
         paymentPlans: enrichedPlans,
+        invoices: enrichedInvoices,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
