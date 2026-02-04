@@ -262,16 +262,16 @@ serve(async (req) => {
         .eq("user_id", plan.user_id)
         .single();
 
-      // Get Recouply account name as fallback (from profiles or organizations)
+      // Get Recouply account name as fallback (from profiles)
       let accountName = branding?.business_name || null;
       if (!accountName) {
-        // Try to get from profiles first
+        // Try to get from profiles first - use correct column names
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, company")
+          .select("name, company_name, business_name")
           .eq("id", plan.user_id)
           .single();
-        accountName = profile?.company || profile?.full_name || null;
+        accountName = profile?.business_name || profile?.company_name || profile?.name || null;
       }
 
       return {
@@ -296,15 +296,15 @@ serve(async (req) => {
         .eq("user_id", invoice.user_id)
         .single();
 
-      // Get Recouply account name as fallback (from profiles or organizations)
+      // Get Recouply account name as fallback (from profiles)
       let accountName = branding?.business_name || null;
       if (!accountName) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, company")
+          .select("name, company_name, business_name")
           .eq("id", invoice.user_id)
           .single();
-        accountName = profile?.company || profile?.full_name || null;
+        accountName = profile?.business_name || profile?.company_name || profile?.name || null;
       }
 
       // Calculate days past due
