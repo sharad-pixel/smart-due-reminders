@@ -839,6 +839,7 @@ const DebtorDetail = () => {
                   <ContactCard
                     key={contact.id}
                     contact={contact}
+                    debtorId={id!}
                     onToggleOutreach={handleToggleOutreach}
                     onDelete={handleDeleteContact}
                     onUpdate={fetchContacts}
