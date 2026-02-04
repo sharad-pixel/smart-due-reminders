@@ -5,11 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2 } from "lucide-react";
 import { usePaymentPlans, PaymentPlan, PaymentPlanInstallment, getPaymentPlanARUrl } from "@/hooks/usePaymentPlans";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+// Get the debtor portal URL
+const getDebtorPortalUrl = () => {
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/debtor-portal`;
+};
 
 interface PaymentPlansListProps {
   debtorId: string;
@@ -265,9 +271,58 @@ export function PaymentPlansList({ debtorId }: PaymentPlansListProps) {
 
   return (
     <div className="space-y-4">
+      {/* Debtor Portal Link Info */}
+      <DebtorPortalLink />
+      
       {paymentPlans.map((plan) => (
         <PaymentPlanCard key={plan.id} plan={plan} />
       ))}
     </div>
+  );
+}
+
+function DebtorPortalLink() {
+  const [copied, setCopied] = useState(false);
+  const portalUrl = getDebtorPortalUrl();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(portalUrl);
+    setCopied(true);
+    toast.success("Debtor portal link copied");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card className="bg-primary/5 border-primary/20">
+      <CardContent className="py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Link2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">Debtor Portal</p>
+              <p className="text-xs text-muted-foreground">
+                Customers can access their payment plans via email verification
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+              Copy Link
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => window.open(portalUrl, "_blank")}
+            >
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Open Portal
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
