@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
-import { DollarSign, Calendar, CheckCircle, Clock, XCircle, Building2, FileText, ExternalLink } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle, Clock, XCircle, Building2, FileText, ExternalLink, User, ShieldCheck, HelpCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface PaymentPlan {
   id: string;
@@ -22,6 +24,9 @@ interface PaymentPlan {
   accepted_at: string | null;
   notes: string | null;
   created_at: string;
+  requires_dual_approval: boolean | null;
+  debtor_approved_at: string | null;
+  admin_approved_at: string | null;
 }
 
 interface Installment {
@@ -66,12 +71,18 @@ const installmentStatusIcons: Record<string, React.ReactNode> = {
 
 export default function PublicPaymentPlanPage() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const [plan, setPlan] = useState<PaymentPlan | null>(null);
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [debtor, setDebtor] = useState<DebtorInfo | null>(null);
   const [branding, setBranding] = useState<BrandingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  
+  // Get portal token from URL params for approval
+  const portalToken = searchParams.get("portal_token") || "";
+  const debtorEmail = searchParams.get("email") || "";
 
   useEffect(() => {
     if (token) {
@@ -140,6 +151,44 @@ export default function PublicPaymentPlanPage() {
     .filter((i) => i.status === "paid")
     .reduce((sum, i) => sum + i.amount, 0);
   const remainingBalance = (plan?.total_amount || 0) - totalPaid;
+
+  const canApprove = plan && !plan.debtor_approved_at && (plan.status === "proposed" || plan.status === "draft");
+
+  const handleApprovePlan = async () => {
+    if (!plan || !portalToken || !debtorEmail) {
+      toast.error("Missing approval credentials. Please use the link from your email.");
+      return;
+    }
+
+    setApproving(true);
+    try {
+      const response = await supabase.functions.invoke("debtor-approve-plan", {
+        body: {
+          planId: plan.id,
+          email: debtorEmail,
+          token: portalToken,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to approve plan");
+      }
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || "Failed to approve plan");
+      }
+
+      toast.success(response.data.message || "Plan approved successfully!");
+      
+      // Refresh the plan data
+      fetchPaymentPlan();
+    } catch (err: any) {
+      console.error("Approval error:", err);
+      toast.error(err.message || "Failed to approve payment plan");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -243,6 +292,97 @@ export default function PublicPaymentPlanPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Approval Status */}
+        {plan.requires_dual_approval && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5" />
+                Plan Approval Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-6">
+                {/* Your Approval */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-muted rounded-full">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Your Approval</p>
+                    {plan.debtor_approved_at ? (
+                      <p className="text-sm text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Approved
+                      </p>
+                    ) : (
+                      <p className="text-sm text-yellow-600">Pending</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Creditor Business Approval */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-muted rounded-full">
+                    <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium">Creditor Business</p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>The company or business you owe money to that is managing this payment plan.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {plan.admin_approved_at ? (
+                        <p className="text-sm text-green-600 flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Approved
+                        </p>
+                      ) : (
+                        <p className="text-sm text-yellow-600">Pending</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Approve Button */}
+              {canApprove && portalToken && debtorEmail && (
+                <div className="mt-4 pt-4 border-t">
+                  <Button 
+                    onClick={handleApprovePlan} 
+                    disabled={approving}
+                    className="w-full sm:w-auto"
+                  >
+                    {approving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Approving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Approve Payment Plan
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    By approving, you agree to the payment schedule outlined above.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Payment Schedule */}
         <Card>
