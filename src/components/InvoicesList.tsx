@@ -20,6 +20,7 @@ interface Invoice {
   due_date: string;
   status: string;
   is_overage?: boolean;
+  is_on_payment_plan?: boolean;
   debtors: {
     company_name: string;
   };
@@ -57,7 +58,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     try {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*, debtors(company_name)")
+        .select("*, debtors(company_name), is_on_payment_plan")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -296,6 +297,11 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                       {invoice.is_overage && (
                         <Badge variant="outline" className="text-xs">
                           Overage
+                        </Badge>
+                      )}
+                      {invoice.is_on_payment_plan && (
+                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0">
+                          Payment Plan
                         </Badge>
                       )}
                     </div>

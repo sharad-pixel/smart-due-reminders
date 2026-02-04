@@ -48,14 +48,16 @@ serve(async (req) => {
     console.log(`[APPLY-WORKFLOW-TO-INVOICES] Using business name: ${businessName}`);
 
     // Get all open invoices for this user with their debtors
+    // CRITICAL: Exclude invoices that are on payment plans - they use account-level outreach instead
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select(`
-        id, invoice_number, amount, due_date, aging_bucket, status,
+        id, invoice_number, amount, due_date, aging_bucket, status, is_on_payment_plan,
         debtors(id, company_name, email)
       `)
       .eq('user_id', user.id)
       .in('status', ['Open', 'InPaymentPlan'])
+      .neq('is_on_payment_plan', true)  // Exclude invoices on payment plans
       .not('aging_bucket', 'is', null)
       .not('aging_bucket', 'eq', 'current')
       .not('aging_bucket', 'eq', 'paid');

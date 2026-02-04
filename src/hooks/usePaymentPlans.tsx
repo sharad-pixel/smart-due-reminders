@@ -25,6 +25,12 @@ export interface PaymentPlan {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Dual approval fields
+  debtor_approved_at: string | null;
+  debtor_approved_by_email: string | null;
+  admin_approved_at: string | null;
+  admin_approved_by: string | null;
+  requires_dual_approval: boolean;
 }
 
 export interface PaymentPlanInstallment {
@@ -129,6 +135,18 @@ export function usePaymentPlans(debtorId?: string) {
         p_user_id: effectiveAccountId || user.id,
       });
 
+      // Check for existing active payment plan (enforced at DB level but good to check here too)
+      const { data: existingPlan } = await supabase
+        .from("payment_plans")
+        .select("id, status")
+        .eq("debtor_id", planData.debtorId)
+        .not("status", "in", "(cancelled,completed,defaulted)")
+        .maybeSingle();
+
+      if (existingPlan) {
+        throw new Error("This account already has an active payment plan. Please complete or cancel the existing plan first.");
+      }
+
       const installmentAmount = Number((planData.totalAmount / planData.numberOfInstallments).toFixed(2));
       
       // Handle rounding - last installment gets remainder
@@ -151,6 +169,7 @@ export function usePaymentPlans(debtorId?: string) {
           invoice_ids: planData.invoiceIds || [],
           notes: planData.notes || null,
           status: "draft",
+          requires_dual_approval: true,
         })
         .select()
         .single();
@@ -506,6 +525,45 @@ ${businessName}
     },
   });
 
+  // Admin approves the payment plan
+  const adminApprovePlan = useMutation({
+    mutationFn: async (planId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("payment_plans")
+        .update({
+          admin_approved_at: new Date().toISOString(),
+          admin_approved_by: user.id,
+        })
+        .eq("id", planId);
+
+      if (error) throw error;
+
+      // Check if both approvals are in and auto-activate
+      const { data: plan } = await supabase
+        .from("payment_plans")
+        .select("debtor_approved_at, admin_approved_at")
+        .eq("id", planId)
+        .single();
+
+      if (plan?.debtor_approved_at && plan?.admin_approved_at) {
+        await supabase
+          .from("payment_plans")
+          .update({ status: "active", accepted_at: new Date().toISOString() })
+          .eq("id", planId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payment-plans", debtorId] });
+      toast.success("Payment plan approved by admin");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to approve payment plan");
+    },
+  });
+
   return {
     paymentPlans,
     isLoading,
@@ -518,6 +576,7 @@ ${businessName}
     resendPlanLink,
     deletePaymentPlan,
     regenerateInstallments,
+    adminApprovePlan,
   };
 }
 

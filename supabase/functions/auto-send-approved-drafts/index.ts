@@ -225,6 +225,7 @@ Deno.serve(async (req) => {
           stripe_hosted_url,
           external_link,
           product_description,
+          is_on_payment_plan,
           debtors!inner(
             id,
             name,
@@ -371,6 +372,23 @@ Deno.serve(async (req) => {
         console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: invoice ${invoice?.id} status is ${invoice?.status}`);
 
         // Mark draft as skipped so it doesn't keep appearing
+        await supabaseAdmin
+          .from('ai_drafts')
+          .update({
+            status: 'skipped',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', (draft as any).id);
+
+        skippedCount++;
+        continue;
+      }
+
+      // Skip invoices on payment plans - they use account-level outreach
+      if (invoice?.is_on_payment_plan === true) {
+        console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: invoice ${invoice?.id} is on payment plan`);
+
+        // Mark draft as skipped - payment plans have their own outreach
         await supabaseAdmin
           .from('ai_drafts')
           .update({

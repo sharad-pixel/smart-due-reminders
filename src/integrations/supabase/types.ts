@@ -4165,6 +4165,7 @@ export type Database = {
           invoice_number: string
           is_archived: boolean | null
           is_collectible: boolean | null
+          is_on_payment_plan: boolean | null
           is_overage: boolean | null
           issue_date: string
           last_contact_date: string | null
@@ -4184,6 +4185,7 @@ export type Database = {
           payment_date: string | null
           payment_method: string | null
           payment_origin: string | null
+          payment_plan_id: string | null
           payment_terms: string | null
           payment_terms_days: number | null
           po_number: string | null
@@ -4229,6 +4231,7 @@ export type Database = {
           invoice_number: string
           is_archived?: boolean | null
           is_collectible?: boolean | null
+          is_on_payment_plan?: boolean | null
           is_overage?: boolean | null
           issue_date: string
           last_contact_date?: string | null
@@ -4248,6 +4251,7 @@ export type Database = {
           payment_date?: string | null
           payment_method?: string | null
           payment_origin?: string | null
+          payment_plan_id?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
@@ -4293,6 +4297,7 @@ export type Database = {
           invoice_number?: string
           is_archived?: boolean | null
           is_collectible?: boolean | null
+          is_on_payment_plan?: boolean | null
           is_overage?: boolean | null
           issue_date?: string
           last_contact_date?: string | null
@@ -4312,6 +4317,7 @@ export type Database = {
           payment_date?: string | null
           payment_method?: string | null
           payment_origin?: string | null
+          payment_plan_id?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
@@ -4361,6 +4367,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_payment_plan_id_fkey"
+            columns: ["payment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "payment_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -5280,9 +5293,13 @@ export type Database = {
       payment_plans: {
         Row: {
           accepted_at: string | null
+          admin_approved_at: string | null
+          admin_approved_by: string | null
           cancelled_at: string | null
           completed_at: string | null
           created_at: string
+          debtor_approved_at: string | null
+          debtor_approved_by_email: string | null
           debtor_id: string
           frequency: string
           id: string
@@ -5294,6 +5311,7 @@ export type Database = {
           plan_name: string | null
           proposed_at: string | null
           public_token: string | null
+          requires_dual_approval: boolean | null
           start_date: string
           status: string
           total_amount: number
@@ -5302,9 +5320,13 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
+          debtor_approved_at?: string | null
+          debtor_approved_by_email?: string | null
           debtor_id: string
           frequency?: string
           id?: string
@@ -5316,6 +5338,7 @@ export type Database = {
           plan_name?: string | null
           proposed_at?: string | null
           public_token?: string | null
+          requires_dual_approval?: boolean | null
           start_date: string
           status?: string
           total_amount: number
@@ -5324,9 +5347,13 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
+          debtor_approved_at?: string | null
+          debtor_approved_by_email?: string | null
           debtor_id?: string
           frequency?: string
           id?: string
@@ -5338,6 +5365,7 @@ export type Database = {
           plan_name?: string | null
           proposed_at?: string | null
           public_token?: string | null
+          requires_dual_approval?: boolean | null
           start_date?: string
           status?: string
           total_amount?: number
