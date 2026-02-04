@@ -790,7 +790,6 @@ export default function DebtorPortalPage() {
                   {selectedInvoice.product_description && (
                     <CardDescription>{selectedInvoice.product_description}</CardDescription>
                   )}
-                  )}
                 </div>
                 <Badge className={isOverdue ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>
                   {isOverdue ? `${selectedInvoice.days_past_due} days overdue` : selectedInvoice.status}
