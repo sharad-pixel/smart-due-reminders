@@ -31,6 +31,22 @@ serve(async (req) => {
 
     console.log(`[APPLY-WORKFLOW-TO-INVOICES] Starting for user ${user.id}`);
 
+    // Get effective account ID for team member support
+    const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', {
+      p_user_id: user.id,
+    });
+    const brandingOwnerId = effectiveAccountId || user.id;
+
+    // Fetch branding settings to get business name for {{company_name}} placeholder
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('business_name, from_name')
+      .eq('user_id', brandingOwnerId)
+      .single();
+
+    const businessName = branding?.business_name || branding?.from_name || 'Our Company';
+    console.log(`[APPLY-WORKFLOW-TO-INVOICES] Using business name: ${businessName}`);
+
     // Get all open invoices for this user with their debtors
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
@@ -128,15 +144,27 @@ serve(async (req) => {
       }
 
       // Replace placeholders in templates
+      // CRITICAL DISTINCTION:
+      // - customer_name, debtor_name = the RECIPIENT (who owes money)
+      // - company_name, business_name = the SENDER (your business from branding)
+      const customerName = debtor?.company_name || 'Valued Customer';
+      
       const replacements: Record<string, string> = {
-        '{{customer_name}}': debtor?.company_name || 'Valued Customer',
-        '{{company_name}}': debtor?.company_name || 'Customer',
+        // RECIPIENT placeholders
+        '{{customer_name}}': customerName,
+        '{{debtor_name}}': customerName,
+        '{{name}}': customerName,
+        
+        // SENDER placeholders - use business name from branding
+        '{{company_name}}': businessName,
+        '{{business_name}}': businessName,
+        
+        // Invoice details
         '{{invoice_number}}': invoice.invoice_number || '',
         '{{amount}}': `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
         '{{due_date}}': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US') : '',
         '{{days_past_due}}': daysPastDue.toString(),
         '{{payment_link}}': '[Payment Link]',
-        '{{debtor_name}}': debtor?.company_name || 'Valued Customer',
         '{{currency}}': 'USD',
       };
 
@@ -144,7 +172,7 @@ serve(async (req) => {
       let body = step.body_template || '';
 
       Object.entries(replacements).forEach(([key, value]) => {
-        const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
+        const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'gi');
         subject = subject.replace(regex, value);
         body = body.replace(regex, value);
       });
