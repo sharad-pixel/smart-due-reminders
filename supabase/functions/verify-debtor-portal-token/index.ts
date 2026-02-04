@@ -195,7 +195,6 @@ serve(async (req) => {
         invoice_number,
         amount,
         amount_outstanding,
-        amount_paid,
         due_date,
         status,
         product_description,
