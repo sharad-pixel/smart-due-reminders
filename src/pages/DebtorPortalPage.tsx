@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { 
   DollarSign, Calendar, CheckCircle, Clock, XCircle, 
   Building2, ExternalLink, Mail, Loader2, ArrowLeft,
-  CreditCard, FileText, AlertTriangle
+  CreditCard, FileText, AlertTriangle, ShieldCheck, UserCheck
 } from "lucide-react";
 
 interface Installment {
@@ -49,6 +49,12 @@ interface PaymentPlan {
     primary_color: string | null;
     stripe_payment_link: string | null;
   } | null;
+  // Dual approval fields
+  requires_dual_approval?: boolean;
+  debtor_approved_at?: string | null;
+  debtor_approved_by_email?: string | null;
+  admin_approved_at?: string | null;
+  admin_approved_by?: string | null;
 }
 
 interface Invoice {
@@ -105,6 +111,7 @@ export default function DebtorPortalPage() {
   const [selectedPlan, setSelectedPlan] = useState<PaymentPlan | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [approvingPlanId, setApprovingPlanId] = useState<string | null>(null);
 
   // Verify token on load
   useEffect(() => {
@@ -164,6 +171,58 @@ export default function DebtorPortalPage() {
       toast.error("Failed to send link. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleApprovePlan = async (planId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering plan detail view
+    
+    if (!verifiedEmail || !token) {
+      toast.error("Session expired. Please request a new link.");
+      return;
+    }
+
+    setApprovingPlanId(planId);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("debtor-approve-plan", {
+        body: { planId, email: verifiedEmail, token },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(data.message || "Payment plan approved!");
+        
+        // Update the local state to reflect the approval
+        setPaymentPlans(prev => prev.map(plan => 
+          plan.id === planId 
+            ? { 
+                ...plan, 
+                debtor_approved_at: new Date().toISOString(),
+                debtor_approved_by_email: verifiedEmail,
+                status: data.activated ? "accepted" : plan.status
+              }
+            : plan
+        ));
+        
+        // Also update selected plan if viewing details
+        if (selectedPlan?.id === planId) {
+          setSelectedPlan(prev => prev ? {
+            ...prev,
+            debtor_approved_at: new Date().toISOString(),
+            debtor_approved_by_email: verifiedEmail,
+            status: data.activated ? "accepted" : prev.status
+          } : null);
+        }
+      } else {
+        toast.error(data.error || "Failed to approve plan");
+      }
+    } catch (err: any) {
+      console.error("Plan approval error:", err);
+      toast.error("Failed to approve payment plan. Please try again.");
+    } finally {
+      setApprovingPlanId(null);
     }
   };
 
@@ -413,6 +472,13 @@ export default function DebtorPortalPage() {
     const totalPaid = paidInstallments.reduce((sum, i) => sum + i.amount, 0);
     const remainingBalance = selectedPlan.total_amount - totalPaid;
     const primaryColor = selectedPlan.branding?.primary_color || "#1e3a5f";
+    
+    // Dual approval status for detail view
+    const needsDebtorApprovalDetail = selectedPlan.requires_dual_approval && 
+      !selectedPlan.debtor_approved_at && 
+      (selectedPlan.status === "proposed" || selectedPlan.status === "draft");
+    const hasDebtorApprovalDetail = !!selectedPlan.debtor_approved_at;
+    const hasAdminApprovalDetail = !!selectedPlan.admin_approved_at;
 
     return (
       <div className="min-h-screen bg-slate-50">
@@ -498,6 +564,72 @@ export default function DebtorPortalPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Dual Approval Status & Action */}
+          {selectedPlan.requires_dual_approval && (
+            <Card className={needsDebtorApprovalDetail ? "border-orange-300 bg-orange-50" : "bg-muted/30"}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5" />
+                      Plan Approval Status
+                    </h3>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-full ${hasDebtorApprovalDetail ? 'bg-green-100' : 'bg-muted'}`}>
+                          <UserCheck className={`h-4 w-4 ${hasDebtorApprovalDetail ? 'text-green-600' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Your Approval</p>
+                          <p className={`text-xs ${hasDebtorApprovalDetail ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {hasDebtorApprovalDetail ? 'Approved' : 'Pending'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-full ${hasAdminApprovalDetail ? 'bg-green-100' : 'bg-muted'}`}>
+                          <ShieldCheck className={`h-4 w-4 ${hasAdminApprovalDetail ? 'text-green-600' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Vendor Approval</p>
+                          <p className={`text-xs ${hasAdminApprovalDetail ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {hasAdminApprovalDetail ? 'Approved' : 'Pending'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {needsDebtorApprovalDetail && (
+                      <p className="text-sm text-orange-700">
+                        This payment plan requires your approval before it can be activated.
+                      </p>
+                    )}
+                  </div>
+                  
+                  {needsDebtorApprovalDetail && (
+                    <Button 
+                      size="lg" 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={(e) => handleApprovePlan(selectedPlan.id, e)}
+                      disabled={approvingPlanId === selectedPlan.id}
+                    >
+                      {approvingPlanId === selectedPlan.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Approving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Approve This Plan
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Payment Schedule */}
           <Card>
@@ -903,36 +1035,86 @@ export default function DebtorPortalPage() {
                           .filter(i => i.status === "paid")
                           .reduce((sum, i) => sum + i.amount, 0);
                         const remainingBalance = plan.total_amount - totalPaid;
+                        
+                        // Check if debtor approval is needed
+                        const needsDebtorApproval = plan.requires_dual_approval && 
+                          !plan.debtor_approved_at && 
+                          (plan.status === "proposed" || plan.status === "draft");
+                        const hasDebtorApproval = !!plan.debtor_approved_at;
+                        const hasAdminApproval = !!plan.admin_approved_at;
 
                         return (
                           <div 
                             key={plan.id} 
-                            className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 border-l-purple-500"
+                            className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${needsDebtorApproval ? 'border-l-orange-500 bg-orange-50/50' : 'border-l-purple-500'}`}
                             onClick={() => setSelectedPlan(plan)}
                           >
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-medium">
                                     {plan.plan_name || "Payment Plan"}
                                   </span>
                                   <Badge className={statusColors[plan.status] || "bg-gray-100"}>
                                     {plan.status}
                                   </Badge>
+                                  {needsDebtorApproval && (
+                                    <Badge className="bg-orange-100 text-orange-800">
+                                      Needs Your Approval
+                                    </Badge>
+                                  )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                   {plan.number_of_installments} {plan.frequency} payments • 
                                   Started {format(new Date(plan.start_date), "MMM d, yyyy")}
                                 </p>
+                                
+                                {/* Dual Approval Status */}
+                                {plan.requires_dual_approval && (
+                                  <div className="flex items-center gap-3 mt-2 text-xs">
+                                    <span className={`flex items-center gap-1 ${hasDebtorApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                      <UserCheck className="h-3 w-3" />
+                                      You: {hasDebtorApproval ? 'Approved' : 'Pending'}
+                                    </span>
+                                    <span className={`flex items-center gap-1 ${hasAdminApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                      <ShieldCheck className="h-3 w-3" />
+                                      Vendor: {hasAdminApproval ? 'Approved' : 'Pending'}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-right">
-                                <p className="text-sm text-muted-foreground">Remaining</p>
-                                <p className="text-lg font-bold" style={{ color: vendor.primaryColor }}>
-                                  ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {paidCount}/{plan.installments.length} paid
-                                </p>
+                              <div className="text-right space-y-2">
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Remaining</p>
+                                  <p className="text-lg font-bold" style={{ color: vendor.primaryColor }}>
+                                    ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {paidCount}/{plan.installments.length} paid
+                                  </p>
+                                </div>
+                                
+                                {/* Approve Button */}
+                                {needsDebtorApproval && (
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={(e) => handleApprovePlan(plan.id, e)}
+                                    disabled={approvingPlanId === plan.id}
+                                  >
+                                    {approvingPlanId === plan.id ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        Approving...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Approve Plan
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>

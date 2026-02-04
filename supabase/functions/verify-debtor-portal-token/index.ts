@@ -153,7 +153,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch active payment plans with installments
+    // Fetch active payment plans with installments (include dual approval fields)
     const { data: plans, error: plansError } = await supabase
       .from("payment_plans")
       .select(`
@@ -170,10 +170,15 @@ serve(async (req) => {
         proposed_at,
         created_at,
         debtor_id,
-        user_id
+        user_id,
+        requires_dual_approval,
+        debtor_approved_at,
+        debtor_approved_by_email,
+        admin_approved_at,
+        admin_approved_by
       `)
       .in("debtor_id", debtorIds)
-      .in("status", ["proposed", "accepted", "active"])
+      .in("status", ["proposed", "accepted", "active", "draft"])
       .order("created_at", { ascending: false });
 
     if (plansError) {
