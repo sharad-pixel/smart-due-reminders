@@ -48,6 +48,8 @@ interface PaymentPlan {
     logo_url: string | null;
     primary_color: string | null;
     stripe_payment_link: string | null;
+    ar_page_public_token: string | null;
+    ar_page_enabled: boolean | null;
   } | null;
   // Dual approval fields
   requires_dual_approval?: boolean;
@@ -76,6 +78,8 @@ interface Invoice {
     logo_url: string | null;
     primary_color: string | null;
     stripe_payment_link: string | null;
+    ar_page_public_token: string | null;
+    ar_page_enabled: boolean | null;
   } | null;
 }
 
@@ -248,6 +252,7 @@ export default function DebtorPortalPage() {
       logoUrl: string | null;
       primaryColor: string | null;
       stripePaymentLink: string | null;
+      arPageUrl: string | null;
       paymentPlans: PaymentPlan[];
       invoices: Invoice[];
     }> = {};
@@ -255,12 +260,16 @@ export default function DebtorPortalPage() {
     paymentPlans.forEach(plan => {
       const vendorName = getVendorName(plan.branding, plan.debtor);
       const vendorKey = vendorName;
+      const arPageUrl = plan.branding?.ar_page_enabled && plan.branding?.ar_page_public_token 
+        ? `/ar/${plan.branding.ar_page_public_token}` 
+        : null;
       if (!vendorMap[vendorKey]) {
         vendorMap[vendorKey] = {
           businessName: vendorName,
           logoUrl: plan.branding?.logo_url || null,
           primaryColor: plan.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: plan.branding?.stripe_payment_link || null,
+          arPageUrl,
           paymentPlans: [],
           invoices: [],
         };
@@ -271,12 +280,16 @@ export default function DebtorPortalPage() {
     invoices.forEach(invoice => {
       const vendorName = getVendorName(invoice.branding, invoice.debtor);
       const vendorKey = vendorName;
+      const arPageUrl = invoice.branding?.ar_page_enabled && invoice.branding?.ar_page_public_token 
+        ? `/ar/${invoice.branding.ar_page_public_token}` 
+        : null;
       if (!vendorMap[vendorKey]) {
         vendorMap[vendorKey] = {
           businessName: vendorName,
           logoUrl: invoice.branding?.logo_url || null,
           primaryColor: invoice.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: invoice.branding?.stripe_payment_link || null,
+          arPageUrl,
           paymentPlans: [],
           invoices: [],
         };
@@ -998,6 +1011,17 @@ export default function DebtorPortalPage() {
                   <p className="text-white/80 text-sm">
                     {vendor.paymentPlans.length} plan{vendor.paymentPlans.length !== 1 ? 's' : ''} • {vendor.invoices.length} invoice{vendor.invoices.length !== 1 ? 's' : ''}
                   </p>
+                  {vendor.arPageUrl && (
+                    <a 
+                      href={vendor.arPageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-white/90 text-xs hover:text-white hover:underline inline-flex items-center gap-1 mt-1"
+                    >
+                      <FileText className="h-3 w-3" />
+                      View AR Information Page
+                    </a>
+                  )}
                 </div>
                 {vendor.stripePaymentLink && (vendorTotalInvoiceBalance > 0 || vendorPlanBalance > 0) && (
                   <Button asChild variant="secondary" size="sm">
