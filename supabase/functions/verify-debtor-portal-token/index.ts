@@ -72,7 +72,7 @@ serve(async (req) => {
       );
     }
 
-    const email = tokenData.email;
+    const email = (tokenData.email || "").toLowerCase().trim();
     console.log("[VERIFY-DEBTOR-TOKEN] Token valid for email:", email);
 
     // Mark token as used (optional - could allow multiple uses within expiry)
@@ -81,7 +81,11 @@ serve(async (req) => {
       .update({ used_at: new Date().toISOString() })
       .eq("id", tokenData.id);
 
-    // Get active payment plans for this email's debtors
+    // Find debtor accounts linked to this email across multiple sources:
+    // 1) contacts (synced), 2) debtor_contacts (manual), 3) debtors.email (legacy)
+    const debtorIdsSet = new Set<string>();
+
+    // 1) contacts table (also provides debtor metadata via join)
     const { data: contacts, error: contactsError } = await supabase
       .from("contacts")
       .select(`
@@ -102,7 +106,45 @@ serve(async (req) => {
       throw contactsError;
     }
 
-    const debtorIds = [...new Set(contacts?.map(c => c.debtor_id) || [])];
+    (contacts || []).forEach((c) => {
+      if (c?.debtor_id) debtorIdsSet.add(c.debtor_id);
+    });
+    console.log("[VERIFY-DEBTOR-TOKEN] contacts matches:", contacts?.length || 0);
+
+    // 2) debtor_contacts table
+    const { data: debtorContacts, error: debtorContactsError } = await supabase
+      .from("debtor_contacts")
+      .select("id, email, debtor_id")
+      .ilike("email", email);
+
+    if (debtorContactsError) {
+      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching debtor_contacts:", debtorContactsError);
+      throw debtorContactsError;
+    }
+
+    (debtorContacts || []).forEach((c) => {
+      if (c?.debtor_id) debtorIdsSet.add(c.debtor_id);
+    });
+    console.log("[VERIFY-DEBTOR-TOKEN] debtor_contacts matches:", debtorContacts?.length || 0);
+
+    // 3) debtors table (direct email field)
+    const { data: directDebtors, error: directDebtorsError } = await supabase
+      .from("debtors")
+      .select("id, company_name, reference_id, user_id")
+      .ilike("email", email);
+
+    if (directDebtorsError) {
+      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching debtors by email:", directDebtorsError);
+      throw directDebtorsError;
+    }
+
+    (directDebtors || []).forEach((d) => {
+      if (d?.id) debtorIdsSet.add(d.id);
+    });
+    console.log("[VERIFY-DEBTOR-TOKEN] direct debtors matches:", directDebtors?.length || 0);
+
+    const debtorIds = [...debtorIdsSet];
+    console.log("[VERIFY-DEBTOR-TOKEN] Total unique debtors found:", debtorIds.length);
 
     if (debtorIds.length === 0) {
       return new Response(
@@ -166,11 +208,40 @@ serve(async (req) => {
       throw invoicesError;
     }
 
+    // Build a debtor metadata map (so we can render company_name/reference_id even if the
+    // email match came from debtor_contacts or debtors.email rather than contacts).
+    const debtorsById = new Map<
+      string,
+      { id: string; company_name: string | null; reference_id: string | null; user_id: string | null }
+    >();
+
+    (directDebtors || []).forEach((d) => {
+      debtorsById.set(d.id, {
+        id: d.id,
+        company_name: d.company_name ?? null,
+        reference_id: d.reference_id ?? null,
+        user_id: (d as unknown as { user_id?: string | null }).user_id ?? null,
+      });
+    });
+
+    (contacts || []).forEach((c) => {
+      // Supabase nested relations sometimes come back as object or array; normalize.
+      const rel = (c as unknown as { debtors?: unknown })?.debtors;
+      const debtorObj = Array.isArray(rel) ? (rel[0] as any) : (rel as any);
+
+      if (c?.debtor_id && debtorObj?.id) {
+        debtorsById.set(c.debtor_id, {
+          id: String(debtorObj.id),
+          company_name: debtorObj.company_name ?? null,
+          reference_id: debtorObj.reference_id ?? null,
+          user_id: debtorObj.user_id ?? null,
+        });
+      }
+    });
+
     // Enrich plans with debtor info and installments
     const enrichedPlans = await Promise.all((plans || []).map(async (plan) => {
-      // Get debtor info - debtors is an object from the inner join
-      const contact = contacts?.find(c => c.debtor_id === plan.debtor_id);
-      const debtorData = contact?.debtors as { id: string; company_name: string; reference_id: string; user_id: string } | undefined;
+      const debtorData = debtorsById.get(plan.debtor_id);
       
       // Get installments
       const { data: installments } = await supabase
@@ -199,8 +270,7 @@ serve(async (req) => {
 
     // Enrich invoices with debtor info and branding
     const enrichedInvoices = await Promise.all((invoices || []).map(async (invoice) => {
-      const contact = contacts?.find(c => c.debtor_id === invoice.debtor_id);
-      const debtorData = contact?.debtors as { id: string; company_name: string; reference_id: string; user_id: string } | undefined;
+      const debtorData = debtorsById.get(invoice.debtor_id);
 
       // Get branding for the invoice owner
       const { data: branding } = await supabase
