@@ -167,70 +167,212 @@ export default function DebtorPortalPage() {
     }
   };
 
+  // Group data by vendor (branding business_name)
+  const groupByVendor = () => {
+    const vendorMap: Record<string, {
+      businessName: string;
+      logoUrl: string | null;
+      primaryColor: string | null;
+      stripePaymentLink: string | null;
+      paymentPlans: PaymentPlan[];
+      invoices: Invoice[];
+    }> = {};
+
+    paymentPlans.forEach(plan => {
+      const vendorKey = plan.branding?.business_name || "Unknown Vendor";
+      if (!vendorMap[vendorKey]) {
+        vendorMap[vendorKey] = {
+          businessName: plan.branding?.business_name || "Unknown Vendor",
+          logoUrl: plan.branding?.logo_url || null,
+          primaryColor: plan.branding?.primary_color || "#1e3a5f",
+          stripePaymentLink: plan.branding?.stripe_payment_link || null,
+          paymentPlans: [],
+          invoices: [],
+        };
+      }
+      vendorMap[vendorKey].paymentPlans.push(plan);
+    });
+
+    invoices.forEach(invoice => {
+      const vendorKey = invoice.branding?.business_name || "Unknown Vendor";
+      if (!vendorMap[vendorKey]) {
+        vendorMap[vendorKey] = {
+          businessName: invoice.branding?.business_name || "Unknown Vendor",
+          logoUrl: invoice.branding?.logo_url || null,
+          primaryColor: invoice.branding?.primary_color || "#1e3a5f",
+          stripePaymentLink: invoice.branding?.stripe_payment_link || null,
+          paymentPlans: [],
+          invoices: [],
+        };
+      }
+      vendorMap[vendorKey].invoices.push(invoice);
+    });
+
+    return Object.values(vendorMap);
+  };
+
+  const vendors = groupByVendor();
+
   // Email entry form (no token)
   if (!token && !verifiedEmail) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <CreditCard className="h-6 w-6 text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        {/* Hero Section */}
+        <div className="bg-primary py-12 px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-white/10 flex items-center justify-center">
+              <CreditCard className="h-8 w-8 text-white" />
             </div>
-            <CardTitle>Payment Plan Portal</CardTitle>
-            <CardDescription>
-              Enter your email to access your payment plans
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {linkSent ? (
-              <div className="text-center py-4">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">Check Your Email</h3>
-                <p className="text-muted-foreground text-sm">
-                  If you have active payment plans, you'll receive a secure link to access them.
-                </p>
-                <Button
-                  variant="link"
-                  className="mt-4"
-                  onClick={() => {
-                    setLinkSent(false);
-                    setEmail("");
-                  }}
-                >
-                  Use a different email
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleRequestLink} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+            <h1 className="text-3xl font-bold text-white mb-3">Payment Portal</h1>
+            <p className="text-white/80 text-lg max-w-xl mx-auto">
+              View your invoices and payment plans, then pay securely online.
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto py-8 px-4">
+          {/* Email Entry Card */}
+          <Card className="max-w-md mx-auto mb-8">
+            <CardHeader className="text-center">
+              <CardTitle>Access Your Account</CardTitle>
+              <CardDescription>
+                Enter your email to receive a secure access link
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {linkSent ? (
+                <div className="text-center py-4">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Check Your Email</h3>
+                  <p className="text-muted-foreground text-sm">
+                    If your email is associated with any accounts, you'll receive a secure link to access them. The link expires in 24 hours.
+                  </p>
+                  <Button
+                    variant="link"
+                    className="mt-4"
+                    onClick={() => {
+                      setLinkSent(false);
+                      setEmail("");
+                    }}
+                  >
+                    Use a different email
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleRequestLink} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Get Secure Access Link"
+                    )}
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* How It Works Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-center mb-6">How It Works</h2>
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Mail className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">1. Enter Your Email</h3>
+                  <p className="text-sm text-muted-foreground">
+                    We use your email to find all accounts associated with you across our vendor network.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">2. Receive Secure Link</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A one-time secure token is sent to your email. Click the link to access your portal—no password required.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">3. View & Pay</h3>
+                  <p className="text-sm text-muted-foreground">
+                    See all vendors you owe, with detailed invoice breakdowns and payment plans. Pay each vendor securely via Stripe.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Features Section */}
+          <Card className="bg-muted/50">
+            <CardContent className="py-6">
+              <h3 className="font-semibold mb-4 text-center">What You'll See in Your Portal</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Open Invoices</p>
+                    <p className="text-xs text-muted-foreground">View all unpaid invoices with amounts, due dates, and overdue alerts</p>
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Get Access Link"
-                  )}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+                <div className="flex items-start gap-3">
+                  <CreditCard className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Payment Plans</p>
+                    <p className="text-xs text-muted-foreground">Track your installment schedules and remaining balances</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Building2 className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Multiple Vendors</p>
+                    <p className="text-xs text-muted-foreground">If you work with multiple companies, see each one's branded section</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <ExternalLink className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Secure Payments</p>
+                    <p className="text-xs text-muted-foreground">Pay directly via each vendor's secure Stripe payment link</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="mt-8 text-center text-xs text-muted-foreground">
+            <p>Your information is secure. Links expire after 24 hours for your protection.</p>
+            <p className="mt-1">Powered by Recouply.ai</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -557,33 +699,20 @@ export default function DebtorPortalPage() {
     );
   }
 
-  // Main portal view - Plans and Invoices list
-  const primaryColor = paymentPlans[0]?.branding?.primary_color || invoices[0]?.branding?.primary_color || "#1e3a5f";
-  const businessName = paymentPlans[0]?.branding?.business_name || invoices[0]?.branding?.business_name || "Payment Portal";
-  const logoUrl = paymentPlans[0]?.branding?.logo_url || invoices[0]?.branding?.logo_url;
-  const stripePaymentLink = paymentPlans[0]?.branding?.stripe_payment_link || invoices[0]?.branding?.stripe_payment_link;
-
-  // Calculate totals
-  const totalInvoiceBalance = invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
-  const overdueInvoices = invoices.filter(inv => inv.days_past_due > 0);
+  // Main portal view - Group by vendor for multi-vendor support
+  const hasMultipleVendors = vendors.length > 1;
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="w-full py-6 px-4" style={{ backgroundColor: primaryColor }}>
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+      <div className="w-full py-6 px-4 bg-primary">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt={businessName} 
-                className="h-10 w-auto bg-white rounded p-1"
-              />
-            ) : (
-              <Building2 className="h-8 w-8 text-white" />
-            )}
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <h1 className="text-xl font-bold text-white">{businessName}</h1>
+              <h1 className="text-xl font-bold text-white">Payment Portal</h1>
               <p className="text-white/80 text-sm">{verifiedEmail}</p>
             </div>
           </div>
@@ -591,187 +720,264 @@ export default function DebtorPortalPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto py-8 px-4 space-y-8">
+      <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
         
-        {/* Summary Cards */}
-        {(paymentPlans.length > 0 || invoices.length > 0) && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {paymentPlans.length > 0 && (
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-full bg-purple-500 text-white">
-                      <CreditCard className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-purple-700">Active Payment Plans</p>
-                      <p className="text-2xl font-bold text-purple-900">{paymentPlans.length}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {invoices.length > 0 && (
-              <Card className={overdueInvoices.length > 0 ? "bg-gradient-to-br from-red-50 to-red-100 border-red-200" : "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200"}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-full text-white ${overdueInvoices.length > 0 ? 'bg-red-500' : 'bg-blue-500'}`}>
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className={`text-sm ${overdueInvoices.length > 0 ? 'text-red-700' : 'text-blue-700'}`}>
-                        Open Invoices
-                      </p>
-                      <p className={`text-2xl font-bold ${overdueInvoices.length > 0 ? 'text-red-900' : 'text-blue-900'}`}>
-                        ${totalInvoiceBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </p>
-                      {overdueInvoices.length > 0 && (
-                        <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          {overdueInvoices.length} overdue
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Quick Pay Button */}
-        {stripePaymentLink && totalInvoiceBalance > 0 && (
-          <Card className="border-primary bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Multi-vendor notice */}
+        {hasMultipleVendors && (
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <Building2 className="h-5 w-5 text-blue-600 mt-0.5" />
                 <div>
-                  <h3 className="font-semibold text-lg">Make a Payment</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Pay your outstanding balance securely online.
+                  <p className="font-medium text-blue-900">Multiple Vendor Accounts</p>
+                  <p className="text-sm text-blue-700">
+                    Your email is associated with {vendors.length} different vendors. Each vendor's invoices and payment plans are shown below with their own branding and payment links.
                   </p>
                 </div>
-                <Button asChild size="lg" className="w-full sm:w-auto">
-                  <a href={stripePaymentLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Pay Now
-                  </a>
-                </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Payment Plans Section */}
-        {paymentPlans.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-purple-600" />
-              Payment Plans
-            </h2>
-            <div className="space-y-4">
-              {paymentPlans.map((plan) => {
-                const paidCount = plan.installments.filter(i => i.status === "paid").length;
-                const totalPaid = plan.installments
-                  .filter(i => i.status === "paid")
-                  .reduce((sum, i) => sum + i.amount, 0);
-                const remainingBalance = plan.total_amount - totalPaid;
-
-                return (
-                  <Card 
-                    key={plan.id} 
-                    className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-purple-500"
-                    onClick={() => setSelectedPlan(plan)}
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">
-                              {plan.plan_name || "Payment Plan"}
-                            </h3>
-                            <Badge className={statusColors[plan.status] || "bg-gray-100"}>
-                              {plan.status}
-                            </Badge>
-                          </div>
-                          {plan.debtor && (
-                            <p className="text-sm text-muted-foreground">
-                              {plan.debtor.company_name}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">
-                            {plan.number_of_installments} {plan.frequency} payments • 
-                            Started {format(new Date(plan.start_date), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Remaining</p>
-                          <p className="text-xl font-bold text-primary">
-                            ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {paidCount}/{plan.installments.length} paid
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+        {/* Global Summary */}
+        {(paymentPlans.length > 0 || invoices.length > 0) && (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-slate-100">
+                    <Building2 className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Vendors</p>
+                    <p className="text-2xl font-bold">{vendors.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-purple-500 text-white">
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-purple-700">Payment Plans</p>
+                    <p className="text-2xl font-bold text-purple-900">{paymentPlans.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-blue-500 text-white">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-700">Open Invoices</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      ${invoices.reduce((sum, inv) => sum + inv.balance_due, 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* Open Invoices Section */}
-        {invoices.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              Open Invoices
-            </h2>
-            <div className="space-y-3">
-              {invoices.map((invoice) => {
-                const isOverdue = invoice.days_past_due > 0;
-                
-                return (
-                  <Card 
-                    key={invoice.id} 
-                    className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${isOverdue ? 'border-l-red-500' : 'border-l-blue-500'}`}
-                    onClick={() => setSelectedInvoice(invoice)}
-                  >
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">#{invoice.invoice_number}</h3>
-                            {isOverdue && (
-                              <Badge className="bg-red-100 text-red-800">
-                                {invoice.days_past_due}d overdue
-                              </Badge>
-                            )}
+        {/* Vendor Sections */}
+        {vendors.map((vendor, vendorIndex) => {
+          const vendorTotalInvoiceBalance = vendor.invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
+          const vendorOverdueInvoices = vendor.invoices.filter(inv => inv.days_past_due > 0);
+          const vendorPlanBalance = vendor.paymentPlans.reduce((sum, plan) => {
+            const totalPaid = plan.installments.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
+            return sum + (plan.total_amount - totalPaid);
+          }, 0);
+
+          return (
+            <Card key={vendorIndex} className="overflow-hidden">
+              {/* Vendor Header */}
+              <div 
+                className="py-4 px-6 flex items-center gap-4"
+                style={{ backgroundColor: vendor.primaryColor || "#1e3a5f" }}
+              >
+                {vendor.logoUrl ? (
+                  <img 
+                    src={vendor.logoUrl} 
+                    alt={vendor.businessName} 
+                    className="h-10 w-auto bg-white rounded p-1"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded bg-white/20 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-white">{vendor.businessName}</h2>
+                  <p className="text-white/80 text-sm">
+                    {vendor.paymentPlans.length} plan{vendor.paymentPlans.length !== 1 ? 's' : ''} • {vendor.invoices.length} invoice{vendor.invoices.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                {vendor.stripePaymentLink && (vendorTotalInvoiceBalance > 0 || vendorPlanBalance > 0) && (
+                  <Button asChild variant="secondary" size="sm">
+                    <a href={vendor.stripePaymentLink} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Pay Now
+                    </a>
+                  </Button>
+                )}
+              </div>
+
+              <CardContent className="pt-6 space-y-6">
+                {/* Vendor Summary */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {vendor.paymentPlans.length > 0 && (
+                    <div className="p-4 bg-purple-50 rounded-lg">
+                      <p className="text-sm text-purple-700 mb-1">Payment Plan Balance</p>
+                      <p className="text-xl font-bold text-purple-900">
+                        ${vendorPlanBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
+                  {vendor.invoices.length > 0 && (
+                    <div className={`p-4 rounded-lg ${vendorOverdueInvoices.length > 0 ? 'bg-red-50' : 'bg-blue-50'}`}>
+                      <p className={`text-sm mb-1 ${vendorOverdueInvoices.length > 0 ? 'text-red-700' : 'text-blue-700'}`}>
+                        Invoice Balance
+                        {vendorOverdueInvoices.length > 0 && (
+                          <span className="ml-2 inline-flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            {vendorOverdueInvoices.length} overdue
+                          </span>
+                        )}
+                      </p>
+                      <p className={`text-xl font-bold ${vendorOverdueInvoices.length > 0 ? 'text-red-900' : 'text-blue-900'}`}>
+                        ${vendorTotalInvoiceBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment Plans */}
+                {vendor.paymentPlans.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-purple-600" />
+                      Payment Plans
+                    </h3>
+                    <div className="space-y-3">
+                      {vendor.paymentPlans.map((plan) => {
+                        const paidCount = plan.installments.filter(i => i.status === "paid").length;
+                        const totalPaid = plan.installments
+                          .filter(i => i.status === "paid")
+                          .reduce((sum, i) => sum + i.amount, 0);
+                        const remainingBalance = plan.total_amount - totalPaid;
+
+                        return (
+                          <div 
+                            key={plan.id} 
+                            className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 border-l-purple-500"
+                            onClick={() => setSelectedPlan(plan)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
+                                    {plan.plan_name || "Payment Plan"}
+                                  </span>
+                                  <Badge className={statusColors[plan.status] || "bg-gray-100"}>
+                                    {plan.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {plan.number_of_installments} {plan.frequency} payments • 
+                                  Started {format(new Date(plan.start_date), "MMM d, yyyy")}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-muted-foreground">Remaining</p>
+                                <p className="text-lg font-bold" style={{ color: vendor.primaryColor }}>
+                                  ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {paidCount}/{plan.installments.length} paid
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Due {format(new Date(invoice.due_date), "MMM d, yyyy")}
-                            {invoice.debtor && ` • ${invoice.debtor.company_name}`}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-lg font-bold ${isOverdue ? 'text-red-600' : 'text-foreground'}`}>
-                            ${invoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </p>
-                          {invoice.amount_paid && invoice.amount_paid > 0 && (
-                            <p className="text-xs text-green-600">
-                              ${invoice.amount_paid.toLocaleString("en-US", { minimumFractionDigits: 2 })} paid
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Invoices */}
+                {vendor.invoices.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      Open Invoices
+                    </h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice #</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Paid</TableHead>
+                          <TableHead className="text-right">Balance</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {vendor.invoices.map((invoice) => {
+                          const isOverdue = invoice.days_past_due > 0;
+                          
+                          return (
+                            <TableRow 
+                              key={invoice.id} 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => setSelectedInvoice(invoice)}
+                            >
+                              <TableCell className="font-medium">#{invoice.invoice_number}</TableCell>
+                              <TableCell>{format(new Date(invoice.due_date), "MMM d, yyyy")}</TableCell>
+                              <TableCell>
+                                {isOverdue ? (
+                                  <Badge className="bg-red-100 text-red-800">
+                                    {invoice.days_past_due}d overdue
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-yellow-100 text-yellow-800">
+                                    {invoice.status}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                ${invoice.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-green-600">
+                                ${(invoice.amount_paid || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell className={`text-right font-mono font-bold ${isOverdue ? 'text-red-600' : ''}`}>
+                                ${invoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="sm">
+                                  View
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
 
         {/* Empty State */}
         {paymentPlans.length === 0 && invoices.length === 0 && (
@@ -788,7 +994,7 @@ export default function DebtorPortalPage() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-muted-foreground border-t pt-6">
-          <p>If you have questions, please contact your account manager.</p>
+          <p>If you have questions, please contact your account manager directly.</p>
           <p className="mt-1">Powered by Recouply.ai</p>
         </div>
       </div>
