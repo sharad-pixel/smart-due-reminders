@@ -162,26 +162,36 @@ serve(async (req) => {
 
     console.log("[DEBTOR-PORTAL-LINK] Token created:", tokenData.id);
 
-    // Get branding from the first matching account owner for email styling
-    const planOwnerId = (activePlans?.[0]?.user_id || openInvoices?.[0]?.user_id) as string;
-    const { data: branding } = await supabase
-      .from("branding_settings")
-      .select("business_name, logo_url, primary_color")
-      .eq("user_id", planOwnerId)
-      .single();
-
     // Build magic link URL - use production domain
     const portalUrl = `https://recouply.ai/debtor-portal?token=${tokenData.token}`;
 
-    // Send email via send-email function
-    const businessName = branding?.business_name || "Recouply.ai";
-    const primaryColor = branding?.primary_color || "#1e3a5f";
-    const logoUrl = branding?.logo_url || null;
+    // Collect unique vendor names for the email summary
+    const vendorUserIds = new Set<string>();
+    (activePlans || []).forEach(p => vendorUserIds.add(p.user_id));
+    (openInvoices || []).forEach(i => vendorUserIds.add(i.user_id));
 
-    // Build logo HTML - use branding logo or Recouply default
-    const logoHtml = logoUrl 
-      ? `<img src="${logoUrl}" alt="${businessName}" style="max-height: 48px; max-width: 200px;" />`
-      : `<div style="display: inline-flex; align-items: center; gap: 8px;">
+    // Get vendor branding for listing in email (up to 5 vendors)
+    const vendorIds = [...vendorUserIds].slice(0, 5);
+    const { data: vendorBrandings } = await supabase
+      .from("branding_settings")
+      .select("business_name, logo_url, primary_color")
+      .in("user_id", vendorIds);
+
+    const vendorNames = (vendorBrandings || [])
+      .map(b => b.business_name)
+      .filter(Boolean);
+    const vendorCount = vendorUserIds.size;
+    const vendorListHtml = vendorNames.length > 0 
+      ? vendorNames.map(name => `<li style="margin: 4px 0; color: #334155;">${name}</li>`).join('')
+      : '';
+    const hasMultipleVendors = vendorCount > 1;
+
+    // Platform branding - always use Recouply.ai
+    const platformColor = "#1e3a5f";
+    const platformName = "Recouply.ai";
+
+    // Build Recouply logo HTML
+    const logoHtml = `<div style="display: inline-flex; align-items: center; gap: 8px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 4.5a2.5 2.5 0 0 0-4.96-.46 2.5 2.5 0 0 0-1.98 3 2.5 2.5 0 0 0-1.32 4.24 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08A2.5 2.5 0 0 0 12 19.5a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 12 4.5"/>
             <path d="m15.7 10.4-.9.4"/>
@@ -196,6 +206,23 @@ serve(async (req) => {
           <span style="font-weight: 700; font-size: 20px; color: white;">Recouply.ai</span>
         </div>`;
 
+    // Multi-vendor section for the email
+    const vendorSection = hasMultipleVendors && vendorListHtml 
+      ? `<div style="background: #f1f5f9; border-radius: 8px; padding: 16px; margin-bottom: 28px;">
+           <p style="color: #475569; font-size: 14px; font-weight: 600; margin: 0 0 8px;">
+             Your account is linked to ${vendorCount} vendor${vendorCount > 1 ? 's' : ''}:
+           </p>
+           <ul style="margin: 0; padding-left: 20px; font-size: 14px;">
+             ${vendorListHtml}
+             ${vendorCount > 5 ? `<li style="margin: 4px 0; color: #64748b; font-style: italic;">...and ${vendorCount - 5} more</li>` : ''}
+           </ul>
+         </div>`
+      : vendorListHtml 
+        ? `<p style="color: #64748b; font-size: 14px; margin: 0 0 28px;">
+             Viewing accounts for: <strong style="color: #334155;">${vendorNames[0] || 'Your Vendor'}</strong>
+           </p>`
+        : '';
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -205,16 +232,17 @@ serve(async (req) => {
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f8fafc;">
         <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-          <div style="background: linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%); padding: 32px; text-align: center;">
+          <div style="background: linear-gradient(135deg, ${platformColor} 0%, #0f172a 100%); padding: 32px; text-align: center;">
             ${logoHtml}
           </div>
           <div style="padding: 40px 32px;">
-            <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 24px; font-weight: 600;">Access Your Account Portal</h2>
-            <p style="color: #64748b; line-height: 1.7; margin: 0 0 28px; font-size: 16px;">
+            <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 24px; font-weight: 600;">Access Your Payment Portal</h2>
+            <p style="color: #64748b; line-height: 1.7; margin: 0 0 20px; font-size: 16px;">
               Click the button below to securely view your payment plans, outstanding invoices, and make payments.
             </p>
+            ${vendorSection}
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);">
+              <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, ${platformColor} 0%, #0f172a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);">
                 View My Account
               </a>
             </div>
@@ -234,12 +262,12 @@ serve(async (req) => {
       </html>
     `;
 
-    // Send the email
+    // Send the email - ALWAYS from Recouply.ai platform
     const { error: sendError } = await supabase.functions.invoke("send-email", {
       body: {
         to: normalizedEmail,
-        from: `${businessName} <notifications@send.inbound.services.recouply.ai>`,
-        subject: `Access Your Payment Plans - ${businessName}`,
+        from: `${platformName} <notifications@send.inbound.services.recouply.ai>`,
+        subject: `Access Your Payment Portal - ${platformName}`,
         html: emailHtml,
       },
     });

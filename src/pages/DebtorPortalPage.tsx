@@ -1037,16 +1037,20 @@ export default function DebtorPortalPage() {
                         const remainingBalance = plan.total_amount - totalPaid;
                         
                         // Check if debtor approval is needed
-                        const needsDebtorApproval = plan.requires_dual_approval && 
-                          !plan.debtor_approved_at && 
-                          (plan.status === "proposed" || plan.status === "draft");
+                        // Show approve button if:
+                        // 1. Plan is proposed/draft AND debtor hasn't approved yet (regardless of dual_approval flag)
+                        // 2. For dual approval: both approvals needed
+                        // 3. For single approval: just debtor approval activates the plan
+                        const isPendingPlan = plan.status === "proposed" || plan.status === "draft";
+                        const needsDebtorApproval = isPendingPlan && !plan.debtor_approved_at;
                         const hasDebtorApproval = !!plan.debtor_approved_at;
                         const hasAdminApproval = !!plan.admin_approved_at;
+                        const isDualApproval = plan.requires_dual_approval === true;
 
                         return (
                           <div 
                             key={plan.id} 
-                            className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${needsDebtorApproval ? 'border-l-orange-500 bg-orange-50/50' : 'border-l-purple-500'}`}
+                            className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${needsDebtorApproval ? 'border-l-orange-500 bg-orange-50/50' : hasDebtorApproval && isPendingPlan && isDualApproval && !hasAdminApproval ? 'border-l-blue-500 bg-blue-50/50' : 'border-l-purple-500'}`}
                             onClick={() => setSelectedPlan(plan)}
                           >
                             <div className="flex items-start justify-between">
@@ -1063,23 +1067,30 @@ export default function DebtorPortalPage() {
                                       Needs Your Approval
                                     </Badge>
                                   )}
+                                  {hasDebtorApproval && isPendingPlan && isDualApproval && !hasAdminApproval && (
+                                    <Badge className="bg-blue-100 text-blue-800">
+                                      Awaiting Vendor Approval
+                                    </Badge>
+                                  )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                   {plan.number_of_installments} {plan.frequency} payments • 
                                   Started {format(new Date(plan.start_date), "MMM d, yyyy")}
                                 </p>
                                 
-                                {/* Dual Approval Status */}
-                                {plan.requires_dual_approval && (
+                                {/* Approval Status - show for pending plans */}
+                                {isPendingPlan && (
                                   <div className="flex items-center gap-3 mt-2 text-xs">
                                     <span className={`flex items-center gap-1 ${hasDebtorApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
                                       <UserCheck className="h-3 w-3" />
                                       You: {hasDebtorApproval ? 'Approved' : 'Pending'}
                                     </span>
-                                    <span className={`flex items-center gap-1 ${hasAdminApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
-                                      <ShieldCheck className="h-3 w-3" />
-                                      Vendor: {hasAdminApproval ? 'Approved' : 'Pending'}
-                                    </span>
+                                    {isDualApproval && (
+                                      <span className={`flex items-center gap-1 ${hasAdminApproval ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                        <ShieldCheck className="h-3 w-3" />
+                                        Vendor: {hasAdminApproval ? 'Approved' : 'Pending'}
+                                      </span>
+                                    )}
                                   </div>
                                 )}
                               </div>
