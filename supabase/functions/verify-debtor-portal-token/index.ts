@@ -140,6 +140,7 @@ serve(async (req) => {
     }
 
     // Fetch open invoices for all debtors (not on a payment plan)
+    // Invoice "overdue" is derived from due_date (DPD), not a database status.
     const { data: invoices, error: invoicesError } = await supabase
       .from("invoices")
       .select(`
@@ -156,7 +157,7 @@ serve(async (req) => {
         created_at
       `)
       .in("debtor_id", debtorIds)
-      .in("status", ["open", "overdue", "partial"])
+      .in("status", ["Open", "PartiallyPaid"])
       .eq("is_on_payment_plan", false)
       .order("due_date", { ascending: true });
 
