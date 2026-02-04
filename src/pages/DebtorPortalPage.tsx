@@ -38,6 +38,7 @@ interface PaymentPlan {
   notes: string | null;
   proposed_at: string | null;
   created_at: string;
+  debtor_id: string;
   debtor: {
     company_name: string;
     reference_id: string;
