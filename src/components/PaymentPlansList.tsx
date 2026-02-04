@@ -79,7 +79,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   const canEdit = plan.status === "draft" || plan.status === "proposed";
   const canDelete = plan.status === "draft" || plan.status === "proposed" || plan.status === "cancelled";
   const canRegenerate = plan.status === "draft" || plan.status === "proposed";
-  const needsAdminApproval = plan.requires_dual_approval && !plan.admin_approved_at && (plan.status === "proposed" || plan.status === "draft");
+  const needsAdminApproval = plan.requires_dual_approval && !plan.admin_approved_at;
   const hasDebtorApproval = !!plan.debtor_approved_at;
 
   return (
@@ -144,23 +144,27 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                 </Button>
               )}
 
-              {canEdit && (
-                <Button variant="outline" size="sm" onClick={() => setEditModalOpen(true)}>
-                  <Edit2 className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-              )}
-              {canDelete && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:bg-destructive/10"
-                  onClick={() => setDeleteConfirmOpen(true)}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => canEdit && setEditModalOpen(true)}
+                disabled={!canEdit}
+                title={!canEdit ? "Edit is available for Draft/Proposed plans" : undefined}
+              >
+                <Edit2 className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10"
+                onClick={() => canDelete && setDeleteConfirmOpen(true)}
+                disabled={!canDelete}
+                title={!canDelete ? "Delete is available for Draft/Proposed/Cancelled plans" : undefined}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleCopyLink}>
                 {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
