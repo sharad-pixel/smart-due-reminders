@@ -85,25 +85,26 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   return (
     <Card className="overflow-hidden">
       <Collapsible open={expanded} onOpenChange={setExpanded}>
-        <CollapsibleTrigger asChild>
-          <div className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        {/* Header row: trigger (left) + always-visible actions (right) */}
+        <div className="p-4 hover:bg-muted/50 transition-colors">
+          <div className="flex items-center justify-between gap-3">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                aria-label={expanded ? "Collapse payment plan" : "Expand payment plan"}
+              >
                 {expanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">
-                      {plan.plan_name || `Payment Plan`}
-                    </span>
-                    <Badge className={statusColors[plan.status] || statusColors.draft}>
-                      {plan.status}
-                    </Badge>
+                    <span className="font-medium truncate">{plan.plan_name || `Payment Plan`}</span>
+                    <Badge className={statusColors[plan.status] || statusColors.draft}>{plan.status}</Badge>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />
                       ${plan.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -112,30 +113,60 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                       <Calendar className="h-3 w-3" />
                       {plan.number_of_installments} {plan.frequency} payments
                     </span>
-                    <span>
-                      Started: {format(new Date(plan.start_date), "MMM d, yyyy")}
-                    </span>
+                    <span>Started: {format(new Date(plan.start_date), "MMM d, yyyy")}</span>
                   </div>
+                </div>
+              </button>
+            </CollapsibleTrigger>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Progress indicator */}
+              <div className="hidden sm:flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">{paidCount}/{totalCount} paid</span>
+                <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {/* Progress indicator */}
-                <div className="hidden sm:flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">{paidCount}/{totalCount} paid</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 transition-all" 
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}>
-                  {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+
+              {/* Creditor/admin approve should be discoverable even when collapsed */}
+              {needsAdminApproval && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => adminApprovePlan.mutate(plan.id)}
+                  disabled={adminApprovePlan.isPending}
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1" />
+                  {adminApprovePlan.isPending ? "Approving..." : "Admin Approve"}
                 </Button>
-              </div>
+              )}
+
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setEditModalOpen(true)}>
+                  <Edit2 className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleCopyLink}>
+                {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
-        </CollapsibleTrigger>
+        </div>
 
         <CollapsibleContent>
           <div className="border-t px-4 py-4 space-y-4">
