@@ -112,6 +112,8 @@ interface Invoice {
   due_date: string;
   issue_date: string;
   tasks_count?: number;
+  is_on_payment_plan?: boolean;
+  payment_plan_id?: string | null;
 }
 
 interface OutreachLog {
@@ -460,7 +462,7 @@ const DebtorDetail = () => {
     try {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*")
+        .select("*, is_on_payment_plan, payment_plan_id")
         .eq("debtor_id", id)
         .eq("is_archived", false)
         .order("due_date", { ascending: false });
@@ -769,10 +771,13 @@ const DebtorDetail = () => {
               <Plus className="h-4 w-4 mr-2" />
               Create Invoice
             </Button>
-            <Button onClick={() => setIsPaymentPlanOpen(true)} variant="outline">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Payment Plan
-            </Button>
+            {/* Only show Payment Plan button if no active plan exists */}
+            {(!paymentPlans || !paymentPlans.some(p => ["proposed", "accepted", "active", "draft"].includes(p.status))) && (
+              <Button onClick={() => setIsPaymentPlanOpen(true)} variant="outline">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Payment Plan
+              </Button>
+            )}
             <Button onClick={() => setIsAccountSummaryOpen(true)} variant="outline">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               AI Outreach
@@ -1073,7 +1078,17 @@ const DebtorDetail = () => {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => navigate(`/invoices/${invoice.id}`)}
                         >
-                          <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {invoice.invoice_number}
+                              {invoice.is_on_payment_plan && (
+                                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0">
+                                  <DollarSign className="h-2.5 w-2.5 mr-0.5" />
+                                  Payment Plan
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
                           <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
                           <TableCell>${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>

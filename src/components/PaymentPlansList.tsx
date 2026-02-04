@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2, Send, Edit2, Trash2, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2, Send, Edit2, Trash2, RefreshCw, ShieldCheck, UserCheck } from "lucide-react";
 import { usePaymentPlans, PaymentPlan, PaymentPlanInstallment, getPaymentPlanARUrl } from "@/hooks/usePaymentPlans";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -47,7 +47,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [resendModalOpen, setResendModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const { markInstallmentPaid, updatePlanStatus, deletePaymentPlan, regenerateInstallments } = usePaymentPlans(plan.debtor_id);
+  const { markInstallmentPaid, updatePlanStatus, deletePaymentPlan, regenerateInstallments, adminApprovePlan } = usePaymentPlans(plan.debtor_id);
 
   // Fetch installments when expanded
   const { data: installments, isLoading: loadingInstallments } = useQuery({
@@ -79,6 +79,8 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   const canEdit = plan.status === "draft" || plan.status === "proposed";
   const canDelete = plan.status === "draft" || plan.status === "proposed" || plan.status === "cancelled";
   const canRegenerate = plan.status === "draft" || plan.status === "proposed";
+  const needsAdminApproval = plan.requires_dual_approval && !plan.admin_approved_at && (plan.status === "proposed" || plan.status === "draft");
+  const hasDebtorApproval = !!plan.debtor_approved_at;
 
   return (
     <Card className="overflow-hidden">
@@ -260,6 +262,32 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
               </Table>
             )}
 
+            {/* Dual Approval Status */}
+            {plan.requires_dual_approval && (
+              <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <UserCheck className={`h-4 w-4 ${hasDebtorApproval ? 'text-green-600' : 'text-muted-foreground'}`} />
+                  <span className="text-sm">
+                    Debtor: {hasDebtorApproval ? (
+                      <span className="text-green-600 font-medium">Approved</span>
+                    ) : (
+                      <span className="text-muted-foreground">Pending</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className={`h-4 w-4 ${plan.admin_approved_at ? 'text-green-600' : 'text-muted-foreground'}`} />
+                  <span className="text-sm">
+                    Admin: {plan.admin_approved_at ? (
+                      <span className="text-green-600 font-medium">Approved</span>
+                    ) : (
+                      <span className="text-muted-foreground">Pending</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Status Actions */}
             <div className="flex gap-2 justify-end pt-2 border-t">
               {plan.status === "draft" && (
@@ -271,7 +299,19 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                   Cancel Plan
                 </Button>
               )}
-              {plan.status === "proposed" && (
+              {needsAdminApproval && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => adminApprovePlan.mutate(plan.id)}
+                  disabled={adminApprovePlan.isPending}
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1" />
+                  {adminApprovePlan.isPending ? "Approving..." : "Admin Approve"}
+                </Button>
+              )}
+              {plan.status === "proposed" && !plan.requires_dual_approval && (
                 <Button
                   size="sm"
                   onClick={() => updatePlanStatus.mutate({ planId: plan.id, status: "accepted" })}
