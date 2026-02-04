@@ -226,7 +226,22 @@ export default function DebtorPortalPage() {
     }
   };
 
-  // Group data by vendor (branding business_name)
+  // Helper to get vendor name with proper fallback chain
+  const getVendorName = (branding: { business_name: string } | null, debtor: { company_name: string; reference_id: string } | null): string => {
+    // Priority: branding.business_name → debtor.company_name → debtor.reference_id → "Vendor"
+    if (branding?.business_name && branding.business_name.trim()) {
+      return branding.business_name;
+    }
+    if (debtor?.company_name && debtor.company_name.trim()) {
+      return debtor.company_name;
+    }
+    if (debtor?.reference_id && debtor.reference_id.trim()) {
+      return debtor.reference_id;
+    }
+    return "Vendor";
+  };
+
+  // Group data by vendor (branding business_name with fallbacks)
   const groupByVendor = () => {
     const vendorMap: Record<string, {
       businessName: string;
@@ -238,10 +253,11 @@ export default function DebtorPortalPage() {
     }> = {};
 
     paymentPlans.forEach(plan => {
-      const vendorKey = plan.branding?.business_name || "Unknown Vendor";
+      const vendorName = getVendorName(plan.branding, plan.debtor);
+      const vendorKey = vendorName;
       if (!vendorMap[vendorKey]) {
         vendorMap[vendorKey] = {
-          businessName: plan.branding?.business_name || "Unknown Vendor",
+          businessName: vendorName,
           logoUrl: plan.branding?.logo_url || null,
           primaryColor: plan.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: plan.branding?.stripe_payment_link || null,
@@ -253,10 +269,11 @@ export default function DebtorPortalPage() {
     });
 
     invoices.forEach(invoice => {
-      const vendorKey = invoice.branding?.business_name || "Unknown Vendor";
+      const vendorName = getVendorName(invoice.branding, invoice.debtor);
+      const vendorKey = vendorName;
       if (!vendorMap[vendorKey]) {
         vendorMap[vendorKey] = {
-          businessName: invoice.branding?.business_name || "Unknown Vendor",
+          businessName: vendorName,
           logoUrl: invoice.branding?.logo_url || null,
           primaryColor: invoice.branding?.primary_color || "#1e3a5f",
           stripePaymentLink: invoice.branding?.stripe_payment_link || null,
