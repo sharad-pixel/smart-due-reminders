@@ -170,13 +170,31 @@ serve(async (req) => {
       .eq("user_id", planOwnerId)
       .single();
 
-    // Build magic link URL
-    const origin = req.headers.get("origin") || "https://smart-due-reminders.lovable.app";
-    const portalUrl = `${origin}/debtor-portal?token=${tokenData.token}`;
+    // Build magic link URL - use production domain
+    const portalUrl = `https://recouply.ai/debtor-portal?token=${tokenData.token}`;
 
     // Send email via send-email function
-    const businessName = branding?.business_name || "Recouply";
+    const businessName = branding?.business_name || "Recouply.ai";
     const primaryColor = branding?.primary_color || "#1e3a5f";
+    const logoUrl = branding?.logo_url || null;
+
+    // Build logo HTML - use branding logo or Recouply default
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="${businessName}" style="max-height: 48px; max-width: 200px;" />`
+      : `<div style="display: inline-flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4.5a2.5 2.5 0 0 0-4.96-.46 2.5 2.5 0 0 0-1.98 3 2.5 2.5 0 0 0-1.32 4.24 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08A2.5 2.5 0 0 0 12 19.5a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 12 4.5"/>
+            <path d="m15.7 10.4-.9.4"/>
+            <path d="m9.2 13.2-.9.4"/>
+            <path d="m13.6 15.7-.4-.9"/>
+            <path d="m10.8 9.2-.4-.9"/>
+            <path d="m15.7 13.5-.9-.4"/>
+            <path d="m9.2 10.9-.9-.4"/>
+            <path d="m10.4 15.7.4-.9"/>
+            <path d="m13.1 9.2.4-.9"/>
+          </svg>
+          <span style="font-weight: 700; font-size: 20px; color: white;">Recouply.ai</span>
+        </div>`;
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -185,28 +203,30 @@ serve(async (req) => {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <div style="background-color: ${primaryColor}; padding: 24px; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">${businessName}</h1>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+          <div style="background: linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%); padding: 32px; text-align: center;">
+            ${logoHtml}
           </div>
-          <div style="padding: 32px;">
-            <h2 style="margin: 0 0 16px; color: #333;">Access Your Payment Plans</h2>
-            <p style="color: #666; line-height: 1.6; margin: 0 0 24px;">
-              Click the button below to view your active payment plans and make payments.
+          <div style="padding: 40px 32px;">
+            <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 24px; font-weight: 600;">Access Your Account Portal</h2>
+            <p style="color: #64748b; line-height: 1.7; margin: 0 0 28px; font-size: 16px;">
+              Click the button below to securely view your payment plans, outstanding invoices, and make payments.
             </p>
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${portalUrl}" style="display: inline-block; background-color: ${primaryColor}; color: white; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600;">
-                View Payment Plans
+              <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);">
+                View My Account
               </a>
             </div>
-            <p style="color: #999; font-size: 14px; margin: 24px 0 0;">
-              This link will expire in 24 hours. If you didn't request this, you can safely ignore this email.
-            </p>
+            <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-top: 28px;">
+              <p style="color: #94a3b8; font-size: 13px; margin: 0; line-height: 1.6;">
+                🔒 This secure link will expire in 24 hours. If you didn't request this, you can safely ignore this email.
+              </p>
+            </div>
           </div>
-          <div style="background-color: #f9f9f9; padding: 16px; text-align: center; border-top: 1px solid #eee;">
-            <p style="color: #999; font-size: 12px; margin: 0;">
-              Powered by Recouply.ai
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+              Powered by <a href="https://recouply.ai" style="color: #64748b; text-decoration: none; font-weight: 500;">Recouply.ai</a> — Accounts Receivable & Collection Intelligence
             </p>
           </div>
         </div>
