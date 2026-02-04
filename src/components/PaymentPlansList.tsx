@@ -125,7 +125,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                 <span className="text-muted-foreground">{paidCount}/{totalCount} paid</span>
                 <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-green-500 transition-all"
+                    className="h-full bg-primary transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -334,7 +334,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                 <Button
                   size="sm"
                   variant="default"
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={() => adminApprovePlan.mutate(plan.id)}
                   disabled={adminApprovePlan.isPending}
                 >
