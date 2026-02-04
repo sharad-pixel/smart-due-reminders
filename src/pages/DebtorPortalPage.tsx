@@ -50,6 +50,7 @@ interface PaymentPlan {
     stripe_payment_link: string | null;
     ar_page_public_token: string | null;
     ar_page_enabled: boolean | null;
+    account_name: string | null;
   } | null;
   // Dual approval fields
   requires_dual_approval?: boolean;
@@ -80,6 +81,7 @@ interface Invoice {
     stripe_payment_link: string | null;
     ar_page_public_token: string | null;
     ar_page_enabled: boolean | null;
+    account_name: string | null;
   } | null;
 }
 
@@ -230,17 +232,15 @@ export default function DebtorPortalPage() {
     }
   };
 
-  // Helper to get vendor name with proper fallback chain
-  const getVendorName = (branding: { business_name: string } | null, debtor: { company_name: string; reference_id: string } | null): string => {
-    // Priority: branding.business_name → debtor.company_name → debtor.reference_id → "Vendor"
+  // Helper to get vendor name (Recouply.ai customer account name) with proper fallback chain
+  const getVendorName = (branding: { business_name: string; account_name?: string | null } | null): string => {
+    // Priority: branding.business_name → branding.account_name (from profile) → "Vendor"
+    // Note: debtor.company_name is the DEBTOR's company, not the vendor's - don't use it here
     if (branding?.business_name && branding.business_name.trim()) {
       return branding.business_name;
     }
-    if (debtor?.company_name && debtor.company_name.trim()) {
-      return debtor.company_name;
-    }
-    if (debtor?.reference_id && debtor.reference_id.trim()) {
-      return debtor.reference_id;
+    if (branding?.account_name && branding.account_name.trim()) {
+      return branding.account_name;
     }
     return "Vendor";
   };
@@ -258,7 +258,7 @@ export default function DebtorPortalPage() {
     }> = {};
 
     paymentPlans.forEach(plan => {
-      const vendorName = getVendorName(plan.branding, plan.debtor);
+      const vendorName = getVendorName(plan.branding);
       const vendorKey = vendorName;
       const arPageUrl = plan.branding?.ar_page_enabled && plan.branding?.ar_page_public_token 
         ? `/ar/${plan.branding.ar_page_public_token}` 
@@ -278,7 +278,7 @@ export default function DebtorPortalPage() {
     });
 
     invoices.forEach(invoice => {
-      const vendorName = getVendorName(invoice.branding, invoice.debtor);
+      const vendorName = getVendorName(invoice.branding);
       const vendorKey = vendorName;
       const arPageUrl = invoice.branding?.ar_page_enabled && invoice.branding?.ar_page_public_token 
         ? `/ar/${invoice.branding.ar_page_public_token}` 
