@@ -24,7 +24,10 @@ serve(async (req) => {
   }
 
   try {
-    const { token } = await req.json() as VerifyTokenRequest;
+    const { token: rawToken } = await req.json() as VerifyTokenRequest;
+    
+    // Clean the token - email clients sometimes add trailing chars or encode
+    const token = rawToken ? rawToken.trim() : null;
     
     if (!token) {
       return new Response(
@@ -33,7 +36,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("[VERIFY-DEBTOR-TOKEN] Verifying token");
+    console.log("[VERIFY-DEBTOR-TOKEN] Verifying token:", token.substring(0, 8) + "...");
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -48,7 +51,8 @@ serve(async (req) => {
       .single();
 
     if (tokenError || !tokenData) {
-      console.log("[VERIFY-DEBTOR-TOKEN] Token not found");
+      console.log("[VERIFY-DEBTOR-TOKEN] Token not found in database, error:", tokenError?.message);
+      console.log("[VERIFY-DEBTOR-TOKEN] Token length:", token.length);
       return new Response(
         JSON.stringify({ valid: false, error: "Invalid or expired link" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -57,8 +61,11 @@ serve(async (req) => {
 
     // Check if token is expired
     const expiresAt = new Date(tokenData.expires_at);
-    if (expiresAt < new Date()) {
-      console.log("[VERIFY-DEBTOR-TOKEN] Token expired");
+    const now = new Date();
+    console.log("[VERIFY-DEBTOR-TOKEN] Token expires at:", expiresAt.toISOString(), "Current time:", now.toISOString());
+    
+    if (expiresAt < now) {
+      console.log("[VERIFY-DEBTOR-TOKEN] Token expired by", Math.round((now.getTime() - expiresAt.getTime()) / 1000 / 60), "minutes");
       return new Response(
         JSON.stringify({ valid: false, error: "This link has expired. Please request a new one." }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

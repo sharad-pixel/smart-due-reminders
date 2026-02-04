@@ -68,7 +68,9 @@ const installmentStatusIcons: Record<string, React.ReactNode> = {
 
 export default function DebtorPortalPage() {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  // Clean and decode the token - email clients sometimes add trailing chars or encode
+  const rawToken = searchParams.get("token");
+  const token = rawToken ? decodeURIComponent(rawToken.trim()) : null;
   
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,6 +85,7 @@ export default function DebtorPortalPage() {
   // Verify token on load
   useEffect(() => {
     if (token) {
+      console.log("[DebtorPortal] Verifying token:", token.substring(0, 8) + "...");
       verifyToken(token);
     }
   }, [token]);
