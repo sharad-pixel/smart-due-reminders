@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Calendar, DollarSign, CheckCircle, Clock, XCircle, Link2, Send, Edit2 } from "lucide-react";
 import { usePaymentPlans, PaymentPlan, PaymentPlanInstallment, getPaymentPlanARUrl } from "@/hooks/usePaymentPlans";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PaymentPlanEditModal } from "./PaymentPlanEditModal";
+import { PaymentPlanResendModal } from "./PaymentPlanResendModal";
 
 // Get the debtor portal URL
 const getDebtorPortalUrl = () => {
@@ -41,6 +43,8 @@ const installmentStatusColors: Record<string, string> = {
 function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   const [expanded, setExpanded] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [resendModalOpen, setResendModalOpen] = useState(false);
   const { markInstallmentPaid, updatePlanStatus } = usePaymentPlans(plan.debtor_id);
 
   // Fetch installments when expanded
@@ -68,6 +72,9 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
   const paidCount = installments?.filter((i) => i.status === "paid").length || 0;
   const totalCount = installments?.length || plan.number_of_installments;
   const progress = totalCount > 0 ? (paidCount / totalCount) * 100 : 0;
+
+  const canResend = plan.status !== "cancelled" && plan.status !== "completed" && plan.status !== "defaulted";
+  const canEdit = plan.status === "draft" || plan.status === "proposed";
 
   return (
     <Card className="overflow-hidden">
@@ -150,6 +157,30 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
               </div>
             </div>
 
+            {/* Resend & Edit Actions */}
+            <div className="flex gap-2">
+              {canResend && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setResendModalOpen(true)}
+                >
+                  <Send className="h-4 w-4 mr-1" />
+                  Resend Link
+                </Button>
+              )}
+              {canEdit && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setEditModalOpen(true)}
+                >
+                  <Edit2 className="h-4 w-4 mr-1" />
+                  Edit Plan
+                </Button>
+              )}
+            </div>
+
             {/* Installments Table */}
             {loadingInstallments ? (
               <div className="text-center py-4 text-muted-foreground">Loading installments...</div>
@@ -203,7 +234,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
               </Table>
             )}
 
-            {/* Actions */}
+            {/* Status Actions */}
             <div className="flex gap-2 justify-end pt-2 border-t">
               {plan.status === "draft" && (
                 <Button
@@ -242,6 +273,20 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Edit Modal */}
+      <PaymentPlanEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        plan={plan}
+      />
+
+      {/* Resend Modal */}
+      <PaymentPlanResendModal
+        open={resendModalOpen}
+        onOpenChange={setResendModalOpen}
+        plan={plan}
+      />
     </Card>
   );
 }
