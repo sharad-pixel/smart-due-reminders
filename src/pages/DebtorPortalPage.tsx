@@ -787,8 +787,9 @@ export default function DebtorPortalPage() {
                     <FileText className="h-5 w-5" />
                     Invoice #{selectedInvoice.invoice_number}
                   </CardTitle>
-                  {selectedInvoice.description && (
-                    <CardDescription>{selectedInvoice.description}</CardDescription>
+                  {selectedInvoice.product_description && (
+                    <CardDescription>{selectedInvoice.product_description}</CardDescription>
+                  )}
                   )}
                 </div>
                 <Badge className={isOverdue ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>
