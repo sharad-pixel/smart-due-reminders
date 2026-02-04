@@ -258,7 +258,7 @@ serve(async (req) => {
       // Get branding
       const { data: branding } = await supabase
         .from("branding_settings")
-        .select("business_name, logo_url, primary_color, stripe_payment_link")
+        .select("business_name, logo_url, primary_color, stripe_payment_link, ar_page_public_token, ar_page_enabled")
         .eq("user_id", plan.user_id)
         .single();
 
@@ -280,7 +280,7 @@ serve(async (req) => {
       // Get branding for the invoice owner
       const { data: branding } = await supabase
         .from("branding_settings")
-        .select("business_name, logo_url, primary_color, stripe_payment_link")
+        .select("business_name, logo_url, primary_color, stripe_payment_link, ar_page_public_token, ar_page_enabled")
         .eq("user_id", invoice.user_id)
         .single();
 
