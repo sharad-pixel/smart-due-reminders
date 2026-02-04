@@ -786,6 +786,37 @@ export default function DebtorPortalPage() {
           </div>
         )}
 
+        {/* No Accounts Found State */}
+        {vendors.length === 0 && (
+          <Card className="max-w-lg mx-auto">
+            <CardContent className="py-12 text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
+                <FileText className="h-8 w-8 text-slate-400" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">No Accounts Found</h2>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                We couldn't find any open invoices or payment plans associated with <strong>{verifiedEmail}</strong>.
+              </p>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>This could mean:</p>
+                <ul className="list-disc list-inside text-left max-w-xs mx-auto space-y-1">
+                  <li>All invoices have been paid in full</li>
+                  <li>Your email isn't linked to any active accounts</li>
+                  <li>The vendor uses a different email on file</li>
+                </ul>
+              </div>
+              <div className="mt-6 pt-6 border-t">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Need help? Contact your vendor directly or try a different email address.
+                </p>
+                <Button variant="outline" onClick={() => window.location.href = "/debtor-portal"}>
+                  Try Different Email
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Vendor Sections */}
         {vendors.map((vendor, vendorIndex) => {
           const vendorTotalInvoiceBalance = vendor.invoices.reduce((sum, inv) => sum + inv.balance_due, 0);
