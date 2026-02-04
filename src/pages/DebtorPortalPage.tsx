@@ -67,9 +67,12 @@ interface Invoice {
   amount_paid: number | null;
   due_date: string;
   status: string;
-  description: string | null;
+  product_description: string | null;
+  po_number: string | null;
+  reference_id: string | null;
   days_past_due: number;
   balance_due: number;
+  debtor_id: string;
   debtor: {
     company_name: string;
     reference_id: string;
