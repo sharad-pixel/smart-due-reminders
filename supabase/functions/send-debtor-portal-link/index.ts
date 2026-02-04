@@ -41,28 +41,54 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if this email has any active payment plans via debtor contacts
-    const { data: contactsWithPlans, error: contactError } = await supabase
+    // Check multiple sources for this email:
+    // 1. contacts table (synced from integrations)
+    // 2. debtor_contacts table (manually managed contacts)
+    // 3. debtors table directly (legacy email field)
+    
+    const debtorIdsSet = new Set<string>();
+
+    // Check contacts table
+    const { data: contactsData, error: contactsError } = await supabase
       .from("contacts")
-      .select(`
-        id,
-        email,
-        debtor_id,
-        debtors!inner (
-          id,
-          company_name,
-          user_id
-        )
-      `)
+      .select(`id, debtor_id`)
       .ilike("email", normalizedEmail);
 
-    if (contactError) {
-      console.error("[DEBTOR-PORTAL-LINK] Error checking contacts:", contactError);
-      throw contactError;
+    if (contactsError) {
+      console.error("[DEBTOR-PORTAL-LINK] Error checking contacts:", contactsError);
+    } else if (contactsData) {
+      contactsData.forEach(c => debtorIdsSet.add(c.debtor_id));
+      console.log(`[DEBTOR-PORTAL-LINK] Found ${contactsData.length} match(es) in contacts table`);
     }
 
-    // Get unique debtor IDs
-    const debtorIds = [...new Set(contactsWithPlans?.map(c => c.debtor_id) || [])];
+    // Check debtor_contacts table
+    const { data: debtorContactsData, error: debtorContactsError } = await supabase
+      .from("debtor_contacts")
+      .select(`id, debtor_id`)
+      .ilike("email", normalizedEmail);
+
+    if (debtorContactsError) {
+      console.error("[DEBTOR-PORTAL-LINK] Error checking debtor_contacts:", debtorContactsError);
+    } else if (debtorContactsData) {
+      debtorContactsData.forEach(c => debtorIdsSet.add(c.debtor_id));
+      console.log(`[DEBTOR-PORTAL-LINK] Found ${debtorContactsData.length} match(es) in debtor_contacts table`);
+    }
+
+    // Check debtors table directly (email field on debtor record)
+    const { data: debtorsData, error: debtorsError } = await supabase
+      .from("debtors")
+      .select(`id`)
+      .ilike("email", normalizedEmail);
+
+    if (debtorsError) {
+      console.error("[DEBTOR-PORTAL-LINK] Error checking debtors:", debtorsError);
+    } else if (debtorsData) {
+      debtorsData.forEach(d => debtorIdsSet.add(d.id));
+      console.log(`[DEBTOR-PORTAL-LINK] Found ${debtorsData.length} match(es) in debtors table`);
+    }
+
+    const debtorIds = [...debtorIdsSet];
+    console.log(`[DEBTOR-PORTAL-LINK] Total unique debtors found: ${debtorIds.length}`);
     
     if (debtorIds.length === 0) {
       console.log("[DEBTOR-PORTAL-LINK] No debtors found for email:", normalizedEmail);
