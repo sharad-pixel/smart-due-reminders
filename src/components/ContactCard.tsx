@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ interface Contact {
 
 interface ContactCardProps {
   contact: Contact;
+  debtorId: string;
   onToggleOutreach: (contactId: string, enabled: boolean) => void;
   onDelete: (contactId: string, isPrimary: boolean) => void;
   onUpdate: () => void;
@@ -28,7 +30,8 @@ interface ContactCardProps {
   onEditClose?: () => void;
 }
 
-export const ContactCard = ({ contact, onToggleOutreach, onDelete, onUpdate, autoOpenEdit = false, onEditClose }: ContactCardProps) => {
+export const ContactCard = ({ contact, debtorId, onToggleOutreach, onDelete, onUpdate, autoOpenEdit = false, onEditClose }: ContactCardProps) => {
+  const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(autoOpenEdit);
   const [editData, setEditData] = useState({
     name: contact.name,
@@ -74,6 +77,10 @@ export const ContactCard = ({ contact, onToggleOutreach, onDelete, onUpdate, aut
         .eq("id", contact.id);
 
       if (error) throw error;
+      
+      // Invalidate debtor-contacts cache to ensure all components get updated data
+      queryClient.invalidateQueries({ queryKey: ["debtor-contacts", debtorId] });
+      
       toast.success("Contact updated");
       setIsEditOpen(false);
       onUpdate();
