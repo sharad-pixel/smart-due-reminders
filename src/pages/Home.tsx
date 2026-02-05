@@ -34,6 +34,7 @@ const Home = () => {
         structuredData={generateFAQSchema(homeFaqs)}
       />
       <AnimatedHero />
+      <CollectionIntelligenceQuiz />
       <ScrollPipeline />
       <CollectionIntelligenceShowcase />
       <AnimatedMetrics />
@@ -45,7 +46,6 @@ const Home = () => {
       <PricingTeaser />
       <FAQAccordion />
       <FinalCTA />
-       <CollectionIntelligenceQuiz />
     </MarketingLayout>
   );
 };
