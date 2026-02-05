@@ -13,6 +13,7 @@ import AIAgentsSection from "@/components/marketing/AIAgentsSection";
 import WhyDifferent from "@/components/marketing/WhyDifferent";
 import SEOHead from "@/components/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
+ import CollectionIntelligenceQuiz from "@/components/marketing/CollectionIntelligenceQuiz";
 
 const Home = () => {
   // FAQ structured data for rich snippets
@@ -44,6 +45,7 @@ const Home = () => {
       <PricingTeaser />
       <FAQAccordion />
       <FinalCTA />
+       <CollectionIntelligenceQuiz />
     </MarketingLayout>
   );
 };
