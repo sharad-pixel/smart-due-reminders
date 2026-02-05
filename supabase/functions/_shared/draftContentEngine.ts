@@ -225,10 +225,12 @@ export function replaceTemplateVariables(
   const customerName = contactName || debtor.name || debtor.company_name || 'Valued Customer';
   const customerCompany = debtor.company_name || debtor.name || 'Customer';
   
-  // CRITICAL: businessName is the SENDER's company (from branding), not the customer's company
-  // Never fall back to generic "Our Company" - use the actual branding value or a more specific fallback
-  const businessName = branding.business_name || branding.from_name || '';
-  const fromName = branding.from_name || businessName || 'Collections Team';
+  // CRITICAL: businessName is the SENDER's company (from branding)
+  // Priority: business_name > from_name > 'Your Company' (never use empty string)
+  const rawBusinessName = (branding.business_name || '').trim();
+  const rawFromName = (branding.from_name || '').trim();
+  const businessName = rawBusinessName || rawFromName || 'Your Company';
+  const fromName = rawFromName || businessName || 'Collections Team';
   
   // Calculate days past due if not provided
   const daysPastDue = providedDpd ?? calculateDaysPastDue(invoice.due_date);

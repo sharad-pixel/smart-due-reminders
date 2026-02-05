@@ -197,11 +197,12 @@ Deno.serve(async (req) => {
 
         const { data: branding } = await supabaseAdmin
           .from('branding_settings')
-          .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature, auto_approve_drafts')
+          .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature, auto_approve_drafts')
           .eq('user_id', brandingOwnerId)
           .single();
 
-        const businessName = branding?.business_name || 'Our Company';
+        // CRITICAL: Use proper fallback chain for business name
+        const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
         const paymentLink = branding?.stripe_payment_link || '';
         const arPageToken = branding?.ar_page_public_token;
         const arPageEnabled = branding?.ar_page_enabled === true;

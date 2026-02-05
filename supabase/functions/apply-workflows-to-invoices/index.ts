@@ -44,7 +44,8 @@ serve(async (req) => {
       .eq('user_id', brandingOwnerId)
       .single();
 
-    const businessName = branding?.business_name || branding?.from_name || 'Our Company';
+    // CRITICAL: Use proper fallback chain for business name
+    const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
     console.log(`[APPLY-WORKFLOW-TO-INVOICES] Using business name: ${businessName}`);
 
     // Get all open invoices for this user with their debtors
