@@ -21,5 +21,7 @@ export default defineConfig(({ mode }) => ({
         replacement: path.resolve(__dirname, "./src"),
       },
     ],
+    // Prevent duplicate React instances during build
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
 }));
