@@ -15,6 +15,8 @@ import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import SEOHead from "@/components/SEOHead";
+import MarketingHeader from "@/components/marketing/MarketingHeader";
+import MarketingFooter from "@/components/marketing/MarketingFooter";
 
 // NIST-compliant password requirements
 const passwordRequirements = [
@@ -380,7 +382,9 @@ const Signup = () => {
         canonical="https://recouply.ai/signup"
         noindex={false}
       />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <div className="min-h-screen bg-background flex flex-col">
+        <MarketingHeader />
+        <main className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-6">

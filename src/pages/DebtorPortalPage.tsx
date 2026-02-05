@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import MarketingHeader from "@/components/marketing/MarketingHeader";
+import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -349,7 +351,9 @@ export default function DebtorPortalPage() {
   // Email entry form (no token)
   if (!token && !verifiedEmail) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen bg-background flex flex-col">
+        <MarketingHeader />
+        <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Hero Section */}
         <div className="bg-primary py-12 px-4">
           <div className="max-w-3xl mx-auto text-center">
@@ -503,10 +507,11 @@ export default function DebtorPortalPage() {
           {/* Footer */}
           <div className="mt-8 text-center text-xs text-muted-foreground">
             <p>Your information is secure. Links expire after 24 hours for your protection.</p>
-            <p className="mt-1">Powered by Recouply.ai</p>
           </div>
         </div>
-      </div>
+        </main>
+        <MarketingFooter />
+       </div>
     );
   }
 
