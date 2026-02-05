@@ -308,29 +308,37 @@
      title: "Billing & Plans",
      icon: <CreditCard className="h-5 w-5" />,
      description: "Subscription and payment information",
-     faqs: [
-       {
-         question: "What plans are available?",
-         answer: "Recouply offers tiered plans: 1) Starter - up to 50 invoices/month, 1 user, 2) Growth - up to 250 invoices/month, 3 users, priority support, 3) Enterprise - unlimited invoices and users, custom integrations, dedicated support. All plans include full AI agent access."
-       },
-       {
-         question: "What happens if I exceed my invoice limit?",
-         answer: "Collections continue uninterrupted. Invoices beyond your plan limit are billed at overage rates ($1.99-$2.49 per invoice depending on plan). You can upgrade anytime to get a better per-invoice rate and avoid overages."
-       },
-       {
-         question: "How do I upgrade or downgrade my plan?",
-         answer: "Go to Settings > Billing to view your current plan and upgrade options. Upgrades take effect immediately with pro-rated billing. Downgrades take effect at the next billing cycle. Contact support if you need assistance with plan changes."
-       },
-       {
-         question: "What payment methods are accepted?",
-         answer: "We accept all major credit cards (Visa, Mastercard, American Express) via Stripe. Enterprise customers can request invoice billing with NET-30 terms. All payments are processed securely—we never store your card details."
-       },
-       {
-         question: "Can I cancel my subscription?",
-         answer: "Yes, you can cancel anytime from the Billing page. Cancellation takes effect at the end of your current billing period. Your data is retained for 30 days after cancellation, during which you can reactivate or export your data."
-       }
-     ]
-   },
+      faqs: [
+        {
+          question: "What plans are available?",
+          answer: "Recouply offers plans for every size: 1) Solo Pro ($49/mo) - 25 invoices, perfect for independent operators and sole proprietors, 2) Starter - up to 100 invoices/month, 1 user, 3) Growth - up to 300 invoices/month, 3 users, priority support, 4) Professional - up to 500 invoices/month, 5) Enterprise Custom - unlimited invoices and users, CRM integrations, dedicated support. All features are available on every plan—you only pay based on invoice volume and team size."
+        },
+        {
+          question: "Do all plans include the same features?",
+          answer: "Yes! All Recouply plans include full access to all features: all six AI collection agents (SAM, JAMES, DIANA, MARCUS, ELENA, RECOVERY), AI workflows, payment plans, inbound communications, branding customization, Stripe integration, QuickBooks integration, and analytics. The only differences are invoice capacity, team seats, and overage rates. CRM integrations (Salesforce, HubSpot) are exclusive to Enterprise Custom plans."
+        },
+        {
+          question: "What is the Solo Pro plan?",
+          answer: "Solo Pro is designed for independent operators, consultants, and sole proprietors who need full collection intelligence power without enterprise pricing. At $49/month, you get 25 active invoices, all AI agents, all features, and the same powerful automation as larger plans. Additional invoices are billed at $1.99 each."
+        },
+        {
+          question: "What happens if I exceed my invoice limit?",
+          answer: "Collections continue uninterrupted. Invoices beyond your plan limit are billed at overage rates ($1.49-$1.99 per invoice depending on plan). You can upgrade anytime to get a better per-invoice rate and avoid overages."
+        },
+        {
+          question: "How do I upgrade or downgrade my plan?",
+          answer: "Go to Settings > Billing to view your current plan and upgrade options. Upgrades take effect immediately with pro-rated billing. Downgrades take effect at the next billing cycle. Contact support if you need assistance with plan changes."
+        },
+        {
+          question: "What payment methods are accepted?",
+          answer: "We accept all major credit cards (Visa, Mastercard, American Express) via Stripe. Enterprise customers can request invoice billing with NET-30 terms. All payments are processed securely—we never store your card details."
+        },
+        {
+          question: "Can I cancel my subscription?",
+          answer: "Yes, you can cancel anytime from the Billing page. Cancellation takes effect at the end of your current billing period. Your data is retained for 30 days after cancellation, during which you can reactivate or export your data."
+        }
+      ]
+    },
    {
      id: "security-privacy",
      title: "Security & Privacy",
