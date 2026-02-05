@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
 
           const { data: branding } = await supabaseAdmin
             .from('branding_settings')
-            .select('business_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, email_signature, auto_approve_drafts')
+            .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, email_signature, auto_approve_drafts')
             .eq('user_id', brandingOwnerId)
             .maybeSingle();
 
