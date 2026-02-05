@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Check, Mail, Zap } from "lucide-react";
+import { Check, Mail, Zap, Heart, Building2, Users } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
@@ -247,6 +247,55 @@ const Pricing = () => {
           <p className="text-sm text-muted-foreground mb-8">
             Pricing is based on active invoices per month. Trial includes 5 invoices. All plans include risk-aware automation, dashboards, and support.
           </p>
+        </div>
+      </section>
+
+      {/* Inclusive Mission Section */}
+      <section className="py-16 px-4 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
+        <div className="container mx-auto max-w-4xl text-center">
+          <div className="flex justify-center mb-6">
+            <div className="p-4 rounded-full bg-primary/10">
+              <Heart className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            AR Automation for <span className="text-primary">Every</span> Business
+          </h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            We believe every business—small or large—deserves AR automation and collection intelligence 
+            so you can get paid on time. Unlike competitors that only serve enterprise-scale operations, 
+            Recouply.ai is built for businesses at every stage.
+          </p>
+          
+          <div className="grid md:grid-cols-3 gap-6 mt-8">
+            <div className="bg-card rounded-xl p-6 border shadow-sm">
+              <div className="flex justify-center mb-3">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-2">Solo Operators</h3>
+              <p className="text-sm text-muted-foreground">
+                Start at just ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo with full platform access
+              </p>
+            </div>
+            <div className="bg-card rounded-xl p-6 border shadow-sm">
+              <div className="flex justify-center mb-3">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-2">Growing Teams</h3>
+              <p className="text-sm text-muted-foreground">
+                Scale with volume-based pricing that grows with you
+              </p>
+            </div>
+            <div className="bg-card rounded-xl p-6 border shadow-sm">
+              <div className="flex justify-center mb-3">
+                <Zap className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-2">Enterprise Ready</h3>
+              <p className="text-sm text-muted-foreground">
+                Custom integrations for high-volume operations
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
