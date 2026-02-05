@@ -279,7 +279,8 @@ Deno.serve(async (req) => {
           const invoiceNumber = invoice.invoice_number || invoice.reference_id || '';
           const formattedAmount = `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
           const invoiceLink = invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url || '';
-          const businessName = branding?.business_name || 'Our Company';
+          // CRITICAL: Use proper fallback chain for business name
+          const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
           const paymentLink = branding?.stripe_payment_link || '';
 
           // Generate default message based on step

@@ -201,7 +201,8 @@ Deno.serve(async (req) => {
           .eq('user_id', brandingOwnerId)
           .single();
 
-        const businessName = branding?.business_name || 'Our Company';
+        // CRITICAL: Use proper fallback chain for business name
+        const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
         const paymentLink = branding?.stripe_payment_link || '';
         const arPageToken = branding?.ar_page_public_token;
         const arPageEnabled = branding?.ar_page_enabled === true;
