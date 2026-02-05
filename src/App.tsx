@@ -43,6 +43,7 @@ const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const DesignPartners = lazy(() => import("./pages/DesignPartners"));
 const Careers = lazy(() => import("./pages/Careers"));
+const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
@@ -168,6 +169,9 @@ const App = () => (
             <Route path="/integrations/stripe-sync" element={<StripeSyncDiagnostics />} />
             <Route path="/investors" element={<Investors />} />
             <Route path="/careers" element={<Careers />} />
+            <Route path="/knowledge-base" element={<KnowledgeBase />} />
+            <Route path="/faq" element={<KnowledgeBase />} />
+            <Route path="/help" element={<KnowledgeBase />} />
 
             {/* Blog Pages */}
             <Route path="/blog" element={<BlogIndex />} />
