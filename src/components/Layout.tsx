@@ -570,6 +570,9 @@ const Layout = ({ children }: LayoutProps) => {
               </span>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Link to="/knowledge-base" className="hover:text-foreground transition-colors">
+                Knowledge Base
+              </Link>
               <Link to="/legal/privacy" className="hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
