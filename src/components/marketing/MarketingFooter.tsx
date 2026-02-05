@@ -136,16 +136,24 @@
                    Privacy Policy
                  </Link>
                </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/security-public")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Security
-                 </button>
-               </li>
-             </ul>
-           </div>
+                <li>
+                  <button 
+                    onClick={() => navigate("/security-public")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Security
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/knowledge-base")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Knowledge Base
+                  </button>
+                </li>
+              </ul>
+            </div>
            <div>
              <h4 className="font-semibold mb-4">Contact</h4>
              <ul className="space-y-2 text-sm mb-4">
