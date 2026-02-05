@@ -39,8 +39,9 @@ function replaceTemplateVars(
   // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
   const invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
   const productDescription = invoice?.product_description || '';
-  // Get business name from branding for {{company_name}} and {{business_name}}
-  const businessName = branding?.business_name || 'Our Company';
+  // CRITICAL: Get business name with proper fallback chain
+  // Priority: business_name > from_name > 'Your Company' (never use empty string)
+  const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
   
   // Build AR portal URL
   const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
@@ -123,7 +124,8 @@ function ensureMessageHasContactInfo(
   const contactName = branding?.escalation_contact_name || '';
   const contactEmail = branding?.escalation_contact_email || '';
   const contactPhone = branding?.escalation_contact_phone || '';
-  const businessName = branding?.business_name || 'Our Company';
+  // CRITICAL: Use proper fallback chain for business name
+  const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
   
   // Append AR portal link if available and not already in body
   if (arPageUrl && !result.includes(arPageUrl)) {

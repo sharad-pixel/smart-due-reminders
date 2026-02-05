@@ -33,7 +33,9 @@ function replaceTemplateVars(
   // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
   const invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
   const productDescription = invoice?.product_description || '';
-  const businessName = branding?.business_name || 'Our Company';
+  // CRITICAL: Get business name with proper fallback chain
+  // Priority: business_name > from_name > 'Your Company' (never use empty string)
+  const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
   const arPageUrl =
     branding?.ar_page_public_token && branding?.ar_page_enabled
       ? `https://recouply.ai/ar/${branding.ar_page_public_token}`
