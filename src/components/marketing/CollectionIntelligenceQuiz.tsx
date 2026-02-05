@@ -1,4 +1,4 @@
- import { useState } from "react";
+ import { useState, useMemo } from "react";
  import { motion, AnimatePresence } from "framer-motion";
  import { Button } from "@/components/ui/button";
  import { Card, CardContent } from "@/components/ui/card";
@@ -92,7 +92,63 @@
        { label: "6+ people", value: "large", emoji: "🏢" },
      ],
    },
+   {
+     id: "payment_terms",
+     question: "What payment terms do you typically offer?",
+     icon: Clock,
+     options: [
+       { label: "Due on receipt", value: "immediate", emoji: "⚡" },
+       { label: "Net 15", value: "net_15", emoji: "📅" },
+       { label: "Net 30", value: "net_30", emoji: "🗓️" },
+       { label: "Net 60+", value: "net_60_plus", emoji: "📆" },
+     ],
+   },
+   {
+     id: "biggest_challenge",
+     question: "What's your biggest AR challenge?",
+     icon: AlertTriangle,
+     options: [
+       { label: "Chasing late payments", value: "chasing", emoji: "🏃" },
+       { label: "Tracking who owes what", value: "tracking", emoji: "🔍" },
+       { label: "Maintaining relationships", value: "relationships", emoji: "🤝" },
+       { label: "Cash flow unpredictability", value: "cash_flow", emoji: "💸" },
+     ],
+   },
+   {
+     id: "write_offs",
+     question: "How much do you write off annually as bad debt?",
+     icon: DollarSign,
+     options: [
+       { label: "Less than 1%", value: "under_1", emoji: "✨" },
+       { label: "1-3%", value: "1_3", emoji: "📊" },
+       { label: "3-5%", value: "3_5", emoji: "⚠️" },
+       { label: "Over 5%", value: "over_5", emoji: "🚨" },
+     ],
+   },
+   {
+     id: "time_spent",
+     question: "How much time weekly do you spend on collections?",
+     icon: Clock,
+     options: [
+       { label: "Less than 2 hours", value: "under_2", emoji: "⏱️" },
+       { label: "2-5 hours", value: "2_5", emoji: "⏰" },
+       { label: "5-10 hours", value: "5_10", emoji: "🕐" },
+       { label: "10+ hours", value: "over_10", emoji: "😓" },
+     ],
+   },
  ];
+ 
+ const QUESTIONS_PER_SESSION = 5;
+ 
+ // Fisher-Yates shuffle
+ const shuffleArray = <T,>(array: T[]): T[] => {
+   const shuffled = [...array];
+   for (let i = shuffled.length - 1; i > 0; i--) {
+     const j = Math.floor(Math.random() * (i + 1));
+     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+   }
+   return shuffled;
+ };
  
  interface Summary {
    headline: string;
@@ -111,10 +167,22 @@
    const [isLoading, setIsLoading] = useState(false);
    const [summary, setSummary] = useState<Summary | null>(null);
  
+   // Randomly select 5 questions when quiz opens
+   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
+ 
+   const startQuiz = () => {
+     const randomized = shuffleArray(questions).slice(0, QUESTIONS_PER_SESSION);
+     setSessionQuestions(randomized);
+     setCurrentQuestion(0);
+     setAnswers({});
+     setSummary(null);
+     setIsOpen(true);
+   };
+ 
    const handleAnswer = (questionId: string, value: string) => {
      setAnswers((prev) => ({ ...prev, [questionId]: value }));
      
-     if (currentQuestion < questions.length - 1) {
+     if (currentQuestion < sessionQuestions.length - 1) {
        setTimeout(() => setCurrentQuestion((prev) => prev + 1), 300);
      } else {
        generateSummary({ ...answers, [questionId]: value });
@@ -155,6 +223,7 @@
      setAnswers({});
      setSummary(null);
      setIsOpen(false);
+     setSessionQuestions([]);
    };
  
    const riskColors = {
@@ -163,8 +232,8 @@
      high: "text-red-500 bg-red-500/10 border-red-500/30",
    };
  
-   const question = questions[currentQuestion];
-   const progress = ((currentQuestion + 1) / questions.length) * 100;
+   const question = sessionQuestions[currentQuestion];
+   const progress = ((currentQuestion + 1) / QUESTIONS_PER_SESSION) * 100;
  
    if (!isOpen) {
      return (
@@ -174,7 +243,7 @@
          className="fixed bottom-6 right-6 z-50"
        >
          <motion.button
-           onClick={() => setIsOpen(true)}
+           onClick={startQuiz}
            className="group relative flex items-center gap-3 px-5 py-3 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all"
            whileHover={{ scale: 1.05 }}
            whileTap={{ scale: 0.98 }}
