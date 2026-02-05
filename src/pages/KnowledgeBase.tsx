@@ -37,10 +37,10 @@
          question: "How long does setup take?",
          answer: "Most teams are fully operational within 15-30 minutes. This includes: uploading your invoice data, configuring your branding settings, and reviewing your first AI-generated drafts. No technical expertise or complex integrations required."
        },
-       {
-         question: "Can I import data from my existing systems?",
-         answer: "Yes! Recouply supports multiple import methods: 1) CSV/Excel upload for bulk invoice data, 2) Direct Stripe integration for automatic sync, 3) Manual entry for individual invoices. QuickBooks and other ERP integrations are coming soon."
-       },
+        {
+          question: "Can I import data from my existing systems?",
+          answer: "Yes! Recouply supports multiple import methods: 1) CSV/Excel upload for bulk invoice data, 2) Direct Stripe integration for automatic sync, 3) QuickBooks integration (limited - customer and invoice sync), 4) Manual entry for individual invoices."
+        },
        {
          question: "Is there a free trial?",
          answer: "Yes, we offer a free trial with full access to all collection intelligence features. No credit card required to start. You can explore AI agents, upload invoices, and generate drafts before committing to a paid plan."
@@ -277,56 +277,68 @@
      icon: <Building2 className="h-5 w-5" />,
      description: "Connecting your tools",
      faqs: [
-       {
-         question: "What integrations are available?",
-         answer: "Currently available: Stripe (for payment sync and invoice import). Coming soon: QuickBooks, Xero, NetSuite, Salesforce, and HubSpot. Enterprise customers can request custom integrations. Check the Integrations page for the latest availability."
-       },
-       {
-         question: "How does Stripe integration work?",
-         answer: "Connect your Stripe account from the Integrations page. Recouply will: import open invoices from Stripe, sync payment status automatically, and optionally embed your Stripe payment links in collection emails. You can configure sync frequency and which invoices to include."
-       },
-       {
-         question: "Will synced payments update invoice status?",
-         answer: "Yes! When a payment is recorded in Stripe, Recouply automatically updates the corresponding invoice status. Paid invoices are excluded from future collection workflows. Use the Reconciliation page to review and confirm payment matches."
-       },
-       {
-         question: "Can I disconnect an integration?",
-         answer: "Yes, you can disconnect any integration from the Integrations page. Disconnecting stops future syncs but preserves data already imported. To remove imported data, you'll need to delete those records manually."
-       },
-       {
-         question: "How do I request a new integration?",
-         answer: "Contact us via the Contact page or email support@recouply.ai with your integration request. Include which system you use and your use case. We prioritize integrations based on customer demand and technical feasibility."
-       }
-     ]
-   },
+        {
+          question: "What integrations are available?",
+          answer: "Currently available: Stripe (for payment sync and invoice import) and QuickBooks (limited - customer and invoice sync). CRM integrations (Salesforce, HubSpot) are available exclusively for Enterprise Custom plans. Check the Integrations page for the latest availability."
+        },
+        {
+          question: "How does Stripe integration work?",
+          answer: "Connect your Stripe account from the Integrations page. Recouply will: import open invoices from Stripe, sync payment status automatically, and optionally embed your Stripe payment links in collection emails. You can configure sync frequency and which invoices to include."
+        },
+        {
+          question: "How does QuickBooks integration work?",
+          answer: "Connect your QuickBooks account via OAuth from the Integrations page. Recouply will sync customers and invoices from QuickBooks. Note: QuickBooks integration is currently limited to customer and invoice data sync. Payment reconciliation features are coming soon."
+        },
+        {
+          question: "Will synced payments update invoice status?",
+          answer: "Yes! When a payment is recorded in Stripe, Recouply automatically updates the corresponding invoice status. Paid invoices are excluded from future collection workflows. Use the Reconciliation page to review and confirm payment matches."
+        },
+        {
+          question: "Can I disconnect an integration?",
+          answer: "Yes, you can disconnect any integration from the Integrations page. Disconnecting stops future syncs but preserves data already imported. To remove imported data, you'll need to delete those records manually."
+        },
+        {
+          question: "Are CRM integrations available?",
+          answer: "CRM integrations (Salesforce, HubSpot, and other customer relationship management platforms) are available exclusively for Enterprise Custom plans. These integrations enable AI agents to use customer relationship context for more personalized collection communications. Contact us to discuss Enterprise options."
+        }
+      ]
+    },
    {
      id: "billing-plans",
      title: "Billing & Plans",
      icon: <CreditCard className="h-5 w-5" />,
      description: "Subscription and payment information",
-     faqs: [
-       {
-         question: "What plans are available?",
-         answer: "Recouply offers tiered plans: 1) Starter - up to 50 invoices/month, 1 user, 2) Growth - up to 250 invoices/month, 3 users, priority support, 3) Enterprise - unlimited invoices and users, custom integrations, dedicated support. All plans include full AI agent access."
-       },
-       {
-         question: "What happens if I exceed my invoice limit?",
-         answer: "Collections continue uninterrupted. Invoices beyond your plan limit are billed at overage rates ($1.99-$2.49 per invoice depending on plan). You can upgrade anytime to get a better per-invoice rate and avoid overages."
-       },
-       {
-         question: "How do I upgrade or downgrade my plan?",
-         answer: "Go to Settings > Billing to view your current plan and upgrade options. Upgrades take effect immediately with pro-rated billing. Downgrades take effect at the next billing cycle. Contact support if you need assistance with plan changes."
-       },
-       {
-         question: "What payment methods are accepted?",
-         answer: "We accept all major credit cards (Visa, Mastercard, American Express) via Stripe. Enterprise customers can request invoice billing with NET-30 terms. All payments are processed securely—we never store your card details."
-       },
-       {
-         question: "Can I cancel my subscription?",
-         answer: "Yes, you can cancel anytime from the Billing page. Cancellation takes effect at the end of your current billing period. Your data is retained for 30 days after cancellation, during which you can reactivate or export your data."
-       }
-     ]
-   },
+      faqs: [
+        {
+          question: "What plans are available?",
+          answer: "Recouply offers plans for every size: 1) Solo Pro ($49/mo) - 25 invoices, perfect for independent operators and sole proprietors, 2) Starter - up to 100 invoices/month, 1 user, 3) Growth - up to 300 invoices/month, 3 users, priority support, 4) Professional - up to 500 invoices/month, 5) Enterprise Custom - unlimited invoices and users, CRM integrations, dedicated support. All features are available on every plan—you only pay based on invoice volume and team size."
+        },
+        {
+          question: "Do all plans include the same features?",
+          answer: "Yes! All Recouply plans include full access to all features: all six AI collection agents (SAM, JAMES, DIANA, MARCUS, ELENA, RECOVERY), AI workflows, payment plans, inbound communications, branding customization, Stripe integration, QuickBooks integration, and analytics. The only differences are invoice capacity, team seats, and overage rates. CRM integrations (Salesforce, HubSpot) are exclusive to Enterprise Custom plans."
+        },
+        {
+          question: "What is the Solo Pro plan?",
+          answer: "Solo Pro is designed for independent operators, consultants, and sole proprietors who need full collection intelligence power without enterprise pricing. At $49/month, you get 25 active invoices, all AI agents, all features, and the same powerful automation as larger plans. Additional invoices are billed at $1.99 each."
+        },
+        {
+          question: "What happens if I exceed my invoice limit?",
+          answer: "Collections continue uninterrupted. Invoices beyond your plan limit are billed at overage rates ($1.49-$1.99 per invoice depending on plan). You can upgrade anytime to get a better per-invoice rate and avoid overages."
+        },
+        {
+          question: "How do I upgrade or downgrade my plan?",
+          answer: "Go to Settings > Billing to view your current plan and upgrade options. Upgrades take effect immediately with pro-rated billing. Downgrades take effect at the next billing cycle. Contact support if you need assistance with plan changes."
+        },
+        {
+          question: "What payment methods are accepted?",
+          answer: "We accept all major credit cards (Visa, Mastercard, American Express) via Stripe. Enterprise customers can request invoice billing with NET-30 terms. All payments are processed securely—we never store your card details."
+        },
+        {
+          question: "Can I cancel my subscription?",
+          answer: "Yes, you can cancel anytime from the Billing page. Cancellation takes effect at the end of your current billing period. Your data is retained for 30 days after cancellation, during which you can reactivate or export your data."
+        }
+      ]
+    },
    {
      id: "security-privacy",
      title: "Security & Privacy",
