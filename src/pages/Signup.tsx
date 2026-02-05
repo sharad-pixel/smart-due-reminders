@@ -632,7 +632,9 @@ const Signup = () => {
           </p>
         </div>
       </div>
-    </div>
+        </main>
+        <MarketingFooter />
+      </div>
     </>
   );
 };
