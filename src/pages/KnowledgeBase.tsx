@@ -37,10 +37,10 @@
          question: "How long does setup take?",
          answer: "Most teams are fully operational within 15-30 minutes. This includes: uploading your invoice data, configuring your branding settings, and reviewing your first AI-generated drafts. No technical expertise or complex integrations required."
        },
-       {
-         question: "Can I import data from my existing systems?",
-         answer: "Yes! Recouply supports multiple import methods: 1) CSV/Excel upload for bulk invoice data, 2) Direct Stripe integration for automatic sync, 3) Manual entry for individual invoices. QuickBooks and other ERP integrations are coming soon."
-       },
+        {
+          question: "Can I import data from my existing systems?",
+          answer: "Yes! Recouply supports multiple import methods: 1) CSV/Excel upload for bulk invoice data, 2) Direct Stripe integration for automatic sync, 3) QuickBooks integration (limited - customer and invoice sync), 4) Manual entry for individual invoices."
+        },
        {
          question: "Is there a free trial?",
          answer: "Yes, we offer a free trial with full access to all collection intelligence features. No credit card required to start. You can explore AI agents, upload invoices, and generate drafts before committing to a paid plan."
