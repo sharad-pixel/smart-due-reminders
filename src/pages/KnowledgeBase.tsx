@@ -277,28 +277,32 @@
      icon: <Building2 className="h-5 w-5" />,
      description: "Connecting your tools",
      faqs: [
-       {
-         question: "What integrations are available?",
-         answer: "Currently available: Stripe (for payment sync and invoice import). Coming soon: QuickBooks, Xero, NetSuite, Salesforce, and HubSpot. Enterprise customers can request custom integrations. Check the Integrations page for the latest availability."
-       },
-       {
-         question: "How does Stripe integration work?",
-         answer: "Connect your Stripe account from the Integrations page. Recouply will: import open invoices from Stripe, sync payment status automatically, and optionally embed your Stripe payment links in collection emails. You can configure sync frequency and which invoices to include."
-       },
-       {
-         question: "Will synced payments update invoice status?",
-         answer: "Yes! When a payment is recorded in Stripe, Recouply automatically updates the corresponding invoice status. Paid invoices are excluded from future collection workflows. Use the Reconciliation page to review and confirm payment matches."
-       },
-       {
-         question: "Can I disconnect an integration?",
-         answer: "Yes, you can disconnect any integration from the Integrations page. Disconnecting stops future syncs but preserves data already imported. To remove imported data, you'll need to delete those records manually."
-       },
-       {
-         question: "How do I request a new integration?",
-         answer: "Contact us via the Contact page or email support@recouply.ai with your integration request. Include which system you use and your use case. We prioritize integrations based on customer demand and technical feasibility."
-       }
-     ]
-   },
+        {
+          question: "What integrations are available?",
+          answer: "Currently available: Stripe (for payment sync and invoice import) and QuickBooks (limited - customer and invoice sync). CRM integrations (Salesforce, HubSpot) are available exclusively for Enterprise Custom plans. Check the Integrations page for the latest availability."
+        },
+        {
+          question: "How does Stripe integration work?",
+          answer: "Connect your Stripe account from the Integrations page. Recouply will: import open invoices from Stripe, sync payment status automatically, and optionally embed your Stripe payment links in collection emails. You can configure sync frequency and which invoices to include."
+        },
+        {
+          question: "How does QuickBooks integration work?",
+          answer: "Connect your QuickBooks account via OAuth from the Integrations page. Recouply will sync customers and invoices from QuickBooks. Note: QuickBooks integration is currently limited to customer and invoice data sync. Payment reconciliation features are coming soon."
+        },
+        {
+          question: "Will synced payments update invoice status?",
+          answer: "Yes! When a payment is recorded in Stripe, Recouply automatically updates the corresponding invoice status. Paid invoices are excluded from future collection workflows. Use the Reconciliation page to review and confirm payment matches."
+        },
+        {
+          question: "Can I disconnect an integration?",
+          answer: "Yes, you can disconnect any integration from the Integrations page. Disconnecting stops future syncs but preserves data already imported. To remove imported data, you'll need to delete those records manually."
+        },
+        {
+          question: "Are CRM integrations available?",
+          answer: "CRM integrations (Salesforce, HubSpot, and other customer relationship management platforms) are available exclusively for Enterprise Custom plans. These integrations enable AI agents to use customer relationship context for more personalized collection communications. Contact us to discuss Enterprise options."
+        }
+      ]
+    },
    {
      id: "billing-plans",
      title: "Billing & Plans",
