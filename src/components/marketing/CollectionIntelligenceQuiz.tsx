@@ -38,6 +38,17 @@
      ],
    },
    {
+     id: "avg_receivable",
+     question: "What's your average invoice/receivable value?",
+     icon: DollarSign,
+     options: [
+       { label: "Under $500", value: "under_500", emoji: "💵" },
+       { label: "$500 - $2,500", value: "500_2500", emoji: "💰" },
+       { label: "$2,500 - $10,000", value: "2500_10000", emoji: "💎" },
+       { label: "Over $10,000", value: "over_10000", emoji: "🏦" },
+     ],
+   },
+   {
      id: "monthly_invoices",
      question: "How many invoices do you send monthly?",
      icon: BarChart3,
