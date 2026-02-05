@@ -235,38 +235,57 @@
    const question = sessionQuestions[currentQuestion];
    const progress = ((currentQuestion + 1) / QUESTIONS_PER_SESSION) * 100;
  
-   if (!isOpen) {
-     return (
-       <motion.div
-         initial={{ opacity: 0, scale: 0.9 }}
-         animate={{ opacity: 1, scale: 1 }}
-         className="fixed bottom-6 right-6 z-50"
-       >
-         <motion.button
-           onClick={startQuiz}
-           className="group relative flex items-center gap-3 px-5 py-3 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all"
-           whileHover={{ scale: 1.05 }}
-           whileTap={{ scale: 0.98 }}
-         >
-           <motion.div
-             animate={{ rotate: [0, 10, -10, 0] }}
-             transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-           >
-             <Brain className="h-5 w-5" />
-           </motion.div>
-           <span className="font-semibold">Get Your Collection Intelligence Score</span>
-           <Sparkles className="h-4 w-4 opacity-70" />
-           
-           {/* Pulse ring */}
-           <motion.div
-             className="absolute inset-0 rounded-full border-2 border-primary"
-             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-             transition={{ duration: 2, repeat: Infinity }}
-           />
-         </motion.button>
-       </motion.div>
-     );
-   }
+  if (!isOpen) {
+    return (
+      <section className="py-12 md:py-16 bg-gradient-to-b from-background to-muted/30">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-3xl mx-auto"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
+              <Brain className="h-4 w-4" />
+              <span className="text-sm font-medium">Free Assessment</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+              Discover Your Collection Intelligence Score
+            </h2>
+            <p className="text-muted-foreground mb-8 text-base md:text-lg">
+              Answer 5 quick questions and get personalized AI insights on how to improve your cash flow and reduce DSO.
+            </p>
+            <motion.button
+              onClick={startQuiz}
+              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all text-lg font-semibold"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <Brain className="h-5 w-5" />
+              </motion.div>
+              <span>Start Free Assessment</span>
+              <Sparkles className="h-5 w-5 opacity-70" />
+              
+              {/* Pulse ring */}
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-primary"
+                animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </motion.button>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Takes less than 60 seconds • No signup required
+            </p>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
  
    return (
      <AnimatePresence>
