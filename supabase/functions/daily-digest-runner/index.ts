@@ -8,19 +8,27 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
-// Recouply.ai Brand Colors (HSL converted to HEX for email compatibility)
+// Recouply.ai Brand Colors – softer, blended palette
 const BRAND = {
-  primary: '#3b82f6',      // --primary: 217 91% 60%
-  primaryDark: '#1e40af',  // Darker blue for gradients
-  accent: '#22c55e',       // --accent: 142 71% 45%
-  accentDark: '#16a34a',   // Darker green
-  warning: '#f59e0b',      // --warning: 38 92% 50%
-  destructive: '#ef4444',  // --destructive: 0 84% 60%
-  background: '#f8fafc',   // Light background
-  foreground: '#1e293b',   // Dark text
-  muted: '#64748b',        // Muted text
+  primary: '#6366f1',      // Indigo – softer than blue
+  primaryLight: '#818cf8', // Light indigo
+  primaryDark: '#4338ca',  // Deep indigo
+  accent: '#34d399',       // Emerald – softer green
+  accentDark: '#059669',   // Deep emerald
+  warning: '#fbbf24',      // Amber – warm yellow
+  destructive: '#f87171',  // Softer red
+  background: '#f8fafc',   // Subtle cool grey
+  foreground: '#334155',   // Slate-700 – gentler than near-black
+  muted: '#94a3b8',        // Slate-400 – lighter muted
   cardBg: '#ffffff',
+  border: '#e2e8f0',       // Slate-200
+  surfaceLight: '#f1f5f9', // Slate-100
 };
+
+// Inline SVG brain icon for email (simplified path, email-safe)
+const BRAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#6366f1;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
+
+const BRAIN_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.9);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -816,48 +824,48 @@ function generateEmailHtml(data: {
   let subscriptionBannerHtml = '';
   if (isPastDue) {
     subscriptionBannerHtml = `
-      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid ${BRAND.destructive}; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-        <h3 style="color: #991b1b; margin: 0 0 8px; font-size: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Payment Past Due</h3>
-        <p style="color: #b91c1c; margin: 0 0 12px; font-size: 14px; line-height: 1.5; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Your payment is past due. Please update your payment method to restore full access to all features.
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid ${BRAND.destructive}; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">
+        <p style="color: #991b1b; margin: 0 0 6px; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Payment Past Due</p>
+        <p style="color: #b91c1c; margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Please update your payment method to restore full access.
         </p>
-        <a href="https://recouply.ai/billing" style="display: inline-block; background: ${BRAND.destructive}; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="https://recouply.ai/billing" style="display: inline-block; background: ${BRAND.destructive}; color: white; text-decoration: none; padding: 7px 16px; border-radius: 5px; font-weight: 600; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Update Payment →
         </a>
       </div>
     `;
   } else if (isCanceled) {
     subscriptionBannerHtml = `
-      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid ${BRAND.destructive}; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-        <h3 style="color: #991b1b; margin: 0 0 8px; font-size: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Subscription Canceled</h3>
-        <p style="color: #b91c1c; margin: 0 0 12px; font-size: 14px; line-height: 1.5; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Your subscription has been canceled. Reactivate now to continue using all Recouply.ai features.
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid ${BRAND.destructive}; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">
+        <p style="color: #991b1b; margin: 0 0 6px; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Subscription Canceled</p>
+        <p style="color: #b91c1c; margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Reactivate now to continue using all features.
         </p>
-        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: ${BRAND.destructive}; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Reactivate Subscription →
+        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: ${BRAND.destructive}; color: white; text-decoration: none; padding: 7px 16px; border-radius: 5px; font-weight: 600; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Reactivate →
         </a>
       </div>
     `;
   } else if (isExpired) {
     subscriptionBannerHtml = `
-      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid ${BRAND.destructive}; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-        <h3 style="color: #991b1b; margin: 0 0 8px; font-size: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Subscription Expired</h3>
-        <p style="color: #b91c1c; margin: 0 0 12px; font-size: 14px; line-height: 1.5; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Your subscription has expired. Renew now to restore full access to Recouply.ai.
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid ${BRAND.destructive}; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">
+        <p style="color: #991b1b; margin: 0 0 6px; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Subscription Expired</p>
+        <p style="color: #b91c1c; margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Renew now to restore full access to Recouply.ai.
         </p>
-        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: ${BRAND.destructive}; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Renew Subscription →
+        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: ${BRAND.destructive}; color: white; text-decoration: none; padding: 7px 16px; border-radius: 5px; font-weight: 600; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Renew →
         </a>
       </div>
     `;
   } else if (data.subscriptionStatus === 'trialing' && trialEndFormatted) {
     subscriptionBannerHtml = `
-      <div style="background: #fefce8; border: 1px solid #fde047; border-left: 4px solid ${BRAND.warning}; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-        <h3 style="color: #854d0e; margin: 0 0 8px; font-size: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">🎯 Free Trial Active</h3>
-        <p style="color: #a16207; margin: 0 0 12px; font-size: 14px; line-height: 1.5; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Your free trial ends on <strong>${trialEndFormatted}</strong>. Upgrade now to continue collecting cash faster.
+      <div style="background: #fefce8; border: 1px solid #fde047; border-left: 3px solid ${BRAND.warning}; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">
+        <p style="color: #854d0e; margin: 0 0 6px; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">🎯 Free Trial Active</p>
+        <p style="color: #a16207; margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Trial ends <strong>${trialEndFormatted}</strong>. Upgrade to keep collecting faster.
         </p>
-        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: ${BRAND.warning}; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="https://recouply.ai/upgrade" style="display: inline-block; background: ${BRAND.warning}; color: white; text-decoration: none; padding: 7px 16px; border-radius: 5px; font-weight: 600; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Upgrade Now →
         </a>
       </div>
@@ -866,30 +874,28 @@ function generateEmailHtml(data: {
 
   const healthColor = data.healthLabel === 'Healthy' ? BRAND.accent :
     data.healthLabel === 'Caution' ? BRAND.warning :
-    data.healthLabel === 'Needs Attention' ? '#f97316' :
-    data.healthLabel === 'At Risk' ? '#ea580c' : BRAND.destructive; // Critical
+    data.healthLabel === 'Needs Attention' ? '#fb923c' :
+    data.healthLabel === 'At Risk' ? '#f97316' : BRAND.destructive; // Critical
 
   // Generate high priority tasks HTML
   let highPriorityTasksHtml = '';
   if (data.highPriorityTasks && data.highPriorityTasks.length > 0) {
     const taskItems = data.highPriorityTasks.map(task => {
-      const priorityColor = task.priority === 'critical' ? BRAND.destructive : '#f97316';
-      const priorityLabel = task.priority === 'critical' ? '🔴 CRITICAL' : '🟠 HIGH';
+      const priorityColor = task.priority === 'critical' ? BRAND.destructive : '#fb923c';
+      const priorityLabel = task.priority === 'critical' ? 'CRITICAL' : 'HIGH';
       const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
       
       return `
         <tr>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-            <div style="display: flex; align-items: flex-start;">
-              <span style="display: inline-block; background: ${priorityColor}; color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-right: 8px; white-space: nowrap; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                ${priorityLabel}
-              </span>
-            </div>
-            <p style="margin: 8px 0 4px; color: ${BRAND.foreground}; font-size: 14px; font-weight: 600; line-height: 1.4; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <td style="padding: 10px 14px; border-bottom: 1px solid ${BRAND.border};">
+            <span style="display: inline-block; background: ${priorityColor}20; color: ${priorityColor}; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              ${priorityLabel}
+            </span>
+            <p style="margin: 6px 0 3px; color: ${BRAND.foreground}; font-size: 12.5px; font-weight: 600; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               ${task.summary}
             </p>
-            <p style="margin: 0; color: ${BRAND.muted}; font-size: 13px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              <strong>${task.debtorName}</strong> · ${isOverdue ? `<span style="color: ${BRAND.destructive};">Overdue</span>` : `Due ${formatDate(task.dueDate)}`}
+            <p style="margin: 0; color: ${BRAND.muted}; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              ${task.debtorName} · ${isOverdue ? `<span style="color: ${BRAND.destructive};">Overdue</span>` : `Due ${formatDate(task.dueDate)}`}
             </p>
           </td>
         </tr>
@@ -897,18 +903,18 @@ function generateEmailHtml(data: {
     }).join('');
 
     highPriorityTasksHtml = `
-      <div style="margin-bottom: 24px;">
-        <div style="background: linear-gradient(135deg, #fef2f2 0%, #fef7f2 100%); border: 1px solid #fecaca; border-radius: 12px; overflow: hidden;">
-          <div style="background: linear-gradient(135deg, ${BRAND.destructive} 0%, #f97316 100%); padding: 14px 20px;">
-            <h3 style="color: white; margin: 0; font-size: 16px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              🚨 High Priority Tasks Requiring Attention
-            </h3>
+      <div style="margin-bottom: 20px;">
+        <div style="background: ${BRAND.cardBg}; border: 1px solid #fecaca; border-radius: 10px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, ${BRAND.destructive}18 0%, #fb923c18 100%); padding: 10px 16px; border-bottom: 1px solid #fecaca;">
+            <p style="color: ${BRAND.destructive}; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              🚨 PRIORITY TASKS
+            </p>
           </div>
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: white;">
             ${taskItems}
           </table>
-          <div style="padding: 12px 16px; background: #fef7f0; text-align: center;">
-            <a href="https://recouply.ai/collections/tasks?priority=high,critical" style="color: ${BRAND.destructive}; font-size: 14px; font-weight: 600; text-decoration: none; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="padding: 10px 14px; text-align: center;">
+            <a href="https://recouply.ai/collections/tasks?priority=high,critical" style="color: ${BRAND.primary}; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               View All ${data.highPriorityTasks.length > 5 ? `${data.highPriorityTasks.length}+ ` : ''}Priority Tasks →
             </a>
           </div>
@@ -929,37 +935,46 @@ function generateEmailHtml(data: {
   </style>
   <![endif]-->
 </head>
-<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 20px; background-color: ${BRAND.background};">
-  <div style="max-width: 640px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 16px; background-color: ${BRAND.background};">
+  <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(99,102,241,0.06), 0 1px 3px rgba(0,0,0,0.04);">
     
-    <!-- Header with Recouply.ai Branding -->
-    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%); padding: 32px 32px 28px; text-align: center;">
-      <div style="margin-bottom: 16px;">
-        <span style="display: inline-block; background: white; color: ${BRAND.primary}; font-size: 22px; font-weight: 800; padding: 8px 20px; border-radius: 8px; letter-spacing: -0.5px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Recouply.ai
-        </span>
+    <!-- Header with Brain Logo -->
+    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #7c3aed 100%); padding: 24px 24px 20px; text-align: center;">
+      <div style="margin-bottom: 10px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+          <tr>
+            <td style="padding-right: 8px; vertical-align: middle;">
+              ${BRAIN_SVG_WHITE}
+            </td>
+            <td style="vertical-align: middle;">
+              <span style="color: rgba(255,255,255,0.95); font-size: 17px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Recouply.ai
+              </span>
+            </td>
+          </tr>
+        </table>
       </div>
-      <h1 style="color: white; margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <h1 style="color: white; margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         Daily Collections Health
       </h1>
-      <p style="color: rgba(255,255,255,0.85); margin: 0; font-size: 15px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <p style="color: rgba(255,255,255,0.65); margin: 0; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
       </p>
     </div>
     
-    <div style="padding: 32px 28px;">
-      <p style="font-size: 16px; color: ${BRAND.foreground}; margin: 0 0 24px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        Good morning, <strong>${data.name}</strong>! Here's your collections health summary.
+    <div style="padding: 24px 22px;">
+      <p style="font-size: 13px; color: ${BRAND.foreground}; margin: 0 0 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        Good morning, <strong>${data.name}</strong> — here's your collections snapshot.
       </p>
       
       ${subscriptionBannerHtml}
       
       <!-- Health Score Card -->
-      <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
-        <p style="margin: 0 0 12px; color: ${BRAND.muted}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="background: linear-gradient(135deg, ${BRAND.surfaceLight} 0%, #eef2ff 100%); border: 1px solid ${BRAND.border}; border-radius: 10px; padding: 18px; margin-bottom: 20px; text-align: center;">
+        <p style="margin: 0 0 8px; color: ${BRAND.muted}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Overall Health Score
         </p>
-        <div style="display: inline-block; background: ${healthColor}; color: white; padding: 12px 32px; border-radius: 50px; font-weight: 700; font-size: 22px; box-shadow: 0 4px 12px ${healthColor}40; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="display: inline-block; background: ${healthColor}; color: white; padding: 8px 24px; border-radius: 50px; font-weight: 700; font-size: 16px; box-shadow: 0 2px 8px ${healthColor}30; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           ${data.healthLabel} · ${data.healthScore}/100
         </div>
       </div>
@@ -967,25 +982,25 @@ function generateEmailHtml(data: {
       ${highPriorityTasksHtml}
       
       <!-- Metrics Grid -->
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 20px;">
         <tr>
-          <td width="50%" style="padding-right: 8px;">
-            <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; text-align: center;">
-              <p style="margin: 0 0 4px; color: ${BRAND.primary}; font-size: 24px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <td width="50%" style="padding-right: 6px;">
+            <div style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; border-radius: 10px; padding: 14px; text-align: center;">
+              <p style="margin: 0 0 2px; color: ${BRAND.primary}; font-size: 20px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 ${data.openTasksCount}
               </p>
-              <p style="margin: 0; color: ${BRAND.muted}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <p style="margin: 0; color: ${BRAND.muted}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 Open Tasks
               </p>
-              ${data.overdueTasksCount > 0 ? `<p style="margin: 4px 0 0; color: ${BRAND.destructive}; font-size: 11px; font-weight: 600; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.overdueTasksCount} overdue</p>` : ''}
+              ${data.overdueTasksCount > 0 ? `<p style="margin: 3px 0 0; color: ${BRAND.destructive}; font-size: 10px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.overdueTasksCount} overdue</p>` : ''}
             </div>
           </td>
-          <td width="50%" style="padding-left: 8px;">
-            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; text-align: center;">
-              <p style="margin: 0 0 4px; color: ${BRAND.accent}; font-size: 24px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <td width="50%" style="padding-left: 6px;">
+            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; text-align: center;">
+              <p style="margin: 0 0 2px; color: ${BRAND.accentDark}; font-size: 20px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 ${formatCurrency(data.paymentsCollectedToday)}
               </p>
-              <p style="margin: 0; color: ${BRAND.muted}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <p style="margin: 0; color: ${BRAND.muted}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 Collected Today
               </p>
             </div>
@@ -994,33 +1009,33 @@ function generateEmailHtml(data: {
       </table>
       
       <!-- AR & Risk Section -->
-      <div style="margin-bottom: 24px;">
-        <div style="background: ${BRAND.cardBg}; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+      <div style="margin-bottom: 20px;">
+        <div style="background: ${BRAND.cardBg}; border: 1px solid ${BRAND.border}; border-radius: 10px; overflow: hidden;">
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
             <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 12px 16px; border-bottom: 1px solid ${BRAND.border};">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                   <tr>
                     <td>
-                      <p style="margin: 0; color: ${BRAND.muted}; font-size: 13px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Total AR Outstanding</p>
+                      <p style="margin: 0; color: ${BRAND.muted}; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Total AR Outstanding</p>
                     </td>
                     <td align="right">
-                      <p style="margin: 0; color: ${BRAND.foreground}; font-size: 18px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${formatCurrency(data.totalArOutstanding)}</p>
+                      <p style="margin: 0; color: ${BRAND.foreground}; font-size: 15px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${formatCurrency(data.totalArOutstanding)}</p>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding: 16px 20px; background: #fef2f2;">
+              <td style="padding: 12px 16px; background: #fef2f2;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                   <tr>
                     <td>
-                      <p style="margin: 0; color: #991b1b; font-size: 13px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ High-Risk AR (60+ days)</p>
+                      <p style="margin: 0; color: #b91c1c; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ High-Risk AR (60+ days)</p>
                     </td>
                     <td align="right">
-                      <p style="margin: 0; color: ${BRAND.destructive}; font-size: 18px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${formatCurrency(data.highRiskArOutstanding)}</p>
-                      <p style="margin: 2px 0 0; color: #991b1b; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.highRiskCustomersCount} accounts</p>
+                      <p style="margin: 0; color: ${BRAND.destructive}; font-size: 15px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${formatCurrency(data.highRiskArOutstanding)}</p>
+                      <p style="margin: 1px 0 0; color: #b91c1c; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.highRiskCustomersCount} accounts</p>
                     </td>
                   </tr>
                 </table>
@@ -1031,35 +1046,35 @@ function generateEmailHtml(data: {
       </div>
 
       <!-- Quick Actions -->
-      <div style="margin-bottom: 24px; background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px;">
-        <h3 style="color: ${BRAND.primaryDark}; margin: 0 0 16px; font-size: 15px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          🚀 Quick Actions
-        </h3>
+      <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1px solid #e0e7ff; border-radius: 10px; padding: 14px 16px;">
+        <p style="color: ${BRAND.primaryDark}; margin: 0 0 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Quick Actions
+        </p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
           <tr>
-            <td style="padding-bottom: 10px;">
-              <a href="https://recouply.ai/collections/tasks" style="color: ${BRAND.primary}; font-size: 14px; text-decoration: none; font-weight: 600; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <td style="padding-bottom: 7px;">
+              <a href="https://recouply.ai/collections/tasks" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 📋 Review Collection Tasks →
               </a>
             </td>
           </tr>
           <tr>
-            <td style="padding-bottom: 10px;">
-              <a href="https://recouply.ai/settings/ai-workflows" style="color: ${BRAND.primary}; font-size: 14px; text-decoration: none; font-weight: 600; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                🤖 Configure AI Collection Agents →
+            <td style="padding-bottom: 7px;">
+              <a href="https://recouply.ai/settings/ai-workflows" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                🤖 Configure AI Agents →
               </a>
             </td>
           </tr>
           <tr>
-            <td style="padding-bottom: 10px;">
-              <a href="https://recouply.ai/debtors" style="color: ${BRAND.primary}; font-size: 14px; text-decoration: none; font-weight: 600; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                📊 View Account Risk Scores →
+            <td style="padding-bottom: 7px;">
+              <a href="https://recouply.ai/debtors" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                📊 View Risk Scores →
               </a>
             </td>
           </tr>
           <tr>
             <td>
-              <a href="https://recouply.ai/data-center" style="color: ${BRAND.primary}; font-size: 14px; text-decoration: none; font-weight: 600; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <a href="https://recouply.ai/data-center" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 📥 Import & Reconcile AR →
               </a>
             </td>
@@ -1068,37 +1083,46 @@ function generateEmailHtml(data: {
       </div>
 
       <!-- Pro Tips -->
-      <div style="margin-bottom: 28px; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px;">
-        <h3 style="color: #166534; margin: 0 0 14px; font-size: 15px; font-weight: 700; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          💡 Collection Best Practices
-        </h3>
-        <ul style="margin: 0; padding-left: 18px; color: #15803d; line-height: 1.9; font-size: 13px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <li><strong>Follow up within 3-5 days</strong> of invoice due date for best results</li>
-          <li><strong>Segment by risk tier</strong> – prioritize High/Critical accounts first</li>
-          <li><strong>Use multiple channels</strong> – email sequences with phone follow-up</li>
+      <div style="margin-bottom: 22px; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px 16px;">
+        <p style="color: #166534; margin: 0 0 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          💡 Best Practices
+        </p>
+        <ul style="margin: 0; padding-left: 16px; color: #15803d; line-height: 1.7; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <li>Follow up within <strong>3-5 days</strong> of invoice due date</li>
+          <li><strong>Segment by risk tier</strong> – prioritize High/Critical first</li>
+          <li>Use <strong>multiple channels</strong> for best results</li>
         </ul>
       </div>
       
       <!-- CTA Button -->
       <div style="text-align: center;">
-        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px ${BRAND.primary}40; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          Open Recouply.ai Dashboard →
+        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, #7c3aed 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px ${BRAND.primary}25; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Open Dashboard →
         </a>
       </div>
     </div>
     
-    <!-- Footer with Recouply.ai Branding -->
-    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 28px; text-align: center;">
-      <p style="margin: 0 0 8px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <span style="color: ${BRAND.primary}; font-size: 18px; font-weight: 800; letter-spacing: -0.3px;">Recouply.ai</span>
-      </p>
-      <p style="color: #94a3b8; margin: 0 0 16px; font-size: 13px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <!-- Footer -->
+    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 20px; text-align: center;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
+        <tr>
+          <td style="padding-right: 6px; vertical-align: middle;">
+            ${BRAIN_SVG_WHITE}
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 700; letter-spacing: -0.2px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              Recouply.ai
+            </span>
+          </td>
+        </tr>
+      </table>
+      <p style="color: #a5b4fc; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         AI-Powered CashOps Platform
       </p>
-      <p style="color: #64748b; margin: 0 0 12px; font-size: 12px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #94a3b8; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
+      <p style="color: #6366f180; margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #a5b4fc; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
       </p>
-      <p style="color: #475569; margin: 0; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <p style="color: #6366f160; margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         © ${new Date().getFullYear()} Recouply.ai · All rights reserved
       </p>
     </div>
