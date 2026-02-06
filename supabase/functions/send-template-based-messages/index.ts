@@ -93,6 +93,44 @@ async function processInvoiceBatch(
     dueDate.setHours(0, 0, 0, 0);
     const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
+    // Resolve sender/recipient names with safe fallbacks
+    const businessName = (branding?.business_name || branding?.from_name || '').trim() || 'Your Company';
+    const fromName = (branding?.from_name || businessName).trim() || businessName;
+    const recipientName = (contactName || debtor?.name || debtor?.company_name || '').trim() || 'Valued Customer';
+
+    // Apply a consistent set of placeholders across both subject + body
+    const applyCommonPlaceholders = (text: string) => {
+      if (!text) return text;
+      return text
+        // Sender (your business)
+        .replace(/\{\{company_name\}\}/gi, businessName)
+        .replace(/\{\{company name\}\}/gi, businessName)
+        .replace(/\{\{business_name\}\}/gi, businessName)
+        .replace(/\{\{business name\}\}/gi, businessName)
+        .replace(/\{\{businessName\}\}/gi, businessName)
+        .replace(/\{\{from_name\}\}/gi, fromName)
+        .replace(/\{\{from name\}\}/gi, fromName)
+        // Recipient (customer/debtor/contact)
+        .replace(/\{\{customer_name\}\}/gi, recipientName)
+        .replace(/\{\{customer name\}\}/gi, recipientName)
+        .replace(/\{\{contact_name\}\}/gi, recipientName)
+        .replace(/\{\{contact name\}\}/gi, recipientName)
+        .replace(/\{\{debtor_name\}\}/gi, recipientName)
+        .replace(/\{\{debtor name\}\}/gi, recipientName)
+        .replace(/\{\{name\}\}/gi, recipientName);
+    };
+
+    // Remove any unresolved placeholders WITHOUT destroying line breaks
+    const stripUnresolved = (text: string) => {
+      if (!text) return text;
+      return text
+        .replace(/\{\{[^}]+\}\}/g, '')
+        .replace(/[\t ]{2,}/g, ' ')
+        .replace(/ +\n/g, '\n')
+        .replace(/\n +/g, '\n')
+        .trim();
+    };
+
     let personalizedBody = template.message_body_template
       .replace(/\{\{debtor_name\}\}/g, contactName)
       .replace(/\{\{invoice_number\}\}/g, invoice.invoice_number)
@@ -108,6 +146,9 @@ async function processInvoiceBatch(
       ?.replace(/\{\{currency\}\}/g, invoice.currency || 'USD')
       ?.replace(/\{\{due_date\}\}/g, invoice.due_date)
       ?.replace(/\{\{days_past_due\}\}/g, daysPastDue.toString());
+
+    personalizedBody = stripUnresolved(applyCommonPlaceholders(personalizedBody));
+    personalizedSubject = stripUnresolved(applyCommonPlaceholders(personalizedSubject || '')) || undefined;
 
     const replyToEmail = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
