@@ -15,7 +15,8 @@ import {
   ExternalLink,
   Calendar,
   Mail,
-  Settings2
+  Settings2,
+  Book
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, Link } from "react-router-dom";
@@ -851,6 +852,14 @@ export default function NicolasChat() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Link
+            to="/knowledge-base"
+            onClick={() => setIsOpen(false)}
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-primary hover:bg-accent transition-colors"
+            title="Knowledge Base"
+          >
+            <Book className="h-4 w-4" />
+          </Link>
           <Button 
             variant="ghost" 
             size="icon" 
