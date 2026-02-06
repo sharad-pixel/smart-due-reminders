@@ -246,6 +246,25 @@ serve(async (req) => {
       }
     });
 
+    // Fetch metadata for any debtors found via debtor_contacts that aren't already in the map
+    const missingDebtorIds = debtorIds.filter((id) => !debtorsById.has(id));
+    if (missingDebtorIds.length > 0) {
+      console.log("[VERIFY-DEBTOR-TOKEN] Fetching metadata for", missingDebtorIds.length, "debtors missing from map");
+      const { data: missingDebtors } = await supabase
+        .from("debtors")
+        .select("id, company_name, reference_id, user_id")
+        .in("id", missingDebtorIds);
+
+      (missingDebtors || []).forEach((d) => {
+        debtorsById.set(d.id, {
+          id: d.id,
+          company_name: d.company_name ?? null,
+          reference_id: d.reference_id ?? null,
+          user_id: (d as unknown as { user_id?: string | null }).user_id ?? null,
+        });
+      });
+    }
+
     // Enrich plans with debtor info and installments
     const enrichedPlans = await Promise.all((plans || []).map(async (plan) => {
       const debtorData = debtorsById.get(plan.debtor_id);
