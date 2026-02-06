@@ -424,6 +424,10 @@ const CONTEXTUAL_KNOWLEDGE_BASE: NicolasKnowledgeEntry[] = [
   }
 ];
 
+// Combine FAQ knowledge base with contextual knowledge base
+// FAQ entries from centralized data get priority, then contextual entries
+const KNOWLEDGE_BASE = [...FAQ_KNOWLEDGE_BASE, ...CONTEXTUAL_KNOWLEDGE_BASE];
+
 // Escalation trigger keywords
 const ESCALATION_TRIGGERS = [
   "contact support",
