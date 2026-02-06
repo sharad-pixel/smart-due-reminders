@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +24,7 @@ import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { founderConfig } from "@/lib/founderConfig";
 import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import { getPageOnboardingContent } from "@/lib/onboardingContent";
+import { generateNicolasKnowledgeBase, NicolasKnowledgeEntry } from "@/lib/knowledgeBaseData";
 
 interface Message {
   id: string;
@@ -46,8 +47,11 @@ interface EscalationData {
   contactEmail: string;
 }
 
-// Knowledge base for Nicolas with links
-const KNOWLEDGE_BASE = [
+// Generate knowledge base from centralized FAQ data
+const FAQ_KNOWLEDGE_BASE = generateNicolasKnowledgeBase();
+
+// Additional contextual knowledge base entries specific to Nicolas
+const CONTEXTUAL_KNOWLEDGE_BASE: NicolasKnowledgeEntry[] = [
   // ===== DATA CENTER PROCESSES =====
   {
     keywords: ["data center", "import", "upload", "csv", "excel", "bulk import"],
@@ -419,6 +423,10 @@ const KNOWLEDGE_BASE = [
     ]
   }
 ];
+
+// Combine FAQ knowledge base with contextual knowledge base
+// FAQ entries from centralized data get priority, then contextual entries
+const KNOWLEDGE_BASE = [...FAQ_KNOWLEDGE_BASE, ...CONTEXTUAL_KNOWLEDGE_BASE];
 
 // Escalation trigger keywords
 const ESCALATION_TRIGGERS = [
