@@ -936,10 +936,10 @@ function generateEmailHtml(data: {
   <![endif]-->
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 16px; background-color: ${BRAND.background};">
-  <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(99,102,241,0.06), 0 1px 3px rgba(0,0,0,0.04);">
+    <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(59,130,246,0.08), 0 1px 3px rgba(0,0,0,0.04);">
     
     <!-- Header with Brain Logo -->
-    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #7c3aed 100%); padding: 24px 24px 20px; text-align: center;">
+    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #1e40af 100%); padding: 24px 24px 20px; text-align: center;">
       <div style="margin-bottom: 10px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
           <tr>
