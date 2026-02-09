@@ -62,9 +62,9 @@ export const PAGE_SEO = {
     keywords: 'cash collections, accounts receivable, collections health, payments, AI automation for receivables, AI collection software, AR automation, collection intelligence platform, cash flow management',
   },
   features: {
-    title: 'AI Collection Features | Automated AR & Invoice Management | Recouply.ai',
-    description: 'Discover AI-powered collection features: automated invoice follow-ups, payment prediction, risk-aware outreach, and human-approved AI agents that accelerate cash flow.',
-    keywords: 'AI invoice automation, automated collections, payment prediction, AR features, collection workflows, dunning automation, invoice reminder system',
+    title: 'AI Collection Features | Cash Collections & Payments Automation | Recouply.ai',
+    description: 'AI automation for receivables: automated cash collections, payments tracking, collections health monitoring, and human-approved AI agents that accelerate accounts receivable recovery.',
+    keywords: 'cash collections, accounts receivable, AI automation for receivables, payments tracking, collections health, automated collections, payment prediction, dunning automation',
   },
   pricing: {
     title: 'Pricing | Affordable AI Collection Software | Recouply.ai',
