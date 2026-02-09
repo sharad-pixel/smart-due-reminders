@@ -545,6 +545,54 @@ Deno.serve(async (req) => {
 
           if (!upsertError) {
             invoicesSynced++;
+            
+            // For Paid/PartiallyPaid invoices, ensure an invoice_transaction exists
+            // This covers cases where QB marks invoices as paid without explicit Payment objects
+            if (normalizedInvoice.status === 'Paid' || normalizedInvoice.status === 'PartiallyPaid') {
+              const paidAmount = (invoice.TotalAmt || 0) - (invoice.Balance || 0);
+              if (paidAmount > 0) {
+                // Look up the internal invoice ID
+                const { data: upsertedInv } = await supabaseAdmin
+                  .from('invoices')
+                  .select('id')
+                  .eq('user_id', userId)
+                  .eq('quickbooks_invoice_id', invoice.Id)
+                  .single();
+                
+                if (upsertedInv) {
+                  const fallbackTxnId = `qb_invoice_paid_${invoice.Id}`;
+                  // Check if a QB transaction already exists for this invoice
+                  const { data: existingTxn } = await supabaseAdmin
+                    .from('invoice_transactions')
+                    .select('id')
+                    .eq('invoice_id', upsertedInv.id)
+                    .eq('source_system', 'quickbooks')
+                    .limit(1);
+                  
+                  if (!existingTxn || existingTxn.length === 0) {
+                    // No QB transaction exists - create one from invoice payment data
+                    await supabaseAdmin
+                      .from('invoice_transactions')
+                      .upsert({
+                        invoice_id: upsertedInv.id,
+                        user_id: userId,
+                        transaction_type: 'payment',
+                        amount: paidAmount,
+                        transaction_date: invoice.TxnDate,
+                        source_system: 'quickbooks',
+                        external_transaction_id: fallbackTxnId,
+                        notes: `Payment recorded in QuickBooks (Invoice #${invoice.DocNumber})`,
+                        metadata: {
+                          quickbooks_invoice_id: invoice.Id,
+                          origin: 'invoice_status_sync'
+                        }
+                      }, {
+                        onConflict: 'user_id,external_transaction_id'
+                      });
+                  }
+                }
+              }
+            }
           } else {
             console.error('Invoice upsert error:', upsertError);
             errors.push(`INVOICE_UPSERT_FAILED qb_invoice_id=${invoice.Id} doc=${invoice.DocNumber}: ${upsertError.message || JSON.stringify(upsertError)}`);
