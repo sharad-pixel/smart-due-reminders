@@ -235,6 +235,22 @@ export const QuickBooksSyncSection = () => {
         title: '✅ Sync Complete!',
         description: `Synced ${data?.customers_synced || 0} customers, ${data?.invoices_synced || 0} invoices, ${data?.payments_synced || 0} payments, ${data?.contacts_synced || 0} contacts`,
       });
+
+      // Record manual sync timestamp to skip next automated cron
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
+          const accountId = effectiveAccountId || user.id;
+          await supabase
+            .from('integration_sync_settings')
+            .update({ last_manual_sync_at: new Date().toISOString() })
+            .eq('user_id', accountId)
+            .eq('integration_type', 'quickbooks');
+        }
+      } catch (e) {
+        console.warn('Could not record manual sync timestamp:', e);
+      }
       
       checkConnectionStatus();
       loadSyncStats();
