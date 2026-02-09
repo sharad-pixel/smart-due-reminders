@@ -309,7 +309,7 @@ export const generateArticleSchema = (article: {
 export const generateServiceSchema = () => ({
   '@context': 'https://schema.org',
   '@type': 'Service',
-  name: 'Accounts Receivable & Collection Intelligence Platform',
+  name: 'Cash Collections, Accounts Receivable & Collection Intelligence Platform',
   provider: {
     '@type': 'Organization',
     name: SITE_CONFIG.companyName,
