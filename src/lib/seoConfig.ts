@@ -57,9 +57,9 @@ export const TARGET_KEYWORDS = {
 // Page-specific SEO configurations
 export const PAGE_SEO = {
   home: {
-    title: 'Recouply.ai | AI-Powered Accounts Receivable & Collection Intelligence Platform',
-    description: 'Transform accounts receivable with AI-powered AR and collection intelligence. Automate invoice follow-ups, predict payment behavior, and accelerate cash flow—without collection agencies.',
-    keywords: 'AI collection software, accounts receivable automation, AR intelligence, invoice collection, AR automation, cash flow management, payment recovery, collection intelligence platform',
+    title: 'Recouply.ai | AI Automation for Receivables & Cash Collections',
+    description: 'Transform accounts receivable with AI automation for receivables. Automate cash collections, monitor collections health, track payments, and accelerate cash flow — without collection agencies.',
+    keywords: 'cash collections, accounts receivable, collections health, payments, AI automation for receivables, AI collection software, AR automation, collection intelligence platform, cash flow management',
   },
   features: {
     title: 'AI Collection Features | Automated AR & Invoice Management | Recouply.ai',
