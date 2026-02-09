@@ -97,9 +97,9 @@ export const PAGE_SEO = {
     keywords: 'about recouply, collection intelligence company, AR automation team, fintech startup',
   },
   blog: {
-    title: 'Blog | Collection Intelligence Insights | Recouply.ai',
-    description: 'Insights on Collection Intelligence, accounts receivable automation, cash flow optimization, and building durable revenue from the RecouplyAI team.',
-    keywords: 'AR automation blog, collection intelligence insights, cash flow tips, accounts receivable best practices',
+    title: 'Blog | Cash Collections & Accounts Receivable Insights | Recouply.ai',
+    description: 'Insights on cash collections, accounts receivable automation, collections health, payments optimization, and AI automation for receivables from the RecouplyAI team.',
+    keywords: 'cash collections blog, accounts receivable insights, collections health tips, payments best practices, AI automation for receivables',
   },
   collectionIntelligence: {
     title: 'Collection Intelligence | AI-Powered AR Analytics | Recouply.ai',
