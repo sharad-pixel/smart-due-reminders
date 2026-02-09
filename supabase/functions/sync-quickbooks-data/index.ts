@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
                 const { error: additionalContactError } = await supabaseAdmin
                   .from('debtor_contacts')
                   .upsert({
-                    user_id: user.id,
+                    user_id: userId,
                     debtor_id: debtorIdForContacts,
                     external_contact_id: extContactId,
                     name: contactName || `${firstName || ''} ${lastName || ''}`.trim() || 'Contact',
