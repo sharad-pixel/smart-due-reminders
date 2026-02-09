@@ -99,16 +99,17 @@ export const QuickBooksSyncSection = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [customersResult, invoicesResult, contactsResult] = await Promise.all([
+      const [customersResult, invoicesResult, paymentsResult, contactsResult] = await Promise.all([
         supabase.from('debtors').select('id', { count: 'exact' }).not('quickbooks_customer_id', 'is', null),
         supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'quickbooks'),
+        supabase.from('quickbooks_payments').select('id', { count: 'exact' }),
         supabase.from('contacts').select('id', { count: 'exact' }).eq('source', 'quickbooks')
       ]);
 
       setSyncStats({
         customers: customersResult.count || 0,
         invoices: invoicesResult.count || 0,
-        payments: 0,
+        payments: paymentsResult.count || 0,
         contacts: contactsResult.count || 0
       });
     } catch (error) {
