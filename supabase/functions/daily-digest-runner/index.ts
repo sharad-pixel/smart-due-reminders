@@ -1046,7 +1046,7 @@ function generateEmailHtml(data: {
       </div>
 
       <!-- Quick Actions -->
-      <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1px solid #e0e7ff; border-radius: 10px; padding: 14px 16px;">
+      <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px;">
         <p style="color: ${BRAND.primaryDark}; margin: 0 0 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Quick Actions
         </p>
