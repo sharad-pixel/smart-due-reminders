@@ -18,25 +18,31 @@ export const SITE_CONFIG = {
 // Primary target keywords organized by intent
 export const TARGET_KEYWORDS = {
   primary: [
+    'cash collections',
+    'accounts receivable',
+    'collections health',
+    'payments',
+    'AI automation for receivables',
     'AI collection software',
     'accounts receivable automation',
-    'invoice collection software',
-    'AR automation platform',
     'collection intelligence',
-    'automated invoice follow-up',
   ],
   secondary: [
-    'cash flow management software',
+    'cash collections software',
+    'AR collections health monitoring',
     'payment recovery automation',
-    'debt collection AI',
-    'invoice reminder software',
-    'AR aging report automation',
     'accounts receivable management',
+    'invoice collection software',
+    'AR automation platform',
+    'automated invoice follow-up',
     'dunning automation',
     'payment prediction AI',
+    'cash flow management software',
   ],
   longTail: [
-    'AI powered accounts receivable automation',
+    'AI powered cash collections automation',
+    'accounts receivable collections health dashboard',
+    'AI automation for receivables and payments',
     'automated invoice collection for small business',
     'SaaS accounts receivable software',
     'enterprise AR automation platform',
@@ -44,6 +50,7 @@ export const TARGET_KEYWORDS = {
     'human in the loop AI collections',
     'stripe quickbooks invoice sync',
     'reduce days sales outstanding DSO',
+    'cash collections intelligence platform',
   ],
 };
 
