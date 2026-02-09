@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       
       if (expiresAt <= refreshThreshold) {
         console.log('Token expired or expiring soon, refreshing with CAS...');
-        const refreshResult = await refreshTokenCAS(supabaseAdmin, user.id, currentRefreshToken);
+        const refreshResult = await refreshTokenCAS(supabaseAdmin, userId, currentRefreshToken);
         if (!refreshResult) {
           // Update sync log with error
           if (syncLogId) {
