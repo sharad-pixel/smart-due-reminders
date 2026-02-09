@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // and next_sync_due_at <= now
     const { data: dueSettings, error: fetchError } = await supabase
       .from('integration_sync_settings')
-      .select('id, user_id, integration_type, sync_time, sync_timezone, next_sync_due_at')
+      .select('id, user_id, integration_type, sync_time, sync_timezone, next_sync_due_at, last_manual_sync_at')
       .eq('auto_sync_enabled', true)
       .lte('next_sync_due_at', now.toISOString())
       .order('next_sync_due_at', { ascending: true })
