@@ -153,19 +153,19 @@ const Integrations = () => {
         </div>
       </section>
 
-      {/* Platform Statement */}
+      {/* Stripe AI Orchestration */}
       <section className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <Database className="h-4 w-4" />
-              System of Record
+              <Brain className="h-4 w-4" />
+              AI-Powered Collections
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              One system for all collection activity
+              Stripe invoices. Intelligent follow-up.
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Recouply.ai serves as the single source of truth for collections. Every action, message, payment, and outcome is stored in one centralized system — with full transparency and auditability.
+              Recouply.ai is an AI-powered orchestration layer for accounts receivable and collections. With native Stripe integrations, unpaid invoices automatically receive the right attention — without manual follow-ups or client-side effort. Recouply.ai continuously assesses payment risk, orchestrates outreach, and improves over time to help businesses get paid faster without adding finance headcount.
             </p>
             <div className="flex flex-wrap gap-6 justify-center text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
