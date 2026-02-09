@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AutoSyncScheduler } from "@/components/data-center/AutoSyncScheduler";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
