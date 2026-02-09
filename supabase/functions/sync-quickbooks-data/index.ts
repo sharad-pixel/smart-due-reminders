@@ -23,25 +23,40 @@ Deno.serve(async (req) => {
   try {
     // Parse request body for options
     let fullSync = false;
+    let scheduledUserId: string | null = null;
     try {
       const body = await req.json();
       fullSync = body?.full_sync === true;
+      scheduledUserId = body?.userId || null;
     } catch {
       // No body or invalid JSON - use defaults
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '') || '';
+    const isScheduledSync = scheduledUserId && token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    let userId: string;
+
+    if (isScheduledSync) {
+      // Scheduled sync via service role
+      userId = scheduledUserId!;
+      console.log('QB_SCHEDULED_SYNC', { userId });
+    } else {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      );
+
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = user.id;
     }
 
     const supabaseAdmin = createClient(
@@ -53,7 +68,7 @@ Deno.serve(async (req) => {
     let syncLogId: string | null = null;
     try {
       const { data: insertedLog } = await supabaseAdmin.from('quickbooks_sync_log').insert({
-        user_id: user.id,
+        user_id: userId,
         sync_type: fullSync ? 'full' : 'incremental',
         status: 'running',
         errors: []
