@@ -87,9 +87,9 @@ export const PAGE_SEO = {
     keywords: 'startup cash collections, accounts receivable startups, AI automation for receivables, payments automation startups, collections health',
   },
   smb: {
-    title: 'Small Business Collection Software | AI Invoice Follow-ups | Recouply.ai',
-    description: 'Affordable AI-powered collection software for small businesses. Automate invoice reminders, track payments, and improve cash flow without hiring.',
-    keywords: 'small business collection software, SMB AR automation, invoice reminder software, affordable collection solution',
+    title: 'Small Business Cash Collections | AI Automation for Receivables | Recouply.ai',
+    description: 'Affordable AI-powered cash collections for small businesses. Automate accounts receivable, track payments, monitor collections health, and improve cash flow without hiring.',
+    keywords: 'small business cash collections, SMB accounts receivable, AI automation for receivables, payments tracking, collections health SMB',
   },
   about: {
     title: 'About RecouplyAI | The Team Behind Collection Intelligence | Recouply.ai',
