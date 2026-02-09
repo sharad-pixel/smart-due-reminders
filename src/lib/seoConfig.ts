@@ -67,9 +67,9 @@ export const PAGE_SEO = {
     keywords: 'cash collections, accounts receivable, AI automation for receivables, payments tracking, collections health, automated collections, payment prediction, dunning automation',
   },
   pricing: {
-    title: 'Pricing | Affordable AI Collection Software | Recouply.ai',
-    description: 'Transparent pricing for AI-powered collection intelligence. Start free, scale as you grow. No hidden fees, no collection agency commissions.',
-    keywords: 'collection software pricing, AR automation cost, invoice management pricing, affordable debt collection software',
+    title: 'Pricing | Affordable AI Automation for Receivables | Recouply.ai',
+    description: 'Transparent pricing for AI-powered cash collections and accounts receivable automation. Start free, scale as you grow. No hidden fees, no collection agency commissions.',
+    keywords: 'cash collections pricing, accounts receivable automation cost, AI automation for receivables pricing, payments software pricing, collections health platform cost',
   },
   integrations: {
     title: 'Integrations | Stripe & QuickBooks Sync | Recouply.ai',
