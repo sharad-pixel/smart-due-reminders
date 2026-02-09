@@ -88,10 +88,10 @@ const Integrations = () => {
   return (
     <MarketingLayout>
       <SEO
-        title="Integrations & Support | Recouply.ai"
-        description="Connect Stripe and QuickBooks to centralize collections. Sync customers, invoices, and payments with 24/7 Slack support from real humans."
+        title="Integrations | Stripe & QuickBooks for Cash Collections | Recouply.ai"
+        description="Connect Stripe and QuickBooks to automate cash collections and payments. Real-time accounts receivable sync, collections health visibility, and AI automation for receivables."
         canonical="https://recouply.ai/integrations"
-        keywords="Stripe integration, QuickBooks integration, collection software integrations, AR automation, payment sync"
+        keywords="cash collections, accounts receivable, payments, AI automation for receivables, collections health, Stripe integration, QuickBooks integration, AR automation"
       />
 
       {/* Hero Section */}

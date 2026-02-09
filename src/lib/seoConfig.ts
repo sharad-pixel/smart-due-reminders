@@ -314,8 +314,8 @@ export const generateServiceSchema = () => ({
     '@type': 'Organization',
     name: SITE_CONFIG.companyName,
   },
-  description: 'AI-powered accounts receivable automation and collection intelligence service that helps businesses automate invoice follow-ups and accelerate cash flow.',
-  serviceType: 'Accounts Receivable Automation',
+  description: 'AI automation for receivables — automate cash collections, monitor collections health, track payments, and accelerate accounts receivable recovery.',
+  serviceType: 'Cash Collections & Accounts Receivable Automation',
   areaServed: {
     '@type': 'Place',
     name: 'Worldwide',
