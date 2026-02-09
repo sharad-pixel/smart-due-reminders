@@ -108,22 +108,39 @@ Deno.serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.id) throw new Error("User not authenticated");
-    logStep("User authenticated", { userId: user.id });
+    
+    // Support scheduled sync: if called with service role key and x-scheduled-sync-user-id header,
+    // use that user ID directly instead of authenticating via token
+    const scheduledUserId = req.headers.get("x-scheduled-sync-user-id");
+    let userId: string;
+    
+    if (scheduledUserId && token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+      // Scheduled sync via service role - trust the provided user ID
+      userId = scheduledUserId;
+      logStep("Scheduled sync authenticated", { userId });
+    } else {
+      // Normal user-initiated sync
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError) throw new Error(`Authentication error: ${userError.message}`);
+      const user = userData.user;
+      if (!user?.id) throw new Error("User not authenticated");
+      userId = user.id;
+      logStep("User authenticated", { userId });
+    }
 
     // Rate limiting - sync is a heavy operation, limit to 10 per hour
-    const rateLimitResult = await checkRateLimit(user.id, 'data_import');
-    if (!rateLimitResult.allowed) {
-      logStep("Rate limit exceeded", { userId: user.id });
-      return rateLimitExceededResponse(rateLimitResult, corsHeaders);
+    // Skip rate limiting for scheduled syncs
+    if (!scheduledUserId) {
+      const rateLimitResult = await checkRateLimit(userId, 'data_import');
+      if (!rateLimitResult.allowed) {
+        logStep("Rate limit exceeded", { userId });
+        return rateLimitExceededResponse(rateLimitResult, corsHeaders);
+      }
     }
 
     // Get the effective account ID for team support
-    const { data: effectiveAccountData } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
-    const effectiveAccountId = effectiveAccountData || user.id;
+    const { data: effectiveAccountData } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: userId });
+    const effectiveAccountId = effectiveAccountData || userId;
     logStep("Effective account ID", { effectiveAccountId });
 
     // Get the user's Stripe credentials
