@@ -8,18 +8,18 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
-// Recouply.ai Brand Colors – softer, blended palette
+// Recouply.ai Platform Brand Colors – aligned with site design system
 const BRAND = {
-  primary: '#6366f1',      // Indigo – softer than blue
-  primaryLight: '#818cf8', // Light indigo
-  primaryDark: '#4338ca',  // Deep indigo
-  accent: '#34d399',       // Emerald – softer green
-  accentDark: '#059669',   // Deep emerald
-  warning: '#fbbf24',      // Amber – warm yellow
-  destructive: '#f87171',  // Softer red
-  background: '#f8fafc',   // Subtle cool grey
-  foreground: '#334155',   // Slate-700 – gentler than near-black
-  muted: '#94a3b8',        // Slate-400 – lighter muted
+  primary: '#3b82f6',      // Blue – platform primary (HSL 217 91% 60%)
+  primaryLight: '#60a5fa', // Light blue
+  primaryDark: '#1d4ed8',  // Deep blue
+  accent: '#22c55e',       // Green – platform accent (HSL 142 71% 45%)
+  accentDark: '#16a34a',   // Deep green
+  warning: '#f59e0b',      // Amber
+  destructive: '#ef4444',  // Red – platform destructive
+  background: '#f8fafc',   // Slate-50
+  foreground: '#1e293b',   // Slate-800 – strong readability
+  muted: '#64748b',        // Slate-500
   cardBg: '#ffffff',
   border: '#e2e8f0',       // Slate-200
   surfaceLight: '#f1f5f9', // Slate-100
