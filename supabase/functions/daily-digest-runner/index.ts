@@ -1103,7 +1103,7 @@ function generateEmailHtml(data: {
     </div>
     
     <!-- Footer -->
-    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 20px; text-align: center;">
+    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); padding: 20px; text-align: center;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
         <tr>
           <td style="padding-right: 6px; vertical-align: middle;">
@@ -1116,14 +1116,14 @@ function generateEmailHtml(data: {
           </td>
         </tr>
       </table>
-      <p style="color: #a5b4fc; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        AI-Powered CashOps Platform
+      <p style="color: #93c5fd; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        Accounts Receivable & Collection Intelligence Platform
       </p>
-      <p style="color: #6366f180; margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #a5b4fc; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
+      <p style="color: rgba(59,130,246,0.5); margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #93c5fd; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
       </p>
-      <p style="color: #6366f160; margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        © ${new Date().getFullYear()} Recouply.ai · All rights reserved
+      <p style="color: rgba(59,130,246,0.4); margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        © ${new Date().getFullYear()} RecouplyAI Inc. · All rights reserved
       </p>
     </div>
   </div>
