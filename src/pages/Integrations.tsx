@@ -162,10 +162,13 @@ const Integrations = () => {
               AI-Powered Collections
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Stripe invoices. Intelligent follow-up.
+              Your invoices. Intelligent follow-up.
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Recouply.ai is an AI-powered orchestration layer for accounts receivable and collections. With native Stripe integrations, unpaid invoices automatically receive the right attention — without manual follow-ups or client-side effort. Recouply.ai continuously assesses payment risk, orchestrates outreach, and improves over time to help businesses get paid faster without adding finance headcount.
+              Recouply.ai is an AI-powered orchestration layer for accounts receivable and collections. With native Stripe and QuickBooks integrations, unpaid invoices automatically receive the right attention — without manual follow-ups or client-side effort. Recouply.ai continuously assesses payment risk, orchestrates outreach, and improves over time to help businesses get paid faster without adding finance headcount.
+            </p>
+            <p className="text-base text-muted-foreground mb-8 max-w-2xl mx-auto">
+              We're also actively building schemas around NetSuite and other ERP platforms to capture daily activity — so your collections intelligence grows with your revenue stack.
             </p>
             <div className="flex flex-wrap gap-6 justify-center text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
