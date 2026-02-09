@@ -72,9 +72,9 @@ export const PAGE_SEO = {
     keywords: 'cash collections pricing, accounts receivable automation cost, AI automation for receivables pricing, payments software pricing, collections health platform cost',
   },
   integrations: {
-    title: 'Integrations | Stripe & QuickBooks Sync | Recouply.ai',
-    description: 'Seamlessly connect Recouply with Stripe, QuickBooks, and your existing financial stack. Real-time invoice sync and automated payment reconciliation.',
-    keywords: 'stripe integration, quickbooks sync, AR software integrations, invoice sync, payment reconciliation, accounting software integration',
+    title: 'Integrations | Stripe & QuickBooks for Cash Collections | Recouply.ai',
+    description: 'Connect Stripe and QuickBooks to automate cash collections and payments. Real-time accounts receivable sync, collections health visibility, and AI automation for receivables.',
+    keywords: 'stripe integration, quickbooks sync, cash collections integrations, accounts receivable sync, payments reconciliation, AI automation for receivables, collections health',
   },
   enterprise: {
     title: 'Enterprise AR Automation | High-Volume Collection Intelligence | Recouply.ai',
