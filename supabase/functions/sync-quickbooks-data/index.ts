@@ -268,7 +268,7 @@ Deno.serve(async (req) => {
               const { error: primaryContactError } = await supabaseAdmin
                 .from('debtor_contacts')
                 .upsert({
-                  user_id: user.id,
+                  user_id: userId,
                   debtor_id: debtorIdForContacts,
                   external_contact_id: externalPrimaryId,
                   name: primaryName,
