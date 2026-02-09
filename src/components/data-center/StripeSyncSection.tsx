@@ -326,6 +326,9 @@ export const StripeSyncSection = () => {
             />
           )}
 
+          {/* Auto-Sync Scheduler */}
+          <AutoSyncScheduler integrationType="stripe" />
+
           {/* Stats Row with Delta + Total */}
           <div className="grid grid-cols-3 gap-4">
             <SyncMetricCard

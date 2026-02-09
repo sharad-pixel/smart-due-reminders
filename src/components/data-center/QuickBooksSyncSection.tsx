@@ -403,6 +403,9 @@ export const QuickBooksSyncSection = () => {
                 />
               )}
 
+              {/* Auto-Sync Scheduler */}
+              <AutoSyncScheduler integrationType="quickbooks" />
+
               {/* Connection Info */}
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
