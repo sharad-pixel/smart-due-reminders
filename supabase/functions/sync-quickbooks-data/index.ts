@@ -642,7 +642,7 @@ Deno.serve(async (req) => {
                       .from('invoice_transactions')
                       .upsert({
                         invoice_id: invoiceId,
-                        user_id: user.id,
+                        user_id: userId,
                         transaction_type: 'payment',
                         amount: amountApplied,
                         transaction_date: paymentDate,
