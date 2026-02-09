@@ -82,9 +82,9 @@ export const PAGE_SEO = {
     keywords: 'enterprise cash collections, accounts receivable enterprise, AI automation for receivables, collections health enterprise, payments automation, high-volume AR',
   },
   startups: {
-    title: 'AR Automation for Startups | Grow Without Adding Finance Headcount | Recouply.ai',
-    description: 'Startup-friendly accounts receivable automation. Automate invoice collections, reduce DSO, and scale revenue without adding finance team overhead.',
-    keywords: 'startup AR automation, invoice collection for startups, SaaS collections, reduce DSO startup',
+    title: 'Cash Collections for Startups | AI Automation for Receivables | Recouply.ai',
+    description: 'Startup-friendly cash collections and accounts receivable automation. Automate payments, monitor collections health, reduce DSO, and scale without adding finance headcount.',
+    keywords: 'startup cash collections, accounts receivable startups, AI automation for receivables, payments automation startups, collections health',
   },
   smb: {
     title: 'Small Business Collection Software | AI Invoice Follow-ups | Recouply.ai',
