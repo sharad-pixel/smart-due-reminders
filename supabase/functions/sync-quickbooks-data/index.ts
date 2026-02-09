@@ -508,7 +508,7 @@ Deno.serve(async (req) => {
           const qbIntegrationUrl = `https://app.qbo.intuit.com/app/invoice?txnId=${invoice.Id}`;
           
           const upsertData: Record<string, any> = {
-            user_id: user.id,
+            user_id: userId,
             debtor_id: debtorId,
             quickbooks_invoice_id: invoice.Id,
             quickbooks_doc_number: invoice.DocNumber,
