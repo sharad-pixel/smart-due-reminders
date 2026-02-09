@@ -3647,6 +3647,7 @@ export type Database = {
           include_voided: boolean | null
           integration_type: string
           last_auto_sync_at: string | null
+          last_manual_sync_at: string | null
           next_sync_due_at: string | null
           sync_credits: boolean | null
           sync_customers: boolean | null
@@ -3669,6 +3670,7 @@ export type Database = {
           include_voided?: boolean | null
           integration_type: string
           last_auto_sync_at?: string | null
+          last_manual_sync_at?: string | null
           next_sync_due_at?: string | null
           sync_credits?: boolean | null
           sync_customers?: boolean | null
@@ -3691,6 +3693,7 @@ export type Database = {
           include_voided?: boolean | null
           integration_type?: string
           last_auto_sync_at?: string | null
+          last_manual_sync_at?: string | null
           next_sync_due_at?: string | null
           sync_credits?: boolean | null
           sync_customers?: boolean | null

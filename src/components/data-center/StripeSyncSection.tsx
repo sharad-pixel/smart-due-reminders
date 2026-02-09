@@ -184,6 +184,22 @@ export const StripeSyncSection = () => {
             : 'No new invoice transactions found on this sync'
       });
 
+      // Record manual sync timestamp to skip next automated cron
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
+          const accountId = effectiveAccountId || user.id;
+          await supabase
+            .from('integration_sync_settings')
+            .update({ last_manual_sync_at: new Date().toISOString() })
+            .eq('user_id', accountId)
+            .eq('integration_type', 'stripe');
+        }
+      } catch (e) {
+        console.warn('Could not record manual sync timestamp:', e);
+      }
+
       await fetchIntegration();
       refetchTransactions();
       refetchLogs();
