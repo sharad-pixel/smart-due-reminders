@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
           const { data: upsertedDebtor, error: upsertError } = await supabaseAdmin
             .from('debtors')
             .upsert({
-              user_id: user.id,
+              user_id: userId,
               quickbooks_customer_id: customer.Id,
               quickbooks_sync_token: customer.SyncToken,
               company_name: customer.CompanyName || customer.DisplayName || 'Unknown',
