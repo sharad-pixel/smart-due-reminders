@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AutoSyncScheduler } from './AutoSyncScheduler';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
