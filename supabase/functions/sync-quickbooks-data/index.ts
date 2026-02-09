@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
               const { error: fallbackError } = await supabaseAdmin
                 .from('debtor_contacts')
                 .insert({
-                  user_id: user.id,
+                  user_id: userId,
                   debtor_id: debtorIdForContacts,
                   name: primaryName,
                   email: primaryEmail,
