@@ -8,25 +8,25 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
-// Recouply.ai Brand Colors – softer, blended palette
+// Recouply.ai Platform Brand Colors – aligned with site design system
 const BRAND = {
-  primary: '#6366f1',      // Indigo – softer than blue
-  primaryLight: '#818cf8', // Light indigo
-  primaryDark: '#4338ca',  // Deep indigo
-  accent: '#34d399',       // Emerald – softer green
-  accentDark: '#059669',   // Deep emerald
-  warning: '#fbbf24',      // Amber – warm yellow
-  destructive: '#f87171',  // Softer red
-  background: '#f8fafc',   // Subtle cool grey
-  foreground: '#334155',   // Slate-700 – gentler than near-black
-  muted: '#94a3b8',        // Slate-400 – lighter muted
+  primary: '#3b82f6',      // Blue – platform primary (HSL 217 91% 60%)
+  primaryLight: '#60a5fa', // Light blue
+  primaryDark: '#1d4ed8',  // Deep blue
+  accent: '#22c55e',       // Green – platform accent (HSL 142 71% 45%)
+  accentDark: '#16a34a',   // Deep green
+  warning: '#f59e0b',      // Amber
+  destructive: '#ef4444',  // Red – platform destructive
+  background: '#f8fafc',   // Slate-50
+  foreground: '#1e293b',   // Slate-800 – strong readability
+  muted: '#64748b',        // Slate-500
   cardBg: '#ffffff',
   border: '#e2e8f0',       // Slate-200
   surfaceLight: '#f1f5f9', // Slate-100
 };
 
 // Inline SVG brain icon for email (simplified path, email-safe)
-const BRAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#6366f1;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
+const BRAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#3b82f6;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
 
 const BRAIN_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.9);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
 
@@ -936,10 +936,10 @@ function generateEmailHtml(data: {
   <![endif]-->
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 16px; background-color: ${BRAND.background};">
-  <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(99,102,241,0.06), 0 1px 3px rgba(0,0,0,0.04);">
+    <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(59,130,246,0.08), 0 1px 3px rgba(0,0,0,0.04);">
     
     <!-- Header with Brain Logo -->
-    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #7c3aed 100%); padding: 24px 24px 20px; text-align: center;">
+    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #1e40af 100%); padding: 24px 24px 20px; text-align: center;">
       <div style="margin-bottom: 10px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
           <tr>
@@ -970,7 +970,7 @@ function generateEmailHtml(data: {
       ${subscriptionBannerHtml}
       
       <!-- Health Score Card -->
-      <div style="background: linear-gradient(135deg, ${BRAND.surfaceLight} 0%, #eef2ff 100%); border: 1px solid ${BRAND.border}; border-radius: 10px; padding: 18px; margin-bottom: 20px; text-align: center;">
+      <div style="background: linear-gradient(135deg, ${BRAND.surfaceLight} 0%, #dbeafe 100%); border: 1px solid ${BRAND.border}; border-radius: 10px; padding: 18px; margin-bottom: 20px; text-align: center;">
         <p style="margin: 0 0 8px; color: ${BRAND.muted}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Overall Health Score
         </p>
@@ -985,7 +985,7 @@ function generateEmailHtml(data: {
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 20px;">
         <tr>
           <td width="50%" style="padding-right: 6px;">
-            <div style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; border-radius: 10px; padding: 14px; text-align: center;">
+            <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px; text-align: center;">
               <p style="margin: 0 0 2px; color: ${BRAND.primary}; font-size: 20px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 ${data.openTasksCount}
               </p>
@@ -1046,7 +1046,7 @@ function generateEmailHtml(data: {
       </div>
 
       <!-- Quick Actions -->
-      <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1px solid #e0e7ff; border-radius: 10px; padding: 14px 16px;">
+      <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px;">
         <p style="color: ${BRAND.primaryDark}; margin: 0 0 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Quick Actions
         </p>
@@ -1096,14 +1096,14 @@ function generateEmailHtml(data: {
       
       <!-- CTA Button -->
       <div style="text-align: center;">
-        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, #7c3aed 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px ${BRAND.primary}25; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px rgba(59,130,246,0.25); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Open Dashboard →
         </a>
       </div>
     </div>
     
     <!-- Footer -->
-    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 20px; text-align: center;">
+    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); padding: 20px; text-align: center;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
         <tr>
           <td style="padding-right: 6px; vertical-align: middle;">
@@ -1116,14 +1116,14 @@ function generateEmailHtml(data: {
           </td>
         </tr>
       </table>
-      <p style="color: #a5b4fc; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        AI-Powered CashOps Platform
+      <p style="color: #93c5fd; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        Accounts Receivable & Collection Intelligence Platform
       </p>
-      <p style="color: #6366f180; margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #a5b4fc; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
+      <p style="color: rgba(59,130,246,0.5); margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #93c5fd; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
       </p>
-      <p style="color: #6366f160; margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        © ${new Date().getFullYear()} Recouply.ai · All rights reserved
+      <p style="color: rgba(59,130,246,0.4); margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        © ${new Date().getFullYear()} RecouplyAI Inc. · All rights reserved
       </p>
     </div>
   </div>
