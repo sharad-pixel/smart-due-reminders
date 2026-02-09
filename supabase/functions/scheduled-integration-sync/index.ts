@@ -46,6 +46,24 @@ Deno.serve(async (req) => {
 
     for (const setting of dueSettings || []) {
       try {
+        // Skip if user already synced manually today
+        if (setting.last_manual_sync_at) {
+          const manualSyncDate = new Date(setting.last_manual_sync_at);
+          const todayStart = new Date(now);
+          todayStart.setUTCHours(0, 0, 0, 0);
+          if (manualSyncDate >= todayStart) {
+            logStep('Skipping - user already synced manually today', { 
+              userId: setting.user_id, 
+              type: setting.integration_type,
+              lastManualSync: setting.last_manual_sync_at 
+            });
+            // Still advance next_sync_due_at to tomorrow
+            await updateNextSyncDue(supabase, setting.id, setting.sync_time, setting.sync_timezone);
+            results.push({ userId: setting.user_id, type: setting.integration_type, success: true, error: 'Skipped: manual sync already done today' });
+            continue;
+          }
+        }
+
         logStep('Processing sync', { userId: setting.user_id, type: setting.integration_type });
 
         // Call the appropriate sync function using service-to-service call
