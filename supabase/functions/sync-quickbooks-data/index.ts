@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       accessToken,
       refreshToken: currentRefreshToken,
       supabaseAdmin,
-      userId: user.id
+      userId: userId
     };
 
     // Calculate cutoff date for incremental sync
