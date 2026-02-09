@@ -1096,7 +1096,7 @@ function generateEmailHtml(data: {
       
       <!-- CTA Button -->
       <div style="text-align: center;">
-        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, #7c3aed 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px ${BRAND.primary}25; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px rgba(59,130,246,0.25); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Open Dashboard →
         </a>
       </div>
