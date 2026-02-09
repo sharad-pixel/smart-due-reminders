@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
           const { data: existingDebtor } = await supabaseAdmin
             .from('debtors')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('quickbooks_customer_id', customer.Id)
             .single();
           
