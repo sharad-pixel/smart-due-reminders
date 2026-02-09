@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AutoSyncScheduler } from "@/components/data-center/AutoSyncScheduler";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -371,21 +372,8 @@ export const StripeIntegrationCard = () => {
               </Alert>
             )}
 
-            {/* Auto-sync toggle (coming soon) */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="space-y-0.5">
-                <Label htmlFor="auto-sync">Auto-sync (coming soon)</Label>
-                <p className="text-xs text-muted-foreground">
-                  For now, use “Sync Now”. We’ll add scheduled daily sync next.
-                </p>
-              </div>
-              <Switch
-                id="auto-sync"
-                checked={integration?.auto_sync_enabled || false}
-                onCheckedChange={handleToggleAutoSync}
-                disabled
-              />
-            </div>
+            {/* Auto-Sync Scheduler */}
+            <AutoSyncScheduler integrationType="stripe" />
 
             {/* Actions */}
             <div className="flex gap-2">

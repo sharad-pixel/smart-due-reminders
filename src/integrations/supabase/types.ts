@@ -3637,6 +3637,7 @@ export type Database = {
       }
       integration_sync_settings: {
         Row: {
+          auto_sync_enabled: boolean | null
           conflict_resolution: string | null
           created_at: string | null
           id: string
@@ -3645,15 +3646,20 @@ export type Database = {
           include_paid: boolean | null
           include_voided: boolean | null
           integration_type: string
+          last_auto_sync_at: string | null
+          next_sync_due_at: string | null
           sync_credits: boolean | null
           sync_customers: boolean | null
           sync_frequency: string | null
           sync_invoices: boolean | null
           sync_payments: boolean | null
+          sync_time: string | null
+          sync_timezone: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          auto_sync_enabled?: boolean | null
           conflict_resolution?: string | null
           created_at?: string | null
           id?: string
@@ -3662,15 +3668,20 @@ export type Database = {
           include_paid?: boolean | null
           include_voided?: boolean | null
           integration_type: string
+          last_auto_sync_at?: string | null
+          next_sync_due_at?: string | null
           sync_credits?: boolean | null
           sync_customers?: boolean | null
           sync_frequency?: string | null
           sync_invoices?: boolean | null
           sync_payments?: boolean | null
+          sync_time?: string | null
+          sync_timezone?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          auto_sync_enabled?: boolean | null
           conflict_resolution?: string | null
           created_at?: string | null
           id?: string
@@ -3679,11 +3690,15 @@ export type Database = {
           include_paid?: boolean | null
           include_voided?: boolean | null
           integration_type?: string
+          last_auto_sync_at?: string | null
+          next_sync_due_at?: string | null
           sync_credits?: boolean | null
           sync_customers?: boolean | null
           sync_frequency?: string | null
           sync_invoices?: boolean | null
           sync_payments?: boolean | null
+          sync_time?: string | null
+          sync_timezone?: string | null
           updated_at?: string | null
           user_id?: string
         }

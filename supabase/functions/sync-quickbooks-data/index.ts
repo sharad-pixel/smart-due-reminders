@@ -23,25 +23,40 @@ Deno.serve(async (req) => {
   try {
     // Parse request body for options
     let fullSync = false;
+    let scheduledUserId: string | null = null;
     try {
       const body = await req.json();
       fullSync = body?.full_sync === true;
+      scheduledUserId = body?.userId || null;
     } catch {
       // No body or invalid JSON - use defaults
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '') || '';
+    const isScheduledSync = scheduledUserId && token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    let userId: string;
+
+    if (isScheduledSync) {
+      // Scheduled sync via service role
+      userId = scheduledUserId!;
+      console.log('QB_SCHEDULED_SYNC', { userId });
+    } else {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      );
+
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = user.id;
     }
 
     const supabaseAdmin = createClient(
@@ -53,7 +68,7 @@ Deno.serve(async (req) => {
     let syncLogId: string | null = null;
     try {
       const { data: insertedLog } = await supabaseAdmin.from('quickbooks_sync_log').insert({
-        user_id: user.id,
+        user_id: userId,
         sync_type: fullSync ? 'full' : 'incremental',
         status: 'running',
         errors: []
@@ -68,7 +83,7 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('quickbooks_realm_id, quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError || !profile?.quickbooks_realm_id) {
@@ -97,7 +112,7 @@ Deno.serve(async (req) => {
       
       if (expiresAt <= refreshThreshold) {
         console.log('Token expired or expiring soon, refreshing with CAS...');
-        const refreshResult = await refreshTokenCAS(supabaseAdmin, user.id, currentRefreshToken);
+        const refreshResult = await refreshTokenCAS(supabaseAdmin, userId, currentRefreshToken);
         if (!refreshResult) {
           // Update sync log with error
           if (syncLogId) {
@@ -134,7 +149,7 @@ Deno.serve(async (req) => {
       accessToken,
       refreshToken: currentRefreshToken,
       supabaseAdmin,
-      userId: user.id
+      userId: userId
     };
 
     // Calculate cutoff date for incremental sync
@@ -184,7 +199,7 @@ Deno.serve(async (req) => {
           const { data: upsertedDebtor, error: upsertError } = await supabaseAdmin
             .from('debtors')
             .upsert({
-              user_id: user.id,
+              user_id: userId,
               quickbooks_customer_id: customer.Id,
               quickbooks_sync_token: customer.SyncToken,
               company_name: customer.CompanyName || customer.DisplayName || 'Unknown',
@@ -221,7 +236,7 @@ Deno.serve(async (req) => {
           const { data: existingDebtor } = await supabaseAdmin
             .from('debtors')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('quickbooks_customer_id', customer.Id)
             .single();
           
@@ -253,7 +268,7 @@ Deno.serve(async (req) => {
               const { error: primaryContactError } = await supabaseAdmin
                 .from('debtor_contacts')
                 .upsert({
-                  user_id: user.id,
+                  user_id: userId,
                   debtor_id: debtorIdForContacts,
                   external_contact_id: externalPrimaryId,
                   name: primaryName,
@@ -298,7 +313,7 @@ Deno.serve(async (req) => {
                 const { error: additionalContactError } = await supabaseAdmin
                   .from('debtor_contacts')
                   .upsert({
-                    user_id: user.id,
+                    user_id: userId,
                     debtor_id: debtorIdForContacts,
                     external_contact_id: extContactId,
                     name: contactName || `${firstName || ''} ${lastName || ''}`.trim() || 'Contact',
@@ -354,7 +369,7 @@ Deno.serve(async (req) => {
               const { error: fallbackError } = await supabaseAdmin
                 .from('debtor_contacts')
                 .insert({
-                  user_id: user.id,
+                  user_id: userId,
                   debtor_id: debtorIdForContacts,
                   name: primaryName,
                   email: primaryEmail,
@@ -375,7 +390,7 @@ Deno.serve(async (req) => {
       const { data: allDebtors } = await supabaseAdmin
         .from('debtors')
         .select('id, quickbooks_customer_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .not('quickbooks_customer_id', 'is', null);
 
       // Build lookup map: qb_customer_id -> debtor_id
@@ -493,7 +508,7 @@ Deno.serve(async (req) => {
           const qbIntegrationUrl = `https://app.qbo.intuit.com/app/invoice?txnId=${invoice.Id}`;
           
           const upsertData: Record<string, any> = {
-            user_id: user.id,
+            user_id: userId,
             debtor_id: debtorId,
             quickbooks_invoice_id: invoice.Id,
             quickbooks_doc_number: invoice.DocNumber,
@@ -544,7 +559,7 @@ Deno.serve(async (req) => {
       const { data: allInvoices } = await supabaseAdmin
         .from('invoices')
         .select('id, quickbooks_invoice_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .not('quickbooks_invoice_id', 'is', null);
 
       // Build lookup map: qb_invoice_id -> invoice_id
@@ -597,7 +612,7 @@ Deno.serve(async (req) => {
                 const { error: upsertError } = await supabaseAdmin
                   .from('quickbooks_payments')
                   .upsert({
-                    user_id: user.id,
+                    user_id: userId,
                     debtor_id: debtorId,
                     invoice_id: invoiceId,
                     quickbooks_payment_id: payment.Id,
@@ -627,7 +642,7 @@ Deno.serve(async (req) => {
                       .from('invoice_transactions')
                       .upsert({
                         invoice_id: invoiceId,
-                        user_id: user.id,
+                        user_id: userId,
                         transaction_type: 'payment',
                         amount: amountApplied,
                         transaction_date: paymentDate,
@@ -674,7 +689,7 @@ Deno.serve(async (req) => {
               const { error: standaloneError } = await supabaseAdmin
                 .from('quickbooks_payments')
                 .upsert({
-                  user_id: user.id,
+                  user_id: userId,
                   debtor_id: debtorId,
                   invoice_id: null,
                   quickbooks_payment_id: payment.Id,
@@ -760,7 +775,7 @@ Deno.serve(async (req) => {
     await supabaseAdmin
       .from('profiles')
       .update({ quickbooks_last_sync_at: new Date().toISOString() })
-      .eq('id', user.id);
+      .eq('id', userId);
 
     console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments, ${contactsSynced} contacts, ${terminalSkipped} terminal`);
 

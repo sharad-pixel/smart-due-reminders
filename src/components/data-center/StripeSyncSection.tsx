@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AutoSyncScheduler } from "./AutoSyncScheduler";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -324,6 +325,9 @@ export const StripeSyncSection = () => {
               onViewDetails={() => setHistoryOpen(true)}
             />
           )}
+
+          {/* Auto-Sync Scheduler */}
+          <AutoSyncScheduler integrationType="stripe" />
 
           {/* Stats Row with Delta + Total */}
           <div className="grid grid-cols-3 gap-4">
