@@ -328,13 +328,13 @@ export const QuickBooksSyncSection = () => {
     }
   };
 
-  // Transform sync log to include detailed counts
+  // Use actual detailed counts from the sync log (stored by the edge function)
   const enrichedLatestSync: SyncLogEntry | null = latestSync ? {
     ...latestSync,
-    customers_synced: latestSync.records_synced, // Approximation - ideally stored separately
-    invoices_synced: 0,
-    payments_synced: 0,
-    contacts_synced: 0,
+    customers_synced: (latestSync as any).customers_synced ?? latestSync.records_synced,
+    invoices_synced: (latestSync as any).invoices_synced ?? 0,
+    payments_synced: (latestSync as any).payments_synced ?? 0,
+    contacts_synced: (latestSync as any).contacts_synced ?? 0,
   } : null;
 
   if (checkingStatus) {
