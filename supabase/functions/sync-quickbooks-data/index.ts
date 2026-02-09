@@ -775,7 +775,7 @@ Deno.serve(async (req) => {
     await supabaseAdmin
       .from('profiles')
       .update({ quickbooks_last_sync_at: new Date().toISOString() })
-      .eq('id', user.id);
+      .eq('id', userId);
 
     console.log(`Sync complete: ${customersSynced} customers, ${invoicesSynced} invoices, ${paymentsSynced} payments, ${contactsSynced} contacts, ${terminalSkipped} terminal`);
 
