@@ -970,7 +970,7 @@ function generateEmailHtml(data: {
       ${subscriptionBannerHtml}
       
       <!-- Health Score Card -->
-      <div style="background: linear-gradient(135deg, ${BRAND.surfaceLight} 0%, #eef2ff 100%); border: 1px solid ${BRAND.border}; border-radius: 10px; padding: 18px; margin-bottom: 20px; text-align: center;">
+      <div style="background: linear-gradient(135deg, ${BRAND.surfaceLight} 0%, #dbeafe 100%); border: 1px solid ${BRAND.border}; border-radius: 10px; padding: 18px; margin-bottom: 20px; text-align: center;">
         <p style="margin: 0 0 8px; color: ${BRAND.muted}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Overall Health Score
         </p>
