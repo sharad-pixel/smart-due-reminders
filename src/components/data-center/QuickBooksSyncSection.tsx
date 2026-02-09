@@ -99,16 +99,17 @@ export const QuickBooksSyncSection = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [customersResult, invoicesResult, contactsResult] = await Promise.all([
+      const [customersResult, invoicesResult, paymentsResult, contactsResult] = await Promise.all([
         supabase.from('debtors').select('id', { count: 'exact' }).not('quickbooks_customer_id', 'is', null),
         supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'quickbooks'),
+        supabase.from('quickbooks_payments').select('id', { count: 'exact' }),
         supabase.from('contacts').select('id', { count: 'exact' }).eq('source', 'quickbooks')
       ]);
 
       setSyncStats({
         customers: customersResult.count || 0,
         invoices: invoicesResult.count || 0,
-        payments: 0,
+        payments: paymentsResult.count || 0,
         contacts: contactsResult.count || 0
       });
     } catch (error) {
@@ -327,13 +328,13 @@ export const QuickBooksSyncSection = () => {
     }
   };
 
-  // Transform sync log to include detailed counts
+  // Use actual detailed counts from the sync log (stored by the edge function)
   const enrichedLatestSync: SyncLogEntry | null = latestSync ? {
     ...latestSync,
-    customers_synced: latestSync.records_synced, // Approximation - ideally stored separately
-    invoices_synced: 0,
-    payments_synced: 0,
-    contacts_synced: 0,
+    customers_synced: (latestSync as any).customers_synced ?? latestSync.records_synced,
+    invoices_synced: (latestSync as any).invoices_synced ?? 0,
+    payments_synced: (latestSync as any).payments_synced ?? 0,
+    contacts_synced: (latestSync as any).contacts_synced ?? 0,
   } : null;
 
   if (checkingStatus) {
