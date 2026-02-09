@@ -390,7 +390,7 @@ Deno.serve(async (req) => {
       const { data: allDebtors } = await supabaseAdmin
         .from('debtors')
         .select('id, quickbooks_customer_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .not('quickbooks_customer_id', 'is', null);
 
       // Build lookup map: qb_customer_id -> debtor_id
