@@ -7,7 +7,7 @@ export const SITE_CONFIG = {
   siteName: 'Recouply.ai',
   siteUrl: 'https://recouply.ai',
   companyName: 'RecouplyAI Inc.',
-  description: 'AI-powered Accounts Receivable & Collection Intelligence Platform that automates invoice follow-ups, predicts payment behavior, and accelerates cash flow without collection agencies.',
+  description: 'AI-powered Accounts Receivable & Collection Intelligence Platform. Automate cash collections, monitor collections health, track payments, and leverage AI automation for receivables — without collection agencies.',
   logo: 'https://recouply.ai/favicon.png',
   ogImage: 'https://recouply.ai/og-image.png',
   twitterHandle: '@recouplyai',
