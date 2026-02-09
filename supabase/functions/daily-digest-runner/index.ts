@@ -985,7 +985,7 @@ function generateEmailHtml(data: {
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 20px;">
         <tr>
           <td width="50%" style="padding-right: 6px;">
-            <div style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; border-radius: 10px; padding: 14px; text-align: center;">
+            <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px; text-align: center;">
               <p style="margin: 0 0 2px; color: ${BRAND.primary}; font-size: 20px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 ${data.openTasksCount}
               </p>
