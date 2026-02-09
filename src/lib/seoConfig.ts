@@ -102,9 +102,9 @@ export const PAGE_SEO = {
     keywords: 'cash collections blog, accounts receivable insights, collections health tips, payments best practices, AI automation for receivables',
   },
   collectionIntelligence: {
-    title: 'Collection Intelligence | AI-Powered AR Analytics | Recouply.ai',
-    description: 'Collection Intelligence analyzes payment behavior to predict risk, optimize outreach timing, and maximize recovery rates with AI-powered insights.',
-    keywords: 'collection intelligence, AR analytics, payment behavior prediction, collection scoring, risk assessment AR',
+    title: 'Collection Intelligence | Cash Collections & Payments Analytics | Recouply.ai',
+    description: 'Collection Intelligence analyzes payments behavior to predict risk, monitor collections health, optimize cash collections timing, and maximize accounts receivable recovery with AI automation.',
+    keywords: 'collection intelligence, cash collections analytics, accounts receivable, collections health, payments prediction, AI automation for receivables',
   },
   personas: {
     title: 'AI Agent Personas | Personalized Collection Outreach | Recouply.ai',
