@@ -77,9 +77,9 @@ export const PAGE_SEO = {
     keywords: 'stripe integration, quickbooks sync, cash collections integrations, accounts receivable sync, payments reconciliation, AI automation for receivables, collections health',
   },
   enterprise: {
-    title: 'Enterprise AR Automation | High-Volume Collection Intelligence | Recouply.ai',
-    description: 'Enterprise-grade accounts receivable automation. SOC 2 compliant, SSO, audit trails, and AI-powered collection intelligence for high-volume invoice management.',
-    keywords: 'enterprise AR automation, SOC 2 collection software, enterprise invoice management, high-volume accounts receivable',
+    title: 'Enterprise Cash Collections | AI Automation for Receivables | Recouply.ai',
+    description: 'Enterprise-grade accounts receivable and cash collections automation. SOC 2 compliant, SSO, audit trails, and AI automation for receivables with collections health monitoring.',
+    keywords: 'enterprise cash collections, accounts receivable enterprise, AI automation for receivables, collections health enterprise, payments automation, high-volume AR',
   },
   startups: {
     title: 'AR Automation for Startups | Grow Without Adding Finance Headcount | Recouply.ai',
