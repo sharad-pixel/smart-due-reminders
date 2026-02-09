@@ -164,7 +164,7 @@ export const generateSoftwareApplicationSchema = () => ({
   '@type': 'SoftwareApplication',
   name: SITE_CONFIG.siteName,
   applicationCategory: 'BusinessApplication',
-  applicationSubCategory: 'Accounts Receivable Automation',
+  applicationSubCategory: 'Cash Collections & Accounts Receivable Automation',
   operatingSystem: 'Web',
   description: SITE_CONFIG.description,
   offers: {
