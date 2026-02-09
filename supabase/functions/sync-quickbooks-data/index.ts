@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('quickbooks_realm_id, quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError || !profile?.quickbooks_realm_id) {
