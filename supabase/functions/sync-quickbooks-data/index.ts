@@ -689,7 +689,7 @@ Deno.serve(async (req) => {
               const { error: standaloneError } = await supabaseAdmin
                 .from('quickbooks_payments')
                 .upsert({
-                  user_id: user.id,
+                  user_id: userId,
                   debtor_id: debtorId,
                   invoice_id: null,
                   quickbooks_payment_id: payment.Id,
