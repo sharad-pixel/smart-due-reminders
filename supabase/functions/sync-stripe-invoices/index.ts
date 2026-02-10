@@ -776,11 +776,12 @@ Deno.serve(async (req) => {
                    const amountPaid = (paymentIntent.amount_received || 0) / 100;
                    const balanceAfter = (stripeInvoice.amount_remaining || 0) / 100;
 
-                   await supabaseClient
-                     .from('invoice_transactions')
-                     .insert({
-                       invoice_id: invoiceRecordId,
-                       user_id: effectiveAccountId,
+                    await supabaseClient
+                      .from('invoice_transactions')
+                      .insert({
+                        invoice_id: invoiceRecordId,
+                        user_id: effectiveAccountId,
+                        sync_log_id: syncLogId,
                        transaction_type: 'payment',
                        amount: amountPaid,
                        balance_after: balanceAfter,
