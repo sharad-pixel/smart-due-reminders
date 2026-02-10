@@ -34,6 +34,7 @@ import {
   SyncErrorBanner, 
   SyncHistoryDrawer, 
   SyncMetricCard,
+  LatestSyncResults,
   type SyncLogEntry 
 } from './sync';
 import stripeLogo from "@/assets/stripe-logo.png";
