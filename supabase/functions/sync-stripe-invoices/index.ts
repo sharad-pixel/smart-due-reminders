@@ -1087,6 +1087,9 @@ Deno.serve(async (req) => {
           invoices_terminal: terminalSkipped,
           paid_without_payment: paidWithoutPayment,
           customers_synced: createdDebtors,
+          new_invoices_created: newInvoicesCreated,
+          new_transactions_created: transactionsLogged,
+          updated_invoices_count: syncedCount - newInvoicesCreated,
           errors: errors.slice(0, 20)
         }).eq('id', syncLogId);
       } catch (e) {
