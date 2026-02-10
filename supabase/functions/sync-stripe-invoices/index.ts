@@ -821,11 +821,12 @@ Deno.serve(async (req) => {
                  if (!existingRefs.has(refundRef)) {
                    const refundAmount = (refund.amount || 0) / 100;
 
-                   await supabaseClient
-                     .from('invoice_transactions')
-                     .insert({
-                       invoice_id: invoiceRecordId,
-                       user_id: effectiveAccountId,
+                    await supabaseClient
+                      .from('invoice_transactions')
+                      .insert({
+                        invoice_id: invoiceRecordId,
+                        user_id: effectiveAccountId,
+                        sync_log_id: syncLogId,
                        transaction_type: 'refund',
                        amount: -refundAmount,
                        payment_method: 'refund',
