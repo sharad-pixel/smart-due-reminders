@@ -954,6 +954,7 @@ Deno.serve(async (req) => {
                   .insert({
                     invoice_id: invoiceRecordId,
                     user_id: effectiveAccountId,
+                    sync_log_id: syncLogId,
                     transaction_type: 'discount',
                     amount: -discountAmount,
                     payment_method: 'discount',
