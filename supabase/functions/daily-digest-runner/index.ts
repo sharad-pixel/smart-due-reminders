@@ -940,26 +940,30 @@ function generateEmailHtml(data: {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 16px; background-color: ${BRAND.background};">
     <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(59,130,246,0.08), 0 1px 3px rgba(0,0,0,0.04);">
     
-    <!-- Header with Brain Logo -->
-    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #1e40af 100%); padding: 24px 24px 20px; text-align: center;">
-      <div style="margin-bottom: 10px;">
+    <!-- Header with Recouply.ai Brand -->
+    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); padding: 28px 24px 24px; text-align: center;">
+      <!-- Logo Row -->
+      <div style="margin-bottom: 14px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
           <tr>
-            <td style="padding-right: 8px; vertical-align: middle;">
-              ${BRAIN_SVG_WHITE}
+            <td style="padding-right: 10px; vertical-align: middle;">
+              <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px; display: inline-block;">
+                ${BRAIN_SVG_WHITE}
+              </div>
             </td>
             <td style="vertical-align: middle;">
-              <span style="color: rgba(255,255,255,0.95); font-size: 17px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                Recouply.ai
+              <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Recouply<span style="color: rgba(255,255,255,0.7);">.ai</span>
               </span>
             </td>
           </tr>
         </table>
       </div>
-      <h1 style="color: white; margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <!-- Title -->
+      <h1 style="color: white; margin: 0 0 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         Daily Collections Health
       </h1>
-      <p style="color: rgba(255,255,255,0.65); margin: 0; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
       </p>
     </div>
