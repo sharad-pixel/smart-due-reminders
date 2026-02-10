@@ -119,23 +119,77 @@ const Integrations = () => {
         </div>
       </section>
 
-      {/* Integration Cards */}
+      {/* Stripe Section */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <IntegrationCard
-              logo={stripeLogo}
-              title="Stripe Integration"
-              description="Recouply.ai connects to Stripe to automatically sync customers, invoices, balances, and payments in real time. Your collections workflows stay continuously aligned with payment activity — without manual reconciliation."
-              highlights={[
-                "Auto-sync Stripe customers and invoices",
-                "Track open balances and partial payments",
-                "Reflect real-time payment updates",
-                "Maintain a complete audit trail",
-                "Reduce finance and ops overhead"
-              ]}
-              ctaText="Connect Stripe"
-            />
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
+                <img src={stripeLogo} alt="Stripe" className="h-7 w-7 object-contain" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold">Stripe</h2>
+            </div>
+            <p className="text-muted-foreground mb-8 max-w-2xl">
+              Connect once. Unpaid invoices are automatically monitored and actioned — zero manual follow-ups required.
+            </p>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-2xl">Stripe Integration</CardTitle>
+                <CardDescription className="text-base leading-relaxed">
+                  Recouply.ai connects to Stripe to automatically sync customers, invoices, balances, and payments in real time. Your collections workflows stay continuously aligned with payment activity — without manual reconciliation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Auto-sync Stripe customers and invoices",
+                    "Track open balances and partial payments",
+                    "Reflect real-time payment updates",
+                    "Maintain a complete audit trail",
+                    "Reduce finance and ops overhead",
+                  ].map((highlight, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <Zap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">Set it and forget it</p>
+                      <p className="text-sm text-muted-foreground">
+                        Once connected, AI orchestration runs continuously in the background. Every unpaid invoice automatically gets the right attention at the right time. You can step in manually anytime, but you don't need to.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Button className="gap-2" asChild>
+                  <Link to="/signup">
+                    Connect Stripe
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* QuickBooks Section */}
+      <section className="py-16 md:py-24 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
+                <img src={quickbooksLogo} alt="QuickBooks" className="h-7 w-7 object-contain" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold">QuickBooks Online</h2>
+            </div>
+            <p className="text-muted-foreground mb-8 max-w-2xl">
+              Make your accounting system the source of truth while Recouply.ai handles collections automatically.
+            </p>
             <IntegrationCard
               logo={quickbooksLogo}
               title="QuickBooks Online Integration"
@@ -145,10 +199,61 @@ const Integrations = () => {
                 "Track open, paid, and partially paid invoices",
                 "Keep balances aligned with QuickBooks",
                 "Eliminate CSV exports and manual uploads",
-                "Built with safeguards for reliable syncing"
+                "Built with safeguards for reliable syncing",
               ]}
               ctaText="Connect QuickBooks"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Other ERP / Custom Integrations Section */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Database className="h-6 w-6" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold">Other ERP & Custom Integrations</h2>
+            </div>
+            <p className="text-muted-foreground mb-8 max-w-2xl">
+              Running NetSuite, Sage, or another ERP? We're actively building schemas to capture daily activity across additional source systems.
+            </p>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-6">
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <FeatureBlock
+                    icon={Database}
+                    title="NetSuite (Coming Soon)"
+                    description="Dedicated schemas to ingest AR data from NetSuite environments"
+                  />
+                  <FeatureBlock
+                    icon={Database}
+                    title="Sage & Other ERPs"
+                    description="Expanding support for additional accounting and ERP platforms"
+                  />
+                  <FeatureBlock
+                    icon={FileCheck}
+                    title="CSV / Flat File Import"
+                    description="Upload AR aging data directly when a native integration isn't available yet"
+                  />
+                  <FeatureBlock
+                    icon={MessageSquare}
+                    title="Custom Integration Support"
+                    description="Talk to our team about connecting your specific billing or ERP system"
+                  />
+                </div>
+                <div className="mt-6">
+                  <Button variant="outline" className="gap-2" asChild>
+                    <Link to="/contact?intent=integration">
+                      Request a Custom Integration
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
