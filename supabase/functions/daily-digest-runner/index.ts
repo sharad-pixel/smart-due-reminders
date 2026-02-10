@@ -26,9 +26,11 @@ const BRAND = {
 };
 
 // Inline SVG brain icon for email (simplified path, email-safe)
-const BRAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#3b82f6;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
+const BRAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#3b82f6;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
 
-const BRAIN_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.9);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
+const BRAIN_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.95);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
+
+const BRAIN_SVG_FOOTER = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.7);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -938,26 +940,30 @@ function generateEmailHtml(data: {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 16px; background-color: ${BRAND.background};">
     <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 12px rgba(59,130,246,0.08), 0 1px 3px rgba(0,0,0,0.04);">
     
-    <!-- Header with Brain Logo -->
-    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #1e40af 100%); padding: 24px 24px 20px; text-align: center;">
-      <div style="margin-bottom: 10px;">
+    <!-- Header with Recouply.ai Brand -->
+    <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); padding: 28px 24px 24px; text-align: center;">
+      <!-- Logo Row -->
+      <div style="margin-bottom: 14px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
           <tr>
-            <td style="padding-right: 8px; vertical-align: middle;">
-              ${BRAIN_SVG_WHITE}
+            <td style="padding-right: 10px; vertical-align: middle;">
+              <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px; display: inline-block;">
+                ${BRAIN_SVG_WHITE}
+              </div>
             </td>
             <td style="vertical-align: middle;">
-              <span style="color: rgba(255,255,255,0.95); font-size: 17px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                Recouply.ai
+              <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Recouply<span style="color: rgba(255,255,255,0.7);">.ai</span>
               </span>
             </td>
           </tr>
         </table>
       </div>
-      <h1 style="color: white; margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <!-- Title -->
+      <h1 style="color: white; margin: 0 0 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         Daily Collections Health
       </h1>
-      <p style="color: rgba(255,255,255,0.65); margin: 0; font-size: 11.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
       </p>
     </div>
@@ -1103,27 +1109,45 @@ function generateEmailHtml(data: {
     </div>
     
     <!-- Footer -->
-    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); padding: 20px; text-align: center;">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%); padding: 28px 24px; text-align: center;">
+      <!-- Footer Logo -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 10px;">
         <tr>
-          <td style="padding-right: 6px; vertical-align: middle;">
-            ${BRAIN_SVG_WHITE}
+          <td style="padding-right: 8px; vertical-align: middle;">
+            ${BRAIN_SVG_FOOTER}
           </td>
           <td style="vertical-align: middle;">
-            <span style="color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 700; letter-spacing: -0.2px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              Recouply.ai
+            <span style="color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              Recouply<span style="color: rgba(255,255,255,0.5);">.ai</span>
             </span>
           </td>
         </tr>
       </table>
-      <p style="color: #93c5fd; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <p style="color: #93c5fd; margin: 0 0 12px; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         Accounts Receivable & Collection Intelligence Platform
       </p>
-      <p style="color: rgba(59,130,246,0.5); margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #93c5fd; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
-      </p>
-      <p style="color: rgba(59,130,246,0.4); margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        © ${new Date().getFullYear()} RecouplyAI Inc. · All rights reserved
+      <!-- Links -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 14px;">
+        <tr>
+          <td style="padding: 0 8px;">
+            <a href="https://recouply.ai/dashboard" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Dashboard</a>
+          </td>
+          <td style="color: rgba(255,255,255,0.2); font-size: 11px;">|</td>
+          <td style="padding: 0 8px;">
+            <a href="https://recouply.ai/settings" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Settings</a>
+          </td>
+          <td style="color: rgba(255,255,255,0.2); font-size: 11px;">|</td>
+          <td style="padding: 0 8px;">
+            <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Support</a>
+          </td>
+          <td style="color: rgba(255,255,255,0.2); font-size: 11px;">|</td>
+          <td style="padding: 0 8px;">
+            <a href="https://www.linkedin.com/company/recouplyai-inc" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">LinkedIn</a>
+          </td>
+        </tr>
+      </table>
+      <p style="color: rgba(255,255,255,0.3); margin: 0; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        © ${new Date().getFullYear()} RecouplyAI Inc. · Delaware, USA · All rights reserved
       </p>
     </div>
   </div>
@@ -1146,8 +1170,19 @@ function generateWelcomeEmailHtml(displayName: string): string {
       <td style="padding: 32px 20px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
           <tr>
-            <td style="padding: 24px 32px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px 12px 0 0;">
-              <span style="color: #ffffff; font-size: 20px; font-weight: 700;">Recouply.ai</span>
+            <td style="padding: 28px 32px; background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); border-radius: 12px 12px 0 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding-right: 10px; vertical-align: middle;">
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 6px; display: inline-block;">
+                      ${BRAIN_SVG_WHITE}
+                    </div>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Recouply<span style="color: rgba(255,255,255,0.7);">.ai</span></span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
@@ -1164,11 +1199,11 @@ function generateWelcomeEmailHtml(displayName: string): string {
                 I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our platform. <strong>You're on your way to CashOps Excellence!</strong>
               </p>
 
-              <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+              <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
                 <p style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">
                   🚀 Your Journey to CashOps Excellence Starts Now
                 </p>
-                <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
+                <p style="margin: 12px 0 0; color: rgba(255,255,255,0.7); font-size: 15px;">
                   Six AI agents are ready to transform your collections
                 </p>
               </div>

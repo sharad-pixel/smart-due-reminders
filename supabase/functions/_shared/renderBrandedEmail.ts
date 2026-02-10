@@ -281,9 +281,21 @@ function generateMinimalFooter(brand: BrandingConfig): string {
     
     <!-- Subtle Powered By Footer -->
     <tr>
-      <td style="padding: 16px 36px 24px; text-align: center;">
-        <p style="margin: 0; font-size: 10px; color: #9ca3af;">
-          Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a>
+      <td style="padding: 20px 36px 28px; text-align: center; background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); border-radius: 0 0 16px 16px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 6px;">
+          <tr>
+            <td style="padding-right: 6px; vertical-align: middle;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.5);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg>
+            </td>
+            <td style="vertical-align: middle;">
+              <span style="font-size: 11px; color: rgba(255,255,255,0.5); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Powered by <a href="https://recouply.ai" style="color: rgba(255,255,255,0.6); text-decoration: none; font-weight: 600;">Recouply.ai</a>
+              </span>
+            </td>
+          </tr>
+        </table>
+        <p style="margin: 0; font-size: 9px; color: rgba(255,255,255,0.25); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          Accounts Receivable & Collection Intelligence Platform
         </p>
       </td>
     </tr>
@@ -443,7 +455,16 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
     ${signatureHtml}
     ${footerHtml}
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
-      <p style="margin: 0; font-size: 10px; color: #9ca3af;">Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a></p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 4px;">
+        <tr>
+          <td style="padding-right: 5px; vertical-align: middle;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#9ca3af;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg>
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="font-size: 10px; color: #9ca3af;">Powered by <a href="https://recouply.ai" style="color: #6b7280; text-decoration: none; font-weight: 600;">Recouply.ai</a></span>
+          </td>
+        </tr>
+      </table>
     </div>
   </div>
 </body>
