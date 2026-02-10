@@ -913,11 +913,12 @@ Deno.serve(async (req) => {
                if (!existingRefs.has(cnRef)) {
                  const creditAmount = (creditNote.amount || 0) / 100;
 
-                 await supabaseClient
-                   .from('invoice_transactions')
-                   .insert({
-                     invoice_id: invoiceRecordId,
-                     user_id: effectiveAccountId,
+                  await supabaseClient
+                    .from('invoice_transactions')
+                    .insert({
+                      invoice_id: invoiceRecordId,
+                      user_id: effectiveAccountId,
+                      sync_log_id: syncLogId,
                      transaction_type: 'credit',
                      amount: -creditAmount,
                      payment_method: 'credit_note',
