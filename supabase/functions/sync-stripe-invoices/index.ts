@@ -699,6 +699,7 @@ Deno.serve(async (req) => {
           // New invoice - set initial override state
           invoiceData.has_local_overrides = false;
           invoiceData.override_count = 0;
+          invoiceData.is_new_from_sync = true;
 
           const { data: newInvoice, error: insertError } = await supabaseClient
             .from('invoices')
