@@ -1199,11 +1199,11 @@ function generateWelcomeEmailHtml(displayName: string): string {
                 I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our platform. <strong>You're on your way to CashOps Excellence!</strong>
               </p>
 
-              <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+              <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
                 <p style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">
                   🚀 Your Journey to CashOps Excellence Starts Now
                 </p>
-                <p style="margin: 12px 0 0; color: #93c5fd; font-size: 15px;">
+                <p style="margin: 12px 0 0; color: rgba(255,255,255,0.7); font-size: 15px;">
                   Six AI agents are ready to transform your collections
                 </p>
               </div>
