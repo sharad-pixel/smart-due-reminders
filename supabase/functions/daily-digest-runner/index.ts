@@ -1109,27 +1109,45 @@ function generateEmailHtml(data: {
     </div>
     
     <!-- Footer -->
-    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); padding: 20px; text-align: center;">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%); padding: 28px 24px; text-align: center;">
+      <!-- Footer Logo -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 10px;">
         <tr>
-          <td style="padding-right: 6px; vertical-align: middle;">
-            ${BRAIN_SVG_WHITE}
+          <td style="padding-right: 8px; vertical-align: middle;">
+            ${BRAIN_SVG_FOOTER}
           </td>
           <td style="vertical-align: middle;">
-            <span style="color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 700; letter-spacing: -0.2px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              Recouply.ai
+            <span style="color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              Recouply<span style="color: rgba(255,255,255,0.5);">.ai</span>
             </span>
           </td>
         </tr>
       </table>
-      <p style="color: #93c5fd; margin: 0 0 10px; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <p style="color: #93c5fd; margin: 0 0 12px; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         Accounts Receivable & Collection Intelligence Platform
       </p>
-      <p style="color: rgba(59,130,246,0.5); margin: 0 0 8px; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #93c5fd; text-decoration: none;">support@${INBOUND_EMAIL_DOMAIN}</a>
-      </p>
-      <p style="color: rgba(59,130,246,0.4); margin: 0; font-size: 9.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        © ${new Date().getFullYear()} RecouplyAI Inc. · All rights reserved
+      <!-- Links -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 14px;">
+        <tr>
+          <td style="padding: 0 8px;">
+            <a href="https://recouply.ai/dashboard" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Dashboard</a>
+          </td>
+          <td style="color: rgba(255,255,255,0.2); font-size: 11px;">|</td>
+          <td style="padding: 0 8px;">
+            <a href="https://recouply.ai/settings" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Settings</a>
+          </td>
+          <td style="color: rgba(255,255,255,0.2); font-size: 11px;">|</td>
+          <td style="padding: 0 8px;">
+            <a href="mailto:support@${INBOUND_EMAIL_DOMAIN}" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Support</a>
+          </td>
+          <td style="color: rgba(255,255,255,0.2); font-size: 11px;">|</td>
+          <td style="padding: 0 8px;">
+            <a href="https://www.linkedin.com/company/recouplyai-inc" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">LinkedIn</a>
+          </td>
+        </tr>
+      </table>
+      <p style="color: rgba(255,255,255,0.3); margin: 0; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        © ${new Date().getFullYear()} RecouplyAI Inc. · Delaware, USA · All rights reserved
       </p>
     </div>
   </div>
