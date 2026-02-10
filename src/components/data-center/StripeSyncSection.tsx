@@ -34,6 +34,7 @@ import {
   SyncErrorBanner, 
   SyncHistoryDrawer, 
   SyncMetricCard,
+  LatestSyncResults,
   type SyncLogEntry 
 } from './sync';
 import stripeLogo from "@/assets/stripe-logo.png";
@@ -341,6 +342,12 @@ export const StripeSyncSection = () => {
               onViewDetails={() => setHistoryOpen(true)}
             />
           )}
+
+          {/* Latest Sync Results - NEW items from this run */}
+          <LatestSyncResults
+            latestSyncLogId={latestSync?.id || null}
+            isLoading={logsLoading}
+          />
 
           {/* Auto-Sync Scheduler */}
           <AutoSyncScheduler integrationType="stripe" />

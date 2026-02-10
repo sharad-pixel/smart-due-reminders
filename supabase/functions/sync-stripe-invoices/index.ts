@@ -555,6 +555,7 @@ Deno.serve(async (req) => {
         const invoiceData: Record<string, any> = {
           user_id: effectiveAccountId,
           debtor_id: debtorId,
+          sync_log_id: syncLogId,
           invoice_number: stripeInvoice.number || stripeInvoice.id,
           amount: stripeAmount,
           amount_outstanding: (stripeInvoice.amount_remaining || 0) / 100,
@@ -698,6 +699,7 @@ Deno.serve(async (req) => {
           // New invoice - set initial override state
           invoiceData.has_local_overrides = false;
           invoiceData.override_count = 0;
+          invoiceData.is_new_from_sync = true;
 
           const { data: newInvoice, error: insertError } = await supabaseClient
             .from('invoices')
@@ -774,11 +776,12 @@ Deno.serve(async (req) => {
                    const amountPaid = (paymentIntent.amount_received || 0) / 100;
                    const balanceAfter = (stripeInvoice.amount_remaining || 0) / 100;
 
-                   await supabaseClient
-                     .from('invoice_transactions')
-                     .insert({
-                       invoice_id: invoiceRecordId,
-                       user_id: effectiveAccountId,
+                    await supabaseClient
+                      .from('invoice_transactions')
+                      .insert({
+                        invoice_id: invoiceRecordId,
+                        user_id: effectiveAccountId,
+                        sync_log_id: syncLogId,
                        transaction_type: 'payment',
                        amount: amountPaid,
                        balance_after: balanceAfter,
@@ -818,11 +821,12 @@ Deno.serve(async (req) => {
                  if (!existingRefs.has(refundRef)) {
                    const refundAmount = (refund.amount || 0) / 100;
 
-                   await supabaseClient
-                     .from('invoice_transactions')
-                     .insert({
-                       invoice_id: invoiceRecordId,
-                       user_id: effectiveAccountId,
+                    await supabaseClient
+                      .from('invoice_transactions')
+                      .insert({
+                        invoice_id: invoiceRecordId,
+                        user_id: effectiveAccountId,
+                        sync_log_id: syncLogId,
                        transaction_type: 'refund',
                        amount: -refundAmount,
                        payment_method: 'refund',
@@ -865,11 +869,12 @@ Deno.serve(async (req) => {
                  paymentTransactionDate = new Date(stripeInvoice.created * 1000).toISOString().split('T')[0];
                }
 
-               await supabaseClient
-                 .from('invoice_transactions')
-                 .insert({
-                   invoice_id: invoiceRecordId,
-                   user_id: effectiveAccountId,
+                await supabaseClient
+                  .from('invoice_transactions')
+                  .insert({
+                    invoice_id: invoiceRecordId,
+                    user_id: effectiveAccountId,
+                    sync_log_id: syncLogId,
                    transaction_type: 'payment',
                    amount: amountPaid,
                    balance_after: balanceAfter,
@@ -908,11 +913,12 @@ Deno.serve(async (req) => {
                if (!existingRefs.has(cnRef)) {
                  const creditAmount = (creditNote.amount || 0) / 100;
 
-                 await supabaseClient
-                   .from('invoice_transactions')
-                   .insert({
-                     invoice_id: invoiceRecordId,
-                     user_id: effectiveAccountId,
+                  await supabaseClient
+                    .from('invoice_transactions')
+                    .insert({
+                      invoice_id: invoiceRecordId,
+                      user_id: effectiveAccountId,
+                      sync_log_id: syncLogId,
                      transaction_type: 'credit',
                      amount: -creditAmount,
                      payment_method: 'credit_note',
@@ -948,6 +954,7 @@ Deno.serve(async (req) => {
                   .insert({
                     invoice_id: invoiceRecordId,
                     user_id: effectiveAccountId,
+                    sync_log_id: syncLogId,
                     transaction_type: 'discount',
                     amount: -discountAmount,
                     payment_method: 'discount',
@@ -978,6 +985,7 @@ Deno.serve(async (req) => {
                   .insert({
                     invoice_id: invoiceRecordId,
                     user_id: effectiveAccountId,
+                    sync_log_id: syncLogId,
                     transaction_type: 'write_off',
                     amount: -woAmount,
                     balance_after: 0,
@@ -1079,6 +1087,9 @@ Deno.serve(async (req) => {
           invoices_terminal: terminalSkipped,
           paid_without_payment: paidWithoutPayment,
           customers_synced: createdDebtors,
+          new_invoices_created: newInvoicesCreated,
+          new_transactions_created: transactionsLogged,
+          updated_invoices_count: syncedCount - newInvoicesCreated,
           errors: errors.slice(0, 20)
         }).eq('id', syncLogId);
       } catch (e) {
