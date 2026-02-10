@@ -869,11 +869,12 @@ Deno.serve(async (req) => {
                  paymentTransactionDate = new Date(stripeInvoice.created * 1000).toISOString().split('T')[0];
                }
 
-               await supabaseClient
-                 .from('invoice_transactions')
-                 .insert({
-                   invoice_id: invoiceRecordId,
-                   user_id: effectiveAccountId,
+                await supabaseClient
+                  .from('invoice_transactions')
+                  .insert({
+                    invoice_id: invoiceRecordId,
+                    user_id: effectiveAccountId,
+                    sync_log_id: syncLogId,
                    transaction_type: 'payment',
                    amount: amountPaid,
                    balance_after: balanceAfter,
