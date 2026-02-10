@@ -343,6 +343,12 @@ export const StripeSyncSection = () => {
             />
           )}
 
+          {/* Latest Sync Results - NEW items from this run */}
+          <LatestSyncResults
+            latestSyncLogId={latestSync?.id || null}
+            isLoading={logsLoading}
+          />
+
           {/* Auto-Sync Scheduler */}
           <AutoSyncScheduler integrationType="stripe" />
 
