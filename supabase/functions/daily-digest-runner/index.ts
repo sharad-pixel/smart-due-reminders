@@ -1170,8 +1170,19 @@ function generateWelcomeEmailHtml(displayName: string): string {
       <td style="padding: 32px 20px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
           <tr>
-            <td style="padding: 24px 32px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 12px 12px 0 0;">
-              <span style="color: #ffffff; font-size: 20px; font-weight: 700;">Recouply.ai</span>
+            <td style="padding: 28px 32px; background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); border-radius: 12px 12px 0 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding-right: 10px; vertical-align: middle;">
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 6px; display: inline-block;">
+                      ${BRAIN_SVG_WHITE}
+                    </div>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Recouply<span style="color: rgba(255,255,255,0.7);">.ai</span></span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
