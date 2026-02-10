@@ -4067,6 +4067,7 @@ export type Database = {
           reason: string | null
           reference_number: string | null
           source_system: string | null
+          sync_log_id: string | null
           transaction_date: string
           transaction_type: string
           user_id: string
@@ -4086,6 +4087,7 @@ export type Database = {
           reason?: string | null
           reference_number?: string | null
           source_system?: string | null
+          sync_log_id?: string | null
           transaction_date?: string
           transaction_type: string
           user_id: string
@@ -4105,6 +4107,7 @@ export type Database = {
           reason?: string | null
           reference_number?: string | null
           source_system?: string | null
+          sync_log_id?: string | null
           transaction_date?: string
           transaction_type?: string
           user_id?: string
@@ -4122,6 +4125,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_transactions_sync_log_id_fkey"
+            columns: ["sync_log_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_sync_log"
             referencedColumns: ["id"]
           },
         ]
@@ -4183,6 +4193,7 @@ export type Database = {
           invoice_number: string
           is_archived: boolean | null
           is_collectible: boolean | null
+          is_new_from_sync: boolean | null
           is_on_payment_plan: boolean | null
           is_overage: boolean | null
           issue_date: string
@@ -4219,6 +4230,7 @@ export type Database = {
           stripe_hosted_url: string | null
           stripe_invoice_id: string | null
           subtotal: number | null
+          sync_log_id: string | null
           tax_amount: number | null
           terminal_reason: string | null
           total_amount: number | null
@@ -4249,6 +4261,7 @@ export type Database = {
           invoice_number: string
           is_archived?: boolean | null
           is_collectible?: boolean | null
+          is_new_from_sync?: boolean | null
           is_on_payment_plan?: boolean | null
           is_overage?: boolean | null
           issue_date: string
@@ -4285,6 +4298,7 @@ export type Database = {
           stripe_hosted_url?: string | null
           stripe_invoice_id?: string | null
           subtotal?: number | null
+          sync_log_id?: string | null
           tax_amount?: number | null
           terminal_reason?: string | null
           total_amount?: number | null
@@ -4315,6 +4329,7 @@ export type Database = {
           invoice_number?: string
           is_archived?: boolean | null
           is_collectible?: boolean | null
+          is_new_from_sync?: boolean | null
           is_on_payment_plan?: boolean | null
           is_overage?: boolean | null
           issue_date?: string
@@ -4351,6 +4366,7 @@ export type Database = {
           stripe_hosted_url?: string | null
           stripe_invoice_id?: string | null
           subtotal?: number | null
+          sync_log_id?: string | null
           tax_amount?: number | null
           terminal_reason?: string | null
           total_amount?: number | null
@@ -4392,6 +4408,13 @@ export type Database = {
             columns: ["payment_plan_id"]
             isOneToOne: false
             referencedRelation: "payment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sync_log_id_fkey"
+            columns: ["sync_log_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_sync_log"
             referencedColumns: ["id"]
           },
         ]
@@ -6412,6 +6435,8 @@ export type Database = {
           invoices_terminal: number | null
           needs_attention_count: number | null
           needs_attention_details: Json | null
+          new_invoices_created: number | null
+          new_transactions_created: number | null
           paid_without_payment: number | null
           payments_synced: number | null
           records_failed: number | null
@@ -6422,6 +6447,7 @@ export type Database = {
           status: string | null
           sync_type: string
           synced_count: number | null
+          updated_invoices_count: number | null
           user_id: string
         }
         Insert: {
@@ -6435,6 +6461,8 @@ export type Database = {
           invoices_terminal?: number | null
           needs_attention_count?: number | null
           needs_attention_details?: Json | null
+          new_invoices_created?: number | null
+          new_transactions_created?: number | null
           paid_without_payment?: number | null
           payments_synced?: number | null
           records_failed?: number | null
@@ -6445,6 +6473,7 @@ export type Database = {
           status?: string | null
           sync_type: string
           synced_count?: number | null
+          updated_invoices_count?: number | null
           user_id: string
         }
         Update: {
@@ -6458,6 +6487,8 @@ export type Database = {
           invoices_terminal?: number | null
           needs_attention_count?: number | null
           needs_attention_details?: Json | null
+          new_invoices_created?: number | null
+          new_transactions_created?: number | null
           paid_without_payment?: number | null
           payments_synced?: number | null
           records_failed?: number | null
@@ -6468,6 +6499,7 @@ export type Database = {
           status?: string | null
           sync_type?: string
           synced_count?: number | null
+          updated_invoices_count?: number | null
           user_id?: string
         }
         Relationships: []
