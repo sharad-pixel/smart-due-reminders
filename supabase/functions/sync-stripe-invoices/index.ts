@@ -555,6 +555,7 @@ Deno.serve(async (req) => {
         const invoiceData: Record<string, any> = {
           user_id: effectiveAccountId,
           debtor_id: debtorId,
+          sync_log_id: syncLogId,
           invoice_number: stripeInvoice.number || stripeInvoice.id,
           amount: stripeAmount,
           amount_outstanding: (stripeInvoice.amount_remaining || 0) / 100,
