@@ -47,13 +47,33 @@ const ResetPassword = () => {
       return;
     }
 
-    // Listen for PASSWORD_RECOVERY event from Supabase auth
+    // Check for token_hash in query params (direct token-based flow)
+    const searchParams = new URLSearchParams(window.location.search);
+    const tokenHash = searchParams.get('token_hash');
+    const type = searchParams.get('type');
+
+    if (tokenHash && type === 'recovery') {
+      // Verify the token directly — bypasses Supabase redirect URL restrictions
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Token verification failed:", error.message);
+            toast.error("Invalid or expired reset link. Please request a new one.");
+            navigate("/login");
+          } else if (data.session) {
+            setIsValidSession(true);
+            setChecking(false);
+          }
+        });
+      return;
+    }
+
+    // Listen for PASSWORD_RECOVERY event from Supabase auth (legacy hash-based flow)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsValidSession(true);
         setChecking(false);
       } else if (event === 'SIGNED_IN' && session) {
-        // User might already have a recovery session
         setIsValidSession(true);
         setChecking(false);
       }
@@ -64,7 +84,6 @@ const ResetPassword = () => {
       if (session) {
         setIsValidSession(true);
       } else {
-        // Give a short delay for the auth state change to fire
         setTimeout(() => {
           setChecking(false);
         }, 1500);
