@@ -45,9 +45,6 @@ serve(async (req) => {
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: email,
-      options: {
-        redirectTo: redirectTo || `https://recouply.ai/auth/reset-password`,
-      },
     });
 
     if (linkError) {
@@ -59,15 +56,19 @@ serve(async (req) => {
       );
     }
 
-    const resetLink = linkData?.properties?.action_link;
+    const tokenHash = linkData?.properties?.hashed_token;
     
-    if (!resetLink) {
-      console.log("No reset link generated - email may not exist");
+    if (!tokenHash) {
+      console.log("No token generated - email may not exist");
       return new Response(
         JSON.stringify({ success: true, message: "If an account exists, a reset link will be sent" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Build reset link directly to the app with token_hash (bypasses Supabase redirect URL restrictions)
+    const baseUrl = redirectTo || "https://recouply.ai/auth/reset-password";
+    const resetLink = `${baseUrl}?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
 
     // Create Recouply.ai branded email content with site colors
     const branding: BrandingSettings = {
