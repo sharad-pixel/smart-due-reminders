@@ -7,23 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
-
-// Recouply.ai Platform Brand Colors – aligned with site design system
-const BRAND = {
-  primary: '#3b82f6',      // Blue – platform primary (HSL 217 91% 60%)
-  primaryLight: '#60a5fa', // Light blue
-  primaryDark: '#1d4ed8',  // Deep blue
-  accent: '#22c55e',       // Green – platform accent (HSL 142 71% 45%)
-  accentDark: '#16a34a',   // Deep green
-  warning: '#f59e0b',      // Amber
-  destructive: '#ef4444',  // Red – platform destructive
-  background: '#f8fafc',   // Slate-50
-  foreground: '#1e293b',   // Slate-800 – strong readability
-  muted: '#64748b',        // Slate-500
-  cardBg: '#ffffff',
-  border: '#e2e8f0',       // Slate-200
-  surfaceLight: '#f1f5f9', // Slate-100
-};
+import { BRAND, BRAIN_SVG_WHITE, BRAIN_SVG_FOOTER, enterpriseFooter } from "../_shared/enterpriseEmailTemplate.ts";
 
 // Inline SVG brain icon for email (simplified path, email-safe)
 const BRAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#3b82f6;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
@@ -953,7 +937,7 @@ function generateEmailHtml(data: {
             </td>
             <td style="vertical-align: middle;">
               <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                Recouply<span style="color: rgba(255,255,255,0.7);">.ai</span>
+                Recouply<span style="color: #22c55e;">.ai</span>
               </span>
             </td>
           </tr>
@@ -1118,7 +1102,7 @@ function generateEmailHtml(data: {
           </td>
           <td style="vertical-align: middle;">
             <span style="color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              Recouply<span style="color: rgba(255,255,255,0.5);">.ai</span>
+              Recouply<span style="color: #22c55e;">.ai</span>
             </span>
           </td>
         </tr>
@@ -1179,7 +1163,7 @@ function generateWelcomeEmailHtml(displayName: string): string {
                     </div>
                   </td>
                   <td style="vertical-align: middle;">
-                    <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Recouply<span style="color: rgba(255,255,255,0.7);">.ai</span></span>
+                    <span style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Recouply<span style="color: #22c55e;">.ai</span></span>
                   </td>
                 </tr>
               </table>

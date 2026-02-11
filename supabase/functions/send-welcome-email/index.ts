@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { wrapEmailContent, generateEmailSignature } from "../_shared/emailSignature.ts";
+import { wrapEnterpriseEmail, BRAND } from "../_shared/enterpriseEmailTemplate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +15,6 @@ interface WelcomeEmailRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -41,7 +40,6 @@ serve(async (req) => {
     if (supabaseUrl && supabaseServiceKey) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
-      // Try to find the user by email to check if welcome email was already sent
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, welcome_email_sent_at')
@@ -59,38 +57,37 @@ serve(async (req) => {
 
     const displayName = userName || companyName || "there";
 
-    // Build email body content with Collection Intelligence branding
     const bodyContent = `
-      <h2 style="margin: 0 0 24px; color: #1e293b; font-size: 26px; font-weight: 700;">
+      <h2 style="margin: 0 0 24px; color: ${BRAND.foreground}; font-size: 22px; font-weight: 700;">
         🎉 Welcome to Collection Intelligence!
       </h2>
       
-      <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+      <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
         Hi ${displayName},
       </p>
 
-      <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+      <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
         I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Collection Intelligence Platform. <strong>You're about to transform how you manage receivables.</strong>
       </p>
 
-      <div style="background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
-        <p style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">
+      <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 100%); border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+        <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
           🚀 Your Collection Intelligence Journey Starts Now
         </p>
-        <p style="margin: 12px 0 0; color: rgba(255, 255, 255, 0.9); font-size: 15px;">
+        <p style="margin: 10px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 14px;">
           Six AI agents are ready to transform your collections
         </p>
       </div>
 
-      <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7;">
+      <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
         At Recouply.ai, we believe that managing receivables shouldn't be a headache. Our AI-powered Collection Intelligence Platform handles collections intelligently, preserves customer relationships, and accelerates your cash flow.
       </p>
 
-      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 24px; margin: 24px 0; border: 1px solid #86efac;">
-        <h3 style="margin: 0 0 16px; color: #166534; font-size: 18px; font-weight: 600;">
+      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 10px; padding: 20px; margin: 24px 0; border: 1px solid #86efac;">
+        <h3 style="margin: 0 0 14px; color: #166534; font-size: 16px; font-weight: 600;">
           🤖 What Makes Recouply Different
         </h3>
-        <ul style="margin: 0; padding: 0 0 0 20px; color: #15803d; font-size: 15px; line-height: 2;">
+        <ul style="margin: 0; padding: 0 0 0 18px; color: #15803d; font-size: 14px; line-height: 2;">
           <li><strong>Six specialized AI agents</strong> working 24/7 on your collections</li>
           <li><strong>Risk-aware automation</strong> based on payment behavior intelligence</li>
           <li><strong>Human-in-the-loop AI</strong> — messages reviewed before sending</li>
@@ -99,56 +96,53 @@ serve(async (req) => {
         </ul>
       </div>
 
-      <h3 style="margin: 24px 0 16px; color: #1e293b; font-size: 18px; font-weight: 600;">
+      <h3 style="margin: 24px 0 14px; color: ${BRAND.foreground}; font-size: 16px; font-weight: 600;">
         🎯 Get Started in 3 Easy Steps
       </h3>
-      <ol style="margin: 0; padding: 0 0 0 20px; color: #475569; font-size: 15px; line-height: 2.2;">
+      <ol style="margin: 0; padding: 0 0 0 18px; color: #475569; font-size: 14px; line-height: 2.2;">
         <li><strong>Import your accounts & invoices</strong> — Upload via Data Center or add manually</li>
         <li><strong>Let AI configure your workflows</strong> — Automatic persona assignment by aging bucket</li>
         <li><strong>Watch your recovery improve</strong> — Act earlier, recover smarter</li>
       </ol>
 
-      <div style="text-align: center; margin: 32px 0;">
-        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.accent} 0%, ${BRAND.accentDark} 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
           Go to Dashboard →
         </a>
       </div>
 
-      <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
-        <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 14px; margin: 24px 0;">
+        <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.6;">
           <strong>💡 Pro Tip:</strong> You'll receive a Daily Collections Health Digest every morning with key metrics, AI insights, and recommended actions to keep your cash flow healthy.
         </p>
       </div>
 
-      <p style="margin: 24px 0; color: #475569; font-size: 15px; line-height: 1.7;">
+      <p style="margin: 24px 0; color: #475569; font-size: 14px; line-height: 1.7;">
         I personally read every response. If you have questions, feedback, or just want to chat about your collections strategy, hit reply — I'd love to hear from you.
       </p>
 
-      <p style="margin: 0 0 8px; color: #475569; font-size: 15px; line-height: 1.7;">
+      <p style="margin: 0 0 8px; color: #475569; font-size: 14px; line-height: 1.7;">
         Here's to getting paid on time, every time. ✨
       </p>
 
-      <div style="margin: 28px 0 0; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-        <p style="margin: 0; color: #1e293b; font-size: 16px; font-weight: 600;">
+      <div style="margin: 24px 0 0; padding-top: 18px; border-top: 1px solid ${BRAND.border};">
+        <p style="margin: 0; color: ${BRAND.foreground}; font-size: 15px; font-weight: 600;">
           Sharad Chanana
         </p>
-        <p style="margin: 4px 0 0; color: #64748b; font-size: 14px;">
+        <p style="margin: 4px 0 0; color: ${BRAND.muted}; font-size: 13px;">
           Founder & CEO, Recouply.ai
         </p>
-        <p style="margin: 4px 0 0; color: #3b82f6; font-size: 13px; font-style: italic;">
+        <p style="margin: 4px 0 0; color: ${BRAND.primary}; font-size: 12px; font-style: italic;">
           "Collect Your Money. Intelligently."
         </p>
       </div>
     `;
 
-    // Use shared branding wrapper with site colors
-    const branding = {
-      business_name: "Recouply.ai",
-      from_name: "Sharad Chanana",
-      primary_color: "#3b82f6"
-    };
-
-    const htmlContent = wrapEmailContent(bodyContent, branding);
+    const htmlContent = wrapEnterpriseEmail(bodyContent, {
+      headerStyle: 'gradient',
+      title: 'Welcome!',
+      subtitle: 'Your Collection Intelligence Platform awaits',
+    });
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -194,7 +188,6 @@ serve(async (req) => {
 
       // Create in-app welcome alert for the new user
       if (userId) {
-        // Get user's organization_id from profile
         const { data: userProfile } = await supabase
           .from('profiles')
           .select('organization_id')
