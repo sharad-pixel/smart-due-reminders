@@ -336,7 +336,7 @@ serve(async (req) => {
         });
 
         // Render branded HTML email
-        const htmlEmail = renderBrandedEmail({
+        const htmlEmail = renderEmail({
           brand: brandingConfig,
           subject: subject,
           bodyHtml: body.replace(/\n/g, '<br>'),

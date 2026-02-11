@@ -700,7 +700,7 @@ Deno.serve(async (req) => {
         let processedBody = replaceTemplateVars(draft.message_body || '', {}, debtor, branding, 0);
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
-        const emailHtml = renderBrandedEmail({
+        const emailHtml = renderEmail({
           brand: brandingConfig,
           subject: processedSubject,
           bodyHtml: processedBody.replace(/\n/g, '<br>'),
