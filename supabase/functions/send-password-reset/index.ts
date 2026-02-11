@@ -46,7 +46,7 @@ serve(async (req) => {
       type: "recovery",
       email: email,
       options: {
-        redirectTo: redirectTo || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth/reset-password`,
+        redirectTo: redirectTo || `https://recouply.ai/auth/reset-password`,
       },
     });
 

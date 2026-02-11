@@ -49,6 +49,7 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
     '/signup',
     '/auth',
     '/reset-password',
+    '/auth/reset-password',
     '/accept-invite',
     '/legal',
     '/terms',
