@@ -245,17 +245,14 @@ serve(async (req) => {
       );
     }
 
-    // Send emails to all eligible leads
+    // Send emails to all eligible leads with rate limiting (Resend allows 2/sec)
     let sentCount = 0;
     let failedCount = 0;
-    const batchSize = 10;
 
-    for (let i = 0; i < eligibleLeads.length; i += batchSize) {
-      const batch = eligibleLeads.slice(i, i + batchSize);
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-      await Promise.all(
-        batch.map(async (lead) => {
-          try {
+    for (const lead of eligibleLeads) {
+      try {
             const personalizedSubject = (emailTemplate.subject || "").replace(/\{\{user_name\}\}/g, lead.name || "there");
             const unsubscribeUrl = lead.unsubscribe_token
               ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${lead.unsubscribe_token}`
@@ -266,7 +263,6 @@ serve(async (req) => {
             const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
               generateComplianceFooterText(unsubscribeUrl);
 
-            // Direct fetch for internal function-to-function calls
             const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
               method: "POST",
               headers: {
@@ -281,13 +277,17 @@ serve(async (req) => {
                 text: personalizedText,
               }),
             });
-            
-            const sendError = !sendEmailResponse.ok ? await sendEmailResponse.json() : null;
 
-            if (sendError) {
+            if (!sendEmailResponse.ok) {
+              const sendError = await sendEmailResponse.json();
               console.error(`Failed to send to ${lead.email}:`, sendError);
               failedCount++;
-              return;
+              // Wait before retrying on rate limit
+              if (sendError?.details?.statusCode === 429) {
+                await delay(2000);
+              }
+              await delay(600);
+              continue;
             }
 
             // Update lead progress
@@ -306,7 +306,6 @@ serve(async (req) => {
                 updateData.status = "completed";
               }
 
-              // Calculate next send date (3 or 4 days for next step)
               if (targetStep < 2) {
                 const nextDays = targetStep === 0 ? 3 : 4;
                 const nextSendDate = new Date();
@@ -321,7 +320,6 @@ serve(async (req) => {
                 .update(updateData)
                 .eq("id", progress.id);
             } else {
-              // Create new progress record
               const nextSendDate = new Date();
               nextSendDate.setDate(nextSendDate.getDate() + 3);
 
@@ -337,24 +335,19 @@ serve(async (req) => {
                 });
             }
 
-            // Update lead's last_engaged_at
             await supabase
               .from("marketing_leads")
               .update({ last_engaged_at: now })
               .eq("id", lead.id);
 
             sentCount++;
-          } catch (err) {
+      } catch (err) {
             console.error(`Error sending to ${lead.email}:`, err);
             failedCount++;
-          }
-        })
-      );
-
-      // Small delay between batches
-      if (i + batchSize < eligibleLeads.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
       }
+
+      // Throttle: 600ms between sends to stay under Resend's 2/sec limit
+      await delay(600);
     }
 
     // Update campaign stats
