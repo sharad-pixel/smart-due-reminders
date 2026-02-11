@@ -22,10 +22,12 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Search,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface LatestSyncResultsProps {
   latestSyncLogId: string | null;
@@ -108,9 +110,15 @@ const getStatusBadge = (status: string) => {
   );
 };
 
+const DEFAULT_VISIBLE = 5;
+
 export const LatestSyncResults = ({ latestSyncLogId, isLoading }: LatestSyncResultsProps) => {
   const [showInvoices, setShowInvoices] = useState(true);
   const [showTransactions, setShowTransactions] = useState(true);
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [txSearch, setTxSearch] = useState('');
+  const [showAllInvoices, setShowAllInvoices] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   // Fetch new invoices from this sync run
   const { data: newInvoices, isLoading: invoicesLoading } = useQuery({
@@ -146,6 +154,40 @@ export const LatestSyncResults = ({ latestSyncLogId, isLoading }: LatestSyncResu
     },
     enabled: !!latestSyncLogId,
   });
+
+  // Filtered & sliced invoices
+  const filteredInvoices = useMemo(() => {
+    if (!newInvoices) return [];
+    if (!invoiceSearch.trim()) return newInvoices;
+    const q = invoiceSearch.toLowerCase();
+    return newInvoices.filter(inv =>
+      inv.invoice_number?.toLowerCase().includes(q) ||
+      inv.debtor?.company_name?.toLowerCase().includes(q) ||
+      inv.status?.toLowerCase().includes(q) ||
+      inv.amount.toString().includes(q)
+    );
+  }, [newInvoices, invoiceSearch]);
+
+  const visibleInvoices = showAllInvoices ? filteredInvoices : filteredInvoices.slice(0, DEFAULT_VISIBLE);
+  const hasMoreInvoices = filteredInvoices.length > DEFAULT_VISIBLE;
+
+  // Filtered & sliced transactions
+  const filteredTransactions = useMemo(() => {
+    if (!newTransactions) return [];
+    if (!txSearch.trim()) return newTransactions;
+    const q = txSearch.toLowerCase();
+    return newTransactions.filter(tx =>
+      tx.transaction_type?.toLowerCase().includes(q) ||
+      tx.invoice?.invoice_number?.toLowerCase().includes(q) ||
+      tx.invoice?.debtor?.company_name?.toLowerCase().includes(q) ||
+      tx.reference_number?.toLowerCase().includes(q) ||
+      tx.reason?.toLowerCase().includes(q) ||
+      tx.amount.toString().includes(q)
+    );
+  }, [newTransactions, txSearch]);
+
+  const visibleTransactions = showAllTransactions ? filteredTransactions : filteredTransactions.slice(0, DEFAULT_VISIBLE);
+  const hasMoreTransactions = filteredTransactions.length > DEFAULT_VISIBLE;
 
   if (isLoading || invoicesLoading || transactionsLoading) {
     return (
@@ -215,41 +257,79 @@ export const LatestSyncResults = ({ latestSyncLogId, isLoading }: LatestSyncResu
             {showInvoices ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {showInvoices && (
-            <div className="max-h-[250px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[60px]"></TableHead>
-                    <TableHead>Invoice #</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Due Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {newInvoices?.map((inv) => (
-                    <TableRow key={inv.id}>
-                      <TableCell>
-                        {inv.is_new_from_sync ? (
-                          <Badge className="bg-green-100 text-green-700 border-green-300 text-[10px] px-1.5">NEW</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] px-1.5">UPD</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
-                      <TableCell className="text-sm">{inv.debtor?.company_name || 'Unknown'}</TableCell>
-                      <TableCell>{getStatusBadge(inv.status)}</TableCell>
-                      <TableCell className="text-right font-medium text-sm">
-                        ${inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(inv.due_date), 'MMM d, yyyy')}
-                      </TableCell>
+            <div>
+              {/* Search bar */}
+              {(newInvoices?.length || 0) > DEFAULT_VISIBLE && (
+                <div className="p-2 border-b bg-muted/10">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search invoices..."
+                      value={invoiceSearch}
+                      onChange={(e) => { setInvoiceSearch(e.target.value); setShowAllInvoices(true); }}
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60px]"></TableHead>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Due Date</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleInvoices.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell>
+                          {inv.is_new_from_sync ? (
+                            <Badge className="bg-green-100 text-green-700 border-green-300 text-[10px] px-1.5">NEW</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] px-1.5">UPD</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
+                        <TableCell className="text-sm">{inv.debtor?.company_name || 'Unknown'}</TableCell>
+                        <TableCell>{getStatusBadge(inv.status)}</TableCell>
+                        <TableCell className="text-right font-medium text-sm">
+                          ${inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {format(new Date(inv.due_date), 'MMM d, yyyy')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredInvoices.length === 0 && invoiceSearch && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-4">
+                          No invoices match "{invoiceSearch}"
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Show more / less */}
+              {hasMoreInvoices && !invoiceSearch && (
+                <div className="p-2 border-t bg-muted/10 text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllInvoices(!showAllInvoices)}
+                    className="text-xs h-7"
+                  >
+                    {showAllInvoices
+                      ? `Show less`
+                      : `Show all ${filteredInvoices.length} invoices`}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -269,42 +349,80 @@ export const LatestSyncResults = ({ latestSyncLogId, isLoading }: LatestSyncResu
             {showTransactions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {showTransactions && (
-            <div className="max-h-[250px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Type</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {newTransactions?.map((tx) => (
-                    <TableRow key={tx.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {getTransactionIcon(tx.transaction_type)}
-                          {getTransactionBadge(tx.transaction_type)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {tx.invoice?.invoice_number || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {tx.invoice?.debtor?.company_name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-sm">
-                        ${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
-                      </TableCell>
+            <div>
+              {/* Search bar */}
+              {txCount > DEFAULT_VISIBLE && (
+                <div className="p-2 border-b bg-muted/10">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search transactions..."
+                      value={txSearch}
+                      onChange={(e) => { setTxSearch(e.target.value); setShowAllTransactions(true); }}
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Type</TableHead>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Date</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleTransactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            {getTransactionIcon(tx.transaction_type)}
+                            {getTransactionBadge(tx.transaction_type)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {tx.invoice?.invoice_number || 'Unknown'}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {tx.invoice?.debtor?.company_name || 'Unknown'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-sm">
+                          ${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredTransactions.length === 0 && txSearch && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-4">
+                          No transactions match "{txSearch}"
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Show more / less */}
+              {hasMoreTransactions && !txSearch && (
+                <div className="p-2 border-t bg-muted/10 text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllTransactions(!showAllTransactions)}
+                    className="text-xs h-7"
+                  >
+                    {showAllTransactions
+                      ? `Show less`
+                      : `Show all ${filteredTransactions.length} transactions`}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

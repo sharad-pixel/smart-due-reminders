@@ -10,7 +10,7 @@ interface ImportRow {
   invoice_number?: string;
   customer_name?: string;
   customer_email?: string;
-  customer_id?: string; // Source System Customer ID - primary matching key
+  customer_id?: string;
   amount: number;
   currency: string;
   issue_date?: string;
@@ -19,6 +19,25 @@ interface ImportRow {
   source_system?: string;
   product_description?: string;
   notes?: string;
+}
+
+// Retry helper with exponential backoff
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 200): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      if (attempt === maxRetries) throw err;
+      // Only retry on transient errors (timeouts, rate limits, connection issues)
+      const code = err?.code || '';
+      const status = err?.status || 0;
+      const isTransient = status === 429 || status >= 500 || code === '40001' || code === 'PGRST301' || err.message?.includes('timeout');
+      if (!isTransient) throw err;
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw new Error('Retry exhausted');
 }
 
 Deno.serve(async (req) => {
@@ -30,121 +49,102 @@ Deno.serve(async (req) => {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
+      { auth: { persistSession: false } }
     );
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
+    if (!authHeader) throw new Error('No authorization header');
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
+    if (authError || !user) throw new Error('Unauthorized');
 
     const { job_id, rows, mode } = await req.json();
+    if (!job_id || !rows || !mode) throw new Error('Missing required fields: job_id, rows, mode');
 
-    if (!job_id || !rows || !mode) {
-      throw new Error('Missing required fields: job_id, rows, mode');
-    }
-
-    console.log(`Processing import job ${job_id} with ${rows.length} rows in ${mode} mode`);
+    const totalRows = rows.length;
+    console.log(`Processing import job ${job_id}: ${totalRows} rows in ${mode} mode`);
 
     let successCount = 0;
     let errorCount = 0;
-    const BATCH_SIZE = 100;
+    const SERVER_BATCH_SIZE = 50; // Smaller server batches for memory efficiency
+    const PROGRESS_INTERVAL = 100; // Update progress every N rows
 
-    // Process in batches
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
-      
+    // Cache debtor lookups to avoid repeated queries for same customer
+    const debtorCache = new Map<string, string>();
+
+    // Update job to running
+    await supabase
+      .from('invoice_import_jobs')
+      .update({ status: 'RUNNING' })
+      .eq('id', job_id);
+
+    for (let i = 0; i < totalRows; i += SERVER_BATCH_SIZE) {
+      const batch = rows.slice(i, i + SERVER_BATCH_SIZE);
+
       for (let j = 0; j < batch.length; j++) {
         const row: ImportRow = batch[j];
-        const rowNumber = i + j + 2; // +2 for header row and 0-indexing
+        const rowNumber = i + j + 2;
 
         try {
-          // Find or create debtor
-          // Priority: 1. Source System Customer ID, 2. Company Name (NOT email to avoid duplicates)
-          let debtorId: string | null = null;
+          // --- Find or create debtor (with cache) ---
+          const cacheKey = row.customer_id || row.customer_name || row.customer_email || '';
+          let debtorId = debtorCache.get(cacheKey) || null;
 
-          // First try matching by Source System Customer ID (external_customer_id)
-          if (row.customer_id) {
-            const { data: existingDebtor } = await supabase
-              .from('debtors')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('external_customer_id', row.customer_id)
-              .single();
-
-            if (existingDebtor) {
-              debtorId = existingDebtor.id;
-            }
+          if (!debtorId && row.customer_id) {
+            const { data: existing } = await withRetry(() =>
+              supabase.from('debtors').select('id').eq('user_id', user.id).eq('external_customer_id', row.customer_id!).single()
+            );
+            if (existing) debtorId = existing.id;
           }
 
-          // Then try by company name (NOT email to avoid duplicates)
           if (!debtorId && row.customer_name) {
-            const { data: existingDebtor } = await supabase
-              .from('debtors')
-              .select('id')
-              .eq('user_id', user.id)
-              .ilike('company_name', row.customer_name)
-              .single();
-
-            if (existingDebtor) {
-              debtorId = existingDebtor.id;
-            }
+            const { data: existing } = await withRetry(() =>
+              supabase.from('debtors').select('id').eq('user_id', user.id).ilike('company_name', row.customer_name!).single()
+            );
+            if (existing) debtorId = existing.id;
           }
 
-          // Create debtor if not found - with Source System ID and RAID
           if (!debtorId) {
             const newRaid = `RAID-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-            const { data: newDebtor, error: debtorError } = await supabase
-              .from('debtors')
-              .insert({
+            const { data: newDebtor, error: debtorError } = await withRetry(() =>
+              supabase.from('debtors').insert({
                 user_id: user.id,
                 name: row.customer_name || 'Unknown Customer',
                 company_name: row.customer_name || 'Unknown Company',
-                email: row.customer_email || `unknown-${Date.now()}@placeholder.com`,
-                external_customer_id: row.customer_id || null, // Source System Customer ID
+                email: row.customer_email || `unknown-${Date.now()}-${Math.random().toString(36).substring(7)}@placeholder.com`,
+                external_customer_id: row.customer_id || null,
                 external_system: row.source_system || 'csv_upload',
                 integration_source: 'csv_upload',
-                reference_id: newRaid, // Auto-generated RAID
-              })
-              .select('id')
-              .single();
-
+                reference_id: newRaid,
+              }).select('id').single()
+            );
             if (debtorError) throw debtorError;
             debtorId = newDebtor.id;
-            
-            // Create contact entry
+
+            // Create contact entry (non-blocking)
             if (row.customer_email) {
-              await supabase
-                .from('debtor_contacts')
-                .insert({
-                  debtor_id: debtorId,
-                  user_id: user.id,
-                  name: row.customer_name || 'Unknown',
-                  email: row.customer_email,
-                  is_primary: true,
-                  outreach_enabled: true
-                });
+              supabase.from('debtor_contacts').insert({
+                debtor_id: debtorId,
+                user_id: user.id,
+                name: row.customer_name || 'Unknown',
+                email: row.customer_email,
+                is_primary: true,
+                outreach_enabled: true,
+              }).then(() => {});
             }
           }
 
-          // Prepare invoice data
+          // Cache the debtor for subsequent rows with same customer
+          if (cacheKey) debtorCache.set(cacheKey, debtorId!);
+
+          // --- Upsert invoice ---
           const invoiceData: any = {
             user_id: user.id,
             debtor_id: debtorId,
             external_invoice_id: row.external_invoice_id,
-            invoice_number: row.invoice_number || row.external_invoice_id, // Use provided internal invoice # or fall back to external ID
+            invoice_number: row.invoice_number || row.external_invoice_id,
             amount: parseFloat(row.amount.toString()),
             currency: row.currency || 'USD',
             issue_date: row.issue_date || new Date().toISOString().split('T')[0],
@@ -160,44 +160,28 @@ Deno.serve(async (req) => {
           let isNewInvoice = false;
 
           if (mode === 'UPSERT_BY_EXTERNAL_INVOICE_ID') {
-            // Try to find existing invoice
-            const { data: existing } = await supabase
-              .from('invoices')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('external_invoice_id', row.external_invoice_id)
-              .single();
+            const { data: existing } = await withRetry(() =>
+              supabase.from('invoices').select('id').eq('user_id', user.id).eq('external_invoice_id', row.external_invoice_id).single()
+            );
 
             if (existing) {
-              // Update existing
-              const { error: updateError } = await supabase
-                .from('invoices')
-                .update(invoiceData)
-                .eq('id', existing.id);
-
-              if (updateError) throw updateError;
+              await withRetry(() =>
+                supabase.from('invoices').update(invoiceData).eq('id', existing.id).then(r => { if (r.error) throw r.error; return r; })
+              );
             } else {
-              // Insert new
-              const { data: newInvoice, error: insertError } = await supabase
-                .from('invoices')
-                .insert(invoiceData)
-                .select('id')
-                .single();
-
+              const { data: newInvoice, error: insertError } = await withRetry(() =>
+                supabase.from('invoices').insert(invoiceData).select('id').single()
+              );
               if (insertError) throw insertError;
               createdInvoiceId = newInvoice?.id;
               isNewInvoice = true;
             }
           } else {
-            // INSERT_ONLY mode
-            const { data: newInvoice, error: insertError } = await supabase
-              .from('invoices')
-              .insert(invoiceData)
-              .select('id')
-              .single();
-
+            const { data: newInvoice, error: insertError } = await withRetry(() =>
+              supabase.from('invoices').insert(invoiceData).select('id').single()
+            );
             if (insertError) {
-              if (insertError.code === '23505') { // Unique constraint violation
+              if (insertError.code === '23505') {
                 throw new Error(`Duplicate invoice ID: ${row.external_invoice_id}`);
               }
               throw insertError;
@@ -206,34 +190,42 @@ Deno.serve(async (req) => {
             isNewInvoice = true;
           }
 
-          // Track invoice usage for new invoices
+          // Track usage (non-blocking)
           if (isNewInvoice && createdInvoiceId) {
-            try {
-              await supabase.functions.invoke('track-invoice-usage', {
-                body: { invoice_id: createdInvoiceId }
-              });
-            } catch (usageError: any) {
-              console.log(`Usage tracking error (non-blocking):`, usageError?.message);
-            }
+            supabase.functions.invoke('track-invoice-usage', {
+              body: { invoice_id: createdInvoiceId },
+            }).catch(e => console.log('Usage tracking (non-blocking):', e?.message));
           }
 
           successCount++;
         } catch (error: any) {
-          console.error(`Error processing row ${rowNumber}:`, error);
+          console.error(`Row ${rowNumber} error:`, error?.message);
           errorCount++;
 
-          // Log error
-          await supabase.from('invoice_import_errors').insert({
+          // Log error (non-blocking for performance)
+          supabase.from('invoice_import_errors').insert({
             import_job_id: job_id,
             row_number: rowNumber,
             raw_row_json: row,
             error_message: error.message || 'Unknown error',
-          });
+          }).then(() => {});
         }
+      }
+
+      // Update progress periodically
+      const processed = Math.min(i + SERVER_BATCH_SIZE, totalRows);
+      if (processed % PROGRESS_INTERVAL < SERVER_BATCH_SIZE || processed >= totalRows) {
+        await supabase
+          .from('invoice_import_jobs')
+          .update({
+            success_count: successCount,
+            error_count: errorCount,
+          })
+          .eq('id', job_id);
       }
     }
 
-    // Update job status
+    // Final status update
     await supabase
       .from('invoice_import_jobs')
       .update({
@@ -244,26 +236,17 @@ Deno.serve(async (req) => {
       })
       .eq('id', job_id);
 
-    console.log(`Import complete: ${successCount} success, ${errorCount} errors`);
+    console.log(`Import complete: ${successCount} success, ${errorCount} errors out of ${totalRows}`);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        success_count: successCount,
-        error_count: errorCount,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ success: true, success_count: successCount, error_count: errorCount, total: totalRows }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
     console.error('Import error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
