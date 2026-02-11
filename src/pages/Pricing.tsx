@@ -334,7 +334,7 @@ const Pricing = () => {
         </div>
 
         <div className="container mx-auto max-w-7xl px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {plans.map((plan) => (
               <div
                 key={plan.name}
