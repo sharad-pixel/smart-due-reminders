@@ -916,7 +916,7 @@ function generateEmailHtml(data: {
             ${taskItems}
           </table>
           <div style="padding: 10px 14px; text-align: center;">
-            <a href="https://recouply.ai/collections/tasks?priority=high,critical" style="color: ${BRAND.primary}; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <a href="https://recouply.ai/tasks?priority=high,critical" style="color: ${BRAND.primary}; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               View All ${data.highPriorityTasks.length > 5 ? `${data.highPriorityTasks.length}+ ` : ''}Priority Tasks →
             </a>
           </div>
@@ -1059,7 +1059,7 @@ function generateEmailHtml(data: {
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
           <tr>
             <td style="padding-bottom: 7px;">
-              <a href="https://recouply.ai/collections/tasks" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <a href="https://recouply.ai/tasks" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 📋 Review Collection Tasks →
               </a>
             </td>
