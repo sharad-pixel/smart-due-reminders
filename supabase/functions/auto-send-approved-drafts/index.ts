@@ -488,7 +488,7 @@ Deno.serve(async (req) => {
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
         // Render branded HTML email using standardized wrapper
-        const emailHtml = renderBrandedEmail({
+        const emailHtml = renderEmail({
           brand: brandingConfig,
           subject: processedSubject,
           bodyHtml: processedBody.replace(/\n/g, '<br>'),
