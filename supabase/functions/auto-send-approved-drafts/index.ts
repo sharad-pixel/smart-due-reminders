@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { 
   getSenderIdentity, 
   captureBrandSnapshot, 
-  renderBrandedEmail,
+  renderEmail,
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";

@@ -8,7 +8,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { 
   getSenderIdentity, 
   captureBrandSnapshot, 
-  renderBrandedEmail,
+  renderEmail,
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
