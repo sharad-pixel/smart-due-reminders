@@ -145,7 +145,7 @@ serve(async (req) => {
     // Fetch branding settings for signature and From name (using effective account)
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, accent_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, email_format, email_wrapper_enabled, sending_mode, from_email, from_email_verified, verified_from_email, reply_to_email, footer_disclaimer")
       .eq("user_id", brandingOwnerId)
       .single();
 
