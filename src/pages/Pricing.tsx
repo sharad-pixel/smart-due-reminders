@@ -267,7 +267,7 @@ const Pricing = () => {
             Recouply.ai is built for businesses at every stage.
           </p>
           
-          <div className="grid md:grid-cols-3 gap-6 mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
             <div className="bg-card rounded-xl p-6 border shadow-sm">
               <div className="flex justify-center mb-3">
                 <Users className="h-6 w-6 text-primary" />
