@@ -685,6 +685,7 @@ Deno.serve(async (req) => {
           ar_page_public_token: branding?.ar_page_public_token,
           ar_page_enabled: branding?.ar_page_enabled,
           stripe_payment_link: branding?.stripe_payment_link,
+          email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
         };
 
         const sender = getSenderIdentity(brandingConfig);
