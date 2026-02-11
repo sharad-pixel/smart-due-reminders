@@ -110,7 +110,7 @@ const About = () => {
                       <img 
                         src={founderPhoto} 
                         alt={founderConfig.name}
-                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover object-[center_15%] transition-transform duration-500 group-hover:scale-105"
                       />
                       {/* Overlay with info */}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/60 to-transparent p-6">
