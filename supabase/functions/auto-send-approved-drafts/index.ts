@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { 
   getSenderIdentity, 
   captureBrandSnapshot, 
-  renderBrandedEmail,
+  renderEmail,
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
@@ -454,6 +454,7 @@ Deno.serve(async (req) => {
           ar_page_public_token: branding?.ar_page_public_token,
           ar_page_enabled: branding?.ar_page_enabled,
           stripe_payment_link: branding?.stripe_payment_link,
+          email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
         };
 
         // Get deterministic sender identity
@@ -487,7 +488,7 @@ Deno.serve(async (req) => {
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
         // Render branded HTML email using standardized wrapper
-        const emailHtml = renderBrandedEmail({
+        const emailHtml = renderEmail({
           brand: brandingConfig,
           subject: processedSubject,
           bodyHtml: processedBody.replace(/\n/g, '<br>'),
@@ -684,6 +685,7 @@ Deno.serve(async (req) => {
           ar_page_public_token: branding?.ar_page_public_token,
           ar_page_enabled: branding?.ar_page_enabled,
           stripe_payment_link: branding?.stripe_payment_link,
+          email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
         };
 
         const sender = getSenderIdentity(brandingConfig);
@@ -698,7 +700,7 @@ Deno.serve(async (req) => {
         let processedBody = replaceTemplateVars(draft.message_body || '', {}, debtor, branding, 0);
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
-        const emailHtml = renderBrandedEmail({
+        const emailHtml = renderEmail({
           brand: brandingConfig,
           subject: processedSubject,
           bodyHtml: processedBody.replace(/\n/g, '<br>'),

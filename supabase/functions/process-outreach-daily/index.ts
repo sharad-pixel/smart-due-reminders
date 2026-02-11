@@ -8,7 +8,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { 
   getSenderIdentity, 
   captureBrandSnapshot, 
-  renderBrandedEmail,
+  renderEmail,
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
@@ -322,6 +322,7 @@ serve(async (req) => {
           ar_page_public_token: branding?.ar_page_public_token,
           ar_page_enabled: branding?.ar_page_enabled,
           stripe_payment_link: branding?.stripe_payment_link,
+          email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
         };
 
         // Get deterministic sender identity
@@ -335,7 +336,7 @@ serve(async (req) => {
         });
 
         // Render branded HTML email
-        const htmlEmail = renderBrandedEmail({
+        const htmlEmail = renderEmail({
           brand: brandingConfig,
           subject: subject,
           bodyHtml: body.replace(/\n/g, '<br>'),

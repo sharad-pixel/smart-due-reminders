@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { sanitizeSubjectLine } from "../_shared/draftContentEngine.ts";
+import { BrandingConfig, renderEmail, getSenderIdentity } from "../_shared/renderBrandedEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,7 +145,7 @@ serve(async (req) => {
     // Fetch branding settings for signature and From name (using effective account)
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, accent_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, email_format, email_wrapper_enabled, sending_mode, from_email, from_email_verified, verified_from_email, reply_to_email, footer_disclaimer")
       .eq("user_id", brandingOwnerId)
       .single();
 
@@ -192,21 +192,54 @@ serve(async (req) => {
     const processedSubject = sanitizeSubjectLine(replaceTemplateVars(subject, invoice, debtor, branding, daysPastDue));
     const processedBody = replaceTemplateVars(body, invoice, debtor, branding, daysPastDue);
 
-    // Generate the From address using company name
-    const fromEmail = getEmailFromAddress(branding || {});
+    // Build branding config for white-labeled email
+    const brandingConfig: BrandingConfig = {
+      business_name: branding?.business_name,
+      from_name: branding?.from_name,
+      logo_url: branding?.logo_url,
+      primary_color: branding?.primary_color,
+      accent_color: branding?.accent_color,
+      email_signature: branding?.email_signature,
+      email_footer: branding?.email_footer,
+      footer_disclaimer: branding?.footer_disclaimer,
+      email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
+      email_wrapper_enabled: branding?.email_wrapper_enabled ?? true,
+      sending_mode: branding?.sending_mode || 'recouply_default',
+      from_email: branding?.from_email,
+      from_email_verified: branding?.from_email_verified || false,
+      verified_from_email: branding?.verified_from_email,
+      reply_to_email: branding?.reply_to_email,
+      ar_page_public_token: branding?.ar_page_public_token,
+      ar_page_enabled: branding?.ar_page_enabled,
+      stripe_payment_link: branding?.stripe_payment_link,
+    };
+
+    // Get deterministic sender identity
+    const sender = getSenderIdentity(brandingConfig);
+    const fromEmail = sender.fromEmail;
 
     console.log(`Sending email from: ${fromEmail}, reply-to: ${replyToEmail}`);
 
-    // Build fully branded email with signature and optional payment link
-    const emailHtml = generateBrandedEmail(
-      processedBody,
-      branding || {},
-      {
+    // Format message body with line breaks
+    const formattedBody = processedBody.replace(/\n/g, "<br>");
+
+    // Build white-labeled email respecting email_format setting (simple vs enhanced)
+    const emailHtml = renderEmail({
+      brand: brandingConfig,
+      subject: processedSubject,
+      bodyHtml: formattedBody,
+      cta: paymentUrl ? {
+        label: `Pay Now${invoiceAmount ? ` - $${Number(invoiceAmount).toLocaleString()}` : ''}`,
+        url: paymentUrl,
+      } : branding?.stripe_payment_link ? {
+        label: `Pay Invoice${invoiceAmount ? ` - $${Number(invoiceAmount).toLocaleString()}` : ''}`,
+        url: branding.stripe_payment_link,
+      } : undefined,
+      meta: {
         invoiceId,
-        amount: invoiceAmount,
-        paymentUrl,
-      }
-    );
+        debtorId,
+      },
+    });
 
     // Send email via platform send-email function
     const sendEmailResponse = await fetch(
