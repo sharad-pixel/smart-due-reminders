@@ -2,10 +2,9 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
  import { ArrowRight, Play, Sparkles } from "lucide-react";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { personaConfig } from "@/lib/personaConfig";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
- import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
   "Collect Your Money. Intelligently.",
@@ -253,51 +252,15 @@ const AnimatedHero = () => {
              </motion.p>
            </AnimatePresence>
 
-          {/* AI Agent Avatars */}
-          <TooltipProvider delayDuration={100}>
-             <motion.div 
-               className="flex justify-center items-center gap-3 md:gap-5 flex-wrap my-10"
-               initial="hidden"
-               animate={isTypingComplete ? "visible" : "hidden"}
-               variants={{
-                 visible: { transition: { staggerChildren: 0.1 } },
-                 hidden: {}
-               }}
-             >
-              {Object.values(personaConfig).map((persona, index) => (
-                <Tooltip key={persona.name}>
-                  <TooltipTrigger asChild>
-                     <motion.div 
-                      className="relative group cursor-pointer"
-                       variants={{
-                         hidden: { opacity: 0, y: 30, scale: 0.8 },
-                         visible: { opacity: 1, y: 0, scale: 1 }
-                       }}
-                       transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                       whileHover={{ scale: 1.15, y: -5 }}
-                       whileTap={{ scale: 0.95 }}
-                    >
-                       <motion.div 
-                         className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl"
-                         initial={{ opacity: 0 }}
-                         whileHover={{ opacity: 1 }}
-                       />
-                       <div className="relative p-3 rounded-2xl bg-card/80 backdrop-blur-sm border-2 border-transparent group-hover:border-primary/30 group-hover:shadow-2xl group-hover:shadow-primary/10 transition-colors duration-300">
-                        <PersonaAvatar persona={persona} size="lg" />
-                      </div>
-                     </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs p-4 bg-card/95 backdrop-blur-sm border-2 border-primary/20">
-                    <div className="space-y-2">
-                      <h4 className="font-bold text-lg">{persona.name}</h4>
-                      <p className="text-sm font-medium" style={{ color: persona.color }}>{persona.description}</p>
-                      <p className="text-xs text-muted-foreground italic">"{persona.tone}"</p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-             </motion.div>
-          </TooltipProvider>
+          {/* Rolling AI Agent Introductions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 20 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="my-8"
+          >
+            <RollingAgentIntro />
+          </motion.div>
 
           {/* 24/7 Badge */}
            <motion.p 
