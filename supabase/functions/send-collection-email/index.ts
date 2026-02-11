@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
 import { sanitizeSubjectLine } from "../_shared/draftContentEngine.ts";
+import { BrandingConfig, renderEmail, getSenderIdentity } from "../_shared/renderBrandedEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
