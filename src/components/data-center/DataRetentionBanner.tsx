@@ -54,7 +54,7 @@ export function DataRetentionBanner() {
         <Clock className="h-4 w-4" />
         <AlertTitle className="text-sm font-medium">Data Retention Policy</AlertTitle>
         <AlertDescription className="text-xs text-muted-foreground">
-          Uploads are automatically archived after 24 hours and permanently deleted after 30 days. 
+          Uploads are automatically archived after 24 hours and permanently deleted after 14 days. 
           Download your data and audit trails for record keeping before deletion.
         </AlertDescription>
       </Alert>
@@ -107,7 +107,7 @@ export function DataRetentionBanner() {
         <Clock className="h-4 w-4" />
         <AlertTitle className="text-sm font-medium">Data Retention Policy</AlertTitle>
         <AlertDescription className="text-xs text-muted-foreground">
-          Uploads are automatically archived after 24 hours and permanently deleted after 30 days. 
+          Uploads are automatically archived after 24 hours and permanently deleted after 14 days. 
           Download your data and audit trails for record keeping before deletion.
         </AlertDescription>
       </Alert>

@@ -17,8 +17,8 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const sevenDaysBeforeDeletion = new Date(now.getTime() - 23 * 24 * 60 * 60 * 1000); // 23 days since archive = 7 days before deletion
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const sevenDaysBeforeDeletion = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days since archive = 7 days before deletion
 
     console.log('Starting data retention job...');
     console.log('Current time:', now.toISOString());
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
           user_id: upload.user_id,
           upload_id: upload.id,
           notification_type: 'archived',
-          message: `Your upload "${upload.file_name}" has been automatically archived. It will be permanently deleted in 30 days. Download your data and audit trails for record keeping before deletion.`,
+          message: `Your upload "${upload.file_name}" has been automatically archived. It will be permanently deleted in 14 days. Download your data and audit trails for record keeping before deletion.`,
         });
 
         console.log(`Archived upload: ${upload.id} (${upload.file_name})`);
@@ -96,12 +96,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3: Delete archived uploads older than 30 days
+    // Step 3: Delete archived uploads older than 14 days
     const { data: uploadsToDelete, error: deleteQueryError } = await supabase
       .from('data_center_uploads')
       .select('id, user_id, file_name, archived_at')
       .not('archived_at', 'is', null)
-      .lt('archived_at', thirtyDaysAgo.toISOString());
+      .lt('archived_at', fourteenDaysAgo.toISOString());
 
     if (deleteQueryError) {
       console.error('Error fetching uploads to delete:', deleteQueryError);
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
           user_id: upload.user_id,
           upload_id: null, // Will be null since upload is being deleted
           notification_type: 'deleted',
-          message: `Your upload "${upload.file_name}" has been permanently deleted as per the 30-day retention policy.`,
+          message: `Your upload "${upload.file_name}" has been permanently deleted as per the 14-day retention policy.`,
         });
 
         // Delete staging rows first (due to foreign key)

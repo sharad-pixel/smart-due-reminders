@@ -31,10 +31,10 @@ const getExpirationInfo = (upload: any) => {
   const archivedAt = upload.archived_at ? new Date(upload.archived_at) : null;
   
   if (upload.status === "archived") {
-    // Archived uploads are permanently deleted 30 days after archiving
+    // Archived uploads are permanently deleted 14 days after archiving
     // Use archived_at if available, otherwise fall back to created_at
     const baseDate = archivedAt || createdAt;
-    const deletionDate = addDays(baseDate, 30);
+    const deletionDate = addDays(baseDate, 14);
     const daysRemaining = differenceInDays(deletionDate, new Date());
     const isExpired = isPast(deletionDate);
     
@@ -132,7 +132,7 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
-      toast.success("Upload archived - will be permanently deleted in 30 days");
+      toast.success("Upload archived - will be permanently deleted in 14 days");
     },
     onError: () => {
       toast.error("Failed to archive upload");
