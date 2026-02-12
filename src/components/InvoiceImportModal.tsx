@@ -158,21 +158,59 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
     return true;
   };
 
-  const validateData = () => {
+  const validateData = async () => {
+    setIsCheckingDuplicates(true);
     const valid: ParsedRow[] = [];
     const errors: Array<{ row: number; data: ParsedRow; error: string }> = [];
+    const dupes: Array<{ row: number; data: ParsedRow; reason: string }> = [];
 
-    parsedData.forEach((row, index) => {
+    // Map all rows first
+    const allMapped = parsedData.map((row, index) => {
       const mappedRow: any = {};
-      let error = "";
-
-      // Map columns
       Object.entries(columnMapping).forEach(([field, column]) => {
         mappedRow[field] = row[column];
       });
+      return { mappedRow, index };
+    });
+
+    // Collect all external_invoice_ids to check against DB
+    const invoiceIds = allMapped
+      .map(r => String(r.mappedRow.external_invoice_id || "").trim())
+      .filter(Boolean);
+
+    // Batch-check existing invoices in DB
+    let existingIds = new Set<string>();
+    if (invoiceIds.length > 0) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Query in batches of 500 to avoid URL length limits
+          for (let i = 0; i < invoiceIds.length; i += 500) {
+            const batch = [...new Set(invoiceIds.slice(i, i + 500))];
+            const { data: existing } = await supabase
+              .from("invoices")
+              .select("external_invoice_id")
+              .eq("user_id", user.id)
+              .in("external_invoice_id", batch);
+            (existing || []).forEach(inv => {
+              if (inv.external_invoice_id) existingIds.add(inv.external_invoice_id);
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Duplicate check error:", e);
+      }
+    }
+
+    // Track in-file duplicates
+    const seenInFile = new Set<string>();
+
+    allMapped.forEach(({ mappedRow, index }) => {
+      let error = "";
+      const extId = String(mappedRow.external_invoice_id || "").trim();
 
       // Validate required fields
-      if (!mappedRow.external_invoice_id) {
+      if (!extId) {
         error = "Missing invoice ID";
       } else if (!mappedRow.amount || isNaN(parseFloat(mappedRow.amount))) {
         error = "Invalid amount";
@@ -188,13 +226,20 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
 
       if (error) {
         errors.push({ row: index + 2, data: mappedRow, error });
+      } else if (importMode === "INSERT_ONLY" && existingIds.has(extId)) {
+        dupes.push({ row: index + 2, data: mappedRow, reason: `Already exists in system (${extId})` });
+      } else if (seenInFile.has(extId)) {
+        dupes.push({ row: index + 2, data: mappedRow, reason: `Duplicate in file (${extId})` });
       } else {
+        seenInFile.add(extId);
         valid.push(mappedRow);
       }
     });
 
     setValidRows(valid);
     setErrorRows(errors);
+    setDuplicateRows(dupes);
+    setIsCheckingDuplicates(false);
     setStep(4);
   };
 
