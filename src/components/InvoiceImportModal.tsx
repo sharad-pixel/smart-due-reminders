@@ -553,13 +553,22 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
         {/* Step 4: Validation & Preview */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <Alert>
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertDescription>
                   <strong className="text-green-600">{validRows.length} valid rows</strong>
                 </AlertDescription>
               </Alert>
+
+              {duplicateRows.length > 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription>
+                    <strong className="text-yellow-600">{duplicateRows.length} duplicates skipped</strong>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {errorRows.length > 0 && (
                 <Alert variant="destructive">
@@ -570,6 +579,32 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
                 </Alert>
               )}
             </div>
+
+            {duplicateRows.length > 0 && (
+              <div>
+                <div className="text-sm font-medium mb-2">Duplicates (first 5) — these will NOT be imported</div>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="p-2 text-left">Row</th>
+                        <th className="p-2 text-left">Invoice ID</th>
+                        <th className="p-2 text-left">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {duplicateRows.slice(0, 5).map((d, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-2">{d.row}</td>
+                          <td className="p-2">{d.data.external_invoice_id}</td>
+                          <td className="p-2 text-yellow-600">{d.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
 
             {errorRows.length > 0 && (
               <div>
