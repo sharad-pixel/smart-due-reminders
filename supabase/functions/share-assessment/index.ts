@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to_email, to_name, sender_name, inputs, results, gptResult, share_type } = await req.json();
+    const { to_email, to_name, sender_name, inputs, results, gptResult, share_type, lead_info } = await req.json();
 
     if (!to_email) {
       return new Response(JSON.stringify({ error: "Email is required" }), {
@@ -43,15 +43,22 @@ serve(async (req) => {
 
     const tierColor = riskColor[gptResult.risk_tier] || "#eab308";
 
+    const isLeadAlert = share_type === "new_lead_alert";
     const isShareWithBoss = share_type === "boss";
-    const subjectLine = isShareWithBoss
-      ? `${sender_name || "A colleague"} shared a Collections Assessment with you`
-      : "Your Collections Risk & ROI Assessment — Recouply.ai";
 
-    const introText = isShareWithBoss
-      ? `<p style="color:#64748b;font-size:15px;">${sender_name || "A colleague"} thought you'd find this assessment valuable. It estimates the cost of overdue invoices and the potential ROI of automating collections.</p>`
-      : `<p style="color:#64748b;font-size:15px;">Here's a summary of your collections assessment results.</p>`;
+    let subjectLine: string;
+    let introText: string;
 
+    if (isLeadAlert) {
+      subjectLine = `🔔 New Assessment Lead: ${lead_info?.name || "Unknown"} (${lead_info?.email || "no email"})`;
+      introText = `<p style="color:#64748b;font-size:15px;"><strong>New lead from Collections Assessment:</strong><br/>Name: ${lead_info?.name || "N/A"}<br/>Email: ${lead_info?.email || "N/A"}<br/>Company: ${lead_info?.company || "N/A"}</p>`;
+    } else if (isShareWithBoss) {
+      subjectLine = `${sender_name || "A colleague"} shared a Collections Assessment with you`;
+      introText = `<p style="color:#64748b;font-size:15px;">${sender_name || "A colleague"} thought you'd find this assessment valuable. It estimates the cost of overdue invoices and the potential ROI of automating collections.</p>`;
+    } else {
+      subjectLine = "Your Collections Risk & ROI Assessment — Recouply.ai";
+      introText = `<p style="color:#64748b;font-size:15px;">Here's a summary of your collections assessment results.</p>`;
+    }
     const actionsHtml = (gptResult.recommended_actions || [])
       .map((a: any) => `<li style="margin-bottom:8px;"><strong>${a.title}</strong> — ${a.why} <em>(${a.time_to_do})</em></li>`)
       .join("");
