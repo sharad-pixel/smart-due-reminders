@@ -1,7 +1,7 @@
  import { Button } from "@/components/ui/button";
  import { useNavigate, Link } from "react-router-dom";
  import { RecouplyLogo } from "@/components/RecouplyLogo";
- import { Brain, Linkedin, ShieldCheck } from "lucide-react";
+ import { Brain, Linkedin, ShieldCheck, ClipboardCheck } from "lucide-react";
  
  const COMPANY_INFO = {
    legalName: "RecouplyAI Inc.",
@@ -155,25 +155,34 @@
               </ul>
             </div>
            <div>
-             <h4 className="font-semibold mb-4">Contact</h4>
+            <h4 className="font-semibold mb-4">Contact</h4>
              <ul className="space-y-2 text-sm mb-4">
-               <li>
-                 <button 
-                   onClick={() => navigate("/contact")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Contact Us
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/contact?intent=demo")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Request a Demo
-                 </button>
-               </li>
-             </ul>
+                <li>
+                  <button 
+                    onClick={() => navigate("/contact")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Contact Us
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/contact?intent=demo")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Request a Demo
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/collections-assessment")}
+                    className="text-muted-foreground hover:text-primary flex items-center gap-1"
+                  >
+                    <ClipboardCheck className="h-3 w-3" />
+                    Free Assessment
+                  </button>
+                </li>
+              </ul>
              <Button 
                onClick={() => navigate("/signup")}
                className="w-full"
