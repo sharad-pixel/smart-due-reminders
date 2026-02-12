@@ -13,10 +13,9 @@ import AIAgentsSection from "@/components/marketing/AIAgentsSection";
 import WhyDifferent from "@/components/marketing/WhyDifferent";
 import SEOHead from "@/components/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
- import CollectionIntelligenceQuiz from "@/components/marketing/CollectionIntelligenceQuiz";
+import AssessmentCTA from "@/components/marketing/AssessmentCTA";
 
 const Home = () => {
-  // FAQ structured data for rich snippets
   const homeFaqs = [
     { question: 'What is Collection Intelligence?', answer: 'Collection Intelligence is AI-powered technology that analyzes payment behavior patterns to predict risk, optimize outreach timing, and maximize invoice recovery rates.' },
     { question: 'How does Recouply automate invoice collection?', answer: 'Recouply uses AI agents to automatically generate and send personalized follow-up emails based on invoice age, customer history, and payment patterns—all with human approval before sending.' },
@@ -34,7 +33,7 @@ const Home = () => {
         structuredData={generateFAQSchema(homeFaqs)}
       />
       <AnimatedHero />
-      <CollectionIntelligenceQuiz />
+      <AssessmentCTA />
       <ScrollPipeline />
       <CollectionIntelligenceShowcase />
       <AnimatedMetrics />
