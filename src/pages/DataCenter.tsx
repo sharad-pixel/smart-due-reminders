@@ -125,6 +125,94 @@ const DataCenter = () => {
     }
   };
 
+  const handleExportInvoices = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      // Paginate to get all invoices
+      const PAGE_SIZE = 1000;
+      let allInvoices: any[] = [];
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: page, error } = await supabase
+          .from("invoices")
+          .select("reference_id, external_invoice_id, invoice_number, amount, currency, issue_date, due_date, status, source_system, product_description, payment_terms, notes, debtors(name, email, reference_id)")
+          .eq("user_id", user.id)
+          .eq("is_archived", false)
+          .order("due_date", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        if (!page || page.length === 0) {
+          hasMore = false;
+        } else {
+          allInvoices = [...allInvoices, ...page];
+          offset += PAGE_SIZE;
+          if (page.length < PAGE_SIZE) hasMore = false;
+        }
+      }
+
+      if (allInvoices.length === 0) {
+        toast.info("No invoices to export", {
+          description: "Create some invoices first before exporting."
+        });
+        return;
+      }
+
+      const exportData = allInvoices.map(inv => {
+        const daysPastDue = Math.max(
+          0,
+          Math.ceil((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24))
+        );
+        let aging_bucket = "Current";
+        if (daysPastDue > 0 && daysPastDue <= 30) aging_bucket = "0-30";
+        else if (daysPastDue <= 60) aging_bucket = "31-60";
+        else if (daysPastDue <= 90) aging_bucket = "61-90";
+        else if (daysPastDue <= 120) aging_bucket = "91-120";
+        else if (daysPastDue > 120) aging_bucket = "121+";
+
+        return {
+          "Recouply Invoice ID": inv.reference_id || "",
+          "External Invoice ID": inv.external_invoice_id || "",
+          "Invoice Number": inv.invoice_number || "",
+          "Account Name": inv.debtors?.name || "",
+          "Account Email": inv.debtors?.email || "",
+          "Account RAID": inv.debtors?.reference_id || "",
+          "Amount": inv.amount,
+          "Currency": inv.currency || "USD",
+          "Issue Date": inv.issue_date || "",
+          "Due Date": inv.due_date || "",
+          "Status": inv.status || "",
+          "Aging Bucket": aging_bucket,
+          "Source System": inv.source_system || "manual",
+          "Product Description": inv.product_description || "",
+          "Payment Terms": inv.payment_terms || "",
+          "Notes": inv.notes || "",
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Invoices");
+      XLSX.writeFile(wb, `recouply_invoices_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      toast.success("Invoices exported", {
+        description: `Exported ${allInvoices.length} invoices.`
+      });
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast.error("Export failed", {
+        description: error.message || "Could not export invoices"
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -169,26 +257,47 @@ const DataCenter = () => {
           </div>
         </div>
 
-        {/* RAID Export Callout */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Download className="h-5 w-5 text-primary" />
+        {/* Export Callouts */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Export Accounts with RAIDs</p>
+                  <p className="text-xs text-muted-foreground">
+                    Download accounts list with Recouply Account IDs
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-sm">Export Accounts with Recouply Account IDs (RAIDs)</p>
-                <p className="text-xs text-muted-foreground">
-                  Download your accounts list with RAIDs to map invoices back during CSV/Excel uploads
-                </p>
+              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportAccounts}>
+                <Download className="h-4 w-4" />
+                Export Accounts
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Export All Invoices</p>
+                  <p className="text-xs text-muted-foreground">
+                    Download all invoices with account details and aging data
+                  </p>
+                </div>
               </div>
-            </div>
-            <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportAccounts}>
-              <Download className="h-4 w-4" />
-              Export Accounts
-            </Button>
-          </CardContent>
-        </Card>
+              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportInvoices}>
+                <Download className="h-4 w-4" />
+                Export Invoices
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Data Import Section */}
         <div className="space-y-4">
@@ -242,15 +351,26 @@ const DataCenter = () => {
                     Payments
                   </Button>
                 </div>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="w-full gap-2"
-                  onClick={handleExportAccounts}
-                >
-                  <Download className="h-3 w-3" />
-                  Export Accounts with RAIDs
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={handleExportAccounts}
+                  >
+                    <Download className="h-3 w-3" />
+                    Export Accounts
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={handleExportInvoices}
+                  >
+                    <Download className="h-3 w-3" />
+                    Export Invoices
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
