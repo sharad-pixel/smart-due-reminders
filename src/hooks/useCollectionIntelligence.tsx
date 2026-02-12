@@ -22,37 +22,105 @@ export interface CollectionIntelligenceData {
   max_days_past_due: number | null;
 }
 
+export interface BatchProgress {
+  current: number;
+  total: number;
+  percent: number;
+  failed: number;
+}
+
 export const useCollectionIntelligence = (debtorId?: string) => {
   const queryClient = useQueryClient();
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
 
-  // Calculate intelligence score for one or all debtors
+  // Calculate intelligence score for a single debtor
   const calculateIntelligence = useMutation({
     mutationFn: async ({ debtor_id, recalculate_all }: { debtor_id?: string; recalculate_all?: boolean }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("calculate-collection-intelligence", {
-        body: { debtor_id, recalculate_all },
-      });
+      // Single debtor - direct call
+      if (debtor_id && !recalculate_all) {
+        const { data, error } = await supabase.functions.invoke("calculate-collection-intelligence", {
+          body: { debtor_id, recalculate_all: false },
+        });
+        if (error) throw error;
+        return data;
+      }
 
-      if (error) throw error;
-      return data;
+      // Recalculate all - use batch processing
+      const { data: debtors, error: fetchError } = await supabase
+        .from("debtors")
+        .select("id")
+        .eq("is_archived", false);
+
+      if (fetchError) throw fetchError;
+      if (!debtors || debtors.length === 0) return { processed: 0 };
+
+      const BATCH_SIZE = 5;
+      const debtorIds = debtors.map(d => d.id);
+      let processedCount = 0;
+      let failedCount = 0;
+
+      setBatchProgress({ current: 0, total: debtorIds.length, percent: 0, failed: 0 });
+
+      for (let i = 0; i < debtorIds.length; i += BATCH_SIZE) {
+        const batch = debtorIds.slice(i, i + BATCH_SIZE);
+        
+        // Process batch items in parallel
+        const results = await Promise.allSettled(
+          batch.map(id =>
+            supabase.functions.invoke("calculate-collection-intelligence", {
+              body: { debtor_id: id, recalculate_all: false },
+            })
+          )
+        );
+
+        results.forEach(r => {
+          if (r.status === "fulfilled" && !r.value.error) {
+            processedCount++;
+          } else {
+            failedCount++;
+          }
+        });
+
+        setBatchProgress({
+          current: processedCount + failedCount,
+          total: debtorIds.length,
+          percent: Math.round(((processedCount + failedCount) / debtorIds.length) * 100),
+          failed: failedCount,
+        });
+
+        // Small delay between batches to avoid rate limiting
+        if (i + BATCH_SIZE < debtorIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      setBatchProgress(null);
+      return { processed: processedCount, failed: failedCount, total: debtorIds.length };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
       queryClient.invalidateQueries({ queryKey: ["collection-intelligence"] });
+      queryClient.invalidateQueries({ queryKey: ["collection-intelligence-dashboard"] });
       if (debtorId) {
         queryClient.invalidateQueries({ queryKey: ["debtor", debtorId] });
       }
-      toast.success("Collection Intelligence scores recalculated");
+      const msg = data?.failed 
+        ? `Recalculated ${data.processed} of ${data.total} accounts (${data.failed} failed)`
+        : "Collection Intelligence scores recalculated";
+      toast.success(msg);
     },
     onError: (error: any) => {
+      setBatchProgress(null);
       toast.error(error.message || "Failed to calculate intelligence scores");
     },
   });
 
   return {
     calculateIntelligence,
+    batchProgress,
   };
 };
 

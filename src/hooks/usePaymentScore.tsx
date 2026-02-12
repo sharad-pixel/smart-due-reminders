@@ -33,16 +33,54 @@ export const usePaymentScore = (debtorId?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("risk-engine", {
-        body: { debtor_id, recalculate_all, user_id: user.id },
-      });
+      // Single debtor - direct call
+      if (debtor_id && !recalculate_all) {
+        const { data, error } = await supabase.functions.invoke("risk-engine", {
+          body: { debtor_id, user_id: user.id },
+        });
+        if (error) throw error;
+        return data;
+      }
 
-      if (error) throw error;
-      return data;
+      // Recalculate all - batch to avoid timeout
+      const { data: debtors, error: fetchErr } = await supabase
+        .from("debtors")
+        .select("id")
+        .eq("is_archived", false);
+
+      if (fetchErr) throw fetchErr;
+      if (!debtors || debtors.length === 0) return { processed: 0 };
+
+      const BATCH_SIZE = 3; // Smaller batches since risk-engine uses AI per account
+      const ids = debtors.map(d => d.id);
+      let processed = 0;
+      let failed = 0;
+
+      for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+        const batch = ids.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(id =>
+            supabase.functions.invoke("risk-engine", {
+              body: { debtor_id: id, user_id: user.id },
+            })
+          )
+        );
+        results.forEach(r => {
+          if (r.status === "fulfilled" && !r.value.error) processed++;
+          else failed++;
+        });
+        // Delay between batches
+        if (i + BATCH_SIZE < ids.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      return { processed, failed, total: ids.length };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
       queryClient.invalidateQueries({ queryKey: ["debtor", debtorId] });
+      queryClient.invalidateQueries({ queryKey: ["debtor-dashboard"] });
       toast({
         title: "Success",
         description: "Payment score recalculated successfully",
