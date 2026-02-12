@@ -266,12 +266,12 @@ Deno.serve(async (req) => {
       included_allowance: includedAllowance,
       included_invoices_used: includedInvoicesUsed,
       overage_invoices: overageInvoices,
-      overage_charges_total: usage.overage_charges_total,
+      overage_charges_total: overageChargesTotal,
       total_invoices_used: actualInvoicesUsed,
       remaining_quota: remaining,
       is_over_limit: isOverLimit,
       plan_name: plan.name,
-      overage_rate: plan.overage_amount || 0,
+      overage_rate: OVERAGE_RATE,
       is_team_member: isTeamMember
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
