@@ -277,9 +277,8 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
       if (jobError) throw jobError;
       setJobId(job.id);
 
-      // Process in client-side batches — small batches to avoid edge function timeouts
-      // Each row triggers 3-7 DB calls, so keep batches small
-      const CLIENT_BATCH_SIZE = 25;
+      // Process in client-side batches — larger batches since edge function now uses bulk DB ops
+      const CLIENT_BATCH_SIZE = 100;
       let totalSuccess = 0;
       let totalErrors = 0;
 
@@ -299,7 +298,6 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
 
           if (error) {
             console.error(`Batch error:`, error);
-            // Count entire batch as errors but continue
             totalErrors += batch.length;
           } else {
             totalSuccess += data?.success_count || 0;
@@ -313,9 +311,9 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
         const pct = Math.round(((i + batch.length) / validRows.length) * 100);
         setProgress(pct);
 
-        // Small delay between batches
+        // Minimal delay between batches
         if (!isLastBatch) {
-          await new Promise(r => setTimeout(r, 300));
+          await new Promise(r => setTimeout(r, 50));
         }
       }
 
