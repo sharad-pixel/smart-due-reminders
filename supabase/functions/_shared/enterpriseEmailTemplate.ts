@@ -36,7 +36,19 @@ export const BRAND = {
   surfaceLight: '#f1f5f9',
 } as const;
 
-// Brain SVG icons – email-safe inline SVGs
+// Brand logo URL – the favicon on white background, hosted on the published site
+const LOGO_URL = 'https://recouply.ai/favicon.png';
+const LOGO_FALLBACK = 'https://smart-due-reminders.lovable.app/favicon.png';
+
+// Logo HTML for headers – favicon on a white circular background
+function logoImage(size: number = 36, whiteCircle: boolean = false): string {
+  if (whiteCircle) {
+    return `<div style="display:inline-block;width:${size}px;height:${size}px;border-radius:50%;background:#ffffff;padding:4px;box-sizing:border-box;"><img src="${LOGO_URL}" onerror="this.src='${LOGO_FALLBACK}'" alt="Recouply.ai" width="${size - 8}" height="${size - 8}" style="display:block;width:${size - 8}px;height:${size - 8}px;border-radius:50%;" /></div>`;
+  }
+  return `<img src="${LOGO_URL}" onerror="this.src='${LOGO_FALLBACK}'" alt="Recouply.ai" width="${size}" height="${size}" style="display:block;width:${size}px;height:${size}px;" />`;
+}
+
+// Brain SVG icons – kept for legacy but logo is preferred
 export const BRAIN_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:rgba(255,255,255,0.95);"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
 
 export const BRAIN_SVG_BLUE = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#3b82f6;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>`;
@@ -71,13 +83,12 @@ export function enterpriseHeader(options: {
   const { style = 'gradient', title, subtitle } = options;
 
   if (style === 'light') {
-    // Light header matching the logo screenshot exactly
     return `
-    <div style="background: ${BRAND.background}; padding: 32px 24px 24px; text-align: center;">
+    <div style="background: #ffffff; padding: 32px 24px 24px; text-align: center;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
         <tr>
           <td style="padding-right: 10px; vertical-align: middle;">
-            ${BRAIN_SVG_BLUE}
+            ${logoImage(36)}
           </td>
           <td style="vertical-align: middle;">
             ${wordmark(24, false)}
@@ -92,16 +103,14 @@ export function enterpriseHeader(options: {
     </div>`;
   }
 
-  // Gradient header (default) – premium blue gradient with white text
+  // Gradient header (default) – premium blue gradient with white text and logo on white circle
   return `
     <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 50%, ${BRAND.primaryDark} 100%); padding: 28px 24px 24px; text-align: center;">
       <div style="margin-bottom: 14px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
           <tr>
             <td style="padding-right: 10px; vertical-align: middle;">
-              <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px; display: inline-block;">
-                ${BRAIN_SVG_WHITE}
-              </div>
+              ${logoImage(40, true)}
             </td>
             <td style="vertical-align: middle;">
               ${wordmark(22, true)}
@@ -124,7 +133,7 @@ export function enterpriseFooter(): string {
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 10px;">
         <tr>
           <td style="padding-right: 8px; vertical-align: middle;">
-            ${BRAIN_SVG_FOOTER}
+            ${logoImage(28, true)}
           </td>
           <td style="vertical-align: middle;">
             <span style="color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">
