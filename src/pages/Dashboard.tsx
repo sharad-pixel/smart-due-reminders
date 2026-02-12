@@ -162,18 +162,29 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [invoicesRes, tasksRes] = await Promise.all([
-        supabase.from("invoices").select("*, debtors(name)"),
-        supabase
-          .from("collection_tasks")
-          .select("*, debtors(name, company_name), invoices(invoice_number)")
-          .in("status", ["open", "in_progress"])
-          .order("created_at", { ascending: false })
-          .limit(25),
-      ]);
+      // Fetch all invoices with pagination to bypass 1000-row limit
+      const allInvoices: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("invoices")
+          .select("*, debtors(name)")
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allInvoices.push(...data);
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
 
-      if (invoicesRes.error) throw invoicesRes.error;
-      const allInvoices = invoicesRes.data || [];
+      const { data: tasksData, error: tasksError } = await supabase
+        .from("collection_tasks")
+        .select("*, debtors(name, company_name), invoices(invoice_number)")
+        .in("status", ["open", "in_progress"])
+        .order("created_at", { ascending: false })
+        .limit(25);
+
       setInvoices(allInvoices);
 
       if (!tasksRes.error) {

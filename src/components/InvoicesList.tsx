@@ -56,13 +56,22 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
 
   const fetchInvoices = async () => {
     try {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("*, debtors(company_name), is_on_payment_plan")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInvoices(data || []);
+      const allInvoices: Invoice[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("invoices")
+          .select("*, debtors(company_name), is_on_payment_plan")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allInvoices.push(...(data as Invoice[]));
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      setInvoices(allInvoices);
     } catch (error: any) {
       toast.error("Failed to load invoices");
     } finally {
