@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import MarketingHeader from "@/components/marketing/MarketingHeader";
+import { AIAgentCarousel } from "@/components/debtor-portal/AIAgentCarousel";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,10 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   DollarSign, Calendar, CheckCircle, Clock, XCircle, 
   Building2, ExternalLink, Mail, Loader2, ArrowLeft,
-  CreditCard, FileText, AlertTriangle, ShieldCheck, UserCheck
+  CreditCard, FileText, AlertTriangle, ShieldCheck, UserCheck,
+  Lock, Bot, Fingerprint, KeyRound, Shield, Zap, Brain
 } from "lucide-react";
 
 interface Installment {
@@ -353,33 +356,92 @@ export default function DebtorPortalPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <MarketingHeader />
-        <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Hero Section */}
-        <div className="bg-primary py-12 px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-white/10 flex items-center justify-center">
-              <CreditCard className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-3">Payment Portal</h1>
-            <p className="text-white/80 text-lg max-w-xl mx-auto">
-              View your invoices and payment plans, then pay securely online.
-            </p>
+        <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 overflow-hidden">
+        
+        {/* Animated Hero Section */}
+        <div className="relative bg-gradient-to-br from-primary via-primary/90 to-primary/80 py-20 px-4 overflow-hidden">
+          {/* Floating particles */}
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white/10"
+              style={{
+                width: Math.random() * 80 + 20,
+                height: Math.random() * 80 + 20,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, Math.random() * 20 - 10, 0],
+                opacity: [0.1, 0.3, 0.1],
+              }}
+              transition={{
+                duration: 4 + Math.random() * 3,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+          
+          <div className="max-w-4xl mx-auto text-center relative z-10">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", duration: 0.8 }}
+              className="mx-auto mb-6 h-20 w-20 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20"
+            >
+              <Lock className="h-10 w-10 text-white" />
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight"
+            >
+              Secure Payment Portal
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="text-white/80 text-lg md:text-xl max-w-2xl mx-auto mb-6"
+            >
+              View invoices, approve payment plans, and pay securely — all powered by AI-driven collection intelligence.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center justify-center gap-6 text-white/60 text-sm"
+            >
+              <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" /> 256-bit Encryption</span>
+              <span className="flex items-center gap-1.5"><Fingerprint className="h-4 w-4" /> Token Auth</span>
+              <span className="flex items-center gap-1.5"><KeyRound className="h-4 w-4" /> No Passwords</span>
+            </motion.div>
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto py-12 px-4">
           {/* Email Entry Card */}
-          <Card className="max-w-md mx-auto mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+          <Card className="max-w-md mx-auto mb-12 shadow-xl border-primary/10">
             <CardHeader className="text-center">
-              <CardTitle>Access Your Account</CardTitle>
+              <CardTitle className="text-xl">Access Your Account</CardTitle>
               <CardDescription>
-                Enter your email to receive a secure access link
+                Enter your email to receive a secure, tokenized access link
               </CardDescription>
             </CardHeader>
             <CardContent>
               {linkSent ? (
                 <div className="text-center py-4">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  </motion.div>
                   <h3 className="font-semibold text-lg mb-2">Check Your Email</h3>
                   <p className="text-muted-foreground text-sm">
                     If your email is associated with any accounts, you'll receive a secure link to access them. The link expires in 24 hours.
@@ -419,94 +481,184 @@ export default function DebtorPortalPage() {
                         Sending...
                       </>
                     ) : (
-                      "Get Secure Access Link"
+                      <>
+                        <Lock className="h-4 w-4 mr-2" />
+                        Get Secure Access Link
+                      </>
                     )}
                   </Button>
                 </form>
               )}
             </CardContent>
           </Card>
+          </motion.div>
 
-          {/* How It Works Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-center mb-6">How It Works</h2>
+          {/* AI Agents Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <h2 className="text-2xl font-bold text-center mb-2">AI-Powered Collection Agents</h2>
+            <p className="text-muted-foreground text-center mb-8 max-w-xl mx-auto">
+              Our intelligent agents personalize communication at every stage, ensuring professional and empathetic outreach.
+            </p>
+            <AIAgentCarousel />
+          </motion.div>
+
+          {/* Secure Tokenization Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <h2 className="text-2xl font-bold text-center mb-2">Secure Token Authentication</h2>
+            <p className="text-muted-foreground text-center mb-8 max-w-xl mx-auto">
+              No passwords needed. We use cryptographic tokens to verify your identity securely.
+            </p>
             <div className="grid gap-6 md:grid-cols-3">
-              <Card className="text-center">
-                <CardContent className="pt-6">
-                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Mail className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold mb-2">1. Enter Your Email</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We use your email to find all accounts associated with you across our vendor network.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardContent className="pt-6">
-                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold mb-2">2. Receive Secure Link</h3>
-                  <p className="text-sm text-muted-foreground">
-                    A one-time secure token is sent to your email. Click the link to access your portal—no password required.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardContent className="pt-6">
-                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold mb-2">3. View & Pay</h3>
-                  <p className="text-sm text-muted-foreground">
-                    See all vendors you owe, with detailed invoice breakdowns and payment plans. Pay each vendor securely via Stripe.
-                  </p>
-                </CardContent>
-              </Card>
+              {[
+                {
+                  icon: <Fingerprint className="h-7 w-7 text-primary" />,
+                  title: "One-Time Tokens",
+                  desc: "Each access link contains a unique, cryptographically generated token that expires after 24 hours.",
+                },
+                {
+                  icon: <Shield className="h-7 w-7 text-primary" />,
+                  title: "Zero-Knowledge Access",
+                  desc: "We never store passwords. Your email is verified through secure tokenization — no credentials to leak.",
+                },
+                {
+                  icon: <Lock className="h-7 w-7 text-primary" />,
+                  title: "End-to-End Encrypted",
+                  desc: "All data in transit and at rest is encrypted with 256-bit AES. Your financial information stays private.",
+                },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15 }}
+                >
+                  <Card className="h-full hover:shadow-lg transition-shadow">
+                    <CardContent className="pt-6 text-center">
+                      <motion.div
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        className="mx-auto mb-4 h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center"
+                      >
+                        {item.icon}
+                      </motion.div>
+                      <h3 className="font-semibold mb-2">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Features Section */}
+          {/* How It Works - Animated Steps */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <h2 className="text-2xl font-bold text-center mb-8">How It Works</h2>
+            <div className="grid gap-6 md:grid-cols-3">
+              {[
+                {
+                  icon: <Mail className="h-6 w-6 text-primary" />,
+                  step: "1",
+                  title: "Enter Your Email",
+                  desc: "We locate all accounts associated with your email across our vendor network.",
+                },
+                {
+                  icon: <KeyRound className="h-6 w-6 text-primary" />,
+                  step: "2",
+                  title: "Receive Secure Token",
+                  desc: "A one-time cryptographic token is sent to your inbox. Click to access — no password required.",
+                },
+                {
+                  icon: <CreditCard className="h-6 w-6 text-primary" />,
+                  step: "3",
+                  title: "View & Pay",
+                  desc: "See all vendors, invoices, and payment plans. Pay securely via Stripe integration.",
+                },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.2, type: "spring" }}
+                >
+                  <Card className="text-center relative overflow-hidden">
+                    <div className="absolute top-3 left-3 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                      {item.step}
+                    </div>
+                    <CardContent className="pt-8">
+                      <motion.div
+                        whileHover={{ y: -3 }}
+                        className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center"
+                      >
+                        {item.icon}
+                      </motion.div>
+                      <h3 className="font-semibold mb-2">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Features Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
           <Card className="bg-muted/50">
             <CardContent className="py-6">
               <h3 className="font-semibold mb-4 text-center">What You'll See in Your Portal</h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">Open Invoices</p>
-                    <p className="text-xs text-muted-foreground">View all unpaid invoices with amounts, due dates, and overdue alerts</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CreditCard className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">Payment Plans</p>
-                    <p className="text-xs text-muted-foreground">Track your installment schedules and remaining balances</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">Multiple Vendors</p>
-                    <p className="text-xs text-muted-foreground">If you work with multiple companies, see each one's branded section</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <ExternalLink className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">Secure Payments</p>
-                    <p className="text-xs text-muted-foreground">Pay directly via each vendor's secure Stripe payment link</p>
-                  </div>
-                </div>
+                {[
+                  { icon: <FileText className="h-5 w-5 text-primary mt-0.5" />, title: "Open Invoices", desc: "View all unpaid invoices with amounts, due dates, and overdue alerts" },
+                  { icon: <CreditCard className="h-5 w-5 text-primary mt-0.5" />, title: "Payment Plans", desc: "Track your installment schedules and remaining balances" },
+                  { icon: <Building2 className="h-5 w-5 text-primary mt-0.5" />, title: "Multiple Vendors", desc: "If you work with multiple companies, see each one's branded section" },
+                  { icon: <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />, title: "Secure Payments", desc: "Pay directly via each vendor's secure Stripe payment link" },
+                ].map((f, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
+                    {f.icon}
+                    <div>
+                      <p className="font-medium text-sm">{f.title}</p>
+                      <p className="text-xs text-muted-foreground">{f.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Footer */}
           <div className="mt-8 text-center text-xs text-muted-foreground">
-            <p>Your information is secure. Links expire after 24 hours for your protection.</p>
+            <p>🔒 Your information is protected with enterprise-grade encryption. Access links expire after 24 hours.</p>
           </div>
         </div>
         </main>

@@ -131,7 +131,9 @@ export function EmailPreviewFrame({
       ${arPageLink ? `
         <a href="${arPageLink}" class="ar-page-link">View Invoice Details</a>
       ` : ""}
-      <p class="footer-text" style="font-size: 10px; color: #9ca3af; margin-top: 16px;">
+      <a href="https://recouply.ai/debtor-portal" style="display: inline-block; font-size: 11px; color: #6b7280; text-decoration: none; font-weight: 500; margin-bottom: 6px;">🔒 Access Payment Portal</a>
+      <br/>
+      <p class="footer-text" style="font-size: 10px; color: #9ca3af; margin-top: 8px;">
         Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a>
       </p>
     </div>
