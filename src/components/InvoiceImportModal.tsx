@@ -57,6 +57,8 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [duplicateRows, setDuplicateRows] = useState<Array<{ row: number; data: ParsedRow; reason: string }>>([]);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
