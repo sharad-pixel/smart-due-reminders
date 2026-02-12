@@ -263,16 +263,29 @@ Deno.serve(async (req) => {
             .eq('user_id', brandingOwnerId)
             .maybeSingle();
 
-          // Check if workflow template is approved
+          // Check if workflow template is approved and fetch its steps
           const { data: collectionWorkflow } = await supabaseAdmin
             .from('collection_workflows')
-            .select('id, is_template_approved')
+            .select('id, is_template_approved, persona_id')
             .eq('aging_bucket', invoice.aging_bucket)
             .eq('is_active', true)
             .limit(1)
             .maybeSingle();
 
           const isWorkflowApproved = collectionWorkflow?.is_template_approved === true;
+
+          // Fetch the approved workflow step template for this step number
+          let workflowStepTemplate: any = null;
+          if (collectionWorkflow?.id) {
+            const { data: stepData } = await supabaseAdmin
+              .from('collection_workflow_steps')
+              .select('subject_template, body_template, channel, label')
+              .eq('workflow_id', collectionWorkflow.id)
+              .eq('step_order', stepNumber)
+              .eq('is_active', true)
+              .maybeSingle();
+            workflowStepTemplate = stepData;
+          }
 
           // Build email content
           const customerName = debtor?.company_name || debtor?.name || 'Valued Customer';
@@ -282,22 +295,55 @@ Deno.serve(async (req) => {
           // CRITICAL: Use proper fallback chain for business name
           const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
           const paymentLink = branding?.stripe_payment_link || '';
+          const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
+            ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
+            : '';
 
-          // Generate default message based on step
-          const stepMessages = [
-            { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
-            { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for ${formattedAmount}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions.` },
-            { subject: `Important: Invoice ${invoiceNumber} - Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for ${formattedAmount}. This invoice is now significantly past due.\n\nPlease arrange payment promptly.` },
-          ];
+          let subject: string;
+          let body: string;
 
-          const messageIndex = Math.min(stepNumber - 1, stepMessages.length - 1);
-          let subject = stepMessages[messageIndex].subject;
-          let body = stepMessages[messageIndex].body;
+          if (workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
+            // USE the pre-approved workflow step template
+            console.log(`[OUTREACH-ENGINE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
+            
+            // Replace template variables in the approved template
+            const replaceVars = (text: string) => text
+              .replace(/\{\{customer_name\}\}/gi, customerName)
+              .replace(/\{\{debtor_name\}\}/gi, customerName)
+              .replace(/\{\{name\}\}/gi, customerName)
+              .replace(/\{\{invoice_number\}\}/gi, invoiceNumber)
+              .replace(/\{\{amount\}\}/gi, formattedAmount)
+              .replace(/\{\{due_date\}\}/gi, invoice.due_date || '')
+              .replace(/\{\{days_past_due\}\}/gi, String(daysPastDue))
+              .replace(/\{\{company_name\}\}/gi, businessName)
+              .replace(/\{\{business_name\}\}/gi, businessName)
+              .replace(/\{\{payment_link\}\}/gi, paymentLink)
+              .replace(/\{\{invoice_link\}\}/gi, invoiceLink)
+              .replace(/\{\{ar_page_url\}\}/gi, arPageUrl)
+              // Clean up any remaining unresolved placeholders
+              .replace(/\{\{[^}]+\}\}/g, '');
 
-          // Append links
-          if (invoiceLink) body += `\n\nView your invoice: ${invoiceLink}`;
-          if (paymentLink) body += `\n\n💳 Make a payment: ${paymentLink}`;
-          body += `\n\nThank you for your business.\n\n---\n${businessName}`;
+            subject = replaceVars(workflowStepTemplate.subject_template);
+            body = replaceVars(workflowStepTemplate.body_template);
+          } else {
+            // Fallback: generic messages if no workflow step template exists
+            console.log(`[OUTREACH-ENGINE] No workflow step template found for invoice ${invoiceNumber}, step ${stepNumber} - using fallback`);
+            const stepMessages = [
+              { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
+              { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for ${formattedAmount}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions.` },
+              { subject: `Important: Invoice ${invoiceNumber} - Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for ${formattedAmount}. This invoice is now significantly past due.\n\nPlease arrange payment promptly.` },
+            ];
+
+            const messageIndex = Math.min(stepNumber - 1, stepMessages.length - 1);
+            subject = stepMessages[messageIndex].subject;
+            body = stepMessages[messageIndex].body;
+          }
+
+          // Append links if not already in template body
+          if (arPageUrl && !body.includes(arPageUrl)) body += `\n\n📄 Access your account portal: ${arPageUrl}`;
+          if (invoiceLink && !body.includes(invoiceLink)) body += `\n\nView your invoice: ${invoiceLink}`;
+          if (paymentLink && !body.includes(paymentLink)) body += `\n\n💳 Make a payment: ${paymentLink}`;
+          if (!body.includes(businessName)) body += `\n\nThank you for your business.\n\n---\n${businessName}`;
 
           // Create the draft - auto-approve if workflow is approved OR user has auto_approve_drafts enabled
           const shouldAutoApprove = isWorkflowApproved || branding?.auto_approve_drafts === true;
