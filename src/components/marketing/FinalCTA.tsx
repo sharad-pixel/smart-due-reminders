@@ -79,7 +79,7 @@ const FinalCTA = () => {
             </div>
 
             <p className="mt-8 text-sm text-muted-foreground">
-              No credit card required • 14-day free trial • Cancel anytime
+              No credit card required during trial • 7-day free trial • Cancel anytime
             </p>
           </div>
         </div>
