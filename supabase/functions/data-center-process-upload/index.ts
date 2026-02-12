@@ -415,16 +415,44 @@ serve(async (req) => {
             const paymentInvoiceNumber = String(getValue(row, "payment_invoice_number") || "").trim();
             const paymentDate = parseDate(getValue(row, "payment_date"));
             const paymentAmount = parseNumber(getValue(row, "payment_amount"));
+            const customerName = String(getValue(row, "customer_name") || getValue(row, "company_name") || "").trim();
+            const customerId = String(getValue(row, "customer_id") || "").trim();
             
             const invoiceIdentifier = recouplyInvoiceId || paymentInvoiceNumber;
 
-            if (!recouplyAccountId || !invoiceIdentifier || !paymentDate || paymentAmount <= 0) {
+            if (!invoiceIdentifier || !paymentDate || paymentAmount <= 0) {
+              console.error(`Row ${i}: Missing required fields - invoiceId: ${invoiceIdentifier}, date: ${paymentDate}, amount: ${paymentAmount}`);
               errors++;
               continue;
             }
 
-            const debtorId = customerRefMap.get(normalizeString(recouplyAccountId));
+            // Multi-tier debtor matching: 1. RAID, 2. External Customer ID, 3. Company Name
+            let debtorId: string | undefined = undefined;
+            
+            // Priority 1: Match by Recouply Account ID (RAID)
+            if (recouplyAccountId) {
+              debtorId = customerRefMap.get(normalizeString(recouplyAccountId));
+            }
+            // Priority 2: Match by external customer ID or its normalized form
+            if (!debtorId && customerId) {
+              debtorId = customerMap.get(normalizeString(customerId));
+            }
+            // Priority 3: Match by company/customer name
+            if (!debtorId && customerName) {
+              debtorId = customerMap.get(normalizeString(customerName));
+            }
+            // Priority 4: If we have an invoice identifier, try to find the debtor from the invoice
+            if (!debtorId && invoiceIdentifier) {
+              const invByRef = invoiceRefMap.get(normalizeString(invoiceIdentifier));
+              const invByNum = invoiceNumMap.get(normalizeString(invoiceIdentifier));
+              const matchedInv = invByRef || invByNum;
+              if (matchedInv) {
+                debtorId = matchedInv.debtor_id;
+              }
+            }
+            
             if (!debtorId) {
+              console.error(`Row ${i}: Could not match debtor - RAID: ${recouplyAccountId}, custId: ${customerId}, name: ${customerName}`);
               errors++;
               continue;
             }
