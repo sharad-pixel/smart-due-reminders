@@ -82,6 +82,12 @@ export const usePaymentReconciliation = (
       if (filters.dateTo) {
         query = query.lte("payment_date", filters.dateTo);
       }
+      if (filters.searchQuery && filters.searchQuery.trim()) {
+        const q = filters.searchQuery.trim();
+        query = query.or(
+          `reference.ilike.%${q}%,reference_id.ilike.%${q}%,invoice_number_hint.ilike.%${q}%,notes.ilike.%${q}%`
+        );
+      }
 
       const from = (page - 1) * pageSize;
       query = query.range(from, from + pageSize - 1);
