@@ -25,6 +25,7 @@ export function CollectionIntelligenceDashboard() {
   const { data, summary, isLoading, refetch } = useCollectionIntelligenceDashboard();
   const { calculateIntelligence, batchProgress } = useCollectionIntelligence();
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const handleRecalculateAll = async () => {
     setIsRecalculating(true);
@@ -97,6 +98,11 @@ export function CollectionIntelligenceDashboard() {
   // Filter to only show accounts with open balance
   const accountsWithBalance = data?.filter((d) => (d.total_open_balance || 0) > 0) || [];
 
+  // Apply category filter
+  const filteredAccounts = activeFilter
+    ? accountsWithBalance.filter((d) => d.collection_health_tier === activeFilter)
+    : accountsWithBalance;
+
   // Get accounts requiring attention (Critical and At Risk) - only those with open balance
   const attentionAccounts = accountsWithBalance
     .filter((d) => d.collection_health_tier === "Critical" || d.collection_health_tier === "At Risk")
@@ -133,31 +139,38 @@ export function CollectionIntelligenceDashboard() {
         {/* Summary Stats */}
         {summary && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="p-4 rounded-lg bg-muted/50 text-center">
+            <div 
+              className={cn("p-4 rounded-lg text-center cursor-pointer transition-all border-2", activeFilter === null ? "bg-primary/10 border-primary" : "bg-muted/50 border-transparent hover:bg-muted")}
+              onClick={() => setActiveFilter(null)}
+            >
               <div className="text-3xl font-bold text-primary">{summary.avgScore}</div>
               <div className="text-xs text-muted-foreground">Avg Score</div>
             </div>
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 text-center border border-green-200 dark:border-green-800">
-              <div className="text-3xl font-bold text-green-600">{summary.healthyCount}</div>
-              <div className="text-xs text-green-700">Healthy</div>
-            </div>
-            <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 text-center border border-yellow-200 dark:border-yellow-800">
-              <div className="text-3xl font-bold text-yellow-600">{summary.watchCount}</div>
-              <div className="text-xs text-yellow-700">Watch</div>
-            </div>
-            <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 text-center border border-orange-200 dark:border-orange-800">
-              <div className="text-3xl font-bold text-orange-600">{summary.atRiskCount}</div>
-              <div className="text-xs text-orange-700">At Risk</div>
-            </div>
-            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/20 text-center border border-red-200 dark:border-red-800">
-              <div className="text-3xl font-bold text-red-600">{summary.criticalCount}</div>
-              <div className="text-xs text-red-700">Critical</div>
-            </div>
+            {[
+              { key: "Healthy", count: summary.healthyCount, color: "green" },
+              { key: "Watch", count: summary.watchCount, color: "yellow" },
+              { key: "At Risk", count: summary.atRiskCount, color: "orange" },
+              { key: "Critical", count: summary.criticalCount, color: "red" },
+            ].map(({ key, count, color }) => (
+              <div
+                key={key}
+                className={cn(
+                  `p-4 rounded-lg text-center cursor-pointer transition-all border-2`,
+                  activeFilter === key
+                    ? `border-${color}-500 bg-${color}-100 dark:bg-${color}-950/30`
+                    : `border-transparent bg-${color}-50 dark:bg-${color}-950/20 hover:border-${color}-300 border-${color}-200 dark:border-${color}-800`
+                )}
+                onClick={() => setActiveFilter(activeFilter === key ? null : key)}
+              >
+                <div className={`text-3xl font-bold text-${color}-600`}>{count}</div>
+                <div className={`text-xs text-${color}-700`}>{key}</div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Attention Required Section */}
-        {attentionAccounts.length > 0 && (
+        {/* Attention Required Section - hide when filtering */}
+        {!activeFilter && attentionAccounts.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -175,15 +188,15 @@ export function CollectionIntelligenceDashboard() {
           </div>
         )}
 
-        {/* All Accounts Grid - only those with open balance */}
-        {accountsWithBalance.length > 0 && (
+        {/* All Accounts Grid - filtered */}
+        {filteredAccounts.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              All Accounts ({accountsWithBalance.length})
+              {activeFilter ? `${activeFilter} Accounts` : "All Accounts"} ({filteredAccounts.length})
             </h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto">
-              {accountsWithBalance.map((account) => (
+              {filteredAccounts.map((account) => (
                 <MiniScorecard 
                   key={account.id} 
                   account={account}
@@ -195,12 +208,12 @@ export function CollectionIntelligenceDashboard() {
         )}
 
         {/* Empty State */}
-        {accountsWithBalance.length === 0 && (
+        {filteredAccounts.length === 0 && (
           <div className="text-center py-8">
             <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold">No accounts with open balance</h3>
+            <h3 className="font-semibold">{activeFilter ? `No ${activeFilter} accounts` : "No accounts with open balance"}</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Accounts with outstanding balances will appear here
+              {activeFilter ? "Try selecting a different category" : "Accounts with outstanding balances will appear here"}
             </p>
           </div>
         )}
