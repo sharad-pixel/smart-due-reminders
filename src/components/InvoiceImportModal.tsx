@@ -543,7 +543,9 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
 
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={validateData}>Next: Validate Data</Button>
+              <Button onClick={validateData} disabled={isCheckingDuplicates}>
+                {isCheckingDuplicates ? "Checking duplicates..." : "Next: Validate Data"}
+              </Button>
             </div>
           </div>
         )}
