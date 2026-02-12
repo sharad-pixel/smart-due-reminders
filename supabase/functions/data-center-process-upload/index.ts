@@ -495,7 +495,7 @@ serve(async (req) => {
               notes: getValue(row, "payment_notes") ? String(getValue(row, "payment_notes")) : null,
               invoice_number_hint: paymentInvoiceNumber,
               data_center_upload_id: uploadId,
-              reconciliation_status: "matched",
+              reconciliation_status: "manually_matched",
             });
             
             paymentLinks.push({
