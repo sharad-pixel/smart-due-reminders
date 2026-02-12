@@ -84,9 +84,25 @@ export const usePaymentReconciliation = (
       }
       if (filters.searchQuery && filters.searchQuery.trim()) {
         const q = filters.searchQuery.trim();
-        query = query.or(
-          `reference.ilike.%${q}%,reference_id.ilike.%${q}%,invoice_number_hint.ilike.%${q}%,notes.ilike.%${q}%`
-        );
+
+        // Find debtor IDs matching the search by name/company
+        const { data: matchingDebtors } = await supabase
+          .from("debtors")
+          .select("id")
+          .eq("user_id", accountId)
+          .or(`name.ilike.%${q}%,company_name.ilike.%${q}%`);
+
+        const debtorIds = (matchingDebtors || []).map(d => d.id);
+
+        if (debtorIds.length > 0) {
+          query = query.or(
+            `reference.ilike.%${q}%,reference_id.ilike.%${q}%,invoice_number_hint.ilike.%${q}%,notes.ilike.%${q}%,debtor_id.in.(${debtorIds.join(",")})`
+          );
+        } else {
+          query = query.or(
+            `reference.ilike.%${q}%,reference_id.ilike.%${q}%,invoice_number_hint.ilike.%${q}%,notes.ilike.%${q}%`
+          );
+        }
       }
 
       const from = (page - 1) * pageSize;
