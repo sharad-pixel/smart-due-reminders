@@ -235,11 +235,14 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
         const batchNum = Math.floor(i / CLIENT_BATCH_SIZE) + 1;
         const totalBatches = Math.ceil(validRows.length / CLIENT_BATCH_SIZE);
 
+        const isLastBatch = (i + CLIENT_BATCH_SIZE) >= validRows.length;
+
         const { data, error } = await supabase.functions.invoke("import-invoices", {
           body: {
             job_id: job.id,
             rows: batch,
             mode: importMode,
+            is_final_batch: isLastBatch,
           },
         });
 
