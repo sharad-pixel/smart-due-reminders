@@ -21,7 +21,7 @@ const Home = () => {
     { question: 'What is Collection Intelligence?', answer: 'Collection Intelligence is AI-powered technology that analyzes payment behavior patterns to predict risk, optimize outreach timing, and maximize invoice recovery rates.' },
     { question: 'How does Recouply automate invoice collection?', answer: 'Recouply uses AI agents to automatically generate and send personalized follow-up emails based on invoice age, customer history, and payment patterns—all with human approval before sending.' },
     { question: 'Does Recouply integrate with Stripe and QuickBooks?', answer: 'Yes, Recouply offers native integrations with Stripe and QuickBooks for real-time invoice sync and automatic payment reconciliation.' },
-    { question: 'Is there a free trial available?', answer: 'Yes, Recouply offers a free trial with full access to collection intelligence features. No credit card required to start.' },
+    { question: 'Is there a free trial available?', answer: 'Yes, Recouply offers a 7-day free trial with full access to collection intelligence features. Payment info required upfront; auto-converts unless cancelled. Trial includes 5 invoices.' },
   ];
 
   return (

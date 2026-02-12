@@ -43,7 +43,7 @@ export const knowledgeBaseData: FAQCategory[] = [
       },
       {
         question: "Is there a free trial?",
-        answer: "Yes, we offer a free trial with full access to all collection intelligence features. No credit card required to start. You can explore AI agents, upload invoices, and generate drafts before committing to a paid plan.",
+        answer: "Yes, we offer a 7-day free trial with full access to all collection intelligence features. Payment info is required upfront and the trial auto-converts unless cancelled. Trial includes 5 active invoices. You can explore AI agents, upload invoices, and generate drafts during the trial period.",
         keywords: ["trial", "free", "demo", "test", "try"]
       }
     ]

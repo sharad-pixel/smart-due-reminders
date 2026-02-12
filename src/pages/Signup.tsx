@@ -378,7 +378,7 @@ const Signup = () => {
     <>
       <SEOHead
         title="Sign Up | Start Free Trial | Recouply.ai"
-        description="Create your Recouply.ai account and start automating invoice collection with AI-powered collection intelligence. 7-day free trial, no credit card required."
+        description="Create your Recouply.ai account and start automating invoice collection with AI-powered collection intelligence. 7-day free trial with full platform access."
         canonical="https://recouply.ai/signup"
         noindex={false}
       />
@@ -417,7 +417,7 @@ const Signup = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              No credit card required. Select a plan when you're ready.
+              7-day free trial. Select a plan when you're ready.
             </p>
           </CardContent>
         </Card>

@@ -215,7 +215,7 @@ const Pricing = () => {
 
   // Pricing FAQs for structured data
   const pricingFaqs = [
-    { question: 'What is included in the free trial?', answer: 'All plans include a 7-day free trial with full platform access, all six AI agents, and risk-aware automation. No credit card required to explore.' },
+    { question: 'What is included in the free trial?', answer: 'All plans include a 7-day free trial with full platform access, all six AI agents, and risk-aware automation. Payment info is required upfront and auto-converts unless cancelled.' },
     { question: 'How is pricing calculated?', answer: 'Pricing is based on your monthly active invoice volume. All plans include unlimited users and full feature access.' },
     { question: 'Can I switch plans at any time?', answer: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.' },
   ];
@@ -672,7 +672,7 @@ const Pricing = () => {
             <div>
               <h3 className="font-semibold mb-2">Is there a free trial?</h3>
               <p className="text-muted-foreground">
-                Yes! All plans come with a 14-day free trial. No credit card required to start.
+                Yes! All plans come with a 7-day free trial with payment info. Trial includes 5 invoices and full platform access. Auto-converts unless cancelled.
               </p>
             </div>
             <div>

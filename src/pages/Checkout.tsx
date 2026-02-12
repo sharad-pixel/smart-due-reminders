@@ -175,7 +175,7 @@ const Checkout = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Start Your Free Trial</CardTitle>
             <CardDescription>
-              You're starting a 14-day free trial of the {plan.name} plan
+              You're starting a 7-day free trial of the {plan.name} plan
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -183,7 +183,7 @@ const Checkout = () => {
               <div className="flex items-baseline justify-between mb-4">
                 <div>
                   <h3 className="text-2xl font-bold">{plan.name}</h3>
-                  <p className="text-sm text-muted-foreground">14-day free trial, then:</p>
+                  <p className="text-sm text-muted-foreground">7-day free trial, then:</p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold">${plan.price}</div>
@@ -202,7 +202,7 @@ const Checkout = () => {
             </div>
 
             <div className="space-y-3 text-sm text-muted-foreground">
-              <p>✓ Your card will not be charged during the 14-day trial</p>
+              <p>✓ Your card will not be charged during the 7-day trial</p>
               <p>✓ Cancel anytime from your account settings</p>
               <p>✓ After trial, ${plan.price}/month unless canceled</p>
             </div>
