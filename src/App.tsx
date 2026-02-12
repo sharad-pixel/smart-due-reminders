@@ -38,6 +38,7 @@ const Investors = lazy(() => import("./pages/Investors"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const StripeSyncDiagnostics = lazy(() => import("./pages/StripeSyncDiagnostics"));
 const CollectionIntelligence = lazy(() => import("./pages/CollectionIntelligence"));
+const CollectionsAssessment = lazy(() => import("./pages/CollectionsAssessment"));
 const WhyCollectionsMatter = lazy(() => import("./pages/WhyCollectionsMatter"));
 const Personas = lazy(() => import("./pages/Personas"));
 const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
@@ -154,6 +155,7 @@ const App = () => (
             <Route path="/design-partners" element={<DesignPartners />} />
             <Route path="/features" element={<Features />} />
             <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
+            <Route path="/collections-assessment" element={<CollectionsAssessment />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/personas" element={<Personas />} />
             <Route path="/ai-command-center" element={<AICommandCenter />} />

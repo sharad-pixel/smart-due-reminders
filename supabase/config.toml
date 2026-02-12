@@ -320,3 +320,6 @@ verify_jwt = false
 
 [functions.send-campaign-outreach]
 verify_jwt = false
+
+[functions.collections-assessment]
+verify_jwt = false

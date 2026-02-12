@@ -468,6 +468,99 @@ export type Database = {
           },
         ]
       }
+      assessment_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+        }
+        Relationships: []
+      }
+      assessment_leads: {
+        Row: {
+          age_band: string
+          annual_rate: number
+          breakeven_pct: number | null
+          company: string | null
+          created_at: string
+          delay_cost: number | null
+          email: string | null
+          gpt_json: Json | null
+          id: string
+          loss_pct_band: string
+          loss_risk_cost: number | null
+          name: string | null
+          overdue_count: number
+          overdue_total: number
+          recouply_cost: number | null
+          risk_tier: string | null
+          roi_multiple: number | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          age_band: string
+          annual_rate: number
+          breakeven_pct?: number | null
+          company?: string | null
+          created_at?: string
+          delay_cost?: number | null
+          email?: string | null
+          gpt_json?: Json | null
+          id?: string
+          loss_pct_band: string
+          loss_risk_cost?: number | null
+          name?: string | null
+          overdue_count: number
+          overdue_total: number
+          recouply_cost?: number | null
+          risk_tier?: string | null
+          roi_multiple?: number | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          age_band?: string
+          annual_rate?: number
+          breakeven_pct?: number | null
+          company?: string | null
+          created_at?: string
+          delay_cost?: number | null
+          email?: string | null
+          gpt_json?: Json | null
+          id?: string
+          loss_pct_band?: string
+          loss_risk_cost?: number | null
+          name?: string | null
+          overdue_count?: number
+          overdue_total?: number
+          recouply_cost?: number | null
+          risk_tier?: string | null
+          roi_multiple?: number | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action_type: string
