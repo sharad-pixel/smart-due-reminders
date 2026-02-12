@@ -206,34 +206,50 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    // Fetch existing customers for duplicate detection
-    const { data: existingDebtors } = await supabase
-      .from("debtors")
-      .select("id, company_name, name")
-      .eq("user_id", user.id);
+    // Fetch ALL existing customers via pagination (bypass 1000-row limit)
+    const allDebtors: Array<{ id: string; company_name: string; name: string }> = [];
+    let debtorFrom = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      const { data: page } = await supabase
+        .from("debtors")
+        .select("id, company_name, name")
+        .eq("user_id", user.id)
+        .range(debtorFrom, debtorFrom + PAGE_SIZE - 1);
+      if (!page || page.length === 0) break;
+      allDebtors.push(...page);
+      if (page.length < PAGE_SIZE) break;
+      debtorFrom += PAGE_SIZE;
+    }
 
     const debtorMap = new Map(
-      (existingDebtors || []).map((d) => [
+      allDebtors.map((d) => [
         normalizeString(d.company_name || d.name),
         d.id,
       ])
     );
 
-    // Fetch existing invoices for duplicate detection by invoice_number AND external_invoice_id
+    // Fetch ALL existing invoices via pagination for duplicate detection
     let invoiceMap = new Map<string, string>();
     let externalIdSet = new Set<string>();
     if (type === "invoice_detail") {
-      const { data: existingInvoices } = await supabase
-        .from("invoices")
-        .select("id, invoice_number, debtor_id, external_invoice_id")
-        .eq("user_id", user.id);
-
-      (existingInvoices || []).forEach((inv) => {
-        invoiceMap.set(`${inv.debtor_id}-${inv.invoice_number}`, inv.id);
-        if (inv.external_invoice_id) {
-          externalIdSet.add(inv.external_invoice_id);
-        }
-      });
+      let invFrom = 0;
+      while (true) {
+        const { data: page } = await supabase
+          .from("invoices")
+          .select("id, invoice_number, debtor_id, external_invoice_id")
+          .eq("user_id", user.id)
+          .range(invFrom, invFrom + PAGE_SIZE - 1);
+        if (!page || page.length === 0) break;
+        page.forEach((inv) => {
+          invoiceMap.set(`${inv.debtor_id}-${inv.invoice_number}`, inv.id);
+          if (inv.external_invoice_id) {
+            externalIdSet.add(inv.external_invoice_id);
+          }
+        });
+        if (page.length < PAGE_SIZE) break;
+        invFrom += PAGE_SIZE;
+      }
     }
 
     const result: ValidationResult = {
@@ -346,16 +362,23 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
       let successCount = 0;
       let errorCount = 0;
 
-      // Create/update customers first
+      // Create/update customers first (paginate to bypass 1000-row limit)
       const customerIdMap = new Map<string, string>();
-      const { data: existingDebtors } = await supabase
-        .from("debtors")
-        .select("id, company_name, name")
-        .eq("user_id", user.id);
-
-      (existingDebtors || []).forEach((d) => {
-        customerIdMap.set(normalizeString(d.company_name || d.name), d.id);
-      });
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      while (true) {
+        const { data: page } = await supabase
+          .from("debtors")
+          .select("id, company_name, name")
+          .eq("user_id", user.id)
+          .range(from, from + PAGE_SIZE - 1);
+        if (!page || page.length === 0) break;
+        page.forEach((d) => {
+          customerIdMap.set(normalizeString(d.company_name || d.name), d.id);
+        });
+        if (page.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
 
       // Create new customers with optional contact details
       for (const customerName of validationResult.newCustomers) {

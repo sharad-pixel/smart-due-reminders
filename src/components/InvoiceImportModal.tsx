@@ -178,23 +178,28 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
       .map(r => String(r.mappedRow.external_invoice_id || "").trim())
       .filter(Boolean);
 
-    // Batch-check existing invoices in DB
+    // Batch-check existing invoices in DB (paginate to bypass 1000-row limit)
     let existingIds = new Set<string>();
     if (invoiceIds.length > 0) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Query in batches of 500 to avoid URL length limits
-          for (let i = 0; i < invoiceIds.length; i += 500) {
-            const batch = [...new Set(invoiceIds.slice(i, i + 500))];
-            const { data: existing } = await supabase
+          // First, fetch ALL existing external_invoice_ids via pagination
+          let from = 0;
+          const PAGE_SIZE = 1000;
+          while (true) {
+            const { data: page } = await supabase
               .from("invoices")
               .select("external_invoice_id")
               .eq("user_id", user.id)
-              .in("external_invoice_id", batch);
-            (existing || []).forEach(inv => {
+              .not("external_invoice_id", "is", null)
+              .range(from, from + PAGE_SIZE - 1);
+            if (!page || page.length === 0) break;
+            page.forEach(inv => {
               if (inv.external_invoice_id) existingIds.add(inv.external_invoice_id);
             });
+            if (page.length < PAGE_SIZE) break;
+            from += PAGE_SIZE;
           }
         }
       } catch (e) {
