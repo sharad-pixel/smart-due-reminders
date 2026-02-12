@@ -76,7 +76,7 @@ export const useRiskEngine = (debtorId?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Calculate risk for a single debtor or all debtors
+  // Calculate risk for a single debtor or all debtors (batched)
   const calculateRisk = useMutation({
     mutationFn: async ({ 
       debtor_id, 
@@ -90,12 +90,46 @@ export const useRiskEngine = (debtorId?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("risk-engine", {
-        body: { debtor_id, recalculate_all, user_id: user.id, analyze_sentiment },
-      });
+      // Single debtor - direct call
+      if (debtor_id && !recalculate_all) {
+        const { data, error } = await supabase.functions.invoke("risk-engine", {
+          body: { debtor_id, user_id: user.id, analyze_sentiment },
+        });
+        if (error) throw error;
+        return data;
+      }
 
-      if (error) throw error;
-      return data;
+      // Recalculate all - batch to avoid timeout
+      const { data: debtors, error: fetchErr } = await supabase
+        .from("debtors")
+        .select("id")
+        .eq("is_archived", false);
+
+      if (fetchErr) throw fetchErr;
+      if (!debtors || debtors.length === 0) return { processed: 0 };
+
+      const BATCH_SIZE = 3;
+      const ids = debtors.map(d => d.id);
+      let processed = 0;
+
+      for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+        const batch = ids.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(id =>
+            supabase.functions.invoke("risk-engine", {
+              body: { debtor_id: id, user_id: user.id, analyze_sentiment },
+            })
+          )
+        );
+        results.forEach(r => {
+          if (r.status === "fulfilled" && !r.value.error) processed++;
+        });
+        if (i + BATCH_SIZE < ids.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      return { success: true, processed };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
@@ -105,7 +139,7 @@ export const useRiskEngine = (debtorId?: string) => {
       queryClient.invalidateQueries({ queryKey: ["score-change-history", debtorId] });
       toast({
         title: "Success",
-        description: `Enterprise scoring updated for ${data.processed} account(s)`,
+        description: `Enterprise scoring updated for ${data?.processed ?? 0} account(s)`,
       });
     },
     onError: (error: any) => {

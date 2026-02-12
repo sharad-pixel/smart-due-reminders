@@ -16,14 +16,14 @@ import {
   Eye,
   Zap
 } from "lucide-react";
-import { useCollectionIntelligenceDashboard, useCollectionIntelligence, CollectionIntelligenceData } from "@/hooks/useCollectionIntelligence";
+import { useCollectionIntelligenceDashboard, useCollectionIntelligence, CollectionIntelligenceData, BatchProgress } from "@/hooks/useCollectionIntelligence";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
 export function CollectionIntelligenceDashboard() {
   const navigate = useNavigate();
   const { data, summary, isLoading, refetch } = useCollectionIntelligenceDashboard();
-  const { calculateIntelligence } = useCollectionIntelligence();
+  const { calculateIntelligence, batchProgress } = useCollectionIntelligence();
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   const handleRecalculateAll = async () => {
@@ -117,12 +117,17 @@ export function CollectionIntelligenceDashboard() {
             disabled={isRecalculating}
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", isRecalculating && "animate-spin")} />
-            Recalculate All
+            {batchProgress 
+              ? `${batchProgress.percent}% (${batchProgress.current}/${batchProgress.total})`
+              : "Recalculate All"}
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
           AI-powered health scoring based on invoice activity, payment practices, touchpoints, and engagement sentiment
         </p>
+        {batchProgress && (
+          <Progress value={batchProgress.percent} className="h-2 mt-2" />
+        )}
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
         {/* Summary Stats */}
