@@ -31,7 +31,7 @@ const templates: Template[] = [
       { day_offset: 1, channel: "email", label: "Friendly Reminder", tone: "friendly" },
       { day_offset: 7, channel: "email", label: "Payment Due Notice", tone: "neutral" },
       { day_offset: 14, channel: "email", label: "Urgent Payment Request", tone: "firm" },
-      { day_offset: 21, channel: "sms", label: "Final Notice", tone: "firm" },
+      { day_offset: 21, channel: "email", label: "Final Notice", tone: "firm" },
     ],
   },
   {
@@ -43,10 +43,10 @@ const templates: Template[] = [
     bestFor: ["Individual consumers", "Subscription services", "Retail customers"],
     steps: [
       { day_offset: 3, channel: "email", label: "Payment Reminder", tone: "friendly" },
-      { day_offset: 7, channel: "sms", label: "Quick Reminder", tone: "friendly" },
+      { day_offset: 7, channel: "email", label: "Quick Reminder", tone: "friendly" },
       { day_offset: 14, channel: "email", label: "Payment Required", tone: "neutral" },
       { day_offset: 21, channel: "email", label: "Account Action Notice", tone: "firm" },
-      { day_offset: 30, channel: "sms", label: "Final Notice", tone: "firm" },
+      { day_offset: 30, channel: "email", label: "Final Notice", tone: "firm" },
     ],
   },
   {
@@ -72,7 +72,7 @@ const templates: Template[] = [
     bestFor: ["Invoices under $500", "High-volume accounts", "Subscription renewals"],
     steps: [
       { day_offset: 3, channel: "email", label: "Auto Reminder", tone: "friendly" },
-      { day_offset: 10, channel: "sms", label: "Quick Notice", tone: "neutral" },
+      { day_offset: 10, channel: "email", label: "Quick Notice", tone: "neutral" },
       { day_offset: 20, channel: "email", label: "Final Reminder", tone: "firm" },
     ],
   },
@@ -86,7 +86,7 @@ const templates: Template[] = [
     steps: [
       { day_offset: 1, channel: "email", label: "Payment Failed Notice", tone: "neutral" },
       { day_offset: 3, channel: "email", label: "Update Payment Method", tone: "friendly" },
-      { day_offset: 7, channel: "sms", label: "Service Interruption Warning", tone: "neutral" },
+      { day_offset: 7, channel: "email", label: "Service Interruption Warning", tone: "neutral" },
       { day_offset: 14, channel: "email", label: "Account Suspension Notice", tone: "firm" },
     ],
   },
@@ -101,7 +101,7 @@ const templates: Template[] = [
       { day_offset: 3, channel: "email", label: "Invoice Delivery", tone: "friendly" },
       { day_offset: 10, channel: "email", label: "Payment Follow-up", tone: "neutral" },
       { day_offset: 20, channel: "email", label: "Overdue Notice", tone: "firm" },
-      { day_offset: 30, channel: "sms", label: "Collections Notice", tone: "firm" },
+      { day_offset: 30, channel: "email", label: "Collections Notice", tone: "firm" },
     ],
   },
   {
@@ -113,7 +113,7 @@ const templates: Template[] = [
     bestFor: ["Contractors", "Home repairs", "Service providers"],
     steps: [
       { day_offset: 1, channel: "email", label: "Thank You + Invoice", tone: "friendly" },
-      { day_offset: 7, channel: "sms", label: "Payment Reminder", tone: "friendly" },
+      { day_offset: 7, channel: "email", label: "Payment Reminder", tone: "friendly" },
       { day_offset: 14, channel: "email", label: "Payment Due", tone: "neutral" },
       { day_offset: 21, channel: "email", label: "Final Notice", tone: "firm" },
     ],
@@ -127,10 +127,10 @@ const templates: Template[] = [
     bestFor: ["120+ days overdue", "Final collection stage", "Pre-legal action"],
     steps: [
       { day_offset: 0, channel: "email", label: "Critical Status Notice", tone: "firm" },
-      { day_offset: 3, channel: "sms", label: "Urgent Action Required", tone: "firm" },
+      { day_offset: 3, channel: "email", label: "Urgent Action Required", tone: "firm" },
       { day_offset: 7, channel: "email", label: "Settlement Offer", tone: "firm" },
       { day_offset: 14, channel: "email", label: "Pre-Legal Warning", tone: "firm" },
-      { day_offset: 21, channel: "sms", label: "Final Response Request", tone: "firm" },
+      { day_offset: 21, channel: "email", label: "Final Response Request", tone: "firm" },
       { day_offset: 30, channel: "email", label: "Collections Notice", tone: "firm" },
     ],
   },

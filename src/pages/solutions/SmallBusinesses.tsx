@@ -55,7 +55,7 @@ const SmallBusinesses = () => {
   const features = [
     "Six AI agents working 24/7 on payment reminders",
     "Agents learn and improve recovery rates over time",
-    "Embedded payment links in every email and SMS",
+    "Embedded payment links in every email",
     "QuickBooks and accounting software integration",
     "Customer-friendly tone that preserves relationships",
     "Full collections dashboard with real-time visibility"

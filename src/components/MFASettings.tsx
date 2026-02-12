@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export function MFASettings() {
   const { mfaSettings, isLoading, enableMFA, disableMFA } = useMFA();
-  const [mfaMethod, setMfaMethod] = useState<"email" | "sms" | "totp">("email");
+  const [mfaMethod, setMfaMethod] = useState<"email" | "totp">("email");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
@@ -20,7 +20,7 @@ export function MFASettings() {
     try {
       const result = await enableMFA({
         method: mfaMethod,
-        phoneNumber: mfaMethod === "sms" ? phoneNumber : undefined,
+        phoneNumber: undefined,
       });
       setBackupCodes(result.backupCodes);
       setShowBackupCodes(true);
@@ -60,12 +60,6 @@ export function MFASettings() {
                       Email Code
                     </div>
                   </SelectItem>
-                  <SelectItem value="sms">
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="h-4 w-4" />
-                      SMS Code
-                    </div>
-                  </SelectItem>
                   <SelectItem value="totp">
                     <div className="flex items-center gap-2">
                       <Key className="h-4 w-4" />
@@ -76,18 +70,6 @@ export function MFASettings() {
               </Select>
             </div>
 
-            {mfaMethod === "sms" && (
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1234567890"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                />
-              </div>
-            )}
 
             {showBackupCodes && backupCodes.length > 0 && (
               <Alert>

@@ -63,7 +63,7 @@ const Privacy = () => {
               <li>Cloud hosting providers (for data storage and processing)</li>
               <li>Payment processors (for plan billing)</li>
               <li>AI/ML providers (for message generation)</li>
-              <li>Email and SMS delivery services</li>
+              <li>Email delivery services</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-foreground mt-4 mb-2">Legal Requirements</h3>

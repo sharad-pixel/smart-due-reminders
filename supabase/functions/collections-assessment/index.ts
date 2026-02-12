@@ -81,8 +81,8 @@ Required JSON output schema:
   "minimal_followup_plan": {
     "goal": "string",
     "touches": [
-      { "day": 0, "channel": "email|sms", "tone": "friendly|firm|very_firm", "why": "string" },
-      { "day": 3, "channel": "email|sms", "tone": "friendly|firm|very_firm", "why": "string" }
+      { "day": 0, "channel": "email", "tone": "friendly|firm|very_firm", "why": "string" },
+      { "day": 3, "channel": "email", "tone": "friendly|firm|very_firm", "why": "string" }
     ],
     "notes": "string"
   },

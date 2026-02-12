@@ -14,7 +14,7 @@ interface WorkflowStep {
   trigger_type: string;
   subject_template?: string;
   body_template: string;
-  sms_template?: string;
+  
 }
 
 interface WorkflowGraphProps {
@@ -86,17 +86,8 @@ const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGeneratin
                             <span>Day {step.day_offset}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            {step.channel === "email" ? (
-                              <>
-                                <Mail className="h-3 w-3" />
-                                <span>Email</span>
-                              </>
-                            ) : (
-                              <>
-                                <MessageSquare className="h-3 w-3" />
-                                <span>SMS</span>
-                              </>
-                            )}
+                            <Mail className="h-3 w-3" />
+                            <span>Email</span>
                           </div>
                           <Badge variant="outline" className="text-xs">
                             {step.ai_template_type}

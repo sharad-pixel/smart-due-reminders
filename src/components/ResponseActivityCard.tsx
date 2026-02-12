@@ -81,8 +81,6 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
     switch (channel) {
       case 'email':
         return <Mail className="h-4 w-4" />;
-      case 'sms':
-        return <MessageSquare className="h-4 w-4" />;
       case 'phone':
         return <Phone className="h-4 w-4" />;
       default:

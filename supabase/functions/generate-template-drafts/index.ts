@@ -429,7 +429,7 @@ APPROACH STYLE - RELATIONSHIP FOCUSED:
     for (let i = 0; i < workflow.steps.length; i++) {
       const step = workflow.steps[i];
       
-      if (!step.is_active || step.channel === 'sms') continue;
+      if (!step.is_active) continue;
       if (existingStepIds.has(step.id)) continue;
 
       let templateSubject: string;

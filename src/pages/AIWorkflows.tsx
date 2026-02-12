@@ -38,7 +38,7 @@ interface WorkflowStep {
   is_active: boolean;
   subject_template?: string;
   body_template: string;
-  sms_template?: string;
+  
   ai_template_type: string;
   trigger_type: string;
 }
@@ -593,7 +593,6 @@ const AIWorkflows = () => {
           ai_template_type: step.ai_template_type,
           subject_template: step.subject_template,
           body_template: step.body_template,
-          sms_template: step.sms_template,
         })
         .eq("id", step.id);
 
@@ -732,7 +731,7 @@ const AIWorkflows = () => {
           ai_template_type: step.ai_template_type,
           body_template: step.body_template,
           subject_template: step.subject_template,
-          sms_template: step.sms_template,
+          
           is_active: step.is_active,
           requires_review: true,
         }));

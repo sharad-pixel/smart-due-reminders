@@ -28,7 +28,7 @@ interface ParsedCommand {
   action: string;
   personaName?: string;
   invoiceId?: string;
-  channel: "email" | "sms";
+  channel: "email";
 }
 
 function parseCommand(commandText: string, contextInvoiceId?: string): ParsedCommand {
@@ -53,8 +53,8 @@ function parseCommand(commandText: string, contextInvoiceId?: string): ParsedCom
     action = "escalate";
   }
 
-  // Detect channel
-  const channel = lowerCommand.includes("sms") || lowerCommand.includes("text") ? "sms" : "email";
+  // Channel is always email
+  const channel = "email" as const;
 
   // Extract invoice identifier
   // IMPORTANT: if caller supplies a UUID invoice ID, always prefer it (prevents accidentally extracting trailing digits like "0069").
@@ -561,7 +561,7 @@ Please craft a helpful, professional response. Since we don't have specific acco
     }
 
     // Generate draft using Lovable AI with tool calling
-    const tools = parsed.channel === 'email' ? [{
+    const tools = [{
       type: 'function',
       function: {
         name: 'create_email_draft',
@@ -579,23 +579,6 @@ Please craft a helpful, professional response. Since we don't have specific acco
             }
           },
           required: ['subject', 'body'],
-          additionalProperties: false
-        }
-      }
-    }] : [{
-      type: 'function',
-      function: {
-        name: 'create_sms_draft',
-        description: 'Create an SMS draft',
-        parameters: {
-          type: 'object',
-          properties: {
-            body: {
-              type: 'string',
-              description: 'SMS message content (max 160 characters)'
-            }
-          },
-          required: ['body'],
           additionalProperties: false
         }
       }
@@ -619,7 +602,7 @@ Please craft a helpful, professional response. Since we don't have specific acco
         tool_choice: {
           type: 'function',
           function: {
-            name: parsed.channel === 'email' ? 'create_email_draft' : 'create_sms_draft'
+            name: 'create_email_draft'
           }
         }
       }),

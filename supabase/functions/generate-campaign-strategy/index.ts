@@ -234,7 +234,7 @@ ${accountSummaries.slice(0, 5).map(a =>
 Based on this analysis, provide:
 1. Campaign name suggestion
 2. Recommended collection tone (friendly/firm/urgent/legal)
-3. Recommended primary channel (email/phone/sms/multi-channel)
+3. Recommended primary channel (email/phone/multi-channel)
 4. Key strategy points (3-5 bullet points)
 5. Expected collection timeline
 6. Risk mitigation recommendations
@@ -268,7 +268,7 @@ Based on this analysis, provide:
                 },
                 recommendedChannel: {
                   type: "string",
-                  enum: ["email", "phone", "sms", "multi-channel"],
+                  enum: ["email", "phone", "multi-channel"],
                   description: "Primary communication channel"
                 },
                 strategyPoints: {
