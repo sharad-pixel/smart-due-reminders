@@ -417,6 +417,19 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         }
       }
 
+      // Update the upload record with aggregated totals from all batches
+      if (upload.id) {
+        await supabase
+          .from("data_center_uploads")
+          .update({
+            processed_count: aggregatedResult.processed,
+            matched_count: aggregatedResult.matched,
+            status: aggregatedResult.errors > 0 ? "needs_review" : "processed",
+            processed_at: new Date().toISOString(),
+          })
+          .eq("id", upload.id);
+      }
+
       return aggregatedResult;
     },
     onSuccess: (result) => {
