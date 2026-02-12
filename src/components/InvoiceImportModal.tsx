@@ -57,6 +57,8 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [duplicateRows, setDuplicateRows] = useState<Array<{ row: number; data: ParsedRow; reason: string }>>([]);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
@@ -156,21 +158,59 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
     return true;
   };
 
-  const validateData = () => {
+  const validateData = async () => {
+    setIsCheckingDuplicates(true);
     const valid: ParsedRow[] = [];
     const errors: Array<{ row: number; data: ParsedRow; error: string }> = [];
+    const dupes: Array<{ row: number; data: ParsedRow; reason: string }> = [];
 
-    parsedData.forEach((row, index) => {
+    // Map all rows first
+    const allMapped = parsedData.map((row, index) => {
       const mappedRow: any = {};
-      let error = "";
-
-      // Map columns
       Object.entries(columnMapping).forEach(([field, column]) => {
         mappedRow[field] = row[column];
       });
+      return { mappedRow, index };
+    });
+
+    // Collect all external_invoice_ids to check against DB
+    const invoiceIds = allMapped
+      .map(r => String(r.mappedRow.external_invoice_id || "").trim())
+      .filter(Boolean);
+
+    // Batch-check existing invoices in DB
+    let existingIds = new Set<string>();
+    if (invoiceIds.length > 0) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Query in batches of 500 to avoid URL length limits
+          for (let i = 0; i < invoiceIds.length; i += 500) {
+            const batch = [...new Set(invoiceIds.slice(i, i + 500))];
+            const { data: existing } = await supabase
+              .from("invoices")
+              .select("external_invoice_id")
+              .eq("user_id", user.id)
+              .in("external_invoice_id", batch);
+            (existing || []).forEach(inv => {
+              if (inv.external_invoice_id) existingIds.add(inv.external_invoice_id);
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Duplicate check error:", e);
+      }
+    }
+
+    // Track in-file duplicates
+    const seenInFile = new Set<string>();
+
+    allMapped.forEach(({ mappedRow, index }) => {
+      let error = "";
+      const extId = String(mappedRow.external_invoice_id || "").trim();
 
       // Validate required fields
-      if (!mappedRow.external_invoice_id) {
+      if (!extId) {
         error = "Missing invoice ID";
       } else if (!mappedRow.amount || isNaN(parseFloat(mappedRow.amount))) {
         error = "Invalid amount";
@@ -186,13 +226,20 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
 
       if (error) {
         errors.push({ row: index + 2, data: mappedRow, error });
+      } else if (importMode === "INSERT_ONLY" && existingIds.has(extId)) {
+        dupes.push({ row: index + 2, data: mappedRow, reason: `Already exists in system (${extId})` });
+      } else if (seenInFile.has(extId)) {
+        dupes.push({ row: index + 2, data: mappedRow, reason: `Duplicate in file (${extId})` });
       } else {
+        seenInFile.add(extId);
         valid.push(mappedRow);
       }
     });
 
     setValidRows(valid);
     setErrorRows(errors);
+    setDuplicateRows(dupes);
+    setIsCheckingDuplicates(false);
     setStep(4);
   };
 
@@ -346,8 +393,10 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
     setColumnMapping({});
     setValidRows([]);
     setErrorRows([]);
+    setDuplicateRows([]);
     setProgress(0);
     setJobId(null);
+    setIsCheckingDuplicates(false);
     onOpenChange(false);
   };
 
@@ -494,7 +543,9 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
 
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={validateData}>Next: Validate Data</Button>
+              <Button onClick={validateData} disabled={isCheckingDuplicates}>
+                {isCheckingDuplicates ? "Checking duplicates..." : "Next: Validate Data"}
+              </Button>
             </div>
           </div>
         )}
@@ -502,13 +553,22 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
         {/* Step 4: Validation & Preview */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <Alert>
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertDescription>
                   <strong className="text-green-600">{validRows.length} valid rows</strong>
                 </AlertDescription>
               </Alert>
+
+              {duplicateRows.length > 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription>
+                    <strong className="text-yellow-600">{duplicateRows.length} duplicates skipped</strong>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {errorRows.length > 0 && (
                 <Alert variant="destructive">
@@ -519,6 +579,32 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
                 </Alert>
               )}
             </div>
+
+            {duplicateRows.length > 0 && (
+              <div>
+                <div className="text-sm font-medium mb-2">Duplicates (first 5) — these will NOT be imported</div>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="p-2 text-left">Row</th>
+                        <th className="p-2 text-left">Invoice ID</th>
+                        <th className="p-2 text-left">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {duplicateRows.slice(0, 5).map((d, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-2">{d.row}</td>
+                          <td className="p-2">{d.data.external_invoice_id}</td>
+                          <td className="p-2 text-yellow-600">{d.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {errorRows.length > 0 && (
               <div>
