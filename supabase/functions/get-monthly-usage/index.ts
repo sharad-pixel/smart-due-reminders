@@ -223,16 +223,27 @@ Deno.serve(async (req) => {
     }
 
     // Count ALL active Open and InPaymentPlan invoices (not just current month)
-    // This is the correct approach for usage-based billing - we count all active invoices
-    const { data: countableInvoices, error: countError } = await supabaseClient
-      .from('invoices')
-      .select('id, is_overage')
-      .eq('user_id', accountId)
-      .in('status', ['Open', 'InPaymentPlan']);
+    // Use pagination to bypass the default 1000-row limit
+    const allCountableInvoices: Array<{ id: string; is_overage: boolean | null }> = [];
+    let offset = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      const { data: page, error: pageError } = await supabaseClient
+        .from('invoices')
+        .select('id, is_overage')
+        .eq('user_id', accountId)
+        .in('status', ['Open', 'InPaymentPlan'])
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    if (countError) {
-      throw new Error(`Error counting invoices: ${countError.message}`);
+      if (pageError) {
+        throw new Error(`Error counting invoices: ${pageError.message}`);
+      }
+      if (!page || page.length === 0) break;
+      allCountableInvoices.push(...page);
+      if (page.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
     }
+    const countableInvoices = allCountableInvoices;
 
     const actualInvoicesUsed = countableInvoices?.length || 0;
     const overageInvoices = countableInvoices?.filter((inv: { is_overage?: boolean | null }) => !!inv.is_overage).length || 0;
