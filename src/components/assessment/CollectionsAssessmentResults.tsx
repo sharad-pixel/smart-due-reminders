@@ -17,7 +17,7 @@ import {
   MessageSquare,
   Share2,
   Send,
-  UserPlus,
+  Users,
   Lock,
 } from "lucide-react";
 import {
@@ -78,11 +78,11 @@ const CollectionsAssessmentResults = ({
   const [isUnlocking, setIsUnlocking] = useState(false);
 
   // Share states
-  const [shareMode, setShareMode] = useState<"none" | "boss">("none");
-  const [bossEmail, setBossEmail] = useState("");
-  const [bossName, setBossName] = useState("");
+  const [showShareForm, setShowShareForm] = useState(false);
+  const [teamEmails, setTeamEmails] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [shareSent, setShareSent] = useState(false);
+  const [shareCount, setShareCount] = useState(0);
 
   const trackEvent = useCallback(
     (eventType: string, metadata?: any) => {
@@ -138,30 +138,46 @@ const CollectionsAssessmentResults = ({
           company: unlockCompany || "Not provided",
         },
       },
-    }).catch(() => {}); // fire-and-forget
+    }).catch(() => {});
+
+    // Send assessment to the user's own email
+    supabase.functions.invoke("share-assessment", {
+      body: {
+        to_email: unlockEmail,
+        to_name: unlockName || undefined,
+        sender_name: unlockName || undefined,
+        inputs,
+        results,
+        gptResult,
+        share_type: "self",
+      },
+    }).catch(() => {});
 
     setIsUnlocking(false);
     setUnlocked(true);
   };
 
-  const handleShareWithBoss = async () => {
-    if (!bossEmail) return;
+  const handleShareWithTeam = async () => {
+    const emails = teamEmails.split(/[,;\s]+/).map(e => e.trim()).filter(e => e.includes("@"));
+    if (emails.length === 0) return;
     setIsSending(true);
-    trackEvent("assessment_shared", { share_type: "boss", to: bossEmail });
+    trackEvent("assessment_shared", { share_type: "team", to: emails });
 
     try {
-      const { error } = await supabase.functions.invoke("share-assessment", {
-        body: {
-          to_email: bossEmail,
-          to_name: bossName || undefined,
-          sender_name: unlockName || undefined,
-          inputs,
-          results,
-          gptResult,
-          share_type: "boss",
-        },
-      });
-      if (error) throw error;
+      const promises = emails.map(email =>
+        supabase.functions.invoke("share-assessment", {
+          body: {
+            to_email: email,
+            sender_name: unlockName || undefined,
+            inputs,
+            results,
+            gptResult,
+            share_type: "team",
+          },
+        })
+      );
+      await Promise.all(promises);
+      setShareCount(emails.length);
       setShareSent(true);
     } catch (err) {
       console.error("Share error:", err);
@@ -406,7 +422,7 @@ const CollectionsAssessmentResults = ({
             </motion.div>
           )}
 
-          {/* Share with Boss */}
+          {/* Share with Team Members */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -415,7 +431,7 @@ const CollectionsAssessmentResults = ({
           >
             <div className="flex items-center gap-2 mb-1">
               <Share2 className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Share This Assessment</h3>
+              <h3 className="font-semibold text-lg">Share with Team Members</h3>
             </div>
 
             {shareSent ? (
@@ -423,50 +439,54 @@ const CollectionsAssessmentResults = ({
                 <CheckCircle2 className="h-6 w-6 text-accent flex-shrink-0" />
                 <div>
                   <p className="font-medium">Assessment sent!</p>
-                  <p className="text-sm text-muted-foreground">We've emailed the full report to {bossEmail}.</p>
+                  <p className="text-sm text-muted-foreground">
+                    We've emailed the full report to {shareCount} team member{shareCount !== 1 ? "s" : ""}.
+                  </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto"
+                  onClick={() => { setShareSent(false); setTeamEmails(""); }}
+                >
+                  Share with more
+                </Button>
               </div>
-            ) : shareMode === "none" ? (
+            ) : !showShareForm ? (
               <Button
                 variant="outline"
                 className="gap-2"
-                onClick={() => setShareMode("boss")}
+                onClick={() => setShowShareForm(true)}
               >
-                <UserPlus className="h-4 w-4" />
-                Share with My Boss
+                <Users className="h-4 w-4" />
+                Share with Team Members
               </Button>
             ) : (
-              <div className="space-y-3 max-w-sm">
+              <div className="space-y-3 max-w-md">
                 <p className="text-sm text-muted-foreground">
-                  We'll send the assessment to your boss with context on the ROI opportunity.
+                  Enter one or more email addresses (comma-separated) to share this assessment with your team.
                 </p>
                 <Input
-                  placeholder="Their name (optional)"
-                  value={bossName}
-                  onChange={(e) => setBossName(e.target.value)}
-                />
-                <Input
-                  type="email"
-                  placeholder="Their email *"
-                  value={bossEmail}
-                  onChange={(e) => setBossEmail(e.target.value)}
-                  required
+                  type="text"
+                  placeholder="colleague@company.com, boss@company.com"
+                  value={teamEmails}
+                  onChange={(e) => setTeamEmails(e.target.value)}
                 />
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => { setShareMode("none"); setBossEmail(""); setShareSent(false); }}
+                    onClick={() => { setShowShareForm(false); setTeamEmails(""); }}
                   >
                     Cancel
                   </Button>
                   <Button
                     size="sm"
-                    onClick={handleShareWithBoss}
-                    disabled={!bossEmail || isSending}
+                    onClick={handleShareWithTeam}
+                    disabled={!teamEmails.includes("@") || isSending}
                   >
                     {isSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                    Send
+                    Send to Team
                   </Button>
                 </div>
               </div>
