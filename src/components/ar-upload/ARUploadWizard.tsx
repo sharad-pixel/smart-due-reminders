@@ -439,33 +439,93 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         }
       }
 
-      // Process rows based on upload type
+      // Process rows in bulk batches instead of one-by-one
       const duplicateRows = new Set(validationResult.duplicates.map((d) => d.rowIndex));
-      const errorRows = new Set(validationResult.errors.map((e) => e.rowIndex));
+      const errorRowSet = new Set(validationResult.errors.map((e) => e.rowIndex));
+      const BULK_SIZE = 50;
 
-      for (let i = 0; i < parsedData.rows.length; i++) {
-        if (duplicateRows.has(i) || errorRows.has(i)) continue;
+      if (uploadType === "invoice_detail") {
+        // Build all invoice records first
+        const invoiceRecords: Record<string, any>[] = [];
+        for (let i = 0; i < parsedData.rows.length; i++) {
+          if (duplicateRows.has(i) || errorRowSet.has(i)) continue;
+          const row = parsedData.rows[i];
+          const customerName = String(row[columnMapping.customer_name!] || "").trim();
+          const debtorId = customerIdMap.get(normalizeString(customerName));
+          if (!debtorId) { errorCount++; continue; }
 
-        const row = parsedData.rows[i];
-        const customerName = String(row[columnMapping.customer_name!] || "").trim();
-        const debtorId = customerIdMap.get(normalizeString(customerName));
-
-        if (!debtorId) {
-          errorCount++;
-          continue;
+          const amount = parseFloat(row[columnMapping.amount!]) || 0;
+          const status = columnMapping.status ? mapStatus(row[columnMapping.status]) : "Open";
+          const record: Record<string, any> = {
+            user_id: user.id,
+            debtor_id: debtorId,
+            invoice_number: String(row[columnMapping.invoice_number!] || ""),
+            invoice_date: parseDate(row[columnMapping.invoice_date!]),
+            due_date: parseDate(row[columnMapping.due_date!]),
+            amount, amount_original: amount,
+            amount_outstanding: status === "Paid" ? 0 : amount,
+            currency: columnMapping.currency ? String(row[columnMapping.currency] || "USD") : "USD",
+            status,
+            upload_batch_id: batchId,
+            reference_id: `INV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+          };
+          if (columnMapping.notes && row[columnMapping.notes]) record.notes = String(row[columnMapping.notes]);
+          if (columnMapping.product_description && row[columnMapping.product_description]) record.product_description = String(row[columnMapping.product_description]);
+          if (columnMapping.external_invoice_id && row[columnMapping.external_invoice_id]) record.external_invoice_id = String(row[columnMapping.external_invoice_id]);
+          if (columnMapping.po_number && row[columnMapping.po_number]) record.po_number = String(row[columnMapping.po_number]);
+          if (columnMapping.payment_terms && row[columnMapping.payment_terms]) record.payment_terms = String(row[columnMapping.payment_terms]);
+          invoiceRecords.push(record);
         }
 
-        try {
-          if (uploadType === "invoice_detail") {
-            await importInvoice(row, columnMapping, debtorId, user.id, batchId);
-            successCount++;
-          } else if (uploadType === "payments") {
-            await importPayment(row, columnMapping, debtorId, user.id, batchId);
-            successCount++;
+        // Bulk insert in chunks
+        for (let i = 0; i < invoiceRecords.length; i += BULK_SIZE) {
+          const chunk = invoiceRecords.slice(i, i + BULK_SIZE);
+          const { data: inserted, error: bulkError } = await supabase.from("invoices").insert(chunk as any).select("id");
+          if (bulkError) {
+            console.error("Bulk insert error, falling back:", bulkError.message);
+            for (const inv of chunk) {
+              const { error } = await supabase.from("invoices").insert(inv as any);
+              if (error) { errorCount++; } else { successCount++; }
+            }
+          } else {
+            successCount += inserted?.length || chunk.length;
           }
-        } catch (error) {
-          console.error("Error importing row:", error);
-          errorCount++;
+        }
+      } else if (uploadType === "payments") {
+        const paymentRecords: Record<string, any>[] = [];
+        for (let i = 0; i < parsedData.rows.length; i++) {
+          if (duplicateRows.has(i) || errorRowSet.has(i)) continue;
+          const row = parsedData.rows[i];
+          const customerName = String(row[columnMapping.customer_name!] || "").trim();
+          const debtorId = customerIdMap.get(normalizeString(customerName));
+          if (!debtorId) { errorCount++; continue; }
+
+          paymentRecords.push({
+            user_id: user.id,
+            debtor_id: debtorId,
+            payment_date: parseDate(row[columnMapping.payment_date!]),
+            amount: parseFloat(row[columnMapping.amount!]) || 0,
+            currency: columnMapping.currency ? String(row[columnMapping.currency] || "USD") : "USD",
+            reference: columnMapping.reference ? String(row[columnMapping.reference] || "") : null,
+            invoice_number_hint: columnMapping.invoice_number ? String(row[columnMapping.invoice_number] || "") : null,
+            notes: columnMapping.notes ? String(row[columnMapping.notes] || "") : null,
+            upload_batch_id: batchId,
+            reconciliation_status: "pending",
+          });
+        }
+
+        for (let i = 0; i < paymentRecords.length; i += BULK_SIZE) {
+          const chunk = paymentRecords.slice(i, i + BULK_SIZE);
+          const { error: bulkError } = await supabase.from("payments").insert(chunk as any);
+          if (bulkError) {
+            console.error("Bulk payment insert error, falling back:", bulkError.message);
+            for (const p of chunk) {
+              const { error } = await supabase.from("payments").insert(p as any);
+              if (error) { errorCount++; } else { successCount++; }
+            }
+          } else {
+            successCount += chunk.length;
+          }
         }
       }
 
