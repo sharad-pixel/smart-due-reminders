@@ -257,26 +257,47 @@ const DataCenter = () => {
           </div>
         </div>
 
-        {/* RAID Export Callout */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Download className="h-5 w-5 text-primary" />
+        {/* Export Callouts */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Export Accounts with RAIDs</p>
+                  <p className="text-xs text-muted-foreground">
+                    Download accounts list with Recouply Account IDs
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-sm">Export Accounts with Recouply Account IDs (RAIDs)</p>
-                <p className="text-xs text-muted-foreground">
-                  Download your accounts list with RAIDs to map invoices back during CSV/Excel uploads
-                </p>
+              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportAccounts}>
+                <Download className="h-4 w-4" />
+                Export Accounts
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Export All Invoices</p>
+                  <p className="text-xs text-muted-foreground">
+                    Download all invoices with account details and aging data
+                  </p>
+                </div>
               </div>
-            </div>
-            <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportAccounts}>
-              <Download className="h-4 w-4" />
-              Export Accounts
-            </Button>
-          </CardContent>
-        </Card>
+              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportInvoices}>
+                <Download className="h-4 w-4" />
+                Export Invoices
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Data Import Section */}
         <div className="space-y-4">
