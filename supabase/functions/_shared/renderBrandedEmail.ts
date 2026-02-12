@@ -493,6 +493,7 @@ export function renderPlainTextEmail(input: EmailRenderInput, personaName?: stri
   }
   
   text += `\n\n---`;
+  text += `\n🔒 Access Payment Portal: https://recouply.ai/debtor-portal`;
   text += `\nPowered by recouply.ai`;
   
   if (brand.ar_page_enabled && brand.ar_page_public_token) {
