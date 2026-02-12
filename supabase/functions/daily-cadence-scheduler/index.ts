@@ -224,6 +224,19 @@ Deno.serve(async (req) => {
           .eq('status', 'approved')
           .limit(1);
 
+        // Also try to get the pre-approved workflow step template from /ai-workflows
+        let workflowStepTemplate: any = null;
+        if (collectionWorkflow?.id) {
+          const { data: stepData } = await supabaseAdmin
+            .from('collection_workflow_steps')
+            .select('subject_template, body_template, channel, label')
+            .eq('workflow_id', collectionWorkflow.id)
+            .eq('step_order', stepNumber)
+            .eq('is_active', true)
+            .maybeSingle();
+          workflowStepTemplate = stepData;
+        }
+
         let subject = '';
         let body = '';
         let useTemplate = false;
@@ -275,16 +288,25 @@ Deno.serve(async (req) => {
             .replace(/\{\{product_description\}\}/gi, productDescription)
             .replace(/\{\{productDescription\}\}/gi, productDescription)
             .replace(/\{\{service_description\}\}/gi, productDescription)
-            .replace(/\{\{description\}\}/gi, productDescription);
+            .replace(/\{\{description\}\}/gi, productDescription)
+            // Clean up any remaining unresolved placeholders
+            .replace(/\{\{[^}]+\}\}/g, '');
         };
 
         if (templates && templates.length > 0) {
+          // Priority 1: Use approved draft_templates
           const template = templates[0];
           subject = replaceTemplateVars(template.subject || '');
           body = replaceTemplateVars(template.body || '');
           useTemplate = true;
+        } else if (workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
+          // Priority 2: Use pre-approved workflow step templates from /ai-workflows
+          console.log(`[CADENCE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
+          subject = replaceTemplateVars(workflowStepTemplate.subject_template);
+          body = replaceTemplateVars(workflowStepTemplate.body_template);
+          useTemplate = true;
         } else {
-          // Generate default message based on step
+          // Fallback: generic messages
           const stepMessages = [
             { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
             { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for ${formattedAmount}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions about this invoice.` },
