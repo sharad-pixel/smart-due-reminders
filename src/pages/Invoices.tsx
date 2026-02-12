@@ -109,35 +109,30 @@ const Invoices = () => {
     setCurrentPage(1); // Reset to first page when filters change
   }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, hideInactive]);
 
-  const fetchAllPaginated = async (
-    queryBuilder: () => ReturnType<typeof supabase.from<'invoices'>['select']>,
-    pageSize = 1000
-  ) => {
+  const fetchAllInvoicesPaginated = async () => {
     const allData: any[] = [];
     let from = 0;
+    const PAGE_SIZE = 1000;
     while (true) {
-      const { data, error } = await queryBuilder().range(from, from + pageSize - 1);
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides")
+        .eq("is_archived", false)
+        .order("due_date", { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
       if (error) throw error;
       if (!data || data.length === 0) break;
       allData.push(...data);
-      if (data.length < pageSize) break;
-      from += pageSize;
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
     return allData;
   };
 
   const fetchData = async () => {
     try {
-      // Fetch invoices with pagination to bypass 1000-row default limit
-      const allInvoices = await fetchAllPaginated(() =>
-        supabase
-          .from("invoices")
-          .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides")
-          .eq("is_archived", false)
-          .order("due_date", { ascending: false })
-      );
-
-      const [debtorsRes, agentPersonasRes] = await Promise.all([
+      const [allInvoices, debtorsRes, agentPersonasRes] = await Promise.all([
+        fetchAllInvoicesPaginated(),
         supabase.from("debtors").select("id, company_name").order("company_name"),
         supabase.from("ai_agent_personas").select("name, bucket_min, bucket_max").order("bucket_min"),
       ]);

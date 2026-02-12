@@ -187,8 +187,8 @@ const Dashboard = () => {
 
       setInvoices(allInvoices);
 
-      if (!tasksRes.error) {
-        setPendingTasks(tasksRes.data || []);
+      if (!tasksError) {
+        setPendingTasks(tasksData || []);
       }
 
       // Calculate Total Outstanding
