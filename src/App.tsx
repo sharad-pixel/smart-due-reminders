@@ -7,6 +7,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import { CookieConsentProvider } from "./components/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
+import { SessionSecurityProvider } from "./components/SessionSecurityProvider";
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -137,6 +138,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AccessProvider>
+        <SessionSecurityProvider>
         <CookieConsentProvider>
           <MaintenanceGuard>
             <ScrollToTop />
@@ -258,6 +260,7 @@ const App = () => (
           </Suspense>
           </MaintenanceGuard>
         </CookieConsentProvider>
+        </SessionSecurityProvider>
       </AccessProvider>
     </BrowserRouter>
   </QueryClientProvider>
