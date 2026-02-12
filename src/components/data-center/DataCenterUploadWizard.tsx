@@ -237,6 +237,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         return obj;
       }).filter(row => Object.values(row).some(v => v != null && v !== ""));
 
+      if (rows.length > 5000) {
+        throw new Error("File exceeds the maximum limit of 5,000 rows. Please split your file into smaller batches.");
+      }
+
       const sampleRows = rows.slice(0, 5);
 
       setParsedData({ headers, rows, sampleRows });
