@@ -140,7 +140,7 @@ async function matchPayment(
     .select("id, invoice_number, amount, amount_outstanding, due_date, currency")
     .eq("debtor_id", debtorId)
     .eq("user_id", userId)
-    .in("status", ["Open", "InPaymentPlan"])
+    .in("status", ["Open", "InPaymentPlan", "PartiallyPaid"])
     .gt("amount_outstanding", 0);
 
   if (!candidateInvoices || candidateInvoices.length === 0) {
