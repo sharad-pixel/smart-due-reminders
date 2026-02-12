@@ -30,7 +30,8 @@ import {
   Bell,
   BarChart3,
   ShieldCheck,
-  Loader2
+  Loader2,
+  DollarSign
 } from "lucide-react";
 import {
   DropdownMenu,
