@@ -75,6 +75,35 @@ serve(async (req) => {
 
     console.log("Matching results:", results);
 
+    // Recalculate balances for all affected debtors after bulk matching
+    const affectedDebtorIds = [...new Set((payments || []).map((p: any) => p.debtor_id).filter(Boolean))];
+    console.log(`Recalculating balances for ${affectedDebtorIds.length} debtors`);
+    
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    for (const debtorId of affectedDebtorIds) {
+      const { data: invoiceStats } = await serviceClient
+        .from("invoices")
+        .select("amount_outstanding, status")
+        .eq("debtor_id", debtorId)
+        .in("status", ["Open", "InPaymentPlan", "PartiallyPaid"]);
+
+      const totalBalance = (invoiceStats || []).reduce((sum: number, inv: any) => sum + (parseFloat(inv.amount_outstanding) || 0), 0);
+      const openCount = (invoiceStats || []).length;
+
+      await serviceClient
+        .from("debtors")
+        .update({
+          current_balance: totalBalance,
+          total_open_balance: totalBalance,
+          open_invoices_count: openCount,
+        })
+        .eq("id", debtorId);
+    }
+
     return new Response(JSON.stringify({ success: true, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
