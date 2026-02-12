@@ -15,6 +15,9 @@ import {
   Shield,
   Mail,
   MessageSquare,
+  Share2,
+  Send,
+  UserPlus,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -74,6 +77,14 @@ const CollectionsAssessmentResults = ({
   const [isSubmittingLead, setIsSubmittingLead] = useState(false);
   const [leadSubmitted, setLeadSubmitted] = useState(false);
 
+  // Share states
+  const [shareMode, setShareMode] = useState<"none" | "self" | "boss">("none");
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareName, setShareName] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [shareSent, setShareSent] = useState(false);
+
   const trackEvent = useCallback(
     (eventType: string, metadata?: any) => {
       supabase
@@ -119,6 +130,32 @@ const CollectionsAssessmentResults = ({
   const handleCTA = () => {
     trackEvent("cta_clicked");
     setShowLeadForm(true);
+  };
+
+  const handleShareSend = async () => {
+    if (!shareEmail) return;
+    setIsSending(true);
+    trackEvent("assessment_shared", { share_type: shareMode, to: shareEmail });
+
+    try {
+      const { error } = await supabase.functions.invoke("share-assessment", {
+        body: {
+          to_email: shareEmail,
+          to_name: shareName || undefined,
+          sender_name: senderName || undefined,
+          inputs,
+          results,
+          gptResult,
+          share_type: shareMode,
+        },
+      });
+      if (error) throw error;
+      setShareSent(true);
+    } catch (err) {
+      console.error("Share error:", err);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const delay = (i: number) => 0.1 + i * 0.1;
@@ -292,6 +329,94 @@ const CollectionsAssessmentResults = ({
           )}
         </motion.div>
       )}
+
+      {/* Share Assessment */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: delay(8) }}
+        className="rounded-xl border border-border bg-card p-6 space-y-4"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Share2 className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-lg">Share This Assessment</h3>
+        </div>
+
+        {shareSent ? (
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
+            <CheckCircle2 className="h-6 w-6 text-accent flex-shrink-0" />
+            <div>
+              <p className="font-medium">Assessment sent!</p>
+              <p className="text-sm text-muted-foreground">We've emailed the full report to {shareEmail}.</p>
+            </div>
+          </div>
+        ) : shareMode === "none" ? (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => setShareMode("self")}
+            >
+              <Send className="h-4 w-4" />
+              Email to Myself
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => setShareMode("boss")}
+            >
+              <UserPlus className="h-4 w-4" />
+              Share with My Boss
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3 max-w-sm">
+            <p className="text-sm text-muted-foreground">
+              {shareMode === "self"
+                ? "We'll email you the full assessment report."
+                : "We'll send the assessment to your boss with context on the ROI opportunity."}
+            </p>
+            {shareMode === "boss" && (
+              <Input
+                placeholder="Your name (so they know who sent it)"
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+              />
+            )}
+            {shareMode === "boss" && (
+              <Input
+                placeholder="Their name (optional)"
+                value={shareName}
+                onChange={(e) => setShareName(e.target.value)}
+              />
+            )}
+            <Input
+              type="email"
+              placeholder={shareMode === "self" ? "Your email *" : "Their email *"}
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+              required
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setShareMode("none"); setShareEmail(""); setShareSent(false); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleShareSend}
+                disabled={!shareEmail || isSending}
+              >
+                {isSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                Send
+              </Button>
+            </div>
+          </div>
+        )}
+      </motion.div>
 
       {/* CTA / Lead Capture */}
       <motion.div
