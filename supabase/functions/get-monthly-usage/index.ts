@@ -246,12 +246,14 @@ Deno.serve(async (req) => {
     const countableInvoices = allCountableInvoices;
 
     const actualInvoicesUsed = countableInvoices?.length || 0;
-    const overageInvoices = countableInvoices?.filter((inv: { is_overage?: boolean | null }) => !!inv.is_overage).length || 0;
-    const includedInvoicesUsed = actualInvoicesUsed - overageInvoices;
-
     const includedAllowance = plan.invoice_limit || 0;
+
+    // Overage = total active invoices beyond plan limit (high water mark model)
+    const includedInvoicesUsed = Math.min(actualInvoicesUsed, includedAllowance);
+    const overageInvoices = Math.max(0, actualInvoicesUsed - includedAllowance);
     const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
     const isOverLimit = actualInvoicesUsed > includedAllowance;
+    const overageChargesTotal = overageInvoices * OVERAGE_RATE;
 
     logStep("Active invoice count", {
       total: actualInvoicesUsed,
