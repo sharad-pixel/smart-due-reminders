@@ -458,8 +458,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         // Invoices: need RAID to link to account, plus invoice details
         requiredKeys = ["recouply_account_id", "invoice_number", "amount_original", "invoice_date", "due_date"];
       } else if (fileType === "payments") {
-        // Payments: need RINV (primary) + invoice number (fallback), amount, date
-        requiredKeys = ["recouply_invoice_id", "payment_invoice_number", "payment_amount", "payment_date"];
+        // Payments: need invoice identifier + amount + date. Account matching uses multi-tier fallback.
+        requiredKeys = ["payment_amount", "payment_date"];
       }
       
       const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
@@ -478,6 +478,19 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
           variant: "destructive",
         });
         return;
+      }
+      
+      // For payments: warn if no invoice identifier is mapped (but don't block)
+      if (fileType === "payments") {
+        const hasInvoiceId = mappedKeys.includes("recouply_invoice_id") || mappedKeys.includes("payment_invoice_number");
+        if (!hasInvoiceId) {
+          toast({
+            title: "No invoice identifier mapped",
+            description: "Map at least one of Recouply Invoice ID or Invoice Number for best matching results.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
