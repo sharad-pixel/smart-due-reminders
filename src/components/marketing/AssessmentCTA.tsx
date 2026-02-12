@@ -38,7 +38,7 @@ const AssessmentCTA = () => {
             </Button>
           </motion.div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Takes less than 60 seconds • No signup required
+            Free Assessment
           </p>
         </motion.div>
       </div>
