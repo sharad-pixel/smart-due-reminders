@@ -28,6 +28,7 @@ const Upgrade = () => {
     subscriptionStatus, 
     isTrial,
     trialEndsAt,
+    hasUsedTrial,
     isAccountOwner,
     canUpgrade,
     isLoading: subscriptionLoading,
@@ -136,10 +137,12 @@ const Upgrade = () => {
   }
 
   // Check if this is a new user without any prior trial/subscription (new signup flow)
+  // Users who have already used their trial should NOT see the "Start Your Free Trial" banner
   const hasAnyTrial = isTrial || subscriptionStatus === 'trialing' || !!trialEndsAt;
   const isNewUser = currentPlan === 'free' &&
                     (!subscriptionStatus || subscriptionStatus === 'inactive') &&
-                    !hasAnyTrial;
+                    !hasAnyTrial &&
+                    !hasUsedTrial;
 
   // Team members can't upgrade - only account owners
   // But allow new users through (they haven't been assigned to a team yet)
