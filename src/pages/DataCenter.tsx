@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { 
   Database, 
   Upload, 
@@ -16,7 +17,11 @@ import {
   Users,
   DollarSign,
   Link2,
-  FileText
+  FileText,
+  Shield,
+  Clock,
+  AlertTriangle,
+  ArrowRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,7 +29,6 @@ import { DataCenterSourcesTab } from "@/components/data-center/DataCenterSources
 import { DataCenterUploadsTab } from "@/components/data-center/DataCenterUploadsTab";
 import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploadWizard";
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
-import { DataRetentionBanner } from "@/components/data-center/DataRetentionBanner";
 import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSection";
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
@@ -71,10 +75,7 @@ const DataCenter = () => {
   const handleExportAccounts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Not authenticated");
-        return;
-      }
+      if (!user) { toast.error("Not authenticated"); return; }
 
       const { data: accounts, error } = await supabase
         .from("debtors")
@@ -83,11 +84,8 @@ const DataCenter = () => {
         .order("company_name");
 
       if (error) throw error;
-
       if (!accounts || accounts.length === 0) {
-        toast.info("No accounts to export", {
-          description: "Create some accounts first before exporting."
-        });
+        toast.info("No accounts to export", { description: "Create some accounts first before exporting." });
         return;
       }
 
@@ -113,27 +111,18 @@ const DataCenter = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Accounts");
       XLSX.writeFile(wb, `recouply_accounts_export_${new Date().toISOString().split('T')[0]}.xlsx`);
-
-      toast.success("Accounts exported", {
-        description: `Exported ${accounts.length} accounts with Recouply Account IDs for invoice mapping.`
-      });
+      toast.success("Accounts exported", { description: `Exported ${accounts.length} accounts with Recouply Account IDs.` });
     } catch (error: any) {
       console.error("Export error:", error);
-      toast.error("Export failed", {
-        description: error.message || "Could not export accounts"
-      });
+      toast.error("Export failed", { description: error.message || "Could not export accounts" });
     }
   };
 
   const handleExportInvoices = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Not authenticated");
-        return;
-      }
+      if (!user) { toast.error("Not authenticated"); return; }
 
-      // Paginate to get all invoices
       const PAGE_SIZE = 1000;
       let allInvoices: any[] = [];
       let offset = 0;
@@ -149,9 +138,8 @@ const DataCenter = () => {
           .range(offset, offset + PAGE_SIZE - 1);
 
         if (error) throw error;
-        if (!page || page.length === 0) {
-          hasMore = false;
-        } else {
+        if (!page || page.length === 0) { hasMore = false; } 
+        else {
           allInvoices = [...allInvoices, ...page];
           offset += PAGE_SIZE;
           if (page.length < PAGE_SIZE) hasMore = false;
@@ -159,17 +147,12 @@ const DataCenter = () => {
       }
 
       if (allInvoices.length === 0) {
-        toast.info("No invoices to export", {
-          description: "Create some invoices first before exporting."
-        });
+        toast.info("No invoices to export", { description: "Create some invoices first before exporting." });
         return;
       }
 
       const exportData = allInvoices.map(inv => {
-        const daysPastDue = Math.max(
-          0,
-          Math.ceil((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24))
-        );
+        const daysPastDue = Math.max(0, Math.ceil((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24)));
         let aging_bucket = "Current";
         if (daysPastDue > 0 && daysPastDue <= 30) aging_bucket = "0-30";
         else if (daysPastDue <= 60) aging_bucket = "31-60";
@@ -201,24 +184,16 @@ const DataCenter = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Invoices");
       XLSX.writeFile(wb, `recouply_invoices_export_${new Date().toISOString().split('T')[0]}.xlsx`);
-
-      toast.success("Invoices exported", {
-        description: `Exported ${allInvoices.length} invoices.`
-      });
+      toast.success("Invoices exported", { description: `Exported ${allInvoices.length} invoices.` });
     } catch (error: any) {
       console.error("Export error:", error);
-      toast.error("Export failed", {
-        description: error.message || "Could not export invoices"
-      });
+      toast.error("Export failed", { description: error.message || "Could not export invoices" });
     }
   };
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Data Retention Banner */}
-        <DataRetentionBanner />
-
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -227,7 +202,7 @@ const DataCenter = () => {
               Data Center
             </h1>
             <p className="text-muted-foreground">
-              Manage all your data sources and integrations in one place
+              Your central hub for integrations, data imports, exports, and retention management
             </p>
           </div>
           <div className="flex gap-2">
@@ -242,191 +217,11 @@ const DataCenter = () => {
           </div>
         </div>
 
-        {/* Sync Health Dashboard */}
-        <SyncHealthDashboard />
-
-        {/* Connected Integrations - Enterprise Cards */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-primary" />
-            Connected Integrations
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <StripeSyncSection />
-            <QuickBooksSyncSection />
-          </div>
-        </div>
-
-        {/* Export Callouts */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Export Accounts with RAIDs</p>
-                  <p className="text-xs text-muted-foreground">
-                    Download accounts list with Recouply Account IDs
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportAccounts}>
-                <Download className="h-4 w-4" />
-                Export Accounts
-              </Button>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Export All Invoices</p>
-                  <p className="text-xs text-muted-foreground">
-                    Download all invoices with account details and aging data
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportInvoices}>
-                <Download className="h-4 w-4" />
-                Export Invoices
-              </Button>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Payment Reconciliation</p>
-                  <p className="text-xs text-muted-foreground">
-                    View matched payments, edit details, and reconcile unmatched records
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="gap-2 shrink-0" asChild>
-                <a href="/payments">
-                  <DollarSign className="h-4 w-4" />
-                  View Payments
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-primary" />
-            Data Import
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* CSV/Excel Upload Card */}
-            <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                    <FileSpreadsheet className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">CSV/Excel Upload</CardTitle>
-                    <CardDescription className="text-xs">
-                      Import invoices & customers from files
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-1"
-                    onClick={() => handleStartUpload("accounts")}
-                  >
-                    <Users className="h-3 w-3" />
-                    Accounts
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-1"
-                    onClick={() => handleStartUpload("invoice_aging")}
-                  >
-                    <FileText className="h-3 w-3" />
-                    Invoices
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-1"
-                    onClick={() => handleStartUpload("payments")}
-                  >
-                    <DollarSign className="h-3 w-3" />
-                    Payments
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={handleExportAccounts}
-                  >
-                    <Download className="h-3 w-3" />
-                    Export Accounts
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={handleExportInvoices}
-                  >
-                    <Download className="h-3 w-3" />
-                    Export Invoices
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* API Connection Card - Coming Soon */}
-            <Card className="border-dashed opacity-75">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Link2 className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      API Connection
-                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Connect custom systems via REST API
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Build custom integrations with our API to sync data from any system.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {/* Quick Stats Bar */}
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Data Sources</CardDescription>
+              <CardDescription className="text-xs uppercase tracking-wide">Data Sources</CardDescription>
               <CardTitle className="text-2xl">
                 {statsLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.sources || 0}
               </CardTitle>
@@ -437,67 +232,315 @@ const DataCenter = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Uploads</CardDescription>
+              <CardDescription className="text-xs uppercase tracking-wide">Total Uploads</CardDescription>
               <CardTitle className="text-2xl">
                 {statsLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.uploads || 0}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Files processed</p>
+              <p className="text-xs text-muted-foreground">Files processed to date</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Needs Review</CardDescription>
+              <CardDescription className="text-xs uppercase tracking-wide">Needs Review</CardDescription>
               <CardTitle className="text-2xl text-amber-600">
                 {statsLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.pending || 0}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Pending matches</p>
-            </CardContent>
-          </Card>
-          <Card className="border-dashed">
-            <CardHeader className="pb-2">
-              <CardDescription>Quick Actions</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleStartUpload("invoice_aging")}>
-                <Upload className="h-4 w-4 mr-1" />
-                Upload
-              </Button>
-              <Button size="sm" variant="secondary" onClick={handleExportAccounts}>
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
+              <p className="text-xs text-muted-foreground">Pending reconciliation matches</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sync Activity Log */}
-        <SyncActivityLog />
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* SECTION 1: CONNECTED INTEGRATIONS (Stripe & QuickBooks)       */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Link2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Connected Integrations</h2>
+              <p className="text-xs text-muted-foreground">
+                Sync customers, invoices, and payments automatically from your billing systems
+              </p>
+            </div>
+          </div>
 
-        {/* Tabs for Uploads and Sources */}
-        <Tabs defaultValue="uploads" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="uploads" className="gap-2">
-              <Upload className="h-4 w-4" />
-              Recent Uploads
-            </TabsTrigger>
-            <TabsTrigger value="sources" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Sources & Templates
-            </TabsTrigger>
-          </TabsList>
+          <SyncHealthDashboard />
 
-          <TabsContent value="uploads">
-            <DataCenterUploadsTab onStartUpload={handleStartUpload} />
-          </TabsContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <StripeSyncSection />
+            <QuickBooksSyncSection />
+          </div>
 
-          <TabsContent value="sources">
-            <DataCenterSourcesTab onCreateSource={() => setCreateSourceOpen(true)} />
-          </TabsContent>
-        </Tabs>
+          <SyncActivityLog />
+        </section>
+
+        <Separator />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* SECTION 2: FILE UPLOADS (CSV / Excel)                         */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">File Uploads</h2>
+              <p className="text-xs text-muted-foreground">
+                Import data from CSV or Excel files — max 5,000 rows per upload
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="group hover:border-primary/40 transition-colors cursor-pointer" onClick={() => handleStartUpload("accounts")}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Accounts</CardTitle>
+                    <CardDescription className="text-xs">Customer / debtor records</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Import company names, contacts, addresses, and external IDs. Each account gets a unique Recouply Account ID (RAID).
+                </p>
+                <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                  Upload accounts <ArrowRight className="h-3 w-3" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:border-primary/40 transition-colors cursor-pointer" onClick={() => handleStartUpload("invoice_aging")}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Invoices</CardTitle>
+                    <CardDescription className="text-xs">AR aging & invoice data</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Import invoice numbers, amounts, dates, and statuses. Duplicates are auto-detected by external invoice ID.
+                </p>
+                <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                  Upload invoices <ArrowRight className="h-3 w-3" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:border-primary/40 transition-colors cursor-pointer" onClick={() => handleStartUpload("payments")}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Payments</CardTitle>
+                    <CardDescription className="text-xs">Payment & remittance data</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Import payment records. Auto-matched against open invoices by customer name and amount after upload.
+                </p>
+                <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                  Upload payments <ArrowRight className="h-3 w-3" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Upload History & Source Templates */}
+          <Tabs defaultValue="uploads" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="uploads" className="gap-2">
+                <Upload className="h-4 w-4" />
+                Upload History
+              </TabsTrigger>
+              <TabsTrigger value="sources" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Source Templates
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="uploads">
+              <DataCenterUploadsTab onStartUpload={handleStartUpload} />
+            </TabsContent>
+
+            <TabsContent value="sources">
+              <DataCenterSourcesTab onCreateSource={() => setCreateSourceOpen(true)} />
+            </TabsContent>
+          </Tabs>
+        </section>
+
+        <Separator />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* SECTION 3: EXPORTS & DATASETS                                 */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Download className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Exports & Datasets</h2>
+              <p className="text-xs text-muted-foreground">
+                Download your data as XLSX files for reporting, auditing, or backup
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-primary/20">
+              <CardContent className="flex flex-col gap-3 pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Accounts Export</p>
+                    <p className="text-xs text-muted-foreground">
+                      All customers with RAIDs, contacts, and addresses
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="gap-2 w-full" onClick={handleExportAccounts}>
+                  <Download className="h-4 w-4" />
+                  Download Accounts (.xlsx)
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="flex flex-col gap-3 pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Invoices Export</p>
+                    <p className="text-xs text-muted-foreground">
+                      All invoices with aging buckets, statuses, and account data
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="gap-2 w-full" onClick={handleExportInvoices}>
+                  <Download className="h-4 w-4" />
+                  Download Invoices (.xlsx)
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="flex flex-col gap-3 pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Payment Reconciliation</p>
+                    <p className="text-xs text-muted-foreground">
+                      View matched payments, edit details, and reconcile records
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="gap-2 w-full" asChild>
+                  <a href="/payments">
+                    <DollarSign className="h-4 w-4" />
+                    Go to Payments
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* SECTION 4: DATA RETENTION POLICY                              */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Shield className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Data Retention Policy</h2>
+              <p className="text-xs text-muted-foreground">
+                How your uploaded data is stored, archived, and automatically deleted
+              </p>
+            </div>
+          </div>
+
+          <Card className="border-muted">
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Upload className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Upload & Process</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Files are parsed and imported immediately. Raw upload data is available for review for <span className="font-semibold text-foreground">24 hours</span>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Auto-Archive</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      After 24 hours, uploads are archived. You'll receive a <span className="font-semibold text-foreground">7-day warning</span> before permanent deletion.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Permanent Deletion</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Archived uploads and failed import job logs are permanently deleted after <span className="font-semibold text-foreground">14 days</span>. Download your data and audit trails beforehand.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+
+              <div className="flex items-start gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Your processed data is safe.</span> Imported accounts, invoices, and payments remain in your database permanently — only raw upload staging files and import job error logs are subject to the 14-day retention window. Integration sync data (Stripe, QuickBooks) is retained indefinitely. Account deletion removes all data per our GDPR compliance policy.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       </div>
 
       {/* Modals */}
