@@ -458,8 +458,8 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         // Invoices: need RAID to link to account, plus invoice details
         requiredKeys = ["recouply_account_id", "invoice_number", "amount_original", "invoice_date", "due_date"];
       } else if (fileType === "payments") {
-        // Payments: need RINV (primary) + invoice number (fallback), amount, date
-        requiredKeys = ["recouply_invoice_id", "payment_invoice_number", "payment_amount", "payment_date"];
+        // Payments: need invoice identifier + amount + date. Account matching uses multi-tier fallback.
+        requiredKeys = ["payment_amount", "payment_date"];
       }
       
       const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
