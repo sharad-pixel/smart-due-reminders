@@ -436,6 +436,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       setProcessResult(result);
       queryClient.invalidateQueries({ queryKey: ["data-center-uploads"] });
       queryClient.invalidateQueries({ queryKey: ["data-center-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["payments-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["payments-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["payment-reconciliation"] });
+      queryClient.invalidateQueries({ queryKey: ["payment-uploads"] });
       setCurrentStep(3); // Go to complete step
     },
     onError: (error: any) => {
