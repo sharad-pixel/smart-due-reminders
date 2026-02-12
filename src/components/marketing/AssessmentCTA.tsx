@@ -38,7 +38,7 @@ const AssessmentCTA = () => {
             </Button>
           </motion.div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Free Assessment
+            Calculate how much Recouply.ai can help you recover from your overdue receivables
           </p>
         </motion.div>
       </div>
