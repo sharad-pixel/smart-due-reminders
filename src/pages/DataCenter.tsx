@@ -169,6 +169,27 @@ const DataCenter = () => {
           </div>
         </div>
 
+        {/* RAID Export Callout */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Download className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Export Accounts with Recouply Account IDs (RAIDs)</p>
+                <p className="text-xs text-muted-foreground">
+                  Download your accounts list with RAIDs to map invoices back during CSV/Excel uploads
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExportAccounts}>
+              <Download className="h-4 w-4" />
+              Export Accounts
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Data Import Section */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
