@@ -320,6 +320,29 @@ async function createPaymentLink(
     console.error("Error creating payment link:", error);
     throw error;
   }
+
+  // Update invoice outstanding balance and status when confirmed
+  if (confidence >= 0.9) {
+    const { data: invoice } = await supabase
+      .from("invoices")
+      .select("amount_outstanding, amount")
+      .eq("id", invoiceId)
+      .single();
+
+    if (invoice) {
+      const newOutstanding = Math.max(0, (parseFloat(invoice.amount_outstanding) || parseFloat(invoice.amount)) - amountApplied);
+      const newStatus = newOutstanding <= 0.01 ? "Paid" : "PartiallyPaid";
+
+      await supabase
+        .from("invoices")
+        .update({
+          amount_outstanding: newOutstanding,
+          status: newStatus,
+          payment_date: newStatus === "Paid" ? new Date().toISOString().split("T")[0] : null,
+        })
+        .eq("id", invoiceId);
+    }
+  }
 }
 
 async function updatePaymentStatus(supabase: any, paymentId: string, status: string) {
