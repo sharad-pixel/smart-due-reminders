@@ -393,8 +393,10 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
     setColumnMapping({});
     setValidRows([]);
     setErrorRows([]);
+    setDuplicateRows([]);
     setProgress(0);
     setJobId(null);
+    setIsCheckingDuplicates(false);
     onOpenChange(false);
   };
 
