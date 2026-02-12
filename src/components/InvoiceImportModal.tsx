@@ -604,7 +604,7 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
                   </table>
                 </div>
               </div>
-            )
+            )}
 
             {errorRows.length > 0 && (
               <div>
