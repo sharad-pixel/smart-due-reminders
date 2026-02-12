@@ -316,12 +316,10 @@ const DataCenter = () => {
                   View Payments
                 </a>
               </Button>
-                <DollarSign className="h-4 w-4" />
-                View Payments
-              </Button>
             </CardContent>
           </Card>
         </div>
+
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
