@@ -479,6 +479,19 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         });
         return;
       }
+      
+      // For payments: warn if no invoice identifier is mapped (but don't block)
+      if (fileType === "payments") {
+        const hasInvoiceId = mappedKeys.includes("recouply_invoice_id") || mappedKeys.includes("payment_invoice_number");
+        if (!hasInvoiceId) {
+          toast({
+            title: "No invoice identifier mapped",
+            description: "Map at least one of Recouply Invoice ID or Invoice Number for best matching results.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       setCurrentStep(2);
     } else if (currentStep === 2) {
       processUpload.mutate();
