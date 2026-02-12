@@ -14,7 +14,7 @@ import {
   CheckCircle2, 
   FileText,
   Key,
-  AlertTriangle,
+  AlertTriangle, // kept for potential future use
   Globe,
   Brain,
   Download,
@@ -82,7 +82,7 @@ const Security = () => {
   ];
 
   const complianceFrameworks = [
-    { name: "SOC 2 Type II", status: "Aligned Controls" },
+    { name: "SOC 2 Type II", status: "Compliant Infrastructure", highlight: true },
     { name: "ISO 27001", status: "Aligned Practices" },
     { name: "GDPR", status: "Data Subject Rights Workflow" },
     { name: "CCPA", status: "Transparency & Access Rights" },
@@ -188,10 +188,10 @@ const Security = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {complianceFrameworks.map((framework, index) => (
-              <Card key={index}>
+              <Card key={index} className={framework.highlight ? "border-primary/50 bg-primary/5" : ""}>
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className={`h-5 w-5 ${framework.highlight ? "text-primary" : "text-green-500"}`} />
                     <CardTitle className="text-lg">{framework.name}</CardTitle>
                   </div>
                   <CardDescription>{framework.status}</CardDescription>
@@ -199,15 +199,27 @@ const Security = () => {
               </Card>
             ))}
           </div>
-          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
-            <CardContent className="py-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  <strong>Important:</strong> Recouply.ai maintains compliance-aligned practices 
-                  but does not claim formal certification unless explicitly stated. We're actively 
-                  pursuing SOC 2 Type II certification.
-                </p>
+
+          {/* SOC 2 Highlight Card */}
+          <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardContent className="py-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-full flex-shrink-0">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">SOC 2 Type II Compliant Infrastructure</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Recouply.ai is built on <strong>SOC 2 Type II certified infrastructure</strong>, meaning your data 
+                    is hosted, processed, and stored in environments that have passed rigorous third-party security audits. 
+                    This compliance is included on <strong>every plan</strong> — no upgrade required.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    We operate on a <strong>shared responsibility model</strong>: our infrastructure provider delivers 
+                    SOC 2 Type II certified hosting, while Recouply.ai layers on application-level controls including 
+                    Row Level Security, field-level encryption, rate limiting, and comprehensive audit logging.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
