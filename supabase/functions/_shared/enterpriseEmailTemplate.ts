@@ -41,7 +41,7 @@ const LOGO_URL = 'https://recouply.ai/favicon.png';
 const LOGO_FALLBACK = 'https://smart-due-reminders.lovable.app/favicon.png';
 
 // Logo HTML for headers – favicon on a white circular background
-function logoImage(size: number = 36, whiteCircle: boolean = false): string {
+export function logoImage(size: number = 36, whiteCircle: boolean = false): string {
   if (whiteCircle) {
     return `<div style="display:inline-block;width:${size}px;height:${size}px;border-radius:50%;background:#ffffff;padding:4px;box-sizing:border-box;"><img src="${LOGO_URL}" onerror="this.src='${LOGO_FALLBACK}'" alt="Recouply.ai" width="${size - 8}" height="${size - 8}" style="display:block;width:${size - 8}px;height:${size - 8}px;border-radius:50%;" /></div>`;
   }
