@@ -142,7 +142,32 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 4: Clean up old notifications (older than 90 days)
+    // Step 4: Clean up old import jobs and their errors (cascade) older than 14 days
+    const { data: deletedJobs, error: jobCleanupError } = await supabase
+      .from('invoice_import_jobs')
+      .delete()
+      .lt('created_at', fourteenDaysAgo.toISOString())
+      .in('status', ['COMPLETED', 'FAILED'])
+      .select('id');
+
+    if (jobCleanupError) {
+      console.error('Error cleaning up old import jobs:', jobCleanupError);
+    } else if (deletedJobs && deletedJobs.length > 0) {
+      console.log(`Cleaned up ${deletedJobs.length} old import jobs (and cascade-deleted their errors)`);
+    }
+
+    // Step 5: Clean up old status update jobs older than 14 days
+    const { error: statusJobCleanupError } = await supabase
+      .from('invoice_status_update_jobs')
+      .delete()
+      .lt('created_at', fourteenDaysAgo.toISOString())
+      .in('status', ['COMPLETED', 'FAILED']);
+
+    if (statusJobCleanupError) {
+      console.error('Error cleaning up old status update jobs:', statusJobCleanupError);
+    }
+
+    // Step 6: Clean up old notifications (older than 90 days)
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
     const { error: notificationCleanupError } = await supabase
       .from('data_retention_notifications')
