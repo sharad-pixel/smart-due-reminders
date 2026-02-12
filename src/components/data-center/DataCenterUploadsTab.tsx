@@ -99,7 +99,7 @@ export const DataCenterUploadsTab = ({ onStartUpload }: DataCenterUploadsTabProp
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(3);
 
       // Filter by archived status
       if (!showArchived) {

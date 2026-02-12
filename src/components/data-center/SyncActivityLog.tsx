@@ -33,7 +33,7 @@ interface SyncLogEntry {
 
 export const SyncActivityLog = () => {
   const [filter, setFilter] = useState<"all" | "stripe" | "quickbooks">("all");
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(3);
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["sync-activity-log", filter, limit],
