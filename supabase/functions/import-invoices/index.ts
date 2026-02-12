@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     );
     if (authError || !user) throw new Error('Unauthorized');
 
-    const { job_id, rows, mode } = await req.json();
+    const { job_id, rows, mode, is_final_batch } = await req.json();
     if (!job_id || !rows || !mode) throw new Error('Missing required fields: job_id, rows, mode');
 
     const totalRows = rows.length;
@@ -225,15 +225,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Final status update
+    // Update job progress (and mark completed only on final batch)
+    const updatePayload: any = {
+      success_count: successCount,
+      error_count: errorCount,
+    };
+
+    if (is_final_batch) {
+      updatePayload.status = 'COMPLETED';
+      updatePayload.completed_at = new Date().toISOString();
+    }
+
     await supabase
       .from('invoice_import_jobs')
-      .update({
-        status: 'COMPLETED',
-        success_count: successCount,
-        error_count: errorCount,
-        completed_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', job_id);
 
     console.log(`Import complete: ${successCount} success, ${errorCount} errors out of ${totalRows}`);
