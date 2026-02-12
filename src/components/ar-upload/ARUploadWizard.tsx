@@ -219,16 +219,20 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
       ])
     );
 
-    // Fetch existing invoices if needed
+    // Fetch existing invoices for duplicate detection by invoice_number AND external_invoice_id
     let invoiceMap = new Map<string, string>();
+    let externalIdSet = new Set<string>();
     if (type === "invoice_detail") {
       const { data: existingInvoices } = await supabase
         .from("invoices")
-        .select("id, invoice_number, debtor_id")
+        .select("id, invoice_number, debtor_id, external_invoice_id")
         .eq("user_id", user.id);
 
       (existingInvoices || []).forEach((inv) => {
         invoiceMap.set(`${inv.debtor_id}-${inv.invoice_number}`, inv.id);
+        if (inv.external_invoice_id) {
+          externalIdSet.add(inv.external_invoice_id);
+        }
       });
     }
 
