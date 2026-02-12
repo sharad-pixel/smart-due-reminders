@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -13,7 +14,6 @@ import {
   Percent,
   Loader2,
   Brain,
-  Bot,
 } from "lucide-react";
 import {
   AGE_BAND_OPTIONS,
@@ -305,8 +305,8 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
             transition={{ delay: 0.3, duration: 0.3 }}
             className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5"
           >
-            <div className="shrink-0 mt-0.5 p-1.5 rounded-full bg-primary/10">
-              <Bot className="h-4 w-4 text-primary" />
+            <div className="shrink-0 mt-0.5">
+              <img src={nicolasAvatar} alt="Nicolas" className="h-8 w-8 rounded-full object-cover border border-primary/20" />
             </div>
             <div>
               <p className="text-xs font-semibold text-primary mb-0.5">Nicolas — AI Collection Advisor</p>
