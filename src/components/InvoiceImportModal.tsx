@@ -225,20 +225,41 @@ export function InvoiceImportModal({ open, onOpenChange, onImportComplete }: Inv
       if (jobError) throw jobError;
       setJobId(job.id);
 
-      // Process in batches
-      const { data, error } = await supabase.functions.invoke("import-invoices", {
-        body: {
-          job_id: job.id,
-          rows: validRows,
-          mode: importMode,
-        },
-      });
+      // Process in client-side batches to avoid edge function timeouts
+      const CLIENT_BATCH_SIZE = 100;
+      let totalSuccess = 0;
+      let totalErrors = 0;
 
-      if (error) throw error;
+      for (let i = 0; i < validRows.length; i += CLIENT_BATCH_SIZE) {
+        const batch = validRows.slice(i, i + CLIENT_BATCH_SIZE);
+        const batchNum = Math.floor(i / CLIENT_BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(validRows.length / CLIENT_BATCH_SIZE);
+
+        const { data, error } = await supabase.functions.invoke("import-invoices", {
+          body: {
+            job_id: job.id,
+            rows: batch,
+            mode: importMode,
+          },
+        });
+
+        if (error) throw error;
+
+        totalSuccess += data.success_count || 0;
+        totalErrors += data.error_count || 0;
+
+        const pct = Math.round(((i + batch.length) / validRows.length) * 100);
+        setProgress(pct);
+
+        // Small delay between batches to avoid overwhelming the backend
+        if (i + CLIENT_BATCH_SIZE < validRows.length) {
+          await new Promise(r => setTimeout(r, 200));
+        }
+      }
 
       setProgress(100);
       setStep(5);
-      toast.success(`Successfully imported ${data.success_count} of ${validRows.length} invoices`);
+      toast.success(`Successfully imported ${totalSuccess} of ${validRows.length} invoices${totalErrors > 0 ? ` (${totalErrors} errors)` : ''}`);
       
       setTimeout(() => {
         onImportComplete();
