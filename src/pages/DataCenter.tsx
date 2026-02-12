@@ -310,7 +310,12 @@ const DataCenter = () => {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={() => window.location.href = "/payments"}>
+              <Button variant="outline" size="sm" className="gap-2 shrink-0" asChild>
+                <a href="/payments">
+                  <DollarSign className="h-4 w-4" />
+                  View Payments
+                </a>
+              </Button>
                 <DollarSign className="h-4 w-4" />
                 View Payments
               </Button>
