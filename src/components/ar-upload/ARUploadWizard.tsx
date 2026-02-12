@@ -362,16 +362,23 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
       let successCount = 0;
       let errorCount = 0;
 
-      // Create/update customers first
+      // Create/update customers first (paginate to bypass 1000-row limit)
       const customerIdMap = new Map<string, string>();
-      const { data: existingDebtors } = await supabase
-        .from("debtors")
-        .select("id, company_name, name")
-        .eq("user_id", user.id);
-
-      (existingDebtors || []).forEach((d) => {
-        customerIdMap.set(normalizeString(d.company_name || d.name), d.id);
-      });
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      while (true) {
+        const { data: page } = await supabase
+          .from("debtors")
+          .select("id, company_name, name")
+          .eq("user_id", user.id)
+          .range(from, from + PAGE_SIZE - 1);
+        if (!page || page.length === 0) break;
+        page.forEach((d) => {
+          customerIdMap.set(normalizeString(d.company_name || d.name), d.id);
+        });
+        if (page.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
 
       // Create new customers with optional contact details
       for (const customerName of validationResult.newCustomers) {
