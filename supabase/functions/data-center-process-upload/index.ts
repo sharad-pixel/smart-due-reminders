@@ -568,6 +568,30 @@ serve(async (req) => {
                   .eq("id", update.id)
               )
             );
+
+            // Create invoice_transactions records so dashboard/payments page picks them up
+            const transactionsToCreate = paymentLinks.map(link => ({
+              user_id: user.id,
+              invoice_id: link.invoiceData.id,
+              transaction_type: "payment",
+              amount: link.paymentAmount,
+              balance_after: Math.max(0, link.invoiceData.amount_outstanding - link.paymentAmount),
+              transaction_date: paymentsToCreate[link.paymentIndex].payment_date,
+              source_system: "manual",
+              reference_number: paymentsToCreate[link.paymentIndex].reference || null,
+              notes: paymentsToCreate[link.paymentIndex].notes || "Uploaded via Data Center",
+              payment_method: "data_center_upload",
+              metadata: { data_center_upload_id: uploadId, payment_id: createdPayments[link.paymentIndex].id },
+            }));
+
+            if (transactionsToCreate.length > 0) {
+              const { error: txError } = await supabase
+                .from("invoice_transactions")
+                .insert(transactionsToCreate);
+              if (txError) {
+                console.error("Invoice transactions creation error:", txError);
+              }
+            }
           }
         }
       }
