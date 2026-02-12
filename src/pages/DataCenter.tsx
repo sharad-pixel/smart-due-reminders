@@ -351,15 +351,26 @@ const DataCenter = () => {
                     Payments
                   </Button>
                 </div>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="w-full gap-2"
-                  onClick={handleExportAccounts}
-                >
-                  <Download className="h-3 w-3" />
-                  Export Accounts with RAIDs
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={handleExportAccounts}
+                  >
+                    <Download className="h-3 w-3" />
+                    Export Accounts
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={handleExportInvoices}
+                  >
+                    <Download className="h-3 w-3" />
+                    Export Invoices
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
