@@ -242,8 +242,20 @@ Deno.serve(async (req) => {
     }
 
     if (!subscriptionDetails && profile.current_period_end) {
+      // Compute current_period_start from current_period_end minus billing interval
+      let computedStart: string | null = null;
+      const periodEnd = new Date(profile.current_period_end);
+      if (!isNaN(periodEnd.getTime())) {
+        const start = new Date(periodEnd);
+        if (profile.billing_interval === 'year') {
+          start.setFullYear(start.getFullYear() - 1);
+        } else {
+          start.setMonth(start.getMonth() - 1);
+        }
+        computedStart = start.toISOString();
+      }
       subscriptionDetails = {
-        current_period_start: null,
+        current_period_start: computedStart,
         current_period_end: profile.current_period_end,
         billing_interval: profile.billing_interval || "month",
         cancel_at_period_end: false,
