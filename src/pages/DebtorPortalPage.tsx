@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import MarketingHeader from "@/components/marketing/MarketingHeader";
+import { AIAgentCarousel } from "@/components/debtor-portal/AIAgentCarousel";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
