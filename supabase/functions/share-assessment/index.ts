@@ -55,9 +55,12 @@ serve(async (req) => {
     } else if (isShareWithBoss) {
       subjectLine = `${sender_name || "A colleague"} shared a Collections Assessment with you`;
       introText = `<p style="color:#64748b;font-size:15px;">${sender_name || "A colleague"} thought you'd find this assessment valuable. It estimates the cost of overdue invoices and the potential ROI of automating collections.</p>`;
+    } else if (share_type === "team") {
+      subjectLine = `${sender_name || "A team member"} shared a Collections Assessment with you`;
+      introText = `<p style="color:#64748b;font-size:15px;">${sender_name || "A team member"} shared this collections risk and ROI assessment with you. Review the findings below to understand the financial impact of overdue invoices.</p>`;
     } else {
       subjectLine = "Your Collections Risk & ROI Assessment — Recouply.ai";
-      introText = `<p style="color:#64748b;font-size:15px;">Here's a summary of your collections assessment results.</p>`;
+      introText = `<p style="color:#64748b;font-size:15px;">Here's a summary of your collections assessment results. We've saved a copy for your records.</p>`;
     }
     const actionsHtml = (gptResult.recommended_actions || [])
       .map((a: any) => `<li style="margin-bottom:8px;"><strong>${a.title}</strong> — ${a.why} <em>(${a.time_to_do})</em></li>`)
