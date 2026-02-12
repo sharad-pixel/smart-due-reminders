@@ -1962,7 +1962,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   "Draft a friendly reminder",
                   "Generate a firm follow-up",
                   `Ask ${getPersonaByDaysPastDue(daysPastDue)?.name || 'the agent'} to send a message`,
-                  "Create an SMS reminder"
+                  "Create an urgent follow-up"
                 ]}
               />
             </div>

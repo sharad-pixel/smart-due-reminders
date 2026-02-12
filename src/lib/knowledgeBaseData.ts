@@ -119,7 +119,7 @@ export const knowledgeBaseData: FAQCategory[] = [
     faqs: [
       {
         question: "How do AI Workflows work?",
-        answer: "AI Workflows automate your collection cadence. Each workflow is tied to an aging bucket (1-30 days, 31-60 days, etc.) and contains steps that define: when to send (day offset), what channel (email/SMS), and the message template. When enabled, the system automatically generates drafts for invoices that match the criteria.",
+        answer: "AI Workflows automate your collection cadence. Each workflow is tied to an aging bucket (1-30 days, 31-60 days, etc.) and contains steps that define: when to send (day offset), the email message template, and AI-generated content. When enabled, the system automatically generates drafts for invoices that match the criteria.",
         keywords: ["workflow", "automation", "cadence", "collection workflow"]
       },
       {

@@ -60,10 +60,10 @@ Deno.serve(async (req) => {
          Business name: ${businessName}
          Format: Return JSON with "subject" and "body" fields.
          Include placeholders: {{debtor_name}}, {{invoice_number}}, {{amount}}, {{due_date}}`
-      : `Write a ${tone} SMS message for a collection message sent ${dayOffset} days after the due date for ${agingBucket}.
+       : `Write a ${tone} email subject line and body for a collection message sent ${dayOffset} days after the due date for ${agingBucket}.
          Business name: ${businessName}
-         Keep it under 160 characters.
-         Include placeholders: {{debtor_name}}, {{invoice_number}}, {{amount}}`;
+         Format: Return JSON with "subject" and "body" fields.
+         Include placeholders: {{debtor_name}}, {{invoice_number}}, {{amount}}, {{due_date}}`;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -126,8 +126,6 @@ Deno.serve(async (req) => {
 
     if (channel === 'email' && subject) {
       updateData.subject_template = subject;
-    } else if (channel === 'sms') {
-      updateData.sms_template = body;
     }
 
     const { error: updateError } = await supabaseClient

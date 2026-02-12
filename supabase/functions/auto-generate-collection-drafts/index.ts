@@ -182,19 +182,6 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Skip SMS drafts if Twilio is not configured
-        if (nextStep.channel === 'sms') {
-          const { data: userProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('twilio_account_sid, twilio_auth_token, twilio_from_number')
-            .eq('id', invoice.user_id)
-            .single();
-
-          if (!userProfile?.twilio_account_sid || !userProfile?.twilio_auth_token || !userProfile?.twilio_from_number) {
-            console.log(`Skipping SMS draft for invoice ${invoice.id} - Twilio not configured`);
-            continue;
-          }
-        }
 
         // Get branding settings (including auto_approve_drafts)
         const { data: branding } = await supabaseAdmin

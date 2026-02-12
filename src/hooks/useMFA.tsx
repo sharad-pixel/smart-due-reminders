@@ -33,7 +33,7 @@ export function useMFA() {
   });
 
   const enableMFA = useMutation({
-    mutationFn: async ({ method, phoneNumber }: { method: "email" | "sms" | "totp"; phoneNumber?: string }) => {
+    mutationFn: async ({ method, phoneNumber }: { method: "email" | "totp"; phoneNumber?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
