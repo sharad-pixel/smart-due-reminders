@@ -82,7 +82,7 @@ const Security = () => {
   ];
 
   const complianceFrameworks = [
-    { name: "SOC 2 Type II", status: "Aligned Controls" },
+    { name: "SOC 2 Type II", status: "Compliant Infrastructure", highlight: true },
     { name: "ISO 27001", status: "Aligned Practices" },
     { name: "GDPR", status: "Data Subject Rights Workflow" },
     { name: "CCPA", status: "Transparency & Access Rights" },
