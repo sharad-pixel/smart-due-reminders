@@ -46,12 +46,12 @@ Deno.serve(async (req) => {
 
     for (const setting of dueSettings || []) {
       try {
-        // Skip if user already synced manually today
+        // Skip if user already synced manually today (in user's timezone)
         if (setting.last_manual_sync_at) {
-          const manualSyncDate = new Date(setting.last_manual_sync_at);
-          const todayStart = new Date(now);
-          todayStart.setUTCHours(0, 0, 0, 0);
-          if (manualSyncDate >= todayStart) {
+          const userTz = setting.sync_timezone || 'UTC';
+          const todayInUserTz = new Intl.DateTimeFormat('en-CA', { timeZone: userTz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+          const manualSyncDayInUserTz = new Intl.DateTimeFormat('en-CA', { timeZone: userTz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(setting.last_manual_sync_at));
+          if (manualSyncDayInUserTz === todayInUserTz) {
             logStep('Skipping - user already synced manually today', { 
               userId: setting.user_id, 
               type: setting.integration_type,
