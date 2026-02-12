@@ -347,9 +347,16 @@ const ConsumptionTracker = () => {
               </Badge>
             )}
             <Badge variant="outline" className="ml-auto">
-              {consumption?.period ? formatPeriod(consumption.period) : 'Current Period'}
+              {subscriptionTerm?.currentPeriodStart 
+                ? `${formatDate(subscriptionTerm.currentPeriodStart)} – ${formatDate(subscriptionTerm.currentPeriodEnd)}`
+                : consumption?.period ? formatPeriod(consumption.period) : 'Current Period'}
             </Badge>
-            {consumption?.period && (
+            {subscriptionTerm?.currentPeriodEnd && (
+              <Badge variant="outline">
+                Renews {formatDate(subscriptionTerm.currentPeriodEnd)}
+              </Badge>
+            )}
+            {!subscriptionTerm?.currentPeriodEnd && consumption?.period && (
               <Badge variant="outline">
                 Renews {formatDate(getPeriodRenewalDate(consumption.period))}
               </Badge>
