@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     );
     if (authError || !user) throw new Error('Unauthorized');
 
-    const { job_id, rows, mode } = await req.json();
+    const { job_id, rows, mode, is_final_batch } = await req.json();
     if (!job_id || !rows || !mode) throw new Error('Missing required fields: job_id, rows, mode');
 
     const totalRows = rows.length;
