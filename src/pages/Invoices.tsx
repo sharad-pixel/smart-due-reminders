@@ -109,23 +109,38 @@ const Invoices = () => {
     setCurrentPage(1); // Reset to first page when filters change
   }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, hideInactive]);
 
+  const fetchAllInvoicesPaginated = async () => {
+    const allData: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides")
+        .eq("is_archived", false)
+        .order("due_date", { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allData.push(...data);
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    return allData;
+  };
+
   const fetchData = async () => {
     try {
-      const [invoicesRes, debtorsRes, agentPersonasRes] = await Promise.all([
-        supabase
-          .from("invoices")
-          .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides")
-          .eq("is_archived", false)
-          .order("due_date", { ascending: false }),
+      const [allInvoices, debtorsRes, agentPersonasRes] = await Promise.all([
+        fetchAllInvoicesPaginated(),
         supabase.from("debtors").select("id, company_name").order("company_name"),
         supabase.from("ai_agent_personas").select("name, bucket_min, bucket_max").order("bucket_min"),
       ]);
 
-      if (invoicesRes.error) throw invoicesRes.error;
       if (debtorsRes.error) throw debtorsRes.error;
       if (agentPersonasRes.error) throw agentPersonasRes.error;
 
-      setInvoices(invoicesRes.data || []);
+      setInvoices(allInvoices);
       setDebtors(debtorsRes.data || []);
     } catch (error: any) {
       toast.error("Failed to load data");
