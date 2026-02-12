@@ -281,7 +281,15 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         const invoiceNum = String(row[mapping.invoice_number] || "");
         const key = `${normalizedName}-${invoiceNum}`;
         
-        if (seenInvoices.has(key)) {
+        // Check external_invoice_id duplicates
+        const externalId = mapping.external_invoice_id ? String(row[mapping.external_invoice_id] || "") : "";
+        if (externalId && externalIdSet.has(externalId)) {
+          result.duplicates.push({
+            rowIndex: idx,
+            reason: `Source system invoice ${externalId} already exists`,
+          });
+          result.duplicateRows++;
+        } else if (seenInvoices.has(key)) {
           result.duplicates.push({
             rowIndex: idx,
             reason: "Duplicate invoice in upload",
@@ -296,6 +304,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
           result.duplicateRows++;
         }
         seenInvoices.add(key);
+        if (externalId) externalIdSet.add(externalId);
       }
 
       if (type === "payments" && mapping.payment_date && mapping.amount) {
