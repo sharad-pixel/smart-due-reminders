@@ -443,7 +443,9 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
     ${signatureHtml}
     ${footerHtml}
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 4px;">
+      <a href="https://recouply.ai/debtor-portal" style="display: inline-block; font-size: 11px; color: #6b7280; text-decoration: none; font-weight: 500; margin-bottom: 6px;">🔒 Access Payment Portal</a>
+      <br/>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 4px auto 0;">
         <tr>
           <td style="padding-right: 5px; vertical-align: middle;">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:#9ca3af;"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg>
