@@ -518,6 +518,7 @@ const Invoices = () => {
                         <SelectContent>
                           <SelectItem value="Open">Open</SelectItem>
                           <SelectItem value="Paid">Paid</SelectItem>
+                          <SelectItem value="PartiallyPaid">Partially Paid</SelectItem>
                           <SelectItem value="Disputed">Disputed</SelectItem>
                           <SelectItem value="Settled">Settled</SelectItem>
                           <SelectItem value="InPaymentPlan">In Payment Plan</SelectItem>
