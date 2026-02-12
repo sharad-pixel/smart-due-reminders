@@ -104,6 +104,10 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         throw new Error("File must contain at least a header row and one data row");
       }
 
+      if (jsonData.length > 5001) {
+        throw new Error("File exceeds the maximum limit of 5,000 rows. Please split your file into smaller batches.");
+      }
+
       const headers = jsonData[0].map((h: any) => String(h || "").trim());
       const rows = jsonData.slice(1).map((row) => {
         const rowObj: Record<string, any> = {};

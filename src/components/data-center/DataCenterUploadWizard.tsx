@@ -237,6 +237,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
         return obj;
       }).filter(row => Object.values(row).some(v => v != null && v !== ""));
 
+      if (rows.length > 5000) {
+        throw new Error("File exceeds the maximum limit of 5,000 rows. Please split your file into smaller batches.");
+      }
+
       const sampleRows = rows.slice(0, 5);
 
       setParsedData({ headers, rows, sampleRows });
@@ -555,10 +559,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
             {fileType === "invoice_aging" 
-              ? "Invoices count toward your monthly allotment. Max 10,000 rows per upload. Overages billed at $1.99/invoice."
+              ? "Invoices count toward your monthly allotment. Max 5,000 rows per upload. Overages billed at $1.99/invoice."
               : fileType === "payments"
-              ? "Payments are matched to invoices using Recouply Invoice ID. Max 10,000 rows per upload."
-              : "Accounts are matched using Recouply Account ID. Max 10,000 rows per upload."}
+              ? "Payments are matched to invoices using Recouply Invoice ID. Max 5,000 rows per upload."
+              : "Accounts are matched using Recouply Account ID. Max 5,000 rows per upload."}
           </p>
         </DialogHeader>
 
