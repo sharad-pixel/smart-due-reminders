@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { EMAIL_CONFIG } from "../_shared/emailConfig.ts";
+import { wrapEnterpriseEmail, BRAND } from "../_shared/enterpriseEmailTemplate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,116 +35,138 @@ serve(async (req) => {
     const formatPercent = (v: number) => `${(v * 100).toFixed(1)}%`;
     const formatROI = (v: number) => (v > 10 ? "10x+" : `${v.toFixed(1)}x`);
 
-    const riskColor: Record<string, string> = {
-      Low: "#22c55e",
-      Medium: "#eab308",
+    const riskColorMap: Record<string, string> = {
+      Low: BRAND.accent,
+      Medium: BRAND.warning,
       High: "#f97316",
-      Critical: "#ef4444",
+      Critical: BRAND.destructive,
     };
-
-    const tierColor = riskColor[gptResult.risk_tier] || "#eab308";
+    const tierColor = riskColorMap[gptResult?.risk_tier] || BRAND.warning;
 
     const isLeadAlert = share_type === "new_lead_alert";
-    const isShareWithBoss = share_type === "boss";
+    const isTeam = share_type === "team";
+    const isSelf = share_type === "self";
 
+    // Subject line
     let subjectLine: string;
-    let introText: string;
-
     if (isLeadAlert) {
       subjectLine = `🔔 New Assessment Lead: ${lead_info?.name || "Unknown"} (${lead_info?.email || "no email"})`;
-      introText = `<p style="color:#64748b;font-size:15px;"><strong>New lead from Collections Assessment:</strong><br/>Name: ${lead_info?.name || "N/A"}<br/>Email: ${lead_info?.email || "N/A"}<br/>Company: ${lead_info?.company || "N/A"}</p>`;
-    } else if (isShareWithBoss) {
-      subjectLine = `${sender_name || "A colleague"} shared a Collections Assessment with you`;
-      introText = `<p style="color:#64748b;font-size:15px;">${sender_name || "A colleague"} thought you'd find this assessment valuable. It estimates the cost of overdue invoices and the potential ROI of automating collections.</p>`;
-    } else if (share_type === "team") {
+    } else if (isTeam) {
       subjectLine = `${sender_name || "A team member"} shared a Collections Assessment with you`;
-      introText = `<p style="color:#64748b;font-size:15px;">${sender_name || "A team member"} shared this collections risk and ROI assessment with you. Review the findings below to understand the financial impact of overdue invoices.</p>`;
+    } else if (share_type === "boss") {
+      subjectLine = `${sender_name || "A colleague"} shared a Collections Assessment with you`;
     } else {
       subjectLine = "Your Collections Risk & ROI Assessment — Recouply.ai";
-      introText = `<p style="color:#64748b;font-size:15px;">Here's a summary of your collections assessment results. We've saved a copy for your records.</p>`;
     }
-    const actionsHtml = (gptResult.recommended_actions || [])
-      .map((a: any) => `<li style="margin-bottom:8px;"><strong>${a.title}</strong> — ${a.why} <em>(${a.time_to_do})</em></li>`)
+
+    // Intro paragraph
+    let introHtml: string;
+    if (isLeadAlert) {
+      introHtml = `
+        <div style="background:${BRAND.surfaceLight};border:1px solid ${BRAND.border};border-radius:10px;padding:16px;margin-bottom:20px;">
+          <p style="color:${BRAND.foreground};font-size:14px;font-weight:600;margin:0 0 8px;">📋 New Lead Details</p>
+          <table style="font-size:13px;color:${BRAND.muted};"><tbody>
+            <tr><td style="padding:2px 12px 2px 0;font-weight:600;">Name</td><td>${lead_info?.name || "N/A"}</td></tr>
+            <tr><td style="padding:2px 12px 2px 0;font-weight:600;">Email</td><td><a href="mailto:${lead_info?.email}" style="color:${BRAND.primary};">${lead_info?.email || "N/A"}</a></td></tr>
+            <tr><td style="padding:2px 12px 2px 0;font-weight:600;">Company</td><td>${lead_info?.company || "N/A"}</td></tr>
+          </tbody></table>
+        </div>`;
+    } else if (isTeam || share_type === "boss") {
+      introHtml = `<p style="color:${BRAND.muted};font-size:14px;line-height:1.6;">${sender_name || "A team member"} shared this collections risk &amp; ROI assessment with you. Review the findings below to understand the financial impact of overdue invoices.</p>`;
+    } else {
+      introHtml = `<p style="color:${BRAND.muted};font-size:14px;line-height:1.6;">Here's a copy of your collections assessment results. We've saved this for your records.</p>`;
+    }
+
+    // Recommended actions
+    const actionsHtml = (gptResult?.recommended_actions || [])
+      .map((a: any) => `<li style="margin-bottom:8px;color:${BRAND.foreground};font-size:13px;"><strong>${a.title}</strong> — ${a.why} <em style="color:${BRAND.muted};">(${a.time_to_do})</em></li>`)
       .join("");
 
-    const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <h1 style="color:#1e293b;font-size:22px;margin:0 0 8px;">Collections Risk & ROI Assessment</h1>
-      <span style="display:inline-block;padding:4px 16px;border-radius:99px;font-size:13px;font-weight:600;color:${tierColor};background:${tierColor}15;border:1px solid ${tierColor}40;">${gptResult.risk_tier} Risk</span>
-    </div>
+    // Build body content (inside enterprise wrapper)
+    const bodyContent = `
+      <!-- Risk Badge -->
+      <div style="text-align:center;margin-bottom:20px;">
+        <span style="display:inline-block;padding:5px 18px;border-radius:99px;font-size:13px;font-weight:600;color:${tierColor};background:${tierColor}12;border:1px solid ${tierColor}30;">${gptResult?.risk_tier || "Medium"} Risk</span>
+      </div>
 
-    ${introText}
+      ${introHtml}
 
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
-      <tr>
-        <td width="50%" style="padding:8px;">
-          <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
-            <p style="color:#3b82f6;font-size:12px;font-weight:600;margin:0 0 4px;">RECOUPLY COST</p>
-            <p style="font-size:24px;font-weight:700;color:#1e293b;margin:0;">${formatCurrency(results.recouply_cost)}</p>
-            <p style="color:#94a3b8;font-size:12px;margin:4px 0 0;">${inputs.overdue_count} invoices × $1.99</p>
-          </div>
-        </td>
-        <td width="50%" style="padding:8px;">
-          <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
-            <p style="color:#f97316;font-size:12px;font-weight:600;margin:0 0 4px;">COST OF DELAY</p>
-            <p style="font-size:24px;font-weight:700;color:#1e293b;margin:0;">${formatCurrency(results.delay_cost)}</p>
-            <p style="color:#94a3b8;font-size:12px;margin:4px 0 0;">${inputs.annual_rate}% APR × ~${results.delay_months} months</p>
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td width="50%" style="padding:8px;">
-          <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
-            <p style="color:#ef4444;font-size:12px;font-weight:600;margin:0 0 4px;">AT-RISK AMOUNT</p>
-            <p style="font-size:24px;font-weight:700;color:#1e293b;margin:0;">${formatCurrency(results.loss_risk_cost)}</p>
-            <p style="color:#94a3b8;font-size:12px;margin:4px 0 0;">Based on write-off estimate</p>
-          </div>
-        </td>
-        <td width="50%" style="padding:8px;">
-          <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
-            <p style="color:#22c55e;font-size:12px;font-weight:600;margin:0 0 4px;">BREAKEVEN</p>
-            <p style="font-size:24px;font-weight:700;color:#1e293b;margin:0;">${formatCurrency(results.breakeven_recovery)}</p>
-            <p style="color:#94a3b8;font-size:12px;margin:4px 0 0;">≈ ${formatPercent(results.breakeven_pct)} of overdue balance</p>
-          </div>
-        </td>
-      </tr>
-    </table>
+      <!-- Metric Cards -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+        <tr>
+          <td width="50%" style="padding:6px;">
+            <div style="background:${BRAND.cardBg};border:1px solid ${BRAND.border};border-radius:10px;padding:14px;">
+              <p style="color:${BRAND.primary};font-size:11px;font-weight:700;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Recouply Cost</p>
+              <p style="font-size:22px;font-weight:700;color:${BRAND.foreground};margin:0;">${formatCurrency(results.recouply_cost)}</p>
+              <p style="color:${BRAND.muted};font-size:11px;margin:4px 0 0;">${inputs.overdue_count} invoices × $1.99</p>
+            </div>
+          </td>
+          <td width="50%" style="padding:6px;">
+            <div style="background:${BRAND.cardBg};border:1px solid ${BRAND.border};border-radius:10px;padding:14px;">
+              <p style="color:#f97316;font-size:11px;font-weight:700;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Cost of Delay</p>
+              <p style="font-size:22px;font-weight:700;color:${BRAND.foreground};margin:0;">${formatCurrency(results.delay_cost)}</p>
+              <p style="color:${BRAND.muted};font-size:11px;margin:4px 0 0;">${inputs.annual_rate}% APR × ~${results.delay_months} mo</p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td width="50%" style="padding:6px;">
+            <div style="background:${BRAND.cardBg};border:1px solid ${BRAND.border};border-radius:10px;padding:14px;">
+              <p style="color:${BRAND.destructive};font-size:11px;font-weight:700;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">At-Risk Amount</p>
+              <p style="font-size:22px;font-weight:700;color:${BRAND.foreground};margin:0;">${formatCurrency(results.loss_risk_cost)}</p>
+              <p style="color:${BRAND.muted};font-size:11px;margin:4px 0 0;">Based on write-off estimate</p>
+            </div>
+          </td>
+          <td width="50%" style="padding:6px;">
+            <div style="background:${BRAND.cardBg};border:1px solid ${BRAND.border};border-radius:10px;padding:14px;">
+              <p style="color:${BRAND.accent};font-size:11px;font-weight:700;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Breakeven</p>
+              <p style="font-size:22px;font-weight:700;color:${BRAND.foreground};margin:0;">${formatCurrency(results.breakeven_recovery)}</p>
+              <p style="color:${BRAND.muted};font-size:11px;margin:4px 0 0;">≈ ${formatPercent(results.breakeven_pct)} of overdue</p>
+            </div>
+          </td>
+        </tr>
+      </table>
 
-    <div style="background:linear-gradient(135deg,#3b82f610,#22c55e10);border:1px solid #3b82f630;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-      <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Estimated ROI</p>
-      <p style="font-size:36px;font-weight:700;color:#3b82f6;margin:0;">${formatROI(results.roi_multiple)}</p>
-      <p style="color:#64748b;font-size:13px;margin:4px 0 0;">Total impact: ${formatCurrency(results.total_impact)} vs cost of ${formatCurrency(results.recouply_cost)}</p>
-    </div>
+      <!-- ROI Highlight -->
+      <div style="background:linear-gradient(135deg,${BRAND.primary}08,${BRAND.accent}08);border:1px solid ${BRAND.primary}25;border-radius:10px;padding:18px;text-align:center;margin-bottom:20px;">
+        <p style="color:${BRAND.muted};font-size:12px;margin:0 0 2px;">Estimated ROI</p>
+        <p style="font-size:32px;font-weight:700;color:${BRAND.primary};margin:0;">${formatROI(results.roi_multiple)}</p>
+        <p style="color:${BRAND.muted};font-size:12px;margin:4px 0 0;">Total impact: ${formatCurrency(results.total_impact)} vs cost of ${formatCurrency(results.recouply_cost)}</p>
+      </div>
 
-    <div style="margin-bottom:24px;">
-      <h3 style="color:#1e293b;font-size:16px;margin:0 0 8px;">Risk Summary</h3>
-      <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 8px;">${gptResult.risk_summary}</p>
-      <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">${gptResult.value_summary}</p>
-    </div>
+      <!-- Risk & Value Summary -->
+      ${gptResult?.risk_summary ? `
+      <div style="margin-bottom:18px;">
+        <h3 style="color:${BRAND.foreground};font-size:15px;font-weight:600;margin:0 0 6px;">Risk Summary</h3>
+        <p style="color:${BRAND.muted};font-size:13px;line-height:1.6;margin:0 0 6px;">${gptResult.risk_summary}</p>
+        ${gptResult.value_summary ? `<p style="color:${BRAND.muted};font-size:13px;line-height:1.6;margin:0;">${gptResult.value_summary}</p>` : ''}
+      </div>` : ''}
 
-    ${actionsHtml ? `
-    <div style="margin-bottom:24px;">
-      <h3 style="color:#1e293b;font-size:16px;margin:0 0 8px;">Recommended Next Steps</h3>
-      <ul style="color:#475569;font-size:14px;line-height:1.6;padding-left:20px;margin:0;">${actionsHtml}</ul>
-    </div>` : ""}
+      <!-- Recommended Actions -->
+      ${actionsHtml ? `
+      <div style="margin-bottom:18px;">
+        <h3 style="color:${BRAND.foreground};font-size:15px;font-weight:600;margin:0 0 8px;">Recommended Next Steps</h3>
+        <ul style="padding-left:18px;margin:0;">${actionsHtml}</ul>
+      </div>` : ''}
 
-    <div style="text-align:center;margin:32px 0 16px;">
-      <a href="https://recouply.ai/collections-assessment" style="display:inline-block;padding:12px 32px;background:#3b82f6;color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">Run Your Own Assessment</a>
-    </div>
+      <!-- CTA -->
+      <div style="text-align:center;margin:28px 0 8px;">
+        <a href="https://recouply.ai/collections-assessment" style="display:inline-block;padding:12px 32px;background:${BRAND.primary};color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Run Your Own Assessment</a>
+      </div>
 
-    <p style="color:#94a3b8;font-size:11px;text-align:center;margin:24px 0 0;">
-      Estimates are directional and depend on your business and customer behavior.<br/>
-      Powered by <a href="https://recouply.ai" style="color:#3b82f6;text-decoration:none;">Recouply.ai</a> — Collection Intelligence Platform
-    </p>
-  </div>
-</body>
-</html>`;
+      <p style="color:${BRAND.muted};font-size:11px;text-align:center;margin:16px 0 0;">
+        Estimates are directional and depend on your business and customer behavior.
+      </p>
+    `;
 
+    // Wrap in enterprise branded template
+    const html = wrapEnterpriseEmail(bodyContent, {
+      headerStyle: 'gradient',
+      title: 'Collections Risk & ROI Assessment',
+      subtitle: isLeadAlert ? '🔔 New Lead Alert' : undefined,
+    });
+
+    // Send via Resend using verified domain
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -151,17 +174,18 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Recouply.ai <noreply@recouply.ai>",
+        from: EMAIL_CONFIG.FROM_NOTIFICATIONS,
         to: [to_email],
         subject: subjectLine,
         html,
+        reply_to: EMAIL_CONFIG.DEFAULT_REPLY_TO,
       }),
     });
 
     if (!emailRes.ok) {
       const errText = await emailRes.text();
       console.error("Resend error:", errText);
-      return new Response(JSON.stringify({ error: "Failed to send email" }), {
+      return new Response(JSON.stringify({ error: "Failed to send email", details: errText }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
