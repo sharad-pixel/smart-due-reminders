@@ -279,9 +279,11 @@ function generateMinimalFooter(brand: BrandingConfig): string {
     </tr>
     ` : ""}
     
-    <!-- Subtle Powered By Footer -->
+    <!-- Subtle Powered By Footer with Payment Portal -->
     <tr>
       <td style="padding: 16px 36px 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <a href="https://recouply.ai/debtor-portal" style="display: inline-block; font-size: 11px; color: #6b7280; text-decoration: none; font-weight: 500; margin-bottom: 6px;">🔒 Access Payment Portal</a>
+        <br/>
         <span style="font-size: 10px; color: #9ca3af;">Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none; font-weight: 500;">recouply.ai</a></span>
       </td>
     </tr>
