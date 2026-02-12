@@ -13,6 +13,7 @@ import {
   Percent,
   Loader2,
   Brain,
+  Bot,
 } from "lucide-react";
 import {
   AGE_BAND_OPTIONS,
@@ -57,6 +58,14 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       metadata,
     }).then(() => {});
   }, [sessionId]);
+
+  const NICOLAS_TIPS = [
+    "This helps me gauge your collection workload. Even 10 overdue invoices can drain hours of follow-up time each week — let's quantify that.",
+    "Knowing your total exposure lets me calculate the real financial impact of delayed payments and estimate what's at risk.",
+    "Aging is the #1 predictor of collectability. The older a receivable gets, the harder it is to recover — I'll factor this into your risk tier.",
+    "This helps me estimate your potential write-off exposure. Most businesses underestimate this until they see the numbers.",
+    "Your cost of capital determines how much each day of delay actually costs you. I'll use this to calculate your true delay cost and ROI.",
+  ];
 
   const totalSteps = 5;
   const progress = ((step + 1) / totalSteps) * 100;
@@ -288,6 +297,22 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
           transition={{ duration: 0.25 }}
         >
           {stepContent()}
+
+          {/* Nicolas Agent Tip */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+            className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5"
+          >
+            <div className="shrink-0 mt-0.5 p-1.5 rounded-full bg-primary/10">
+              <Bot className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-primary mb-0.5">Nicolas — AI Collection Advisor</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{NICOLAS_TIPS[step]}</p>
+            </div>
+          </motion.div>
         </motion.div>
       </AnimatePresence>
 
