@@ -120,20 +120,34 @@ serve(async (req) => {
       return null;
     };
 
-    // Parallel fetch of existing data
-    const [customersResult, invoicesResult] = await Promise.all([
-      supabase
-        .from("debtors")
-        .select("id, company_name, external_customer_id, email, reference_id")
-        .eq("user_id", user.id),
-      supabase
-        .from("invoices")
-        .select("id, invoice_number, reference_id, debtor_id, amount_outstanding, status")
-        .eq("user_id", user.id)
-    ]);
+    // Paginated fetch of existing data to bypass 1000-row limit
+    async function fetchAllRows(table: string, selectCols: string, userId: string): Promise<any[]> {
+      const allRows: any[] = [];
+      const PAGE_SIZE = 1000;
+      let offset = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from(table)
+          .select(selectCols)
+          .eq("user_id", userId)
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allRows.push(...data);
+          offset += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      return allRows;
+    }
 
-    const existingCustomers = customersResult.data || [];
-    const existingInvoices = invoicesResult.data || [];
+    const [existingCustomers, existingInvoices] = await Promise.all([
+      fetchAllRows("debtors", "id, company_name, external_customer_id, email, reference_id", user.id),
+      fetchAllRows("invoices", "id, invoice_number, reference_id, debtor_id, amount_outstanding, status", user.id),
+    ]);
 
     console.log(`Loaded ${existingCustomers.length} customers, ${existingInvoices.length} invoices`);
 
