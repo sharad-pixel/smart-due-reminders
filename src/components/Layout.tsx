@@ -30,7 +30,8 @@ import {
   Bell,
   BarChart3,
   ShieldCheck,
-  Loader2
+  Loader2,
+  DollarSign
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -241,6 +242,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
+    { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/data-center", label: "Data Center", icon: Database },
   ];
 
