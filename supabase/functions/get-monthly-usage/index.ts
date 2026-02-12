@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
         .from('invoices')
         .select('id, is_overage')
         .eq('user_id', accountId)
-        .in('status', ['Open', 'InPaymentPlan'])
+        .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
         .range(offset, offset + PAGE_SIZE - 1);
 
       if (pageError) {
