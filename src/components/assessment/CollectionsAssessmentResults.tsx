@@ -122,6 +122,24 @@ const CollectionsAssessmentResults = ({
       utm_campaign: params.get("utm_campaign"),
     });
 
+    // Alert support@recouply.ai about new lead
+    supabase.functions.invoke("share-assessment", {
+      body: {
+        to_email: "support@recouply.ai",
+        to_name: "Recouply Team",
+        sender_name: "Assessment Bot",
+        inputs,
+        results,
+        gptResult,
+        share_type: "new_lead_alert",
+        lead_info: {
+          name: unlockName || "Unknown",
+          email: unlockEmail,
+          company: unlockCompany || "Not provided",
+        },
+      },
+    }).catch(() => {}); // fire-and-forget
+
     setIsUnlocking(false);
     setUnlocked(true);
   };
