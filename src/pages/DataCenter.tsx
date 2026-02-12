@@ -125,6 +125,94 @@ const DataCenter = () => {
     }
   };
 
+  const handleExportInvoices = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      // Paginate to get all invoices
+      const PAGE_SIZE = 1000;
+      let allInvoices: any[] = [];
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: page, error } = await supabase
+          .from("invoices")
+          .select("reference_id, external_invoice_id, invoice_number, amount, currency, issue_date, due_date, status, source_system, product_description, payment_terms, notes, debtors(name, email, reference_id)")
+          .eq("user_id", user.id)
+          .eq("is_archived", false)
+          .order("due_date", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        if (!page || page.length === 0) {
+          hasMore = false;
+        } else {
+          allInvoices = [...allInvoices, ...page];
+          offset += PAGE_SIZE;
+          if (page.length < PAGE_SIZE) hasMore = false;
+        }
+      }
+
+      if (allInvoices.length === 0) {
+        toast.info("No invoices to export", {
+          description: "Create some invoices first before exporting."
+        });
+        return;
+      }
+
+      const exportData = allInvoices.map(inv => {
+        const daysPastDue = Math.max(
+          0,
+          Math.ceil((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24))
+        );
+        let aging_bucket = "Current";
+        if (daysPastDue > 0 && daysPastDue <= 30) aging_bucket = "0-30";
+        else if (daysPastDue <= 60) aging_bucket = "31-60";
+        else if (daysPastDue <= 90) aging_bucket = "61-90";
+        else if (daysPastDue <= 120) aging_bucket = "91-120";
+        else if (daysPastDue > 120) aging_bucket = "121+";
+
+        return {
+          "Recouply Invoice ID": inv.reference_id || "",
+          "External Invoice ID": inv.external_invoice_id || "",
+          "Invoice Number": inv.invoice_number || "",
+          "Account Name": inv.debtors?.name || "",
+          "Account Email": inv.debtors?.email || "",
+          "Account RAID": inv.debtors?.reference_id || "",
+          "Amount": inv.amount,
+          "Currency": inv.currency || "USD",
+          "Issue Date": inv.issue_date || "",
+          "Due Date": inv.due_date || "",
+          "Status": inv.status || "",
+          "Aging Bucket": aging_bucket,
+          "Source System": inv.source_system || "manual",
+          "Product Description": inv.product_description || "",
+          "Payment Terms": inv.payment_terms || "",
+          "Notes": inv.notes || "",
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Invoices");
+      XLSX.writeFile(wb, `recouply_invoices_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      toast.success("Invoices exported", {
+        description: `Exported ${allInvoices.length} invoices.`
+      });
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast.error("Export failed", {
+        description: error.message || "Could not export invoices"
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
