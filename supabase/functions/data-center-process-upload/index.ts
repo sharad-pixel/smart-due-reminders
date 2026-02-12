@@ -570,14 +570,14 @@ serve(async (req) => {
             );
 
             // Create invoice_transactions records so dashboard/payments page picks them up
-            const transactionsToCreate = paymentLinks.map(link => ({
+            const transactionsToCreate = paymentLinks.map((link, idx) => ({
               user_id: user.id,
               invoice_id: link.invoiceData.id,
               transaction_type: "payment",
               amount: link.paymentAmount,
               balance_after: Math.max(0, link.invoiceData.amount_outstanding - link.paymentAmount),
               transaction_date: paymentsToCreate[link.paymentIndex].payment_date,
-              source_system: "manual",
+              source_system: "recouply",
               reference_number: paymentsToCreate[link.paymentIndex].reference || null,
               notes: paymentsToCreate[link.paymentIndex].notes || "Uploaded via Data Center",
               payment_method: "data_center_upload",
