@@ -28,6 +28,7 @@ import {
   notableCompanies
 } from "@/lib/founderConfig";
 import SEO from "@/components/SEO";
+import { PersonaAvatar } from "@/components/PersonaAvatar";
 
 const About = () => {
   const navigate = useNavigate();
@@ -390,20 +391,53 @@ const About = () => {
         </div>
       </section>
 
-      {/* Nicolas Callout */}
-      <section className="py-12 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10">
+      {/* Nicolas — AI Collections Advisor */}
+      <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Bot className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <h3 className="text-2xl font-bold">Meet Nicolas</h3>
-            </div>
-            <p className="text-muted-foreground">
-              Our Knowledge Base Agent Nicolas is here to guide you across every page. 
-              Have questions? Just click the chat icon in the corner!
-            </p>
+          <div className="max-w-5xl mx-auto">
+            <Card className="relative overflow-hidden border-primary/20 shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+              <CardContent className="relative p-8 md:p-12">
+                <div className="grid md:grid-cols-3 gap-8 items-center">
+                  {/* Avatar */}
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-110" />
+                      <PersonaAvatar persona="nicolas" size="2xl" />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="md:col-span-2 space-y-4">
+                    <Badge variant="secondary" className="mb-2">
+                      <Bot className="w-4 h-4 mr-2" />
+                      AI Collections Advisor
+                    </Badge>
+                    <h3 className="text-3xl md:text-4xl font-bold">
+                      Meet <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Nicolas</span>
+                    </h3>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                      Nicolas is Recouply's AI-powered collections advisor and your personal guide across the platform. 
+                      From onboarding to strategy, Nicolas provides step-by-step guidance, answers product and billing 
+                      questions using our built-in Knowledge Base, and helps you navigate every feature with confidence.
+                    </p>
+                    <ul className="space-y-2 pt-2">
+                      {[
+                        "Contextual guidance on every page — just click the chat icon",
+                        "AI-driven collections assessment and ROI analysis",
+                        "Account-level outreach and escalation support",
+                        "Instant answers to product, billing, and feature questions",
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <CheckCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                          <span className="text-muted-foreground">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
