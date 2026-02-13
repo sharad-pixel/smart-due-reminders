@@ -302,6 +302,75 @@ const Pricing = () => {
       {/* Cost Comparison: Human Collectors vs AI Agents */}
       <CostComparisonSection onCTAClick={() => handlePlanClick("growth")} />
 
+      {/* Per-Invoice ROI Highlight */}
+      <section className="py-16 px-4 bg-gradient-to-b from-primary/5 to-background">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              The Real Cost of <span className="text-primary">Not Automating</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Every overdue invoice that slips through the cracks costs your business far more than the price of recovering it.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-10">
+            {/* Per Invoice Cost */}
+            <Card className="border-2 border-primary relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+              <CardContent className="pt-8 text-center">
+                <p className="text-sm font-semibold text-primary uppercase tracking-wide mb-3">Per Invoice Cost</p>
+                <div className="text-6xl font-bold text-primary mb-2">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}</div>
+                <p className="text-muted-foreground text-sm mb-4">per active invoice / month</p>
+                <div className="bg-primary/5 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-foreground">Less than a cup of coffee</p>
+                  <p className="text-muted-foreground text-xs mt-1">to have 6 AI agents working 24/7 on each invoice</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Average Cost Without Automation */}
+            <Card className="border-2 border-muted">
+              <CardContent className="pt-8 text-center">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Without Automation</p>
+                <div className="text-6xl font-bold text-destructive mb-2">$15–$25</div>
+                <p className="text-muted-foreground text-sm mb-4">avg. cost to manually collect per invoice*</p>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-foreground">Staff time, follow-ups, phone calls</p>
+                  <p className="text-muted-foreground text-xs mt-1">Plus the opportunity cost of delayed cash flow</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ROI Multiple */}
+            <Card className="border-2 border-accent/50">
+              <CardContent className="pt-8 text-center">
+                <p className="text-sm font-semibold text-accent uppercase tracking-wide mb-3">Your ROI</p>
+                <div className="text-6xl font-bold text-accent mb-2">7–12x</div>
+                <p className="text-muted-foreground text-sm mb-4">estimated return on every dollar spent</p>
+                <div className="bg-accent/5 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-foreground">Faster payments, fewer write-offs</p>
+                  <p className="text-muted-foreground text-xs mt-1">AI catches at-risk invoices before they become losses</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center bg-card border rounded-xl p-6 max-w-3xl mx-auto">
+            <p className="text-foreground font-medium mb-2">
+              💡 At just <span className="text-primary font-bold">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}/invoice</span>, recovering even one overlooked payment covers months of Recouply.ai.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              AI automation doesn't just save time — it protects revenue, reduces write-offs, and accelerates cash flow at a fraction of the cost of manual collections.
+            </p>
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center mt-6">
+            *Industry estimates based on average staff time, overhead, and follow-up costs for manual invoice collections.
+          </p>
+        </div>
+      </section>
+
       {/* Pricing Cards Section */}
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto text-center max-w-4xl mb-12">
