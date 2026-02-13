@@ -412,27 +412,40 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
                 <p className="text-sm text-muted-foreground leading-relaxed">{meta.whyItMatters}</p>
               </motion.div>
 
-              {/* Nicolas Agent Tip */}
+              {/* Nicolas Agent Tip — large card */}
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.35 }}
-                className="mt-4 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4"
+                transition={{ delay: 0.4, duration: 0.4 }}
+                className="mt-5 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-5 md:p-6"
               >
-                <div className="shrink-0 mt-0.5 relative">
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-primary/20 blur-lg"
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                  />
-                  <img src={nicolasAvatar} alt="Nicolas" className="relative h-10 w-10 rounded-full object-cover border-2 border-primary/30" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-primary mb-1 flex items-center gap-1.5">
-                    <Brain className="w-3 h-3" />
-                    Nicolas — AI Collections Advisor
-                  </p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{meta.nicolasTip}</p>
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  {/* Large Nicolas avatar */}
+                  <div className="shrink-0 relative self-center sm:self-start">
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl bg-primary/15 blur-2xl scale-125"
+                      animate={{ scale: [1.15, 1.35, 1.15], opacity: [0.2, 0.5, 0.2] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                    />
+                    <img
+                      src={nicolasAvatar}
+                      alt="Nicolas — AI Collections Advisor"
+                      className="relative h-24 w-24 md:h-28 md:w-28 rounded-2xl object-cover border-2 border-primary/20 shadow-lg"
+                    />
+                  </div>
+                  {/* Tip content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-primary mb-1 flex items-center gap-1.5">
+                      <Brain className="w-4 h-4" />
+                      Nicolas — AI Collections Advisor
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed mb-3">{meta.nicolasTip}</p>
+                    <div className="border-l-2 border-primary/30 pl-3">
+                      <p className="text-xs text-muted-foreground italic leading-relaxed">
+                        "Understanding your <span className="text-primary font-medium">{meta.riskFactor.toLowerCase()}</span> is critical to building an accurate collections intelligence profile."
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>

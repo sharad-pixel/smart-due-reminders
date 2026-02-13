@@ -89,8 +89,12 @@ const CollectionsAssessment = () => {
                   className="flex justify-center mb-6"
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-150 animate-pulse" />
-                    <PersonaAvatar persona="nicolas" size="xl" />
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-primary/20 blur-3xl scale-[2]"
+                      animate={{ scale: [1.8, 2.2, 1.8], opacity: [0.2, 0.5, 0.2] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <PersonaAvatar persona="nicolas" size="2xl" />
                   </div>
                 </motion.div>
 
