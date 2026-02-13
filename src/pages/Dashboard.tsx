@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ interface DashboardTask {
 }
 
 const Dashboard = () => {
+  usePageTitle("Dashboard");
   const navigate = useNavigate();
   const accountInfo = useEffectiveAccount();
   const { data: orgAvgDPD } = useOrgAvgDPD();

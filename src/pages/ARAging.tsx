@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +22,7 @@ interface AgingData {
 }
 
 const ARAging = () => {
+  usePageTitle("AR Aging");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: agingData, isLoading } = useQuery({

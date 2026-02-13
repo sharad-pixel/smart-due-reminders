@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X, AlertTriangle, AlertCircle, CheckCircle, Info, Mail, ExternalLink, Trash2 } from 'lucide-react';
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
@@ -84,6 +85,7 @@ const groupAlertsByDate = (alerts: UserAlert[]) => {
 };
 
 export default function Alerts() {
+  usePageTitle("Alerts");
   const navigate = useNavigate();
   const { 
     alerts, 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from "@/hooks/usePageTitle";
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,6 +30,7 @@ const getSourceIcon = (source: string | null) => {
 };
 
 const PaymentsActivity = () => {
+  usePageTitle("Payments");
   const navigate = useNavigate();
   const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
   const { data: summary, isLoading: summaryLoading } = usePaymentsSummary();

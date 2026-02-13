@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays } from "date-fns";
 import Layout from "@/components/Layout";
@@ -78,6 +79,7 @@ interface TaskWithRelations {
 }
 
 export default function CollectionTasks() {
+  usePageTitle("Collection Tasks");
   const [searchParams, setSearchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
   const taskIdFromUrl = searchParams.get('taskId');

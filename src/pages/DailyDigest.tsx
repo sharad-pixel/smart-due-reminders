@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, subDays, addDays, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Newspaper, Lightbulb, ExternalLink, Sparkles, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
 
 const DailyDigest = () => {
+  usePageTitle("Daily Digest");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { data: digest, isLoading, refetch } = useDailyDigest(selectedDate);

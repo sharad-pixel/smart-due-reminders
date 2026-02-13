@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -174,6 +175,7 @@ const NicolasAssistantCard = () => {
 };
 
 const Profile = () => {
+  usePageTitle("Profile");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();

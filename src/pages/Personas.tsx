@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Badge } from "@/components/ui/badge";
 import MarketingLayout from "@/components/MarketingLayout";
@@ -412,6 +413,7 @@ function AgentNavBar({
 }
 
 const Personas = () => {
+  usePageTitle("AI Agent Personas");
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 

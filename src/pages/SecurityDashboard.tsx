@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -39,6 +40,7 @@ interface SecurityEvent {
 }
 
 export default function SecurityDashboard() {
+  usePageTitle("Security");
   const navigate = useNavigate();
   const { role, loading: roleLoading } = useUserRole();
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);

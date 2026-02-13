@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ interface Debtor {
 const ROWS_PER_PAGE = 25;
 
 const Debtors = () => {
+  usePageTitle("Accounts");
   const navigate = useNavigate();
   const { data: accountsAvgDPD } = useAccountsAvgDPD();
   const [debtors, setDebtors] = useState<Debtor[]>([]);
