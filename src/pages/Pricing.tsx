@@ -302,72 +302,143 @@ const Pricing = () => {
       {/* Cost Comparison: Human Collectors vs AI Agents */}
       <CostComparisonSection onCTAClick={() => handlePlanClick("growth")} />
 
-      {/* Per-Invoice ROI Highlight */}
+      {/* Per-Invoice ROI & AI vs Human Comparison */}
       <section className="py-16 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-3">
-              The Real Cost of <span className="text-primary">Not Automating</span>
+              <span className="text-primary">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}</span> to Protect a <span className="text-primary">$4,000</span> Invoice
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Every overdue invoice that slips through the cracks costs your business far more than the price of recovering it.
+              The average B2B invoice is $4,000. Recouply.ai puts 6 AI agents on it for {formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })} — that's <span className="font-semibold text-foreground">0.05%</span> of the invoice value.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
-            {/* Per Invoice Cost */}
+          {/* The Math */}
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
             <Card className="border-2 border-primary relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
               <CardContent className="pt-8 text-center">
-                <p className="text-sm font-semibold text-primary uppercase tracking-wide mb-3">Per Invoice Cost</p>
+                <p className="text-sm font-semibold text-primary uppercase tracking-wide mb-3">Recouply.ai Cost</p>
                 <div className="text-6xl font-bold text-primary mb-2">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}</div>
-                <p className="text-muted-foreground text-sm mb-4">per active invoice / month</p>
+                <p className="text-muted-foreground text-sm mb-4">per invoice / month</p>
                 <div className="bg-primary/5 rounded-lg p-3 text-sm">
-                  <p className="font-medium text-foreground">Less than a cup of coffee</p>
-                  <p className="text-muted-foreground text-xs mt-1">to have 6 AI agents working 24/7 on each invoice</p>
+                  <p className="font-medium text-foreground">6 AI agents, 24/7, zero oversight needed</p>
+                  <p className="text-muted-foreground text-xs mt-1">Consistent follow-ups on every invoice, every time</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Average Cost Without Automation */}
             <Card className="border-2 border-muted">
               <CardContent className="pt-8 text-center">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Without Automation</p>
-                <div className="text-6xl font-bold text-destructive mb-2">$15–$25</div>
-                <p className="text-muted-foreground text-sm mb-4">avg. cost to manually collect per invoice*</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Avg. Invoice Value</p>
+                <div className="text-6xl font-bold text-foreground mb-2">$4,000</div>
+                <p className="text-muted-foreground text-sm mb-4">typical B2B invoice at risk</p>
                 <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                  <p className="font-medium text-foreground">Staff time, follow-ups, phone calls</p>
-                  <p className="text-muted-foreground text-xs mt-1">Plus the opportunity cost of delayed cash flow</p>
+                  <p className="font-medium text-foreground">One missed invoice = real revenue loss</p>
+                  <p className="text-muted-foreground text-xs mt-1">Manual teams let invoices age silently into write-offs</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* ROI Multiple */}
             <Card className="border-2 border-accent/50">
               <CardContent className="pt-8 text-center">
-                <p className="text-sm font-semibold text-accent uppercase tracking-wide mb-3">Your ROI</p>
-                <div className="text-6xl font-bold text-accent mb-2">7–12x</div>
-                <p className="text-muted-foreground text-sm mb-4">estimated return on every dollar spent</p>
+                <p className="text-sm font-semibold text-accent uppercase tracking-wide mb-3">ROI Per Invoice</p>
+                <div className="text-6xl font-bold text-accent mb-2">2,000x</div>
+                <p className="text-muted-foreground text-sm mb-4">value protected per dollar spent</p>
                 <div className="bg-accent/5 rounded-lg p-3 text-sm">
-                  <p className="font-medium text-foreground">Faster payments, fewer write-offs</p>
-                  <p className="text-muted-foreground text-xs mt-1">AI catches at-risk invoices before they become losses</p>
+                  <p className="font-medium text-foreground">Recovering 1 invoice pays for years of Recouply</p>
+                  <p className="text-muted-foreground text-xs mt-1">$4,000 recovered ÷ $1.99 = 2,010x return</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="text-center bg-card border rounded-xl p-6 max-w-3xl mx-auto">
-            <p className="text-foreground font-medium mb-2">
-              💡 At just <span className="text-primary font-bold">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}/invoice</span>, recovering even one overlooked payment covers months of Recouply.ai.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              AI automation doesn't just save time — it protects revenue, reduces write-offs, and accelerates cash flow at a fraction of the cost of manual collections.
-            </p>
+          {/* AI Agents vs Human Collectors */}
+          <div className="mb-10">
+            <h3 className="text-2xl font-bold text-center mb-6">
+              Why AI Agents Outperform Manual Collections
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* AI Agents */}
+              <Card className="border-2 border-primary/30">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-primary" />
+                    </div>
+                    <h4 className="text-lg font-bold">AI Agents — No Oversight Required</h4>
+                  </div>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span><strong>Consistent every time</strong> — same professional tone on invoice #1 and invoice #500</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span><strong>Zero follow-up gaps</strong> — never forgets a reminder, never takes PTO</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span><strong>Risk-aware escalation</strong> — automatically adjusts tone based on aging and payment behavior</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span><strong>Operates 24/7/365</strong> — catches issues before they escalate, weekends and holidays included</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span><strong>Full audit trail</strong> — every action logged, every communication tracked automatically</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Human Collectors */}
+              <Card className="border-2 border-muted">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-xl">👤</span>
+                    </div>
+                    <h4 className="text-lg font-bold">Manual Teams — Requires Constant Oversight</h4>
+                  </div>
+                  <ul className="space-y-3 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-destructive mt-0.5 flex-shrink-0">✗</span>
+                      <span><strong className="text-foreground">Inconsistent follow-ups</strong> — tone, timing, and quality vary by person and mood</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-destructive mt-0.5 flex-shrink-0">✗</span>
+                      <span><strong className="text-foreground">Invoices fall through cracks</strong> — PTO, sick days, turnover creates coverage gaps</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-destructive mt-0.5 flex-shrink-0">✗</span>
+                      <span><strong className="text-foreground">Reactive, not proactive</strong> — issues discovered after they've already escalated</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-destructive mt-0.5 flex-shrink-0">✗</span>
+                      <span><strong className="text-foreground">Requires management overhead</strong> — training, QA reviews, performance tracking</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-destructive mt-0.5 flex-shrink-0">✗</span>
+                      <span><strong className="text-foreground">Limited documentation</strong> — conversations go unrecorded, context gets lost between handoffs</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            *Industry estimates based on average staff time, overhead, and follow-up costs for manual invoice collections.
-          </p>
+          {/* Bottom Callout */}
+          <div className="text-center bg-card border rounded-xl p-6 max-w-3xl mx-auto">
+            <p className="text-foreground font-medium mb-2">
+              💡 At <span className="text-primary font-bold">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}/invoice</span>, you're not paying for software — you're paying for certainty that every dollar owed is being actively pursued.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              No manager required. No inconsistency. No invoices slipping through cracks. Just reliable, always-on collection intelligence protecting your cash flow.
+            </p>
+          </div>
         </div>
       </section>
 
