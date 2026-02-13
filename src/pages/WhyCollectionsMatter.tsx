@@ -1,10 +1,12 @@
 import MarketingLayout from "@/components/MarketingLayout";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight, Brain } from "lucide-react";
 
 export default function WhyCollectionsMatter() {
+  usePageTitle("Why Collections Matter");
   const navigate = useNavigate();
 
   return (

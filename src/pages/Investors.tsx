@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Card, CardContent } from "@/components/ui/card";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { founderConfig } from "@/lib/founderConfig";
@@ -26,6 +27,7 @@ import {
 import { Link } from "react-router-dom";
 
 const Investors = () => {
+  usePageTitle("Investors");
   const scrollToContact = () => {
     document.getElementById('investor-contact')?.scrollIntoView({ behavior: 'smooth' });
   };

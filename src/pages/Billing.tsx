@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,6 +124,7 @@ interface StripeSubscriptionData {
 }
 
 const Billing = () => {
+  usePageTitle("Billing");
   const navigate = useNavigate();
   
   // Use the comprehensive account hierarchy hook

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import Layout from "@/components/Layout";
@@ -42,6 +43,7 @@ interface RefreshResult {
 }
 
 const Outreach = () => {
+  usePageTitle("Outreach");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   

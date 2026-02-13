@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface Debtor {
 }
 
 const Invoices = () => {
+  usePageTitle("Invoices");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');

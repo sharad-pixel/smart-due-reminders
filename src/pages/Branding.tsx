@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -69,6 +70,7 @@ interface BrandingSettings {
 }
 
 export default function Branding() {
+  usePageTitle("Branding");
   const queryClient = useQueryClient();
   const { effectiveAccountId, isTeamMember } = useEffectiveAccount();
   const [formData, setFormData] = useState<Partial<BrandingSettings>>({});
