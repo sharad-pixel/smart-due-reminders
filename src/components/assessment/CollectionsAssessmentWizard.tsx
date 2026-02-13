@@ -4,6 +4,8 @@ import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +16,11 @@ import {
   Percent,
   Loader2,
   Brain,
+  Info,
+  TrendingDown,
+  ShieldAlert,
+  Calculator,
+  BarChart3,
 } from "lucide-react";
 import {
   AGE_BAND_OPTIONS,
@@ -31,6 +38,58 @@ const OVERDUE_CHIPS = [
   { label: "51–200", value: 125 },
   { label: "201–500", value: 350 },
   { label: "500+", value: 750 },
+];
+
+interface StepMeta {
+  icon: React.ElementType;
+  title: string;
+  question: string;
+  whyItMatters: string;
+  riskFactor: string;
+  nicolasTip: string;
+}
+
+const STEP_META: StepMeta[] = [
+  {
+    icon: FileText,
+    title: "Volume",
+    question: "How many invoices are currently overdue?",
+    whyItMatters: "Invoice volume determines your collection workload and operational complexity. Higher volumes multiply the cost of manual follow-ups and increase the chance of invoices slipping through the cracks.",
+    riskFactor: "Workload & Capacity Risk",
+    nicolasTip: "Even 10 overdue invoices can drain hours of follow-up time each week. Let's quantify your collection workload so we can estimate the real operational burden.",
+  },
+  {
+    icon: DollarSign,
+    title: "Exposure",
+    question: "What's your total overdue balance?",
+    whyItMatters: "Your total outstanding balance represents capital locked outside your business. The larger the exposure, the more significant the impact on cash flow, working capital, and growth potential.",
+    riskFactor: "Cash Flow & Capital Risk",
+    nicolasTip: "This is the total amount at risk. I'll use it to calculate your delay cost, write-off exposure, and the ROI of automated collections vs. doing nothing.",
+  },
+  {
+    icon: Clock,
+    title: "Aging",
+    question: "How old is most of that overdue balance?",
+    whyItMatters: "Aging is the single strongest predictor of collectability. Industry data shows that after 90 days, recovery rates drop by 30–50%. After 120 days, write-off probability increases dramatically.",
+    riskFactor: "Recovery Probability Risk",
+    nicolasTip: "This is the #1 factor in your risk tier. The older the debt, the harder it is to recover — I'll factor aging into your delay cost and recommended urgency level.",
+  },
+  {
+    icon: AlertTriangle,
+    title: "Loss Rate",
+    question: "Roughly what % of overdue invoices become hard to collect?",
+    whyItMatters: "Your historical loss rate reveals the real write-off exposure hiding in your receivables. Even a 5% loss rate on a $100K portfolio means $5K walking out the door annually.",
+    riskFactor: "Write-Off Exposure Risk",
+    nicolasTip: "Most businesses underestimate their actual loss rate until they see the numbers. I'll use this to calculate your annual write-off risk and show you the breakeven point.",
+  },
+  {
+    icon: Percent,
+    title: "Cost of Capital",
+    question: "What's your cost of capital (APR) for cash tied up in receivables?",
+    whyItMatters: "Every day an invoice goes unpaid, you're effectively financing your customer's operations at your cost of capital. This determines the true daily cost of delayed payments.",
+    riskFactor: "Financing & Delay Cost",
+    nicolasTip: "Your cost of capital turns unpaid invoices into a measurable daily expense. I'll calculate exactly how much each day of delay is costing you — it's usually more than people expect.",
+  },
 ];
 
 interface WizardProps {
@@ -59,16 +118,9 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
     }).then(() => {});
   }, [sessionId]);
 
-  const NICOLAS_TIPS = [
-    "This helps me gauge your collection workload. Even 10 overdue invoices can drain hours of follow-up time each week — let's quantify that.",
-    "Knowing your total exposure lets me calculate the real financial impact of delayed payments and estimate what's at risk.",
-    "Aging is the #1 predictor of collectability. The older a receivable gets, the harder it is to recover — I'll factor this into your risk tier.",
-    "This helps me estimate your potential write-off exposure. Most businesses underestimate this until they see the numbers.",
-    "Your cost of capital determines how much each day of delay actually costs you. I'll use this to calculate your true delay cost and ROI.",
-  ];
-
   const totalSteps = 5;
   const progress = ((step + 1) / totalSteps) * 100;
+  const meta = STEP_META[step];
 
   const canAdvance = (): boolean => {
     switch (step) {
@@ -84,6 +136,7 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
   const handleNext = () => {
     if (step < totalSteps - 1) {
       setError("");
+      trackEvent(`step_${step}_completed`);
       setStep(step + 1);
     }
   };
@@ -127,8 +180,8 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
   const selectChipClass = (selected: boolean) =>
     `cursor-pointer rounded-lg border-2 px-4 py-3 text-center transition-all text-sm font-medium ${
       selected
-        ? "border-primary bg-primary/10 text-primary shadow-md"
-        : "border-border bg-card hover:border-primary/40 hover:bg-primary/5"
+        ? "border-primary bg-primary/10 text-primary shadow-md scale-[1.02]"
+        : "border-border bg-card hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.01]"
     }`;
 
   const stepContent = () => {
@@ -136,19 +189,17 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       case 0:
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div>
-              <h3 className="text-lg font-semibold">How many invoices are currently overdue?</h3>
-            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {OVERDUE_CHIPS.map((chip) => (
-                <button
+                <motion.button
                   key={chip.label}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
                   className={selectChipClass(overdueCount === chip.value && overdueCountCustom === "")}
                   onClick={() => { setOverdueCount(chip.value); setOverdueCountCustom(""); }}
                 >
                   {chip.label}
-                </button>
+                </motion.button>
               ))}
               <div className="col-span-2 sm:col-span-3">
                 <Input
@@ -170,16 +221,12 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       case 1:
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10"><DollarSign className="h-5 w-5 text-primary" /></div>
-              <h3 className="text-lg font-semibold">What's your total overdue balance?</h3>
-            </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
               <Input
                 type="number"
-                className="pl-7"
-                placeholder="e.g. 50000"
+                className="pl-7 text-lg h-12"
+                placeholder="e.g. 50,000"
                 value={overdueTotal}
                 onChange={(e) => setOverdueTotal(e.target.value)}
                 min={0}
@@ -191,15 +238,17 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       case 2:
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10"><Clock className="h-5 w-5 text-primary" /></div>
-              <h3 className="text-lg font-semibold">How old is most of that overdue balance?</h3>
-            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {AGE_BAND_OPTIONS.map((band) => (
-                <button key={band} className={selectChipClass(ageBand === band)} onClick={() => setAgeBand(band)}>
+                <motion.button
+                  key={band}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={selectChipClass(ageBand === band)}
+                  onClick={() => setAgeBand(band)}
+                >
                   {band} days
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -208,18 +257,18 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       case 3:
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10"><AlertTriangle className="h-5 w-5 text-primary" /></div>
-              <h3 className="text-lg font-semibold">
-                Roughly what % of overdue invoices become hard to collect?
-              </h3>
-            </div>
             <p className="text-sm text-muted-foreground">If you're not sure, pick your best estimate.</p>
             <div className="grid grid-cols-2 gap-2">
               {LOSS_PCT_OPTIONS.map((band) => (
-                <button key={band} className={selectChipClass(lossPctBand === band)} onClick={() => setLossPctBand(band)}>
+                <motion.button
+                  key={band}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={selectChipClass(lossPctBand === band)}
+                  onClick={() => setLossPctBand(band)}
+                >
                   {band}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -228,31 +277,33 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       case 4:
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10"><Percent className="h-5 w-5 text-primary" /></div>
-              <h3 className="text-lg font-semibold">
-                What's your cost of capital (APR) for cash tied up in receivables?
-              </h3>
-            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {RATE_OPTIONS.map((rate) => (
-                <button
+                <motion.button
                   key={rate}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
                   className={selectChipClass(annualRate === rate && !isCustomRate)}
                   onClick={() => { setAnnualRate(rate); setIsCustomRate(false); setCustomRate(""); }}
                 >
                   {rate}%
-                </button>
+                </motion.button>
               ))}
-              <button
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
                 className={selectChipClass(isCustomRate)}
                 onClick={() => { setIsCustomRate(true); setAnnualRate(null); }}
               >
                 Custom
-              </button>
+              </motion.button>
             </div>
             {isCustomRate && (
-              <div className="relative">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="relative"
+              >
                 <Input
                   type="number"
                   placeholder="Enter APR %"
@@ -266,7 +317,7 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
                   max={100}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
-              </div>
+              </motion.div>
             )}
           </div>
         );
@@ -276,74 +327,157 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
     }
   };
 
+  const StepIcon = meta.icon;
+
   return (
-    <div className="w-full max-w-lg mx-auto">
-      {/* Progress */}
-      <div className="mb-6">
-        <div className="flex justify-between text-sm text-muted-foreground mb-2">
+    <div className="w-full max-w-2xl mx-auto">
+      {/* Step indicator pills */}
+      <div className="flex justify-center gap-2 mb-6">
+        {STEP_META.map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <motion.div
+              key={i}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                i === step
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : i < step
+                  ? "bg-primary/20 text-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}
+              animate={i === step ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ duration: 0.3 }}
+            >
+              <Icon className="w-3 h-3" />
+              <span className="hidden sm:inline">{s.title}</span>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-8">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
           <span>Step {step + 1} of {totalSteps}</span>
-          <span>{Math.round(progress)}%</span>
+          <span>{Math.round(progress)}% complete</span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>
 
-      {/* Step content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -30 }}
-          transition={{ duration: 0.25 }}
-        >
-          {stepContent()}
+      {/* Main card */}
+      <Card className="relative overflow-hidden border-primary/10 shadow-lg">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-accent/[0.02]" />
+        <CardContent className="relative p-6 md:p-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {/* Question header */}
+              <div className="flex items-start gap-3 mb-5">
+                <motion.div
+                  className="p-2.5 rounded-xl bg-primary/10 shrink-0"
+                  initial={{ rotate: -10, scale: 0.8 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                >
+                  <StepIcon className="h-5 w-5 text-primary" />
+                </motion.div>
+                <div>
+                  <h3 className="text-xl font-bold leading-tight">{meta.question}</h3>
+                  <Badge variant="outline" className="mt-1.5 text-xs">
+                    <BarChart3 className="w-3 h-3 mr-1" />
+                    {meta.riskFactor}
+                  </Badge>
+                </div>
+              </div>
 
-          {/* Nicolas Agent Tip */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
-            className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5"
-          >
-            <div className="shrink-0 mt-0.5">
-              <img src={nicolasAvatar} alt="Nicolas" className="h-8 w-8 rounded-full object-cover border border-primary/20" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-primary mb-0.5">Nicolas — AI Collection Advisor</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">{NICOLAS_TIPS[step]}</p>
-            </div>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+              {/* Answer options */}
+              {stepContent()}
 
-      {error && (
-        <p className="text-destructive text-sm mt-3">{error}</p>
-      )}
+              {/* Why It Matters card */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.35 }}
+                className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-4"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Info className="w-4 h-4 text-accent shrink-0" />
+                  <p className="text-sm font-semibold text-accent">Why This Matters for Your Risk Score</p>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{meta.whyItMatters}</p>
+              </motion.div>
 
-      {/* Navigation */}
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={handleBack} disabled={step === 0 || isSubmitting}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
-        </Button>
+              {/* Nicolas Agent Tip */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.35 }}
+                className="mt-4 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4"
+              >
+                <div className="shrink-0 mt-0.5 relative">
+                  <motion.div
+                    className="absolute inset-0 rounded-full bg-primary/20 blur-lg"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                  <img src={nicolasAvatar} alt="Nicolas" className="relative h-10 w-10 rounded-full object-cover border-2 border-primary/30" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-primary mb-1 flex items-center gap-1.5">
+                    <Brain className="w-3 h-3" />
+                    Nicolas — AI Collections Advisor
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{meta.nicolasTip}</p>
+                </div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
 
-        {step < totalSteps - 1 ? (
-          <Button onClick={handleNext} disabled={!canAdvance()}>
-            Next <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        ) : (
-          <Button onClick={handleSubmit} disabled={!canAdvance() || isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing...
-              </>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-destructive text-sm mt-4"
+            >
+              {error}
+            </motion.p>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-8 pt-6 border-t">
+            <Button variant="outline" onClick={handleBack} disabled={step === 0 || isSubmitting} size="lg">
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+            </Button>
+
+            {step < totalSteps - 1 ? (
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button onClick={handleNext} disabled={!canAdvance()} size="lg">
+                  Next <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </motion.div>
             ) : (
-              <>
-                <Brain className="h-4 w-4 mr-2" /> Get Assessment
-              </>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button onClick={handleSubmit} disabled={!canAdvance() || isSubmitting} size="lg">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Nicolas is analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="h-4 w-4 mr-2" /> Get My Assessment
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             )}
-          </Button>
-        )}
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
