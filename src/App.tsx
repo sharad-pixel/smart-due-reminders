@@ -2,19 +2,38 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import ScrollToTop from "./components/ScrollToTop";
 import { CookieConsentProvider } from "./components/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
 import { SessionSecurityProvider } from "./components/SessionSecurityProvider";
 
+// Handle chunk load errors (stale deployments) by reloading
+const handleChunkError = () => {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason?.message?.includes('Failed to fetch dynamically imported module') ||
+        event.reason?.message?.includes('Loading chunk')) {
+      // Avoid infinite reload loops
+      const lastReload = sessionStorage.getItem('chunk_reload');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload) > 10000) {
+        sessionStorage.setItem('chunk_reload', now.toString());
+        window.location.reload();
+      }
+    }
+  });
+};
+
 // Loading component for Suspense fallback
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  </div>
-);
+const PageLoader = () => {
+  useEffect(() => { handleChunkError(); }, []);
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  );
+};
 
 // CRITICAL IMPORTS - Load immediately (needed for initial render)
 import Home from "./pages/Home";
