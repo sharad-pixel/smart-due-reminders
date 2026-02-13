@@ -186,7 +186,7 @@ function PersonaSection({
                 className="absolute inset-0 rounded-full blur-xl opacity-30"
                 style={{ background: persona.color }}
               />
-              <PersonaAvatar persona={persona} size="xl" />
+              <PersonaAvatar persona={persona} size="2xl" />
             </motion.div>
 
             <motion.h2
