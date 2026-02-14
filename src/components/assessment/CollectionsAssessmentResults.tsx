@@ -19,6 +19,8 @@ import {
   Send,
   Users,
   Lock,
+  Calendar,
+  Sparkles,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -76,6 +78,7 @@ const CollectionsAssessmentResults = ({
   const [unlockName, setUnlockName] = useState("");
   const [unlockCompany, setUnlockCompany] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [showDemoPrompt, setShowDemoPrompt] = useState(false);
 
   // Share states
   const [showShareForm, setShowShareForm] = useState(false);
@@ -155,6 +158,7 @@ const CollectionsAssessmentResults = ({
 
     setIsUnlocking(false);
     setUnlocked(true);
+    setShowDemoPrompt(true);
   };
 
   const handleShareWithTeam = async () => {
@@ -333,6 +337,57 @@ const CollectionsAssessmentResults = ({
               )}
               Unlock Full Report
             </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Demo Booking Prompt — shown after unlock */}
+      {unlocked && showDemoPrompt && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, type: "spring" }}
+          className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 p-6 md:p-8 space-y-4 text-center relative overflow-hidden"
+        >
+          <motion.div
+            className="absolute inset-0 bg-primary/5"
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h3 className="text-xl font-bold">See Recouply in Action</h3>
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
+              Your assessment reveals <span className="font-semibold text-foreground">{formatCurrency(results.total_impact)}</span> in potential impact. 
+              Book a personalized demo to see how Recouply's AI-powered collections intelligence can help you recover more, faster — with less manual effort.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button
+                size="lg"
+                className="gap-2 shadow-lg"
+                onClick={() => {
+                  trackEvent("demo_booked_click", { source: "assessment_results" });
+                  window.open("https://calendly.com/sharad-recouply/30min", "_blank");
+                }}
+              >
+                <Calendar className="h-4 w-4" />
+                Book a Live Demo
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDemoPrompt(false)}
+                className="text-muted-foreground"
+              >
+                Maybe later
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              30-minute walkthrough · No commitment · Tailored to your assessment results
+            </p>
           </div>
         </motion.div>
       )}
