@@ -151,7 +151,7 @@ serve(async (req) => {
 
       <!-- CTA -->
       <div style="text-align:center;margin:28px 0 8px;">
-        <a href="https://recouply.ai/collections-assessment" style="display:inline-block;padding:12px 32px;background:${BRAND.primary};color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Run Your Own Assessment</a>
+        <a href="https://calendly.com/sharad-recouply/30min" style="display:inline-block;padding:14px 36px;background:${BRAND.primary};color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">Book a Demo & Start Collecting Your Money</a>
       </div>
 
       <p style="color:${BRAND.muted};font-size:11px;text-align:center;margin:16px 0 0;">
