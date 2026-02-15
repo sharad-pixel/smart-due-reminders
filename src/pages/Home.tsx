@@ -11,6 +11,7 @@ import ValuePropositions from "@/components/marketing/ValuePropositions";
 import FeatureGrid from "@/components/marketing/FeatureGrid";
 import AIAgentsSection from "@/components/marketing/AIAgentsSection";
 import WhyDifferent from "@/components/marketing/WhyDifferent";
+import DataVettingBadge from "@/components/marketing/DataVettingBadge";
 import SEOHead from "@/components/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 import AssessmentCTA from "@/components/marketing/AssessmentCTA";
@@ -42,6 +43,7 @@ const Home = () => {
       <AIAgentsSection />
       <EmailDemo />
       <WhyDifferent />
+      <DataVettingBadge />
       <PricingTeaser />
       <FAQAccordion />
       <FinalCTA />
