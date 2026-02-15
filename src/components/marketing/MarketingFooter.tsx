@@ -191,14 +191,7 @@
              </Button>
            </div>
          </div>
-        {/* Mission statement */}
-        <div className="pt-8 border-t mb-6">
-          <p className="text-center text-sm font-medium text-foreground">
-            We exist for one reason: to help you collect the money you're owed.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t">
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
             </p>
