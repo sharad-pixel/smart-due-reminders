@@ -63,7 +63,7 @@ const FinalCTA = () => {
                 {/* Glow effect */}
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 <span className="relative flex items-center gap-2">
-                  Get Started
+                  Start Collecting
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Button>
