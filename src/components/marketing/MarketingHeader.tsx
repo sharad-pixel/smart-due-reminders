@@ -109,7 +109,7 @@
                Sign In
              </Button>
              <Button onClick={() => navigate("/signup")} size="sm">
-               Get Started
+                Start Collecting
              </Button>
            </div>
          </nav>
@@ -169,7 +169,7 @@
                  Payment Portal
                </button>
                <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="w-full mt-2">
-                 Get Started
+                 Start Collecting
                </Button>
              </div>
            </div>

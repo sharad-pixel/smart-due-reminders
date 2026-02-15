@@ -299,8 +299,8 @@ const AnimatedHero = () => {
                    transition={{ duration: 0.3 }}
                  />
                  <span className="relative flex items-center gap-2">
-                   Get Started
-                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    Start Collecting
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                  </span>
                </Button>
              </motion.div>

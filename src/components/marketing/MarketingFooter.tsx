@@ -187,14 +187,21 @@
                onClick={() => navigate("/signup")}
                className="w-full"
              >
-               Start Free Trial
+               Start Collecting
              </Button>
            </div>
          </div>
-         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t">
-           <p className="text-sm text-muted-foreground">
-             &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
-           </p>
+        {/* Mission statement */}
+        <div className="pt-8 border-t mb-6">
+          <p className="text-center text-sm font-medium text-foreground">
+            We exist for one reason: to help you collect the money you're owed.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
+            </p>
  
            <div className="flex items-center gap-4">
              <nav aria-label="Legal" className="flex items-center gap-3 text-sm">

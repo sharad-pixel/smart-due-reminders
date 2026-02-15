@@ -107,7 +107,7 @@ const PricingTeaser = () => {
                   className="w-full"
                   onClick={() => navigate("/pricing")}
                 >
-                  Get Started
+                  Start Collecting
                 </Button>
               </div>
             </div>
