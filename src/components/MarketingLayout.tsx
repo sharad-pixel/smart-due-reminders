@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { RecouplyLogo } from "@/components/RecouplyLogo";
 import NicolasChat from "@/components/NicolasChat";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
+import DataVettingStickyBar from "@/components/marketing/DataVettingStickyBar";
 import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck, User, CreditCard } from "lucide-react";
 import { useState } from "react";
 
@@ -205,6 +206,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
 
       <MarketingFooter />
       <NicolasChat />
+      <DataVettingStickyBar />
     </div>
   );
 };
