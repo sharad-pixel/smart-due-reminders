@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Check, Mail, Zap, Heart, Building2, Users } from "lucide-react";
+import { Check, Mail, Zap, Heart, Building2, Users, Shield, ArrowRight } from "lucide-react";
 import MarketingLayout from "@/components/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
@@ -764,6 +764,27 @@ const Pricing = () => {
                 </div>
               </a>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Professional Services Callout */}
+      <section className="py-12 px-4">
+        <div className="container mx-auto max-w-3xl">
+          <div
+            className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-background p-6 flex flex-col sm:flex-row items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors"
+            onClick={() => navigate("/professional-services")}
+          >
+            <div className="p-3 rounded-xl bg-primary/10 flex-shrink-0">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <p className="font-semibold text-sm">Need Help Vetting Your Data First?</p>
+              <p className="text-xs text-muted-foreground">Structured onboarding, founder-led data validation, and governance-first imports — starting at $2,500.</p>
+            </div>
+            <Button variant="outline" size="sm" className="gap-1.5 flex-shrink-0" onClick={(e) => { e.stopPropagation(); navigate("/professional-services"); }}>
+              Learn More <ArrowRight className="h-3 w-3" />
+            </Button>
           </div>
         </div>
       </section>
