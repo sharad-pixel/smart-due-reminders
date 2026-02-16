@@ -5740,6 +5740,9 @@ export type Database = {
           quickbooks_refresh_token: string | null
           quickbooks_sync_enabled: boolean | null
           quickbooks_token_expires_at: string | null
+          receive_collection_alerts: boolean
+          receive_daily_digest: boolean
+          receive_product_updates: boolean
           sendgrid_api_key: string | null
           smtp_settings: Json | null
           stripe_customer_id: string | null
@@ -5807,6 +5810,9 @@ export type Database = {
           quickbooks_refresh_token?: string | null
           quickbooks_sync_enabled?: boolean | null
           quickbooks_token_expires_at?: string | null
+          receive_collection_alerts?: boolean
+          receive_daily_digest?: boolean
+          receive_product_updates?: boolean
           sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
@@ -5874,6 +5880,9 @@ export type Database = {
           quickbooks_refresh_token?: string | null
           quickbooks_sync_enabled?: boolean | null
           quickbooks_token_expires_at?: string | null
+          receive_collection_alerts?: boolean
+          receive_daily_digest?: boolean
+          receive_product_updates?: boolean
           sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
