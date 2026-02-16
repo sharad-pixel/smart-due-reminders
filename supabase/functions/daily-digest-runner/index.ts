@@ -496,6 +496,96 @@ serve(async (req) => {
           healthLabel = 'Caution';
         }
 
+        // ==========================================
+        // SUBSCRIPTION & USAGE METRICS
+        // ==========================================
+        const subscriptionStatus = user.subscription_status || 'inactive';
+        const planType = user.plan_type || 'free';
+        const trialEndsAt = user.trial_ends_at || null;
+
+        // Fetch Stripe subscription term info via get-upcoming-charges pattern
+        let currentPeriodStart: string | null = null;
+        let currentPeriodEnd: string | null = null;
+        let billingInterval: string | null = null;
+        let cancelAtPeriodEnd = false;
+
+        // Look up the Stripe customer to get subscription term
+        const { data: stripeMapping } = await supabase
+          .from('stripe_customers')
+          .select('stripe_customer_id')
+          .eq('user_id', accountId)
+          .maybeSingle();
+
+        if (stripeMapping?.stripe_customer_id) {
+          const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+          if (stripeKey) {
+            try {
+              const subRes = await fetch(
+                `https://api.stripe.com/v1/subscriptions?customer=${stripeMapping.stripe_customer_id}&limit=1&status=all`,
+                { headers: { 'Authorization': `Bearer ${stripeKey}` } }
+              );
+              const subData = await subRes.json();
+              const sub = subData?.data?.[0];
+              if (sub) {
+                currentPeriodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null;
+                currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+                billingInterval = sub.items?.data?.[0]?.price?.recurring?.interval || 'month';
+                cancelAtPeriodEnd = sub.cancel_at_period_end || false;
+              }
+            } catch (stripeErr) {
+              logStep('Error fetching Stripe subscription for digest', { error: String(stripeErr) });
+            }
+          }
+        }
+
+        // Fetch invoice usage metrics
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        // Get plan limit
+        let invoiceAllowance = 5; // default free
+        const planTypeLimits: Record<string, number> = {
+          'free': 5, 'solo_pro': 25, 'starter': 100, 'growth': 300,
+          'professional': 500, 'pro': 500, 'enterprise': 10000
+        };
+
+        // Check profile for admin override
+        const { data: acctProfile } = await supabase
+          .from('profiles')
+          .select('plan_id, plan_type, invoice_limit, admin_override')
+          .eq('id', accountId)
+          .single();
+
+        if (acctProfile?.admin_override && acctProfile?.invoice_limit) {
+          invoiceAllowance = acctProfile.invoice_limit;
+        } else if (acctProfile?.plan_id) {
+          const { data: planData } = await supabase
+            .from('plans')
+            .select('invoice_limit')
+            .eq('id', acctProfile.plan_id)
+            .single();
+          if (planData?.invoice_limit) invoiceAllowance = planData.invoice_limit;
+        } else {
+          invoiceAllowance = planTypeLimits[planType] ?? 5;
+        }
+
+        // Count active invoices
+        const { count: activeInvoiceCount } = await supabase
+          .from('invoices')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', accountId)
+          .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
+
+        const invoicesUsed = activeInvoiceCount || 0;
+        const digestOverageInvoices = Math.max(0, invoicesUsed - invoiceAllowance);
+        const digestRemainingQuota = Math.max(0, invoiceAllowance - Math.min(invoicesUsed, invoiceAllowance));
+        const digestIsOverLimit = invoicesUsed > invoiceAllowance;
+
+        logStep('Subscription & usage metrics', {
+          subscriptionStatus, planType, invoiceAllowance, invoicesUsed,
+          digestOverageInvoices, currentPeriodEnd
+        });
+
         // Upsert digest (insert or update if exists)
         const digestData = {
           user_id: user.id,
@@ -527,6 +617,19 @@ serve(async (req) => {
           avg_payment_trend: avgPaymentTrend,
           total_credit_limit_recommended: totalCreditLimitRecommended,
           portfolio_risk_summary: portfolioRiskSummary,
+          // Subscription & Usage fields
+          subscription_status: subscriptionStatus,
+          plan_type: planType,
+          trial_ends_at: trialEndsAt,
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
+          billing_interval: billingInterval,
+          cancel_at_period_end: cancelAtPeriodEnd,
+          invoice_allowance: invoiceAllowance,
+          invoices_used: invoicesUsed,
+          overage_invoices: digestOverageInvoices,
+          remaining_quota: digestRemainingQuota,
+          is_over_limit: digestIsOverLimit,
           updated_at: new Date().toISOString(),
         };
 
