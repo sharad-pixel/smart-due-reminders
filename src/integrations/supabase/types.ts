@@ -1775,6 +1775,7 @@ export type Database = {
           avg_payment_trend: string | null
           billing_interval: string | null
           cancel_at_period_end: boolean | null
+          collection_alerts_summary: Json | null
           collection_trend: string | null
           created_at: string | null
           current_period_end: string | null
@@ -1822,6 +1823,7 @@ export type Database = {
           avg_payment_trend?: string | null
           billing_interval?: string | null
           cancel_at_period_end?: boolean | null
+          collection_alerts_summary?: Json | null
           collection_trend?: string | null
           created_at?: string | null
           current_period_end?: string | null
@@ -1869,6 +1871,7 @@ export type Database = {
           avg_payment_trend?: string | null
           billing_interval?: string | null
           cancel_at_period_end?: boolean | null
+          collection_alerts_summary?: Json | null
           collection_trend?: string | null
           created_at?: string | null
           current_period_end?: string | null

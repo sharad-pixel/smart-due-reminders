@@ -12,6 +12,14 @@ export interface PortfolioRiskSummary {
   total_ar_at_risk: number;
 }
 
+export interface CollectionAlertsSummary {
+  payments_received: Array<{ amount: number; date: string; invoiceNumber: string; debtorName: string }>;
+  overdue_milestones: Array<{ days: number; invoiceNumber: string; debtorName: string; amount: number }>;
+  debtor_responses: Array<{ fromEmail: string; subject: string; debtorName: string; receivedAt: string }>;
+  risk_tier_changes: Array<{ debtorName: string; from: string; to: string }>;
+  total_alerts: number;
+}
+
 export interface DailyDigest {
   id: string;
   user_id: string;
@@ -58,6 +66,7 @@ export interface DailyDigest {
   overage_invoices: number;
   remaining_quota: number | null;
   is_over_limit: boolean;
+  collection_alerts_summary: CollectionAlertsSummary | null;
 }
 
 export const useDailyDigest = (date?: string) => {
