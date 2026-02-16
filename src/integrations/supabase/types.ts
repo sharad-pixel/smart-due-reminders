@@ -1773,8 +1773,12 @@ export type Database = {
           avg_paydex_rating: string | null
           avg_paydex_score: number | null
           avg_payment_trend: string | null
+          billing_interval: string | null
+          cancel_at_period_end: boolean | null
           collection_trend: string | null
           created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
           digest_date: string
           email_sent_at: string | null
           health_label: string | null
@@ -1782,16 +1786,24 @@ export type Database = {
           high_risk_ar_outstanding: number | null
           high_risk_customers_count: number | null
           id: string
+          invoice_allowance: number | null
+          invoices_used: number | null
+          is_over_limit: boolean | null
           open_tasks_count: number | null
           organization_id: string | null
+          overage_invoices: number | null
           overdue_tasks_count: number | null
           payments_collected_last_7_days: number | null
           payments_collected_prev_7_days: number | null
           payments_collected_today: number | null
+          plan_type: string | null
           portfolio_risk_summary: Json | null
+          remaining_quota: number | null
+          subscription_status: string | null
           tasks_created_today: number | null
           total_ar_outstanding: number | null
           total_credit_limit_recommended: number | null
+          trial_ends_at: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1808,8 +1820,12 @@ export type Database = {
           avg_paydex_rating?: string | null
           avg_paydex_score?: number | null
           avg_payment_trend?: string | null
+          billing_interval?: string | null
+          cancel_at_period_end?: boolean | null
           collection_trend?: string | null
           created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
           digest_date: string
           email_sent_at?: string | null
           health_label?: string | null
@@ -1817,16 +1833,24 @@ export type Database = {
           high_risk_ar_outstanding?: number | null
           high_risk_customers_count?: number | null
           id?: string
+          invoice_allowance?: number | null
+          invoices_used?: number | null
+          is_over_limit?: boolean | null
           open_tasks_count?: number | null
           organization_id?: string | null
+          overage_invoices?: number | null
           overdue_tasks_count?: number | null
           payments_collected_last_7_days?: number | null
           payments_collected_prev_7_days?: number | null
           payments_collected_today?: number | null
+          plan_type?: string | null
           portfolio_risk_summary?: Json | null
+          remaining_quota?: number | null
+          subscription_status?: string | null
           tasks_created_today?: number | null
           total_ar_outstanding?: number | null
           total_credit_limit_recommended?: number | null
+          trial_ends_at?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1843,8 +1867,12 @@ export type Database = {
           avg_paydex_rating?: string | null
           avg_paydex_score?: number | null
           avg_payment_trend?: string | null
+          billing_interval?: string | null
+          cancel_at_period_end?: boolean | null
           collection_trend?: string | null
           created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
           digest_date?: string
           email_sent_at?: string | null
           health_label?: string | null
@@ -1852,16 +1880,24 @@ export type Database = {
           high_risk_ar_outstanding?: number | null
           high_risk_customers_count?: number | null
           id?: string
+          invoice_allowance?: number | null
+          invoices_used?: number | null
+          is_over_limit?: boolean | null
           open_tasks_count?: number | null
           organization_id?: string | null
+          overage_invoices?: number | null
           overdue_tasks_count?: number | null
           payments_collected_last_7_days?: number | null
           payments_collected_prev_7_days?: number | null
           payments_collected_today?: number | null
+          plan_type?: string | null
           portfolio_risk_summary?: Json | null
+          remaining_quota?: number | null
+          subscription_status?: string | null
           tasks_created_today?: number | null
           total_ar_outstanding?: number | null
           total_credit_limit_recommended?: number | null
+          trial_ends_at?: string | null
           updated_at?: string | null
           user_id?: string
         }
