@@ -50,8 +50,6 @@ import {
   XCircle,
   Info,
   Lightbulb,
-  Bug,
-  Search,
   ArrowRight,
   Zap,
 } from "lucide-react";
@@ -148,22 +146,9 @@ interface StripeIntegration {
   is_sandbox_mode?: boolean;
 }
 
-interface InvoiceDiagnostic {
-  id: string;
-  invoice_number: string;
-  stripe_invoice_id: string | null;
-  status: string;
-  amount: number;
-  amount_outstanding: number | null;
-  created_at: string;
-  updated_at: string;
-}
 
 const StripeSyncDiagnostics = () => {
   const [syncing, setSyncing] = useState(false);
-  const [diagnosticInvoiceId, setDiagnosticInvoiceId] = useState("");
-  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
-  const [loadingDiagnostic, setLoadingDiagnostic] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch Stripe integration
@@ -243,23 +228,6 @@ const StripeSyncDiagnostics = () => {
     enabled: !!integration?.stripe_secret_key_encrypted,
   });
 
-  // Fetch recent invoices for diagnostic dropdown
-  const { data: recentInvoices } = useQuery({
-    queryKey: ["recent-stripe-invoices"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("id, invoice_number, stripe_invoice_id, status, amount, amount_outstanding, created_at, updated_at")
-        .eq("integration_source", "stripe")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return data as InvoiceDiagnostic[];
-    },
-    enabled: !!integration?.stripe_secret_key_encrypted,
-  });
-
   const latestSync = syncLogs?.[0] || null;
   const isSyncRunning = latestSync?.status === "running" || syncing;
   const hasStripeKey = integration?.stripe_secret_key_encrypted;
@@ -293,69 +261,6 @@ const StripeSyncDiagnostics = () => {
     } finally {
       setSyncing(false);
     }
-  };
-
-  const runInvoiceDiagnostic = async (invoiceId: string) => {
-    if (!invoiceId) return;
-    setLoadingDiagnostic(true);
-    setDiagnosticResult(null);
-
-    try {
-      // Fetch invoice details
-      const { data: invoice, error } = await supabase
-        .from("invoices")
-        .select(`
-          *,
-          debtor:debtors(company_name, stripe_customer_id)
-        `)
-        .eq("id", invoiceId)
-        .single();
-
-      if (error) throw error;
-
-      // Fetch related transactions
-      const { data: transactions } = await supabase
-        .from("invoice_transactions")
-        .select("*")
-        .eq("invoice_id", invoiceId)
-        .order("created_at", { ascending: false });
-
-      setDiagnosticResult({
-        invoice,
-        transactions: transactions || [],
-        warnings: generateWarnings(invoice, transactions || []),
-      });
-    } catch (error: any) {
-      toast.error("Failed to run diagnostic");
-      setDiagnosticResult({ error: error.message });
-    } finally {
-      setLoadingDiagnostic(false);
-    }
-  };
-
-  const generateWarnings = (invoice: any, transactions: any[]): string[] => {
-    const warnings: string[] = [];
-
-    if (invoice.status === "Paid" && transactions.length === 0) {
-      warnings.push(
-        "Invoice is marked as paid but has no payment transactions. This typically means the invoice was settled without a Stripe payment object (marked paid, credits applied, or out-of-band payment)."
-      );
-    }
-
-    const amountPaid = invoice.amount - (invoice.amount_outstanding || 0);
-    if (amountPaid > 0 && amountPaid < invoice.amount) {
-      warnings.push(
-        `Invoice is partially paid ($${(amountPaid / 100).toFixed(2)} of $${(invoice.amount / 100).toFixed(2)}). Status should be 'PartiallyPaid'.`
-      );
-    }
-
-    if (!invoice.stripe_invoice_id) {
-      warnings.push(
-        "No Stripe invoice ID linked. This invoice may not have come from Stripe sync."
-      );
-    }
-
-    return warnings;
   };
 
   const getStripeInvoiceUrl = (stripeInvoiceId: string) => {
@@ -759,220 +664,6 @@ const StripeSyncDiagnostics = () => {
             </CardContent>
           </Card>
         )}
-
-        {/* Payment Diagnostics Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Bug className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">
-                Invoice Payment Diagnostic
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Check if an invoice has proper payment objects linked
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="invoice-select" className="text-sm">
-                  Select Invoice
-                </Label>
-                <Select
-                  value={diagnosticInvoiceId}
-                  onValueChange={(val) => {
-                    setDiagnosticInvoiceId(val);
-                    runInvoiceDiagnostic(val);
-                  }}
-                >
-                  <SelectTrigger id="invoice-select">
-                    <SelectValue placeholder="Select a recent invoice..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {recentInvoices?.map((inv) => (
-                      <SelectItem key={inv.id} value={inv.id}>
-                        {inv.invoice_number} — {inv.status} — $
-                        {((inv.amount || 0) / 100).toFixed(2)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="invoice-id" className="text-sm">
-                  Or enter Invoice ID
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="invoice-id"
-                    placeholder="Invoice UUID..."
-                    value={diagnosticInvoiceId}
-                    onChange={(e) => setDiagnosticInvoiceId(e.target.value)}
-                  />
-                  <Button
-                    onClick={() => runInvoiceDiagnostic(diagnosticInvoiceId)}
-                    disabled={!diagnosticInvoiceId || loadingDiagnostic}
-                  >
-                    {loadingDiagnostic ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Diagnostic Result */}
-            {diagnosticResult && !diagnosticResult.error && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <Badge variant="outline" className="mt-1">
-                      {diagnosticResult.invoice.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Amount</p>
-                    <p className="font-medium">
-                      ${((diagnosticResult.invoice.amount || 0) / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Amount Outstanding</p>
-                    <p className="font-medium">
-                      ${((diagnosticResult.invoice.amount_outstanding || 0) / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Stripe Invoice ID
-                    </p>
-                    {diagnosticResult.invoice.stripe_invoice_id ? (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-sm"
-                        asChild
-                      >
-                        <a
-                          href={getStripeInvoiceUrl(
-                            diagnosticResult.invoice.stripe_invoice_id
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1"
-                        >
-                          {diagnosticResult.invoice.stripe_invoice_id.slice(
-                            0,
-                            15
-                          )}
-                          ...
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">—</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Customer</p>
-                    <p className="font-medium">
-                      {diagnosticResult.invoice.debtor?.company_name || "Unknown"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Stripe Customer ID
-                    </p>
-                    <p className="text-sm font-mono">
-                      {diagnosticResult.invoice.debtor?.stripe_customer_id || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Transactions */}
-                <div>
-                  <p className="text-sm font-medium mb-2">
-                    Payment Transactions ({diagnosticResult.transactions.length}
-                    )
-                  </p>
-                  {diagnosticResult.transactions.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Reference</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {diagnosticResult.transactions.map((tx: any) => (
-                          <TableRow key={tx.id}>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {tx.transaction_type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              ${(tx.amount / 100).toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              {format(
-                                new Date(tx.transaction_date),
-                                "MMM d, yyyy"
-                              )}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">
-                              {tx.reference_number || "—"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <p className="text-sm text-muted-foreground p-3 bg-muted/30 rounded">
-                      No payment transactions found for this invoice.
-                    </p>
-                  )}
-                </div>
-
-                {/* Warnings */}
-                {diagnosticResult.warnings.length > 0 && (
-                  <div className="space-y-2">
-                    {diagnosticResult.warnings.map(
-                      (warning: string, i: number) => (
-                        <Alert
-                          key={i}
-                          variant="default"
-                          className="bg-amber-50 border-amber-200"
-                        >
-                          <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          <AlertDescription className="text-amber-700 text-sm">
-                            {warning}
-                          </AlertDescription>
-                        </Alert>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {diagnosticResult?.error && (
-              <Alert variant="destructive">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription>{diagnosticResult.error}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Debug Info Block */}
         <Card>
