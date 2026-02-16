@@ -301,6 +301,120 @@ serve(async (req) => {
         });
 
         // ==========================================
+        // COLLECTION ALERTS DATA
+        // ==========================================
+        // Check user's receive_collection_alerts preference
+        const { data: alertPref } = await supabase
+          .from('profiles')
+          .select('receive_collection_alerts')
+          .eq('id', user.id)
+          .single();
+        
+        const collectAlerts = alertPref?.receive_collection_alerts !== false; // default true
+        let collectionAlertsSummary: any = null;
+
+        if (collectAlerts) {
+          const yesterdayStart = new Date(todayStart);
+          yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+          // 1. Payments received in last 24h (with debtor info)
+          const { data: recentPayments } = await supabase
+            .from('invoice_transactions')
+            .select('amount, transaction_date, invoices!inner(invoice_number, debtor_id, debtors!inner(company_name))')
+            .eq('user_id', accountId)
+            .in('transaction_type', ['payment', 'credit'])
+            .gte('transaction_date', yesterdayStart.toISOString())
+            .order('amount', { ascending: false })
+            .limit(10);
+
+          const paymentsReceived = (recentPayments || []).map((p: any) => ({
+            amount: Number(p.amount || 0),
+            date: p.transaction_date,
+            invoiceNumber: p.invoices?.invoice_number || 'N/A',
+            debtorName: p.invoices?.debtors?.company_name || 'Unknown',
+          }));
+
+          // 2. Overdue milestones - invoices that crossed 30/60/90/120 day thresholds yesterday
+          // We detect this by checking invoices whose due_date + milestone = yesterday
+          const milestoneDays = [30, 60, 90, 120];
+          const overdueMilestones: Array<{days: number, invoiceNumber: string, debtorName: string, amount: number}> = [];
+          
+          for (const milestone of milestoneDays) {
+            const milestoneDate = new Date(todayStart);
+            milestoneDate.setDate(milestoneDate.getDate() - milestone);
+            const milestoneDateStr = milestoneDate.toISOString().split('T')[0];
+            
+            const { data: milestoneInvoices } = await supabase
+              .from('invoices')
+              .select('invoice_number, amount_outstanding, amount, debtors!inner(company_name)')
+              .eq('user_id', accountId)
+              .eq('due_date', milestoneDateStr)
+              .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
+              .limit(5);
+
+            for (const inv of milestoneInvoices || []) {
+              overdueMilestones.push({
+                days: milestone,
+                invoiceNumber: inv.invoice_number || 'N/A',
+                debtorName: (inv as any).debtors?.company_name || 'Unknown',
+                amount: Number(inv.amount_outstanding || inv.amount || 0),
+              });
+            }
+          }
+
+          // 3. Debtor responses (inbound emails in last 24h)
+          const { data: inboundEmails } = await supabase
+            .from('inbound_emails')
+            .select('id, from_email, subject, received_at, debtor_id, debtors!inner(company_name)')
+            .eq('user_id', accountId)
+            .gte('received_at', yesterdayStart.toISOString())
+            .eq('is_archived', false)
+            .order('received_at', { ascending: false })
+            .limit(10);
+
+          const debtorResponses = (inboundEmails || []).map((e: any) => ({
+            fromEmail: e.from_email,
+            subject: e.subject || '(No subject)',
+            debtorName: e.debtors?.company_name || 'Unknown',
+            receivedAt: e.received_at,
+          }));
+
+          // 4. Risk tier changes - check debtors whose risk_score changed (using collection_intelligence)
+          const { data: riskChanges } = await supabase
+            .from('collection_intelligence')
+            .select('debtor_id, risk_tier, previous_risk_tier, debtors!inner(company_name)')
+            .eq('user_id', accountId)
+            .not('previous_risk_tier', 'is', null)
+            .gte('updated_at', yesterdayStart.toISOString())
+            .limit(10);
+
+          const riskTierChanges = (riskChanges || [])
+            .filter((r: any) => r.risk_tier !== r.previous_risk_tier)
+            .map((r: any) => ({
+              debtorName: r.debtors?.company_name || 'Unknown',
+              from: r.previous_risk_tier,
+              to: r.risk_tier,
+            }));
+
+          const totalAlerts = paymentsReceived.length + overdueMilestones.length + debtorResponses.length + riskTierChanges.length;
+
+          collectionAlertsSummary = {
+            payments_received: paymentsReceived,
+            overdue_milestones: overdueMilestones,
+            debtor_responses: debtorResponses,
+            risk_tier_changes: riskTierChanges,
+            total_alerts: totalAlerts,
+          };
+
+          logStep('Collection alerts gathered', { 
+            payments: paymentsReceived.length,
+            milestones: overdueMilestones.length,
+            responses: debtorResponses.length,
+            riskChanges: riskTierChanges.length,
+          });
+        }
+
+        // ==========================================
         // PAYDEX / CREDIT INTELLIGENCE SCORING
         // ==========================================
         // Fetch all debtors with PAYDEX scores for this account
@@ -630,6 +744,8 @@ serve(async (req) => {
           overage_invoices: digestOverageInvoices,
           remaining_quota: digestRemainingQuota,
           is_over_limit: digestIsOverLimit,
+          // Collection Alerts
+          collection_alerts_summary: collectionAlertsSummary,
           updated_at: new Date().toISOString(),
         };
 
@@ -707,10 +823,10 @@ serve(async (req) => {
               highRiskCustomersCount,
               healthScore,
               healthLabel,
-              // Include subscription status for account status banner in email
               subscriptionStatus: (user as any).subscription_status || null,
               planType: (user as any).plan_type || 'free',
               trialEndsAt: (user as any).trial_ends_at || null,
+              collectionAlerts: collectionAlertsSummary,
             };
             
             logStep('Email data prepared for user', {
@@ -882,6 +998,13 @@ function generateEmailHtml(data: {
   subscriptionStatus?: string | null;
   planType?: string | null;
   trialEndsAt?: string | null;
+  collectionAlerts?: {
+    payments_received: Array<{ amount: number; date: string; invoiceNumber: string; debtorName: string }>;
+    overdue_milestones: Array<{ days: number; invoiceNumber: string; debtorName: string; amount: number }>;
+    debtor_responses: Array<{ fromEmail: string; subject: string; debtorName: string; receivedAt: string }>;
+    risk_tier_changes: Array<{ debtorName: string; from: string; to: string }>;
+    total_alerts: number;
+  } | null;
 }): string {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
@@ -1005,6 +1128,95 @@ function generateEmailHtml(data: {
     `;
   }
 
+  // Generate Collection Alerts HTML
+  let collectionAlertsHtml = '';
+  const alerts = data.collectionAlerts;
+  if (alerts && alerts.total_alerts > 0) {
+    let alertItems = '';
+    
+    // Payment received alerts
+    for (const p of (alerts.payments_received || []).slice(0, 5)) {
+      alertItems += `
+        <tr>
+          <td style="padding: 8px 14px; border-bottom: 1px solid ${BRAND.border};">
+            <span style="display: inline-block; background: #dcfce720; color: ${BRAND.accent}; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px;">PAYMENT</span>
+            <p style="margin: 4px 0 2px; color: ${BRAND.foreground}; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              💰 ${formatCurrency(p.amount)} received from ${p.debtorName}
+            </p>
+            <p style="margin: 0; color: ${BRAND.muted}; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              Invoice ${p.invoiceNumber}
+            </p>
+          </td>
+        </tr>`;
+    }
+
+    // Risk tier change alerts
+    for (const r of (alerts.risk_tier_changes || []).slice(0, 5)) {
+      const isWorse = ['Critical', 'High'].includes(r.to) && !['Critical', 'High'].includes(r.from);
+      const riskColor = isWorse ? BRAND.destructive : BRAND.accent;
+      alertItems += `
+        <tr>
+          <td style="padding: 8px 14px; border-bottom: 1px solid ${BRAND.border};">
+            <span style="display: inline-block; background: ${riskColor}20; color: ${riskColor}; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px;">RISK CHANGE</span>
+            <p style="margin: 4px 0 2px; color: ${BRAND.foreground}; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              ${isWorse ? '⚠️' : '✅'} ${r.debtorName}: ${r.from} → ${r.to}
+            </p>
+          </td>
+        </tr>`;
+    }
+
+    // Overdue milestone alerts
+    for (const m of (alerts.overdue_milestones || []).slice(0, 5)) {
+      alertItems += `
+        <tr>
+          <td style="padding: 8px 14px; border-bottom: 1px solid ${BRAND.border};">
+            <span style="display: inline-block; background: #fb923c20; color: #fb923c; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px;">${m.days} DAYS</span>
+            <p style="margin: 4px 0 2px; color: ${BRAND.foreground}; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              🕐 ${m.debtorName} – Invoice ${m.invoiceNumber} hit ${m.days}-day mark
+            </p>
+            <p style="margin: 0; color: ${BRAND.muted}; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              ${formatCurrency(m.amount)} outstanding
+            </p>
+          </td>
+        </tr>`;
+    }
+
+    // Debtor response alerts
+    for (const d of (alerts.debtor_responses || []).slice(0, 3)) {
+      alertItems += `
+        <tr>
+          <td style="padding: 8px 14px; border-bottom: 1px solid ${BRAND.border};">
+            <span style="display: inline-block; background: ${BRAND.primary}20; color: ${BRAND.primary}; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px;">RESPONSE</span>
+            <p style="margin: 4px 0 2px; color: ${BRAND.foreground}; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              📩 Reply from ${d.debtorName}
+            </p>
+            <p style="margin: 0; color: ${BRAND.muted}; font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              ${d.subject}
+            </p>
+          </td>
+        </tr>`;
+    }
+
+    collectionAlertsHtml = `
+      <div style="margin-bottom: 20px;">
+        <div style="background: ${BRAND.cardBg}; border: 1px solid ${BRAND.border}; border-radius: 10px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, ${BRAND.primary}18 0%, ${BRAND.accent}18 100%); padding: 10px 16px; border-bottom: 1px solid ${BRAND.border};">
+            <p style="color: ${BRAND.primary}; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              🔔 COLLECTION ALERTS (${alerts.total_alerts})
+            </p>
+          </div>
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: white;">
+            ${alertItems}
+          </table>
+          <div style="padding: 10px 14px; text-align: center;">
+            <a href="https://recouply.ai/dashboard" style="color: ${BRAND.primary}; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              View All Activity →
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+  }
   return `
 <!DOCTYPE html>
 <html>
@@ -1091,6 +1303,8 @@ function generateEmailHtml(data: {
           </td>
         </tr>
       </table>
+      
+      ${collectionAlertsHtml}
       
       <!-- AR & Risk Section -->
       <div style="margin-bottom: 20px;">
