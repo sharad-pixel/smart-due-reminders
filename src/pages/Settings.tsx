@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Save, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2, Plug } from "lucide-react";
+import { Save, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2, Plug, Bell } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { StripeIntegrationCard } from "@/components/StripeIntegrationCard";
 import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -28,6 +29,9 @@ interface ProfileData {
   business_phone: string;
   stripe_payment_link_url: string;
   email: string;
+  receive_daily_digest: boolean;
+  receive_product_updates: boolean;
+  receive_collection_alerts: boolean;
 }
 
 const Settings = () => {
@@ -49,6 +53,9 @@ const Settings = () => {
     business_phone: "",
     stripe_payment_link_url: "",
     email: "",
+    receive_daily_digest: true,
+    receive_product_updates: true,
+    receive_collection_alerts: true,
   });
 
   // Get effective account info to determine if child account
@@ -73,6 +80,9 @@ const Settings = () => {
         business_phone: effectiveAccount.ownerBusinessPhone || "",
         stripe_payment_link_url: effectiveAccount.ownerStripePaymentLinkUrl || "",
         email: effectiveAccount.ownerEmail || "",
+        receive_daily_digest: true,
+        receive_product_updates: true,
+        receive_collection_alerts: true,
       });
       setLoading(false);
     } else {
@@ -106,6 +116,9 @@ const Settings = () => {
         business_phone: data.business_phone || "",
         stripe_payment_link_url: data.stripe_payment_link_url || "",
         email: data.email || "",
+        receive_daily_digest: data.receive_daily_digest ?? true,
+        receive_product_updates: data.receive_product_updates ?? true,
+        receive_collection_alerts: data.receive_collection_alerts ?? true,
       });
     } catch (error: any) {
       toast.error("Failed to load profile");
@@ -134,6 +147,9 @@ const Settings = () => {
           business_country: profile.business_country,
           business_phone: profile.business_phone,
           stripe_payment_link_url: profile.stripe_payment_link_url,
+          receive_daily_digest: profile.receive_daily_digest,
+          receive_product_updates: profile.receive_product_updates,
+          receive_collection_alerts: profile.receive_collection_alerts,
         })
         .eq("id", user.id);
 
@@ -483,6 +499,60 @@ const Settings = () => {
                   Stripe Dashboard
                 </a>
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Email Preferences */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-primary" />
+              <CardTitle>Email Preferences</CardTitle>
+            </div>
+            <CardDescription>
+              Choose which emails you'd like to receive from Recouply
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="daily_digest">Daily Collections Digest</Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive a daily summary of your AR health, tasks, and portfolio metrics
+                </p>
+              </div>
+              <Switch
+                id="daily_digest"
+                checked={profile.receive_daily_digest}
+                onCheckedChange={(checked) => setProfile({ ...profile, receive_daily_digest: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="collection_alerts">Collection Alerts</Label>
+                <p className="text-sm text-muted-foreground">
+                  Get notified about payment activity, risk changes, and urgent collection events
+                </p>
+              </div>
+              <Switch
+                id="collection_alerts"
+                checked={profile.receive_collection_alerts}
+                onCheckedChange={(checked) => setProfile({ ...profile, receive_collection_alerts: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="product_updates">Product Updates & Tips</Label>
+                <p className="text-sm text-muted-foreground">
+                  Learn about new features, best practices, and collection tips
+                </p>
+              </div>
+              <Switch
+                id="product_updates"
+                checked={profile.receive_product_updates}
+                onCheckedChange={(checked) => setProfile({ ...profile, receive_product_updates: checked })}
+              />
             </div>
           </CardContent>
         </Card>
