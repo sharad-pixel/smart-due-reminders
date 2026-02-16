@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadModeratedImage } from "@/lib/moderatedUpload";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -427,46 +428,56 @@ const Profile = () => {
     if (!profile) return;
 
     const file = event.target.files[0];
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${profile.id}.${fileExt}`;
     const filePath = `${profile.id}/${fileName}`;
 
     setUploading(true);
     try {
-      // Delete old avatar if exists
-      if (profile.avatar_url) {
-        const oldPath = profile.avatar_url.split('/').slice(-2).join('/');
-        await supabase.storage.from('avatars').remove([oldPath]);
+      // Use moderated upload pipeline
+      const result = await uploadModeratedImage({
+        file,
+        purpose: "profile_avatar",
+        bucket: "avatars",
+        storagePath: filePath,
+      });
+
+      if (!result.success) {
+        toast({
+          title: result.rejected ? "Image rejected" : "Upload failed",
+          description: result.error || "Failed to upload profile picture",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Upload new avatar
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      // Add cache-busting param to prevent stale images
+      const avatarUrl = `${result.publicUrl}?t=${Date.now()}`;
 
       // Update profile
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: avatarUrl })
         .eq('id', profile.id);
 
       if (updateError) throw updateError;
 
-      setProfile({ ...profile, avatar_url: publicUrl });
+      setProfile({ ...profile, avatar_url: avatarUrl });
       toast({
         title: "Success",
         description: "Profile picture updated successfully",
       });
-
-      // Reload to update navigation
-      setTimeout(() => window.location.reload(), 500);
     } catch (error: any) {
       console.error("Error uploading avatar:", error);
       toast({
