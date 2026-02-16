@@ -3,6 +3,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadModeratedImage } from "@/lib/moderatedUpload";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -423,6 +424,9 @@ const Profile = () => {
 
   // handleManageBilling and handleCancelSubscription moved to BillingSection component
 
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>("");
+
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) return;
     if (!profile) return;
@@ -439,15 +443,27 @@ const Profile = () => {
       return;
     }
 
-    const fileExt = file.name.split('.').pop();
+    setCropFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setCropImageSrc(reader.result as string);
+    reader.readAsDataURL(file);
+    // Reset input so the same file can be re-selected
+    event.target.value = "";
+  };
+
+  const handleCroppedUpload = async (croppedBlob: Blob) => {
+    if (!profile) return;
+    setCropImageSrc(null);
+
+    const fileExt = cropFileName.split('.').pop() || "jpg";
     const fileName = `${profile.id}.${fileExt}`;
     const filePath = `${profile.id}/${fileName}`;
+    const croppedFile = new File([croppedBlob], fileName, { type: "image/jpeg" });
 
     setUploading(true);
     try {
-      // Use moderated upload pipeline
       const result = await uploadModeratedImage({
-        file,
+        file: croppedFile,
         purpose: "profile_avatar",
         bucket: "avatars",
         storagePath: filePath,
@@ -462,10 +478,8 @@ const Profile = () => {
         return;
       }
 
-      // Add cache-busting param to prevent stale images
       const avatarUrl = `${result.publicUrl}?t=${Date.now()}`;
 
-      // Update profile
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: avatarUrl })
@@ -1238,6 +1252,14 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
+      {cropImageSrc && (
+        <ImageCropDialog
+          open={!!cropImageSrc}
+          imageSrc={cropImageSrc}
+          onClose={() => setCropImageSrc(null)}
+          onCropComplete={handleCroppedUpload}
+        />
+      )}
     </Layout>
   );
 };
