@@ -56,13 +56,14 @@ Deno.serve(async (req) => {
     // Get user's plan info for overage rate
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('plan_type, stripe_subscription_id')
+      .select('plan_type, stripe_subscription_id, stripe_customer_id')
       .eq('id', accountId)
       .single();
 
     const OVERAGE_RATE = 1.99;
 
-    // Fetch Stripe invoices for this customer if they have a subscription
+    // Fetch Stripe invoices for this customer
+    // Use stripe_customer_id directly (works for admin overrides where subscription_id is null)
     let stripeInvoicesByMonth: Record<string, Array<{
       id: string;
       number: string | null;
@@ -76,25 +77,39 @@ Deno.serve(async (req) => {
       created: string;
     }>> = {};
 
-    if (profile?.stripe_subscription_id) {
-      try {
-        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-          apiVersion: "2025-08-27.basil",
-        });
+    // Determine Stripe customer ID from either direct field or subscription
+    let customerId: string | null = null;
 
-        // Get the customer ID from the subscription
+    try {
+      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+        apiVersion: "2025-08-27.basil",
+      });
+
+      if (profile?.stripe_customer_id) {
+        customerId = profile.stripe_customer_id;
+        logStep("Using stripe_customer_id from profile", { customerId });
+      } else if (profile?.stripe_subscription_id) {
         const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
-        const customerId = typeof subscription.customer === 'string' 
+        customerId = typeof subscription.customer === 'string' 
           ? subscription.customer 
           : subscription.customer.id;
+        logStep("Derived customer from subscription", { customerId });
+      } else if (user.email) {
+        // Last resort: look up by email
+        const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+        if (customers.data.length > 0) {
+          customerId = customers.data[0].id;
+          logStep("Found customer by email lookup", { customerId });
+        }
+      }
 
+      if (customerId) {
         logStep("Fetching Stripe invoices", { customerId });
 
-        // Fetch recent invoices from Stripe
+        // Fetch recent invoices from Stripe — always by customer, regardless of subscription
         const invoices = await stripe.invoices.list({
           customer: customerId,
           limit: 24,
-          expand: ['data.lines'],
         });
 
         // Group invoices by month (YYYY-MM)
@@ -121,10 +136,12 @@ Deno.serve(async (req) => {
         }
 
         logStep("Stripe invoices grouped by month", { monthCount: Object.keys(stripeInvoicesByMonth).length });
-      } catch (stripeError: any) {
-        logStep("Stripe error (non-blocking)", { error: stripeError?.message });
-        // Continue without Stripe data
+      } else {
+        logStep("No Stripe customer found - continuing without invoice data");
       }
+    } catch (stripeError: any) {
+      logStep("Stripe error (non-blocking)", { error: stripeError?.message });
+      // Continue without Stripe data
     }
 
     // Build the response combining usage + Stripe invoice data
@@ -142,6 +159,25 @@ Deno.serve(async (req) => {
         stripe_invoices: stripeInvoicesByMonth[record.month] || [],
       };
     });
+
+    // Also include months that only exist in Stripe (no usage record yet)
+    const usageMonths = new Set((usageRecords || []).map(r => r.month));
+    for (const stripeMonth of Object.keys(stripeInvoicesByMonth)) {
+      if (!usageMonths.has(stripeMonth)) {
+        history.push({
+          month: stripeMonth,
+          included_invoices_used: 0,
+          overage_invoices: 0,
+          overage_charges_total: 0,
+          total_invoices_used: 0,
+          last_updated_at: null,
+          stripe_invoices: stripeInvoicesByMonth[stripeMonth],
+        });
+      }
+    }
+
+    // Sort by month descending
+    history.sort((a, b) => b.month.localeCompare(a.month));
 
     return new Response(JSON.stringify({
       history,
