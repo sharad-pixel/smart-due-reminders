@@ -306,7 +306,7 @@ serve(async (req) => {
   try {
     console.log("[AI-PROCESS] Starting batch processing");
 
-    // Fetch unprocessed emails
+    // Fetch unprocessed emails with full invoice details for status checking
     const { data: emails, error: fetchError } = await supabase
       .from("inbound_emails")
       .select(`
@@ -318,8 +318,8 @@ serve(async (req) => {
         html_body,
         debtor_id,
         invoice_id,
-        debtors (name, company_name),
-        invoices (invoice_number, amount)
+        debtors (name, company_name, email),
+        invoices (id, invoice_number, amount, amount_outstanding, status, due_date, paid_date, aging_bucket)
       `)
       .is("ai_summary", null)
       .in("status", ["received", "linked"])
@@ -344,6 +344,34 @@ serve(async (req) => {
       try {
         const debtorInfo = email.debtors as any;
         const invoiceInfo = email.invoices as any;
+
+        // --- Invoice payment status check ---
+        const invoiceIsPaid = invoiceInfo?.status === "Paid";
+        const invoiceIsPartiallyPaid = invoiceInfo?.status === "PartiallyPaid";
+        const invoiceIsSettled = invoiceIsPaid || invoiceInfo?.status === "Settled";
+
+        let paymentContext = "";
+        if (invoiceInfo) {
+          if (invoiceIsPaid) {
+            // Fetch latest payment/transaction for this invoice
+            const { data: payments } = await supabase
+              .from("transactions")
+              .select("amount, payment_date, payment_method, reference_number, source_system")
+              .eq("invoice_id", email.invoice_id)
+              .order("payment_date", { ascending: false })
+              .limit(3);
+
+            const paymentDetails = payments && payments.length > 0
+              ? payments.map((p: any) => `$${p.amount} on ${p.payment_date} via ${p.payment_method || p.source_system || "N/A"} (ref: ${p.reference_number || "N/A"})`).join("; ")
+              : "Payment recorded";
+
+            paymentContext = `\n\n⚠️ IMPORTANT: This invoice is FULLY PAID. Status: ${invoiceInfo.status}. Paid date: ${invoiceInfo.paid_date || "recorded"}. Payment details: ${paymentDetails}. Original amount: $${invoiceInfo.amount}. Amount outstanding: $${invoiceInfo.amount_outstanding || 0}.\nThe AI response MUST acknowledge that this invoice has been paid in full and provide payment confirmation details. Do NOT request further payment. The goal is to close this matter professionally.`;
+          } else if (invoiceIsPartiallyPaid) {
+            paymentContext = `\n\nNote: This invoice is PARTIALLY PAID. Status: ${invoiceInfo.status}. Original amount: $${invoiceInfo.amount}. Amount outstanding: $${invoiceInfo.amount_outstanding}. The response should acknowledge partial payment received and address the remaining balance.`;
+          } else if (invoiceIsSettled) {
+            paymentContext = `\n\n⚠️ IMPORTANT: This invoice is SETTLED. Status: ${invoiceInfo.status}. No further payment is required. The response should confirm the settlement and close this matter.`;
+          }
+        }
 
         // Check if sender is a team member (internal communication)
         const fromEmailLower = email.from_email?.toLowerCase().trim() || "";
@@ -414,7 +442,7 @@ ${email.text_body || email.html_body || "(No body)"}
 
 Extract summary and internal action items. Remember this is internal team communication, not a customer response.`;
         } else {
-          // External/customer communication prompt (original)
+          // External/customer communication prompt - enhanced with invoice status
           systemPrompt = `You are an AI assistant for Recouply.ai, a collections platform. Analyze customer responses to collection emails and extract:
 1. A brief 1-3 sentence summary
 2. Category classification
@@ -426,6 +454,7 @@ Valid action types: ${ACTION_TYPES.join(", ")}
 Valid categories: ${CATEGORIES.join(", ")}
 Valid priorities: ${PRIORITIES.join(", ")}
 Valid sentiments: ${SENTIMENTS.join(", ")}
+${invoiceIsSettled ? '\nCRITICAL: The linked invoice is already PAID/SETTLED. If the customer is asking about payment or this invoice, the primary action should be PAYMENT_CONFIRMATION. Do NOT create payment-related tasks. The summary MUST note that the invoice is already paid.' : ''}
 
 Return JSON only in this exact format:
 {
@@ -447,7 +476,8 @@ Return JSON only in this exact format:
 From: ${email.from_email}
 Subject: ${email.subject}
 ${debtorInfo ? `Debtor: ${debtorInfo.name} (${debtorInfo.company_name})` : ""}
-${invoiceInfo ? `Invoice: ${invoiceInfo.invoice_number} - $${invoiceInfo.amount}` : ""}
+${invoiceInfo ? `Invoice: ${invoiceInfo.invoice_number} - $${invoiceInfo.amount} (Status: ${invoiceInfo.status}, Outstanding: $${invoiceInfo.amount_outstanding || 0})` : ""}
+${paymentContext}
 
 Body:
 ${email.text_body || email.html_body || "(No body)"}
@@ -517,89 +547,245 @@ Extract summary and actions.`;
 
         // Create tasks from actions with full context for follow-up
         if (actions.length > 0 && email.user_id && email.debtor_id) {
-          // Calculate due date based on priority (high: 1 day, medium: 3 days, low: 7 days)
-          const getDueDate = (actionPriority: string) => {
-            const daysMap: Record<string, number> = { high: 1, medium: 3, low: 7 };
-            const days = daysMap[actionPriority] || 3;
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + days);
-            return dueDate.toISOString().split("T")[0];
-          };
+          // --- PAID INVOICE: Auto-draft closure response instead of normal tasks ---
+          if (invoiceIsSettled && !isInternalCommunication && email.invoice_id) {
+            console.log(`[AI-PROCESS] Invoice ${invoiceInfo?.invoice_number} is ${invoiceInfo?.status} — creating closure task + auto-draft`);
 
-          const tasks = actions.map((action: any) => {
-            const taskPriority = action.type === "PROMISE_TO_PAY" || action.type === "ESCALATION" ? "high" : 
-                                action.confidence >= 0.9 ? "high" : "normal";
-            
-            return {
-              user_id: email.user_id,
-              debtor_id: email.debtor_id,
-              invoice_id: email.invoice_id,
-              task_type: action.type,
-              priority: taskPriority,
-              status: "open",
-              summary: isInternalCommunication 
-                ? `[Internal] ${action.type}: ${email.subject}`
-                : `${action.type}: ${email.subject}`,
-              details: isInternalCommunication
-                ? `From team member ${teamMemberName}: ${action.details || ""}`
-                : (action.details || ""),
-              source: isInternalCommunication ? "internal_communication" : "ai_extraction",
-              from_email: email.from_email,
-              subject: email.subject,
-              raw_email: (email.text_body || email.html_body || "").substring(0, 5000),
-              ai_reasoning: `AI extracted action with ${Math.round((action.confidence || 0.8) * 100)}% confidence. Category: ${category}, Sentiment: ${sentiment}`,
-              recommended_action: getRecommendedAction(action.type, isInternalCommunication),
-              due_date: getDueDate(taskPriority),
-              inbound_email_id: email.id,
-              // Note: assigned_to and assigned_persona are left null - tasks are only assignable to team members via UI
-            };
-          });
+            // Fetch payment details for the closure draft
+            const { data: payments } = await supabase
+              .from("transactions")
+              .select("amount, payment_date, payment_method, reference_number, source_system")
+              .eq("invoice_id", email.invoice_id)
+              .order("payment_date", { ascending: false })
+              .limit(5);
 
-          const { data: createdTasks, error: taskError } = await supabase
-            .from("collection_tasks")
-            .insert(tasks)
-            .select("id");
-            
-          if (taskError) {
-            console.error(`[AI-PROCESS] Error creating tasks:`, taskError.message);
-          } else {
-            console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
-            
-            // Notify all account users about each created task
-            if (createdTasks && createdTasks.length > 0) {
-              for (const task of createdTasks) {
+            const paymentLines = (payments || []).map((p: any) =>
+              `• $${p.amount} received on ${p.payment_date || "N/A"} via ${p.payment_method || p.source_system || "N/A"}${p.reference_number ? ` (Ref: ${p.reference_number})` : ""}`
+            ).join("\n");
+
+            // Create a closure task
+            const { data: closureTask, error: closureTaskError } = await supabase
+              .from("collection_tasks")
+              .insert({
+                user_id: email.user_id,
+                debtor_id: email.debtor_id,
+                invoice_id: email.invoice_id,
+                task_type: "PAYMENT_CONFIRMATION",
+                priority: "normal",
+                status: "open",
+                summary: `Invoice ${invoiceInfo?.invoice_number || ""} is paid — close matter with customer`,
+                details: `Customer emailed regarding invoice ${invoiceInfo?.invoice_number} which is already ${invoiceInfo?.status}. Payment recorded: ${paymentLines || "See transactions"}. An auto-drafted confirmation email has been created to close this matter.`,
+                source: "ai_paid_invoice_closure",
+                from_email: email.from_email,
+                subject: email.subject,
+                raw_email: (email.text_body || email.html_body || "").substring(0, 5000),
+                ai_reasoning: `Invoice status is "${invoiceInfo?.status}" with $${invoiceInfo?.amount_outstanding || 0} outstanding. AI auto-generated closure response.`,
+                recommended_action: "Review and send the auto-drafted payment confirmation email to close this matter.",
+                due_date: new Date(Date.now() + 86400000).toISOString().split("T")[0], // 1 day
+                inbound_email_id: email.id,
+              })
+              .select("id")
+              .single();
+
+            if (closureTaskError) {
+              console.error(`[AI-PROCESS] Error creating closure task:`, closureTaskError.message);
+            } else {
+              console.log(`[AI-PROCESS] ✅ Created closure task ${closureTask?.id} for paid invoice`);
+
+              // Notify about closure task
+              if (closureTask) {
                 try {
-                  const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
-                    "notify-task-created",
-                    {
-                      body: {
-                        taskId: task.id,
-                        creatorUserId: email.user_id,
-                      },
-                    }
-                  );
+                  await supabase.functions.invoke("notify-task-created", {
+                    body: { taskId: closureTask.id, creatorUserId: email.user_id },
+                  });
+                } catch (e) {
+                  console.warn(`[AI-PROCESS] Notification failed for closure task:`, e);
+                }
+              }
+            }
 
-                  if (notifyError) {
-                    console.error(
-                      `[AI-PROCESS] Failed to notify for task ${task.id}:`,
-                      notifyError.message || notifyError
+            // Generate auto-draft closure email
+            const personaName = invoiceInfo?.aging_bucket ? (PERSONA_BUCKET_MAP[invoiceInfo.aging_bucket] || "Sam") : "Sam";
+            const { data: persona } = await supabase
+              .from("ai_agent_personas")
+              .select("id, name, tone_guidelines, persona_summary")
+              .eq("name", personaName)
+              .single();
+
+            const closureDraftPrompt = `Generate a professional payment confirmation email for a PAID invoice.
+
+Customer: ${debtorInfo?.name || "Customer"} (${debtorInfo?.company_name || ""})
+Invoice: ${invoiceInfo?.invoice_number} - $${invoiceInfo?.amount}
+Status: ${invoiceInfo?.status} (Fully Paid)
+Payment Details:
+${paymentLines || "Payment has been recorded in our system."}
+
+Customer's Recent Email Subject: ${email.subject}
+AI Summary: ${summary}
+
+Write a brief, professional email that:
+1. Thanks the customer for their payment
+2. Confirms the invoice is paid in full with specific payment details
+3. Closes the matter professionally
+4. Invites them to reach out if they have any questions
+
+Return JSON only:
+{
+  "subject": "Re: Subject line here",
+  "body": "Email body here"
+}`;
+
+            try {
+              const draftResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash",
+                  messages: [
+                    { role: "system", content: `You are ${persona?.name || "Sam"}, a professional collections agent. ${persona?.persona_summary || "You are friendly and professional."}` },
+                    { role: "user", content: closureDraftPrompt },
+                  ],
+                  temperature: 0.5,
+                }),
+              });
+
+              if (draftResponse.ok) {
+                const draftData = await draftResponse.json();
+                let draftContent = draftData.choices?.[0]?.message?.content || "";
+                if (draftContent.startsWith("```")) {
+                  draftContent = draftContent.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+                }
+                const parsedDraft = JSON.parse(draftContent);
+
+                await supabase.from("ai_drafts").insert({
+                  user_id: email.user_id,
+                  invoice_id: email.invoice_id,
+                  agent_persona_id: persona?.id || null,
+                  step_number: 0,
+                  channel: "email",
+                  subject: parsedDraft.subject || `Re: ${email.subject}`,
+                  message_body: parsedDraft.body || "Thank you for your payment. This invoice has been paid in full.",
+                  status: "pending_approval",
+                  recommended_send_date: new Date().toISOString().split("T")[0],
+                  days_past_due: 0,
+                });
+
+                console.log(`[AI-PROCESS] ✅ Created auto-draft closure email for paid invoice ${invoiceInfo?.invoice_number}`);
+              }
+            } catch (draftErr: any) {
+              console.error(`[AI-PROCESS] Failed to generate closure draft:`, draftErr.message);
+            }
+
+            // Also auto-close any remaining open tasks for this paid invoice
+            const { data: openTasks, error: openTasksErr } = await supabase
+              .from("collection_tasks")
+              .select("id, task_type")
+              .eq("invoice_id", email.invoice_id)
+              .in("status", ["open", "in_progress"])
+              .neq("id", closureTask?.id || "");
+
+            if (!openTasksErr && openTasks && openTasks.length > 0) {
+              const taskIds = openTasks.map((t: any) => t.id);
+              await supabase
+                .from("collection_tasks")
+                .update({
+                  status: "done",
+                  completed_at: new Date().toISOString(),
+                  ai_reasoning: `Auto-closed: Invoice ${invoiceInfo?.invoice_number} is ${invoiceInfo?.status}. No further action required.`,
+                })
+                .in("id", taskIds);
+
+              console.log(`[AI-PROCESS] ✅ Auto-closed ${openTasks.length} open tasks for paid invoice ${invoiceInfo?.invoice_number}`);
+            }
+
+          } else {
+            // --- Normal task creation for unpaid invoices ---
+            // Calculate due date based on priority (high: 1 day, medium: 3 days, low: 7 days)
+            const getDueDate = (actionPriority: string) => {
+              const daysMap: Record<string, number> = { high: 1, medium: 3, low: 7 };
+              const days = daysMap[actionPriority] || 3;
+              const dueDate = new Date();
+              dueDate.setDate(dueDate.getDate() + days);
+              return dueDate.toISOString().split("T")[0];
+            };
+
+            const tasks = actions.map((action: any) => {
+              const taskPriority = action.type === "PROMISE_TO_PAY" || action.type === "ESCALATION" ? "high" : 
+                                  action.confidence >= 0.9 ? "high" : "normal";
+              
+              return {
+                user_id: email.user_id,
+                debtor_id: email.debtor_id,
+                invoice_id: email.invoice_id,
+                task_type: action.type,
+                priority: taskPriority,
+                status: "open",
+                summary: isInternalCommunication 
+                  ? `[Internal] ${action.type}: ${email.subject}`
+                  : `${action.type}: ${email.subject}`,
+                details: isInternalCommunication
+                  ? `From team member ${teamMemberName}: ${action.details || ""}`
+                  : (action.details || ""),
+                source: isInternalCommunication ? "internal_communication" : "ai_extraction",
+                from_email: email.from_email,
+                subject: email.subject,
+                raw_email: (email.text_body || email.html_body || "").substring(0, 5000),
+                ai_reasoning: `AI extracted action with ${Math.round((action.confidence || 0.8) * 100)}% confidence. Category: ${category}, Sentiment: ${sentiment}`,
+                recommended_action: getRecommendedAction(action.type, isInternalCommunication),
+                due_date: getDueDate(taskPriority),
+                inbound_email_id: email.id,
+              };
+            });
+
+            const { data: createdTasks, error: taskError } = await supabase
+              .from("collection_tasks")
+              .insert(tasks)
+              .select("id");
+              
+            if (taskError) {
+              console.error(`[AI-PROCESS] Error creating tasks:`, taskError.message);
+            } else {
+              console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
+              
+              // Notify all account users about each created task
+              if (createdTasks && createdTasks.length > 0) {
+                for (const task of createdTasks) {
+                  try {
+                    const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
+                      "notify-task-created",
+                      {
+                        body: {
+                          taskId: task.id,
+                          creatorUserId: email.user_id,
+                        },
+                      }
                     );
-                  } else {
-                    console.log(`[AI-PROCESS] Notification invoked for task ${task.id}`, notifyData);
+
+                    if (notifyError) {
+                      console.error(
+                        `[AI-PROCESS] Failed to notify for task ${task.id}:`,
+                        notifyError.message || notifyError
+                      );
+                    } else {
+                      console.log(`[AI-PROCESS] Notification invoked for task ${task.id}`, notifyData);
+                    }
+                  } catch (notifyError: any) {
+                    console.error(
+                      `[AI-PROCESS] Error invoking notification for task ${task.id}:`,
+                      notifyError?.message || notifyError
+                    );
                   }
-                } catch (notifyError: any) {
-                  console.error(
-                    `[AI-PROCESS] Error invoking notification for task ${task.id}:`,
-                    notifyError?.message || notifyError
-                  );
                 }
               }
             }
           }
         }
 
-        // Trigger automatic workflow engagement for external emails linked to invoices
-        if (!isInternalCommunication && email.invoice_id && email.user_id) {
+        // Trigger automatic workflow engagement for external emails linked to invoices (skip for paid/settled)
+        if (!isInternalCommunication && email.invoice_id && email.user_id && !invoiceIsSettled) {
           try {
             await triggerWorkflowEngagement(
               supabase,
@@ -617,8 +803,9 @@ Extract summary and actions.`;
             );
           } catch (wfError: any) {
             console.error(`[AI-PROCESS] Workflow engagement failed for email ${email.id}:`, wfError.message);
-            // Don't fail the whole processing if workflow fails
           }
+        } else if (invoiceIsSettled && !isInternalCommunication) {
+          console.log(`[AI-PROCESS] Skipping workflow engagement for settled invoice ${invoiceInfo?.invoice_number}`);
         }
 
         processed++;
