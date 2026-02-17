@@ -17,6 +17,7 @@ import { useAccountHierarchy } from "@/hooks/useAccountHierarchy";
 import ConsumptionTracker from "@/components/ConsumptionTracker";
 import { UsageIndicator } from "@/components/UsageIndicator";
 import { TrialCountdown } from "@/components/TrialCountdown";
+import UsageBillingLog from "@/components/UsageBillingLog";
 // Colorful gauge component
 const UsageGauge = ({ 
   used, 
@@ -534,6 +535,9 @@ const Billing = () => {
 
           {/* Consumption & Upcoming Charges */}
           <ConsumptionTracker />
+
+          {/* Monthly Usage Billing Log */}
+          <UsageBillingLog />
 
           {/* Account Hierarchy - Visual Tree */}
           <AccountHierarchy />
