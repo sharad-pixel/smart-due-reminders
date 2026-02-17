@@ -72,6 +72,11 @@ interface Debtor {
 
 const ROWS_PER_PAGE = 25;
 
+const getCurrencySymbol = (currency: string) => {
+  const symbols: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", CAD: "CA$", AUD: "A$" };
+  return symbols[currency] || `${currency} `;
+};
+
 const Debtors = () => {
   usePageTitle("Accounts");
   const navigate = useNavigate();
@@ -868,7 +873,7 @@ const Debtors = () => {
                           <span>Balance</span>
                         </div>
                         <p className="font-semibold text-sm tabular-nums">
-                          ${(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString()}
+                          {currencyFilter !== "all" ? getCurrencySymbol(currencyFilter) : "$"}{(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                       <div className="bg-muted/50 rounded-md p-2">
@@ -1094,7 +1099,7 @@ const Debtors = () => {
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-medium tabular-nums" onClick={() => navigate(`/debtors/${debtor.id}`)}>
-                          ${(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString()}
+                          {currencyFilter !== "all" ? getCurrencySymbol(currencyFilter) : "$"}{(debtor.total_open_balance || debtor.current_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-center tabular-nums" onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           {debtor.open_invoices_count || 0}
