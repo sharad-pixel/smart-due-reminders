@@ -78,7 +78,7 @@ export function InvoiceCollectabilityReport() {
       if (!session) throw new Error("Not authenticated");
 
       const { data, error } = await supabase.functions.invoke("invoice-collectability-report", {
-        body: { limit: 100, generate_ai_summary: false },
+        body: { generate_ai_summary: false },
       });
 
       if (error) throw error;
@@ -135,7 +135,7 @@ export function InvoiceCollectabilityReport() {
       if (!session) throw new Error("Not authenticated");
 
       const { data: result, error } = await supabase.functions.invoke("invoice-collectability-report", {
-        body: { limit: 100, generate_ai_summary: true },
+        body: { generate_ai_summary: true },
       });
 
       if (error) throw error;

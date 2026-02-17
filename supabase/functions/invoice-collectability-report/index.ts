@@ -54,7 +54,7 @@ serve(async (req) => {
       });
     }
 
-    const { limit = 50, status_filter, generate_ai_summary = false } = await req.json().catch(() => ({}));
+    const { status_filter, generate_ai_summary = false } = await req.json().catch(() => ({}));
 
     // Get effective account ID for team member support
     const { data: effectiveAccountId } = await supabase
@@ -63,51 +63,59 @@ serve(async (req) => {
     const accountId = effectiveAccountId || user.id;
     console.log(`[COLLECTABILITY] User ${user.id} using effective account ${accountId}`);
 
-    // Fetch open/in-payment-plan invoices with debtor info
-    let query = supabase
-      .from("invoices")
-      .select(`
-        id,
-        invoice_number,
-        amount,
-        due_date,
-        status,
-        aging_bucket,
-        debtor_id,
-        debtors (
+    // Fetch ALL open/active invoices using pagination (no artificial limit)
+    const PAGE_SIZE = 1000;
+    let allInvoices: any[] = [];
+    let from = 0;
+    while (true) {
+      let query = supabase
+        .from("invoices")
+        .select(`
           id,
-          name,
-          company_name,
-          payment_score,
-          payment_risk_tier,
-          avg_days_to_pay,
-          open_invoices_count,
-          disputed_invoices_count,
-          written_off_invoices_count,
-          total_open_balance
-        )
-      `)
-      .eq("user_id", accountId)
-      .order("due_date", { ascending: true })
-      .limit(limit);
+          invoice_number,
+          amount,
+          due_date,
+          status,
+          aging_bucket,
+          debtor_id,
+          debtors (
+            id,
+            name,
+            company_name,
+            payment_score,
+            payment_risk_tier,
+            avg_days_to_pay,
+            open_invoices_count,
+            disputed_invoices_count,
+            written_off_invoices_count,
+            total_open_balance
+          )
+        `)
+        .eq("user_id", accountId)
+        .order("due_date", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
 
-    if (status_filter && status_filter.length > 0) {
-      query = query.in("status", status_filter);
-    } else {
-      query = query.in("status", ["Open", "InPaymentPlan"]);
+      if (status_filter && status_filter.length > 0) {
+        query = query.in("status", status_filter);
+      } else {
+        query = query.in("status", ["Open", "InPaymentPlan"]);
+      }
+
+      const { data: pageData, error: invoiceError } = await query;
+      if (invoiceError) throw invoiceError;
+      if (!pageData || pageData.length === 0) break;
+      allInvoices.push(...pageData);
+      if (pageData.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
 
-    const { data: invoices, error: invoiceError } = await query;
-
-    if (invoiceError) {
-      throw invoiceError;
-    }
+    console.log(`[COLLECTABILITY] Fetched ${allInvoices.length} total invoices`);
 
     // Calculate collectability for each invoice
     const reports: InvoiceReport[] = [];
     const today = new Date();
 
-    for (const invoice of invoices || []) {
+    for (const invoice of allInvoices) {
       const dueDate = new Date(invoice.due_date);
       const daysPastDue = Math.max(0, Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
       
