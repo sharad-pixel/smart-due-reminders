@@ -500,8 +500,13 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
               <div className="flex items-center gap-2 mb-3">
                 <FileSpreadsheet className="h-4 w-4 text-amber-500" />
                 <h4 className="font-medium">Invoice Fields</h4>
+                <span className="text-xs text-muted-foreground">(linked to account via RAID)</span>
               </div>
               <div className="flex flex-wrap gap-1">
+                {/* Show RAID as required linking field for invoices */}
+                <Badge variant="outline" className="text-xs border-primary/50">
+                  Recouply Account ID (RAID)<span className="text-destructive ml-1">*</span>
+                </Badge>
                 {fieldDefinitions?.filter(f => f.grouping === "invoice").map(f => (
                   <Badge key={f.key} variant="outline" className="text-xs">
                     {f.label}{f.required_for_recouply && <span className="text-destructive ml-1">*</span>}

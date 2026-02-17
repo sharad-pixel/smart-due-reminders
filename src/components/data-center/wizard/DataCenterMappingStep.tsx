@@ -123,16 +123,26 @@ export const DataCenterMappingStep = ({
     },
   });
 
-  // For accounts uploads, use only customer fields; for invoices/payments include both
+  // Scope fields strictly by import type:
+  // - Accounts: only account/customer fields (RAID is optional for new accounts)
+  // - Invoices: only invoice fields + RAID as linking key (no other account fields)
+  // - Payments: only payment fields (linked via Recouply Invoice ID, not account)
   const relevantGroupings = fileType === "accounts"
     ? ["customer", "meta"]
     : fileType === "invoice_aging" 
-      ? ["customer", "invoice", "meta"] 
-      : ["customer", "payment", "meta"];
+      ? ["invoice", "meta"] 
+      : ["payment", "meta"];
+  
+  // For invoice uploads, also include the RAID field from customer grouping as a linking key
+  const linkingFields = fileType === "invoice_aging" 
+    ? ["recouply_account_id"]
+    : [];
   
   // Combine system fields with custom fields
   const allFields = [
-    ...fieldDefinitions.filter(f => relevantGroupings.includes(f.grouping)),
+    ...fieldDefinitions.filter(f => 
+      relevantGroupings.includes(f.grouping) || linkingFields.includes(f.key)
+    ),
     ...(customFields || []).map(f => ({ ...f, isCustom: true })),
   ];
   
@@ -140,15 +150,17 @@ export const DataCenterMappingStep = ({
   // For accounts: company_name, contact_name, contact_email are required (RAID is optional for new accounts)
   // For invoices/payments: RAID is required for matching
   const requiredFields = fieldDefinitions.filter(f => {
-    if (!relevantGroupings.includes(f.grouping)) return false;
-    
-    // For accounts uploads, these specific fields are required
+    // For accounts: specific account fields
     if (fileType === "accounts") {
-      return ["company_name", "contact_name", "contact_email"].includes(f.key);
+      return f.grouping === "customer" && ["company_name", "contact_name", "contact_email"].includes(f.key);
     }
-    
-    // For other types, use the required_for_recouply flag
-    return f.required_for_recouply;
+    // For invoices: RAID (linking key) + invoice required fields
+    if (fileType === "invoice_aging") {
+      if (f.key === "recouply_account_id") return true;
+      return f.grouping === "invoice" && f.required_for_recouply;
+    }
+    // For payments: only payment required fields
+    return f.grouping === "payment" && f.required_for_recouply;
   });
   const mappedKeys = columnMappings.filter(m => m.fieldKey).map(m => m.fieldKey);
   const missingRequired = requiredFields.filter(f => !mappedKeys.includes(f.key));

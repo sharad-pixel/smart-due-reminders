@@ -58,13 +58,12 @@ const INVOICES_TEMPLATE_COLUMNS = [
   "Currency",
   "Invoice Status",
   "PO Number",
-  "Product Description",
+  "Product/Service Description",
   "External Invoice ID",
   "Notes",
 ];
 
 const PAYMENTS_TEMPLATE_COLUMNS = [
-  "Recouply Account ID (RAID)",
   "Recouply Invoice ID",
   "Invoice Number",
   "Payment Date",
@@ -237,10 +236,11 @@ export const DataCenterFileUploadStep = ({
           <Alert className="mt-2 bg-muted/50">
             <FileSpreadsheet className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-1">Invoices Upload Behavior:</p>
+              <p className="font-medium mb-1">Invoices Upload - Invoice Fields Only:</p>
               <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
-                <li><strong>RAID required:</strong> Recouply Account ID is required to match invoices to existing accounts</li>
-                <li>New invoices are created and assigned to the matched account</li>
+                <li><strong>RAID required *</strong> - Links invoice to an existing account (no account fields needed)</li>
+                <li><strong>Invoice Number *</strong>, <strong>Invoice Date *</strong>, <strong>Due Date *</strong>, <strong>Original Amount *</strong></li>
+                <li>Account details (company name, contact, etc.) are already stored via RAID</li>
               </ul>
             </AlertDescription>
           </Alert>
@@ -250,10 +250,12 @@ export const DataCenterFileUploadStep = ({
           <Alert className="mt-2 bg-muted/50">
             <DollarSign className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-1">Payments Upload Behavior:</p>
+              <p className="font-medium mb-1">Payments Upload - Payment Fields Only:</p>
               <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
-                <li><strong>RAID required:</strong> Recouply Account ID is required to match payments to accounts</li>
-                <li><strong>Invoice ID required:</strong> Recouply Invoice ID (or Invoice Number) to reconcile payments</li>
+                <li><strong>Recouply Invoice ID *</strong> - Links payment to the correct invoice (primary match)</li>
+                <li><strong>Invoice Number *</strong> - Fallback matching if Recouply Invoice ID unavailable</li>
+                <li><strong>Payment Amount *</strong> and <strong>Payment Date *</strong> required</li>
+                <li>Account is resolved automatically from the linked invoice</li>
               </ul>
             </AlertDescription>
           </Alert>
