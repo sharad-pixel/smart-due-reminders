@@ -365,7 +365,7 @@ export function AccountIntelligenceCard({ debtorId }: AccountIntelligenceCardPro
                 Open Balance
               </div>
               <div className="text-lg font-bold">
-                ${metrics.financials.totalOpenBalance.toLocaleString()}
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(metrics.financials.totalOpenBalance)}
               </div>
             </div>
             <div className="p-3 bg-muted/30 rounded-lg">

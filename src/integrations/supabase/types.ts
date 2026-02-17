@@ -5471,6 +5471,7 @@ export type Database = {
           cancelled_at: string | null
           completed_at: string | null
           created_at: string
+          currency: string
           debtor_approved_at: string | null
           debtor_approved_by_email: string | null
           debtor_id: string
@@ -5498,6 +5499,7 @@ export type Database = {
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
+          currency?: string
           debtor_approved_at?: string | null
           debtor_approved_by_email?: string | null
           debtor_id: string
@@ -5525,6 +5527,7 @@ export type Database = {
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
+          currency?: string
           debtor_approved_at?: string | null
           debtor_approved_by_email?: string | null
           debtor_id?: string

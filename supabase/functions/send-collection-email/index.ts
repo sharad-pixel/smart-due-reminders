@@ -25,8 +25,9 @@ function replaceTemplateVars(
 
   const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
   const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
+  const invoiceCurrency = invoice?.currency || 'USD';
   const amount = invoice?.amount
-    ? `$${Number(invoice.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency, minimumFractionDigits: 2 }).format(Number(invoice.amount))
     : '';
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
@@ -229,10 +230,10 @@ serve(async (req) => {
       subject: processedSubject,
       bodyHtml: formattedBody,
       cta: paymentUrl ? {
-        label: `Pay Now${invoiceAmount ? ` - $${Number(invoiceAmount).toLocaleString()}` : ''}`,
+        label: `Pay Now${invoiceAmount ? ` - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceData?.currency || 'USD' }).format(Number(invoiceAmount))}` : ''}`,
         url: paymentUrl,
       } : branding?.stripe_payment_link ? {
-        label: `Pay Invoice${invoiceAmount ? ` - $${Number(invoiceAmount).toLocaleString()}` : ''}`,
+        label: `Pay Invoice${invoiceAmount ? ` - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceData?.currency || 'USD' }).format(Number(invoiceAmount))}` : ''}`,
         url: branding.stripe_payment_link,
       } : undefined,
       meta: {

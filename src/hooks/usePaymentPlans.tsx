@@ -16,6 +16,7 @@ export interface PaymentPlan {
   frequency: string;
   start_date: string;
   status: string;
+  currency: string;
   proposed_at: string | null;
   accepted_at: string | null;
   completed_at: string | null;
@@ -56,6 +57,7 @@ export interface CreatePaymentPlanData {
   planName?: string;
   invoiceIds?: string[];
   notes?: string;
+  currency?: string;
 }
 
 // Calculate installment due dates based on frequency
@@ -170,6 +172,7 @@ export function usePaymentPlans(debtorId?: string) {
           notes: planData.notes || null,
           status: "draft",
           requires_dual_approval: true,
+          currency: planData.currency || 'USD',
         })
         .select()
         .single();

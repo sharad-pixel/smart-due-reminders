@@ -25,8 +25,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+const formatCurrency = (amount: number, currency: string = 'USD') =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(amount);
 
 const getStatusBadge = (status: string | null) => {
   switch (status) {
@@ -240,7 +240,7 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
                         )}
                       </TableCell>
                       <TableCell className="font-semibold text-green-600">
-                        {formatCurrency(payment.amount)}
+                        {formatCurrency(payment.amount, payment.currency || 'USD')}
                       </TableCell>
                       <TableCell>
                         {invoice ? (
@@ -250,7 +250,7 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
                           >
                             <div className="text-sm font-medium">{invoice.invoice_number || invoice.reference_id}</div>
                             <div className="text-xs text-muted-foreground">
-                              {formatCurrency(link!.amount_applied)} applied
+                              {formatCurrency(link!.amount_applied, payment.currency || 'USD')} applied
                             </div>
                           </button>
                         ) : (

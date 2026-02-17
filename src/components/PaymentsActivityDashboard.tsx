@@ -79,10 +79,10 @@ const getSourceIcon = (source: string | null) => {
   }
 };
 
-const formatCurrency = (amount: number) => {
+const formatCurrency = (amount: number, currency: string = 'USD') => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency || 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
@@ -367,7 +367,7 @@ export const PaymentsActivityDashboard = () => {
                             : 'text-green-600'
                         }>
                           {tx.transaction_type === 'refund' || tx.transaction_type === 'reversal' ? '-' : ''}
-                          {formatCurrency(Math.abs(tx.amount))}
+                          {formatCurrency(Math.abs(tx.amount), tx.invoice?.currency || 'USD')}
                         </span>
                       </TableCell>
                     </TableRow>

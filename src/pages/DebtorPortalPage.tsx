@@ -71,6 +71,7 @@ interface Invoice {
   invoice_number: string;
   amount: number;
   amount_paid: number | null;
+  currency: string | null;
   due_date: string;
   status: string;
   product_description: string | null;
@@ -93,6 +94,9 @@ interface Invoice {
     account_name: string | null;
   } | null;
 }
+
+const fmtCurr = (amount: number, currency: string = 'USD') =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', minimumFractionDigits: 2 }).format(amount);
 
 const statusColors: Record<string, string> = {
   proposed: "bg-blue-100 text-blue-800",
@@ -999,19 +1003,19 @@ export default function DebtorPortalPage() {
                 <div className="p-4 bg-muted/50 rounded-lg text-center">
                   <p className="text-sm text-muted-foreground">Invoice Amount</p>
                   <p className="text-2xl font-bold">
-                    ${selectedInvoice.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    {fmtCurr(selectedInvoice.amount, selectedInvoice.currency || 'USD')}
                   </p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg text-center">
                   <p className="text-sm text-green-700">Amount Paid</p>
                   <p className="text-2xl font-bold text-green-700">
-                    ${(selectedInvoice.amount_paid || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    {fmtCurr(selectedInvoice.amount_paid || 0, selectedInvoice.currency || 'USD')}
                   </p>
                 </div>
                 <div className={`p-4 rounded-lg text-center ${isOverdue ? 'bg-red-50' : 'bg-blue-50'}`}>
                   <p className={`text-sm ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>Balance Due</p>
                   <p className={`text-2xl font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
-                    ${selectedInvoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    {fmtCurr(selectedInvoice.balance_due, selectedInvoice.currency || 'USD')}
                   </p>
                 </div>
               </div>
@@ -1044,7 +1048,7 @@ export default function DebtorPortalPage() {
                   <div>
                     <h3 className="font-semibold">Ready to pay this invoice?</h3>
                     <p className="text-sm text-muted-foreground">
-                      Click the button to securely pay your balance of ${selectedInvoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}.
+                      Click the button to securely pay your balance of {fmtCurr(selectedInvoice.balance_due, selectedInvoice.currency || 'USD')}.
                     </p>
                   </div>
                   <Button asChild size="lg">
@@ -1468,10 +1472,10 @@ export default function DebtorPortalPage() {
                                         )}
                                       </TableCell>
                                       <TableCell className="text-right font-mono">
-                                        ${invoice.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                        {fmtCurr(invoice.amount, invoice.currency || 'USD')}
                                       </TableCell>
                                       <TableCell className={`text-right font-mono font-bold ${isOverdue ? 'text-red-600' : ''}`}>
-                                        ${invoice.balance_due.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                        {fmtCurr(invoice.balance_due, invoice.currency || 'USD')}
                                       </TableCell>
                                       <TableCell>
                                         <Button variant="ghost" size="sm">

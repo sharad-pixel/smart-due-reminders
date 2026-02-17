@@ -92,7 +92,7 @@ export function PaymentPlanResendModal({ open, onOpenChange, plan }: PaymentPlan
           <div className="p-3 bg-muted/50 rounded-lg space-y-1">
             <p className="font-medium text-sm">{plan.plan_name || "Payment Plan"}</p>
             <div className="text-xs text-muted-foreground space-y-0.5">
-              <p>Total: ${plan.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+              <p>Total: {new Intl.NumberFormat("en-US", { style: "currency", currency: plan.currency || "USD", minimumFractionDigits: 2 }).format(plan.total_amount)}</p>
               <p>{plan.number_of_installments} {plan.frequency} payments</p>
               <p>Started: {format(new Date(plan.start_date), "MMM d, yyyy")}</p>
             </div>
