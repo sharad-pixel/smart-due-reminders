@@ -11,11 +11,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, FileText, Link as LinkIcon, X, Plus, Loader2, Brain, Sparkles, CheckCircle2, AlertTriangle, Target, Clock, Info } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 interface Invoice {
   id: string;
   invoice_number: string;
   amount: number;
+  currency: string | null;
   due_date: string;
   issue_date: string;
   status: string;
@@ -259,6 +261,10 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
     return invoices.reduce((sum, inv) => sum + inv.amount, 0);
   };
 
+  const getPrimaryCurrency = () => {
+    return invoices[0]?.currency || 'USD';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -301,7 +307,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                       <p className="text-2xl font-bold">{invoices.length}</p>
                     </div>
                     <Badge variant="secondary" className="font-semibold">
-                      ${getTotalAmount().toLocaleString()}
+                      {formatCurrency(getTotalAmount(), getPrimaryCurrency())}
                     </Badge>
                   </div>
                 </CardContent>
@@ -537,7 +543,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                       Open Invoices ({invoices.length})
                     </h3>
                     <Badge variant="secondary" className="font-semibold">
-                      Total: ${getTotalAmount().toLocaleString()}
+                      Total: {formatCurrency(getTotalAmount(), getPrimaryCurrency())}
                     </Badge>
                   </div>
 
@@ -564,7 +570,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                             {new Date(invoice.due_date).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right font-semibold tabular-nums">
-                            ${invoice.amount.toLocaleString()}
+                            {formatCurrency(invoice.amount, invoice.currency || 'USD')}
                           </TableCell>
                           <TableCell>
                             <Badge variant={invoice.status === "Open" ? "default" : "secondary"}>
