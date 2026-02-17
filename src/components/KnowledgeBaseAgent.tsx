@@ -28,6 +28,7 @@ import {
 import nicolasAvatar from "@/assets/personas/nicolas.png";
 import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
+import { NeedHelpDialog } from "@/components/NeedHelpDialog";
 
 interface OnboardingStep {
   id: string;
@@ -216,18 +217,20 @@ export const KnowledgeBaseAgent = ({
               </CardDescription>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="shrink-0"
-          >
-            {isCollapsed ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronUp className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <NeedHelpDialog />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Progress indicator - only show when expanded */}
