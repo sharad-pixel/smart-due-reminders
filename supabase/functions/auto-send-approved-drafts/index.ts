@@ -33,7 +33,8 @@ function replaceTemplateVars(
   
   const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
   const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
-  const amount = `$${(invoice?.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const invoiceCurrency = invoice?.currency || 'USD';
+  const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency, minimumFractionDigits: 2 }).format(invoice?.amount || 0);
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
   // Prefer Stripe hosted invoice URL / public link over internal dashboard URL

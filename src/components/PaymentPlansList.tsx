@@ -107,7 +107,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />
-                      ${plan.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      {new Intl.NumberFormat("en-US", { style: "currency", currency: plan.currency || "USD", minimumFractionDigits: 2 }).format(plan.total_amount)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -265,7 +265,7 @@ function PaymentPlanCard({ plan }: { plan: PaymentPlan }) {
                       <TableCell className="font-medium">{inst.installment_number}</TableCell>
                       <TableCell>{format(new Date(inst.due_date), "MMM d, yyyy")}</TableCell>
                       <TableCell className="font-mono">
-                        ${inst.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        {new Intl.NumberFormat("en-US", { style: "currency", currency: plan.currency || "USD", minimumFractionDigits: 2 }).format(inst.amount)}
                       </TableCell>
                       <TableCell>
                         <Badge className={installmentStatusColors[inst.status] || installmentStatusColors.pending}>

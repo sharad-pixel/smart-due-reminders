@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface Contact {
   id: string;
@@ -19,6 +20,7 @@ interface Invoice {
   id: string;
   invoice_number: string;
   amount: number;
+  currency: string | null;
   due_date: string;
   debtor_id: string;
   debtors: {
@@ -80,7 +82,7 @@ const MessageDrafter = () => {
       setContent(
         `Dear ${contactName},\n\n` +
         `I hope this message finds you well. I'm reaching out regarding invoice ${invoice.invoice_number} ` +
-        `for $${invoice.amount.toLocaleString()}, which was due on ${new Date(invoice.due_date).toLocaleDateString()}.\n\n` +
+        `for ${formatCurrency(invoice.amount, invoice.currency || 'USD')}, which was due on ${new Date(invoice.due_date).toLocaleDateString()}.\n\n` +
         (daysOverdue > 0
           ? `This invoice is now ${daysOverdue} days overdue. `
           : `This invoice is due soon. `) +
@@ -93,7 +95,7 @@ const MessageDrafter = () => {
     } else {
       setContent(
         `Hi ${contactName}, this is a friendly reminder that invoice ${invoice.invoice_number} ` +
-        `($${invoice.amount.toLocaleString()}) ` +
+        `(${formatCurrency(invoice.amount, invoice.currency || 'USD')}) ` +
         (daysOverdue > 0
           ? `is ${daysOverdue} days overdue. `
           : `is due on ${new Date(invoice.due_date).toLocaleDateString()}. `) +

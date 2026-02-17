@@ -19,6 +19,7 @@ export interface PaymentTransaction {
   invoice?: {
     invoice_number: string;
     debtor_id: string;
+    currency: string | null;
     debtors?: {
       name: string;
       company_name: string | null;
@@ -74,6 +75,7 @@ export const usePaymentsActivity = (options: UsePaymentsActivityOptions = {}) =>
           invoice:invoices!invoice_transactions_invoice_id_fkey (
             invoice_number,
             debtor_id,
+            currency,
             debtors (
               name,
               company_name

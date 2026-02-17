@@ -22,6 +22,7 @@ interface Invoice {
   invoice_number: string;
   amount: number;
   amount_outstanding?: number;
+  currency?: string | null;
   status: string;
   due_date: string;
 }
@@ -71,9 +72,10 @@ export function PaymentPlanModal({
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Calculate total from selected invoices
-  const totalAmount = invoices
-    .filter((inv) => selectedInvoiceIds.includes(inv.id))
-    .reduce((sum, inv) => sum + (inv.amount_outstanding || inv.amount), 0);
+  const selectedInvoices = invoices.filter((inv) => selectedInvoiceIds.includes(inv.id));
+  const totalAmount = selectedInvoices.reduce((sum, inv) => sum + (inv.amount_outstanding || inv.amount), 0);
+  const planCurrency = selectedInvoices[0]?.currency || 'USD';
+  const cs = (amt: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: planCurrency, minimumFractionDigits: 2 }).format(amt);
 
   const installmentAmount = totalAmount / numberOfInstallments;
 
@@ -118,7 +120,7 @@ export function PaymentPlanModal({
         `Dear ${debtorName},\n\n` +
         `We have prepared a payment plan proposal to help you manage your outstanding balance.\n\n` +
         `**Payment Plan Details:**\n` +
-        `- Total Amount: $${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}\n` +
+        `- Total Amount: ${cs(totalAmount)}\n` +
         `- Number of Installments: ${numberOfInstallments}\n` +
         `- Payment Frequency: ${frequency.replace("-", " ")}\n` +
         `- First Payment Due: ${format(new Date(startDate), "MMMM d, yyyy")}\n\n` +
@@ -171,6 +173,7 @@ export function PaymentPlanModal({
         planName: planName || undefined,
         invoiceIds: selectedInvoiceIds,
         notes: notes || undefined,
+        currency: planCurrency,
       };
 
       const plan = await createPaymentPlan.mutateAsync(planData);
@@ -329,7 +332,7 @@ export function PaymentPlanModal({
                         <div className="flex items-center justify-between">
                           <span className="font-mono text-sm">{invoice.invoice_number}</span>
                           <span className="font-medium">
-                            ${(invoice.amount_outstanding || invoice.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            {cs(invoice.amount_outstanding || invoice.amount)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -345,7 +348,7 @@ export function PaymentPlanModal({
                 <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
                   <span className="text-sm font-medium">Total Selected:</span>
                   <span className="text-lg font-bold">
-                    ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    {cs(totalAmount)}
                   </span>
                 </div>
               )}
@@ -415,7 +418,7 @@ export function PaymentPlanModal({
                 <div className="flex justify-between text-sm">
                   <span>Payment per installment:</span>
                   <span className="font-semibold">
-                    ~${installmentAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ~{cs(installmentAmount)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -465,7 +468,7 @@ export function PaymentPlanModal({
                         <TableCell className="font-medium">{inst.number}</TableCell>
                         <TableCell>{format(inst.dueDate, "MMMM d, yyyy")}</TableCell>
                         <TableCell className="text-right font-mono">
-                          ${inst.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {cs(inst.amount)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -474,7 +477,7 @@ export function PaymentPlanModal({
                 <div className="flex justify-between items-center pt-4 border-t mt-4">
                   <span className="font-medium">Total:</span>
                   <span className="text-lg font-bold">
-                    ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    {cs(totalAmount)}
                   </span>
                 </div>
               </CardContent>

@@ -20,6 +20,7 @@ interface PaymentPlan {
   frequency: string;
   start_date: string;
   status: string;
+  currency: string;
   proposed_at: string | null;
   accepted_at: string | null;
   notes: string | null;
@@ -273,7 +274,7 @@ export default function PublicPaymentPlanPage() {
               <div className="p-4 bg-muted/50 rounded-lg text-center">
                 <p className="text-sm text-muted-foreground">Total Amount</p>
                 <p className="text-2xl font-bold">
-                  ${plan.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: plan.currency || 'USD', minimumFractionDigits: 2 }).format(plan.total_amount)}
                 </p>
               </div>
               <div className="p-4 bg-green-50 rounded-lg text-center">
@@ -409,7 +410,7 @@ export default function PublicPaymentPlanPage() {
                     <TableCell className="font-medium">{inst.installment_number}</TableCell>
                     <TableCell>{format(new Date(inst.due_date), "MMMM d, yyyy")}</TableCell>
                     <TableCell className="font-mono">
-                      ${inst.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: plan.currency || 'USD', minimumFractionDigits: 2 }).format(inst.amount)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

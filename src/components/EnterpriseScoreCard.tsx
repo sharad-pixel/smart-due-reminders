@@ -297,7 +297,7 @@ export const EnterpriseScoreCard = ({
                   <ScoreComponentRow 
                     label="Balance Health (20%)" 
                     score={scoreComponents.outstanding_balance_score}
-                    detail={`$${scoreComponents.total_outstanding.toLocaleString()} outstanding`}
+                    detail={`${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(scoreComponents.total_outstanding)} outstanding`}
                   />
                   <ScoreComponentRow 
                     label="AI Sentiment (15%)" 

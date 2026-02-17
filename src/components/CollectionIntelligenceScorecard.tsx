@@ -312,7 +312,7 @@ export function CollectionIntelligenceScorecard({
               "text-sm font-medium",
               pastDueBalance > 0 ? "text-red-600" : "text-green-600"
             )}>
-              ${pastDueBalance.toLocaleString()}
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(pastDueBalance)}
             </span>
           </div>
 

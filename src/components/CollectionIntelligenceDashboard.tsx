@@ -278,7 +278,7 @@ function AccountScorecard({
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <span className="text-muted-foreground">Balance:</span>
-            <span className="font-medium ml-1">${(account.total_open_balance || 0).toLocaleString()}</span>
+            <span className="font-medium ml-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(account.total_open_balance || 0)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Invoices:</span>
@@ -344,7 +344,7 @@ function MiniScorecard({
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm truncate">{account.company_name}</div>
         <div className="text-xs text-muted-foreground">
-          ${(account.total_open_balance || 0).toLocaleString()} • {tier || "Unscored"}
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(account.total_open_balance || 0)} • {tier || "Unscored"}
         </div>
       </div>
     </div>

@@ -25,8 +25,8 @@ interface CreditIntelligenceCardProps {
   portfolioRiskSummary: PortfolioRiskSummary | null;
 }
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+const formatCurrency = (amount: number, currency: string = 'USD') =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', minimumFractionDigits: 0 }).format(amount);
 
 const getPaydexColor = (score: number | null) => {
   if (score === null) return 'bg-muted';

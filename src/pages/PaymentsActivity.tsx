@@ -17,8 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+const formatCurrency = (amount: number, currency: string = 'USD') =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
 
 const getSourceIcon = (source: string | null) => {
   if (!source) return null;
