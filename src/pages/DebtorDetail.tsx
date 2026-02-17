@@ -1094,65 +1094,106 @@ const DebtorDetail = () => {
                     <p className="text-muted-foreground">No invoices for this account yet.</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Issue Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Tasks</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoices.map((invoice) => (
-                        <TableRow 
-                          key={invoice.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/invoices/${invoice.id}`)}
-                        >
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              {invoice.invoice_number}
-                              {invoice.is_on_payment_plan && (
-                                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0">
-                                  <DollarSign className="h-2.5 w-2.5 mr-0.5" />
-                                  Payment Plan
-                                </Badge>
-                              )}
+                  <>
+                    {/* Currency summary bar */}
+                    {(() => {
+                      const byCurrency: Record<string, { total: number; outstanding: number; count: number }> = {};
+                      invoices.forEach(inv => {
+                        const curr = inv.currency || "USD";
+                        if (!byCurrency[curr]) byCurrency[curr] = { total: 0, outstanding: 0, count: 0 };
+                        byCurrency[curr].total += inv.amount;
+                        byCurrency[curr].count++;
+                        if (["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"].includes(inv.status)) {
+                          byCurrency[curr].outstanding += (inv.amount_outstanding ?? inv.amount);
+                        }
+                      });
+                      const currencies = Object.keys(byCurrency);
+                      const getCurrencySymbol = (c: string) => c === "USD" ? "$" : c === "EUR" ? "€" : c === "GBP" ? "£" : c === "CAD" ? "CA$" : `${c} `;
+                      return (
+                        <div className="flex flex-wrap gap-4 mb-4 p-3 bg-muted/30 rounded-lg border">
+                          {currencies.sort().map(curr => (
+                            <div key={curr} className="flex items-center gap-2">
+                              <Badge variant="outline" className="font-semibold">{curr}</Badge>
+                              <span className="text-sm text-muted-foreground">{byCurrency[curr].count} invoice{byCurrency[curr].count !== 1 ? 's' : ''}</span>
+                              <span className="text-sm font-medium">
+                                Outstanding: {getCurrencySymbol(curr)}{byCurrency[curr].outstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
                             </div>
-                          </TableCell>
-                          <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
-                          <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
-                          <TableCell>${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                invoice.status
-                              )}`}
-                            >
-                              {invoice.status}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {invoice.tasks_count && invoice.tasks_count > 0 ? (
-                              <Badge variant="secondary" className="gap-1">
-                                <FileText className="h-3 w-3" />
-                                {invoice.tasks_count}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          </TableCell>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice #</TableHead>
+                          <TableHead>Issue Date</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Tasks</TableHead>
+                          <TableHead className="w-10"></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((invoice) => {
+                          const curr = invoice.currency || "USD";
+                          const symbol = curr === "USD" ? "$" : curr === "EUR" ? "€" : curr === "GBP" ? "£" : curr === "CAD" ? "CA$" : "";
+                          return (
+                            <TableRow 
+                              key={invoice.id}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => navigate(`/invoices/${invoice.id}`)}
+                            >
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  {invoice.invoice_number}
+                                  {invoice.is_on_payment_plan && (
+                                    <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0">
+                                      <DollarSign className="h-2.5 w-2.5 mr-0.5" />
+                                      Payment Plan
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
+                              <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <span className="tabular-nums">
+                                  {symbol}{invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                                {curr !== "USD" && (
+                                  <Badge variant="outline" className="ml-1.5 text-[10px] px-1 py-0">{curr}</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                                    invoice.status
+                                  )}`}
+                                >
+                                  {invoice.status}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {invoice.tasks_count && invoice.tasks_count > 0 ? (
+                                  <Badge variant="secondary" className="gap-1">
+                                    <FileText className="h-3 w-3" />
+                                    {invoice.tasks_count}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </>
                 )}
               </CardContent>
             </Card>
