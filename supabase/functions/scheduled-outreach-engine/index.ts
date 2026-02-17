@@ -168,21 +168,22 @@ Deno.serve(async (req) => {
         tone,
         cadence_days,
         user_id,
-        invoices!inner (
-          id,
-          due_date,
-          status,
-          aging_bucket,
-          bucket_entered_at,
-          invoice_number,
-          reference_id,
-          amount,
-          outreach_paused,
-          user_id,
-          integration_url,
-          external_link,
-          stripe_hosted_url,
-          product_description,
+          invoices!inner (
+            id,
+            due_date,
+            status,
+            aging_bucket,
+            bucket_entered_at,
+            invoice_number,
+            reference_id,
+            amount,
+            currency,
+            outreach_paused,
+            user_id,
+            integration_url,
+            external_link,
+            stripe_hosted_url,
+            product_description,
           debtors!inner (
             id,
             name,
@@ -290,7 +291,7 @@ Deno.serve(async (req) => {
           // Build email content
           const customerName = debtor?.company_name || debtor?.name || 'Valued Customer';
           const invoiceNumber = invoice.invoice_number || invoice.reference_id || '';
-          const formattedAmount = `$${(invoice.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+          const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD', minimumFractionDigits: 2 }).format(invoice.amount || 0);
           const invoiceLink = invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url || '';
           // CRITICAL: Use proper fallback chain for business name
           const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';

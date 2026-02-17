@@ -449,20 +449,20 @@ Company name for signature: ${brandingSettings.business_name || "Collections Tea
 ACCOUNT DETAILS:
 - Company: ${contextSummary.accountName}
 - Contact: ${contextSummary.contactName}
-- Total Outstanding: $${contextSummary.totalOutstanding.toLocaleString()}
+- Total Outstanding: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(contextSummary.totalOutstanding)}
 - Open Invoices: ${contextSummary.invoiceCount}
 - Risk Tier: ${contextSummary.riskTier}
 - Payment Score: ${contextSummary.paymentScore || "Not calculated"}
 - Avg Days to Pay: ${contextSummary.avgDaysToPay || "Unknown"}
 
 OPEN INVOICES:
-${contextSummary.invoices?.map((inv: any) => `- Invoice #${inv.invoice_number}: $${(inv.outstanding_amount || inv.amount || 0).toLocaleString()} (Due: ${inv.due_date}, Status: ${inv.status})`).join('\n') || "None"}
+${contextSummary.invoices?.map((inv: any) => `- Invoice #${inv.invoice_number}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: inv.currency || 'USD', minimumFractionDigits: 2 }).format(inv.outstanding_amount || inv.amount || 0)} (Due: ${inv.due_date}, Status: ${inv.status})`).join('\n') || "None"}
 
 OPEN TASKS/ISSUES:
 ${openTasks?.map(t => `- [${t.priority.toUpperCase()}] ${t.task_type}: ${t.summary}`).join('\n') || "None"}
 
 RECENT PAYMENTS:
-${payments?.map(p => `- $${p.amount.toLocaleString()} on ${p.payment_date}`).join('\n') || "No recent payments"}
+${payments?.map(p => `- ${new Intl.NumberFormat('en-US', { style: 'currency', currency: p.currency || 'USD', minimumFractionDigits: 2 }).format(p.amount)} on ${p.payment_date}`).join('\n') || "No recent payments"}
 
 RECENT COMMUNICATIONS:
 ${inboundEmails?.map(e => `- ${e.subject}: ${e.ai_summary || "No summary"} (Sentiment: ${e.sentiment || "neutral"})`).join('\n') || "No recent communications"}
@@ -632,7 +632,7 @@ Generate a JSON response with:
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-family: monospace; color: #1e293b;">${inv.invoice_number}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${new Date(inv.issue_date).toLocaleDateString()}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${new Date(inv.due_date).toLocaleDateString()}</td>
-                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; color: #1e293b;">$${inv.amount.toLocaleString()}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; color: #1e293b;">${new Intl.NumberFormat('en-US', { style: 'currency', currency: inv.currency || 'USD', minimumFractionDigits: 2 }).format(inv.amount)}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
                   <span style="padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; ${inv.status === 'Open' ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #ddd6fe; color: #5b21b6;'}">
                     ${inv.status}
@@ -642,7 +642,7 @@ Generate a JSON response with:
             `).join('')}
             <tr style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);">
               <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b;">Total Outstanding:</td>
-              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">$${totalAmount.toLocaleString()}</td>
+              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}</td>
               <td style="padding: 14px 16px;"></td>
             </tr>
           </tbody>
@@ -701,7 +701,7 @@ Generate a JSON response with:
       subject: generatedSubject || "",
       bodyHtml: emailContent,
       cta: paymentUrl ? {
-        label: `Pay Now${totalAmount ? ` $${totalAmount.toLocaleString()}` : ''}`,
+        label: `Pay Now${totalAmount ? ` ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}` : ''}`,
         url: paymentUrl,
       } : undefined,
       meta: {

@@ -495,7 +495,7 @@ Deno.serve(async (req) => {
           bodyHtml: processedBody.replace(/\n/g, '<br>'),
           cta: branding?.stripe_payment_link
             ? {
-                label: `💳 Pay Now $${invoice.amount?.toLocaleString()}`,
+                label: `💳 Pay Now ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD', minimumFractionDigits: 2 }).format(invoice.amount || 0)}`,
                 url: branding.stripe_payment_link,
               }
             : undefined,
