@@ -108,6 +108,8 @@ interface Invoice {
   id: string;
   invoice_number: string;
   amount: number;
+  amount_outstanding?: number | null;
+  currency?: string | null;
   status: string;
   due_date: string;
   issue_date: string;
@@ -462,7 +464,7 @@ const DebtorDetail = () => {
     try {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*, is_on_payment_plan, payment_plan_id")
+        .select("*, is_on_payment_plan, payment_plan_id, currency, amount_outstanding")
         .eq("debtor_id", id)
         .eq("is_archived", false)
         .order("due_date", { ascending: false });
@@ -953,9 +955,41 @@ const DebtorDetail = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Current Balance</p>
-                <p className="text-2xl font-bold">
-                  ${(debtor.current_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
+                {(() => {
+                  // Group active invoices by currency
+                  const activeInvoices = invoices.filter(inv => 
+                    ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"].includes(inv.status)
+                  );
+                  const byCurrency: Record<string, number> = {};
+                  activeInvoices.forEach(inv => {
+                    const curr = inv.currency || "USD";
+                    const balance = inv.amount_outstanding ?? inv.amount;
+                    byCurrency[curr] = (byCurrency[curr] || 0) + balance;
+                  });
+                  const currencies = Object.keys(byCurrency);
+                  if (currencies.length <= 1) {
+                    const curr = currencies[0] || "USD";
+                    const symbol = curr === "USD" ? "$" : curr === "EUR" ? "€" : curr === "GBP" ? "£" : `${curr} `;
+                    return (
+                      <p className="text-2xl font-bold">
+                        {symbol}{(byCurrency[curr] || debtor.current_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="space-y-1">
+                      {currencies.sort().map(curr => {
+                        const symbol = curr === "USD" ? "$" : curr === "EUR" ? "€" : curr === "GBP" ? "£" : `${curr} `;
+                        return (
+                          <p key={curr} className="text-xl font-bold flex items-center gap-2">
+                            {symbol}{byCurrency[curr].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <Badge variant="outline" className="text-xs font-normal">{curr}</Badge>
+                          </p>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="crm-account">Linked CRM Account</Label>

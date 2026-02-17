@@ -148,6 +148,7 @@ const InvoiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [primaryContactEmail, setPrimaryContactEmail] = useState<string | null>(null);
   const [associatedWorkflow, setAssociatedWorkflow] = useState<CollectionWorkflow | null>(null);
 const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [workflowSteps, setWorkflowSteps] = useState<{ id: string; step_order: number; day_offset: number; channel: string; label: string; is_active: boolean }[]>([]);
@@ -373,6 +374,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           setCrmAccount(crmData);
         }
       }
+
+      // Fetch primary contact email from debtor_contacts
+      if (invoiceRes.data?.debtor_id) {
+        const { data: contactsData } = await supabase
+          .from("debtor_contacts")
+          .select("email, is_primary, outreach_enabled")
+          .eq("debtor_id", invoiceRes.data.debtor_id)
+          .eq("outreach_enabled", true)
+          .order("is_primary", { ascending: false });
+
+        if (contactsData && contactsData.length > 0) {
+          const primary = contactsData.find(c => c.is_primary);
+          setPrimaryContactEmail(primary?.email || contactsData[0]?.email || null);
+        } else {
+          setPrimaryContactEmail(invoiceRes.data.debtors?.email || null);
+        }
+      }
     } catch (error: any) {
       toast.error("Failed to load invoice details");
       navigate("/invoices");
@@ -512,7 +530,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
-      toast.success("Email sent to " + (invoice?.debtors?.email || "account contact") + "!");
+      toast.success("Email sent to " + (primaryContactEmail || invoice?.debtors?.email || "account contact") + "!");
       setPreviewModalOpen(false);
       fetchData();
     } catch (error: any) {
@@ -1480,8 +1498,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <p className="font-medium">{invoice.debtors?.company_name}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm font-medium">{invoice.debtors?.email}</p>
+                  <p className="text-xs text-muted-foreground">Contact Email</p>
+                  <p className="text-sm font-medium">{primaryContactEmail || invoice.debtors?.email || "—"}</p>
                 </div>
                 <Button
                   variant="outline"
@@ -2007,7 +2025,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Send To:</span>
-                    <span className="font-medium">{invoice?.debtors?.email}</span>
+                    <span className="font-medium">{primaryContactEmail || invoice?.debtors?.email || "—"}</span>
                   </div>
                 </CardContent>
               </Card>
