@@ -399,12 +399,12 @@ ABSOLUTELY CRITICAL - USE REAL VALUES, NO PLACEHOLDERS:
   * Customer Company (recipient's company): "${companyName || contactName}" (the company that owes money)
   * Your Company (sender): "${businessName}" (YOUR company name - the one sending this email)
   * Invoice Number: ${invoice.invoice_number}
-  * Amount Due: ${formattedBalance} (ALWAYS use this formatted amount with dollar sign)
+  * Amount Due: ${formattedBalance} (ALWAYS use this exact formatted amount with currency symbol)
   * Due Date: ${formattedDueDate}
   * Days Past Due: ${daysPastDue}
 
 FORMATTING RULES - VERY IMPORTANT:
-- ALWAYS show currency amounts WITH the dollar sign and formatting (e.g., "$2,995.00" NOT "2995")
+- ALWAYS show currency amounts WITH the correct currency symbol and formatting (e.g., "$2,995.00", "€1,500.00", "£800.00" - match the invoice currency)
 - Start the email with "Hi ${contactName}," or "Dear ${contactName},"
 - When saying "a reminder from..." use "${businessName}" (your company, the sender)
 - Sign the email as "${personaName}" from "${businessName}"
@@ -449,7 +449,7 @@ INVOICE DETAILS:
 - Invoice Number: ${invoice.invoice_number}
 - Original Amount: ${formattedAmount}
 - Amount Already Paid: ${formattedPaid}
-- BALANCE DUE: ${formattedBalance} (USE THIS EXACT FORMATTED AMOUNT WITH DOLLAR SIGN)
+- BALANCE DUE: ${formattedBalance} (USE THIS EXACT FORMATTED AMOUNT WITH CURRENCY SYMBOL)
 - Due Date: ${formattedDueDate}
 - Days Past Due: ${daysPastDue}
 
