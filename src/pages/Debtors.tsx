@@ -82,7 +82,10 @@ const Debtors = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
-  const [balanceFilter, setBalanceFilter] = useState<string>("with_balance"); // Default to exclude zero balance
+  const [balanceFilter, setBalanceFilter] = useState<string>("with_balance");
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
+  const [debtorCurrencyMap, setDebtorCurrencyMap] = useState<Record<string, Set<string>>>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,28 +117,47 @@ const Debtors = () => {
   useEffect(() => {
     filterDebtors();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter]);
+  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter, currencyFilter]);
 
   const fetchDebtors = async () => {
     try {
-      const { data, error } = await supabase
-        .from("debtors")
-        .select(`
-          id, reference_id, name, company_name, email, phone, type,
-          current_balance, total_open_balance, external_customer_id,
-          crm_account_id_external, open_invoices_count, max_days_past_due,
-          payment_score, avg_days_to_pay, city, state,
-          credit_limit, payment_terms_default, created_at,
-          account_outreach_enabled, outreach_frequency,
-          debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
-        `)
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
+      const [debtorRes, currencyRes] = await Promise.all([
+        supabase
+          .from("debtors")
+          .select(`
+            id, reference_id, name, company_name, email, phone, type,
+            current_balance, total_open_balance, external_customer_id,
+            crm_account_id_external, open_invoices_count, max_days_past_due,
+            payment_score, avg_days_to_pay, city, state,
+            credit_limit, payment_terms_default, created_at,
+            account_outreach_enabled, outreach_frequency,
+            debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
+          `)
+          .eq("is_archived", false)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("invoices")
+          .select("debtor_id, currency")
+          .in("status", ["Open", "PartiallyPaid", "InPaymentPlan"])
+      ]);
 
-      if (error) throw error;
+      if (debtorRes.error) throw debtorRes.error;
       
-      // Map contacts to debtors
-      const debtorsWithContacts = (data || []).map((d: any) => ({
+      // Build currency map per debtor
+      const cMap: Record<string, Set<string>> = {};
+      const allCurrencies = new Set<string>();
+      (currencyRes.data || []).forEach((inv: any) => {
+        if (inv.debtor_id) {
+          const curr = inv.currency || "USD";
+          if (!cMap[inv.debtor_id]) cMap[inv.debtor_id] = new Set();
+          cMap[inv.debtor_id].add(curr);
+          allCurrencies.add(curr);
+        }
+      });
+      setDebtorCurrencyMap(cMap);
+      setAvailableCurrencies(Array.from(allCurrencies).sort());
+
+      const debtorsWithContacts = (debtorRes.data || []).map((d: any) => ({
         ...d,
         contacts: d.debtor_contacts || []
       }));
@@ -179,6 +201,10 @@ const Debtors = () => {
       filtered = filtered.filter((d) => d.account_outreach_enabled === true);
     } else if (outreachFilter === "disabled") {
       filtered = filtered.filter((d) => !d.account_outreach_enabled);
+    }
+
+    if (currencyFilter !== "all") {
+      filtered = filtered.filter((d) => debtorCurrencyMap[d.id]?.has(currencyFilter));
     }
 
     setFilteredDebtors(filtered);
@@ -656,6 +682,19 @@ const Debtors = () => {
                     <SelectItem value="all">All Accounts</SelectItem>
                   </SelectContent>
                 </Select>
+                {availableCurrencies.length > 1 && (
+                  <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+                    <SelectTrigger className="w-full md:w-[130px]">
+                      <SelectValue placeholder="Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Currencies</SelectItem>
+                      {availableCurrencies.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <div className="flex border rounded-lg overflow-hidden">
                   <Button
                     variant={viewMode === "card" ? "default" : "ghost"}

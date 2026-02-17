@@ -10,6 +10,7 @@ import { User } from "@supabase/supabase-js";
 import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
@@ -35,6 +36,7 @@ interface Invoice {
   due_date: string;
   status: string;
   payment_date: string | null;
+  currency: string | null;
   debtors?: { name: string };
 }
 
@@ -58,6 +60,11 @@ interface DashboardTask {
   debtors?: { name: string; company_name: string };
   invoices?: { invoice_number: string };
 }
+
+const getCurrencySymbol = (currency: string) => {
+  const symbols: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", CAD: "CA$", AUD: "A$" };
+  return symbols[currency] || `${currency} `;
+};
 
 const Dashboard = () => {
   usePageTitle("Dashboard");
@@ -91,6 +98,8 @@ const Dashboard = () => {
   ]);
   const [statusFilters, setStatusFilters] = useState<string[]>(["Open", "InPaymentPlan"]);
   const [tasksAssignedToMeOnly, setTasksAssignedToMeOnly] = useState(false);
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
 
   // Saved views
   const {
@@ -169,9 +178,9 @@ const Dashboard = () => {
       let from = 0;
       const PAGE_SIZE = 1000;
       while (true) {
-        const { data, error } = await supabase
+      const { data, error } = await supabase
           .from("invoices")
-          .select("*, debtors(name)")
+          .select("*, debtors(name), currency")
           .range(from, from + PAGE_SIZE - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -189,19 +198,29 @@ const Dashboard = () => {
 
       setInvoices(allInvoices);
 
+      // Detect available currencies
+      const currencies = new Set<string>();
+      allInvoices.forEach(inv => currencies.add(inv.currency || "USD"));
+      setAvailableCurrencies(Array.from(currencies).sort());
+
       if (!tasksError) {
         setPendingTasks(tasksData || []);
       }
 
+      // Apply currency filter
+      const currFiltered = currencyFilter === "all" 
+        ? allInvoices 
+        : allInvoices.filter(inv => (inv.currency || "USD") === currencyFilter);
+
       // Calculate Total Outstanding
-      const outstanding = allInvoices
+      const outstanding = currFiltered
         .filter((inv) => inv.status === "Open" || inv.status === "InPaymentPlan")
         .reduce((sum, inv) => sum + Number(inv.amount), 0);
 
       // Calculate Total Recovered (last 90 days)
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-      const recovered = allInvoices
+      const recovered = currFiltered
         .filter((inv) => {
           if (inv.status !== "Paid" || !inv.payment_date) return false;
           const paymentDate = new Date(inv.payment_date);
@@ -210,7 +229,7 @@ const Dashboard = () => {
         .reduce((sum, inv) => sum + Number(inv.amount), 0);
 
       // Calculate Open Invoices Count
-      const openInvoices = allInvoices.filter((inv) => inv.status === "Open");
+      const openInvoices = currFiltered.filter((inv) => inv.status === "Open");
       const openCount = openInvoices.length;
 
       // Calculate Average Days Past Due for Open invoices
@@ -226,7 +245,7 @@ const Dashboard = () => {
         avgDaysPastDue: avgDays,
       });
 
-      // Calculate Aging Buckets with status filters
+      // Calculate Aging Buckets with status filters + currency filter
       const buckets = {
         "0-30": { count: 0, amount: 0 },
         "31-60": { count: 0, amount: 0 },
@@ -235,7 +254,7 @@ const Dashboard = () => {
         "121+": { count: 0, amount: 0 },
       };
 
-      const filteredInvoices = allInvoices.filter(inv => statusFilters.includes(inv.status));
+      const filteredInvoices = currFiltered.filter(inv => statusFilters.includes(inv.status));
       
       filteredInvoices.forEach((inv) => {
         const days = getDaysPastDue(inv.due_date);
@@ -380,7 +399,7 @@ const Dashboard = () => {
     if (user) {
       fetchDashboardData();
     }
-  }, [statusFilters]);
+  }, [statusFilters, currencyFilter]);
 
   if (loading || !user) {
     return (
@@ -517,7 +536,10 @@ const Dashboard = () => {
               <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold">${stats.totalOutstanding.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-bold">
+                {currencyFilter !== "all" ? getCurrencySymbol(currencyFilter) : "$"}{stats.totalOutstanding.toLocaleString()}
+                {currencyFilter !== "all" && <span className="text-xs font-normal text-muted-foreground ml-1">{currencyFilter}</span>}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Open + In Payment Plan</p>
             </CardContent>
           </Card>
@@ -528,7 +550,9 @@ const Dashboard = () => {
               <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold">${stats.totalRecovered.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-bold">
+                {currencyFilter !== "all" ? getCurrencySymbol(currencyFilter) : "$"}{stats.totalRecovered.toLocaleString()}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Payments received</p>
             </CardContent>
           </Card>
@@ -572,7 +596,20 @@ const Dashboard = () => {
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <CardTitle className="text-base sm:text-lg">Invoice Aging Analysis</CardTitle>
-              <div className="flex gap-1 sm:gap-2 flex-wrap">
+              <div className="flex gap-1 sm:gap-2 flex-wrap items-center">
+                {availableCurrencies.length > 1 && (
+                  <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+                    <SelectTrigger className="w-[110px] h-8 text-xs">
+                      <SelectValue placeholder="Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Currencies</SelectItem>
+                      {availableCurrencies.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {["Open", "InPaymentPlan", "Paid", "Disputed", "Settled", "Canceled"].map((status) => (
                   <Badge
                     key={status}

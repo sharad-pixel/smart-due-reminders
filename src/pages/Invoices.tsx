@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, AlertCircle, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,12 +37,18 @@ interface Invoice {
   debtor_id: string;
   integration_source: string | null;
   has_local_overrides: boolean | null;
+  currency: string | null;
   debtors?: { company_name: string };
   ai_workflows?: Array<{
     id: string;
     is_active: boolean;
   }>;
 }
+
+const getCurrencySymbol = (currency: string) => {
+  const symbols: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", CAD: "CA$", AUD: "A$" };
+  return symbols[currency] || `${currency} `;
+};
 
 interface Debtor {
   id: string;
@@ -67,6 +74,7 @@ const Invoices = () => {
   const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [hideInactive, setHideInactive] = useState<boolean>(() => {
     const saved = localStorage.getItem("hideInactiveInvoices");
     return saved === "true";
@@ -109,7 +117,7 @@ const Invoices = () => {
   useEffect(() => {
     filterInvoices();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, hideInactive]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
 
   const fetchAllInvoicesPaginated = async () => {
     const allData: any[] = [];
@@ -118,7 +126,7 @@ const Invoices = () => {
     while (true) {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides")
+        .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides, currency")
         .eq("is_archived", false)
         .order("due_date", { ascending: false })
         .range(from, from + PAGE_SIZE - 1);
@@ -313,6 +321,10 @@ const Invoices = () => {
     if (hideInactive) {
       const inactiveStatuses = ["Paid", "Settled", "Canceled", "Voided"];
       filtered = filtered.filter((inv) => !inactiveStatuses.includes(inv.status));
+    }
+
+    if (currencyFilter !== "all") {
+      filtered = filtered.filter((inv) => (inv.currency || "USD") === currencyFilter);
     }
 
     setFilteredInvoices(filtered);
@@ -708,6 +720,17 @@ const Invoices = () => {
                         <SelectItem value="xero">🔗 Xero</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Currencies</SelectItem>
+                        {Array.from(new Set(invoices.map(inv => inv.currency || "USD"))).sort().map(c => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 
@@ -891,7 +914,12 @@ const Invoices = () => {
                         <TableCell className="font-mono text-xs text-muted-foreground">{invoice.reference_id}</TableCell>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{invoice.debtors?.company_name}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">${invoice.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {getCurrencySymbol(invoice.currency || "USD")}{invoice.amount.toLocaleString()}
+                          {(invoice.currency && invoice.currency !== "USD") && (
+                            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">{invoice.currency}</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm tabular-nums">{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <span className="text-sm px-2 py-1 bg-muted/50 rounded">
