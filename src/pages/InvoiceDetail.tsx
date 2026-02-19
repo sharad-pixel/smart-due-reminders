@@ -1466,16 +1466,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <Button
                   variant="outline"
                   size="sm"
-                  className="justify-start"
-                  onClick={() => handleStatusChange("InPaymentPlan")}
-                  disabled={invoice.status === "InPaymentPlan"}
-                >
-                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Payment Plan
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   className="justify-start col-span-2"
                   onClick={() => handleStatusChange("Canceled")}
                   disabled={invoice.status === "Canceled"}
