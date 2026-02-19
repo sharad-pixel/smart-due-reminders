@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -1306,7 +1307,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Original Amount</p>
                     <p className="text-lg font-medium text-muted-foreground line-through">
-                      {invoice.currency || 'USD'} ${formatAmount(invoice.amount_original)}
+                      {formatCurrency(invoice.amount_original, invoice.currency || 'USD')}
                     </p>
                   </div>
                 )}
@@ -1315,14 +1316,14 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     {invoice.amount_original && invoice.amount_original !== invoice.amount ? 'Current Amount' : 'Amount'}
                   </p>
                   <p className="text-xl font-bold">
-                    {invoice.currency || 'USD'} ${formatAmount(invoice.amount)}
+                    {formatCurrency(invoice.amount, invoice.currency || 'USD')}
                   </p>
                 </div>
                 {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Outstanding</p>
                     <p className={`text-lg font-semibold ${invoice.amount_outstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                      ${formatAmount(invoice.amount_outstanding)}
+                      {formatCurrency(invoice.amount_outstanding, invoice.currency || 'USD')}
                     </p>
                   </div>
                 )}
