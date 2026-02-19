@@ -12,12 +12,12 @@ import { toast } from "sonner";
  * - Activity tracking on user interactions
  */
 
-// PCI-DSS: Session idle timeout ≤ 15 minutes
-const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
+// Idle timeout: 30 minutes
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 // Warning shown 2 minutes before idle logout
 const IDLE_WARNING_MS = IDLE_TIMEOUT_MS - 2 * 60 * 1000;
-// FFIEC: Absolute session timeout (8 hours max)
-const ABSOLUTE_TIMEOUT_MS = 8 * 60 * 60 * 1000;
+// Absolute session timeout: 12 hours
+const ABSOLUTE_TIMEOUT_MS = 12 * 60 * 60 * 1000;
 // How often to check timeouts
 const CHECK_INTERVAL_MS = 30 * 1000;
 // Debounce activity updates (avoid flooding)
@@ -106,7 +106,7 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
       localStorage.removeItem(STORAGE_KEY_LAST_ACTIVITY);
       localStorage.removeItem(STORAGE_KEY_SESSION_START);
       await supabase.auth.signOut();
-      navigate("/auth", { replace: true });
+      navigate("/", { replace: true });
       toast.error(
         reason === "absolute_timeout"
           ? "Session expired. Maximum session duration reached. Please sign in again."
