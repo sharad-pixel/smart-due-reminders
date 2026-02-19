@@ -726,7 +726,7 @@ const Invoices = () => {
                       <SelectContent>
                         <SelectItem value="all">All Currencies</SelectItem>
                         {Array.from(new Set(invoices.map(inv => inv.currency || "USD"))).sort().map(c => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                          <SelectItem key={c} value={c}>{c === "USD" ? "USD – US Dollar" : c === "EUR" ? "EUR – Euro" : c === "GBP" ? "GBP – Pound" : c === "CAD" ? "CAD – Canadian" : c === "AUD" ? "AUD – Australian" : c}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
