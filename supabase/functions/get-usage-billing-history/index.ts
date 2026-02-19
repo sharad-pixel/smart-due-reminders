@@ -194,9 +194,12 @@ Deno.serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Step 2: For each billing period, count ACTIVE invoices (ERP logic)
-    // Active = Open, InPaymentPlan, PartiallyPaid
-    // Use the PEAK (max at any snapshot) or current count for the period
+    // Step 2: For each billing period, count the PEAK active invoices
+    // An invoice was "active" during a month if:
+    //   - It was created on or before the last day of that month, AND
+    //   - It is still active today (Open/InPaymentPlan/PartiallyPaid), OR
+    //   - It was resolved (Paid/Settled/etc.) after the 1st day of that month
+    //     (meaning it was alive at some point during the period)
     // ─────────────────────────────────────────────────────────────
 
     // Get all billing period date ranges (last 24 months + Stripe periods)
@@ -215,41 +218,69 @@ Deno.serve(async (req) => {
       allPeriodKeys.add(key);
     }
 
-    // Fetch active invoice counts grouped by month of creation (as ERP monthly snapshot)
-    // We use created_at month as the billing attribution date
-    const { data: activeInvoiceCounts, error: countError } = await supabaseClient
+    // Fetch ALL invoices (not just currently active) so we can reconstruct
+    // which were active during each historical billing period.
+    // We need: created_at (when it became active), payment_date / updated_at
+    // (when it was resolved), status, and currency.
+    const { data: allInvoices, error: invoicesError } = await supabaseClient
       .from('invoices')
-      .select('id, created_at, status, amount_outstanding, currency')
-      .eq('user_id', accountId)
-      .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
+      .select('id, created_at, status, payment_date, updated_at, amount_outstanding, currency')
+      .eq('user_id', accountId);
 
-    if (countError) {
-      logStep("Error fetching active invoices (non-blocking)", { error: countError.message });
+    if (invoicesError) {
+      logStep("Error fetching invoices (non-blocking)", { error: invoicesError.message });
     }
 
-    // For each calendar month, count how many active invoices existed AT THE END of that month
-    // (i.e., were created on or before end of month, and are still active OR were active during that month)
-    // Simplified: count invoices created in or before that month that are currently still active
-    // Plus invoices that were active at some point in that month (using created_at <= end_of_month)
+    const ACTIVE_STATUSES = new Set(['Open', 'InPaymentPlan', 'PartiallyPaid']);
+    // Statuses that mean the invoice is no longer consuming capacity
+    const RESOLVED_STATUSES = new Set(['Paid', 'Settled', 'Canceled', 'Voided', 'Disputed', 'FinalInternalCollections']);
+
+    // For each invoice, determine its "active window":
+    // - active_from: created_at
+    // - active_until: null (still active), or the date it left the active pool
+    //   We use payment_date if available, otherwise fall back to updated_at for resolved statuses
+    const invoiceWindows = (allInvoices || []).map(inv => {
+      const activeFrom = new Date(inv.created_at);
+      let activeUntil: Date | null = null;
+
+      if (RESOLVED_STATUSES.has(inv.status)) {
+        // Use payment_date first, then updated_at as fallback
+        if (inv.payment_date) {
+          activeUntil = new Date(inv.payment_date);
+        } else if (inv.updated_at) {
+          activeUntil = new Date(inv.updated_at);
+        }
+      }
+      // If still in ACTIVE_STATUSES, activeUntil stays null (still consuming capacity)
+
+      return { id: inv.id, activeFrom, activeUntil, currency: inv.currency || 'USD', status: inv.status };
+    });
 
     // Build a richer picture: for each period, how many invoices were active
     const periodActiveCount: Record<string, { count: number; peak_overage: number; currency_breakdown: Record<string, number> }> = {};
 
     for (const periodKey of allPeriodKeys) {
       const [year, month] = periodKey.split('-').map(Number);
-      const periodEnd = new Date(year, month, 0, 23, 59, 59, 999); // last ms of that month
+      const periodStart = new Date(year, month - 1, 1); // 1st of month
+      const periodEnd = new Date(year, month, 0, 23, 59, 59, 999); // last ms of month
 
-      // Count invoices that were created on or before end of this month and are currently active
-      // This gives us the active invoice load attributable to this billing period
-      const activeInPeriod = (activeInvoiceCounts || []).filter(inv => {
-        const createdAt = new Date(inv.created_at);
-        return createdAt <= periodEnd;
+      // An invoice was active during this period if:
+      // 1. It was created (entered active pool) on or before the period ended, AND
+      // 2. It was either still active (no resolution date) OR resolved AFTER the period started
+      const activeInPeriod = invoiceWindows.filter(inv => {
+        const enteredBeforePeriodEnded = inv.activeFrom <= periodEnd;
+        const wasActiveOrResolvedDuringPeriod =
+          inv.activeUntil === null || inv.activeUntil >= periodStart;
+
+        // Only count if it was ever an active status (not just created and immediately resolved)
+        const wasEverActive = ACTIVE_STATUSES.has(inv.status) || RESOLVED_STATUSES.has(inv.status);
+
+        return enteredBeforePeriodEnded && wasActiveOrResolvedDuringPeriod && wasEverActive;
       });
 
       const currencyBreakdown: Record<string, number> = {};
       for (const inv of activeInPeriod) {
-        const cur = inv.currency || 'USD';
-        currencyBreakdown[cur] = (currencyBreakdown[cur] || 0) + 1;
+        currencyBreakdown[inv.currency] = (currencyBreakdown[inv.currency] || 0) + 1;
       }
 
       const count = activeInPeriod.length;
