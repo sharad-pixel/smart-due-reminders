@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useDebtorIntelligence, useCollectionIntelligence } from "@/hooks/useCollectionIntelligence";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface AccountIntelligencePanelProps {
   debtorId: string;
@@ -268,6 +268,7 @@ export function AccountIntelligencePanel({
   const paidInvoices = scorecardData?.paid_invoices_count ?? 0;
   const overdueInvoices = scorecardData?.overdue_invoices_count ?? 0;
   const pastDueBalance = scorecardData?.total_open_balance || scorecardData?.current_balance || 0;
+  const primaryCurrency = scorecardData?.primary_currency || 'USD';
   const hasInvoiceData = paidInvoices > 0 || overdueInvoices > 0 || (scorecardData?.open_invoices_count || 0) > 0;
 
   return (
@@ -367,7 +368,7 @@ export function AccountIntelligencePanel({
               "text-sm font-medium",
               pastDueBalance > 0 ? "text-red-600" : "text-green-600"
             )}>
-              ${pastDueBalance.toLocaleString()}
+              {formatCurrency(pastDueBalance, primaryCurrency)}
             </span>
           </div>
 

@@ -220,6 +220,7 @@ export interface DebtorIntelligenceWithInvoices extends CollectionIntelligenceDa
   actual_inbound_email_count: number;
   inbound_sentiments: string[];
   has_sufficient_data: boolean;
+  primary_currency: string;
 }
 
 // Hook for single debtor intelligence with real invoice AND inbound email data
@@ -246,7 +247,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           .single(),
         supabase
           .from("invoices")
-          .select("id, status, due_date")
+          .select("id, status, due_date, currency")
           .eq("debtor_id", debtorId),
         supabase
           .from("inbound_emails")
@@ -280,6 +281,14 @@ export const useDebtorIntelligence = (debtorId: string) => {
         (debtorData.touchpoint_count || 0) > 0 || 
         actualInboundCount > 0;
 
+      // Determine primary currency from invoices (most common one)
+      const currencyCounts = invoices.reduce((acc: Record<string, number>, inv: any) => {
+        const c = inv.currency || 'USD';
+        acc[c] = (acc[c] || 0) + 1;
+        return acc;
+      }, {});
+      const primaryCurrency = Object.keys(currencyCounts).sort((a, b) => currencyCounts[b] - currencyCounts[a])[0] || 'USD';
+
       return {
         ...debtorData,
         paid_invoices_count: paidInvoices.length,
@@ -289,6 +298,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
         inbound_email_count: actualInboundCount,
         inbound_sentiments: inboundSentiments,
         has_sufficient_data: hasSufficientData,
+        primary_currency: primaryCurrency,
       } as DebtorIntelligenceWithInvoices;
     },
   });
