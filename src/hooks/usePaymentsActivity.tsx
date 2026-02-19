@@ -136,16 +136,25 @@ export const usePaymentsSummary = () => {
       
       const accountId = effectiveAccountId || user.id;
 
+      // Use local date to avoid UTC timezone drift issues
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      const toLocalDateStr = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      const todayStr = toLocalDateStr(today);
       
+      // "Last 7 days" = today + 6 prior days (7 days inclusive)
       const last7Days = new Date(today);
-      last7Days.setDate(last7Days.getDate() - 7);
-      const last7DaysStr = last7Days.toISOString().split('T')[0];
+      last7Days.setDate(last7Days.getDate() - 6);
+      const last7DaysStr = toLocalDateStr(last7Days);
       
+      // "Last 30 days" = today + 29 prior days (30 days inclusive)
       const last30Days = new Date(today);
-      last30Days.setDate(last30Days.getDate() - 30);
-      const last30DaysStr = last30Days.toISOString().split('T')[0];
+      last30Days.setDate(last30Days.getDate() - 29);
+      const last30DaysStr = toLocalDateStr(last30Days);
 
       // Fetch all transactions for summary calculations
       const { data: allTransactions, error } = await supabase
