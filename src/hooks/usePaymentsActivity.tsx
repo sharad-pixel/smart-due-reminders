@@ -125,7 +125,9 @@ export const usePaymentsActivity = (options: UsePaymentsActivityOptions = {}) =>
 
 export const usePaymentsSummary = () => {
   return useQuery({
-    queryKey: ['payments-summary'],
+    queryKey: ['payments-summary', new Date().toDateString()],
+    staleTime: 0,
+    gcTime: 0,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
