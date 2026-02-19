@@ -95,35 +95,30 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
     },
   });
 
+  // Scoped column definitions per import type
+  const TEMPLATE_COLUMNS: Record<"accounts" | "invoice_aging" | "payments", string[]> = {
+    accounts: [
+      "Company Name", "Type", "Contact Name", "Contact Title", "Contact Email",
+      "Contact Phone", "Address Line 1", "Address Line 2", "City", "State",
+      "Postal Code", "Country", "Account ID (Billing System)", "CRM ID",
+      "Industry", "Notes", "Recouply Account ID (RAID)",
+    ],
+    invoice_aging: [
+      "Recouply Account ID (RAID)", "Invoice Number", "Invoice Date", "Due Date",
+      "Original Amount", "Outstanding Amount", "Currency", "Invoice Status",
+      "PO Number", "Product/Service Description", "SS Invoice #", "Notes",
+    ],
+    payments: [
+      "Recouply Invoice ID", "SS Invoice #", "Payment Date", "Payment Amount",
+      "Payment Reference", "Payment Method", "Payment Notes",
+    ],
+  };
+
   const downloadGenericTemplate = (fileType: "invoice_aging" | "payments" | "accounts") => {
-    if (!fieldDefinitions || fieldDefinitions.length === 0) {
-      toast({ 
-        title: "Error", 
-        description: "Field definitions not loaded.",
-        variant: "destructive" 
-      });
-      return;
-    }
+    const columns = TEMPLATE_COLUMNS[fileType];
+    const templateName = fileType === "accounts" ? "recouply_accounts_template" : fileType === "invoice_aging" ? "recouply_invoices_template" : "recouply_payments_template";
 
-    // Filter by file type groupings
-    let relevantGroupings: string[];
-    let templateName: string;
-    
-    if (fileType === "accounts") {
-      relevantGroupings = ["customer", "account"];
-      templateName = "accounts_template";
-    } else if (fileType === "invoice_aging") {
-      relevantGroupings = ["customer", "invoice", "account"];
-      templateName = "invoices_template";
-    } else {
-      relevantGroupings = ["customer", "payment", "account"];
-      templateName = "payments_template";
-    }
-
-    const relevantFields = fieldDefinitions.filter(f => relevantGroupings.includes(f.grouping));
-    const headers = relevantFields.map(f => f.label);
-    const csvContent = [headers.join(","), ""].join("\n");
-
+    const csvContent = [columns.join(","), ""].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -132,7 +127,8 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
     a.click();
     URL.revokeObjectURL(url);
 
-    toast({ title: "Template downloaded", description: `${fileType === "accounts" ? "Accounts" : fileType === "invoice_aging" ? "Invoices" : "Payments"} template ready for use.` });
+    const label = fileType === "accounts" ? "Accounts" : fileType === "invoice_aging" ? "Invoices" : "Payments";
+    toast({ title: "Template downloaded", description: `${label} template ready for use.` });
   };
 
   const downloadSourceTemplate = async (sourceId: string, sourceName: string, fileType: "invoice_aging" | "payments" | "accounts") => {
@@ -410,16 +406,16 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
                   <p className="text-xs text-muted-foreground">AR aging data</p>
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Includes:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li>Recouply Account ID <span className="text-destructive">*</span></li>
-                  <li>Invoice Number, Amount, Due Date</li>
-                  <li>Invoice Date, Outstanding Amount</li>
-                  <li>Payment Terms, Status</li>
-                  <li>External Invoice ID</li>
-                </ul>
-              </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium text-foreground">Includes:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Recouply Account ID <span className="text-destructive">*</span></li>
+                    <li>Invoice Number, Amount, Due Date</li>
+                    <li>Invoice Date, Outstanding Amount</li>
+                    <li>Currency, Status, PO Number</li>
+                    <li>SS Invoice # (Source System ID)</li>
+                  </ul>
+                </div>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -442,16 +438,16 @@ export const DataCenterSourcesTab = ({ onCreateSource }: DataCenterSourcesTabPro
                   <p className="text-xs text-muted-foreground">Payment reconciliation</p>
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Includes:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li>Recouply Account ID <span className="text-destructive">*</span></li>
-                  <li>Recouply Invoice ID <span className="text-destructive">*</span></li>
-                  <li>Payment Amount, Payment Date</li>
-                  <li>Payment Method, Reference #</li>
-                  <li>SS Invoice # (fallback)</li>
-                </ul>
-              </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium text-foreground">Includes:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Recouply Invoice ID <span className="text-destructive">*</span></li>
+                    <li>SS Invoice # (fallback)</li>
+                    <li>Payment Amount, Payment Date</li>
+                    <li>Payment Method, Reference #</li>
+                    <li>Payment Notes</li>
+                  </ul>
+                </div>
               <Button 
                 variant="outline" 
                 size="sm" 

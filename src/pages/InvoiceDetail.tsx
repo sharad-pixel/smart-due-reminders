@@ -1594,7 +1594,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {invoice.external_invoice_id && (
                 <div>
-                  <p className="text-xs text-muted-foreground">External Invoice ID</p>
+                  <p className="text-xs text-muted-foreground">SS Invoice #</p>
                   <p className="font-medium text-sm break-all">{invoice.external_invoice_id}</p>
                 </div>
               )}

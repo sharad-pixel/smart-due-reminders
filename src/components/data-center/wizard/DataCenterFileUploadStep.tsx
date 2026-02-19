@@ -59,13 +59,13 @@ const INVOICES_TEMPLATE_COLUMNS = [
   "Invoice Status",
   "PO Number",
   "Product/Service Description",
-  "External Invoice ID",
+  "SS Invoice #",
   "Notes",
 ];
 
 const PAYMENTS_TEMPLATE_COLUMNS = [
   "Recouply Invoice ID",
-  "Invoice Number",
+  "SS Invoice #",
   "Payment Date",
   "Payment Amount",
   "Payment Reference",
