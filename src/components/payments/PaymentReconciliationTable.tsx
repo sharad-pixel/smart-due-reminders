@@ -25,6 +25,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
+const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
+
+const getCurrencyLabel = (currency: string) => {
+  const labels: Record<string, string> = { USD: "USD – US Dollar", EUR: "EUR – Euro", GBP: "GBP – British Pound", CAD: "CAD – Canadian Dollar", AUD: "AUD – Australian Dollar" };
+  return labels[currency] || currency;
+};
+
 const formatCurrency = (amount: number, currency: string = 'USD') =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(amount);
 
@@ -71,6 +78,22 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
   const unmatch = useUnmatchPayment();
   const rematch = useRematchPayment();
   const update = useUpdatePayment();
+
+  // Fetch available currencies used in payments
+  const { data: availableCurrencies } = useQuery({
+    queryKey: ["payment-currencies"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase
+        .from("payments")
+        .select("currency")
+        .eq("user_id", user.id)
+        .not("currency", "is", null);
+      const unique = [...new Set((data || []).map(r => r.currency).filter(Boolean))] as string[];
+      return unique.sort();
+    },
+  });
 
   // Fetch invoices for rematch dialog
   const { data: availableInvoices } = useQuery({
@@ -138,6 +161,9 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
 
   const hasActiveFilters = Object.entries(filters).some(([k, v]) => v && v !== "all" && k !== "uploadId");
 
+  // Show currency badge in filter button when active
+  const activeCurrencyLabel = filters.currency && filters.currency !== "all" ? filters.currency : null;
+
   return (
     <div className="space-y-4">
       {/* Filters Row */}
@@ -159,13 +185,16 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
         >
           <Filter className="h-4 w-4 mr-2" />
           Filters
+          {activeCurrencyLabel && (
+            <Badge variant="secondary" className="ml-2 text-xs">{activeCurrencyLabel}</Badge>
+          )}
         </Button>
       </div>
 
       {showFilters && (
         <Card>
           <CardContent className="pt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Select
                 value={filters.status || "all"}
                 onValueChange={(v) => { setFilters(prev => ({ ...prev, status: v })); setPage(1); }}
@@ -178,6 +207,20 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
                   <SelectItem value="needs_review">Needs Review</SelectItem>
                 </SelectContent>
               </Select>
+              {availableCurrencies && availableCurrencies.length > 1 && (
+                <Select
+                  value={filters.currency || "all"}
+                  onValueChange={(v) => { setFilters(prev => ({ ...prev, currency: v })); setPage(1); }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Currencies</SelectItem>
+                    {availableCurrencies.map(c => (
+                      <SelectItem key={c} value={c}>{getCurrencyLabel(c)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Input
                 type="date"
                 value={filters.dateFrom || ""}
@@ -191,6 +234,16 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
                 placeholder="To"
               />
             </div>
+            {(filters.status && filters.status !== "all") || (filters.currency && filters.currency !== "all") || filters.dateFrom || filters.dateTo ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 text-muted-foreground"
+                onClick={() => { setFilters({ uploadId }); setPage(1); }}
+              >
+                Clear filters
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       )}

@@ -37,6 +37,7 @@ export interface PaymentWithLinks {
 export interface PaymentReconciliationFilters {
   status?: string;
   source?: string;
+  currency?: string;
   dateFrom?: string;
   dateTo?: string;
   searchQuery?: string;
@@ -75,6 +76,9 @@ export const usePaymentReconciliation = (
       }
       if (filters.uploadId) {
         query = query.eq("data_center_upload_id", filters.uploadId);
+      }
+      if (filters.currency && filters.currency !== "all") {
+        query = query.eq("currency", filters.currency);
       }
       if (filters.dateFrom) {
         query = query.gte("payment_date", filters.dateFrom);
