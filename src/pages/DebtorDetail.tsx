@@ -172,6 +172,7 @@ const DebtorDetail = () => {
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [isResumingOutreach, setIsResumingOutreach] = useState(false);
   const [isPaymentPlanOpen, setIsPaymentPlanOpen] = useState(false);
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<"open" | "all">("open");
   const { paymentPlans, refetch: refetchPaymentPlans } = usePaymentPlans(id);
   const [formData, setFormData] = useState({
     name: "",
@@ -180,6 +181,15 @@ const DebtorDetail = () => {
     address: "",
     notes: "",
   });
+
+  const OPEN_STATUSES = ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"];
+
+  const filteredInvoices = useMemo(() => {
+    if (invoiceStatusFilter === "open") {
+      return invoices.filter(inv => OPEN_STATUSES.includes(inv.status));
+    }
+    return invoices;
+  }, [invoices, invoiceStatusFilter]);
 
   // Filter and paginate outreach
   const filteredOutreach = useMemo(() => {
@@ -1073,7 +1083,7 @@ const DebtorDetail = () => {
 
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices ({invoices.filter(inv => ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"].includes(inv.status)).length} Open)</TabsTrigger>
             <TabsTrigger value="payment-plans">
               Payment Plans ({paymentPlans?.length || 0})
             </TabsTrigger>
@@ -1089,16 +1099,47 @@ const DebtorDetail = () => {
           <TabsContent value="invoices">
             <Card>
               <CardContent className="pt-6">
-                {invoices.length === 0 ? (
+                {/* Filter bar */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Select value={invoiceStatusFilter} onValueChange={(v: "open" | "all") => setInvoiceStatusFilter(v)}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open Invoices</SelectItem>
+                        <SelectItem value="all">All Invoices</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground">
+                      {filteredInvoices.length} of {invoices.length} invoices
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/invoices?debtor=${id}`)}
+                    className="gap-1.5"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    Search All Invoices
+                  </Button>
+                </div>
+
+                {filteredInvoices.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-muted-foreground">No invoices for this account yet.</p>
+                    <p className="text-muted-foreground">
+                      {invoices.length === 0
+                        ? "No invoices for this account yet."
+                        : "No open invoices. Switch to \"All Invoices\" or search on the Invoices page."}
+                    </p>
                   </div>
                 ) : (
                   <>
                     {/* Currency summary bar */}
                     {(() => {
                       const byCurrency: Record<string, { total: number; outstanding: number; count: number }> = {};
-                      invoices.forEach(inv => {
+                      filteredInvoices.forEach(inv => {
                         const curr = inv.currency || "USD";
                         if (!byCurrency[curr]) byCurrency[curr] = { total: 0, outstanding: 0, count: 0 };
                         byCurrency[curr].total += inv.amount;
@@ -1136,7 +1177,7 @@ const DebtorDetail = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {invoices.map((invoice) => {
+                        {filteredInvoices.map((invoice) => {
                           const curr = invoice.currency || "USD";
                           const symbol = curr === "USD" ? "$" : curr === "EUR" ? "€" : curr === "GBP" ? "£" : curr === "CAD" ? "CA$" : "";
                           return (
