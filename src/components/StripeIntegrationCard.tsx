@@ -114,9 +114,11 @@ export const StripeIntegrationCard = () => {
       
       if (error) throw error;
 
-       toast.success(`Synced ${data.synced_count} invoices from Stripe!`, {
-         description: data.transactions_logged > 0
-           ? `Imported ${data.transactions_logged} invoice transactions (payments/credits/refunds)`
+       const invoiceCount = data.invoices_synced ?? data.synced_count ?? 0;
+       const txCount = data.transactions_synced ?? data.transactions_logged ?? 0;
+       toast.success(`Synced ${invoiceCount} invoices from Stripe!`, {
+         description: txCount > 0
+           ? `Imported ${txCount} invoice transactions (payments/credits/refunds)`
            : data.created_debtors > 0 
              ? `Created ${data.created_debtors} new accounts` 
              : 'No new invoice transactions found on this sync'
