@@ -200,6 +200,8 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
     if (!enabled) return;
 
     const interval = setInterval(async () => {
+      // Don't check until init has loaded localStorage values
+      if (!initRef.current) return;
       const {
         data: { session },
       } = await supabase.auth.getSession();
