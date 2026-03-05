@@ -92,6 +92,38 @@ serve(async (req) => {
     );
   }
 
+  // --- Authentication: require a valid user JWT or service_role key ---
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const supabaseAuth = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const role = claimsData.claims.role;
+  if (role !== "authenticated" && role !== "service_role") {
+    return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   // Check circuit breaker before attempting to send
   if (isCircuitOpen(RESEND_SERVICE_NAME)) {
     console.warn('[SEND-EMAIL] Circuit breaker open for Resend API');
