@@ -50,6 +50,7 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
   const sessionStartRef = useRef<number | null>(null);
   const debounceRef = useRef<number>(0);
   const warningToastRef = useRef<string | number | null>(null);
+  const initRef = useRef(false);
 
   // Record user activity
   const recordActivity = useCallback(() => {
