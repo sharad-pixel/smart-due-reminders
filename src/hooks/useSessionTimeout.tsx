@@ -50,6 +50,7 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
   const sessionStartRef = useRef<number | null>(null);
   const debounceRef = useRef<number>(0);
   const warningToastRef = useRef<string | number | null>(null);
+  const initRef = useRef(false);
 
   // Record user activity
   const recordActivity = useCallback(() => {
@@ -120,26 +121,54 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
   useEffect(() => {
     if (!enabled) return;
 
-    const stored = localStorage.getItem(STORAGE_KEY_SESSION_START);
-    if (stored) {
-      sessionStartRef.current = parseInt(stored, 10);
-    }
+    const now = Date.now();
 
+    // Restore last activity from localStorage (cross-tab sync)
     const storedActivity = localStorage.getItem(STORAGE_KEY_LAST_ACTIVITY);
     if (storedActivity) {
-      lastActivityRef.current = parseInt(storedActivity, 10);
+      const parsed = parseInt(storedActivity, 10);
+      // Only use if it's recent (within idle timeout window)
+      if (now - parsed < IDLE_TIMEOUT_MS) {
+        lastActivityRef.current = parsed;
+      } else {
+        // Stale activity — reset to now so user isn't immediately logged out
+        lastActivityRef.current = now;
+        localStorage.setItem(STORAGE_KEY_LAST_ACTIVITY, String(now));
+      }
+    }
+
+    // Restore session start — but validate it's within absolute timeout
+    const storedStart = localStorage.getItem(STORAGE_KEY_SESSION_START);
+    if (storedStart) {
+      const parsed = parseInt(storedStart, 10);
+      if (now - parsed < ABSOLUTE_TIMEOUT_MS) {
+        sessionStartRef.current = parsed;
+      } else {
+        // Session start is too old — will be reset on next auth event
+        sessionStartRef.current = null;
+        localStorage.removeItem(STORAGE_KEY_SESSION_START);
+      }
     }
 
     // Listen for auth state to set session start
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        const now = Date.now();
-        sessionStartRef.current = now;
-        lastActivityRef.current = now;
-        localStorage.setItem(STORAGE_KEY_SESSION_START, String(now));
-        localStorage.setItem(STORAGE_KEY_LAST_ACTIVITY, String(now));
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        const eventNow = Date.now();
+        // For INITIAL_SESSION (page reload), only set if not already valid
+        if (event === "INITIAL_SESSION" && sessionStartRef.current) {
+          // Session start already loaded from localStorage and is valid
+          // Just refresh activity to prevent immediate idle logout on reload
+          lastActivityRef.current = eventNow;
+          localStorage.setItem(STORAGE_KEY_LAST_ACTIVITY, String(eventNow));
+          return;
+        }
+        // For fresh SIGNED_IN or when no valid session start exists
+        sessionStartRef.current = eventNow;
+        lastActivityRef.current = eventNow;
+        localStorage.setItem(STORAGE_KEY_SESSION_START, String(eventNow));
+        localStorage.setItem(STORAGE_KEY_LAST_ACTIVITY, String(eventNow));
       } else if (event === "SIGNED_OUT") {
         sessionStartRef.current = null;
         localStorage.removeItem(STORAGE_KEY_SESSION_START);
@@ -147,6 +176,7 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
       }
     });
 
+    initRef.current = true;
     return () => subscription.unsubscribe();
   }, [enabled]);
 
@@ -170,6 +200,8 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
     if (!enabled) return;
 
     const interval = setInterval(async () => {
+      // Don't check until init has loaded localStorage values
+      if (!initRef.current) return;
       const {
         data: { session },
       } = await supabase.auth.getSession();
