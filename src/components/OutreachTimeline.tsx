@@ -13,6 +13,15 @@ import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BUCKET_AGENT_MAP, getAgingBucketFromDays } from "@/lib/agingBuckets";
 
+const AGENT_MAP = BUCKET_AGENT_MAP;
+const getBucketForDays = getAgingBucketFromDays;
+
+interface OutreachTimelineProps {
+  invoiceId: string;
+  invoiceDueDate: string;
+  agingBucket: string | null;
+}
+
 interface AggregatedError {
   errorMessage: string;
   count: number;
