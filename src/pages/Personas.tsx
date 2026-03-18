@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Badge } from "@/components/ui/badge";
