@@ -218,9 +218,6 @@ export function AccountScheduledOutreachPanel({ debtorId, showAllAccounts = fals
     currentPage * PAGE_SIZE
   );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
 
   const getScheduleLabel = (dateStr: string) => {
     const date = new Date(dateStr);
