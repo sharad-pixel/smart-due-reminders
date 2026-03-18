@@ -182,9 +182,6 @@ const OutreachMessagePreview = ({
     }
   };
 
-  const formatCurrency = (amt: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amt);
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
