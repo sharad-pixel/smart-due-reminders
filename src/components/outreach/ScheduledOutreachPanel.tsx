@@ -650,26 +650,9 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     }
   };
 
-  // Convert HTML to plain text for display
-  const stripHtmlTags = (html: string): string => {
-    // Replace <br/> and </p><p> with newlines
-    let text = html
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>\s*<p>/gi, '\n\n')
-      .replace(/<p>/gi, '')
-      .replace(/<\/p>/gi, '\n');
-    // Remove any remaining HTML tags
-    text = text.replace(/<[^>]*>/g, '');
-    // Clean up extra whitespace
-    text = text.replace(/\n{3,}/g, '\n\n').trim();
-    return text;
-  };
 
   const handlePreview = (item: ScheduledItem) => {
     setPreviewItem(item);
-    setPreviewSubject(item.subject || '');
-    setPreviewBody(item.message_body || '');
-    setIsEditing(false);
   };
 
   const handleApprove = async (item: ScheduledItem) => {
@@ -687,35 +670,6 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
       toast.error("Failed to approve draft");
     }
   };
-
-  const handleSavePreview = async () => {
-    if (!previewItem) return;
-    setIsSaving(true);
-    
-    try {
-      const { error } = await supabase
-        .from('ai_drafts')
-        .update({
-          subject: previewSubject,
-          message_body: previewBody,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', previewItem.id);
-
-      if (error) throw error;
-      toast.success("Draft updated");
-      setPreviewItem(null);
-      setIsEditing(false);
-      fetchScheduledOutreach(true);
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      toast.error("Failed to save draft");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
     if (!deleteItem) return;
     setIsDeleting(true);
     
