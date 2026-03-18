@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight, Brain } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 export default function WhyCollectionsMatter() {
   usePageTitle("Why Collections Matter");
