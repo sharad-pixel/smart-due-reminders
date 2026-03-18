@@ -32,8 +32,7 @@ const getCurrencyLabel = (currency: string) => {
   return labels[currency] || currency;
 };
 
-const formatCurrency = (amount: number, currency: string = 'USD') =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(amount);
+import { formatCurrency } from "@/lib/formatters";
 
 const getStatusBadge = (status: string | null) => {
   switch (status) {

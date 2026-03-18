@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
+import { formatCurrency } from "@/lib/formatters";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -391,18 +393,6 @@ const Invoices = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      Open: "bg-yellow-100 text-yellow-800",
-      Paid: "bg-green-100 text-green-800",
-      Disputed: "bg-red-100 text-red-800",
-      Settled: "bg-blue-100 text-blue-800",
-      InPaymentPlan: "bg-purple-100 text-purple-800",
-      Canceled: "bg-gray-100 text-gray-800",
-      Voided: "bg-slate-100 text-slate-600",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
-  };
 
   if (loading) {
     return (

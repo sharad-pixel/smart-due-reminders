@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatCurrency as fmtCurr } from "@/lib/formatters";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import MarketingHeader from "@/components/marketing/MarketingHeader";
@@ -95,8 +96,6 @@ interface Invoice {
   } | null;
 }
 
-const fmtCurr = (amount: number, currency: string = 'USD') =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', minimumFractionDigits: 2 }).format(amount);
 
 const statusColors: Record<string, string> = {
   proposed: "bg-blue-100 text-blue-800",

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatCurrency } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -419,9 +420,6 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     currentPage * PAGE_SIZE
   );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-  };
 
   const getScheduleLabel = (dateStr: string) => {
     const date = new Date(dateStr);

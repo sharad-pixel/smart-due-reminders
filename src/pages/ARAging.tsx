@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { Search, DollarSign, TrendingUp, Users, Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/formatters";
 
 interface AgingData {
   debtor_id: string;
@@ -130,14 +131,6 @@ const ARAging = () => {
     return row.debtor_name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
 
   return (
     <Layout>

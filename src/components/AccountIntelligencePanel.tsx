@@ -30,7 +30,8 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useDebtorIntelligence, useCollectionIntelligence } from "@/hooks/useCollectionIntelligence";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 
 interface AccountIntelligencePanelProps {
   debtorId: string;

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
+import { getAgingBucketFromDays as getAgingBucket, getAgingBucketLabel } from "@/lib/agingBuckets";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -242,15 +244,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const getAgingBucket = (daysPastDue: number): string => {
-    if (daysPastDue < 0) return 'current';
-    if (daysPastDue <= 30) return 'dpd_1_30';
-    if (daysPastDue <= 60) return 'dpd_31_60';
-    if (daysPastDue <= 90) return 'dpd_61_90';
-    if (daysPastDue <= 120) return 'dpd_91_120';
-    if (daysPastDue <= 150) return 'dpd_121_150';
-    return 'dpd_150_plus';
-  };
 
   const fetchData = async () => {
     try {
@@ -588,34 +581,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     }
   };
 
-  const getAgingBucketLabel = (bucket: string): string => {
-    const labels: Record<string, string> = {
-      'current': 'Current (Not Due)',
-      'dpd_1_30': '1-30 Days Past Due',
-      'dpd_31_60': '31-60 Days Past Due',
-      'dpd_61_90': '61-90 Days Past Due',
-      'dpd_91_120': '91-120 Days Past Due',
-      'dpd_121_150': '121-150 Days Past Due',
-      'dpd_150_plus': '150+ Days Past Due',
-    };
-    return labels[bucket] || bucket;
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      Open: "bg-yellow-100 text-yellow-800",
-      Paid: "bg-green-100 text-green-800",
-      Disputed: "bg-red-100 text-red-800",
-      Settled: "bg-blue-100 text-blue-800",
-      InPaymentPlan: "bg-purple-100 text-purple-800",
-      Canceled: "bg-gray-100 text-gray-800",
-      PartiallyPaid: "bg-amber-100 text-amber-800",
-      Credited: "bg-cyan-100 text-cyan-800",
-      WrittenOff: "bg-orange-100 text-orange-800",
-      Partial: "bg-amber-100 text-amber-800",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
-  };
 
   const handleCopyReferenceId = () => {
     if (invoice?.reference_id) {

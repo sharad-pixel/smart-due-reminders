@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 
 interface Invoice {
   id: string;
@@ -149,24 +150,6 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Paid":
-      case "Settled":
-        return "bg-success text-white";
-      case "Disputed":
-      case "Canceled":
-        return "bg-destructive text-white";
-      case "Open":
-        return "bg-info text-white";
-      case "InPaymentPlan":
-        return "bg-warning text-white";
-      case "PartiallyPaid":
-        return "bg-amber-500 text-white";
-      default:
-        return "bg-muted";
-    }
-  };
 
   if (loading) {
     return <div className="text-center py-8">Loading...</div>;
