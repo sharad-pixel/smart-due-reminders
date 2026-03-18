@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { COMPANY_INFO } from '@/lib/companyConfig';
 import { Shield, Cog, BarChart3, Target, Settings } from 'lucide-react';
 import { useCookieConsentContext } from '@/components/CookieConsentProvider';
+import SEOHead from '@/components/SEOHead';
+import { PAGE_SEO } from '@/lib/seoConfig';
 
 const cookieCategories = [
   {
