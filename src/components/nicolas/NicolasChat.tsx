@@ -27,6 +27,27 @@ import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import { getPageOnboardingContent } from "@/lib/onboardingContent";
 import { KNOWLEDGE_BASE, ESCALATION_TRIGGERS, ISSUE_CATEGORIES } from "./nicolasKnowledge";
 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  isEscalated?: boolean;
+  confidence?: number;
+  links?: { label: string; path: string }[];
+  quickReplies?: string[];
+}
+
+type EscalationStep = 'idle' | 'ask_category' | 'ask_description' | 'ask_contact' | 'confirming';
+
+interface EscalationData {
+  category: string;
+  description: string;
+  urgency: string;
+  contactName: string;
+  contactEmail: string;
+}
+
 export default function NicolasChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
