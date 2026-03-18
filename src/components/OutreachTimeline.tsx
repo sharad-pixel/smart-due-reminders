@@ -11,30 +11,7 @@ import { PersonaAvatar } from "./PersonaAvatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-interface OutreachTimelineProps {
-  invoiceId: string;
-  invoiceDueDate: string;
-  agingBucket: string | null;
-}
-
-const AGENT_MAP: Record<string, { name: string; key: string }> = {
-  'dpd_1_30': { name: 'Sam', key: 'sam' },
-  'dpd_31_60': { name: 'James', key: 'james' },
-  'dpd_61_90': { name: 'Katy', key: 'katy' },
-  'dpd_91_120': { name: 'Jimmy', key: 'jimmy' },
-  'dpd_121_150': { name: 'Troy', key: 'troy' },
-  'dpd_150_plus': { name: 'Rocco', key: 'rocco' },
-};
-
-function getBucketForDays(daysPastDue: number): string {
-  if (daysPastDue >= 1 && daysPastDue <= 30) return 'dpd_1_30';
-  if (daysPastDue >= 31 && daysPastDue <= 60) return 'dpd_31_60';
-  if (daysPastDue >= 61 && daysPastDue <= 90) return 'dpd_61_90';
-  if (daysPastDue >= 91 && daysPastDue <= 120) return 'dpd_91_120';
-  if (daysPastDue >= 121 && daysPastDue <= 150) return 'dpd_121_150';
-  return 'dpd_150_plus';
-}
+import { BUCKET_AGENT_MAP, getAgingBucketFromDays } from "@/lib/agingBuckets";
 
 interface AggregatedError {
   errorMessage: string;
