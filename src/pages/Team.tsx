@@ -396,9 +396,7 @@ const Team = () => {
 
       if (error) throw error;
       
-      if (data?.stripeUpdated) {
-        console.log("Billing synced:", data);
-      }
+      // Billing sync completed silently
     } catch (error) {
       console.error("Error syncing billing:", error);
       // Don't show error toast - billing sync is background operation

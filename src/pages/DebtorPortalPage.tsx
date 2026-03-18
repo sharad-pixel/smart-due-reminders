@@ -134,7 +134,7 @@ export default function DebtorPortalPage() {
   // Verify token on load
   useEffect(() => {
     if (token) {
-      console.log("[DebtorPortal] Verifying token:", token.substring(0, 8) + "...");
+      
       verifyToken(token);
     }
   }, [token]);

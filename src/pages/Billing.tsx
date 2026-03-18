@@ -179,7 +179,7 @@ const Billing = () => {
 
       // Sync subscription data from Stripe to get accurate term dates
       const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-subscription');
-      console.log('sync-subscription response:', { syncData, syncError });
+      
       if (!syncError && syncData) {
         setStripeData(syncData);
       }

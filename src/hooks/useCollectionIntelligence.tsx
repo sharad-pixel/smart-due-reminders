@@ -339,7 +339,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           filter: `debtor_id=eq.${debtorId}`,
         },
         (payload) => {
-          console.log("[REALTIME] New inbound email for debtor:", payload.new);
+          
           query.refetch();
         }
       )

@@ -35,7 +35,7 @@ export function useUserPreferences(pagePath: string) {
         }
       } catch (error) {
         // No preferences saved yet, that's fine
-        console.log('No saved preferences found for', pagePath);
+        // No preferences saved yet, that's expected
       } finally {
         setIsLoaded(true);
       }

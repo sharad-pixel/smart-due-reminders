@@ -95,7 +95,7 @@ export async function createMentionNotification(
     });
 
     if (error) throw error;
-    console.log('[createMentionNotification] Successfully sent mention notification to:', mentionedUserId);
+    
   } catch (error) {
     console.error('Error creating mention notification:', error);
   }
