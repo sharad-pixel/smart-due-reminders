@@ -45,7 +45,7 @@ export const BUCKET_AGENT_MAP: Record<string, { name: string; key: string }> = {
 /** Get the human-readable label for an aging bucket key */
 export function getAgingBucketLabel(bucket: string): string {
   const found = AGING_BUCKETS.find(b => b.key === bucket);
-  return found?.label || bucket;
+  return found?.fullLabel || bucket;
 }
 
 /** Determine the aging bucket key from days past due */
