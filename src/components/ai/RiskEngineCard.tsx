@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle, Shield, ShieldAlert, ShieldCheck, HelpCircle } from "lucide-react";
 import { usePaymentScore } from "@/hooks/usePaymentScore";
 import { format } from "date-fns";
-import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
+import { ScoringModelTooltip } from "@/components/ai/ScoringModelTooltip";
 
 interface RiskEngineCardProps {
   debtorId: string;

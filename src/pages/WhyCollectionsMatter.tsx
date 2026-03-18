@@ -1,10 +1,10 @@
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight, Brain } from "lucide-react";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 
 export default function WhyCollectionsMatter() {

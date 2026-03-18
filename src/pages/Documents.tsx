@@ -1,9 +1,9 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DocumentUpload from "@/components/DocumentUpload";
-import DocumentsList from "@/components/DocumentsList";
+import DocumentUpload from "@/components/documents/DocumentUpload";
+import DocumentsList from "@/components/documents/DocumentsList";
 import { FileText, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

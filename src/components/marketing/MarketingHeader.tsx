@@ -1,6 +1,6 @@
  import { Button } from "@/components/ui/button";
  import { useNavigate } from "react-router-dom";
- import { RecouplyLogo } from "@/components/RecouplyLogo";
+ import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
  import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard } from "lucide-react";
  import { useState } from "react";
  

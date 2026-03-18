@@ -3,11 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
-import ScrollToTop from "./components/ScrollToTop";
-import { CookieConsentProvider } from "./components/CookieConsentProvider";
+import ScrollToTop from "./components/layout/ScrollToTop";
+import { CookieConsentProvider } from "./components/cookies/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
-import { MaintenanceGuard } from "./components/MaintenanceGuard";
-import { SessionSecurityProvider } from "./components/SessionSecurityProvider";
+import { MaintenanceGuard } from "./components/layout/MaintenanceGuard";
+import { SessionSecurityProvider } from "./components/security/SessionSecurityProvider";
 
 // Handle chunk load errors (stale deployments) by reloading
 const handleChunkError = () => {

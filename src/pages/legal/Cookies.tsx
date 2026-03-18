@@ -1,11 +1,11 @@
-import MarketingLayout from '@/components/MarketingLayout';
+import MarketingLayout from '@/components/layout/MarketingLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { COMPANY_INFO } from '@/lib/companyConfig';
 import { Shield, Cog, BarChart3, Target, Settings } from 'lucide-react';
-import { useCookieConsentContext } from '@/components/CookieConsentProvider';
-import SEOHead from '@/components/SEOHead';
+import { useCookieConsentContext } from '@/components/cookies/CookieConsentProvider';
+import SEOHead from '@/components/seo/SEOHead';
 import { PAGE_SEO } from '@/lib/seoConfig';
 
 const cookieCategories = [

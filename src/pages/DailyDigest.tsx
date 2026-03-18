@@ -11,7 +11,7 @@ import { useDailyDigest, PortfolioRiskSummary } from '@/hooks/useDailyDigest';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
-import Layout from '@/components/Layout';
+import Layout from '@/components/layout/Layout';
 import { CreditIntelligenceCard } from '@/components/digest/CreditIntelligenceCard';
 
 const formatCurrency = (amount: number) =>

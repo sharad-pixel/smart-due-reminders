@@ -4,7 +4,7 @@ import { getAgingBucketFromDays as getAgingBucket, getAgingBucketLabel } from "@
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,22 +18,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX } from "lucide-react";
-import { InvoiceTransactionLog } from "@/components/InvoiceTransactionLog";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
-import { PersonaCommandInput } from "@/components/PersonaCommandInput";
-import { DraftPreviewModal } from "@/components/DraftPreviewModal";
-import { TasksSummaryCard } from "@/components/TasksSummaryCard";
+import { PersonaCommandInput } from "@/components/ai/PersonaCommandInput";
+import { DraftPreviewModal } from "@/components/outreach/DraftPreviewModal";
+import { TasksSummaryCard } from "@/components/tasks/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
-import CreateTaskModal from "@/components/CreateTaskModal";
-import { OutreachDetailModal, OutreachRecord } from "@/components/OutreachDetailModal";
-import { OutreachSummaryRow } from "@/components/OutreachSummaryRow";
+import CreateTaskModal from "@/components/tasks/CreateTaskModal";
+import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
+import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
 
-import { InvoiceWorkflowCard } from "@/components/InvoiceWorkflowCard";
-import { IntegrationSourceBanner } from "@/components/IntegrationSourceBanner";
-import { useOverrideWarning, useStatusActionWarning, logOverrideAndUpdateInvoice } from "@/components/InvoiceOverrideWarningDialogs";
-import { OutreachTimeline } from "@/components/OutreachTimeline";
+import { InvoiceWorkflowCard } from "@/components/invoices/InvoiceWorkflowCard";
+import { IntegrationSourceBanner } from "@/components/integrations/IntegrationSourceBanner";
+import { useOverrideWarning, useStatusActionWarning, logOverrideAndUpdateInvoice } from "@/components/invoices/InvoiceOverrideWarningDialogs";
+import { OutreachTimeline } from "@/components/outreach/OutreachTimeline";
 
 interface Invoice {
   id: string;

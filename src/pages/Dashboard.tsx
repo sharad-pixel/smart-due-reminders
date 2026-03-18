@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import Layout from "@/components/Layout";
-import { UsageIndicator } from "@/components/UsageIndicator";
+import Layout from "@/components/layout/Layout";
+import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { User } from "@supabase/supabase-js";
 import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, Calendar } from "lucide-react";
 import { toast } from "sonner";
@@ -13,20 +13,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { InvoiceCollectabilityReport } from "@/components/InvoiceCollectabilityReport";
-import EmailHealthCard from "@/components/EmailHealthCard";
-import { PaymentsActivityDashboard } from "@/components/PaymentsActivityDashboard";
+import { InvoiceCollectabilityReport } from "@/components/invoices/InvoiceCollectabilityReport";
+import EmailHealthCard from "@/components/dashboard/EmailHealthCard";
+import { PaymentsActivityDashboard } from "@/components/dashboard/PaymentsActivityDashboard";
 
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
-import { SavedViewsManager } from "@/components/SavedViewsManager";
-import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { SavedViewsManager } from "@/components/dashboard/SavedViewsManager";
+import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import { CollectionIntelligenceCard } from "@/components/CollectionIntelligenceCard";
-import { CollectionIntelligenceDashboard } from "@/components/CollectionIntelligenceDashboard";
+import { CollectionIntelligenceCard } from "@/components/ai/CollectionIntelligenceCard";
+import { CollectionIntelligenceDashboard } from "@/components/ai/CollectionIntelligenceDashboard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
-import { KnowledgeBaseAgent } from "@/components/KnowledgeBaseAgent";
-import { IntegrationSetupModal } from "@/components/IntegrationSetupModal";
+import { KnowledgeBaseAgent } from "@/components/ai/KnowledgeBaseAgent";
+import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 interface Invoice {

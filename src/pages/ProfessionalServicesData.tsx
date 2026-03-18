@@ -1,5 +1,5 @@
-import MarketingLayout from "@/components/MarketingLayout";
-import SEOHead from "@/components/SEOHead";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import SEOHead from "@/components/seo/SEOHead";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import ProfServicesHero from "@/components/professional-services/ProfServicesHero";
 import TrustBarrierSection from "@/components/professional-services/TrustBarrierSection";

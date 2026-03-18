@@ -1,4 +1,4 @@
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -17,7 +17,7 @@ import {
   Shield,
   Brain
 } from "lucide-react";
-import SEO from "@/components/SEO";
+import SEO from "@/components/seo/SEO";
 import COMPANY_INFO from "@/lib/companyConfig";
 
 const Careers = () => {

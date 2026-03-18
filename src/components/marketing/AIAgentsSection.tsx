@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { AlertTriangle, X, Brain } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 

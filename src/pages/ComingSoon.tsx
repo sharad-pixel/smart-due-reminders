@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,11 +19,11 @@ import {
   DollarSign
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { RecouplyLogo } from "@/components/RecouplyLogo";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 
 const headlines = [
   "Collection Intelligence Is Coming",

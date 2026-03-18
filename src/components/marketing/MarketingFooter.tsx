@@ -1,6 +1,6 @@
  import { Button } from "@/components/ui/button";
  import { useNavigate, Link } from "react-router-dom";
- import { RecouplyLogo } from "@/components/RecouplyLogo";
+ import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
  import { Brain, Linkedin, ShieldCheck, ClipboardCheck } from "lucide-react";
  
  const COMPANY_INFO = {

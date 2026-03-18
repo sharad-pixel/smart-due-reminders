@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle } from "lucide-react";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
-import { ScoringModelTooltip } from "@/components/ScoringModelTooltip";
+import { ScoringModelTooltip } from "@/components/ai/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { useAccountsAvgDPD, getAccountAvgDPD } from "@/hooks/useAvgDPD";
 
-import { AIInsightsCard } from "@/components/AIInsightsCard";
+import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
 
 interface Contact {
   name: string;

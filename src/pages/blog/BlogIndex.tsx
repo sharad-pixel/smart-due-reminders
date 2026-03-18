@@ -1,5 +1,5 @@
-import MarketingLayout from "@/components/MarketingLayout";
-import SEOHead from "@/components/SEOHead";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import SEOHead from "@/components/seo/SEOHead";
 import BlogCard from "@/components/blog/BlogCard";
 import { blogPosts, getFeaturedPosts, getAllCategories } from "@/lib/blogConfig";
 import { useState } from "react";

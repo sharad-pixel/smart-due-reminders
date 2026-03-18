@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,17 +17,17 @@ import { Workflow, Mail, MessageSquare, Clock, Sparkles, BarChart3, Eye, Loader2
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import WorkflowStepEditor from "@/components/WorkflowStepEditor";
-import WorkflowSettingsEditor from "@/components/WorkflowSettingsEditor";
-import WorkflowGraph from "@/components/WorkflowGraph";
-import MessagePreview from "@/components/MessagePreview";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { ScheduledOutreachPanel } from "@/components/ScheduledOutreachPanel";
-import AgentScheduleCards from "@/components/AgentScheduleCards";
+import WorkflowStepEditor from "@/components/workflows/WorkflowStepEditor";
+import WorkflowSettingsEditor from "@/components/workflows/WorkflowSettingsEditor";
+import WorkflowGraph from "@/components/workflows/WorkflowGraph";
+import MessagePreview from "@/components/outreach/MessagePreview";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
+import { ScheduledOutreachPanel } from "@/components/outreach/ScheduledOutreachPanel";
+import AgentScheduleCards from "@/components/workflows/AgentScheduleCards";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
-import { OutreachStatusCards } from "@/components/OutreachStatusCards";
+import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
 
 interface WorkflowStep {
   id: string;

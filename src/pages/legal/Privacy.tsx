@@ -1,6 +1,6 @@
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { COMPANY_INFO } from "@/lib/companyConfig";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 
 const Privacy = () => {

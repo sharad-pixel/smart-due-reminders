@@ -3,8 +3,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadModeratedImage } from "@/lib/moderatedUpload";
-import { ImageCropDialog } from "@/components/ImageCropDialog";
-import Layout from "@/components/Layout";
+import { ImageCropDialog } from "@/components/ui/ImageCropDialog";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,13 +58,13 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { PLAN_FEATURES } from "@/lib/planGating";
-import BillingSection from "@/components/BillingSection";
+import BillingSection from "@/components/billing/BillingSection";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
-import { AccountHierarchy } from "@/components/AccountHierarchy";
-import { ProfileAvatarEditor } from "@/components/ProfileAvatarEditor";
+import { AccountHierarchy } from "@/components/accounts/AccountHierarchy";
+import { ProfileAvatarEditor } from "@/components/ui/ProfileAvatarEditor";
 import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
-import { TrialCountdown } from "@/components/TrialCountdown";
+import { TrialCountdown } from "@/components/billing/TrialCountdown";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";

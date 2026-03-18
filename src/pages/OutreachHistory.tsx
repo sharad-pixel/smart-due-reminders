@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 import {
   Select,

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { RecouplyLogo } from '@/components/RecouplyLogo';
+import { RecouplyLogo } from '@/components/layout/RecouplyLogo';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();

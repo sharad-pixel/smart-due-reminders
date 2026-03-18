@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePageTitle } from "@/hooks/usePageTitle";
-import Layout from '@/components/Layout';
+import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

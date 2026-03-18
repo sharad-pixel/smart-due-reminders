@@ -1,9 +1,9 @@
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { COMPANY_INFO } from "@/lib/companyConfig";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Scale, Shield, Clock, CreditCard, Database, Users, AlertTriangle, Gavel, Mail } from "lucide-react";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 
 const Terms = () => {

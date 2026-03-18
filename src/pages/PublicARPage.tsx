@@ -22,7 +22,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
-import { RecouplyLogo } from "@/components/RecouplyLogo";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 
 interface ARPageData {
   branding: {

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +27,8 @@ import {
   startupFeatures,
   notableCompanies
 } from "@/lib/founderConfig";
-import SEO from "@/components/SEO";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import SEO from "@/components/seo/SEO";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 
 const About = () => {
   const navigate = useNavigate();

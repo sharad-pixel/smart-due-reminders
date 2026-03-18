@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import MarketingLayout from "@/components/MarketingLayout";
-import SEOHead from "@/components/SEOHead";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import SEOHead from "@/components/seo/SEOHead";
 import CollectionsAssessmentWizard from "@/components/assessment/CollectionsAssessmentWizard";
 import CollectionsAssessmentResults from "@/components/assessment/CollectionsAssessmentResults";
 import { calculateAssessment, type AssessmentInputs, type AssessmentResults } from "@/lib/assessmentCalculator";
 import { supabase } from "@/integrations/supabase/client";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Brain, Shield, Zap, Clock } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
