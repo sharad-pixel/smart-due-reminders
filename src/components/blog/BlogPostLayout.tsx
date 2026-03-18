@@ -1,5 +1,6 @@
 import MarketingLayout from "@/components/MarketingLayout";
-import SEO from "@/components/SEO";
+import SEOHead from "@/components/SEOHead";
+import { generateArticleSchema, SITE_CONFIG } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Clock, Linkedin, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
