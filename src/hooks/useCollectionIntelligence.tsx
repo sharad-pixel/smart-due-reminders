@@ -164,7 +164,7 @@ export const useCollectionIntelligenceDashboard = () => {
           table: "debtors",
         },
         (payload) => {
-          console.log("[REALTIME] Debtor updated:", payload.new.id);
+          
           // Update the local cache with new data
           setRealtimeData((prev) => {
             const updated = prev.map((d) =>
