@@ -1,4 +1,6 @@
 import MarketingLayout from "@/components/MarketingLayout";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
