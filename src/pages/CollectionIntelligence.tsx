@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { useNavigate } from "react-router-dom";
 import { 
   Brain, 
