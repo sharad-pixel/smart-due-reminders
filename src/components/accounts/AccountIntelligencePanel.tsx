@@ -103,19 +103,15 @@ export function AccountIntelligencePanel({
   const loadCachedReport = async () => {
     setReportLoading(true);
     try {
-      const { data: debtor, error } = await supabase
-        .from("debtors")
-        .select("intelligence_report, intelligence_report_generated_at")
-        .eq("id", debtorId)
-        .single();
+      const debtor = await fetchDebtorIntelligenceReport(debtorId);
 
-      if (error) {
+      if (!debtor) {
         setReportLoading(false);
         setInitialLoadDone(true);
         return;
       }
 
-      if (debtor?.intelligence_report && debtor?.intelligence_report_generated_at) {
+      if (debtor.intelligence_report && debtor.intelligence_report_generated_at) {
         const cacheAge = Date.now() - new Date(debtor.intelligence_report_generated_at).getTime();
         const cacheAgeHours = cacheAge / (1000 * 60 * 60);
 
