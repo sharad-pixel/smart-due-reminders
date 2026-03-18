@@ -318,7 +318,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           filter: `id=eq.${debtorId}`,
         },
         (payload) => {
-          console.log("[REALTIME] Debtor intelligence updated:", payload.new);
+          
           if (payload.new.collection_intelligence_score !== undefined) {
             setRealtimeScore(payload.new.collection_intelligence_score);
           }
