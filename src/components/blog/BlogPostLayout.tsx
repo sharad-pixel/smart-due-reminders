@@ -33,13 +33,25 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
 
   return (
     <MarketingLayout>
-      <SEO
+      <SEOHead
         title={post.metaTitle}
         description={post.metaDescription}
         canonical={`https://recouply.ai/blog/${post.slug}`}
         keywords={post.keywords}
         ogType="article"
         ogImage={post.heroImage}
+        breadcrumbs={[
+          { name: 'Blog', url: `${SITE_CONFIG.siteUrl}/blog` },
+          { name: post.title, url: `${SITE_CONFIG.siteUrl}/blog/${post.slug}` },
+        ]}
+        structuredData={generateArticleSchema({
+          title: post.metaTitle,
+          description: post.metaDescription,
+          url: `${SITE_CONFIG.siteUrl}/blog/${post.slug}`,
+          image: post.heroImage,
+          datePublished: post.publishDateISO,
+          author: { name: post.author.name },
+        })}
       />
 
       <article className="py-8 md:py-12 lg:py-16">
