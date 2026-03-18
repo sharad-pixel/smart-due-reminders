@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { Search, DollarSign, TrendingUp, Users, Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/formatters";
 
 interface AgingData {
   debtor_id: string;
