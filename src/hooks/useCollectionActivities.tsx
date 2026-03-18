@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  fetchCollectionActivities as fetchActivitiesService,
+  type ActivityFilters,
+} from '@/lib/supabase/collection-activities';
 
 interface LogActivityParams {
   debtor_id: string;
@@ -29,7 +33,6 @@ export const useCollectionActivities = () => {
 
       if (error) throw error;
 
-      // Check if tasks were extracted
       if (data?.task_extraction?.tasks_created > 0) {
         toast({
           title: "Activity Logged",
@@ -56,35 +59,9 @@ export const useCollectionActivities = () => {
     }
   };
 
-  const fetchActivities = async (filters?: {
-    debtor_id?: string;
-    invoice_id?: string;
-    direction?: string;
-    limit?: number;
-  }) => {
+  const fetchActivities = async (filters?: ActivityFilters) => {
     try {
-      let query = supabase
-        .from('collection_activities')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (filters?.debtor_id) {
-        query = query.eq('debtor_id', filters.debtor_id);
-      }
-      if (filters?.invoice_id) {
-        query = query.eq('invoice_id', filters.invoice_id);
-      }
-      if (filters?.direction) {
-        query = query.eq('direction', filters.direction);
-      }
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data;
+      return await fetchActivitiesService(filters || {});
     } catch (error) {
       console.error('Error fetching activities:', error);
       toast({

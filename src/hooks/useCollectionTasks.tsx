@@ -1,6 +1,13 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  fetchCollectionTasks as fetchTasksService,
+  updateCollectionTaskStatus,
+  updateCollectionTask as updateTaskService,
+  archiveCollectionTask,
+  unarchiveCollectionTask,
+  type TaskFilters,
+} from '@/lib/supabase/collection-tasks';
 
 export interface TaskNote {
   id: string;
@@ -40,39 +47,10 @@ export const useCollectionTasks = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchTasks = async (filters?: {
-    debtor_id?: string;
-    invoice_id?: string;
-    status?: string;
-    priority?: string;
-    task_type?: string;
-  }) => {
+  const fetchTasks = async (filters?: TaskFilters) => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from('collection_tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (filters?.debtor_id) {
-        query = query.eq('debtor_id', filters.debtor_id);
-      }
-      if (filters?.invoice_id) {
-        query = query.eq('invoice_id', filters.invoice_id);
-      }
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
-      }
-      if (filters?.priority) {
-        query = query.eq('priority', filters.priority);
-      }
-      if (filters?.task_type) {
-        query = query.eq('task_type', filters.task_type);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const data = await fetchTasksService(filters || {});
       return data as CollectionTask[];
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -89,18 +67,7 @@ export const useCollectionTasks = () => {
 
   const updateTaskStatus = async (taskId: string, status: string) => {
     try {
-      const updates: any = { status };
-      if (status === 'done') {
-        updates.completed_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('collection_tasks')
-        .update(updates)
-        .eq('id', taskId);
-
-      if (error) throw error;
-
+      await updateCollectionTaskStatus(taskId, status);
       toast({
         title: "Task Updated",
         description: `Task marked as ${status}`,
@@ -118,13 +85,7 @@ export const useCollectionTasks = () => {
 
   const updateTask = async (taskId: string, updates: Partial<CollectionTask>) => {
     try {
-      const { error } = await supabase
-        .from('collection_tasks')
-        .update(updates as any)
-        .eq('id', taskId);
-
-      if (error) throw error;
-
+      await updateTaskService(taskId, updates as any);
       toast({
         title: "Task Updated",
         description: "Task updated successfully",
@@ -142,16 +103,7 @@ export const useCollectionTasks = () => {
 
   const archiveTask = async (taskId: string) => {
     try {
-      const { error } = await supabase
-        .from('collection_tasks')
-        .update({ 
-          is_archived: true, 
-          archived_at: new Date().toISOString() 
-        })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
+      await archiveCollectionTask(taskId);
       toast({
         title: "Task Archived",
         description: "Task archived successfully",
@@ -169,16 +121,7 @@ export const useCollectionTasks = () => {
 
   const unarchiveTask = async (taskId: string) => {
     try {
-      const { error } = await supabase
-        .from('collection_tasks')
-        .update({ 
-          is_archived: false, 
-          archived_at: null 
-        })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
+      await unarchiveCollectionTask(taskId);
       toast({
         title: "Task Restored",
         description: "Task restored successfully",

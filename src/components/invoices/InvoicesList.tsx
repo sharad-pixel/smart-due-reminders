@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllInvoicesPaginated } from "@/lib/supabase/invoices";
+import { fetchDebtorsList } from "@/lib/supabase/debtors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,22 +59,12 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
 
   const fetchInvoices = async () => {
     try {
-      const allInvoices: Invoice[] = [];
-      let from = 0;
-      const PAGE_SIZE = 1000;
-      while (true) {
-        const { data, error } = await supabase
-          .from("invoices")
-          .select("*, debtors(company_name), is_on_payment_plan")
-          .order("created_at", { ascending: false })
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allInvoices.push(...(data as Invoice[]));
-        if (data.length < PAGE_SIZE) break;
-        from += PAGE_SIZE;
-      }
-      setInvoices(allInvoices);
+      const allInvoices = await fetchAllInvoicesPaginated({
+        select: "*, debtors(company_name), is_on_payment_plan",
+        includeArchived: true,
+        orderBy: { column: "created_at", ascending: false },
+      });
+      setInvoices(allInvoices as unknown as Invoice[]);
     } catch (error: any) {
       toast.error("Failed to load invoices");
     } finally {
@@ -82,13 +74,8 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
 
   const fetchDebtors = async () => {
     try {
-      const { data, error } = await supabase
-        .from("debtors")
-        .select("id, company_name")
-        .order("company_name");
-
-      if (error) throw error;
-      setDebtors(data || []);
+      const data = await fetchDebtorsList();
+      setDebtors(data);
     } catch (error: any) {
       console.error("Failed to load debtors");
     }

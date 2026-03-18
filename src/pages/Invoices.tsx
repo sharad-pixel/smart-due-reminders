@@ -3,6 +3,8 @@ import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { formatCurrency } from "@/lib/formatters";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllInvoicesPaginated, createInvoice as createInvoiceService } from "@/lib/supabase/invoices";
+import { fetchDebtorsList } from "@/lib/supabase/debtors";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,39 +123,22 @@ const Invoices = () => {
     setCurrentPage(1); // Reset to first page when filters change
   }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
 
-  const fetchAllInvoicesPaginated = async () => {
-    const allData: any[] = [];
-    let from = 0;
-    const PAGE_SIZE = 1000;
-    while (true) {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides, currency")
-        .eq("is_archived", false)
-        .order("due_date", { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      allData.push(...data);
-      if (data.length < PAGE_SIZE) break;
-      from += PAGE_SIZE;
-    }
-    return allData;
-  };
-
   const fetchData = async () => {
     try {
-      const [allInvoices, debtorsRes, agentPersonasRes] = await Promise.all([
+      const [allInvoices, debtorsList] = await Promise.all([
         fetchAllInvoicesPaginated(),
-        supabase.from("debtors").select("id, company_name").order("company_name"),
-        supabase.from("ai_agent_personas").select("name, bucket_min, bucket_max").order("bucket_min"),
+        fetchDebtorsList(),
       ]);
 
-      if (debtorsRes.error) throw debtorsRes.error;
+      // Also fetch agent personas
+      const agentPersonasRes = await supabase
+        .from("ai_agent_personas")
+        .select("name, bucket_min, bucket_max")
+        .order("bucket_min");
       if (agentPersonasRes.error) throw agentPersonasRes.error;
 
-      setInvoices(allInvoices);
-      setDebtors(debtorsRes.data || []);
+      setInvoices(allInvoices as any);
+      setDebtors(debtorsList);
     } catch (error: any) {
       toast.error("Failed to load data");
     } finally {

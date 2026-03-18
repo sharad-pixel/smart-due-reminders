@@ -1,43 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  fetchNotifications as fetchNotificationsService,
+  markNotificationRead,
+  markAllNotificationsRead,
+  createMentionNotification,
+  deleteNotification as deleteNotificationService,
+  clearAllNotifications as clearAllService,
+  type UserNotification,
+} from '@/lib/supabase/notifications';
 
-export interface UserNotification {
-  id: string;
-  user_id: string;
-  type: string;
-  title: string;
-  message: string;
-  link?: string;
-  source_type?: string;
-  source_id?: string;
-  sender_id?: string;
-  sender_name?: string;
-  is_read: boolean;
-  read_at?: string;
-  created_at: string;
-}
+export type { UserNotification };
+export { createMentionNotification };
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('user_notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      const data = await fetchNotificationsService(user.id);
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.is_read).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -47,14 +36,8 @@ export const useNotifications = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
-      setNotifications(prev => 
+      await markNotificationRead(notificationId);
+      setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -68,38 +51,20 @@ export const useNotifications = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('user_notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-
-      if (error) throw error;
-
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
-      );
+      await markAllNotificationsRead(user.id);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error('Error marking all as read:', error);
     }
   };
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      const notification = notifications.find(n => n.id === notificationId);
-      
-      const { error } = await supabase
-        .from('user_notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
+      await deleteNotificationService(notificationId);
+      const wasUnread = notifications.find(n => n.id === notificationId && !n.is_read);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      if (notification && !notification.is_read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
+      if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
@@ -110,13 +75,7 @@ export const useNotifications = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('user_notifications')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
+      await clearAllService(user.id);
       setNotifications([]);
       setUnreadCount(0);
     } catch (error) {
@@ -124,13 +83,15 @@ export const useNotifications = () => {
     }
   };
 
-  // Set up realtime subscription
+  // Set up realtime subscription with proper cleanup
   useEffect(() => {
     fetchNotifications();
 
+    let mounted = true;
+
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || !mounted) return;
 
       const channel = supabase
         .channel('user_notifications_changes')
@@ -143,6 +104,7 @@ export const useNotifications = () => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
+            if (!mounted) return;
             const newNotification = payload.new as UserNotification;
             setNotifications(prev => [newNotification, ...prev]);
             setUnreadCount(prev => prev + 1);
@@ -150,12 +112,18 @@ export const useNotifications = () => {
         )
         .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      channelRef.current = channel;
     };
 
     setupSubscription();
+
+    return () => {
+      mounted = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
   }, [fetchNotifications]);
 
   return {
@@ -168,33 +136,4 @@ export const useNotifications = () => {
     clearAllNotifications,
     refetch: fetchNotifications
   };
-};
-
-// Helper function to create a notification and send email (called from components)
-export const createMentionNotification = async (
-  mentionedUserId: string,
-  senderName: string,
-  senderId: string,
-  taskId: string,
-  taskSummary: string,
-  noteContent?: string
-) => {
-  try {
-    // Call the edge function which sends both email and creates in-app notification
-    const { error } = await supabase.functions.invoke('send-mention-notification', {
-      body: {
-        mentionedUserId,
-        senderName,
-        senderId,
-        taskId,
-        taskSummary,
-        noteContent
-      }
-    });
-
-    if (error) throw error;
-    console.log('[createMentionNotification] Successfully sent mention notification to:', mentionedUserId);
-  } catch (error) {
-    console.error('Error creating mention notification:', error);
-  }
 };
