@@ -3,6 +3,8 @@ import { COMPANY_INFO } from "@/lib/companyConfig";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Scale, Shield, Clock, CreditCard, Database, Users, AlertTriangle, Gavel, Mail } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 const Terms = () => {
   const currentYear = new Date().getFullYear();
@@ -10,6 +12,15 @@ const Terms = () => {
   
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.terms.title}
+        description={PAGE_SEO.terms.description}
+        keywords={PAGE_SEO.terms.keywords}
+        breadcrumbs={[
+          { name: 'Legal', url: 'https://recouply.ai/legal/terms' },
+          { name: 'Terms of Service', url: 'https://recouply.ai/legal/terms' },
+        ]}
+      />
       <div className="container mx-auto max-w-4xl px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">

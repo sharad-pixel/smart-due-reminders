@@ -1,4 +1,6 @@
 import MarketingLayout from "@/components/MarketingLayout";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -63,6 +65,15 @@ const SmallBusinesses = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.smallBusinesses.title}
+        description={PAGE_SEO.smallBusinesses.description}
+        keywords={PAGE_SEO.smallBusinesses.keywords}
+        breadcrumbs={[
+          { name: 'Solutions', url: 'https://recouply.ai/solutions' },
+          { name: 'Small Businesses', url: 'https://recouply.ai/solutions/small-businesses' },
+        ]}
+      />
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-4xl text-center">

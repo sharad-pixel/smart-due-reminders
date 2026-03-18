@@ -1,11 +1,22 @@
 import MarketingLayout from "@/components/MarketingLayout";
 import { COMPANY_INFO } from "@/lib/companyConfig";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 const Privacy = () => {
   const currentYear = new Date().getFullYear();
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.privacy.title}
+        description={PAGE_SEO.privacy.description}
+        keywords={PAGE_SEO.privacy.keywords}
+        breadcrumbs={[
+          { name: 'Legal', url: 'https://recouply.ai/legal/privacy' },
+          { name: 'Privacy Policy', url: 'https://recouply.ai/legal/privacy' },
+        ]}
+      />
       <div className="container mx-auto max-w-4xl px-4 py-16">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mb-8">Last updated: December 2024</p>

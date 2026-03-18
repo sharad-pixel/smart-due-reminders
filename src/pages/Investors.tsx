@@ -5,6 +5,8 @@ import { RecouplyLogo } from "@/components/RecouplyLogo";
 import { founderConfig } from "@/lib/founderConfig";
 import founderPhoto from "@/assets/founder-sharad-cartoon.png";
 import MarketingLayout from "@/components/MarketingLayout";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { 
   Brain, 
   TrendingUp, 
@@ -34,6 +36,12 @@ const Investors = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.investors.title}
+        description={PAGE_SEO.investors.description}
+        keywords={PAGE_SEO.investors.keywords}
+        breadcrumbs={[{ name: 'Investors', url: 'https://recouply.ai/investors' }]}
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />

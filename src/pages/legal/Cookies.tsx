@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { COMPANY_INFO } from '@/lib/companyConfig';
 import { Shield, Cog, BarChart3, Target, Settings } from 'lucide-react';
 import { useCookieConsentContext } from '@/components/CookieConsentProvider';
+import SEOHead from '@/components/SEOHead';
+import { PAGE_SEO } from '@/lib/seoConfig';
 
 const cookieCategories = [
   {
@@ -51,6 +53,15 @@ export default function Cookies() {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.cookies.title}
+        description={PAGE_SEO.cookies.description}
+        keywords={PAGE_SEO.cookies.keywords}
+        breadcrumbs={[
+          { name: 'Legal', url: 'https://recouply.ai/legal/cookies' },
+          { name: 'Cookie Policy', url: 'https://recouply.ai/legal/cookies' },
+        ]}
+      />
       <div className="max-w-4xl mx-auto px-4 py-16 sm:py-24">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-tight text-foreground mb-4">

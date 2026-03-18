@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -118,6 +120,12 @@ const Security = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.security.title}
+        description={PAGE_SEO.security.description}
+        keywords={PAGE_SEO.security.keywords}
+        breadcrumbs={[{ name: 'Security', url: 'https://recouply.ai/security-public' }]}
+      />
       {/* Hero Section */}
       <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />

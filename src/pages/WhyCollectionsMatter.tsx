@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight, Brain } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 export default function WhyCollectionsMatter() {
   usePageTitle("Why Collections Matter");
@@ -11,6 +13,12 @@ export default function WhyCollectionsMatter() {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.whyCollectionsMatter.title}
+        description={PAGE_SEO.whyCollectionsMatter.description}
+        keywords={PAGE_SEO.whyCollectionsMatter.keywords}
+        breadcrumbs={[{ name: 'Why Collections Matter', url: 'https://recouply.ai/why-collections-matter' }]}
+      />
       <div className="min-h-screen">
         {/* Hero Section */}
         <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">

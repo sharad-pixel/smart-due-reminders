@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
@@ -127,6 +129,12 @@ const AICommandCenter = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.aiCommandCenter.title}
+        description={PAGE_SEO.aiCommandCenter.description}
+        keywords={PAGE_SEO.aiCommandCenter.keywords}
+        breadcrumbs={[{ name: 'AI Command Center', url: 'https://recouply.ai/ai-command-center' }]}
+      />
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-6xl text-center">

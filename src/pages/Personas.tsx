@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { Badge } from "@/components/ui/badge";
@@ -445,6 +447,12 @@ const Personas = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.personas.title}
+        description={PAGE_SEO.personas.description}
+        keywords={PAGE_SEO.personas.keywords}
+        breadcrumbs={[{ name: 'AI Agent Personas', url: 'https://recouply.ai/personas' }]}
+      />
       <div className="py-16 md:py-20 px-4 bg-gradient-to-b from-background via-background to-muted/20 min-h-screen">
         <div className="container mx-auto max-w-6xl">
           {/* Animated header */}
