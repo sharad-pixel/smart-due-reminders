@@ -29,7 +29,7 @@ const DataVettingBadge = () => {
               <Shield className="h-6 w-6 text-primary" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold">
-              Don't Trust Your Data Yet? We'll Help You Vet It First.
+              Don't Trust Your Data? We'll Help You Vet It First.
             </h2>
           </div>
 
