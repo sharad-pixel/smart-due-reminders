@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, FileText, Link as LinkIcon, X, Plus, Loader2, Brain, Sparkles, CheckCircle2, AlertTriangle, Target, Clock, Info } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 
 interface Invoice {
   id: string;
