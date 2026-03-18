@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
+import { formatCurrency } from "@/lib/formatters";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
