@@ -23,13 +23,13 @@ export interface AgingBucketDef {
 
 /** Full bucket definitions used for UI display */
 export const AGING_BUCKETS: AgingBucketDef[] = [
-  { key: 'current',       label: 'Current (Not Due)',        shortLabel: 'Current',    color: 'bg-green-500',  minDays: 0,   maxDays: 0 },
-  { key: 'dpd_1_30',      label: '1-30 Days Past Due',      shortLabel: '1-30 Days',  color: 'bg-yellow-500', minDays: 1,   maxDays: 30 },
-  { key: 'dpd_31_60',     label: '31-60 Days Past Due',     shortLabel: '31-60 Days', color: 'bg-orange-500', minDays: 31,  maxDays: 60 },
-  { key: 'dpd_61_90',     label: '61-90 Days Past Due',     shortLabel: '61-90 Days', color: 'bg-red-400',    minDays: 61,  maxDays: 90 },
-  { key: 'dpd_91_120',    label: '91-120 Days Past Due',    shortLabel: '91-120 Days',color: 'bg-red-500',    minDays: 91,  maxDays: 120 },
-  { key: 'dpd_121_150',   label: '121-150 Days Past Due',   shortLabel: '121-150 Days',color: 'bg-red-600',   minDays: 121, maxDays: 150 },
-  { key: 'dpd_150_plus',  label: '150+ Days Past Due',      shortLabel: '150+ Days',  color: 'bg-red-700',    minDays: 151, maxDays: null },
+  { key: 'current',       label: 'Current',       fullLabel: 'Current (Not Due)',        color: 'bg-green-500',  minDays: 0,   maxDays: 0 },
+  { key: 'dpd_1_30',      label: '1-30 Days',     fullLabel: '1-30 Days Past Due',       color: 'bg-yellow-500', minDays: 1,   maxDays: 30 },
+  { key: 'dpd_31_60',     label: '31-60 Days',    fullLabel: '31-60 Days Past Due',      color: 'bg-orange-500', minDays: 31,  maxDays: 60 },
+  { key: 'dpd_61_90',     label: '61-90 Days',    fullLabel: '61-90 Days Past Due',      color: 'bg-red-400',    minDays: 61,  maxDays: 90 },
+  { key: 'dpd_91_120',    label: '91-120 Days',   fullLabel: '91-120 Days Past Due',     color: 'bg-red-500',    minDays: 91,  maxDays: 120 },
+  { key: 'dpd_121_150',   label: '121-150 Days',  fullLabel: '121-150 Days Past Due',    color: 'bg-red-600',    minDays: 121, maxDays: 150 },
+  { key: 'dpd_150_plus',  label: '150+ Days',     fullLabel: '150+ Days Past Due',       color: 'bg-red-700',    minDays: 151, maxDays: null },
 ];
 
 /** Map from bucket key to its persona agent */
