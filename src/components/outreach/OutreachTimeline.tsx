@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, ExternalLink, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PersonaAvatar } from "./PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
