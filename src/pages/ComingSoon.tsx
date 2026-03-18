@@ -115,6 +115,11 @@ const ComingSoon = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.comingSoon.title}
+        description={PAGE_SEO.comingSoon.description}
+        keywords={PAGE_SEO.comingSoon.keywords}
+      />
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         {/* Animated gradient background */}

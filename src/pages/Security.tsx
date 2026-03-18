@@ -120,6 +120,12 @@ const Security = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.security.title}
+        description={PAGE_SEO.security.description}
+        keywords={PAGE_SEO.security.keywords}
+        breadcrumbs={[{ name: 'Security', url: 'https://recouply.ai/security-public' }]}
+      />
       {/* Hero Section */}
       <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />

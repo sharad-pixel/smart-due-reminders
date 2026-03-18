@@ -129,6 +129,12 @@ const AICommandCenter = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.aiCommandCenter.title}
+        description={PAGE_SEO.aiCommandCenter.description}
+        keywords={PAGE_SEO.aiCommandCenter.keywords}
+        breadcrumbs={[{ name: 'AI Command Center', url: 'https://recouply.ai/ai-command-center' }]}
+      />
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-6xl text-center">

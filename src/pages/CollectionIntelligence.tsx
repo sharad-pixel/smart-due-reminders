@@ -33,6 +33,12 @@ const CollectionIntelligence = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.collectionIntelligence.title}
+        description={PAGE_SEO.collectionIntelligence.description}
+        keywords={PAGE_SEO.collectionIntelligence.keywords}
+        breadcrumbs={[{ name: 'Collection Intelligence', url: 'https://recouply.ai/collection-intelligence' }]}
+      />
       {/* Hero Section */}
       <section className="py-24 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
         <div className="container mx-auto text-center max-w-5xl">

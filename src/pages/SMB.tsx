@@ -45,6 +45,12 @@ const SMB = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.smb.title}
+        description={PAGE_SEO.smb.description}
+        keywords={PAGE_SEO.smb.keywords}
+        breadcrumbs={[{ name: 'Small Business', url: 'https://recouply.ai/smb' }]}
+      />
       {/* Hero */}
       <section className="py-20 px-4 bg-gradient-to-b from-background via-primary/5 to-muted/30">
         <div className="container mx-auto max-w-5xl">

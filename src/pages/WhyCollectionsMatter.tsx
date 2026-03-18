@@ -13,6 +13,12 @@ export default function WhyCollectionsMatter() {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.whyCollectionsMatter.title}
+        description={PAGE_SEO.whyCollectionsMatter.description}
+        keywords={PAGE_SEO.whyCollectionsMatter.keywords}
+        breadcrumbs={[{ name: 'Why Collections Matter', url: 'https://recouply.ai/why-collections-matter' }]}
+      />
       <div className="min-h-screen">
         {/* Hero Section */}
         <section className="relative py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
