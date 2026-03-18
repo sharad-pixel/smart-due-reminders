@@ -53,6 +53,15 @@ export default function Cookies() {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.cookies.title}
+        description={PAGE_SEO.cookies.description}
+        keywords={PAGE_SEO.cookies.keywords}
+        breadcrumbs={[
+          { name: 'Legal', url: 'https://recouply.ai/legal/cookies' },
+          { name: 'Cookie Policy', url: 'https://recouply.ai/legal/cookies' },
+        ]}
+      />
       <div className="max-w-4xl mx-auto px-4 py-16 sm:py-24">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-tight text-foreground mb-4">

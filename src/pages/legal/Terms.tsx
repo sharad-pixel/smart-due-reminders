@@ -13,6 +13,15 @@ const Terms = () => {
   
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.terms.title}
+        description={PAGE_SEO.terms.description}
+        keywords={PAGE_SEO.terms.keywords}
+        breadcrumbs={[
+          { name: 'Legal', url: 'https://recouply.ai/legal/terms' },
+          { name: 'Terms of Service', url: 'https://recouply.ai/legal/terms' },
+        ]}
+      />
       <div className="container mx-auto max-w-4xl px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">

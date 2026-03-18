@@ -8,6 +8,15 @@ const Privacy = () => {
 
   return (
     <MarketingLayout>
+      <SEOHead
+        title={PAGE_SEO.privacy.title}
+        description={PAGE_SEO.privacy.description}
+        keywords={PAGE_SEO.privacy.keywords}
+        breadcrumbs={[
+          { name: 'Legal', url: 'https://recouply.ai/legal/privacy' },
+          { name: 'Privacy Policy', url: 'https://recouply.ai/legal/privacy' },
+        ]}
+      />
       <div className="container mx-auto max-w-4xl px-4 py-16">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mb-8">Last updated: December 2024</p>
