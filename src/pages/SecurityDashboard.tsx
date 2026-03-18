@@ -107,25 +107,13 @@ export default function SecurityDashboard() {
     try {
       setLoading(true);
 
-      // Load audit logs
-      const { data: logs, error: logsError } = await supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      const [logs, events] = await Promise.all([
+        fetchAuditLogs(100),
+        fetchSecurityEvents(100),
+      ]);
 
-      if (logsError) throw logsError;
-      setAuditLogs(logs || []);
-
-      // Load security events
-      const { data: events, error: eventsError } = await supabase
-        .from("security_events")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (eventsError) throw eventsError;
-      setSecurityEvents(events || []);
+      setAuditLogs(logs);
+      setSecurityEvents(events);
 
       // Calculate stats
       const failedLogins = events?.filter(e => e.event_type === "login" && !e.success).length || 0;
