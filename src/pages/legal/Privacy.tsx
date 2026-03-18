@@ -1,5 +1,7 @@
 import MarketingLayout from "@/components/MarketingLayout";
 import { COMPANY_INFO } from "@/lib/companyConfig";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 const Privacy = () => {
   const currentYear = new Date().getFullYear();
