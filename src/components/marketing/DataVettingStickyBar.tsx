@@ -48,7 +48,7 @@ const DataVettingStickyBar = () => {
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">Don't Trust Your Data Yet?</p>
+                  <p className="text-sm font-semibold truncate">Don't Trust Your Data?</p>
                   <p className="text-xs text-muted-foreground hidden sm:block">We'll help you vet it first — structured onboarding & founder-led oversight.</p>
                 </div>
               </div>
