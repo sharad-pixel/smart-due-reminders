@@ -670,6 +670,8 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
       toast.error("Failed to approve draft");
     }
   };
+
+  const handleDelete = async () => {
     if (!deleteItem) return;
     setIsDeleting(true);
     
