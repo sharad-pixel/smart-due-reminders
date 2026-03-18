@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserAlerts, UserAlert } from '@/hooks/useUserAlerts';
 import { useNotifications, UserNotification } from '@/hooks/useNotifications';
-import Layout from '@/components/Layout';
+import Layout from '@/components/layout/Layout';
 import { cn } from '@/lib/utils';
 
 type FilterType = 'all' | 'unread' | 'alerts' | 'mentions';

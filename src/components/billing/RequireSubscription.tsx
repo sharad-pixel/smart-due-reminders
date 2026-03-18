@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { TeamMemberLockoutModal } from './TeamMemberLockoutModal';
+import { TeamMemberLockoutModal } from '@/components/security/TeamMemberLockoutModal';
 import { useAccess } from '@/contexts/AccessContext';
 
 interface RequireSubscriptionProps {

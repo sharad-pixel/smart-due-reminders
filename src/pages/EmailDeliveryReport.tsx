@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
-import Layout from '@/components/Layout';
+import Layout from '@/components/layout/Layout';
 
 interface EmailActivity {
   id: string;
