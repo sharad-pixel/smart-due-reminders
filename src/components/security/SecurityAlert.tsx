@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  fetchFailedSecurityEvents,
+  fetchRecentSessions,
+} from "@/lib/supabase/security";
 
 interface SecurityAlertData {
   id: string;
@@ -44,18 +48,16 @@ export function SecurityAlert() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check for failed login attempts in last hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: failedLogins } = await supabase
-        .from('security_events')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('success', false)
-        .gte('created_at', oneHourAgo);
+      
+      const [failedLogins, sessions] = await Promise.all([
+        fetchFailedSecurityEvents(user.id, oneHourAgo),
+        fetchRecentSessions(user.id, oneHourAgo),
+      ]);
 
       const newAlerts: SecurityAlertData[] = [];
 
-      if (failedLogins && failedLogins.length >= 3) {
+      if (failedLogins.length >= 3) {
         newAlerts.push({
           id: 'failed-logins',
           message: `${failedLogins.length} failed login attempts detected in the last hour`,
@@ -64,15 +66,7 @@ export function SecurityAlert() {
         });
       }
 
-      // Check for new device logins
-      const { data: sessions } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('created_at', oneHourAgo)
-        .order('created_at', { ascending: false });
-
-      if (sessions && sessions.length > 1) {
+      if (sessions.length > 1) {
         newAlerts.push({
           id: 'new-device',
           message: 'New device login detected',
