@@ -43,7 +43,7 @@ export const AddressAutocompleteInput = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const { toast } = useToast();
-  const debounceTimer = useRef<NodeJS.Timeout>();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close suggestions when clicking outside
