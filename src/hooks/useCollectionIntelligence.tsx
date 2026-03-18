@@ -164,7 +164,7 @@ export const useCollectionIntelligenceDashboard = () => {
           table: "debtors",
         },
         (payload) => {
-          console.log("[REALTIME] Debtor updated:", payload.new.id);
+          
           // Update the local cache with new data
           setRealtimeData((prev) => {
             const updated = prev.map((d) =>
@@ -318,7 +318,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           filter: `id=eq.${debtorId}`,
         },
         (payload) => {
-          console.log("[REALTIME] Debtor intelligence updated:", payload.new);
+          
           if (payload.new.collection_intelligence_score !== undefined) {
             setRealtimeScore(payload.new.collection_intelligence_score);
           }
@@ -339,7 +339,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           filter: `debtor_id=eq.${debtorId}`,
         },
         (payload) => {
-          console.log("[REALTIME] New inbound email for debtor:", payload.new);
+          
           query.refetch();
         }
       )

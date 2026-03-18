@@ -91,13 +91,7 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
   const isInbound = activity.direction === 'inbound';
   const hasLinkedOutreach = !!activity.linked_outreach_log_id;
 
-  // Debug logging
-  console.log('ResponseActivityCard - activity:', {
-    id: activity.id,
-    has_response_message: !!activity.response_message,
-    response_message_length: activity.response_message?.length,
-    direction: activity.direction
-  });
+  
 
   return (
     <Card className={`${isInbound ? 'border-l-4 border-l-primary' : ''}`}>
