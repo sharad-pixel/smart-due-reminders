@@ -15,7 +15,7 @@ export type AgingBucketKey =
 export interface AgingBucketDef {
   key: AgingBucketKey;
   label: string;
-  shortLabel: string;
+  fullLabel: string;
   color: string;
   minDays: number;
   maxDays: number | null;
