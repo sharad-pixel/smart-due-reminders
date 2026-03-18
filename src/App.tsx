@@ -36,7 +36,6 @@ const PageLoader = () => {
 };
 
 // CRITICAL IMPORTS - Load immediately (needed for initial render)
-import Home from "./pages/Home";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
