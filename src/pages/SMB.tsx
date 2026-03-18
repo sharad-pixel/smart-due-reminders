@@ -5,6 +5,8 @@ import MarketingLayout from "@/components/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
+import SEOHead from "@/components/SEOHead";
+import { PAGE_SEO } from "@/lib/seoConfig";
 
 const SMB = () => {
   const navigate = useNavigate();
