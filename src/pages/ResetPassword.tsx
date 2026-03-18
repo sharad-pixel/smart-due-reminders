@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { logSecurityEvent } from "@/lib/auditLog";
-import { RecouplyLogo } from "@/components/RecouplyLogo";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 
 // Password requirements based on industry best practices (NIST guidelines)
 const PASSWORD_REQUIREMENTS = {

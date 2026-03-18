@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@/lib/subscriptionConfig";
-import { AccountHierarchy } from "@/components/AccountHierarchy";
+import { AccountHierarchy } from "@/components/accounts/AccountHierarchy";
 import { useAccountHierarchy } from "@/hooks/useAccountHierarchy";
-import ConsumptionTracker from "@/components/ConsumptionTracker";
-import { UsageIndicator } from "@/components/UsageIndicator";
-import { TrialCountdown } from "@/components/TrialCountdown";
-import UsageBillingLog from "@/components/UsageBillingLog";
+import ConsumptionTracker from "@/components/billing/ConsumptionTracker";
+import { UsageIndicator } from "@/components/billing/UsageIndicator";
+import { TrialCountdown } from "@/components/billing/TrialCountdown";
+import UsageBillingLog from "@/components/billing/UsageBillingLog";
 // Colorful gauge component
 const UsageGauge = ({ 
   used, 

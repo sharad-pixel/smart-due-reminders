@@ -1,4 +1,4 @@
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import AnimatedHero from "@/components/marketing/AnimatedHero";
 import ScrollPipeline from "@/components/marketing/ScrollPipeline";
 import AnimatedMetrics from "@/components/marketing/AnimatedMetrics";
@@ -12,7 +12,7 @@ import FeatureGrid from "@/components/marketing/FeatureGrid";
 import AIAgentsSection from "@/components/marketing/AIAgentsSection";
 import WhyDifferent from "@/components/marketing/WhyDifferent";
 import DataVettingBadge from "@/components/marketing/DataVettingBadge";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 import AssessmentCTA from "@/components/marketing/AssessmentCTA";
 

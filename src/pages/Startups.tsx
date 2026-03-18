@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Rocket, DollarSign, Clock, TrendingUp, CheckCircle, ArrowRight, Zap, Target, BarChart3, Brain } from "lucide-react";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
-import SEO from "@/components/SEO";
+import SEO from "@/components/seo/SEO";
 
 const Startups = () => {
   const navigate = useNavigate();

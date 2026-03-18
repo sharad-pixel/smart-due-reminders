@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import MarketingLayout from "@/components/MarketingLayout";
-import SEO from "@/components/SEO";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import SEO from "@/components/seo/SEO";
 import { 
   ArrowRight, 
   Check, 

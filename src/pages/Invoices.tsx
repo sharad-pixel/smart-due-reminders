@@ -3,7 +3,7 @@ import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { formatCurrency } from "@/lib/formatters";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,12 +19,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
-import { AIInsightsCard } from "@/components/AIInsightsCard";
-import { IntegrationSourceBadge } from "@/components/IntegrationSourceBanner";
+import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { IntegrationSourceBadge } from "@/components/integrations/IntegrationSourceBanner";
 
 interface Invoice {
   id: string;

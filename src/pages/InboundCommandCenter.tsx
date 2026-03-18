@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { CollectionTask } from "@/hooks/useCollectionTasks";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

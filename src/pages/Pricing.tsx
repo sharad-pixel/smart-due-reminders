@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Check, Mail, Zap, Heart, Building2, Users, Shield, ArrowRight } from "lucide-react";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { personaConfig } from "@/lib/personaConfig";
 import { Switch } from "@/components/ui/switch";
@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { CostComparisonSection } from "@/components/marketing/CostComparisonSection";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 
 /**

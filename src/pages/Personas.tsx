@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { Badge } from "@/components/ui/badge";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { personaConfig } from "@/lib/personaConfig";
 import { MessageSquare, Target, Clock, TrendingUp, Slack, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence, useInView } from "framer-motion";

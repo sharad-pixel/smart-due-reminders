@@ -41,20 +41,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UsageIndicator } from "@/components/UsageIndicator";
-import { SecurityAlert } from "@/components/SecurityAlert";
+import { UsageIndicator } from "@/components/billing/UsageIndicator";
+import { SecurityAlert } from "@/components/security/SecurityAlert";
 import { logAuditEvent } from "@/lib/auditLog";
-import { RecouplyLogo } from "@/components/RecouplyLogo";
-import NicolasChat from "@/components/NicolasChat";
-import { NicolasPageTip } from "@/components/NicolasPageTip";
-import { OnboardingWelcome } from "@/components/OnboardingWelcome";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
+import NicolasChat from "@/components/nicolas/NicolasChat";
+import { NicolasPageTip } from "@/components/nicolas/NicolasPageTip";
+import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
-import { NavProfileAvatar } from "@/components/NavProfileAvatar";
+import { NavProfileAvatar } from "@/components/layout/NavProfileAvatar";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
-import { RequireSubscription } from "@/components/RequireSubscription";
-import { TrialBanner } from "@/components/TrialBanner";
-import { AccountLockoutBanner } from "@/components/AccountLockoutBanner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
+import { TrialBanner } from "@/components/billing/TrialBanner";
+import { AccountLockoutBanner } from "@/components/accounts/AccountLockoutBanner";
 
 
 interface LayoutProps {

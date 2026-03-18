@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,9 @@ import { Shield, AlertTriangle, Activity, Download, RefreshCw, Settings } from "
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { MFASettings } from "@/components/MFASettings";
-import { SessionManager } from "@/components/SessionManager";
-import { DataEncryptionSettings } from "@/components/DataEncryptionSettings";
+import { MFASettings } from "@/components/security/MFASettings";
+import { SessionManager } from "@/components/security/SessionManager";
+import { DataEncryptionSettings } from "@/components/security/DataEncryptionSettings";
 
 interface AuditLog {
   id: string;

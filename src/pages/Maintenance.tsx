@@ -1,6 +1,6 @@
 import { Wrench, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RecouplyLogo } from "@/components/RecouplyLogo";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import { COMPANY_INFO } from "@/lib/companyConfig";
 
 const Maintenance = () => {

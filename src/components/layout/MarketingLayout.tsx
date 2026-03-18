@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
-import { RecouplyLogo } from "@/components/RecouplyLogo";
-import NicolasChat from "@/components/NicolasChat";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
+import NicolasChat from "@/components/nicolas/NicolasChat";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import DataVettingStickyBar from "@/components/marketing/DataVettingStickyBar";
 import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, Linkedin, ShieldCheck, User, CreditCard } from "lucide-react";

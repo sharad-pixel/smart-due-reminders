@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Save, CreditCard, Building, Link2, ExternalLink, Loader2, Users, UserPlus, Lock, Crown, Building2, Plug, Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { StripeIntegrationCard } from "@/components/StripeIntegrationCard";
+import { StripeIntegrationCard } from "@/components/integrations/StripeIntegrationCard";
 import { SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 

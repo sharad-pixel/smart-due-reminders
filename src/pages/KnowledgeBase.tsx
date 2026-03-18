@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, Search, Book, Zap, Users, Mail, CreditCard, Shield, BarChart3, HelpCircle, Bot, FileText, Building2, Sparkles } from "lucide-react";
-import MarketingLayout from "@/components/MarketingLayout";
-import SEO from "@/components/SEO";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import SEO from "@/components/seo/SEO";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { knowledgeBaseData, FAQCategory as DataFAQCategory } from "@/lib/knowledgeBaseData";

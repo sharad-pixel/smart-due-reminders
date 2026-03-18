@@ -7,12 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
-import { HoneypotField, isHoneypotTriggered } from "@/components/HoneypotField";
+import { HoneypotField, isHoneypotTriggered } from "@/components/ui/HoneypotField";
 import { checkClientRateLimit } from "@/lib/rateLimiting";
-import SEO from "@/components/SEO";
+import SEO from "@/components/seo/SEO";
 
 const INTENT_OPTIONS = [
   { value: "general", label: "General Inquiry" },

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import MarketingLayout from "@/components/MarketingLayout";
-import SEOHead from "@/components/SEOHead";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

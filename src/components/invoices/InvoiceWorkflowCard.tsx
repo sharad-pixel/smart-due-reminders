@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue, personaConfig } from "@/lib/personaConfig";
 import { Calendar, Mail, MessageSquare, Clock, CalendarClock, ArrowRight, ListTodo, MessageCircle, Brain, Zap, AlertTriangle } from "lucide-react";
 import { format, addDays } from "date-fns";

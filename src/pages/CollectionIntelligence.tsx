@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -24,7 +24,7 @@ import {
   FileText,
   Activity
 } from "lucide-react";
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";
 

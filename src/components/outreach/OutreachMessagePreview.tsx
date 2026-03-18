@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Mail, Sparkles, Save, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
 
 interface OutreachMessagePreviewProps {

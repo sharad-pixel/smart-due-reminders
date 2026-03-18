@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle, Volume2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
-import { ToneGauge } from "@/components/ToneGauge";
+import { ToneGauge } from "@/components/ai/ToneGauge";
 import { toneIntensityModifiers } from "@/lib/personaTones";
 
 interface AccountOutreachSettingsProps {

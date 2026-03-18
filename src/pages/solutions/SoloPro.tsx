@@ -1,9 +1,9 @@
-import MarketingLayout from "@/components/MarketingLayout";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, User, Brain, Zap, DollarSign, Clock } from "lucide-react";
-import SEOHead from "@/components/SEOHead";
+import SEOHead from "@/components/seo/SEOHead";
 import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
 
 const SoloPro = () => {

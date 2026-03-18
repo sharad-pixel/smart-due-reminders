@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Mail, MessageSquare, Users, CreditCard, CheckCircle, Bot, BarChart3, Shield, Brain, Clock, TrendingUp, Heart } from "lucide-react";
-import MarketingLayout from "@/components/MarketingLayout";
-import AIAgentRoles from "@/components/AIAgentRoles";
+import MarketingLayout from "@/components/layout/MarketingLayout";
+import AIAgentRoles from "@/components/ai/AIAgentRoles";
 import { Card, CardContent } from "@/components/ui/card";
-import SEO from "@/components/SEO";
+import SEO from "@/components/seo/SEO";
 
 const Features = () => {
   const navigate = useNavigate();
