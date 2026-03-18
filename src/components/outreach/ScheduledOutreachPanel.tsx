@@ -134,11 +134,6 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
   
   // Preview state
   const [previewItem, setPreviewItem] = useState<ScheduledItem | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewSubject, setPreviewSubject] = useState("");
-  const [previewBody, setPreviewBody] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [deleteItem, setDeleteItem] = useState<ScheduledItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
