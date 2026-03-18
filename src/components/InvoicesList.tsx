@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 
 interface Invoice {
   id: string;
