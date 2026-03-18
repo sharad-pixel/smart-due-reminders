@@ -581,34 +581,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     }
   };
 
-  const getAgingBucketLabel = (bucket: string): string => {
-    const labels: Record<string, string> = {
-      'current': 'Current (Not Due)',
-      'dpd_1_30': '1-30 Days Past Due',
-      'dpd_31_60': '31-60 Days Past Due',
-      'dpd_61_90': '61-90 Days Past Due',
-      'dpd_91_120': '91-120 Days Past Due',
-      'dpd_121_150': '121-150 Days Past Due',
-      'dpd_150_plus': '150+ Days Past Due',
-    };
-    return labels[bucket] || bucket;
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      Open: "bg-yellow-100 text-yellow-800",
-      Paid: "bg-green-100 text-green-800",
-      Disputed: "bg-red-100 text-red-800",
-      Settled: "bg-blue-100 text-blue-800",
-      InPaymentPlan: "bg-purple-100 text-purple-800",
-      Canceled: "bg-gray-100 text-gray-800",
-      PartiallyPaid: "bg-amber-100 text-amber-800",
-      Credited: "bg-cyan-100 text-cyan-800",
-      WrittenOff: "bg-orange-100 text-orange-800",
-      Partial: "bg-amber-100 text-amber-800",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
-  };
 
   const handleCopyReferenceId = () => {
     if (invoice?.reference_id) {
