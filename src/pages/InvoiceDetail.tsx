@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
+import { getAgingBucketFromDays as getAgingBucket, getAgingBucketLabel } from "@/lib/agingBuckets";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
