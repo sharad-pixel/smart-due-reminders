@@ -11,6 +11,7 @@ import {
 } from '@/lib/supabase/notifications';
 
 export type { UserNotification };
+export { createMentionNotification };
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
