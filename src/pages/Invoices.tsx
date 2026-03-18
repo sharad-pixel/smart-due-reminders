@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
+import { formatCurrency } from "@/lib/formatters";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
