@@ -244,15 +244,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const getAgingBucket = (daysPastDue: number): string => {
-    if (daysPastDue < 0) return 'current';
-    if (daysPastDue <= 30) return 'dpd_1_30';
-    if (daysPastDue <= 60) return 'dpd_31_60';
-    if (daysPastDue <= 90) return 'dpd_61_90';
-    if (daysPastDue <= 120) return 'dpd_91_120';
-    if (daysPastDue <= 150) return 'dpd_121_150';
-    return 'dpd_150_plus';
-  };
 
   const fetchData = async () => {
     try {
