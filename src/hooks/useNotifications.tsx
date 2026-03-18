@@ -4,6 +4,7 @@ import {
   fetchNotifications as fetchNotificationsService,
   markNotificationRead,
   markAllNotificationsRead,
+  createMentionNotification,
   deleteNotification as deleteNotificationService,
   clearAllNotifications as clearAllService,
   type UserNotification,

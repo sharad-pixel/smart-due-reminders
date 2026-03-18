@@ -72,6 +72,36 @@ export async function deleteNotification(notificationId: string) {
 }
 
 /**
+ * Create a mention notification (sends email + in-app notification via edge function).
+ */
+export async function createMentionNotification(
+  mentionedUserId: string,
+  senderName: string,
+  senderId: string,
+  taskId: string,
+  taskSummary: string,
+  noteContent?: string
+) {
+  try {
+    const { error } = await supabase.functions.invoke('send-mention-notification', {
+      body: {
+        mentionedUserId,
+        senderName,
+        senderId,
+        taskId,
+        taskSummary,
+        noteContent
+      }
+    });
+
+    if (error) throw error;
+    console.log('[createMentionNotification] Successfully sent mention notification to:', mentionedUserId);
+  } catch (error) {
+    console.error('Error creating mention notification:', error);
+  }
+}
+
+/**
  * Clear all notifications for a user.
  */
 export async function clearAllNotifications(userId: string) {
