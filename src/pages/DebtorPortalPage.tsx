@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatCurrency as fmtCurr } from "@/lib/formatters";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import MarketingHeader from "@/components/marketing/MarketingHeader";
