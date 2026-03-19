@@ -513,7 +513,7 @@ const Personas = () => {
                   }}
                   data-persona={key}
                 >
-                  <PersonaSection personaKey={key} index={index} />
+                  <PersonaSection personaKey={key} index={index} voice={voice} />
                 </div>
               ))}
           </div>
