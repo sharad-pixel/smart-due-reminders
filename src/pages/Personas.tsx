@@ -430,6 +430,7 @@ const Personas = () => {
   usePageTitle("AI Agent Personas");
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const voice = usePersonaVoice();
 
   const handleNavSelect = (key: string) => {
     setActiveKey(key);
