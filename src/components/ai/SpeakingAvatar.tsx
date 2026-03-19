@@ -113,21 +113,18 @@ export const SpeakingAvatar = ({
         {/* Talking mouth overlay */}
         {isSpeaking && (
           <motion.div
-            className="absolute left-1/2 rounded-[50%]"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full border border-border/70 bg-foreground/80 shadow-inner"
             style={{
-              bottom: mouth.bottom,
+              top: `${mouthTop}%`,
               width: mouth.width,
-              marginLeft: -(mouth.width / 2),
-              backgroundColor: "#1a0a0a",
-              border: "1px solid #400",
-              boxShadow: "inset 0 2px 4px rgba(0,0,0,0.6)",
             }}
             animate={{
-              height: [mouthOpenHeight * 0.3, mouthOpenHeight, mouthOpenHeight * 0.3],
-              scaleX: [0.85, 1.1, 0.85],
+              height: [mouthOpenHeight * 0.35, mouthOpenHeight, mouthOpenHeight * 0.35],
+              scaleX: [0.9, 1.08, 0.9],
+              opacity: [0.7, 0.95, 0.7],
             }}
             transition={{
-              duration: 0.25,
+              duration: 0.22,
               repeat: Infinity,
               ease: "easeInOut",
             }}
