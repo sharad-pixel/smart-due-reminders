@@ -150,7 +150,7 @@ export const SpeakingAvatar = ({
           transition={{
             duration: 0.15,
             repeat: Infinity,
-            repeatDelay: 3.2 + idleDelay,
+            repeatDelay: blinkInterval,
             ease: "easeInOut",
           }}
         />
