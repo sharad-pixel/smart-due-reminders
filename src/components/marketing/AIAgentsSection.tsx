@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
-import { SpeakingAvatar } from "@/components/ai/SpeakingAvatar";
 import { AlertTriangle, X, Brain } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 
@@ -47,10 +46,10 @@ const AIAgentsSection = () => {
             >
               <CardContent className="p-6">
                 <div className="flex items-center gap-4 mb-4">
-                    <div className="relative">
+                  <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <SpeakingAvatar persona={persona} size="md" />
-                    </div>
+                    <PersonaAvatar persona={key} size="md" />
+                  </div>
                   <div>
                     <h4 className="font-bold text-lg">{persona.name}</h4>
                     <p className="text-xs text-muted-foreground">

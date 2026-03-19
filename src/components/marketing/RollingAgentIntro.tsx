@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { personaConfig } from "@/lib/personaConfig";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
+import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 
 const agents = Object.values(personaConfig);
-const agentKeys = Object.keys(personaConfig);
 
 const RollingAgentIntro = () => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -26,16 +25,15 @@ const RollingAgentIntro = () => {
           <motion.button
             key={agent.name}
             onClick={() => setActiveIndex(i)}
-            className="relative rounded-full"
+            className="relative rounded-full p-0.5 transition-all duration-300"
             style={{
-              boxShadow:
-                i === activeIndex ? `0 0 20px ${agent.color}40` : "none",
+              boxShadow: i === activeIndex ? `0 0 20px ${agent.color}40` : "none",
+              border: i === activeIndex ? `2px solid ${agent.color}` : "2px solid transparent",
             }}
             animate={{
               scale: i === activeIndex ? 1.2 : 0.85,
               opacity: i === activeIndex ? 1 : 0.5,
             }}
-            whileHover={{ scale: 1.1, opacity: 0.9 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <PersonaAvatar persona={agent} size="md" />
@@ -76,9 +74,7 @@ const RollingAgentIntro = () => {
           <motion.div
             key={i}
             className="h-1 rounded-full cursor-pointer"
-            style={{
-              backgroundColor: i === activeIndex ? agent.color : undefined,
-            }}
+            style={{ backgroundColor: i === activeIndex ? agent.color : undefined }}
             animate={{
               width: i === activeIndex ? 24 : 8,
               opacity: i === activeIndex ? 1 : 0.3,

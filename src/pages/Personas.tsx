@@ -3,7 +3,6 @@ import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
-import { SpeakingAvatar } from "@/components/ai/SpeakingAvatar";
 import { Badge } from "@/components/ui/badge";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { personaConfig } from "@/lib/personaConfig";
@@ -182,12 +181,15 @@ function PersonaSection({
             />
 
             <motion.div
+              whileHover={{ scale: 1.08, rotate: 2 }}
+              transition={{ type: "spring", stiffness: 200, damping: 12 }}
               className="relative"
             >
-              <SpeakingAvatar
-                persona={persona}
-                size="2xl"
+              <div
+                className="absolute inset-0 rounded-full blur-xl opacity-30"
+                style={{ background: persona.color }}
               />
+              <PersonaAvatar persona={persona} size="2xl" />
             </motion.div>
 
             <motion.h2
@@ -416,7 +418,6 @@ const Personas = () => {
   usePageTitle("AI Agent Personas");
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  
 
   const handleNavSelect = (key: string) => {
     setActiveKey(key);
