@@ -185,15 +185,23 @@ function PersonaSection({
             />
 
             <motion.div
-              whileHover={{ scale: 1.08, rotate: 2 }}
-              transition={{ type: "spring", stiffness: 200, damping: 12 }}
               className="relative"
             >
-              <div
-                className="absolute inset-0 rounded-full blur-xl opacity-30"
-                style={{ background: persona.color }}
+              <SpeakingAvatar
+                persona={persona}
+                size="2xl"
+                amplitude={voice.isPlaying ? voice.amplitude : 0}
+                isSpeaking={voice.isPlaying && voice.isSpeaking}
+                isLoading={voice.isLoading}
+                isPlaying={voice.isPlaying}
+                onClick={() => {
+                  if (voice.isPlaying) {
+                    voice.stop();
+                  } else {
+                    voice.play(personaKey, messages[0]);
+                  }
+                }}
               />
-              <PersonaAvatar persona={persona} size="2xl" />
             </motion.div>
 
             <motion.h2
