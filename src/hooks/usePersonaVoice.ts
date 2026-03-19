@@ -23,6 +23,10 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
 
   const IOS_SILENT_WAV =
     "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+  const isIOSDeviceRef = useRef(
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 
   const updateAmplitude = useCallback(() => {
     if (!analyserRef.current) return;
@@ -52,7 +56,8 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
   const ensureAudioContextReady = useCallback(async () => {
     if (!audioContextRef.current) {
       const AudioContextCtor =
-        window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
       if (!AudioContextCtor) {
         throw new Error("Web Audio API is not supported on this device");
@@ -101,13 +106,13 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
       setIsLoading(true);
 
       try {
-        // Create/unlock media element immediately at touch start context (iPhone/Safari)
+        // Create/unlock media element immediately in user gesture context
         const audio = new Audio();
         audio.preload = "auto";
-        
         audio.setAttribute("playsinline", "true");
         audio.setAttribute("webkit-playsinline", "true");
         audio.volume = 1;
+        audio.muted = false;
         audioRef.current = audio;
 
         // Prime with a tiny silent clip to preserve iOS user-gesture playback permissions
@@ -124,7 +129,8 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
             });
         }
 
-        const context = await ensureAudioContextReady();
+        const shouldUseAnalyser = !isIOSDeviceRef.current;
+        const context = shouldUseAnalyser ? await ensureAudioContextReady() : null;
 
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
@@ -149,18 +155,22 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
         audio.src = audioUrl;
         audio.load();
 
-        // Try analyzer setup; if unavailable, playback still works
-        try {
-          const analyser = context.createAnalyser();
-          analyser.fftSize = 256;
-          analyser.smoothingTimeConstant = 0.8;
+        // Use analyzer where reliable; on iOS prioritize playback reliability over visual metering
+        if (context) {
+          try {
+            const analyser = context.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.8;
 
-          const source = context.createMediaElementSource(audio);
-          source.connect(analyser);
-          analyser.connect(context.destination);
-          analyserRef.current = analyser;
-        } catch (analysisError) {
-          console.warn("Audio analyzer setup skipped:", analysisError);
+            const source = context.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(context.destination);
+            analyserRef.current = analyser;
+          } catch (analysisError) {
+            console.warn("Audio analyzer setup skipped:", analysisError);
+            analyserRef.current = null;
+          }
+        } else {
           analyserRef.current = null;
         }
 
@@ -177,10 +187,15 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
         setIsPlaying(true);
 
         try {
+          if (context?.state === "suspended") {
+            await context.resume();
+          }
           await audio.play();
         } catch (playError) {
           console.warn("Initial playback blocked, retrying once:", playError);
-          await ensureAudioContextReady();
+          if (context) {
+            await ensureAudioContextReady();
+          }
           await audio.play();
         }
 
