@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
+import { SpeakingAvatar } from "@/components/ai/SpeakingAvatar";
 import { AlertTriangle, X, Brain } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 
