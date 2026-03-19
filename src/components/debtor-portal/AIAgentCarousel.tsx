@@ -50,13 +50,17 @@ export function AIAgentCarousel() {
       const key = agents[index].key;
       setActiveIndex(index);
 
-      if (isPlaying && playingKey === key) {
+      // If same agent is already playing, stop it
+      if (playingKey === key && isPlaying) {
         stop();
         setPlayingKey(null);
-      } else {
-        setPlayingKey(key);
-        play(key, personaIntroLines[key]);
+        return;
       }
+
+      // Stop any currently playing agent, then play the new one
+      stop();
+      setPlayingKey(key);
+      play(key, personaIntroLines[key]);
     },
     [isPlaying, playingKey, play, stop]
   );
