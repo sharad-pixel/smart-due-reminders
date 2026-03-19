@@ -15,6 +15,15 @@ interface SpeakingAvatarProps {
   className?: string;
 }
 
+const mouthSizeMap: Record<string, { width: number; bottom: number }> = {
+  xs: { width: 6, bottom: 4 },
+  sm: { width: 8, bottom: 5 },
+  md: { width: 10, bottom: 6 },
+  lg: { width: 12, bottom: 8 },
+  xl: { width: 16, bottom: 12 },
+  "2xl": { width: 24, bottom: 18 },
+};
+
 export const SpeakingAvatar = ({
   persona,
   size = "md",
@@ -25,10 +34,11 @@ export const SpeakingAvatar = ({
   onClick,
   className,
 }: SpeakingAvatarProps) => {
-  // Scale the glow and pulse based on amplitude
   const glowIntensity = 0.15 + amplitude * 0.6;
   const pulseScale = 1 + amplitude * 0.15;
   const lastInteractionRef = useRef(0);
+  const mouth = mouthSizeMap[size] || mouthSizeMap.md;
+  const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.6);
 
   const triggerInteraction = useCallback(() => {
     const now = Date.now();
