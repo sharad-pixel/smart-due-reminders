@@ -10,13 +10,13 @@ const agentKeys = Object.keys(personaConfig);
 
 // Short intro lines each persona speaks when selected
 const personaIntroLines: Record<string, string> = {
-  nicolas: "Hi, I'm Nicolas. I handle account-level support and proactive outreach to keep your customer relationships strong.",
-  sam: "Hey there! I'm Sam, your friendly reminder agent. I reach out gently in the first 30 days to help customers pay on time.",
-  james: "I'm James. When invoices hit 31 to 60 days overdue, I step in with clear, professional communication to get things resolved.",
-  katy: "I'm Katy. At 61 to 90 days past due, I bring serious urgency and make sure customers understand the importance of paying now.",
-  troy: "I'm Troy. When accounts reach 91 to 120 days overdue, I deliver firm final warnings before escalation.",
-  jimmy: "I'm Jimmy. At 121 to 150 days, I bring the legal pressure. This is the last chance before we pursue formal remedies.",
-  rocco: "I'm Rocco. I'm the final internal collections agent. When I reach out, it's the absolute last step before external action.",
+  nicolas: "Hi, I'm Nicolas. I'm your dedicated account manager, working around the clock to strengthen your customer relationships and keep revenue flowing.",
+  sam: "Hey there! I'm Sam. I work 24/7 as your friendly first-touch agent, gently nudging customers in the first 30 days so invoices get paid on time.",
+  james: "I'm James. When invoices hit 31 to 60 days, I'm on the job day and night with clear, professional communication to get things resolved for your business.",
+  katy: "I'm Katy. At 61 to 90 days past due, I bring serious urgency around the clock, making sure your customers understand the importance of settling up.",
+  troy: "I'm Troy. I work for your business 24/7. When accounts reach 91 to 120 days overdue, I deliver firm final warnings before escalation.",
+  jimmy: "I'm Jimmy. At 121 to 150 days, I bring the legal pressure nonstop. Consider me your always-on last line before formal remedies.",
+  rocco: "I'm Rocco. I'm your final collections agent, working day and night. When I reach out, it's the absolute last step before external action.",
 };
 
 const RollingAgentIntro = () => {
