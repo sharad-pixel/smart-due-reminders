@@ -19,7 +19,7 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const sourceCreatedRef = useRef(false);
+  const audioUrlRef = useRef<string | null>(null);
 
   const updateAmplitude = useCallback(() => {
     if (!analyserRef.current) return;
@@ -27,50 +27,79 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
     analyserRef.current.getByteFrequencyData(dataArray);
 
-    // Calculate RMS amplitude (0-1)
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) {
       sum += dataArray[i] * dataArray[i];
     }
     const rms = Math.sqrt(sum / dataArray.length) / 255;
 
-    // Smooth the amplitude for animation
     setAmplitude((prev) => prev * 0.3 + rms * 0.7);
     setIsSpeaking(rms > 0.05);
 
     animationFrameRef.current = requestAnimationFrame(updateAmplitude);
   }, []);
 
-  const stop = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+  const revokeCurrentAudioUrl = useCallback(() => {
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
     }
+  }, []);
+
+  const stop = useCallback(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current.src = "";
+      audioRef.current.load();
+      audioRef.current = null;
+    }
+
+    revokeCurrentAudioUrl();
+
     setIsPlaying(false);
     setIsSpeaking(false);
     setAmplitude(0);
-    sourceCreatedRef.current = false;
-  }, []);
+  }, [revokeCurrentAudioUrl]);
 
   const play = useCallback(
     async (personaKey: string, text: string) => {
-      // Stop any currently playing audio
       stop();
-
-      // Create Audio element immediately in user gesture context (iOS Safari fix)
-      const audio = new Audio();
-      audio.preload = "auto";
-      // Unlock the audio element for playback on iOS
-      audio.play().catch(() => {});
-      audioRef.current = audio;
-
       setIsLoading(true);
 
       try {
+        // Create/unlock media element immediately in tap context (iPhone/Safari)
+        const audio = new Audio();
+        audio.preload = "auto";
+        audioRef.current = audio;
+
+        try {
+          await audio.play();
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          // Expected before src is set; this still helps keep gesture context on iOS
+        }
+
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContext();
+        }
+
+        if (audioContextRef.current.state === "suspended") {
+          try {
+            await audioContextRef.current.resume();
+          } catch (resumeError) {
+            console.warn("AudioContext resume blocked:", resumeError);
+          }
+        }
+
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
           {
@@ -90,49 +119,41 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
 
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
-
-        // Set source on the already-unlocked audio element
+        audioUrlRef.current = audioUrl;
         audio.src = audioUrl;
 
-        // Set up Web Audio API for amplitude analysis
-        if (!audioContextRef.current) {
-          audioContextRef.current = new AudioContext();
-        }
+        // Try analyzer setup; if unavailable, playback still works
+        try {
+          const analyser = audioContextRef.current.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.8;
 
-        // Resume AudioContext if suspended (browser autoplay policy)
-        if (audioContextRef.current.state === "suspended") {
-          await audioContextRef.current.resume();
-        }
-
-        const analyser = audioContextRef.current.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.8;
-        analyserRef.current = analyser;
-
-        if (!sourceCreatedRef.current) {
           const source = audioContextRef.current.createMediaElementSource(audio);
           source.connect(analyser);
           analyser.connect(audioContextRef.current.destination);
-          sourceCreatedRef.current = true;
+          analyserRef.current = analyser;
+        } catch (analysisError) {
+          console.warn("Audio analyzer setup skipped:", analysisError);
+          analyserRef.current = null;
         }
 
         audio.onended = () => {
           stop();
-          URL.revokeObjectURL(audioUrl);
         };
 
-        audio.onerror = (e) => {
-          console.error("Audio error:", e);
+        audio.onerror = (event) => {
+          console.error("Audio playback element error:", event);
           stop();
-          URL.revokeObjectURL(audioUrl);
         };
 
         setIsLoading(false);
         setIsPlaying(true);
+
         await audio.play();
 
-        // Start amplitude tracking
-        updateAmplitude();
+        if (analyserRef.current) {
+          updateAmplitude();
+        }
       } catch (error) {
         console.error("Voice playback error:", error);
         setIsLoading(false);
@@ -142,7 +163,6 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
     [stop, updateAmplitude]
   );
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stop();
