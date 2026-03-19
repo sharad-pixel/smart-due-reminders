@@ -129,9 +129,11 @@ const displayOrder = ["nicolas", "sam", "james", "katy", "troy", "jimmy", "rocco
 function PersonaSection({
   personaKey,
   index,
+  voice,
 }: {
   personaKey: string;
   index: number;
+  voice: ReturnType<typeof usePersonaVoice>;
 }) {
   const persona = personaConfig[personaKey];
   const strategy = strategies[personaKey];
