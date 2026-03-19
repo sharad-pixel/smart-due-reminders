@@ -187,17 +187,6 @@ function PersonaSection({
               <SpeakingAvatar
                 persona={persona}
                 size="2xl"
-                amplitude={voice.isPlaying ? voice.amplitude : 0}
-                isSpeaking={voice.isPlaying && voice.isSpeaking}
-                isLoading={voice.isLoading}
-                isPlaying={voice.isPlaying}
-                onClick={() => {
-                  if (voice.isPlaying) {
-                    voice.stop();
-                  } else {
-                    voice.play(personaKey, messages[0]);
-                  }
-                }}
               />
             </motion.div>
 
