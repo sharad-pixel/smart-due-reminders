@@ -31,7 +31,7 @@ export const SpeakingAvatar = ({
   return (
     <motion.div
       className={`relative cursor-pointer group ${className || ""}`}
-      onClick={onClick}
+      onTapStart={onClick}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
