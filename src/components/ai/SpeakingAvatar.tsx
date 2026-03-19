@@ -133,16 +133,15 @@ export const SpeakingAvatar = ({
         {/* Avatar image */}
         <PersonaAvatar persona={persona} size={size} />
 
-        {/* Eye-blink overlay — a thin line that briefly covers the eye region */}
+        {/* Eye-blink: brief brightness dip simulating a natural blink */}
         <motion.div
-          className="pointer-events-none absolute left-[18%] right-[18%] rounded-sm"
-          style={{ top: "36%", height: 0, opacity: 0, backgroundColor: "rgba(180, 140, 110, 0.92)" }}
+          className="pointer-events-none absolute inset-0 rounded-full bg-black"
+          style={{ opacity: 0 }}
           animate={{
-            height: [0, 5, 0],
-            opacity: [0, 0.9, 0],
+            opacity: [0, 0.3, 0],
           }}
           transition={{
-            duration: 0.22,
+            duration: 0.15,
             repeat: Infinity,
             repeatDelay: 3.2 + idleDelay,
             ease: "easeInOut",
