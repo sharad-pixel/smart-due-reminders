@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { PersonaAvatar } from "./PersonaAvatar";
 import { PersonaConfig } from "@/lib/personaConfig";
@@ -36,6 +36,12 @@ const personaMouthOffset: Record<string, number> = {
   nicolas: 0,
 };
 
+// Stagger idle animations so each avatar feels unique
+const getIdleDelay = (name: string) => {
+  const hash = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return (hash % 20) * 0.1; // 0 – 2s offset
+};
+
 export const SpeakingAvatar = ({
   persona,
   size = "md",
@@ -52,6 +58,8 @@ export const SpeakingAvatar = ({
   const mouth = mouthSizeMap[size as AvatarSize] || mouthSizeMap.md;
   const mouthTop = mouth.top + (personaMouthOffset[persona.name.toLowerCase()] ?? 0);
   const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.55);
+
+  const idleDelay = useMemo(() => getIdleDelay(persona.name), [persona.name]);
 
   const triggerInteraction = useCallback(() => {
     const now = Date.now();
@@ -100,15 +108,46 @@ export const SpeakingAvatar = ({
         transition={{ duration: 0.1 }}
       />
 
-      {/* Avatar with scale animation */}
+      {/* Avatar container with idle breathing + floating + speaking scale */}
       <motion.div
         className="relative"
-        animate={{
-          scale: isSpeaking ? pulseScale : 1,
-        }}
-        transition={{ duration: 0.1 }}
+        animate={
+          isSpeaking
+            ? { scale: pulseScale, y: 0 }
+            : {
+                scale: [1, 1.025, 1],        // subtle breathing
+                y: [0, -2, 0],               // gentle floating
+              }
+        }
+        transition={
+          isSpeaking
+            ? { duration: 0.1 }
+            : {
+                duration: 3.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: idleDelay,
+              }
+        }
       >
+        {/* Avatar image */}
         <PersonaAvatar persona={persona} size={size} />
+
+        {/* Eye-blink overlay — a thin dark line that briefly covers the eye region */}
+        <motion.div
+          className="pointer-events-none absolute left-[20%] right-[20%] rounded-full bg-background/90"
+          style={{ top: "38%", height: 0, opacity: 0 }}
+          animate={{
+            height: [0, 2, 0],
+            opacity: [0, 0.85, 0],
+          }}
+          transition={{
+            duration: 0.18,
+            repeat: Infinity,
+            repeatDelay: 3.2 + idleDelay,  // blink every ~3-5s, staggered
+            ease: "easeInOut",
+          }}
+        />
 
         {/* Talking mouth overlay */}
         {isSpeaking && (
