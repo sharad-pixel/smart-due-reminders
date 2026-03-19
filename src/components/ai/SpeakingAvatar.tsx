@@ -65,7 +65,7 @@ export const SpeakingAvatar = ({
   const mouthTop = mouth.top + (personaMouthOffset[persona.name.toLowerCase()] ?? 0);
   const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.55);
 
-  const idleDelay = useMemo(() => getIdleDelay(persona.name), [persona.name]);
+  const blinkInterval = useMemo(() => getBlinkInterval(persona.name), [persona.name]);
 
   const triggerInteraction = useCallback(() => {
     const now = Date.now();
