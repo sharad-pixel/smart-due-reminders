@@ -2,39 +2,13 @@ import { useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { PersonaAvatar } from "./PersonaAvatar";
 import { PersonaConfig } from "@/lib/personaConfig";
-import { Volume2, Loader2 } from "lucide-react";
 
 interface SpeakingAvatarProps {
   persona: PersonaConfig;
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
-  amplitude?: number;
-  isSpeaking?: boolean;
-  isLoading?: boolean;
-  isPlaying?: boolean;
   onClick?: () => void;
   className?: string;
 }
-
-type AvatarSize = NonNullable<SpeakingAvatarProps["size"]>;
-
-const mouthSizeMap: Record<AvatarSize, { width: number; top: number }> = {
-  xs: { width: 6, top: 66 },
-  sm: { width: 7, top: 66 },
-  md: { width: 8, top: 66 },
-  lg: { width: 9, top: 66 },
-  xl: { width: 10, top: 67 },
-  "2xl": { width: 16, top: 67 },
-};
-
-const personaMouthOffset: Record<string, number> = {
-  sam: -1,
-  james: 0,
-  katy: 1,
-  troy: 0,
-  jimmy: 0,
-  rocco: 1,
-  nicolas: 0,
-};
 
 // Stagger idle animations so each avatar feels unique
 const getIdleDelay = (name: string) => {
@@ -42,7 +16,7 @@ const getIdleDelay = (name: string) => {
   return (hash % 20) * 0.1; // 0 – 2s offset
 };
 
-// Each persona gets a unique blink interval so they don't blink in sync
+// Each persona gets a unique blink interval
 const getBlinkInterval = (name: string) => {
   const hash = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   return 2.8 + (hash % 30) * 0.12; // 2.8 – 6.4s between blinks
@@ -51,20 +25,10 @@ const getBlinkInterval = (name: string) => {
 export const SpeakingAvatar = ({
   persona,
   size = "md",
-  amplitude = 0,
-  isSpeaking = false,
-  isLoading = false,
-  isPlaying = false,
   onClick,
   className,
 }: SpeakingAvatarProps) => {
-  const glowIntensity = 0.15 + amplitude * 0.6;
-  const pulseScale = 1 + amplitude * 0.15;
   const lastInteractionRef = useRef(0);
-  const mouth = mouthSizeMap[size as AvatarSize] || mouthSizeMap.md;
-  const mouthTop = mouth.top + (personaMouthOffset[persona.name.toLowerCase()] ?? 0);
-  const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.55);
-
   const idleDelay = useMemo(() => getIdleDelay(persona.name), [persona.name]);
   const blinkInterval = useMemo(() => getBlinkInterval(persona.name), [persona.name]);
 
@@ -78,74 +42,35 @@ export const SpeakingAvatar = ({
   return (
     <motion.div
       className={`relative cursor-pointer group ${className || ""}`}
-      onTouchStart={triggerInteraction}
-      onMouseDown={triggerInteraction}
-      onClick={triggerInteraction}
+      onTouchStart={onClick ? triggerInteraction : undefined}
+      onMouseDown={onClick ? triggerInteraction : undefined}
+      onClick={onClick ? triggerInteraction : undefined}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
-      {/* Outer pulse ring - visible when speaking */}
-      {isSpeaking && (
-        <motion.div
-          className="absolute inset-[-8px] rounded-full"
-          style={{
-            border: `2px solid ${persona.color}`,
-            opacity: 0.3,
-          }}
-          animate={{
-            scale: [1, 1.2 + amplitude * 0.3, 1],
-            opacity: [0.3, 0.1, 0.3],
-          }}
-          transition={{
-            duration: 0.8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      )}
-
-      {/* Inner glow */}
-      <motion.div
-        className="absolute inset-[-4px] rounded-full blur-md"
-        style={{ background: persona.color }}
-        animate={{
-          opacity: isPlaying ? glowIntensity : 0,
-          scale: isPlaying ? pulseScale : 1,
-        }}
-        transition={{ duration: 0.1 }}
-      />
-
-      {/* Avatar container with idle breathing + floating + speaking scale */}
+      {/* Avatar container with idle breathing + floating */}
       <motion.div
         className="relative"
-        animate={
-          isSpeaking
-            ? { scale: pulseScale, y: 0 }
-            : {
-                scale: [1, 1.025, 1],        // subtle breathing
-                y: [0, -2, 0],               // gentle floating
-              }
-        }
-        transition={
-          isSpeaking
-            ? { duration: 0.1 }
-            : {
-                duration: 3.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: idleDelay,
-              }
-        }
+        animate={{
+          scale: [1, 1.025, 1],
+          y: [0, -2, 0],
+        }}
+        transition={{
+          duration: 3.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: idleDelay,
+        }}
       >
         {/* Avatar image */}
         <PersonaAvatar persona={persona} size={size} />
 
-        {/* Eye-blink: brief brightness dip simulating a natural blink */}
+        {/* Eye-blink: brief brightness dip */}
         <motion.div
           className="pointer-events-none absolute inset-0 rounded-full bg-black"
           style={{ opacity: 0 }}
           animate={{
-            opacity: [0, 0.3, 0],
+            opacity: [0, 0.25, 0],
           }}
           transition={{
             duration: 0.15,
@@ -154,39 +79,6 @@ export const SpeakingAvatar = ({
             ease: "easeInOut",
           }}
         />
-
-        {/* Talking mouth overlay */}
-        {isSpeaking && (
-          <motion.div
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full border border-border/70 bg-foreground/80 shadow-inner"
-            style={{
-              top: `${mouthTop}%`,
-              width: mouth.width,
-            }}
-            animate={{
-              height: [mouthOpenHeight * 0.35, mouthOpenHeight, mouthOpenHeight * 0.35],
-              scaleX: [0.9, 1.08, 0.9],
-              opacity: [0.7, 0.95, 0.7],
-            }}
-            transition={{
-              duration: 0.22,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        )}
-      </motion.div>
-
-      {/* Play/loading overlay */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ opacity: isLoading ? 1 : undefined }}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 text-white animate-spin" />
-        ) : !isPlaying ? (
-          <Volume2 className="h-4 w-4 text-white" />
-        ) : null}
       </motion.div>
     </motion.div>
   );
