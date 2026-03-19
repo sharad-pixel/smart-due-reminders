@@ -3,11 +3,13 @@ import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
+import { SpeakingAvatar } from "@/components/ai/SpeakingAvatar";
 import { Badge } from "@/components/ui/badge";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { personaConfig } from "@/lib/personaConfig";
-import { MessageSquare, Target, Clock, TrendingUp, Slack, ChevronDown } from "lucide-react";
+import { MessageSquare, Target, Clock, TrendingUp, Slack, ChevronDown, Volume2 } from "lucide-react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
+import { usePersonaVoice } from "@/hooks/usePersonaVoice";
 
 const sampleMessages: Record<string, string[]> = {
   nicolas: [
@@ -127,9 +129,11 @@ const displayOrder = ["nicolas", "sam", "james", "katy", "troy", "jimmy", "rocco
 function PersonaSection({
   personaKey,
   index,
+  voice,
 }: {
   personaKey: string;
   index: number;
+  voice: ReturnType<typeof usePersonaVoice>;
 }) {
   const persona = personaConfig[personaKey];
   const strategy = strategies[personaKey];
@@ -181,15 +185,23 @@ function PersonaSection({
             />
 
             <motion.div
-              whileHover={{ scale: 1.08, rotate: 2 }}
-              transition={{ type: "spring", stiffness: 200, damping: 12 }}
               className="relative"
             >
-              <div
-                className="absolute inset-0 rounded-full blur-xl opacity-30"
-                style={{ background: persona.color }}
+              <SpeakingAvatar
+                persona={persona}
+                size="2xl"
+                amplitude={voice.isPlaying ? voice.amplitude : 0}
+                isSpeaking={voice.isPlaying && voice.isSpeaking}
+                isLoading={voice.isLoading}
+                isPlaying={voice.isPlaying}
+                onClick={() => {
+                  if (voice.isPlaying) {
+                    voice.stop();
+                  } else {
+                    voice.play(personaKey, messages[0]);
+                  }
+                }}
               />
-              <PersonaAvatar persona={persona} size="2xl" />
             </motion.div>
 
             <motion.h2
@@ -418,6 +430,7 @@ const Personas = () => {
   usePageTitle("AI Agent Personas");
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const voice = usePersonaVoice();
 
   const handleNavSelect = (key: string) => {
     setActiveKey(key);
@@ -500,7 +513,7 @@ const Personas = () => {
                   }}
                   data-persona={key}
                 >
-                  <PersonaSection personaKey={key} index={index} />
+                  <PersonaSection personaKey={key} index={index} voice={voice} />
                 </div>
               ))}
           </div>
