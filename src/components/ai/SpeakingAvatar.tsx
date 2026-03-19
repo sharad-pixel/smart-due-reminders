@@ -15,13 +15,25 @@ interface SpeakingAvatarProps {
   className?: string;
 }
 
-const mouthSizeMap: Record<string, { width: number; bottom: number }> = {
-  xs: { width: 6, bottom: 4 },
-  sm: { width: 8, bottom: 5 },
-  md: { width: 10, bottom: 6 },
-  lg: { width: 12, bottom: 8 },
-  xl: { width: 16, bottom: 12 },
-  "2xl": { width: 24, bottom: 18 },
+type AvatarSize = NonNullable<SpeakingAvatarProps["size"]>;
+
+const mouthSizeMap: Record<AvatarSize, { width: number; top: number }> = {
+  xs: { width: 6, top: 66 },
+  sm: { width: 7, top: 66 },
+  md: { width: 8, top: 66 },
+  lg: { width: 9, top: 66 },
+  xl: { width: 10, top: 67 },
+  "2xl": { width: 16, top: 67 },
+};
+
+const personaMouthOffset: Record<string, number> = {
+  sam: -1,
+  james: 0,
+  katy: 1,
+  troy: 0,
+  jimmy: 0,
+  rocco: 1,
+  nicolas: 0,
 };
 
 export const SpeakingAvatar = ({
