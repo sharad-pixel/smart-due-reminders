@@ -24,7 +24,7 @@ const personaVoiceSettings: Record<string, { stability: number; similarity_boost
   katy: { stability: 0.7, similarity_boost: 0.8, style: 0.4, speed: 0.95 },
   troy: { stability: 0.8, similarity_boost: 0.85, style: 0.2, speed: 0.9 },
   jimmy: { stability: 0.85, similarity_boost: 0.9, style: 0.15, speed: 0.88 },
-  rocco: { stability: 0.9, similarity_boost: 0.85, style: 0.1, speed: 0.85 },
+  rocco: { stability: 0.9, similarity_boost: 0.95, style: 0.05, speed: 0.78 },
 };
 
 serve(async (req) => {
