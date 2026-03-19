@@ -15,13 +15,25 @@ interface SpeakingAvatarProps {
   className?: string;
 }
 
-const mouthSizeMap: Record<string, { width: number; bottom: number }> = {
-  xs: { width: 6, bottom: 4 },
-  sm: { width: 8, bottom: 5 },
-  md: { width: 10, bottom: 6 },
-  lg: { width: 12, bottom: 8 },
-  xl: { width: 16, bottom: 12 },
-  "2xl": { width: 24, bottom: 18 },
+type AvatarSize = NonNullable<SpeakingAvatarProps["size"]>;
+
+const mouthSizeMap: Record<AvatarSize, { width: number; top: number }> = {
+  xs: { width: 6, top: 66 },
+  sm: { width: 7, top: 66 },
+  md: { width: 8, top: 66 },
+  lg: { width: 9, top: 66 },
+  xl: { width: 10, top: 67 },
+  "2xl": { width: 16, top: 67 },
+};
+
+const personaMouthOffset: Record<string, number> = {
+  sam: -1,
+  james: 0,
+  katy: 1,
+  troy: 0,
+  jimmy: 0,
+  rocco: 1,
+  nicolas: 0,
 };
 
 export const SpeakingAvatar = ({
@@ -37,8 +49,9 @@ export const SpeakingAvatar = ({
   const glowIntensity = 0.15 + amplitude * 0.6;
   const pulseScale = 1 + amplitude * 0.15;
   const lastInteractionRef = useRef(0);
-  const mouth = mouthSizeMap[size] || mouthSizeMap.md;
-  const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.6);
+  const mouth = mouthSizeMap[size as AvatarSize] || mouthSizeMap.md;
+  const mouthTop = mouth.top + (personaMouthOffset[persona.name.toLowerCase()] ?? 0);
+  const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.55);
 
   const triggerInteraction = useCallback(() => {
     const now = Date.now();
@@ -100,21 +113,18 @@ export const SpeakingAvatar = ({
         {/* Talking mouth overlay */}
         {isSpeaking && (
           <motion.div
-            className="absolute left-1/2 rounded-[50%]"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full border border-border/70 bg-foreground/80 shadow-inner"
             style={{
-              bottom: mouth.bottom,
+              top: `${mouthTop}%`,
               width: mouth.width,
-              marginLeft: -(mouth.width / 2),
-              backgroundColor: "#1a0a0a",
-              border: "1px solid #400",
-              boxShadow: "inset 0 2px 4px rgba(0,0,0,0.6)",
             }}
             animate={{
-              height: [mouthOpenHeight * 0.3, mouthOpenHeight, mouthOpenHeight * 0.3],
-              scaleX: [0.85, 1.1, 0.85],
+              height: [mouthOpenHeight * 0.35, mouthOpenHeight, mouthOpenHeight * 0.35],
+              scaleX: [0.9, 1.08, 0.9],
+              opacity: [0.7, 0.95, 0.7],
             }}
             transition={{
-              duration: 0.25,
+              duration: 0.22,
               repeat: Infinity,
               ease: "easeInOut",
             }}
