@@ -49,8 +49,9 @@ export const SpeakingAvatar = ({
   const glowIntensity = 0.15 + amplitude * 0.6;
   const pulseScale = 1 + amplitude * 0.15;
   const lastInteractionRef = useRef(0);
-  const mouth = mouthSizeMap[size] || mouthSizeMap.md;
-  const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.6);
+  const mouth = mouthSizeMap[size as AvatarSize] || mouthSizeMap.md;
+  const mouthTop = mouth.top + (personaMouthOffset[persona.name.toLowerCase()] ?? 0);
+  const mouthOpenHeight = Math.max(2, amplitude * mouth.width * 0.55);
 
   const triggerInteraction = useCallback(() => {
     const now = Date.now();
