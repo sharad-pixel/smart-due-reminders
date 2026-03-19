@@ -60,6 +60,14 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
     async (personaKey: string, text: string) => {
       // Stop any currently playing audio
       stop();
+
+      // Create Audio element immediately in user gesture context (iOS Safari fix)
+      const audio = new Audio();
+      audio.preload = "auto";
+      // Unlock the audio element for playback on iOS
+      audio.play().catch(() => {});
+      audioRef.current = audio;
+
       setIsLoading(true);
 
       try {
@@ -83,13 +91,17 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
 
-        // Create audio element
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
+        // Set source on the already-unlocked audio element
+        audio.src = audioUrl;
 
         // Set up Web Audio API for amplitude analysis
         if (!audioContextRef.current) {
           audioContextRef.current = new AudioContext();
+        }
+
+        // Resume AudioContext if suspended (browser autoplay policy)
+        if (audioContextRef.current.state === "suspended") {
+          await audioContextRef.current.resume();
         }
 
         const analyser = audioContextRef.current.createAnalyser();
@@ -97,16 +109,20 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
         analyser.smoothingTimeConstant = 0.8;
         analyserRef.current = analyser;
 
-        const source = audioContextRef.current.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioContextRef.current.destination);
+        if (!sourceCreatedRef.current) {
+          const source = audioContextRef.current.createMediaElementSource(audio);
+          source.connect(analyser);
+          analyser.connect(audioContextRef.current.destination);
+          sourceCreatedRef.current = true;
+        }
 
         audio.onended = () => {
           stop();
           URL.revokeObjectURL(audioUrl);
         };
 
-        audio.onerror = () => {
+        audio.onerror = (e) => {
+          console.error("Audio error:", e);
           stop();
           URL.revokeObjectURL(audioUrl);
         };
