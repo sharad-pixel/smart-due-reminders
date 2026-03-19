@@ -42,6 +42,12 @@ const getIdleDelay = (name: string) => {
   return (hash % 20) * 0.1; // 0 – 2s offset
 };
 
+// Each persona gets a unique blink interval so they don't blink in sync
+const getBlinkInterval = (name: string) => {
+  const hash = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return 2.8 + (hash % 30) * 0.12; // 2.8 – 6.4s between blinks
+};
+
 export const SpeakingAvatar = ({
   persona,
   size = "md",
