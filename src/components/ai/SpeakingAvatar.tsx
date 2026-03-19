@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { PersonaAvatar } from "./PersonaAvatar";
 import { PersonaConfig } from "@/lib/personaConfig";
@@ -27,11 +28,21 @@ export const SpeakingAvatar = ({
   // Scale the glow and pulse based on amplitude
   const glowIntensity = 0.15 + amplitude * 0.6;
   const pulseScale = 1 + amplitude * 0.15;
+  const lastInteractionRef = useRef(0);
+
+  const triggerInteraction = useCallback(() => {
+    const now = Date.now();
+    if (now - lastInteractionRef.current < 350) return;
+    lastInteractionRef.current = now;
+    onClick?.();
+  }, [onClick]);
 
   return (
     <motion.div
       className={`relative cursor-pointer group ${className || ""}`}
-      onTapStart={onClick}
+      onTouchStart={triggerInteraction}
+      onMouseDown={triggerInteraction}
+      onClick={triggerInteraction}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
@@ -78,7 +89,7 @@ export const SpeakingAvatar = ({
 
       {/* Play/loading overlay */}
       <motion.div
-        className="absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="pointer-events-none absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ opacity: isLoading ? 1 : undefined }}
       >
         {isLoading ? (
