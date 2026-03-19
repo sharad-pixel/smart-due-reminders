@@ -104,7 +104,7 @@ export const usePersonaVoice = (): UsePersonaVoiceReturn => {
         // Create/unlock media element immediately at touch start context (iPhone/Safari)
         const audio = new Audio();
         audio.preload = "auto";
-        audio.playsInline = true;
+        
         audio.setAttribute("playsinline", "true");
         audio.setAttribute("webkit-playsinline", "true");
         audio.volume = 1;
