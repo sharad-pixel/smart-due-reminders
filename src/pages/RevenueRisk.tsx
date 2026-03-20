@@ -102,6 +102,6 @@ export default function RevenueRisk() {
           <TopRiskAccounts accounts={data.top_risk_accounts} />
         )}
       </div>
-    </AppLayout>
+    </Layout>
   );
 }
