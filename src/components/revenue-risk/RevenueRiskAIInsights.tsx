@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Target, AlertTriangle } from "lucide-react";
+import { Brain, Lightbulb, Target, AlertTriangle, ShieldAlert } from "lucide-react";
 import type { AIInsights } from "@/hooks/useRevenueRisk";
+import { formatCurrency } from "@/lib/formatters";
 
 interface Props {
   insights: AIInsights;
@@ -16,6 +17,24 @@ export function RevenueRiskAIInsights({ insights }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Reserve Recommendation */}
+        {insights.recommended_reserve_amount != null && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold mb-2 text-amber-700 dark:text-amber-400">
+              <ShieldAlert className="h-4 w-4" />
+              AI-Recommended Reserve Amount
+            </div>
+            <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mb-2">
+              {formatCurrency(insights.recommended_reserve_amount)}
+            </div>
+            {insights.reserve_rationale && (
+              <p className="text-sm text-muted-foreground bg-amber-500/5 rounded p-2.5 leading-relaxed">
+                {insights.reserve_rationale}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Risk Summary */}
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-2 text-sm font-medium mb-1.5">
