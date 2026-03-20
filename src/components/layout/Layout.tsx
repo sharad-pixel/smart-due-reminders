@@ -255,6 +255,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
+    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown

@@ -529,6 +529,31 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Revenue Risk Card */}
+        <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-amber-500" />
+                  Revenue Risk & Collectability
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Multi-signal AR risk analysis with engagement-adjusted expected credit loss
+                </p>
+              </div>
+              <Button 
+                variant="outline"
+                onClick={() => navigate("/revenue-risk")}
+                className="w-full sm:w-auto shrink-0 border-amber-500/30 hover:bg-amber-500/10"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Report
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
