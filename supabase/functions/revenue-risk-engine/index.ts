@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // ============================================
@@ -82,7 +82,7 @@ serve(async (req) => {
     while (true) {
       let query = supabase
         .from("invoices")
-        .select("id, invoice_number, amount, outstanding_amount, due_date, status, aging_bucket, debtor_id, is_archived")
+        .select("id, invoice_number, amount, amount_outstanding, due_date, status, aging_bucket, debtor_id, is_archived")
         .eq("user_id", accountId)
         .eq("is_archived", false)
         .in("status", ["Open", "InPaymentPlan", "PartiallyPaid", "Disputed"])
@@ -163,7 +163,7 @@ serve(async (req) => {
       const engagement = engagementByDebtor.get(inv.debtor_id);
       const dueDate = new Date(inv.due_date);
       const daysPastDue = Math.max(0, Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-      const amount = Number(inv.outstanding_amount || inv.amount || 0);
+      const amount = Number(inv.amount_outstanding || inv.amount || 0);
 
       // A. Aging penalty (0-40)
       const agingPenalty = calculateAgingPenalty(daysPastDue);
