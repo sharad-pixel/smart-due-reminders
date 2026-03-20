@@ -25,7 +25,7 @@ export default function RevenueRisk() {
 
   if (isLoading) {
     return (
-      <AppLayout>
+      <Layout>
         <div className="space-y-6 p-6">
           <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
