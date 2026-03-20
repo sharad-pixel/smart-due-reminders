@@ -261,6 +261,7 @@ const App = () => (
             <Route path="/outreach" element={<Outreach />} />
             <Route path="/outreach-history" element={<OutreachHistory />} />
             <Route path="/alerts" element={<Alerts />} />
+            <Route path="/revenue-risk" element={<RevenueRisk />} />
             <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
 
             {/* Admin Pages */}
