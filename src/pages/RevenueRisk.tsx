@@ -34,7 +34,7 @@ export default function RevenueRisk() {
           <Skeleton className="h-72" />
           <Skeleton className="h-64" />
         </div>
-      </AppLayout>
+      </Layout>
     );
   }
 
