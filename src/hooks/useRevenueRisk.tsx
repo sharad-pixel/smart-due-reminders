@@ -65,6 +65,8 @@ export interface AIInsights {
   engagement_insight: string;
   recommendations: string[];
   key_drivers: string[];
+  recommended_reserve_amount?: number;
+  reserve_rationale?: string;
 }
 
 export interface RevenueRiskData {

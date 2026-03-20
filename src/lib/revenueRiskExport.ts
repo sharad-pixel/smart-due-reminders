@@ -25,19 +25,32 @@ function downloadCsv(filename: string, csvContent: string) {
   URL.revokeObjectURL(url);
 }
 
+function getTimestamp(): string {
+  const now = new Date();
+  return now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+}
+
+function getReadableTimestamp(): string {
+  const now = new Date();
+  return now.toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+  }) + " at " + now.toLocaleTimeString("en-US", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+}
+
 export function exportTopRiskAccountsCsv(accounts: TopRiskAccount[]) {
+  const timestamp = getReadableTimestamp();
+  const metaRows = [
+    `"Revenue Risk — Top Risk Accounts Export"`,
+    `"Generated: ${timestamp}"`,
+    "",
+  ];
+
   const headers = [
-    "Account Name",
-    "Balance",
-    "Collectability Score",
-    "Collectability Tier",
-    "Engagement Score",
-    "Engagement Level",
-    "ECL",
-    "Engagement-Adjusted ECL",
-    "Invoice Count",
-    "Conversation State",
-    "Recommended Action",
+    "Account Name", "Balance", "Collectability Score", "Collectability Tier",
+    "Engagement Score", "Engagement Level", "ECL", "Engagement-Adjusted ECL",
+    "Invoice Count", "Conversation State", "Recommended Action",
   ];
 
   const rows = accounts.map((a) => [
@@ -54,43 +67,33 @@ export function exportTopRiskAccountsCsv(accounts: TopRiskAccount[]) {
     escapeCsv(a.recommended_action),
   ]);
 
-  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-  const date = new Date().toISOString().split("T")[0];
-  downloadCsv(`revenue-risk-accounts-${date}.csv`, csv);
+  const csv = [...metaRows, headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const ts = getTimestamp();
+  downloadCsv(`revenue-risk-accounts-${ts}.csv`, csv);
 }
 
 export function exportInvoiceRiskScoresCsv(scores: InvoiceScore[]) {
+  const timestamp = getReadableTimestamp();
+  const metaRows = [
+    `"Revenue Risk — Invoice Risk Scores Export"`,
+    `"Generated: ${timestamp}"`,
+    "",
+  ];
+
   const headers = [
-    "Invoice ID",
-    "Debtor ID",
-    "Amount",
-    "Days Past Due",
-    "Collectability Score",
-    "Collectability Tier",
-    "Aging Penalty",
-    "Behavioral Penalty",
-    "Status Penalty",
-    "Engagement Boost",
-    "Probability of Default",
-    "ECL",
-    "Engagement-Adjusted PD",
-    "Engagement-Adjusted ECL",
-    "Payment Likelihood",
-    "Risk Factors",
-    "Recommended Action",
+    "Invoice ID", "Debtor ID", "Amount", "Days Past Due",
+    "Collectability Score", "Collectability Tier", "Aging Penalty",
+    "Behavioral Penalty", "Status Penalty", "Engagement Boost",
+    "Probability of Default", "ECL", "Engagement-Adjusted PD",
+    "Engagement-Adjusted ECL", "Payment Likelihood",
+    "Risk Factors", "Recommended Action",
   ];
 
   const rows = scores.map((s) => [
-    s.invoice_id,
-    s.debtor_id,
-    s.amount.toFixed(2),
-    s.days_past_due,
-    s.collectability_score,
-    s.collectability_tier,
-    s.aging_penalty.toFixed(2),
-    s.behavioral_penalty.toFixed(2),
-    s.status_penalty.toFixed(2),
-    s.engagement_boost.toFixed(2),
+    s.invoice_id, s.debtor_id, s.amount.toFixed(2), s.days_past_due,
+    s.collectability_score, s.collectability_tier,
+    s.aging_penalty.toFixed(2), s.behavioral_penalty.toFixed(2),
+    s.status_penalty.toFixed(2), s.engagement_boost.toFixed(2),
     (s.probability_of_default * 100).toFixed(2) + "%",
     s.expected_credit_loss.toFixed(2),
     (s.engagement_adjusted_pd * 100).toFixed(2) + "%",
@@ -100,9 +103,9 @@ export function exportInvoiceRiskScoresCsv(scores: InvoiceScore[]) {
     escapeCsv(s.recommended_action),
   ]);
 
-  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-  const date = new Date().toISOString().split("T")[0];
-  downloadCsv(`invoice-risk-scores-${date}.csv`, csv);
+  const csv = [...metaRows, headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const ts = getTimestamp();
+  downloadCsv(`invoice-risk-scores-${ts}.csv`, csv);
 }
 
 // ===== PDF / PRINT EXPORT =====
@@ -110,13 +113,10 @@ export function exportInvoiceRiskScoresCsv(scores: InvoiceScore[]) {
 export function printRevenueRiskReport(data: RevenueRiskData) {
   const agg = data.aggregate;
   const date = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    year: "numeric", month: "long", day: "numeric",
   });
   const time = new Date().toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
 
   const fmt = (n: number) =>
@@ -145,10 +145,42 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
     )
     .join("");
 
+  // Reserve recommendation section
+  const reserveSection = data.ai_insights?.recommended_reserve_amount != null
+    ? `
+    <div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:8px;padding:18px;margin:20px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:18px;">⚠️</span>
+        <h2 style="font-size:16px;margin:0;color:#92400e;">AI-Recommended Reserve Amount</h2>
+      </div>
+      <div style="font-size:28px;font-weight:800;color:#b45309;margin-bottom:8px;">
+        ${fmt(data.ai_insights.recommended_reserve_amount)}
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:10px;">
+        <div style="font-size:11px;color:#78716c;">
+          <span style="font-weight:600;">Base ECL:</span> ${fmt(agg.total_ecl)}
+        </div>
+        <div style="font-size:11px;color:#78716c;">
+          <span style="font-weight:600;">Engagement-Adjusted ECL:</span> ${fmt(agg.engagement_adjusted_ecl)}
+        </div>
+        <div style="font-size:11px;color:#78716c;">
+          <span style="font-weight:600;">Reserve as % of AR:</span> ${agg.total_ar > 0 ? ((data.ai_insights.recommended_reserve_amount / agg.total_ar) * 100).toFixed(2) : 0}%
+        </div>
+      </div>
+      <div style="background:#fef3c7;padding:10px;border-radius:4px;">
+        <h3 style="font-size:12px;margin:0 0 4px;color:#92400e;font-weight:600;">Rationale</h3>
+        <p style="font-size:11px;color:#78716c;margin:0;line-height:1.5;">${data.ai_insights.reserve_rationale || "Based on ECL calculations and engagement-adjusted risk analysis."}</p>
+      </div>
+    </div>`
+    : "";
+
   const aiSection = data.ai_insights
     ? `
     <div style="page-break-before:always;"></div>
     <h2 style="font-size:16px;margin:24px 0 12px;color:#1a1a2e;">AI Intelligence Summary</h2>
+
+    ${reserveSection}
+
     <div style="background:#f8fafc;padding:14px;border-radius:6px;margin-bottom:12px;">
       <h3 style="font-size:13px;margin:0 0 6px;color:#b45309;">Risk Summary</h3>
       <p style="font-size:11px;color:#555;margin:0;">${data.ai_insights.risk_summary}</p>
@@ -299,7 +331,7 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
 
   <!-- Footer -->
   <div style="margin-top:30px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;">
-    <p style="font-size:9px;color:#aaa;margin:0;">Recouply.ai — Revenue Risk & Collectability Intelligence</p>
+    <p style="font-size:9px;color:#aaa;margin:0;">Recouply.ai — Revenue Risk & Collectability Intelligence · Report generated ${date} at ${time}</p>
     <p style="font-size:9px;color:#b45309;margin:0;font-style:italic;">${data.disclaimer}</p>
   </div>
 </body>
