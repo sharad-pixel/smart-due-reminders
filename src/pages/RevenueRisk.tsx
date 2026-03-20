@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -9,9 +9,20 @@ import { EngagementRiskView } from "@/components/revenue-risk/EngagementRiskView
 import { TopRiskAccounts } from "@/components/revenue-risk/TopRiskAccounts";
 import { RevenueRiskAIInsights } from "@/components/revenue-risk/RevenueRiskAIInsights";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Brain, ShieldAlert, AlertTriangle } from "lucide-react";
+import { RefreshCw, Brain, ShieldAlert, AlertTriangle, Printer, Download, FileSpreadsheet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  printRevenueRiskReport,
+  exportTopRiskAccountsCsv,
+  exportInvoiceRiskScoresCsv,
+} from "@/lib/revenueRiskExport";
+import { toast } from "sonner";
 
 export default function RevenueRisk() {
   const navigate = useNavigate();
@@ -22,6 +33,32 @@ export default function RevenueRisk() {
       if (!session) navigate("/login");
     });
   }, [navigate]);
+
+  const handlePrintPdf = () => {
+    if (!data) {
+      toast.error("No data to export. Please refresh first.");
+      return;
+    }
+    printRevenueRiskReport(data);
+  };
+
+  const handleExportAccountsCsv = () => {
+    if (!data?.top_risk_accounts?.length) {
+      toast.error("No risk accounts to export.");
+      return;
+    }
+    exportTopRiskAccountsCsv(data.top_risk_accounts);
+    toast.success("Risk accounts CSV downloaded");
+  };
+
+  const handleExportInvoicesCsv = () => {
+    if (!data?.invoice_scores?.length) {
+      toast.error("No invoice scores to export.");
+      return;
+    }
+    exportInvoiceRiskScoresCsv(data.invoice_scores);
+    toast.success("Invoice risk scores CSV downloaded");
+  };
 
   if (isLoading) {
     return (
@@ -54,7 +91,31 @@ export default function RevenueRisk() {
               Multi-signal AR risk analysis with engagement-adjusted expected credit loss
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Export dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={!data}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={handlePrintPdf}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print / Save as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportAccountsCsv}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Risk Accounts (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportInvoicesCsv}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Invoice Risk Scores (CSV)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               variant="outline"
               size="sm"
