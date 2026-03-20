@@ -82,7 +82,7 @@ serve(async (req) => {
     while (true) {
       let query = supabase
         .from("invoices")
-        .select("id, invoice_number, amount, outstanding_amount, due_date, status, aging_bucket, debtor_id, is_archived")
+        .select("id, invoice_number, amount, amount_outstanding, due_date, status, aging_bucket, debtor_id, is_archived")
         .eq("user_id", accountId)
         .eq("is_archived", false)
         .in("status", ["Open", "InPaymentPlan", "PartiallyPaid", "Disputed"])
