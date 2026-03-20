@@ -68,6 +68,9 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   });
   
   const verifyingRef = useRef(false);
+  // Use refs to avoid stale closures in verifyAccess
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const verifyAccess = useCallback(async (forceRefresh = false) => {
     // Prevent concurrent verification
@@ -75,7 +78,8 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     
     // Skip if cache is still valid and not forcing refresh
     const now = Date.now();
-    if (!forceRefresh && state.isVerified && (now - state.lastVerifiedAt) < CACHE_VALIDITY_MS) {
+    const currentState = stateRef.current;
+    if (!forceRefresh && currentState.isVerified && (now - currentState.lastVerifiedAt) < CACHE_VALIDITY_MS) {
       return;
     }
 
@@ -101,7 +105,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       }
 
       // Check blocked status (lightweight - only on initial load or force refresh)
-      if (forceRefresh || !state.isVerified) {
+      if (forceRefresh || !currentState.isVerified) {
         try {
           const { data: blockData } = await supabase.functions.invoke('check-blocked-user', {
             body: { email: user.email, userId: user.id }
@@ -234,7 +238,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     } finally {
       verifyingRef.current = false;
     }
-  }, [state.isVerified, state.lastVerifiedAt]);
+  }, []); // No deps — uses stateRef to avoid stale closures
 
   const refreshAccess = useCallback(async () => {
     await verifyAccess(true);
@@ -260,7 +264,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     verifyAccess();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event) => {
         if (event === 'SIGNED_OUT') {
           clearAccess();
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
