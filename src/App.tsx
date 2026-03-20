@@ -117,6 +117,8 @@ const Branding = lazy(() => import("./pages/Branding"));
 const PublicARPage = lazy(() => import("./pages/PublicARPage"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const EmailDeliveryReport = lazy(() => import("./pages/EmailDeliveryReport"));
+const RevenueRisk = lazy(() => import("./pages/RevenueRisk"));
+
 
 // Payment & Billing
 const Checkout = lazy(() => import("./pages/Checkout"));
