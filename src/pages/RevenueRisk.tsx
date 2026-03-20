@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/layout/AppLayout";
+import Layout from "@/components/layout/Layout";
 import { useRevenueRisk } from "@/hooks/useRevenueRisk";
 import { RevenueRiskOverview } from "@/components/revenue-risk/RevenueRiskOverview";
 import { RevenueRiskDistribution } from "@/components/revenue-risk/RevenueRiskDistribution";
