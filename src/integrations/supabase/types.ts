@@ -2429,6 +2429,87 @@ export type Database = {
           },
         ]
       }
+      debtor_risk_profiles: {
+        Row: {
+          ai_recommendations: Json | null
+          ai_risk_summary: string | null
+          avg_days_past_due: number | null
+          avg_probability_of_default: number | null
+          calculated_at: string
+          created_at: string
+          debtor_id: string
+          engagement_level: string | null
+          engagement_risk_impact: string | null
+          id: string
+          open_invoice_count: number | null
+          overall_collectability_score: number | null
+          overdue_invoice_count: number | null
+          risk_classification: string | null
+          total_ecl: number | null
+          total_engagement_adjusted_ecl: number | null
+          total_open_balance: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_recommendations?: Json | null
+          ai_risk_summary?: string | null
+          avg_days_past_due?: number | null
+          avg_probability_of_default?: number | null
+          calculated_at?: string
+          created_at?: string
+          debtor_id: string
+          engagement_level?: string | null
+          engagement_risk_impact?: string | null
+          id?: string
+          open_invoice_count?: number | null
+          overall_collectability_score?: number | null
+          overdue_invoice_count?: number | null
+          risk_classification?: string | null
+          total_ecl?: number | null
+          total_engagement_adjusted_ecl?: number | null
+          total_open_balance?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_recommendations?: Json | null
+          ai_risk_summary?: string | null
+          avg_days_past_due?: number | null
+          avg_probability_of_default?: number | null
+          calculated_at?: string
+          created_at?: string
+          debtor_id?: string
+          engagement_level?: string | null
+          engagement_risk_impact?: string | null
+          id?: string
+          open_invoice_count?: number | null
+          overall_collectability_score?: number | null
+          overdue_invoice_count?: number | null
+          risk_classification?: string | null
+          total_ecl?: number | null
+          total_engagement_adjusted_ecl?: number | null
+          total_open_balance?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debtor_risk_profiles_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: true
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "debtor_risk_profiles_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: true
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtors: {
         Row: {
           account_outreach_enabled: boolean | null
@@ -3580,6 +3661,78 @@ export type Database = {
         }
         Relationships: []
       }
+      engagement_scores: {
+        Row: {
+          broken_promises_count: number | null
+          calculated_at: string
+          conversation_state: string | null
+          created_at: string
+          debtor_id: string
+          engagement_cadence: string | null
+          engagement_score: number
+          has_responded: boolean
+          id: string
+          last_response_date: string | null
+          payment_intent_detected: boolean | null
+          response_recency_days: number | null
+          response_type: string | null
+          score_breakdown: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broken_promises_count?: number | null
+          calculated_at?: string
+          conversation_state?: string | null
+          created_at?: string
+          debtor_id: string
+          engagement_cadence?: string | null
+          engagement_score?: number
+          has_responded?: boolean
+          id?: string
+          last_response_date?: string | null
+          payment_intent_detected?: boolean | null
+          response_recency_days?: number | null
+          response_type?: string | null
+          score_breakdown?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broken_promises_count?: number | null
+          calculated_at?: string
+          conversation_state?: string | null
+          created_at?: string
+          debtor_id?: string
+          engagement_cadence?: string | null
+          engagement_score?: number
+          has_responded?: boolean
+          id?: string
+          last_response_date?: string | null
+          payment_intent_detected?: boolean | null
+          response_recency_days?: number | null
+          response_type?: string | null
+          score_breakdown?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_scores_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: true
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "engagement_scores_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: true
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       image_moderation_logs: {
         Row: {
           categories: Json | null
@@ -4063,6 +4216,100 @@ export type Database = {
             foreignKeyName: "invoice_override_log_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_risk_scores: {
+        Row: {
+          aging_penalty: number | null
+          ai_summary: string | null
+          behavioral_penalty: number | null
+          calculated_at: string
+          collectability_score: number
+          collectability_tier: string
+          created_at: string
+          debtor_id: string
+          engagement_adjusted_ecl: number | null
+          engagement_adjusted_pd: number | null
+          engagement_boost: number | null
+          expected_credit_loss: number | null
+          id: string
+          invoice_id: string
+          payment_likelihood: string | null
+          probability_of_default: number | null
+          recommended_action: string | null
+          risk_factors: Json | null
+          status_penalty: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aging_penalty?: number | null
+          ai_summary?: string | null
+          behavioral_penalty?: number | null
+          calculated_at?: string
+          collectability_score?: number
+          collectability_tier?: string
+          created_at?: string
+          debtor_id: string
+          engagement_adjusted_ecl?: number | null
+          engagement_adjusted_pd?: number | null
+          engagement_boost?: number | null
+          expected_credit_loss?: number | null
+          id?: string
+          invoice_id: string
+          payment_likelihood?: string | null
+          probability_of_default?: number | null
+          recommended_action?: string | null
+          risk_factors?: Json | null
+          status_penalty?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aging_penalty?: number | null
+          ai_summary?: string | null
+          behavioral_penalty?: number | null
+          calculated_at?: string
+          collectability_score?: number
+          collectability_tier?: string
+          created_at?: string
+          debtor_id?: string
+          engagement_adjusted_ecl?: number | null
+          engagement_adjusted_pd?: number | null
+          engagement_boost?: number | null
+          expected_credit_loss?: number | null
+          id?: string
+          invoice_id?: string
+          payment_likelihood?: string | null
+          probability_of_default?: number | null
+          recommended_action?: string | null
+          risk_factors?: Json | null
+          status_penalty?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_risk_scores_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "invoice_risk_scores_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_risk_scores_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
