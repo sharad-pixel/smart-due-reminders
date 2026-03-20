@@ -31,7 +31,8 @@ import {
   BarChart3,
   ShieldCheck,
   Loader2,
-  DollarSign
+  DollarSign,
+  ShieldAlert
 } from "lucide-react";
 import {
   DropdownMenu,
