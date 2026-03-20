@@ -163,7 +163,7 @@ serve(async (req) => {
       const engagement = engagementByDebtor.get(inv.debtor_id);
       const dueDate = new Date(inv.due_date);
       const daysPastDue = Math.max(0, Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-      const amount = Number(inv.outstanding_amount || inv.amount || 0);
+      const amount = Number(inv.amount_outstanding || inv.amount || 0);
 
       // A. Aging penalty (0-40)
       const agingPenalty = calculateAgingPenalty(daysPastDue);
