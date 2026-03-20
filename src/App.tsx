@@ -117,6 +117,8 @@ const Branding = lazy(() => import("./pages/Branding"));
 const PublicARPage = lazy(() => import("./pages/PublicARPage"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const EmailDeliveryReport = lazy(() => import("./pages/EmailDeliveryReport"));
+const RevenueRisk = lazy(() => import("./pages/RevenueRisk"));
+
 
 // Payment & Billing
 const Checkout = lazy(() => import("./pages/Checkout"));
@@ -259,6 +261,7 @@ const App = () => (
             <Route path="/outreach" element={<Outreach />} />
             <Route path="/outreach-history" element={<OutreachHistory />} />
             <Route path="/alerts" element={<Alerts />} />
+            <Route path="/revenue-risk" element={<RevenueRisk />} />
             <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
 
             {/* Admin Pages */}
