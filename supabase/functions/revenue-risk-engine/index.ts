@@ -704,7 +704,7 @@ async function generateAIInsights(
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return null;
 
-  const prompt = `Analyze this AR portfolio risk data and provide actionable intelligence:
+  const prompt = `Analyze this AR portfolio risk data and provide actionable intelligence. You MUST also recommend a specific dollar reserve amount based on the ECL data and engagement signals.
 
 Portfolio:
 - Total AR: $${totalAR.toLocaleString()}
@@ -717,7 +717,9 @@ Distribution: High=${high}, Moderate=${moderate}, At Risk=${atRisk}, High Risk=$
 Active engagement: ${activeEngCount} accounts, No response: ${noEngCount} accounts
 
 Top risk accounts:
-${topRiskAccounts.slice(0, 5).map(a => `- ${a.debtor_name}: $${a.balance.toLocaleString()}, Score: ${a.collectability_score}, Engagement: ${a.engagement_level}`).join("\n")}`;
+${topRiskAccounts.slice(0, 5).map(a => `- ${a.debtor_name}: $${a.balance.toLocaleString()}, Score: ${a.collectability_score}, Engagement: ${a.engagement_level}`).join("\n")}
+
+Based on this data, recommend a reserve amount between the base ECL ($${totalECL.toLocaleString()}) and the engagement-adjusted ECL ($${engAdjECL.toLocaleString()}). Explain why using specific data points from the portfolio.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -729,14 +731,14 @@ ${topRiskAccounts.slice(0, 5).map(a => `- ${a.debtor_name}: $${a.balance.toLocal
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are an AR Risk Intelligence analyst. Provide concise, actionable analysis." },
+          { role: "system", content: "You are an AR Risk Intelligence analyst specializing in reserve estimation under ASC 326 / IFRS 9. Provide concise, actionable analysis with specific dollar amounts for recommended reserves." },
           { role: "user", content: prompt },
         ],
         tools: [{
           type: "function",
           function: {
             name: "return_insights",
-            description: "Return structured risk insights",
+            description: "Return structured risk insights with reserve recommendation",
             parameters: {
               type: "object",
               properties: {
@@ -744,8 +746,10 @@ ${topRiskAccounts.slice(0, 5).map(a => `- ${a.debtor_name}: $${a.balance.toLocal
                 engagement_insight: { type: "string", description: "Key insight about engagement vs risk" },
                 recommendations: { type: "array", items: { type: "string" }, description: "3-5 prioritized recommendations" },
                 key_drivers: { type: "array", items: { type: "string" }, description: "Top 3 risk drivers" },
+                recommended_reserve_amount: { type: "number", description: "Recommended dollar amount to reserve for bad debt based on ECL and engagement analysis" },
+                reserve_rationale: { type: "string", description: "2-4 sentence explanation of WHY this reserve amount is recommended, citing specific portfolio metrics and risk factors" },
               },
-              required: ["risk_summary", "engagement_insight", "recommendations", "key_drivers"],
+              required: ["risk_summary", "engagement_insight", "recommendations", "key_drivers", "recommended_reserve_amount", "reserve_rationale"],
             },
           },
         }],
