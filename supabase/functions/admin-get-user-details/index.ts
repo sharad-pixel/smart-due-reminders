@@ -183,6 +183,14 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(20);
 
+    // Get scheduled deletions for this user
+    const { data: scheduledDeletions } = await supabaseClient
+      .from('scheduled_deletions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
     // Get usage statistics - get more months
     const { data: invoiceUsage } = await supabaseClient
       .from('invoice_usage')
@@ -229,6 +237,19 @@ Deno.serve(async (req) => {
           admin_id: a.admin_id,
         })),
         overrides: overrides || [],
+        scheduledDeletions: (scheduledDeletions || []).map((d: any) => ({
+          id: d.id,
+          status: d.status,
+          reason: d.reason,
+          notice_sent_at: d.notice_sent_at,
+          deletion_scheduled_at: d.deletion_scheduled_at,
+          completed_at: d.completed_at,
+          cancelled_at: d.cancelled_at,
+          cancelled_by: d.cancelled_by,
+          cancellation_reason: d.cancellation_reason,
+          scheduled_by: d.scheduled_by,
+          created_at: d.created_at,
+        })),
         stats: {
           invoice_count: invoiceCount || 0,
           debtor_count: debtorCount || 0,

@@ -154,6 +154,20 @@ interface AdminAction {
   admin_id: string;
 }
 
+interface ScheduledDeletion {
+  id: string;
+  status: string;
+  reason: string | null;
+  notice_sent_at: string | null;
+  deletion_scheduled_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  cancellation_reason: string | null;
+  scheduled_by: string | null;
+  created_at: string;
+}
+
 const AdminUserDetail = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -163,6 +177,7 @@ const AdminUserDetail = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [usageData, setUsageData] = useState<UsageData[]>([]);
   const [adminActions, setAdminActions] = useState<AdminAction[]>([]);
+  const [scheduledDeletions, setScheduledDeletions] = useState<ScheduledDeletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -215,7 +230,7 @@ const AdminUserDetail = () => {
       setTeamMembers(data.teamMembers || []);
       setUsageData(data.usageData || []);
       setAdminActions(data.adminActions || []);
-      
+      setScheduledDeletions(data.scheduledDeletions || []);
       // Set editable fields
       if (data.user) {
         setEditedName(data.user.name || "");
@@ -827,6 +842,113 @@ const AdminUserDetail = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Scheduled Deletion Tracker */}
+            {scheduledDeletions.length > 0 && (
+              <Card className="border-destructive/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-destructive">
+                    <Trash2 className="h-5 w-5" />
+                    Account Deletion Requests
+                  </CardTitle>
+                  <CardDescription>
+                    Tracking all scheduled account deletions for this user
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Notice Sent</TableHead>
+                        <TableHead>Scheduled Deletion</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Completed / Cancelled</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {scheduledDeletions.map((del) => (
+                        <TableRow key={del.id}>
+                          <TableCell>
+                            {del.status === 'pending' && (
+                              <Badge className="bg-orange-500/10 text-orange-600 border-orange-500">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                            {del.status === 'completed' && (
+                              <Badge variant="destructive">
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Deleted
+                              </Badge>
+                            )}
+                            {del.status === 'cancelled' && (
+                              <Badge variant="secondary">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Cancelled
+                              </Badge>
+                            )}
+                            {!['pending', 'completed', 'cancelled'].includes(del.status) && (
+                              <Badge variant="outline">{del.status}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {del.notice_sent_at ? (
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {formatDate(new Date(del.notice_sent_at), "MMM d, yyyy")}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(new Date(del.notice_sent_at), "h:mm:ss a")}
+                                </p>
+                              </div>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {del.deletion_scheduled_at ? (
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {formatDate(new Date(del.deletion_scheduled_at), "MMM d, yyyy")}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(new Date(del.deletion_scheduled_at), "h:mm:ss a")}
+                                </p>
+                                {del.status === 'pending' && new Date(del.deletion_scheduled_at) > new Date() && (
+                                  <p className="text-xs text-orange-600 mt-1">
+                                    ⏳ {Math.ceil((new Date(del.deletion_scheduled_at).getTime() - Date.now()) / (1000 * 60 * 60))}h remaining
+                                  </p>
+                                )}
+                              </div>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell className="max-w-[200px]">
+                            <p className="text-sm truncate">{del.reason || "—"}</p>
+                          </TableCell>
+                          <TableCell>
+                            {del.completed_at ? (
+                              <p className="text-sm text-destructive font-medium">
+                                Deleted: {formatDate(new Date(del.completed_at), "MMM d, yyyy h:mm a")}
+                              </p>
+                            ) : del.cancelled_at ? (
+                              <div>
+                                <p className="text-sm font-medium">
+                                  Cancelled: {formatDate(new Date(del.cancelled_at), "MMM d, yyyy h:mm a")}
+                                </p>
+                                {del.cancellation_reason && (
+                                  <p className="text-xs text-muted-foreground">{del.cancellation_reason}</p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Account Relationships Tab */}
