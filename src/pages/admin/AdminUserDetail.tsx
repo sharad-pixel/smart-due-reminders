@@ -350,6 +350,74 @@ const AdminUserDetail = () => {
     }
   };
 
+  const generateLegalNoticeText = (email: string, name: string | null) => {
+    const deletionDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    return `ACCOUNT DELETION NOTICE\n\nDear ${name || email},\n\nThis notice confirms that your Recouply account (${email}) has been scheduled for permanent deletion.\n\nDeletion Date: ${new Date(deletionDate).toLocaleString()}\n\nPursuant to GDPR Article 17 (Right to Erasure) and CCPA Section 1798.105, the following data will be permanently and irreversibly deleted:\n\n• Profile and account information\n• All invoices and debtor records\n• AI-generated drafts and workflows\n• Collection activities and communications\n• Uploaded documents and files\n• Branding and organization settings\n• Team memberships and role assignments\n• All audit logs associated with your account\n\nThis action is IRREVERSIBLE. Once executed, no data can be recovered.\n\nIf you believe this deletion was made in error, contact support@recouply.ai before the scheduled deletion date.\n\nRecouply Legal Compliance Team`;
+  };
+
+  const handleDeleteUser = async () => {
+    if (!user) return;
+    setDeletingUser(true);
+    try {
+      const legalNotice = generateLegalNoticeText(user.email, user.name);
+
+      if (deleteMode === "scheduled") {
+        // Schedule deletion with 24hr notice
+        const { error: scheduleError } = await supabase
+          .from("scheduled_deletions")
+          .insert({
+            user_id: user.id,
+            reason: deleteReason || "Admin-initiated account deletion",
+            legal_notice_text: legalNotice,
+          });
+
+        if (scheduleError) throw scheduleError;
+
+        // Send notice email to user
+        await supabase.functions.invoke("send-email", {
+          body: {
+            to: user.email,
+            subject: "Account Deletion Notice - Recouply",
+            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;"><h2 style="color:#dc2626;">⚠️ Account Deletion Notice</h2><p>Dear ${user.name || user.email},</p><p>Your Recouply account has been scheduled for <strong>permanent deletion</strong> in 24 hours.</p><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin:16px 0;"><h3 style="margin-top:0;">Data to be deleted:</h3><ul><li>Profile and account information</li><li>All invoices and debtor records</li><li>AI-generated drafts and workflows</li><li>Collection activities and communications</li><li>All uploaded documents and files</li><li>Team memberships and settings</li></ul></div><p style="color:#666;font-size:13px;">This action complies with GDPR Article 17 and CCPA Section 1798.105. Contact support@recouply.ai if you believe this is in error.</p></div>`,
+          },
+        });
+
+        toast.success("Deletion scheduled — user notified via email (24hr notice)");
+      } else {
+        // Immediate deletion
+        const response = await supabase.functions.invoke("delete-user", {
+          body: { userId: user.id, reason: deleteReason || "Admin-initiated immediate deletion" },
+        });
+
+        if (response.error) throw response.error;
+        toast.success("User permanently deleted");
+      }
+
+      // Notify support@recouply.ai
+      await supabase.functions.invoke("send-email", {
+        body: {
+          to: "support@recouply.ai",
+          subject: `[Admin Action] Account Deletion ${deleteMode === "immediate" ? "Executed" : "Scheduled"}: ${user.email}`,
+          html: `<div style="font-family:sans-serif;padding:20px;"><h2>Account Deletion ${deleteMode === "immediate" ? "Executed" : "Scheduled (24hr)"}</h2><table style="border-collapse:collapse;width:100%;"><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">User</td><td style="padding:8px;border:1px solid #ddd;">${user.name || "N/A"} (${user.email})</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">User ID</td><td style="padding:8px;border:1px solid #ddd;">${user.id}</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Mode</td><td style="padding:8px;border:1px solid #ddd;">${deleteMode === "immediate" ? "Immediate" : "Scheduled (24hr notice)"}</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Reason</td><td style="padding:8px;border:1px solid #ddd;">${deleteReason || "No reason provided"}</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Timestamp</td><td style="padding:8px;border:1px solid #ddd;">${new Date().toISOString()}</td></tr></table></div>`,
+        },
+      });
+
+      setDeleteDialogOpen(false);
+      setDeleteReason("");
+
+      if (deleteMode === "immediate") {
+        navigate("/admin/user-management");
+      } else {
+        fetchUserDetails();
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error("Failed to process deletion: " + (error.message || "Unknown error"));
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
   const handleClearOverride = async () => {
     if (!user) return;
     try {
