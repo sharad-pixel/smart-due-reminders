@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,7 @@ interface UserDetailData {
 }
 
 const AdminUserManagement = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -938,7 +940,8 @@ Delaware, USA`;
                       users.map((user) => (
                         <TableRow
                           key={user.id}
-                          className={user.is_suspended ? "bg-destructive/5" : ""}
+                          className={`cursor-pointer ${user.is_suspended ? "bg-destructive/5" : ""}`}
+                          onClick={() => navigate(`/admin/users/${user.id}`)}
                         >
                           <TableCell>
                             <div>
