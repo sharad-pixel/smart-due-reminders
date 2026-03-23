@@ -291,7 +291,7 @@ export function InvoiceCollectabilityReport() {
                     <TooltipTrigger>
                       <div className="h-6 bg-green-500 rounded" style={{ width: `${(aggregate.high_collectability_count / aggregate.total_invoices) * 100}%`, minWidth: aggregate.high_collectability_count ? "8px" : "0" }} />
                     </TooltipTrigger>
-                    <TooltipContent>High: {aggregate.high_collectability_count}</TooltipContent>
+                    <TooltipContent>Low Risk: {aggregate.high_collectability_count}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger>
