@@ -390,6 +390,29 @@ const AdminUserManagement = () => {
           body: { userId: selectedUser.id, reason: deleteReason || "Immediate deletion by admin" },
         });
         if (error) throw error;
+        // Notify support for immediate deletions too
+        try {
+          const adminUser = (await supabase.auth.getUser()).data.user;
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: "support@recouply.ai",
+              subject: `[Admin Action] User IMMEDIATELY Deleted: ${selectedUser.email}`,
+              html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+                <h2 style="color:#dc2626;">⚡ Immediate User Deletion</h2>
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User</td><td style="padding:8px;border-bottom:1px solid #eee;">${selectedUser.name || "—"} (${selectedUser.email})</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;">${selectedUser.id}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Initiated By</td><td style="padding:8px;border-bottom:1px solid #eee;">${adminUser?.email || "Unknown Admin"}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Mode</td><td style="padding:8px;border-bottom:1px solid #eee;color:#dc2626;font-weight:700;">IMMEDIATE</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;">Reason</td><td style="padding:8px;">${deleteReason || "No reason provided"}</td></tr>
+                </table>
+                <p style="color:#71717a;font-size:12px;margin-top:20px;">This is an automated notification from the Recouply.ai admin panel.</p>
+              </div>`,
+            },
+          });
+        } catch (supportEmailErr) {
+          console.warn("Could not send support notification:", supportEmailErr);
+        }
         toast.success(`User ${selectedUser.email} has been permanently deleted`);
       } else {
         const legalNotice = generateLegalNoticeText(selectedUser.email, selectedUser.name);
