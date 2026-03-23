@@ -363,10 +363,14 @@ const AdminUserDetail = () => {
 
       if (deleteMode === "scheduled") {
         // Schedule deletion with 24hr notice
+        const { data: { user: adminUser } } = await supabase.auth.getUser();
         const { error: scheduleError } = await supabase
           .from("scheduled_deletions")
           .insert({
             user_id: user.id,
+            user_email: user.email,
+            user_name: user.name,
+            scheduled_by: adminUser?.id || "",
             reason: deleteReason || "Admin-initiated account deletion",
             legal_notice_text: legalNotice,
           });
