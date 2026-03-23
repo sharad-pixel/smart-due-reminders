@@ -281,7 +281,8 @@ Deno.serve(async (req) => {
           cadenceDays = [0, 3, 7, 14, 21]; // Default cadence
         }
 
-        const existingActive = activeWorkflowsByInvoice.get(invoice.id);
+        const existingActiveList = activeWorkflowsByInvoice.get(invoice.id);
+        const existingActive = existingActiveList?.[0];
 
         if (!existingActive) {
           // No active workflow - create new one
