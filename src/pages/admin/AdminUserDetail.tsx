@@ -791,6 +791,17 @@ const AdminUserDetail = () => {
                       Suspend Account
                     </Button>
                   )}
+                  
+                  <Separator orientation="vertical" className="h-8 hidden sm:block" />
+                  
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Account
+                  </Button>
                 </div>
                 
                 {user.is_blocked && user.blocked_at && (
