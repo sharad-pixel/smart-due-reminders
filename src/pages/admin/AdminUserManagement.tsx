@@ -132,7 +132,7 @@ const AdminUserManagement = () => {
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false); // kept for compat
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userDetailData, setUserDetailData] = useState<UserDetailData | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
