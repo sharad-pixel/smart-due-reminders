@@ -6472,6 +6472,63 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_deletions: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          created_at: string
+          deletion_scheduled_at: string
+          id: string
+          legal_notice_text: string | null
+          notice_sent_at: string
+          reason: string | null
+          scheduled_by: string
+          status: string
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deletion_scheduled_at?: string
+          id?: string
+          legal_notice_text?: string | null
+          notice_sent_at?: string
+          reason?: string | null
+          scheduled_by: string
+          status?: string
+          updated_at?: string
+          user_email: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deletion_scheduled_at?: string
+          id?: string
+          legal_notice_text?: string | null
+          notice_sent_at?: string
+          reason?: string | null
+          scheduled_by?: string
+          status?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       score_change_logs: {
         Row: {
           change_reason: string
