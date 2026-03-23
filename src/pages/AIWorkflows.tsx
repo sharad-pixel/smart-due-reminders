@@ -1195,6 +1195,12 @@ const AIWorkflows = () => {
     );
   }
 
+        {/* Auto-Generate Disabled Alert */}
+        <AutoGenerateAlert
+          workflows={workflows}
+          bucketCounts={bucketCounts}
+          onWorkflowsUpdated={fetchWorkflows}
+        />
 
   return (
     <Layout>
