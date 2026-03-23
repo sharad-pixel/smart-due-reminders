@@ -441,7 +441,7 @@ const AdminUserManagement = () => {
                   <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User</td><td style="padding:8px;border-bottom:1px solid #eee;">${selectedUser.name || "—"} (${selectedUser.email})</td></tr>
                   <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;">${selectedUser.id}</td></tr>
                   <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Initiated By</td><td style="padding:8px;border-bottom:1px solid #eee;">${adminUser?.email || "Unknown Admin"}</td></tr>
-                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Mode</td><td style="padding:8px;border-bottom:1px solid #eee;">${deleteMode === "immediate" ? "Immediate" : "Scheduled (24hr notice)"}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Mode</td><td style="padding:8px;border-bottom:1px solid #eee;">Scheduled (24hr notice)</td></tr>
                   <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Reason</td><td style="padding:8px;border-bottom:1px solid #eee;">${deleteReason || "No reason provided"}</td></tr>
                   <tr><td style="padding:8px;font-weight:600;">Deletion Date</td><td style="padding:8px;">${new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</td></tr>
                 </table>
