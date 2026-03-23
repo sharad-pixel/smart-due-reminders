@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { toast } from "sonner";
 import { Workflow, Mail, MessageSquare, Clock, Sparkles, BarChart3, Eye, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Pencil, Trash2, AlertTriangle, RotateCcw, Zap } from "lucide-react";
@@ -28,6 +29,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
+import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsightsPanel";
+import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
 
 interface WorkflowStep {
   id: string;
@@ -1194,49 +1197,49 @@ const AIWorkflows = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">AI Collection Intelligence</h1>
-            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-              AI-powered workflows and campaigns to optimize collection strategies
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              Centralized automation with built-in audit logs for every action
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button 
-              variant="default" 
-              onClick={handleGenerateAllAITemplates}
-              disabled={generatingAllTemplates}
-              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
-            >
-              {generatingAllTemplates ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              <span className="text-sm">{generatingAllTemplates ? "Generating..." : "Generate AI Templates"}</span>
-            </Button>
-            <Button
-              variant="outline" 
-              onClick={handleManualReassignment}
-              disabled={reassigning}
-              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
-            >
-              <Workflow className="h-4 w-4" />
-              <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
-            </Button>
-          </div>
+      <div className="space-y-5">
+        {/* Hero Header */}
+        <WorkflowHeroHeader
+          onGenerateAllTemplates={handleGenerateAllAITemplates}
+          onReassignAll={handleManualReassignment}
+          onRunEngine={handleRunOutreachEngine}
+          generatingAllTemplates={generatingAllTemplates}
+          reassigning={reassigning}
+          isRunningEngine={isRunningEngine}
+        />
+
+        {/* Outreach Status + Insights */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <OutreachStatusCards onRefresh={() => {
+            fetchInvoiceCounts();
+            fetchDraftsByPersona();
+            refetchErrors();
+          }} />
+          <OutreachInsightsPanel />
         </div>
 
-        {/* Unified Outreach Status */}
-        <OutreachStatusCards onRefresh={() => {
-          fetchInvoiceCounts();
-          fetchDraftsByPersona();
-          refetchErrors();
-        }} />
+        {/* Tabbed Interface */}
+        <Tabs defaultValue="agents" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
+            <TabsTrigger value="agents" className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Agents</span>
+              <span className="sm:hidden">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="outreach" className="gap-1.5">
+              <Mail className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Scheduled Outreach</span>
+              <span className="sm:hidden">Outreach</span>
+            </TabsTrigger>
+            <TabsTrigger value="config" className="gap-1.5">
+              <Workflow className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Workflow Config</span>
+              <span className="sm:hidden">Config</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: AI Agents & Templates */}
+          <TabsContent value="agents" className="space-y-4 mt-0">
 
 
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
@@ -1581,143 +1584,45 @@ const AIWorkflows = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+        <Card className="bg-primary/5 border-primary/20">
           <CardContent className="p-4">
             <div className="flex gap-3">
-              <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Automatic Template-Based Sending</h3>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  When you approve draft templates, they will automatically send personalized emails to all invoices in that aging bucket based on the cadence (days since invoice entered bucket). 
-                  Templates are personalized with invoice-specific data for each debtor. Runs daily at 2 AM UTC.
+                <h3 className="font-semibold mb-1">Automatic Template-Based Sending</h3>
+                <p className="text-sm text-muted-foreground">
+                  Approved templates auto-send personalized emails to invoices in each aging bucket based on cadence. 
+                  Runs daily at 2 AM UTC with invoice-specific data for each debtor.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* Workflow Configuration */}
-        <div className="space-y-6">
-            {selectedWorkflow ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Workflow Timeline
-                  </CardTitle>
-                  <CardDescription>
-                    Visual representation of collection steps for this aging bucket
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <WorkflowGraph 
-                    steps={selectedWorkflow.steps?.filter((step) => {
-                      // Only show steps with approved templates in graph view
-                      const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
-                      return stepDraftCount > 0;
-                    }) || []}
-                    onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
-                    onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
-                    isGenerating={generatingContent}
-                    stepInvoiceCounts={(() => {
-                      // Find persona key based on aging bucket
-                      const persona = Object.entries(personaConfig).find(([_, p]) => {
-                        const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
-                        return bucketLabel === selectedBucket || 
-                               (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
-                               (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
-                               (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
-                               (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
-                               (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
-                               (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
-                      });
-                      return persona ? stepInvoiceCounts[persona[0]] || {} : {};
-                    })()}
-                    stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="py-8 sm:py-12 text-center space-y-3 px-4">
-                  <p className="text-sm sm:text-base text-muted-foreground">
-                    No workflow configured for this aging bucket yet.
-                  </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Create a workflow to start generating automated collection templates
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-                    <Button 
-                      onClick={() => handleSetupDefaultWorkflow(selectedBucket)}
-                      disabled={loading}
-                      className="w-full sm:w-auto tap-target"
-                    >
-                      {loading ? "Creating..." : "Create Workflow"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        {/* Outreach Scheduler Controls */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  Scheduled Outreach
-                </CardTitle>
-                <CardDescription>
-                  Manage AI-generated outreach and view scheduled communications
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {errorCount > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowErrors(!showErrors)}
-                    className="text-destructive border-destructive/50"
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    {errorCount} Error{errorCount !== 1 ? "s" : ""}
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  onClick={handleRunOutreachEngine}
-                  disabled={isRunningEngine}
-                  className="bg-primary"
-                >
-                  <Zap className={`h-4 w-4 mr-1 ${isRunningEngine ? "animate-pulse" : ""}`} />
-                  {isRunningEngine ? "Running..." : "Run Outreach Engine"}
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          {/* Tab 2: Scheduled Outreach */}
+          <TabsContent value="outreach" className="space-y-4 mt-0">
             {/* Engine Result Alert */}
             {engineResult && (
-              <Alert className="bg-purple-500/10 border-purple-500/30">
-                <Zap className="h-4 w-4 text-purple-500" />
+              <Alert className="bg-primary/10 border-primary/30">
+                <Zap className="h-4 w-4 text-primary" />
                 <AlertTitle>Outreach Engine Complete</AlertTitle>
                 <AlertDescription>
                   <div className="flex flex-wrap gap-4 mt-2 text-sm">
                     {engineResult.cancelledDrafts > 0 && (
-                      <span className="text-amber-600 dark:text-amber-400">⊘ {engineResult.cancelledDrafts} draft(s) cancelled (paid invoices)</span>
+                      <span className="text-amber-600 dark:text-amber-400">⊘ {engineResult.cancelledDrafts} cancelled</span>
                     )}
                     {engineResult.generatedDrafts > 0 && (
-                      <span className="text-purple-600 dark:text-purple-400">✓ {engineResult.generatedDrafts} draft(s) generated</span>
+                      <span className="text-primary">✓ {engineResult.generatedDrafts} generated</span>
                     )}
                     {engineResult.sentDrafts > 0 && (
-                      <span className="text-green-600 dark:text-green-400">✓ {engineResult.sentDrafts} email(s) sent</span>
+                      <span className="text-green-600 dark:text-green-400">✓ {engineResult.sentDrafts} sent</span>
                     )}
                     {engineResult.errors?.length > 0 && (
-                      <span className="text-red-600 dark:text-red-400">✗ {engineResult.errors.length} error(s)</span>
+                      <span className="text-destructive">✗ {engineResult.errors.length} error(s)</span>
                     )}
                     {engineResult.cancelledDrafts === 0 && engineResult.generatedDrafts === 0 && engineResult.sentDrafts === 0 && (
-                      <span className="text-muted-foreground">No actions needed - all outreach is up to date</span>
+                      <span className="text-muted-foreground">All outreach is up to date</span>
                     )}
                   </div>
                 </AlertDescription>
@@ -1725,17 +1630,14 @@ const AIWorkflows = () => {
             )}
 
             {/* Errors Panel */}
-            {showErrors && errorCount > 0 && (
+            {errorCount > 0 && (
               <Card className="border-destructive/50">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-destructive" />
-                      Outreach Errors
+                      {errorCount} Outreach Error{errorCount !== 1 ? "s" : ""}
                     </CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setShowErrors(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
                   <CardDescription>
                     These invoices failed to generate outreach drafts. Click retry to attempt again.
@@ -1788,20 +1690,83 @@ const AIWorkflows = () => {
                 </CardContent>
               </Card>
             )}
-          </CardContent>
-        </Card>
 
-        {/* AI Collection Agents Schedule Cards */}
-        <AgentScheduleCards 
-          selectedPersona={outreachFilterPersona}
-          onPersonaSelect={setOutreachFilterPersona}
-        />
+            <AgentScheduleCards 
+              selectedPersona={outreachFilterPersona}
+              onPersonaSelect={setOutreachFilterPersona}
+            />
 
-        {/* Scheduled Outreach Panel */}
-        <ScheduledOutreachPanel 
-          selectedPersona={outreachFilterPersona}
-          onPersonaFilterClear={() => setOutreachFilterPersona(null)}
-        />
+            <ScheduledOutreachPanel 
+              selectedPersona={outreachFilterPersona}
+              onPersonaFilterClear={() => setOutreachFilterPersona(null)}
+            />
+          </TabsContent>
+
+          {/* Tab 3: Workflow Configuration */}
+          <TabsContent value="config" className="space-y-4 mt-0">
+        {/* Workflow Configuration */}
+        <div className="space-y-6">
+            {selectedWorkflow ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Workflow Timeline — {agingBuckets.find(b => b.value === selectedBucket)?.label}
+                  </CardTitle>
+                  <CardDescription>
+                    Visual representation of collection steps for this aging bucket
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WorkflowGraph 
+                    steps={selectedWorkflow.steps?.filter((step) => {
+                      const stepDraftCount = stepDraftCounts[selectedBucket]?.[selectedWorkflow.id]?.[step.id] || 0;
+                      return stepDraftCount > 0;
+                    }) || []}
+                    onGenerateContent={!selectedWorkflow.is_locked ? handleGenerateContent : undefined}
+                    onPreviewMessage={(step) => handlePreviewMessage(step, selectedWorkflow)}
+                    isGenerating={generatingContent}
+                    stepInvoiceCounts={(() => {
+                      const persona = Object.entries(personaConfig).find(([_, p]) => {
+                        const bucketLabel = `dpd_${p.bucketMin}_${p.bucketMax || 'plus'}`;
+                        return bucketLabel === selectedBucket || 
+                               (selectedBucket === 'dpd_1_30' && p.bucketMin === 1 && p.bucketMax === 30) ||
+                               (selectedBucket === 'dpd_31_60' && p.bucketMin === 31 && p.bucketMax === 60) ||
+                               (selectedBucket === 'dpd_61_90' && p.bucketMin === 61 && p.bucketMax === 90) ||
+                               (selectedBucket === 'dpd_91_120' && p.bucketMin === 91 && p.bucketMax === 120) ||
+                               (selectedBucket === 'dpd_121_150' && p.bucketMin === 121 && p.bucketMax === 150) ||
+                               (selectedBucket === 'dpd_150_plus' && p.bucketMin === 151);
+                      });
+                      return persona ? stepInvoiceCounts[persona[0]] || {} : {};
+                    })()}
+                    stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-8 sm:py-12 text-center space-y-3 px-4">
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    No workflow configured for this aging bucket yet.
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Create a workflow to start generating automated collection templates
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+                    <Button 
+                      onClick={() => handleSetupDefaultWorkflow(selectedBucket)}
+                      disabled={loading}
+                      className="w-full sm:w-auto tap-target"
+                    >
+                      {loading ? "Creating..." : "Create Workflow"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          </TabsContent>
+        </Tabs>
       <WorkflowStepEditor
         step={editingStep}
         open={!!editingStep}
