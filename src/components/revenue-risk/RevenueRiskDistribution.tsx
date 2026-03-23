@@ -17,7 +17,7 @@ const COLORS = [
   "hsl(0, 84%, 60%)",    // red - high risk
 ];
 
-const LABELS = ["High (80–100)", "Moderate (60–79)", "At Risk (40–59)", "High Risk (<40)"];
+const LABELS = ["Low Risk (80–100)", "Moderate (60–79)", "At Risk (40–59)", "High Risk (<40)"];
 
 export function RevenueRiskDistribution({ distribution }: Props) {
   const chartData = [
