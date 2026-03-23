@@ -163,31 +163,48 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Get existing drafts and activities for this invoice to avoid duplicates
+        // Get existing drafts for this invoice to avoid duplicates
         const { data: existingDrafts } = await supabaseAdmin
           .from('ai_drafts')
-          .select('workflow_step_id')
+          .select('workflow_step_id, step_number')
           .eq('invoice_id', invoice.id);
 
         const existingStepIds = new Set((existingDrafts || []).map((d: any) => d.workflow_step_id));
 
-        // Get existing outbound activities count
-        const { count: existingOutreachCount } = await supabaseAdmin
-          .from('collection_activities')
-          .select('id', { count: 'exact' })
-          .eq('invoice_id', invoice.id)
-          .eq('direction', 'outbound');
+        // Cancel any pending/approved unsent drafts from a DIFFERENT workflow (previous bucket/agent)
+        // This prevents stale drafts from old agents being sent after a bucket transition
+        const currentWorkflowStepIds = workflow.steps.map((s: any) => s.id);
+        const staleDraftStepIds = (existingDrafts || [])
+          .filter((d: any) => d.workflow_step_id && !currentWorkflowStepIds.includes(d.workflow_step_id))
+          .map((d: any) => d.workflow_step_id);
 
-        // Find the next step that hasn't been done yet
+        if (staleDraftStepIds.length > 0) {
+          const { data: cancelledDrafts, error: cancelErr } = await supabaseAdmin
+            .from('ai_drafts')
+            .update({ status: 'cancelled' })
+            .eq('invoice_id', invoice.id)
+            .in('workflow_step_id', staleDraftStepIds)
+            .in('status', ['pending_approval', 'approved'])
+            .is('sent_at', null)
+            .select('id');
+
+          if (!cancelErr && cancelledDrafts && cancelledDrafts.length > 0) {
+            console.log(`Cancelled ${cancelledDrafts.length} stale drafts from previous bucket for invoice ${invoice.invoice_number}`);
+          }
+        }
+
+        // Find ALL pending steps that haven't been drafted yet (catch-up for missed steps)
         const pendingSteps = activeSteps.filter((s: any) => !existingStepIds.has(s.id));
         
-        // Only create one draft at a time (the next pending step)
-        const nextStep = pendingSteps[0];
-        
-        if (!nextStep) {
+        if (pendingSteps.length === 0) {
           console.log(`All applicable steps already have drafts for invoice ${invoice.invoice_number}`);
           continue;
         }
+
+        console.log(`Creating ${pendingSteps.length} catch-up draft(s) for invoice ${invoice.invoice_number}`);
+
+        // Process ALL pending steps (not just one) for proper catch-up on bucket transitions
+        for (const nextStep of pendingSteps) {
 
 
         // Get branding settings (including auto_approve_drafts)
