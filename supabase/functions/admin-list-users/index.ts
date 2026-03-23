@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       search = body.search || '';
       limit = parseInt(body.limit) || 50;
       offset = parseInt(body.offset) || 0;
-    } catch {
+    } catch (_e) {
       const url = new URL(req.url);
       search = url.searchParams.get('search') || '';
       limit = parseInt(url.searchParams.get('limit') || '50');
