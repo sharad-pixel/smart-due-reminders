@@ -1035,6 +1035,7 @@ Delaware, USA`;
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
