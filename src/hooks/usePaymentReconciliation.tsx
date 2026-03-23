@@ -51,6 +51,8 @@ export const usePaymentReconciliation = (
 ) => {
   return useQuery({
     queryKey: ["payment-reconciliation", filters, page, pageSize],
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");

@@ -57,6 +57,8 @@ export const usePaymentsActivity = (options: UsePaymentsActivityOptions = {}) =>
 
   return useQuery({
     queryKey: ['payments-activity', filters, page, pageSize],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -211,6 +213,8 @@ export const usePaymentsSummary = () => {
 export const useTransactionTypes = () => {
   return useQuery({
     queryKey: ['transaction-types'],
+    staleTime: 10 * 60 * 1000, // 10 minutes - rarely changes
+    gcTime: 15 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -236,6 +240,8 @@ export const useTransactionTypes = () => {
 export const useSourceSystems = () => {
   return useQuery({
     queryKey: ['source-systems'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];

@@ -94,12 +94,16 @@ export const useDailyDigest = (date?: string) => {
       if (error) throw error;
       return data as unknown as DailyDigest | null;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
 };
 
 export const useLatestDigest = () => {
   return useQuery({
     queryKey: ['latest-digest'],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -127,6 +131,8 @@ export const useLatestDigest = () => {
 export const useDigestHistory = (limit = 30) => {
   return useQuery({
     queryKey: ['digest-history', limit],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
