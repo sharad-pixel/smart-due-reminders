@@ -50,12 +50,13 @@ Deno.serve(async (req) => {
     for (const invoice of invoices || []) {
       try {
         // Calculate current aging bucket
-        const daysPastDue = Math.max(0, Math.ceil(
+        const rawDaysPastDue = Math.ceil(
           (Date.now() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)
-        ));
+        );
+        const daysPastDue = Math.max(0, rawDaysPastDue);
 
         let agingBucket: string;
-        if (daysPastDue < 0) {
+        if (rawDaysPastDue <= 0) {
           agingBucket = 'current';
         } else if (daysPastDue <= 30) {
           agingBucket = 'dpd_1_30';
