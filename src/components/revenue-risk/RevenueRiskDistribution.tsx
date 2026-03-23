@@ -63,7 +63,7 @@ export function RevenueRiskDistribution({ distribution }: Props) {
             </div>
             <div className="space-y-2 flex-1">
               {[
-                { label: "High", value: distribution.high, color: COLORS[0] },
+                { label: "Low Risk", value: distribution.high, color: COLORS[0] },
                 { label: "Moderate", value: distribution.moderate, color: COLORS[1] },
                 { label: "At Risk", value: distribution.at_risk, color: COLORS[2] },
                 { label: "High Risk", value: distribution.high_risk, color: COLORS[3] },
