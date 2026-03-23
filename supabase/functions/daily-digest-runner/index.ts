@@ -1014,6 +1014,24 @@ function generateEmailHtml(data: {
     risk_tier_changes: Array<{ debtorName: string; from: string; to: string }>;
     total_alerts: number;
   } | null;
+  // Credit Intelligence / PAYDEX
+  avgPaydexScore?: number | null;
+  avgPaydexRating?: string | null;
+  accountsPromptPayers?: number;
+  accountsSlowPayers?: number;
+  accountsDelinquent?: number;
+  avgPaymentTrend?: string | null;
+  totalCreditLimitRecommended?: number;
+  portfolioRiskSummary?: {
+    total_accounts_scored: number;
+    prompt_payers_pct: number;
+    slow_payers_pct: number;
+    delinquent_pct: number;
+    avg_score: number;
+    rating: string;
+    trend: string;
+    total_ar_at_risk: number;
+  } | null;
 }): string {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
