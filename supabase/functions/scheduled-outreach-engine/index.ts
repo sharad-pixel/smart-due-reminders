@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
               step_number: stepNumber,
               channel: 'email',
               status: draftStatus,
-              recommended_send_date: targetDateStr,
+              recommended_send_date: cadenceDay <= currentDaysInBucket ? todayStr : targetDateStr,
               days_past_due: daysPastDue,
               auto_approved: shouldAutoApprove
             });
