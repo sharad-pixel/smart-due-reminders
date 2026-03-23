@@ -390,7 +390,8 @@ const AdminUserManagement = () => {
           title: "⚠️ Account Deletion Scheduled",
           message: "Your account has been scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if this was not requested.",
           severity: "critical",
-        }).catch(() => {});
+        });
+        // Ignore notification insert errors
 
         toast.success(`Deletion notice sent to ${selectedUser.email}. Account will be deleted in 24 hours.`);
       }
