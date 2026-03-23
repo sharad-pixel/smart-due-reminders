@@ -310,11 +310,12 @@ Deno.serve(async (req) => {
           // Bucket changed - deactivate old workflow and create new one
           console.log(`[ENSURE-WORKFLOWS] Upgrading workflow for invoice ${invoice.id} due to bucket change`);
 
-          // Deactivate old workflow
+          // Deactivate ALL old workflows for this invoice
           await supabaseAdmin
             .from('ai_workflows')
             .update({ is_active: false })
-            .eq('id', existingActive.id);
+            .eq('invoice_id', invoice.id)
+            .eq('is_active', true);
 
           // Create new workflow for new bucket
           const { error: insertError } = await supabaseAdmin
