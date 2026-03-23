@@ -310,6 +310,19 @@ Deno.serve(async (req) => {
           // Bucket changed - deactivate old workflow and create new one
           console.log(`[ENSURE-WORKFLOWS] Upgrading workflow for invoice ${invoice.id} due to bucket change`);
 
+          // Cancel any pending/approved unsent drafts from the old bucket
+          const { data: cancelledDrafts } = await supabaseAdmin
+            .from('ai_drafts')
+            .update({ status: 'cancelled' })
+            .eq('invoice_id', invoice.id)
+            .in('status', ['pending_approval', 'approved'])
+            .is('sent_at', null)
+            .select('id');
+
+          if (cancelledDrafts && cancelledDrafts.length > 0) {
+            console.log(`[ENSURE-WORKFLOWS] Cancelled ${cancelledDrafts.length} unsent drafts from previous bucket for invoice ${invoice.id}`);
+          }
+
           // Deactivate ALL old workflows for this invoice
           await supabaseAdmin
             .from('ai_workflows')

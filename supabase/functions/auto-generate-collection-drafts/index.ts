@@ -116,7 +116,14 @@ Deno.serve(async (req) => {
           agingBucket = 'dpd_1_30';
         }
 
-        console.log(`Processing invoice ${invoice.invoice_number}: ${daysPastDue} days past due, bucket: ${agingBucket}`);
+        // Calculate days in current bucket (for step scheduling relative to bucket entry)
+        const bucketEnteredAt = invoice.bucket_entered_at
+          ? new Date(invoice.bucket_entered_at)
+          : dueDate;
+        bucketEnteredAt.setHours(0, 0, 0, 0);
+        const daysInBucket = Math.max(0, Math.floor((today.getTime() - bucketEnteredAt.getTime()) / (1000 * 60 * 60 * 24)));
+
+        console.log(`Processing invoice ${invoice.invoice_number}: ${daysPastDue} DPD, bucket: ${agingBucket}, ${daysInBucket} days in bucket`);
 
         // Skip current invoices (not past due yet)
         if (agingBucket === 'current') {
@@ -145,10 +152,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // FIXED LOGIC: Find steps that should have been triggered (day_offset <= daysPastDue)
-        // This creates catch-up drafts for missed steps
+        // Use days-in-bucket for step scheduling (day_offset is relative to bucket entry)
+        // This ensures steps trigger correctly when invoices transition between agents/buckets
         const activeSteps = workflow.steps
-          .filter((s: any) => s.is_active && s.day_offset <= daysPastDue)
+          .filter((s: any) => s.is_active && s.day_offset <= daysInBucket)
           .sort((a: any, b: any) => a.step_order - b.step_order);
 
         if (activeSteps.length === 0) {
@@ -156,41 +163,54 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Get existing drafts and activities for this invoice to avoid duplicates
+        // Get existing drafts for this invoice to avoid duplicates
         const { data: existingDrafts } = await supabaseAdmin
           .from('ai_drafts')
-          .select('workflow_step_id')
+          .select('workflow_step_id, step_number')
           .eq('invoice_id', invoice.id);
 
         const existingStepIds = new Set((existingDrafts || []).map((d: any) => d.workflow_step_id));
 
-        // Get existing outbound activities count
-        const { count: existingOutreachCount } = await supabaseAdmin
-          .from('collection_activities')
-          .select('id', { count: 'exact' })
-          .eq('invoice_id', invoice.id)
-          .eq('direction', 'outbound');
+        // Cancel any pending/approved unsent drafts from a DIFFERENT workflow (previous bucket/agent)
+        // This prevents stale drafts from old agents being sent after a bucket transition
+        const currentWorkflowStepIds = workflow.steps.map((s: any) => s.id);
+        const staleDraftStepIds = (existingDrafts || [])
+          .filter((d: any) => d.workflow_step_id && !currentWorkflowStepIds.includes(d.workflow_step_id))
+          .map((d: any) => d.workflow_step_id);
 
-        // Find the next step that hasn't been done yet
+        if (staleDraftStepIds.length > 0) {
+          const { data: cancelledDrafts, error: cancelErr } = await supabaseAdmin
+            .from('ai_drafts')
+            .update({ status: 'cancelled' })
+            .eq('invoice_id', invoice.id)
+            .in('workflow_step_id', staleDraftStepIds)
+            .in('status', ['pending_approval', 'approved'])
+            .is('sent_at', null)
+            .select('id');
+
+          if (!cancelErr && cancelledDrafts && cancelledDrafts.length > 0) {
+            console.log(`Cancelled ${cancelledDrafts.length} stale drafts from previous bucket for invoice ${invoice.invoice_number}`);
+          }
+        }
+
+        // Find ALL pending steps that haven't been drafted yet (catch-up for missed steps)
         const pendingSteps = activeSteps.filter((s: any) => !existingStepIds.has(s.id));
         
-        // Only create one draft at a time (the next pending step)
-        const nextStep = pendingSteps[0];
-        
-        if (!nextStep) {
+        if (pendingSteps.length === 0) {
           console.log(`All applicable steps already have drafts for invoice ${invoice.invoice_number}`);
           continue;
         }
 
+        console.log(`Creating ${pendingSteps.length} catch-up draft(s) for invoice ${invoice.invoice_number}`);
 
-        // Get branding settings (including auto_approve_drafts)
+        // Get branding settings ONCE per invoice (outside step loop)
         const { data: branding } = await supabaseAdmin
           .from('branding_settings')
           .select('*, auto_approve_drafts')
           .eq('user_id', invoice.user_id)
           .maybeSingle();
 
-        // Fetch primary contact from debtor_contacts (source of truth for contact names)
+        // Fetch primary contact from debtor_contacts
         let debtorName = 'Customer';
         let companyName = debtor?.company_name || debtor?.name || 'Customer';
         
@@ -205,129 +225,21 @@ Deno.serve(async (req) => {
           if (contacts && contacts.length > 0) {
             const primaryContact = contacts.find((c: any) => c.is_primary);
             debtorName = primaryContact?.name || contacts[0]?.name || companyName;
-            console.log(`Using contact name from debtor_contacts: ${debtorName}`);
           } else {
             debtorName = companyName;
-            console.log(`No outreach-enabled contacts, using company name: ${debtorName}`);
           }
         } else {
           debtorName = companyName;
         }
 
-        // Build context
         const businessName = branding?.business_name || 'Your Company';
         const fromName = branding?.from_name || businessName;
-
-        // Get persona-specific tone based on days past due
         const persona = getPersonaToneByDaysPastDue(daysPastDue);
-        const personaGuidelines = persona?.systemPromptGuidelines || '';
         const personaName = persona?.name || 'Collections Agent';
+        const autoApprove = branding?.auto_approve_drafts === true;
+        const draftStatus = autoApprove ? 'approved' : 'pending_approval';
 
-        // PRIORITY: Check for invoice-level custom template override first
-        let subjectTemplate: string;
-        let bodyTemplate: string;
-        let templateSource: string;
-
-        if (invoice.use_custom_template && invoice.custom_template_body) {
-          // Use invoice-level custom override
-          subjectTemplate = invoice.custom_template_subject || `Invoice ${invoice.invoice_number} - Payment Reminder`;
-          bodyTemplate = invoice.custom_template_body;
-          templateSource = 'invoice-level override';
-          console.log(`Using invoice-level custom template for ${invoice.invoice_number}`);
-        } else {
-          // Look for approved draft template matching this workflow step
-          const { data: approvedTemplate } = await supabaseAdmin
-            .from('draft_templates')
-            .select('*')
-            .eq('workflow_step_id', nextStep.id)
-            .eq('user_id', invoice.user_id)
-            .eq('status', 'approved')
-            .maybeSingle();
-
-          if (approvedTemplate) {
-            // Use the approved draft template
-            subjectTemplate = approvedTemplate.subject_template || nextStep.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
-            bodyTemplate = approvedTemplate.message_body_template;
-            templateSource = `approved template (ID: ${approvedTemplate.id})`;
-            console.log(`Using approved draft template for step ${nextStep.step_order}: ${approvedTemplate.id}`);
-          } else {
-            // Fallback: Check for any approved template for this aging bucket and user
-            const { data: bucketTemplate } = await supabaseAdmin
-              .from('draft_templates')
-              .select('*')
-              .eq('aging_bucket', agingBucket)
-              .eq('user_id', invoice.user_id)
-              .eq('status', 'approved')
-              .eq('step_number', nextStep.step_order)
-              .maybeSingle();
-
-            if (bucketTemplate) {
-              subjectTemplate = bucketTemplate.subject_template || nextStep.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
-              bodyTemplate = bucketTemplate.message_body_template;
-              templateSource = `approved bucket template (ID: ${bucketTemplate.id})`;
-              console.log(`Using approved bucket template for ${agingBucket} step ${nextStep.step_order}`);
-            } else {
-              // No approved template found - skip this invoice (require approved templates)
-              console.log(`No approved template found for invoice ${invoice.invoice_number}, bucket ${agingBucket}, step ${nextStep.step_order}. Skipping - approved templates required.`);
-              skipped++;
-              continue;
-            }
-          }
-        }
-
-        // Use unified draft content engine for template processing
-        const invoiceData: InvoiceData = {
-          id: invoice.id,
-          invoice_number: invoice.invoice_number,
-          amount: invoice.amount || 0,
-          currency: invoice.currency || 'USD',
-          due_date: invoice.due_date,
-          product_description: invoice.product_description,
-          external_link: (invoice as any).external_link,
-          stripe_hosted_url: (invoice as any).stripe_hosted_url,
-          integration_url: invoice.integration_url,
-        };
-
-        const debtorData: DebtorData = {
-          id: debtor?.id,
-          name: debtorName,
-          company_name: companyName,
-        };
-
-        const brandingDataObj: BrandingData = {
-          business_name: businessName,
-          from_name: fromName,
-          email_signature: branding?.email_signature,
-          stripe_payment_link: branding?.stripe_payment_link,
-          ar_page_public_token: branding?.ar_page_public_token,
-          ar_page_enabled: branding?.ar_page_enabled,
-        };
-
-        // Process with unified engine
-        const processedContent = processDraftContent({
-          template: bodyTemplate,
-          subjectTemplate: subjectTemplate,
-          invoice: invoiceData,
-          debtor: debtorData,
-          branding: brandingDataObj,
-          contactName: debtorName,
-          personaName: personaName,
-          daysPastDue: daysPastDue,
-          includeInvoiceLink: true,
-          includePaymentLink: true,
-          includeArPortal: true,
-          includeSignature: true,
-        });
-
-        const processedBody = processedContent.cleanedBody;
-        const processedSubject = processedContent.cleanedSubject;
-
-        // Calculate recommended send date based on due date + step day_offset
-        const stepTriggerDate = new Date(dueDate);
-        stepTriggerDate.setDate(stepTriggerDate.getDate() + nextStep.day_offset);
-        const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
-
-        // Get agent persona ID
+        // Get agent persona ID ONCE per invoice
         const { data: agentPersona } = await supabaseAdmin
           .from('ai_agent_personas')
           .select('id')
@@ -337,38 +249,125 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        // Determine draft status - auto-approve if enabled in branding settings
-        const autoApprove = branding?.auto_approve_drafts === true;
-        const draftStatus = autoApprove ? 'approved' : 'pending_approval';
-        
-        if (autoApprove) {
-          console.log(`Auto-approve enabled for user ${invoice.user_id}, creating approved draft`);
-        }
+        // Process ALL pending steps for proper catch-up on bucket transitions
+        for (const nextStep of pendingSteps) {
+          // PRIORITY: Check for invoice-level custom template override first
+          let subjectTemplate: string;
+          let bodyTemplate: string;
+          let templateSource: string;
 
-        // Create draft in database using the approved template
-        const { error: draftError } = await supabaseAdmin
-          .from('ai_drafts')
-          .insert({
-            user_id: invoice.user_id,
-            invoice_id: invoice.id,
-            workflow_step_id: nextStep.id,
-            agent_persona_id: agentPersona?.id || null,
-            channel: nextStep.channel,
-            step_number: nextStep.step_order,
-            subject: processedSubject,
-            message_body: processedBody,
-            status: draftStatus,
-            recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
-            days_past_due: daysPastDue,
-            auto_approved: autoApprove,
+          if (invoice.use_custom_template && invoice.custom_template_body) {
+            subjectTemplate = invoice.custom_template_subject || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+            bodyTemplate = invoice.custom_template_body;
+            templateSource = 'invoice-level override';
+          } else {
+            const { data: approvedTemplate } = await supabaseAdmin
+              .from('draft_templates')
+              .select('*')
+              .eq('workflow_step_id', nextStep.id)
+              .eq('user_id', invoice.user_id)
+              .eq('status', 'approved')
+              .maybeSingle();
+
+            if (approvedTemplate) {
+              subjectTemplate = approvedTemplate.subject_template || nextStep.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+              bodyTemplate = approvedTemplate.message_body_template;
+              templateSource = `approved template (ID: ${approvedTemplate.id})`;
+            } else {
+              const { data: bucketTemplate } = await supabaseAdmin
+                .from('draft_templates')
+                .select('*')
+                .eq('aging_bucket', agingBucket)
+                .eq('user_id', invoice.user_id)
+                .eq('status', 'approved')
+                .eq('step_number', nextStep.step_order)
+                .maybeSingle();
+
+              if (bucketTemplate) {
+                subjectTemplate = bucketTemplate.subject_template || nextStep.subject_template || `Invoice ${invoice.invoice_number} - Payment Reminder`;
+                bodyTemplate = bucketTemplate.message_body_template;
+                templateSource = `approved bucket template (ID: ${bucketTemplate.id})`;
+              } else {
+                console.log(`No approved template for invoice ${invoice.invoice_number}, bucket ${agingBucket}, step ${nextStep.step_order}. Skipping step.`);
+                continue;
+              }
+            }
+          }
+
+          const invoiceData: InvoiceData = {
+            id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            amount: invoice.amount || 0,
+            currency: invoice.currency || 'USD',
+            due_date: invoice.due_date,
+            product_description: invoice.product_description,
+            external_link: (invoice as any).external_link,
+            stripe_hosted_url: (invoice as any).stripe_hosted_url,
+            integration_url: invoice.integration_url,
+          };
+
+          const debtorData: DebtorData = {
+            id: debtor?.id,
+            name: debtorName,
+            company_name: companyName,
+          };
+
+          const brandingDataObj: BrandingData = {
+            business_name: businessName,
+            from_name: fromName,
+            email_signature: branding?.email_signature,
+            stripe_payment_link: branding?.stripe_payment_link,
+            ar_page_public_token: branding?.ar_page_public_token,
+            ar_page_enabled: branding?.ar_page_enabled,
+          };
+
+          const processedContent = processDraftContent({
+            template: bodyTemplate,
+            subjectTemplate: subjectTemplate,
+            invoice: invoiceData,
+            debtor: debtorData,
+            branding: brandingDataObj,
+            contactName: debtorName,
+            personaName: personaName,
+            daysPastDue: daysPastDue,
+            includeInvoiceLink: true,
+            includePaymentLink: true,
+            includeArPortal: true,
+            includeSignature: true,
           });
 
-        if (draftError) {
-          console.error(`Error creating draft for invoice ${invoice.id}:`, draftError);
-        } else {
-          console.log(`✓ Created draft for invoice ${invoice.invoice_number}, step ${nextStep.step_order} (${nextStep.label}) using ${templateSource}`);
-          draftsCreated++;
-        }
+          const processedBody = processedContent.cleanedBody;
+          const processedSubject = processedContent.cleanedSubject;
+
+          // Calculate recommended send date based on bucket entry + step day_offset
+          const stepTriggerDate = new Date(bucketEnteredAt);
+          stepTriggerDate.setDate(stepTriggerDate.getDate() + nextStep.day_offset);
+          const recommendedSendDate = stepTriggerDate > today ? stepTriggerDate : today;
+
+          const { error: draftError } = await supabaseAdmin
+            .from('ai_drafts')
+            .insert({
+              user_id: invoice.user_id,
+              invoice_id: invoice.id,
+              workflow_step_id: nextStep.id,
+              agent_persona_id: agentPersona?.id || null,
+              channel: nextStep.channel,
+              step_number: nextStep.step_order,
+              subject: processedSubject,
+              message_body: processedBody,
+              status: draftStatus,
+              recommended_send_date: recommendedSendDate.toISOString().split('T')[0],
+              days_past_due: daysPastDue,
+              auto_approved: autoApprove,
+            });
+
+          if (draftError) {
+            console.error(`Error creating draft for invoice ${invoice.id}, step ${nextStep.step_order}:`, draftError);
+          } else {
+            console.log(`✓ Created draft for invoice ${invoice.invoice_number}, step ${nextStep.step_order} (${nextStep.label}) using ${templateSource}`);
+            draftsCreated++;
+          }
+        } // end step loop
 
       } catch (error) {
         console.error(`Error processing invoice ${invoice.id}:`, error);
