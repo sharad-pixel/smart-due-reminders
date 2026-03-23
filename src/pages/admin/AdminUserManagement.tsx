@@ -1370,6 +1370,69 @@ Delaware, USA`;
                   </p>
                 )}
               </TabsContent>
+              {/* Danger Zone - Delete Account */}
+              <div className="mt-6 p-4 border border-destructive/30 rounded-lg bg-destructive/5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Danger Zone
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Permanently delete this user and all associated data
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setDetailDialogOpen(false);
+                      handleDeleteClick(selectedUser);
+                    }}
+                    disabled={actionLoading === selectedUser.id}
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </div>
+
+                {/* Preview of deletion notice */}
+                <details className="mt-3">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                    📄 Preview deletion notice that will be sent
+                  </summary>
+                  <div className="mt-2 p-3 bg-background rounded border text-xs text-muted-foreground max-h-48 overflow-y-auto space-y-2">
+                    <div className="p-3 bg-destructive/10 rounded text-center mb-2">
+                      <p className="font-bold text-destructive text-sm">⚠️ Account Deletion Notice</p>
+                    </div>
+                    <p>Dear <strong>{selectedUser.name || selectedUser.email}</strong>,</p>
+                    <p>This email confirms that your <strong>Recouply.ai</strong> account has been scheduled for <strong className="text-destructive">permanent deletion</strong>.</p>
+                    <p className="font-semibold mt-2">🕐 Deletion Scheduled For:</p>
+                    <p className="font-bold">
+                      {new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+                    <p className="font-semibold mt-2">DATA TO BE PERMANENTLY DELETED:</p>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2">
+                      <li>All account profile information and settings</li>
+                      <li>All invoices, payment records, and financial data</li>
+                      <li>All accounts/debtors and contact information</li>
+                      <li>All uploaded documents and files</li>
+                      <li>All collection activities, tasks, and AI workflows</li>
+                      <li>All team memberships and organizational data</li>
+                      <li>All branding, email configurations, and audit logs</li>
+                    </ul>
+                    <p className="font-semibold mt-2">YOUR RIGHTS:</p>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2">
+                      <li>Contact support@recouply.ai to cancel before effective date</li>
+                      <li>Request a data export before deletion</li>
+                    </ul>
+                    <p className="font-semibold mt-2">LEGAL BASIS:</p>
+                    <p>Performed under Recouply.ai Terms of Service (Section 9) in compliance with GDPR (Article 17) and CCPA. No data copies retained; backups purged within 30 days.</p>
+                    <p className="mt-2 text-center">© {new Date().getFullYear()} RecouplyAI Inc.</p>
+                  </div>
+                </details>
+              </div>
             </Tabs>
           )}
         </DialogContent>
