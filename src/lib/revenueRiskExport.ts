@@ -263,7 +263,7 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
       <h3 style="font-size:13px;margin:0 0 10px;">Collectability Distribution</h3>
       <table style="width:100%;border-collapse:collapse;">
         <tr>
-          <td style="padding:4px 0;font-size:11px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:6px;"></span>High (80–100)</td>
+          <td style="padding:4px 0;font-size:11px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:6px;"></span>Low Risk (80–100)</td>
           <td style="text-align:right;font-weight:600;font-size:11px;">${agg.collectability_distribution.high}</td>
         </tr>
         <tr>
