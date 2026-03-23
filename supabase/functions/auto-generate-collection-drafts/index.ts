@@ -116,7 +116,14 @@ Deno.serve(async (req) => {
           agingBucket = 'dpd_1_30';
         }
 
-        console.log(`Processing invoice ${invoice.invoice_number}: ${daysPastDue} days past due, bucket: ${agingBucket}`);
+        // Calculate days in current bucket (for step scheduling relative to bucket entry)
+        const bucketEnteredAt = invoice.bucket_entered_at
+          ? new Date(invoice.bucket_entered_at)
+          : dueDate;
+        bucketEnteredAt.setHours(0, 0, 0, 0);
+        const daysInBucket = Math.max(0, Math.floor((today.getTime() - bucketEnteredAt.getTime()) / (1000 * 60 * 60 * 24)));
+
+        console.log(`Processing invoice ${invoice.invoice_number}: ${daysPastDue} DPD, bucket: ${agingBucket}, ${daysInBucket} days in bucket`);
 
         // Skip current invoices (not past due yet)
         if (agingBucket === 'current') {
@@ -145,10 +152,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // FIXED LOGIC: Find steps that should have been triggered (day_offset <= daysPastDue)
-        // This creates catch-up drafts for missed steps
+        // Use days-in-bucket for step scheduling (day_offset is relative to bucket entry)
+        // This ensures steps trigger correctly when invoices transition between agents/buckets
         const activeSteps = workflow.steps
-          .filter((s: any) => s.is_active && s.day_offset <= daysPastDue)
+          .filter((s: any) => s.is_active && s.day_offset <= daysInBucket)
           .sort((a: any, b: any) => a.step_order - b.step_order);
 
         if (activeSteps.length === 0) {
