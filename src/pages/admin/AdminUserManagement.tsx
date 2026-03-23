@@ -279,7 +279,42 @@ const AdminUserManagement = () => {
 
       if (error) throw error;
 
-      toast.success(`User ${selectedUser.email} has been suspended`);
+      // Automatically schedule deletion for suspended users (24hr notice)
+      const legalNotice = generateLegalNoticeText(selectedUser.email, selectedUser.name);
+      const adminUser = (await supabase.auth.getUser()).data.user;
+      
+      await supabase.from("scheduled_deletions").insert({
+        user_id: selectedUser.id,
+        user_email: selectedUser.email,
+        user_name: selectedUser.name,
+        scheduled_by: adminUser?.id,
+        reason: suspendReason || "Account suspended — automatic deletion scheduled",
+        legal_notice_text: legalNotice,
+      });
+
+      // Send deletion notice email
+      try {
+        await supabase.functions.invoke("send-email", {
+          body: {
+            to: selectedUser.email,
+            subject: "Important: Your Recouply.ai Account Has Been Suspended & Scheduled for Deletion",
+            html: generateDeletionNoticeEmail(selectedUser.email, selectedUser.name),
+          },
+        });
+      } catch (emailErr) {
+        console.warn("Could not send deletion notice email:", emailErr);
+      }
+
+      // Create in-app notification
+      await supabase.from("user_notifications").insert({
+        user_id: selectedUser.id,
+        type: "account_deletion_scheduled",
+        title: "⚠️ Account Suspended & Deletion Scheduled",
+        message: "Your account has been suspended and is scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if you believe this is an error.",
+        severity: "critical",
+      }).then(() => {});
+
+      toast.success(`User ${selectedUser.email} suspended. Deletion auto-scheduled in 24 hours.`);
       setSuspendDialogOpen(false);
       await fetchUsers();
       await fetchStats();
