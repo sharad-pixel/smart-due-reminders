@@ -177,6 +177,7 @@ const AdminUserDetail = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [usageData, setUsageData] = useState<UsageData[]>([]);
   const [adminActions, setAdminActions] = useState<AdminAction[]>([]);
+  const [scheduledDeletions, setScheduledDeletions] = useState<ScheduledDeletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
