@@ -44,6 +44,7 @@ const Home = () => {
       <AIAgentsSection />
       <EmailDemo />
       <WhyDifferent />
+      <RevenueRiskTeaser />
       <DataVettingBadge />
       <PricingTeaser />
       <FAQAccordion />

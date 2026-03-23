@@ -198,6 +198,7 @@ const App = () => (
             <Route path="/knowledge-base" element={<KnowledgeBase />} />
             <Route path="/faq" element={<KnowledgeBase />} />
             <Route path="/help" element={<KnowledgeBase />} />
+            <Route path="/features/revenue-risk" element={<RevenueRiskFeature />} />
 
             {/* Blog Pages */}
             <Route path="/blog" element={<BlogIndex />} />
