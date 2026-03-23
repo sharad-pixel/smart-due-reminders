@@ -944,6 +944,19 @@ Delaware, USA`;
                             )}
                           </TableCell>
                           <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {user.is_suspended && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(user)}
+                                  disabled={actionLoading === user.id}
+                                  className="gap-1"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete
+                                </Button>
+                              )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
