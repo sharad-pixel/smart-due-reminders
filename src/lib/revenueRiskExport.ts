@@ -57,7 +57,7 @@ export function exportTopRiskAccountsCsv(accounts: TopRiskAccount[]) {
     escapeCsv(a.debtor_name),
     a.balance.toFixed(2),
     a.collectability_score,
-    a.collectability_score >= 80 ? "High" : a.collectability_score >= 60 ? "Moderate" : a.collectability_score >= 40 ? "At Risk" : "High Risk",
+    a.collectability_score >= 80 ? "Low Risk" : a.collectability_score >= 60 ? "Moderate" : a.collectability_score >= 40 ? "At Risk" : "High Risk",
     a.engagement_score,
     a.engagement_level,
     a.ecl.toFixed(2),
