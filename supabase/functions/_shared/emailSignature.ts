@@ -7,14 +7,17 @@
 /**
  * Email Signature Generator for Edge Functions
  * 
- * Generates consistent enterprise-grade email signatures with organization branding,
- * custom signatures, payment links, Public AR page links, and RecouplyAI Inc. branding.
+ * Clean, modern design matching recouply.ai/collection-intelligence page:
+ * - System font stack
+ * - Blue primary (#3b82f6), Green accent (#22c55e)
+ * - Clean white cards, subtle borders
+ * - Professional minimal layout
  */
 
 import { VERIFIED_EMAIL_DOMAIN } from "./emailConfig.ts";
-
-// Company Information - use INBOUND_EMAIL_DOMAIN for reply-capable addresses
 import { INBOUND_EMAIL_DOMAIN } from "./emailConfig.ts";
+
+const FONT_STACK = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
@@ -22,7 +25,6 @@ const COMPANY_INFO = {
   tagline: "Collection Intelligence Platform",
   website: "https://recouply.ai",
   emails: {
-    // Use inbound domain for emails that might receive replies
     collections: `collections@${INBOUND_EMAIL_DOMAIN}`,
     support: `support@${INBOUND_EMAIL_DOMAIN}`,
     notifications: `notifications@${INBOUND_EMAIL_DOMAIN}`,
@@ -48,9 +50,6 @@ export interface PaymentLinkOptions {
   paymentUrl?: string;
 }
 
-/**
- * Escape HTML special characters
- */
 function escapeHtml(text: string): string {
   const htmlEscapes: Record<string, string> = {
     "&": "&amp;",
@@ -62,34 +61,22 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
 }
 
-/**
- * Get the public AR page URL for the account
- */
 function getPublicARPageUrl(token: string | null | undefined): string | null {
   if (!token) return null;
   return `https://recouply.ai/ar/${token}`;
 }
 
-/**
- * Generate the From name for emails (Company Name format)
- */
 export function getEmailFromName(branding: BrandingSettings): string {
   return branding.business_name || branding.from_name || "Recouply.ai";
 }
 
-/**
- * Generate the full From address with company name
- * Uses collections@ prefix - replies should go to invoice+{id}@inbound domain
- */
 export function getEmailFromAddress(branding: BrandingSettings): string {
   const fromName = getEmailFromName(branding);
-  // IMPORTANT: Uses verified sending domain with collections@ prefix
-  // Reply-to header should always be set separately to route to inbound domain
   return `${fromName} <collections@${VERIFIED_EMAIL_DOMAIN}>`;
 }
 
 /**
- * Generate Public AR Page CTA section for emails
+ * Generate Public AR Page CTA – clean card style matching site
  */
 function generatePublicARPageCTA(branding: BrandingSettings): string {
   const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
@@ -98,26 +85,23 @@ function generatePublicARPageCTA(branding: BrandingSettings): string {
   const businessName = branding.business_name || branding.from_name || "Our Company";
 
   return `
-    <div style="text-align: center; margin: 24px 0; padding: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; border: 1px solid #93c5fd;">
-      <p style="margin: 0 0 8px; font-size: 16px; color: #1e40af; font-weight: 600;">
-        📄 ${escapeHtml(businessName)} Accounts Receivable Portal
+    <div style="text-align: center; margin: 24px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <p style="margin: 0 0 6px; font-size: 14px; color: #1e293b; font-weight: 600; font-family: ${FONT_STACK};">
+        ${escapeHtml(businessName)} Accounts Receivable Portal
       </p>
-      <p style="margin: 0 0 16px; font-size: 13px; color: #3b82f6;">
-        View payment options, download invoices, and access important documents
+      <p style="margin: 0 0 14px; font-size: 13px; color: #64748b; font-family: ${FONT_STACK};">
+        View payment options, download invoices, and access documents
       </p>
       <a href="${escapeHtml(arPageUrl)}" 
-         style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+         style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: ${FONT_STACK};">
         Visit AR Portal →
       </a>
-      <p style="margin: 16px 0 0; font-size: 12px; color: #64748b; font-style: italic;">
-        💡 Tip: When making payments, reference your invoice number for faster processing
-      </p>
     </div>
   `.trim();
 }
 
 /**
- * Generate RecouplyAI Inc. enterprise branded footer section
+ * Clean footer matching site design – minimal, professional
  */
 function generateRecouplyFooter(branding: BrandingSettings): string {
   const currentYear = new Date().getFullYear();
@@ -125,80 +109,42 @@ function generateRecouplyFooter(branding: BrandingSettings): string {
   
   return `
     <!-- Public AR Page CTA -->
-    ${arPageCTA ? `<tr><td style="padding: 0 36px;">${arPageCTA}</td></tr>` : ""}
+    ${arPageCTA ? `<tr><td style="padding: 0 32px;">${arPageCTA}</td></tr>` : ""}
     
-    <!-- RecouplyAI Inc. Enterprise Footer -->
+    <!-- Clean Footer -->
     <tr>
-      <td style="padding: 32px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 0 0 12px 12px;">
+      <td style="padding: 24px 32px; background-color: #1e293b; border-radius: 0 0 12px 12px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
           <tr>
             <td style="text-align: center;">
-              <!-- Recouply Logo -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px;">
-                <tr>
-                  <td style="vertical-align: middle; padding-right: 12px;">
-                    <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 10px; text-align: center; line-height: 42px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
-                      <span style="color: #ffffff; font-weight: bold; font-size: 20px;">R</span>
-                    </div>
-                  </td>
-                  <td style="vertical-align: middle;">
-                    <span style="color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;">Recouply</span><span style="color: #3b82f6; font-size: 22px; font-weight: 700;">.ai</span>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Tagline -->
-              <p style="margin: 0 0 20px; font-size: 15px; color: #94a3b8; font-weight: 500;">
+              <!-- Recouply Wordmark -->
+              <p style="margin: 0 0 4px; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">
+                <span style="color: #ffffff;">Recouply</span><span style="color: #22c55e;">.ai</span>
+              </p>
+              <p style="margin: 0 0 16px; font-size: 12px; color: #94a3b8; font-family: ${FONT_STACK};">
                 ${COMPANY_INFO.tagline}
               </p>
               
-              <!-- Feature badges -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 24px;">
+              <!-- Nav Links -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 16px;">
                 <tr>
-                  <td style="padding: 0 8px;">
-                    <span style="display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.2);">🤖 6 AI Agents</span>
-                  </td>
-                  <td style="padding: 0 8px;">
-                    <span style="display: inline-block; background: rgba(139, 92, 246, 0.15); color: #a78bfa; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 16px; border: 1px solid rgba(139, 92, 246, 0.2);">⚡ 24/7 Collections</span>
-                  </td>
-                  <td style="padding: 0 8px;">
-                    <span style="display: inline-block; background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2);">📈 Smart Recovery</span>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Contact Links -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px;">
-                <tr>
-                  <td style="padding: 0 16px; text-align: center;">
-                    <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 500;">
+                  <td style="padding: 0 10px;">
+                    <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #94a3b8; text-decoration: none; font-size: 12px; font-family: ${FONT_STACK};">
                       Support
                     </a>
                   </td>
-                  <td style="color: #475569;">|</td>
-                  <td style="padding: 0 16px; text-align: center;">
-                    <a href="mailto:${COMPANY_INFO.emails.collections}" style="color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 500;">
-                      Collections
-                    </a>
-                  </td>
-                  <td style="color: #475569;">|</td>
-                  <td style="padding: 0 16px; text-align: center;">
-                    <a href="${COMPANY_INFO.website}" style="color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: 600;">
-                      Visit Website →
+                  <td style="color: #475569; font-size: 12px;">·</td>
+                  <td style="padding: 0 10px;">
+                    <a href="${COMPANY_INFO.website}" style="color: #60a5fa; text-decoration: none; font-size: 12px; font-weight: 500; font-family: ${FONT_STACK};">
+                      Website
                     </a>
                   </td>
                 </tr>
               </table>
               
-              <!-- Divider -->
-              <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #334155, transparent); margin: 20px 0;"></div>
-              
-              <!-- Legal Footer -->
-              <p style="margin: 0 0 8px; font-size: 12px; color: #64748b;">
-                © ${currentYear} ${COMPANY_INFO.legalName}. All rights reserved.
-              </p>
-              <p style="margin: 0; font-size: 11px; color: #475569;">
-                ${COMPANY_INFO.address} • AI-powered software, not a collection agency
+              <!-- Legal -->
+              <p style="margin: 0; font-size: 11px; color: #475569; font-family: ${FONT_STACK};">
+                © ${currentYear} ${COMPANY_INFO.legalName} · ${COMPANY_INFO.address}
               </p>
             </td>
           </tr>
@@ -209,14 +155,11 @@ function generateRecouplyFooter(branding: BrandingSettings): string {
 }
 
 /**
- * Generate enterprise-grade styled email wrapper with RecouplyAI Inc. branding
+ * Clean email wrapper matching collection-intelligence page design
  */
 export function wrapEmailContent(body: string, branding: BrandingSettings = {}, personaName?: string): string {
   const businessName = branding.business_name || branding.from_name || personaName || "Recouply.ai";
   const primaryColor = branding.primary_color || "#3b82f6";
-  
-  // Generate lighter shade for gradient
-  const lighterColor = lightenColor(primaryColor, 20);
   
   return `
 <!DOCTYPE html>
@@ -237,20 +180,20 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}, 
   </noscript>
   <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; line-height: 1.6; -webkit-font-smoothing: antialiased;">
+<body style="margin: 0; padding: 0; font-family: ${FONT_STACK}; background-color: #f8fafc; line-height: 1.6; -webkit-font-smoothing: antialiased;">
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
     <tr>
-      <td style="padding: 40px 20px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05); overflow: hidden;">
-          <!-- Header with branding -->
+      <td style="padding: 32px 16px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+          <!-- Clean Header -->
           <tr>
-            <td style="padding: 28px 36px; background: linear-gradient(135deg, ${primaryColor} 0%, ${lighterColor} 100%);">
+            <td style="padding: 24px 32px; background-color: ${primaryColor};">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td>
                     ${branding.logo_url 
-                      ? `<img src="${escapeHtml(branding.logo_url)}" alt="${escapeHtml(businessName)}" style="max-height: 52px; max-width: 200px; height: auto;" />`
-                      : `<span style="color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;">${escapeHtml(businessName)}</span>`
+                      ? `<img src="${escapeHtml(branding.logo_url)}" alt="${escapeHtml(businessName)}" style="max-height: 44px; max-width: 180px; height: auto;" />`
+                      : `<span style="color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">${escapeHtml(businessName)}</span>`
                     }
                   </td>
                 </tr>
@@ -260,7 +203,7 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}, 
           
           <!-- Main Content -->
           <tr>
-            <td style="padding: 36px; color: #1e293b; font-size: 15px; line-height: 1.7;">
+            <td style="padding: 32px; color: #1e293b; font-size: 14px; line-height: 1.7; font-family: ${FONT_STACK};">
               ${body}
             </td>
           </tr>
@@ -268,14 +211,14 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}, 
           ${generateRecouplyFooter(branding)}
         </table>
         
-        <!-- Unsubscribe and Legal Links -->
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 16px auto 0;">
+        <!-- Bottom Legal -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 12px auto 0;">
           <tr>
-            <td style="text-align: center; padding: 0 20px;">
-              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+            <td style="text-align: center; padding: 0 16px;">
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; font-family: ${FONT_STACK};">
                 This email was sent by ${COMPANY_INFO.legalName} on behalf of ${escapeHtml(businessName)}.
                 <br>
-                Questions? Contact us at <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #64748b;">${COMPANY_INFO.emails.support}</a>
+                Questions? <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #64748b; text-decoration: none;">${COMPANY_INFO.emails.support}</a>
               </p>
             </td>
           </tr>
@@ -287,9 +230,6 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}, 
 </html>`.trim();
 }
 
-/**
- * Lighten a hex color for gradient effect
- */
 function lightenColor(hex: string, percent: number): string {
   const num = parseInt(hex.replace('#', ''), 16);
   const amt = Math.round(2.55 * percent);
@@ -300,7 +240,7 @@ function lightenColor(hex: string, percent: number): string {
 }
 
 /**
- * Generate enterprise payment link button for emails
+ * Clean payment button
  */
 export function generatePaymentButton(options: PaymentLinkOptions): string {
   if (!options.paymentUrl) return "";
@@ -310,20 +250,20 @@ export function generatePaymentButton(options: PaymentLinkOptions): string {
     : "";
   
   return `
-    <div style="text-align: center; margin: 28px 0;">
+    <div style="text-align: center; margin: 24px 0;">
       <a href="${escapeHtml(options.paymentUrl)}" 
-         style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 14px -2px rgba(5, 150, 105, 0.4); letter-spacing: 0.3px;">
-        💳 Pay Now${amountText}
+         style="display: inline-block; background-color: #22c55e; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600; font-family: ${FONT_STACK};">
+        Pay Now${amountText}
       </a>
     </div>
-    <p style="text-align: center; margin: 12px 0 0; color: #64748b; font-size: 13px;">
+    <p style="text-align: center; margin: 8px 0 0; color: #64748b; font-size: 12px; font-family: ${FONT_STACK};">
       🔒 Secure payment powered by Stripe
     </p>
   `.trim();
 }
 
 /**
- * Generate enterprise HTML email signature with logo, custom signature, and RecouplyAI Inc. branding
+ * Clean email signature matching site design
  */
 export function generateEmailSignature(
   branding: BrandingSettings, 
@@ -332,72 +272,53 @@ export function generateEmailSignature(
 ): string {
   const businessName = branding.business_name || branding.from_name || personaName || "Recouply.ai";
   
-  // Custom signature takes precedence if provided
   const customSignature = branding.email_signature 
-    ? `<p style="font-size: 14px; color: #374151; margin: 0 0 16px 0; white-space: pre-line;">${escapeHtml(branding.email_signature)}</p>`
+    ? `<p style="font-size: 14px; color: #374151; margin: 0 0 16px 0; white-space: pre-line; font-family: ${FONT_STACK};">${escapeHtml(branding.email_signature)}</p>`
     : "";
 
-  // Custom footer
   const customFooter = branding.email_footer
-    ? `<p style="font-size: 12px; color: #64748b; margin: 16px 0 0 0;">${escapeHtml(branding.email_footer)}</p>`
+    ? `<p style="font-size: 12px; color: #64748b; margin: 16px 0 0 0; font-family: ${FONT_STACK};">${escapeHtml(branding.email_footer)}</p>`
     : "";
 
-  // Payment button if provided
   const paymentButton = paymentOptions?.paymentUrl 
     ? generatePaymentButton(paymentOptions) 
     : "";
 
-  // Logo section
   const logoSection = branding.logo_url 
     ? `<img 
         src="${escapeHtml(branding.logo_url)}" 
         alt="${escapeHtml(businessName)} logo" 
-        style="max-width: 140px; height: auto; display: block; margin-bottom: 16px;"
+        style="max-width: 120px; height: auto; display: block; margin-bottom: 12px;"
       />`
     : "";
 
-  // Public AR Page link with description
   const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
   const arPageLink = arPageUrl && branding.ar_page_enabled
-    ? `<p style="margin: 12px 0 0; font-size: 13px;">
-        📄 <a href="${escapeHtml(arPageUrl)}" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
-          Visit our AR Portal
+    ? `<p style="margin: 8px 0 0; font-size: 12px; font-family: ${FONT_STACK};">
+        <a href="${escapeHtml(arPageUrl)}" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+          View AR Portal
         </a>
-        <span style="color: #64748b;"> — View invoices, payment options & documents</span>
+        <span style="color: #64748b;"> — Invoices, payments & documents</span>
       </p>`
     : "";
 
   return `
     ${paymentButton}
-    <div style="margin-top: 36px; padding-top: 28px; border-top: 2px solid #e2e8f0;">
+    <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
       ${customSignature}
       ${logoSection}
       
-      <!-- Enterprise Sent on behalf notice -->
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; width: 100%; border: 1px solid #e2e8f0;">
+      <!-- Sent on behalf notice – clean card -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; background-color: #f8fafc; border-radius: 8px; width: 100%; border: 1px solid #e2e8f0;">
         <tr>
-          <td style="padding: 20px;">
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="vertical-align: top; padding-right: 16px; width: 52px;">
-                  <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 12px; text-align: center; line-height: 48px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);">
-                    <span style="color: #ffffff; font-weight: bold; font-size: 22px;">R</span>
-                  </div>
-                </td>
-                <td style="vertical-align: top;">
-                  <p style="margin: 0 0 6px; font-size: 15px; color: #1e293b; font-weight: 600;">
-                    Sent on behalf of ${escapeHtml(businessName)}
-                  </p>
-                  <p style="margin: 0 0 8px; font-size: 13px; color: #64748b;">
-                    Powered by <a href="${COMPANY_INFO.website}" style="color: #3b82f6; text-decoration: none; font-weight: 600;">${COMPANY_INFO.displayName}</a> • ${COMPANY_INFO.tagline}
-                  </p>
-                  <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                    ${COMPANY_INFO.legalName} • <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #64748b; text-decoration: none;">${COMPANY_INFO.emails.support}</a>
-                  </p>
-                  ${arPageLink}
-                </td>
-              </tr>
-            </table>
+          <td style="padding: 16px;">
+            <p style="margin: 0 0 4px; font-size: 13px; color: #1e293b; font-weight: 600; font-family: ${FONT_STACK};">
+              Sent on behalf of ${escapeHtml(businessName)}
+            </p>
+            <p style="margin: 0; font-size: 12px; color: #64748b; font-family: ${FONT_STACK};">
+              Powered by <a href="${COMPANY_INFO.website}" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Recouply.ai</a> · ${COMPANY_INFO.tagline}
+            </p>
+            ${arPageLink}
           </td>
         </tr>
       </table>
@@ -419,38 +340,30 @@ export function generatePlainTextSignature(
   
   let signature = "\n\n";
   
-  // Payment link
   if (paymentOptions?.paymentUrl) {
     const amountText = paymentOptions.amount ? ` ($${paymentOptions.amount.toLocaleString()})` : "";
-    signature += `💳 Pay Now${amountText}: ${paymentOptions.paymentUrl}\n`;
-    signature += `🔒 Secure payment powered by Stripe\n\n`;
+    signature += `Pay Now${amountText}: ${paymentOptions.paymentUrl}\n`;
+    signature += `Secure payment powered by Stripe\n\n`;
   }
   
-  signature += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+  signature += "---\n\n";
   
   if (branding.email_signature) {
     signature += branding.email_signature + "\n\n";
   }
   
-  signature += `Sent on behalf of ${businessName}\n\n`;
-  signature += `🤖 Powered by ${COMPANY_INFO.displayName}\n`;
-  signature += `   ${COMPANY_INFO.tagline}\n`;
-  signature += `   6 AI Agents • 24/7 Collections • Smart Recovery\n`;
-  signature += `   ${COMPANY_INFO.website}\n\n`;
+  signature += `Sent on behalf of ${businessName}\n`;
+  signature += `Powered by ${COMPANY_INFO.displayName} · ${COMPANY_INFO.tagline}\n`;
+  signature += `${COMPANY_INFO.website}\n\n`;
   
-  // Public AR page link with description
   const arPageUrl = getPublicARPageUrl(branding.ar_page_public_token);
   if (arPageUrl && branding.ar_page_enabled) {
-    signature += `📄 Visit our AR Portal: ${arPageUrl}\n`;
-    signature += `   View invoices, payment options & important documents\n`;
-    signature += `   💡 Tip: Reference your invoice number when making payments\n\n`;
+    signature += `AR Portal: ${arPageUrl}\n\n`;
   }
   
-  signature += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  signature += `${COMPANY_INFO.legalName}\n`;
+  signature += `---\n`;
+  signature += `© ${currentYear} ${COMPANY_INFO.legalName} · ${COMPANY_INFO.address}\n`;
   signature += `Support: ${COMPANY_INFO.emails.support}\n`;
-  signature += `Collections: ${COMPANY_INFO.emails.collections}\n`;
-  signature += `© ${currentYear} All rights reserved.\n`;
   
   if (branding.email_footer) {
     signature += "\n" + branding.email_footer;
@@ -459,31 +372,23 @@ export function generatePlainTextSignature(
   return signature;
 }
 
-/**
- * Clean up any remaining placeholders from content
- * This is a safety net to ensure no {{variable}} patterns slip through
- */
 function cleanupPlaceholders(text: string): string {
   if (!text) return text;
-  // Remove any remaining {{...}} placeholders
   return text.replace(/\{\{[^}]+\}\}/g, '');
 }
 
 /**
- * Generate a full enterprise branded email with content, signature, and optional payment link
- * Automatically cleans up any remaining placeholders as a safety net
+ * Generate a full branded email with content, signature, and optional payment link
  */
 export function generateBrandedEmail(
   content: string,
   branding: BrandingSettings,
   paymentOptions?: PaymentLinkOptions
 ): string {
-  // Clean up any remaining placeholders as safety net
   const cleanContent = cleanupPlaceholders(content);
   const signature = generateEmailSignature(branding, paymentOptions);
   const emailBody = cleanContent + signature;
   return wrapEmailContent(emailBody, branding);
 }
 
-// Export company info for use in other modules
 export { COMPANY_INFO };
