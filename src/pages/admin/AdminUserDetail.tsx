@@ -1180,6 +1180,78 @@ const AdminUserDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Delete User Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Permanently Delete Account
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{user?.name || user?.email}</strong>'s account and all associated data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Deletion Mode</Label>
+              <Select value={deleteMode} onValueChange={(v: "scheduled" | "immediate") => setDeleteMode(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Scheduled (24hr notice to user)</SelectItem>
+                  <SelectItem value="immediate">Immediate (no notice period)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Input 
+                value={deleteReason} 
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="Enter reason for deletion"
+              />
+            </div>
+
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <button 
+                type="button"
+                className="flex items-center gap-2 text-sm font-medium w-full text-left"
+                onClick={() => setShowDeletePreview(!showDeletePreview)}
+              >
+                <FileText className="h-4 w-4" />
+                {showDeletePreview ? "Hide" : "Preview"} Legal Notice
+              </button>
+              {showDeletePreview && user && (
+                <pre className="mt-3 text-xs text-muted-foreground whitespace-pre-wrap bg-card p-3 rounded border max-h-48 overflow-y-auto">
+                  {generateLegalNoticeText(user.email, user.name)}
+                </pre>
+              )}
+            </div>
+
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>• A notification will be sent to <strong>support@recouply.ai</strong></p>
+              {deleteMode === "scheduled" && <p>• The user will receive a legal deletion notice email</p>}
+              <p>• All data will be permanently purged (GDPR Art. 17 / CCPA §1798.105)</p>
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              disabled={deletingUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingUser ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {deleteMode === "scheduled" ? "Schedule Deletion" : "Delete Now"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
