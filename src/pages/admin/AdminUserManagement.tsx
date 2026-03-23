@@ -390,6 +390,29 @@ const AdminUserManagement = () => {
           body: { userId: selectedUser.id, reason: deleteReason || "Immediate deletion by admin" },
         });
         if (error) throw error;
+        // Notify support for immediate deletions too
+        try {
+          const adminUser = (await supabase.auth.getUser()).data.user;
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: "support@recouply.ai",
+              subject: `[Admin Action] User IMMEDIATELY Deleted: ${selectedUser.email}`,
+              html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+                <h2 style="color:#dc2626;">⚡ Immediate User Deletion</h2>
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User</td><td style="padding:8px;border-bottom:1px solid #eee;">${selectedUser.name || "—"} (${selectedUser.email})</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;">${selectedUser.id}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Initiated By</td><td style="padding:8px;border-bottom:1px solid #eee;">${adminUser?.email || "Unknown Admin"}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Mode</td><td style="padding:8px;border-bottom:1px solid #eee;color:#dc2626;font-weight:700;">IMMEDIATE</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;">Reason</td><td style="padding:8px;">${deleteReason || "No reason provided"}</td></tr>
+                </table>
+                <p style="color:#71717a;font-size:12px;margin-top:20px;">This is an automated notification from the Recouply.ai admin panel.</p>
+              </div>`,
+            },
+          });
+        } catch (supportEmailErr) {
+          console.warn("Could not send support notification:", supportEmailErr);
+        }
         toast.success(`User ${selectedUser.email} has been permanently deleted`);
       } else {
         const legalNotice = generateLegalNoticeText(selectedUser.email, selectedUser.name);
@@ -427,6 +450,31 @@ const AdminUserManagement = () => {
           severity: "critical",
         });
         // Ignore notification insert errors
+
+        // Notify support@recouply.ai
+        try {
+          const adminUser = (await supabase.auth.getUser()).data.user;
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: "support@recouply.ai",
+              subject: `[Admin Action] Account Deletion Scheduled: ${selectedUser.email}`,
+              html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+                <h2 style="color:#dc2626;">Account Deletion Scheduled</h2>
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User</td><td style="padding:8px;border-bottom:1px solid #eee;">${selectedUser.name || "—"} (${selectedUser.email})</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;">${selectedUser.id}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Initiated By</td><td style="padding:8px;border-bottom:1px solid #eee;">${adminUser?.email || "Unknown Admin"}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Mode</td><td style="padding:8px;border-bottom:1px solid #eee;">Scheduled (24hr notice)</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Reason</td><td style="padding:8px;border-bottom:1px solid #eee;">${deleteReason || "No reason provided"}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;">Deletion Date</td><td style="padding:8px;">${new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</td></tr>
+                </table>
+                <p style="color:#71717a;font-size:12px;margin-top:20px;">This is an automated notification from the Recouply.ai admin panel.</p>
+              </div>`,
+            },
+          });
+        } catch (supportEmailErr) {
+          console.warn("Could not send support notification:", supportEmailErr);
+        }
 
         toast.success(`Deletion notice sent to ${selectedUser.email}. Account will be deleted in 24 hours.`);
       }
@@ -1370,6 +1418,69 @@ Delaware, USA`;
                   </p>
                 )}
               </TabsContent>
+              {/* Danger Zone - Delete Account */}
+              <div className="mt-6 p-4 border border-destructive/30 rounded-lg bg-destructive/5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Danger Zone
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Permanently delete this user and all associated data
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setDetailDialogOpen(false);
+                      handleDeleteClick(selectedUser);
+                    }}
+                    disabled={actionLoading === selectedUser.id}
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </div>
+
+                {/* Preview of deletion notice */}
+                <details className="mt-3">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                    📄 Preview deletion notice that will be sent
+                  </summary>
+                  <div className="mt-2 p-3 bg-background rounded border text-xs text-muted-foreground max-h-48 overflow-y-auto space-y-2">
+                    <div className="p-3 bg-destructive/10 rounded text-center mb-2">
+                      <p className="font-bold text-destructive text-sm">⚠️ Account Deletion Notice</p>
+                    </div>
+                    <p>Dear <strong>{selectedUser.name || selectedUser.email}</strong>,</p>
+                    <p>This email confirms that your <strong>Recouply.ai</strong> account has been scheduled for <strong className="text-destructive">permanent deletion</strong>.</p>
+                    <p className="font-semibold mt-2">🕐 Deletion Scheduled For:</p>
+                    <p className="font-bold">
+                      {new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+                    <p className="font-semibold mt-2">DATA TO BE PERMANENTLY DELETED:</p>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2">
+                      <li>All account profile information and settings</li>
+                      <li>All invoices, payment records, and financial data</li>
+                      <li>All accounts/debtors and contact information</li>
+                      <li>All uploaded documents and files</li>
+                      <li>All collection activities, tasks, and AI workflows</li>
+                      <li>All team memberships and organizational data</li>
+                      <li>All branding, email configurations, and audit logs</li>
+                    </ul>
+                    <p className="font-semibold mt-2">YOUR RIGHTS:</p>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2">
+                      <li>Contact support@recouply.ai to cancel before effective date</li>
+                      <li>Request a data export before deletion</li>
+                    </ul>
+                    <p className="font-semibold mt-2">LEGAL BASIS:</p>
+                    <p>Performed under Recouply.ai Terms of Service (Section 9) in compliance with GDPR (Article 17) and CCPA. No data copies retained; backups purged within 30 days.</p>
+                    <p className="mt-2 text-center">© {new Date().getFullYear()} RecouplyAI Inc.</p>
+                  </div>
+                </details>
+              </div>
             </Tabs>
           )}
         </DialogContent>
