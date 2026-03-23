@@ -9,12 +9,14 @@ interface EmailPreviewFrameProps {
   arPageLink?: string;
 }
 
+const FONT_STACK = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+
 export function EmailPreviewFrame({
   subject,
   bodyHtml,
   logoUrl,
   businessName = "Recouply.ai",
-  primaryColor = "#1e3a5f",
+  primaryColor = "#3b82f6",
   arPageLink,
 }: EmailPreviewFrameProps) {
   const fullEmailHtml = useMemo(() => {
@@ -26,96 +28,125 @@ export function EmailPreviewFrame({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: ${FONT_STACK};
       line-height: 1.6;
-      color: #333;
+      color: #1e293b;
       margin: 0;
       padding: 0;
-      background-color: #f5f5f5;
+      background-color: #f8fafc;
     }
     .email-container {
       max-width: 600px;
       margin: 0 auto;
       background-color: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
     }
     .email-header {
       background-color: ${primaryColor};
-      padding: 24px;
-      text-align: center;
+      padding: 24px 32px;
     }
     .email-header img {
       max-width: 140px;
-      max-height: 50px;
+      max-height: 44px;
     }
     .email-header h2 {
       color: #ffffff;
-      margin: 12px 0 0 0;
-      font-size: 18px;
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
     }
     .email-body {
-      padding: 32px 24px;
+      padding: 32px;
     }
     .email-body h1 {
       color: ${primaryColor};
-      font-size: 24px;
+      font-size: 22px;
       margin-top: 0;
+      font-weight: 700;
     }
     .email-body h2 {
       color: ${primaryColor};
-      font-size: 20px;
+      font-size: 18px;
+      font-weight: 600;
     }
     .email-body h3 {
       color: ${primaryColor};
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: 600;
     }
     .email-body a {
       color: ${primaryColor};
     }
     .email-body ul, .email-body ol {
-      padding-left: 24px;
+      padding-left: 20px;
     }
     .email-body li {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .cta-button {
       display: inline-block;
       background-color: ${primaryColor};
       color: #ffffff !important;
-      padding: 12px 24px;
+      padding: 10px 24px;
       text-decoration: none;
       border-radius: 6px;
       font-weight: 600;
+      font-size: 14px;
       margin: 16px 0;
     }
     .email-footer {
-      background-color: #f8f9fa;
+      background-color: #1e293b;
       padding: 24px;
       text-align: center;
-      border-top: 1px solid #e9ecef;
     }
-    .footer-logo {
-      max-width: 100px;
-      margin-bottom: 12px;
+    .footer-wordmark {
+      color: rgba(255,255,255,0.9);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .footer-wordmark .accent {
+      color: #22c55e;
     }
     .footer-text {
-      color: #6c757d;
-      font-size: 12px;
-      margin: 8px 0;
+      color: #94a3b8;
+      font-size: 11px;
+      margin: 4px 0;
+    }
+    .footer-legal {
+      color: #475569;
+      font-size: 10px;
+      margin: 12px 0 0;
     }
     .ar-page-link {
       display: inline-block;
-      background-color: ${primaryColor};
+      background-color: #3b82f6;
       color: #ffffff !important;
-      padding: 10px 20px;
+      padding: 10px 24px;
       text-decoration: none;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 13px;
-      margin: 12px 0;
+      font-weight: 600;
     }
-    .divider {
-      height: 1px;
-      background-color: #e9ecef;
-      margin: 16px 0;
+    .portal-link {
+      display: inline-block;
+      font-size: 11px;
+      color: #64748b;
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .powered-by {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .powered-by a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-weight: 500;
     }
   </style>
 </head>
@@ -127,15 +158,23 @@ export function EmailPreviewFrame({
     <div class="email-body">
       ${bodyHtml}
     </div>
-    <div class="email-footer">
-      ${arPageLink ? `
-        <a href="${arPageLink}" class="ar-page-link">View Invoice Details</a>
-      ` : ""}
-      <a href="https://recouply.ai/debtor-portal" style="display: inline-block; font-size: 11px; color: #6b7280; text-decoration: none; font-weight: 500; margin-bottom: 6px;">🔒 Access Payment Portal</a>
+    ${arPageLink ? `
+    <div style="padding: 0 32px 16px; text-align: center;">
+      <div style="padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <p style="margin: 0 0 12px; font-size: 14px; color: #1e293b; font-weight: 600;">Accounts Receivable Portal</p>
+        <a href="${arPageLink}" class="ar-page-link">Visit AR Portal →</a>
+      </div>
+    </div>
+    ` : ""}
+    <div style="padding: 12px 32px 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+      <a href="#" class="portal-link">🔒 Access Payment Portal</a>
       <br/>
-      <p class="footer-text" style="font-size: 10px; color: #9ca3af; margin-top: 8px;">
-        Powered by <a href="https://recouply.ai" style="color: #9ca3af; text-decoration: none;">recouply.ai</a>
-      </p>
+      <span class="powered-by">Powered by <a href="https://recouply.ai">recouply.ai</a></span>
+    </div>
+    <div class="email-footer">
+      <p class="footer-wordmark">Recouply<span class="accent">.ai</span></p>
+      <p class="footer-text">Collection Intelligence Platform</p>
+      <p class="footer-legal">© ${new Date().getFullYear()} RecouplyAI Inc. · Delaware, USA</p>
     </div>
   </div>
 </body>
