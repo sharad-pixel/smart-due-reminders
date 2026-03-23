@@ -1197,49 +1197,49 @@ const AIWorkflows = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">AI Collection Intelligence</h1>
-            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-              AI-powered workflows and campaigns to optimize collection strategies
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              Centralized automation with built-in audit logs for every action
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button 
-              variant="default" 
-              onClick={handleGenerateAllAITemplates}
-              disabled={generatingAllTemplates}
-              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
-            >
-              {generatingAllTemplates ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              <span className="text-sm">{generatingAllTemplates ? "Generating..." : "Generate AI Templates"}</span>
-            </Button>
-            <Button
-              variant="outline" 
-              onClick={handleManualReassignment}
-              disabled={reassigning}
-              className="flex items-center justify-center space-x-2 w-full sm:w-auto tap-target"
-            >
-              <Workflow className="h-4 w-4" />
-              <span className="text-sm">{reassigning ? "Reassigning..." : "Reassign All"}</span>
-            </Button>
-          </div>
+      <div className="space-y-5">
+        {/* Hero Header */}
+        <WorkflowHeroHeader
+          onGenerateAllTemplates={handleGenerateAllAITemplates}
+          onReassignAll={handleManualReassignment}
+          onRunEngine={handleRunOutreachEngine}
+          generatingAllTemplates={generatingAllTemplates}
+          reassigning={reassigning}
+          isRunningEngine={isRunningEngine}
+        />
+
+        {/* Outreach Status + Insights */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <OutreachStatusCards onRefresh={() => {
+            fetchInvoiceCounts();
+            fetchDraftsByPersona();
+            refetchErrors();
+          }} />
+          <OutreachInsightsPanel />
         </div>
 
-        {/* Unified Outreach Status */}
-        <OutreachStatusCards onRefresh={() => {
-          fetchInvoiceCounts();
-          fetchDraftsByPersona();
-          refetchErrors();
-        }} />
+        {/* Tabbed Interface */}
+        <Tabs defaultValue="agents" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
+            <TabsTrigger value="agents" className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Agents</span>
+              <span className="sm:hidden">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="outreach" className="gap-1.5">
+              <Mail className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Scheduled Outreach</span>
+              <span className="sm:hidden">Outreach</span>
+            </TabsTrigger>
+            <TabsTrigger value="config" className="gap-1.5">
+              <Workflow className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Workflow Config</span>
+              <span className="sm:hidden">Config</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: AI Agents & Templates */}
+          <TabsContent value="agents" className="space-y-4 mt-0">
 
 
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
