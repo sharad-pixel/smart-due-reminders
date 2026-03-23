@@ -154,6 +154,20 @@ interface AdminAction {
   admin_id: string;
 }
 
+interface ScheduledDeletion {
+  id: string;
+  status: string;
+  reason: string | null;
+  notice_sent_at: string | null;
+  deletion_scheduled_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  cancellation_reason: string | null;
+  scheduled_by: string | null;
+  created_at: string;
+}
+
 const AdminUserDetail = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
