@@ -54,11 +54,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get query parameters
-    const url = new URL(req.url);
-    const search = url.searchParams.get('search') || '';
-    const limit = parseInt(url.searchParams.get('limit') || '50');
-    const offset = parseInt(url.searchParams.get('offset') || '0');
+    // Get parameters from body (POST) or URL params (GET)
+    let search = '';
+    let limit = 50;
+    let offset = 0;
+    
+    try {
+      const body = await req.json();
+      search = body.search || '';
+      limit = parseInt(body.limit) || 50;
+      offset = parseInt(body.offset) || 0;
+    } catch {
+      const url = new URL(req.url);
+      search = url.searchParams.get('search') || '';
+      limit = parseInt(url.searchParams.get('limit') || '50');
+      offset = parseInt(url.searchParams.get('offset') || '0');
+    }
 
     // Build query for profiles
     let query = supabaseClient
