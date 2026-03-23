@@ -1209,6 +1209,13 @@ const AIWorkflows = () => {
           isRunningEngine={isRunningEngine}
         />
 
+        {/* Auto-Generate Disabled Alert */}
+        <AutoGenerateAlert
+          workflows={workflows}
+          bucketCounts={bucketCounts}
+          onWorkflowsUpdated={fetchWorkflows}
+        />
+
         {/* Outreach Status + Insights */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <OutreachStatusCards onRefresh={() => {
