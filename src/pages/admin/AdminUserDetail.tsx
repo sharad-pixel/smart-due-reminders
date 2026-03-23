@@ -178,8 +178,13 @@ const AdminUserDetail = () => {
   // Dialogs
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteMode, setDeleteMode] = useState<"scheduled" | "immediate">("scheduled");
+  const [showDeletePreview, setShowDeletePreview] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   useEffect(() => {
     if (userId) {
