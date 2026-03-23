@@ -57,6 +57,8 @@ export const usePaymentsActivity = (options: UsePaymentsActivityOptions = {}) =>
 
   return useQuery({
     queryKey: ['payments-activity', filters, page, pageSize],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
