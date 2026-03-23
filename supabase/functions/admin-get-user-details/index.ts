@@ -183,6 +183,14 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(20);
 
+    // Get scheduled deletions for this user
+    const { data: scheduledDeletions } = await supabaseClient
+      .from('scheduled_deletions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
     // Get usage statistics - get more months
     const { data: invoiceUsage } = await supabaseClient
       .from('invoice_usage')
