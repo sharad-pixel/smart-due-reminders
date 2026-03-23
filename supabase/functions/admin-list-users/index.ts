@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
 
     const { data: users, error, count } = await query;
 
+    console.log('[admin-list-users] Query result:', { userCount: users?.length, total: count, error: error?.message });
+
     if (error) {
       throw error;
     }
