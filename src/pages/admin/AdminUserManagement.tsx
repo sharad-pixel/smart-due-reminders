@@ -340,30 +340,199 @@ const AdminUserManagement = () => {
   const handleDeleteClick = (user: UserProfile) => {
     setSelectedUser(user);
     setDeleteConfirmEmail("");
-    setDeleteDialogOpen(true);
+    setDeleteReason("");
+    setDeleteMode("scheduled");
+    setScheduledDeleteDialogOpen(true);
   };
 
-  const handleDeleteUser = async () => {
+  const handleScheduledDelete = async () => {
     if (!selectedUser || deleteConfirmEmail !== selectedUser.email) return;
 
     setActionLoading(selectedUser.id);
     try {
-      const { error } = await supabase.functions.invoke("delete-user", {
-        body: { userId: selectedUser.id },
-      });
+      if (deleteMode === "immediate") {
+        const { error } = await supabase.functions.invoke("delete-user", {
+          body: { userId: selectedUser.id, reason: deleteReason || "Immediate deletion by admin" },
+        });
+        if (error) throw error;
+        toast.success(`User ${selectedUser.email} has been permanently deleted`);
+      } else {
+        const legalNotice = generateLegalNoticeText(selectedUser.email, selectedUser.name);
+        
+        // Insert scheduled deletion record
+        const { error: schedError } = await supabase.from("scheduled_deletions").insert({
+          user_id: selectedUser.id,
+          user_email: selectedUser.email,
+          user_name: selectedUser.name,
+          scheduled_by: (await supabase.auth.getUser()).data.user?.id,
+          reason: deleteReason || "Account deletion requested by administrator",
+          legal_notice_text: legalNotice,
+        });
+        if (schedError) throw schedError;
 
-      if (error) throw error;
+        // Send notice email to user
+        try {
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: selectedUser.email,
+              subject: "Important: Your Recouply.ai Account Scheduled for Deletion",
+              html: generateDeletionNoticeEmail(selectedUser.email, selectedUser.name),
+            },
+          });
+        } catch (emailErr) {
+          console.warn("Could not send deletion notice email:", emailErr);
+        }
 
-      toast.success(`User ${selectedUser.email} and all related data have been deleted`);
-      setDeleteDialogOpen(false);
+        // Create user notification
+        await supabase.from("user_notifications").insert({
+          user_id: selectedUser.id,
+          type: "account_deletion_scheduled",
+          title: "⚠️ Account Deletion Scheduled",
+          message: "Your account has been scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if this was not requested.",
+          severity: "critical",
+        }).catch(() => {});
+
+        toast.success(`Deletion notice sent to ${selectedUser.email}. Account will be deleted in 24 hours.`);
+      }
+
+      setScheduledDeleteDialogOpen(false);
       await fetchUsers();
       await fetchStats();
     } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error(error.message || "Failed to delete user");
+      console.error("Error scheduling deletion:", error);
+      toast.error(error.message || "Failed to schedule deletion");
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleCancelScheduledDeletion = async (deletionId: string) => {
+    try {
+      const adminUser = (await supabase.auth.getUser()).data.user;
+      await supabase.from("scheduled_deletions").update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: adminUser?.id,
+        cancellation_reason: "Cancelled by admin",
+        updated_at: new Date().toISOString(),
+      }).eq("id", deletionId);
+      toast.success("Scheduled deletion has been cancelled");
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error("Failed to cancel deletion");
+    }
+  };
+
+  const generateLegalNoticeText = (email: string, name: string | null) => {
+    return `ACCOUNT DELETION NOTICE
+
+To: ${name || email}
+Email: ${email}
+Date of Notice: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+Effective Deletion Date: ${new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} (24 hours from notice)
+
+PLEASE READ CAREFULLY:
+
+This notice confirms that your Recouply.ai account has been scheduled for permanent deletion. This action was initiated by an authorized administrator of the platform.
+
+WHAT WILL BE DELETED:
+Upon the effective deletion date, the following data will be permanently and irreversibly removed:
+- All account profile information and settings
+- All invoices, payment records, and financial data
+- All accounts/debtors and contact information
+- All uploaded documents and files
+- All collection activities, tasks, and workflows
+- All AI-generated drafts, communications, and logs
+- All team memberships and organizational data
+- All branding configurations and email settings
+- All audit logs and activity history associated with this account
+
+DATA RETENTION:
+In accordance with our data retention policy and applicable privacy regulations (including GDPR and CCPA), once deletion is executed:
+- No copies of your data will be retained on our servers
+- Backups containing your data will be purged within 30 days
+- This action is IRREVERSIBLE and cannot be undone
+
+YOUR RIGHTS:
+- You may request cancellation of this deletion by contacting support@recouply.ai before the effective deletion date
+- You may request a data export before deletion by contacting support
+- If you believe this deletion was made in error, contact support immediately
+
+LEGAL BASIS:
+This deletion is performed under the authority granted to platform administrators per the Recouply.ai Terms of Service (Section 9 - Account Termination) and in compliance with applicable data protection regulations.
+
+© ${new Date().getFullYear()} RecouplyAI Inc. All rights reserved.
+Delaware, USA`;
+  };
+
+  const generateDeletionNoticeEmail = (email: string, name: string | null) => {
+    const deletionDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+  <div style="background:#dc2626;padding:24px 32px;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:22px;">⚠️ Account Deletion Notice</h1>
+  </div>
+  <div style="padding:32px;">
+    <p style="font-size:16px;color:#18181b;">Dear ${name || email},</p>
+    <p style="font-size:15px;color:#3f3f46;line-height:1.6;">
+      This email confirms that your <strong>Recouply.ai</strong> account has been scheduled for 
+      <strong style="color:#dc2626;">permanent deletion</strong>.
+    </p>
+    
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:20px;margin:24px 0;">
+      <p style="margin:0 0 8px;font-weight:600;color:#dc2626;font-size:15px;">🕐 Deletion Scheduled For:</p>
+      <p style="margin:0;font-size:18px;font-weight:700;color:#991b1b;">
+        ${deletionDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} 
+        at ${deletionDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}
+      </p>
+    </div>
+
+    <h3 style="color:#18181b;margin:24px 0 12px;">What Will Be Permanently Deleted:</h3>
+    <ul style="color:#3f3f46;font-size:14px;line-height:2;padding-left:20px;">
+      <li>All account profile information and settings</li>
+      <li>All invoices, payment records, and financial data</li>
+      <li>All accounts/debtors and contact information</li>
+      <li>All uploaded documents and files</li>
+      <li>All collection activities, tasks, and AI workflows</li>
+      <li>All team memberships and organizational data</li>
+      <li>All branding, email configurations, and audit logs</li>
+    </ul>
+
+    <div style="background:#fffbeb;border:1px solid #fed7aa;border-radius:8px;padding:16px;margin:24px 0;">
+      <p style="margin:0;font-size:14px;color:#92400e;font-weight:600;">
+        ⚠️ This action is IRREVERSIBLE. Once executed, your data cannot be recovered.
+      </p>
+    </div>
+
+    <h3 style="color:#18181b;margin:24px 0 12px;">Your Rights:</h3>
+    <ul style="color:#3f3f46;font-size:14px;line-height:2;padding-left:20px;">
+      <li>You may request cancellation by contacting <a href="mailto:support@recouply.ai" style="color:#2563eb;">support@recouply.ai</a> before the deletion date</li>
+      <li>You may request a full data export before deletion</li>
+      <li>If you believe this was made in error, contact support immediately</li>
+    </ul>
+
+    <div style="border-top:1px solid #e4e4e7;margin-top:32px;padding-top:20px;">
+      <p style="font-size:12px;color:#71717a;line-height:1.6;">
+        <strong>Legal Notice:</strong> This deletion is performed under the authority granted to platform 
+        administrators per the Recouply.ai Terms of Service (Section 9 — Account Termination) and in 
+        compliance with applicable data protection regulations including GDPR (Article 17 — Right to Erasure) 
+        and CCPA. No copies of your data will be retained on our servers after deletion. Backups will be 
+        purged within 30 days of the deletion date.
+      </p>
+      <p style="font-size:12px;color:#a1a1aa;margin-top:16px;">
+        © ${new Date().getFullYear()} RecouplyAI Inc. All rights reserved. Delaware, USA.
+      </p>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>`;
   };
 
   const handleBlockClick = (user: UserProfile) => {
