@@ -827,6 +827,15 @@ serve(async (req) => {
               planType: (user as any).plan_type || 'free',
               trialEndsAt: (user as any).trial_ends_at || null,
               collectionAlerts: collectionAlertsSummary,
+              // Credit Intelligence / PAYDEX data
+              avgPaydexScore,
+              avgPaydexRating: avgPaydexRating !== 'N/A' ? avgPaydexRating : null,
+              accountsPromptPayers,
+              accountsSlowPayers,
+              accountsDelinquent,
+              avgPaymentTrend,
+              totalCreditLimitRecommended,
+              portfolioRiskSummary,
             };
             
             logStep('Email data prepared for user', {
