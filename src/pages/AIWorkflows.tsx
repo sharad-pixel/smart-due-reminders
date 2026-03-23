@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
 import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsightsPanel";
 import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
+import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
 
 interface WorkflowStep {
   id: string;
@@ -1206,6 +1207,13 @@ const AIWorkflows = () => {
           generatingAllTemplates={generatingAllTemplates}
           reassigning={reassigning}
           isRunningEngine={isRunningEngine}
+        />
+
+        {/* Auto-Generate Disabled Alert */}
+        <AutoGenerateAlert
+          workflows={workflows}
+          bucketCounts={bucketCounts}
+          onWorkflowsUpdated={fetchWorkflows}
         />
 
         {/* Outreach Status + Insights */}
