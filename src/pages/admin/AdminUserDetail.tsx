@@ -230,7 +230,7 @@ const AdminUserDetail = () => {
       setTeamMembers(data.teamMembers || []);
       setUsageData(data.usageData || []);
       setAdminActions(data.adminActions || []);
-      
+      setScheduledDeletions(data.scheduledDeletions || []);
       // Set editable fields
       if (data.user) {
         setEditedName(data.user.name || "");
