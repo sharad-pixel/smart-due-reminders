@@ -131,6 +131,8 @@ export const useLatestDigest = () => {
 export const useDigestHistory = (limit = 30) => {
   return useQuery({
     queryKey: ['digest-history', limit],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');

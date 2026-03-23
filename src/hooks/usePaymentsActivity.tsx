@@ -240,6 +240,8 @@ export const useTransactionTypes = () => {
 export const useSourceSystems = () => {
   return useQuery({
     queryKey: ['source-systems'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];

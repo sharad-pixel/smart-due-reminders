@@ -19,6 +19,8 @@ export function useSessions() {
 
   const { data: sessions, isLoading } = useQuery({
     queryKey: ["user-sessions"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_sessions")

@@ -16,6 +16,8 @@ export interface Organization {
 export function useOrganization() {
   return useQuery({
     queryKey: ["user-organization"],
+    staleTime: 5 * 60 * 1000, // 5 minutes - org rarely changes
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");

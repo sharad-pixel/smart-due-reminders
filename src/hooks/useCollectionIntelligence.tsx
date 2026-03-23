@@ -231,6 +231,8 @@ export const useDebtorIntelligence = (debtorId: string) => {
   const query = useQuery({
     queryKey: ["debtor-intelligence", debtorId],
     enabled: !!debtorId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       // Fetch debtor data, invoices, and inbound emails in parallel
       const [debtorResult, invoicesResult, inboundResult] = await Promise.all([
