@@ -135,35 +135,61 @@ Deno.serve(async (req) => {
     console.log(`[ENSURE-WORKFLOWS] Total eligible invoices: ${allInvoices.length}`);
     result.invoicesChecked = allInvoices.length;
 
-    // Get all active ai_workflows for these invoices
+    // Get all ai_workflows for these invoices (batch fetch to avoid 1000 limit)
     const invoiceIds = allInvoices.map(inv => inv.id);
+    let allExistingWorkflows: any[] = [];
     
-    const { data: existingWorkflows, error: workflowsError } = await supabaseAdmin
-      .from('ai_workflows')
-      .select('id, invoice_id, cadence_days, is_active')
-      .in('invoice_id', invoiceIds.length > 0 ? invoiceIds : ['00000000-0000-0000-0000-000000000000']);
-
-    if (workflowsError) {
-      console.error('[ENSURE-WORKFLOWS] Error fetching workflows:', workflowsError);
-      throw workflowsError;
-    }
-
-    // Build maps for quick lookup
-    const activeWorkflowsByInvoice = new Map<string, any>();
-    const allWorkflowsByInvoice = new Map<string, any[]>();
-    
-    for (const wf of existingWorkflows || []) {
-      if (!allWorkflowsByInvoice.has(wf.invoice_id)) {
-        allWorkflowsByInvoice.set(wf.invoice_id, []);
-      }
-      allWorkflowsByInvoice.get(wf.invoice_id)!.push(wf);
+    // Fetch in batches of 500 invoice IDs
+    for (let i = 0; i < invoiceIds.length; i += 500) {
+      const batchIds = invoiceIds.slice(i, i + 500);
+      const { data: batch, error: batchErr } = await supabaseAdmin
+        .from('ai_workflows')
+        .select('id, invoice_id, cadence_days, is_active')
+        .in('invoice_id', batchIds.length > 0 ? batchIds : ['00000000-0000-0000-0000-000000000000']);
       
+      if (batchErr) {
+        console.error('[ENSURE-WORKFLOWS] Error fetching workflows batch:', batchErr);
+        throw batchErr;
+      }
+      allExistingWorkflows = [...allExistingWorkflows, ...(batch || [])];
+    }
+
+    // Build maps - track ALL active workflows per invoice (not just one)
+    const activeWorkflowsByInvoice = new Map<string, any[]>();
+    
+    for (const wf of allExistingWorkflows) {
       if (wf.is_active) {
-        activeWorkflowsByInvoice.set(wf.invoice_id, wf);
+        if (!activeWorkflowsByInvoice.has(wf.invoice_id)) {
+          activeWorkflowsByInvoice.set(wf.invoice_id, []);
+        }
+        activeWorkflowsByInvoice.get(wf.invoice_id)!.push(wf);
       }
     }
 
-    console.log(`[ENSURE-WORKFLOWS] Active workflows found: ${activeWorkflowsByInvoice.size}`);
+    // DEDUPLICATION: For invoices with multiple active workflows, keep only the newest and deactivate the rest
+    let deduplicatedCount = 0;
+    for (const [invId, activeWfs] of activeWorkflowsByInvoice.entries()) {
+      if (activeWfs.length > 1) {
+        // Keep the first, deactivate the rest
+        const toDeactivate = activeWfs.slice(1).map((w: any) => w.id);
+        const { error: deactivateErr } = await supabaseAdmin
+          .from('ai_workflows')
+          .update({ is_active: false })
+          .in('id', toDeactivate);
+        
+        if (!deactivateErr) {
+          deduplicatedCount += toDeactivate.length;
+          // Update map to only have the kept one
+          activeWorkflowsByInvoice.set(invId, [activeWfs[0]]);
+        }
+      }
+    }
+    
+    if (deduplicatedCount > 0) {
+      console.log(`[ENSURE-WORKFLOWS] Deduplicated ${deduplicatedCount} redundant ai_workflow records`);
+    }
+
+    console.log(`[ENSURE-WORKFLOWS] Active workflows found: ${activeWorkflowsByInvoice.size} (after dedup)`);
 
     // Cache collection workflows by bucket to avoid repeated queries
     const workflowCache = new Map<string, Map<string, any>>();
@@ -255,7 +281,8 @@ Deno.serve(async (req) => {
           cadenceDays = [0, 3, 7, 14, 21]; // Default cadence
         }
 
-        const existingActive = activeWorkflowsByInvoice.get(invoice.id);
+        const existingActiveList = activeWorkflowsByInvoice.get(invoice.id);
+        const existingActive = existingActiveList?.[0];
 
         if (!existingActive) {
           // No active workflow - create new one
@@ -283,11 +310,12 @@ Deno.serve(async (req) => {
           // Bucket changed - deactivate old workflow and create new one
           console.log(`[ENSURE-WORKFLOWS] Upgrading workflow for invoice ${invoice.id} due to bucket change`);
 
-          // Deactivate old workflow
+          // Deactivate ALL old workflows for this invoice
           await supabaseAdmin
             .from('ai_workflows')
             .update({ is_active: false })
-            .eq('id', existingActive.id);
+            .eq('invoice_id', invoice.id)
+            .eq('is_active', true);
 
           // Create new workflow for new bucket
           const { error: insertError } = await supabaseAdmin

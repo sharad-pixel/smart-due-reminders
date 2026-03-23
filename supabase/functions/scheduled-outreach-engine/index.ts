@@ -227,18 +227,25 @@ Deno.serve(async (req) => {
         const dueDate = new Date(invoice.due_date);
         dueDate.setHours(0, 0, 0, 0);
 
-        // Check each of the next 7 days to see if it's a cadence day
-        for (let dayOffset = 0; dayOffset <= 7; dayOffset++) {
-          const targetDate = new Date(today);
-          targetDate.setDate(targetDate.getDate() + dayOffset);
+        // Calculate current days in bucket
+        const currentDaysInBucket = Math.floor((today.getTime() - bucketEnteredAt.getTime()) / (1000 * 60 * 60 * 24));
+
+        // CATCH-UP LOGIC: Find all cadence days that should have been triggered
+        // (days <= currentDaysInBucket) plus look forward 7 days
+        const maxDaysToCheck = currentDaysInBucket + 7;
+
+        for (let cadenceDayIndex = 0; cadenceDayIndex < cadenceDays.length; cadenceDayIndex++) {
+          const cadenceDay = cadenceDays[cadenceDayIndex];
+          
+          // Skip future cadence days beyond our 7-day forward window
+          if (cadenceDay > maxDaysToCheck) continue;
+          
+          // Calculate the target date for this cadence day
+          const targetDate = new Date(bucketEnteredAt);
+          targetDate.setDate(targetDate.getDate() + cadenceDay);
           const targetDateStr = targetDate.toISOString().split('T')[0];
-
-          const daysInBucket = Math.floor((targetDate.getTime() - bucketEnteredAt.getTime()) / (1000 * 60 * 60 * 24));
+          
           const daysPastDue = Math.floor((targetDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-
-          // Check if this day matches a cadence day
-          const cadenceDayIndex = cadenceDays.indexOf(daysInBucket);
-          if (cadenceDayIndex === -1) continue;
 
           const stepNumber = cadenceDayIndex + 1;
 
@@ -359,7 +366,7 @@ Deno.serve(async (req) => {
               step_number: stepNumber,
               channel: 'email',
               status: draftStatus,
-              recommended_send_date: targetDateStr,
+              recommended_send_date: cadenceDay <= currentDaysInBucket ? todayStr : targetDateStr,
               days_past_due: daysPastDue,
               auto_approved: shouldAutoApprove
             });
