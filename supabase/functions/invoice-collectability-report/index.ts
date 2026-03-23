@@ -456,10 +456,10 @@ function calculateAggregateStats(reports: InvoiceReport[]) {
   const avgScore = Math.round(reports.reduce((sum, r) => sum + r.collectability_score, 0) / reports.length);
   const avgDays = Math.round(reports.reduce((sum, r) => sum + r.days_past_due, 0) / reports.length);
   
-  const highCount = reports.filter(r => r.collectability_tier === "High").length;
-  const mediumCount = reports.filter(r => r.collectability_tier === "Medium").length;
-  const lowCount = reports.filter(r => r.collectability_tier === "Low").length;
-  const veryLowCount = reports.filter(r => r.collectability_tier === "Very Low").length;
+  const highCount = reports.filter(r => r.collectability_tier === "Low Risk").length;
+  const mediumCount = reports.filter(r => r.collectability_tier === "Moderate").length;
+  const lowCount = reports.filter(r => r.collectability_tier === "At Risk").length;
+  const veryLowCount = reports.filter(r => r.collectability_tier === "High Risk").length;
   
   const atRiskAmount = reports
     .filter(r => r.collectability_score < 50)
