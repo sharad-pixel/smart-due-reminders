@@ -1326,29 +1326,87 @@ Delaware, USA`;
         </DialogContent>
       </Dialog>
 
-      {/* Delete User Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+      {/* Scheduled/Immediate Delete User Dialog */}
+      <Dialog open={scheduledDeleteDialogOpen} onOpenChange={setScheduledDeleteDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-5 w-5" />
-              Delete User Permanently
+              Delete User Account
             </DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete{" "}
-              <strong>{selectedUser?.email}</strong> and all associated data including:
+              Schedule or immediately delete <strong>{selectedUser?.email}</strong> and all associated data.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>All invoices and payment records</li>
-              <li>All accounts/debtors</li>
-              <li>All documents and files</li>
-              <li>All collection activities and tasks</li>
-              <li>All AI drafts and workflows</li>
-              <li>Team memberships and settings</li>
-              <li>Branding and organization data</li>
-            </ul>
+          <div className="space-y-4 py-2">
+            {/* Deletion Mode */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Deletion Mode</Label>
+              <Select value={deleteMode} onValueChange={(v: "immediate" | "scheduled") => setDeleteMode(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">📋 Schedule Deletion (24-hour notice)</SelectItem>
+                  <SelectItem value="immediate">⚡ Delete Immediately</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {deleteMode === "scheduled" && (
+              <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">📧 24-Hour Notice Period</p>
+                <p className="text-xs text-muted-foreground">
+                  The user will receive an email notification with full legal terms detailing that their account 
+                  and all associated data will be permanently deleted in 24 hours. After the notice period expires, 
+                  deletion is performed automatically.
+                </p>
+              </div>
+            )}
+
+            {deleteMode === "immediate" && (
+              <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                <p className="text-sm font-medium text-destructive mb-1">⚠️ Immediate & Irreversible</p>
+                <p className="text-xs text-muted-foreground">
+                  The user and ALL data will be permanently deleted right now without any notice period.
+                </p>
+              </div>
+            )}
+
+            {/* Reason */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Reason for Deletion</Label>
+              <Textarea
+                placeholder="e.g., User requested account deletion, Terms of Service violation..."
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Legal Terms Preview */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Legal Terms (included in notice)</Label>
+              <div className="p-3 bg-muted rounded-lg border text-xs text-muted-foreground max-h-40 overflow-y-auto space-y-2">
+                <p className="font-semibold text-foreground">ACCOUNT DELETION NOTICE</p>
+                <p>This notice confirms that the account associated with <strong>{selectedUser?.email}</strong> has been scheduled for permanent deletion.</p>
+                <p className="font-semibold mt-2">DATA TO BE PERMANENTLY DELETED:</p>
+                <ul className="list-disc list-inside space-y-0.5 ml-2">
+                  <li>All account profile information and settings</li>
+                  <li>All invoices, payment records, and financial data</li>
+                  <li>All accounts/debtors and contact information</li>
+                  <li>All uploaded documents and files</li>
+                  <li>All collection activities, tasks, and AI workflows</li>
+                  <li>All team memberships and organizational data</li>
+                  <li>All branding, email configurations, and audit logs</li>
+                </ul>
+                <p className="font-semibold mt-2">LEGAL BASIS:</p>
+                <p>Performed under Recouply.ai Terms of Service (Section 9 — Account Termination) in compliance with GDPR (Article 17 — Right to Erasure) and CCPA. No data copies retained after deletion; backups purged within 30 days.</p>
+                <p className="mt-1">© {new Date().getFullYear()} RecouplyAI Inc. All rights reserved.</p>
+              </div>
+            </div>
+
+            {/* Confirm Email */}
             <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
               <p className="text-sm font-medium mb-2">
                 To confirm, type the user's email address:
@@ -1362,12 +1420,12 @@ Delaware, USA`;
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setScheduledDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={handleDeleteUser}
+              onClick={handleScheduledDelete}
               disabled={actionLoading === selectedUser?.id || deleteConfirmEmail !== selectedUser?.email}
             >
               {actionLoading === selectedUser?.id ? (
@@ -1375,7 +1433,7 @@ Delaware, USA`;
               ) : (
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
-              Delete User Permanently
+              {deleteMode === "scheduled" ? "Send Notice & Schedule Deletion" : "Delete Permanently Now"}
             </Button>
           </DialogFooter>
         </DialogContent>
