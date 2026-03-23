@@ -827,6 +827,15 @@ serve(async (req) => {
               planType: (user as any).plan_type || 'free',
               trialEndsAt: (user as any).trial_ends_at || null,
               collectionAlerts: collectionAlertsSummary,
+              // Credit Intelligence / PAYDEX data
+              avgPaydexScore,
+              avgPaydexRating: avgPaydexRating !== 'N/A' ? avgPaydexRating : null,
+              accountsPromptPayers,
+              accountsSlowPayers,
+              accountsDelinquent,
+              avgPaymentTrend,
+              totalCreditLimitRecommended,
+              portfolioRiskSummary,
             };
             
             logStep('Email data prepared for user', {
@@ -1004,6 +1013,24 @@ function generateEmailHtml(data: {
     debtor_responses: Array<{ fromEmail: string; subject: string; debtorName: string; receivedAt: string }>;
     risk_tier_changes: Array<{ debtorName: string; from: string; to: string }>;
     total_alerts: number;
+  } | null;
+  // Credit Intelligence / PAYDEX
+  avgPaydexScore?: number | null;
+  avgPaydexRating?: string | null;
+  accountsPromptPayers?: number;
+  accountsSlowPayers?: number;
+  accountsDelinquent?: number;
+  avgPaymentTrend?: string | null;
+  totalCreditLimitRecommended?: number;
+  portfolioRiskSummary?: {
+    total_accounts_scored: number;
+    prompt_payers_pct: number;
+    slow_payers_pct: number;
+    delinquent_pct: number;
+    avg_score: number;
+    rating: string;
+    trend: string;
+    total_ar_at_risk: number;
   } | null;
 }): string {
   const formatCurrency = (amount: number) => 
@@ -1343,7 +1370,101 @@ function generateEmailHtml(data: {
         </div>
       </div>
 
-      <!-- Quick Actions -->
+      <!-- Credit Intelligence / PAYDEX Section -->
+      ${(() => {
+        const totalAccounts = (data.accountsPromptPayers || 0) + (data.accountsSlowPayers || 0) + (data.accountsDelinquent || 0);
+        if (totalAccounts === 0 && !data.avgPaydexScore) return '';
+        
+        const paydexScore = data.avgPaydexScore ?? 0;
+        const paydexColor = paydexScore >= 80 ? '#22c55e' : paydexScore >= 60 ? '#eab308' : paydexScore >= 40 ? '#f97316' : '#ef4444';
+        const trendIcon = data.avgPaymentTrend === 'Improving' ? '📈' : data.avgPaymentTrend === 'Declining' ? '📉' : '➡️';
+        const trendColor = data.avgPaymentTrend === 'Improving' ? '#16a34a' : data.avgPaymentTrend === 'Declining' ? '#dc2626' : BRAND.muted;
+        
+        const promptPct = totalAccounts > 0 ? Math.round(((data.accountsPromptPayers || 0) / totalAccounts) * 100) : 0;
+        const slowPct = totalAccounts > 0 ? Math.round(((data.accountsSlowPayers || 0) / totalAccounts) * 100) : 0;
+        const delinquentPct = totalAccounts > 0 ? Math.round(((data.accountsDelinquent || 0) / totalAccounts) * 100) : 0;
+
+        return `
+        <div style="margin-bottom: 20px;">
+          <div style="background: ${BRAND.cardBg}; border: 1px solid ${BRAND.border}; border-radius: 10px; overflow: hidden;">
+            <!-- Top color bar -->
+            <div style="height: 4px; background: ${paydexColor};"></div>
+            <div style="padding: 10px 16px; border-bottom: 1px solid ${BRAND.border};">
+              <p style="color: ${BRAND.foreground}; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                🛡️ CREDIT INTELLIGENCE
+              </p>
+            </div>
+            
+            <!-- PAYDEX Score -->
+            <div style="padding: 16px; text-align: center; border-bottom: 1px solid ${BRAND.border};">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="padding-right: 16px; vertical-align: middle;">
+                    <div style="width: 56px; height: 56px; border-radius: 50%; background: ${paydexColor}; color: white; font-weight: 700; font-size: 20px; line-height: 56px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      ${data.avgPaydexScore ?? '—'}
+                    </div>
+                  </td>
+                  <td style="vertical-align: middle; text-align: left;">
+                    <p style="margin: 0 0 2px; color: ${BRAND.foreground}; font-size: 14px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      Portfolio PAYDEX
+                      ${data.avgPaydexRating ? `<span style="display: inline-block; background: ${paydexColor}20; color: ${paydexColor}; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle;">${data.avgPaydexRating}</span>` : ''}
+                    </p>
+                    <p style="margin: 0; color: ${trendColor}; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      ${trendIcon} Payment Trend: ${data.avgPaymentTrend || 'Stable'}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            
+            <!-- Account Distribution -->
+            <div style="padding: 12px 16px; border-bottom: 1px solid ${BRAND.border};">
+              <p style="margin: 0 0 8px; color: ${BRAND.muted}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Account Payment Behavior · ${totalAccounts} scored
+              </p>
+              <!-- Distribution bar -->
+              <div style="height: 8px; border-radius: 4px; overflow: hidden; background: ${BRAND.surfaceLight}; margin-bottom: 10px;">
+                <div style="display: flex; height: 100%;">
+                  ${promptPct > 0 ? `<div style="width: ${promptPct}%; background: #22c55e;"></div>` : ''}
+                  ${slowPct > 0 ? `<div style="width: ${slowPct}%; background: #eab308;"></div>` : ''}
+                  ${delinquentPct > 0 ? `<div style="width: ${delinquentPct}%; background: #ef4444;"></div>` : ''}
+                </div>
+              </div>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td width="33%" style="text-align: center;">
+                    <p style="margin: 0; color: #16a34a; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.accountsPromptPayers || 0}</p>
+                    <p style="margin: 2px 0 0; color: #15803d; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">✅ Prompt (80+)</p>
+                  </td>
+                  <td width="33%" style="text-align: center;">
+                    <p style="margin: 0; color: #ca8a04; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.accountsSlowPayers || 0}</p>
+                    <p style="margin: 2px 0 0; color: #a16207; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⏳ Slow (50-79)</p>
+                  </td>
+                  <td width="33%" style="text-align: center;">
+                    <p style="margin: 0; color: #dc2626; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${data.accountsDelinquent || 0}</p>
+                    <p style="margin: 2px 0 0; color: #b91c1c; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ Delinquent (&lt;50)</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            
+            <!-- Credit Limit & AR at Risk -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td width="50%" style="padding: 12px 16px; border-right: 1px solid ${BRAND.border};">
+                  <p style="margin: 0 0 2px; color: ${BRAND.muted}; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">💳 Recommended Credit</p>
+                  <p style="margin: 0; color: ${BRAND.foreground}; font-size: 14px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${formatCurrency(data.totalCreditLimitRecommended || 0)}</p>
+                </td>
+                <td width="50%" style="padding: 12px 16px;">
+                  <p style="margin: 0 0 2px; color: ${BRAND.muted}; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">⚠️ AR at Risk</p>
+                  <p style="margin: 0; color: #dc2626; font-size: 14px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${formatCurrency(data.portfolioRiskSummary?.total_ar_at_risk || 0)}</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>`;
+      })()}
+
       <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px;">
         <p style="color: ${BRAND.primaryDark}; margin: 0 0 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Quick Actions

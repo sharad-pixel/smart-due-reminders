@@ -65,7 +65,7 @@ const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const DesignPartners = lazy(() => import("./pages/DesignPartners"));
 const Careers = lazy(() => import("./pages/Careers"));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
-
+const RevenueRiskFeature = lazy(() => import("./pages/features/RevenueRiskFeature"));
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
@@ -198,6 +198,7 @@ const App = () => (
             <Route path="/knowledge-base" element={<KnowledgeBase />} />
             <Route path="/faq" element={<KnowledgeBase />} />
             <Route path="/help" element={<KnowledgeBase />} />
+            <Route path="/features/revenue-risk" element={<RevenueRiskFeature />} />
 
             {/* Blog Pages */}
             <Route path="/blog" element={<BlogIndex />} />
