@@ -6,6 +6,7 @@ import CollectionIntelligenceShowcase from "@/components/marketing/CollectionInt
 import EmailDemo from "@/components/marketing/EmailDemo";
 import PricingTeaser from "@/components/marketing/PricingTeaser";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
+import RevenueRiskTeaser from "@/components/marketing/RevenueRiskTeaser";
 import FinalCTA from "@/components/marketing/FinalCTA";
 import ValuePropositions from "@/components/marketing/ValuePropositions";
 import FeatureGrid from "@/components/marketing/FeatureGrid";
