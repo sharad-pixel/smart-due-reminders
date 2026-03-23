@@ -213,6 +213,8 @@ export const usePaymentsSummary = () => {
 export const useTransactionTypes = () => {
   return useQuery({
     queryKey: ['transaction-types'],
+    staleTime: 10 * 60 * 1000, // 10 minutes - rarely changes
+    gcTime: 15 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
