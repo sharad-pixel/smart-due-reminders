@@ -131,6 +131,11 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
     description: 'Full-powered AI collection platform for sole proprietors and independent operators. $49/month for 25 invoices with all 6 AI agents and complete automation.',
     keywords: 'solo collections software, independent operator billing, freelancer invoice collection, sole proprietor AR automation',
   },
+  revenueRisk: {
+    title: 'Revenue Risk & ECL Intelligence | Recouply.ai',
+    description: 'Predict expected credit losses, score invoice collectability, and protect revenue with AI-powered risk intelligence aligned to ASC 326 & IFRS 9.',
+    keywords: 'expected credit loss, ECL, revenue risk, collectability score, ASC 326, IFRS 9, accounts receivable risk',
+  },
   // --- New page configs ---
   aiCommandCenter: {
     title: 'AI Command Center | Intelligent Collections Automation',
