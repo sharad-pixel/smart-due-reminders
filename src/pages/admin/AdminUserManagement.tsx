@@ -145,6 +145,7 @@ const AdminUserManagement = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [activeView, setActiveView] = useState<"users" | "accounts">("users");
   const pageSize = 25;
 
   useEffect(() => {
@@ -232,7 +233,7 @@ const AdminUserManagement = () => {
       setTotalUsers(response.data?.total || 0);
     } catch (error: any) {
       console.error("Error fetching users:", error);
-      toast.error("Failed to load users");
+      toast.error(error?.message ? `Failed to load users: ${error.message}` : "Failed to load users");
     } finally {
       setLoading(false);
     }
@@ -758,8 +759,6 @@ Delaware, USA`;
     { label: "7-Day Signups", value: stats?.recentSignups7d || 0, icon: TrendingUp, color: "text-cyan-500", bg: "bg-cyan-500/10" },
     { label: "30-Day Signups", value: stats?.recentSignups30d || 0, icon: Calendar, color: "text-orange-500", bg: "bg-orange-500/10" },
   ];
-
-  const [activeView, setActiveView] = useState<"users" | "accounts">("accounts");
 
   return (
     <AdminLayout title="User Management" description="Complete user data analysis, management, and exports">
