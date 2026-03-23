@@ -138,6 +138,9 @@ const AdminUserManagement = () => {
   const [suspendReason, setSuspendReason] = useState("");
   const [blockReason, setBlockReason] = useState("");
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [scheduledDeleteDialogOpen, setScheduledDeleteDialogOpen] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<"immediate" | "scheduled">("scheduled");
+  const [deleteReason, setDeleteReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
