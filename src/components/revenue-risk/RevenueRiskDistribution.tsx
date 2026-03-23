@@ -17,7 +17,7 @@ const COLORS = [
   "hsl(0, 84%, 60%)",    // red - high risk
 ];
 
-const LABELS = ["High (80–100)", "Moderate (60–79)", "At Risk (40–59)", "High Risk (<40)"];
+const LABELS = ["Low Risk (80–100)", "Moderate (60–79)", "At Risk (40–59)", "High Risk (<40)"];
 
 export function RevenueRiskDistribution({ distribution }: Props) {
   const chartData = [
@@ -63,7 +63,7 @@ export function RevenueRiskDistribution({ distribution }: Props) {
             </div>
             <div className="space-y-2 flex-1">
               {[
-                { label: "High", value: distribution.high, color: COLORS[0] },
+                { label: "Low Risk", value: distribution.high, color: COLORS[0] },
                 { label: "Moderate", value: distribution.moderate, color: COLORS[1] },
                 { label: "At Risk", value: distribution.at_risk, color: COLORS[2] },
                 { label: "High Risk", value: distribution.high_risk, color: COLORS[3] },
