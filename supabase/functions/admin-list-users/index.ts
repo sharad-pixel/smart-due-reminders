@@ -10,8 +10,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  try {
     console.log('[admin-list-users] Request received');
-    
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -20,6 +21,7 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.log('[admin-list-users] No auth header');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -30,6 +32,7 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !userData.user) {
+      console.log('[admin-list-users] Auth failed:', userError?.message);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -37,6 +40,7 @@ Deno.serve(async (req) => {
     }
     
     const user = userData.user;
+    console.log('[admin-list-users] User:', user.id);
 
     // Check if user is a Recouply.ai admin
     const { data: profile } = await supabaseClient
@@ -46,6 +50,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!profile?.is_admin) {
+      console.log('[admin-list-users] Not admin');
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
         {
@@ -65,11 +70,13 @@ Deno.serve(async (req) => {
       search = body.search || '';
       limit = parseInt(body.limit) || 50;
       offset = parseInt(body.offset) || 0;
+      console.log('[admin-list-users] Body params:', { search, limit, offset });
     } catch (_e) {
       const url = new URL(req.url);
       search = url.searchParams.get('search') || '';
       limit = parseInt(url.searchParams.get('limit') || '50');
       offset = parseInt(url.searchParams.get('offset') || '0');
+      console.log('[admin-list-users] URL params:', { search, limit, offset });
     }
 
     // Build query for profiles
@@ -133,6 +140,8 @@ Deno.serve(async (req) => {
       blocked_reason: blockedMap.get(user.email?.toLowerCase())?.reason || null,
     }));
 
+    console.log('[admin-list-users] Returning', usersWithBlockStatus?.length, 'users');
+
     return new Response(
       JSON.stringify({
         users: usersWithBlockStatus,
@@ -145,7 +154,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error listing users:', error);
+    console.error('[admin-list-users] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
