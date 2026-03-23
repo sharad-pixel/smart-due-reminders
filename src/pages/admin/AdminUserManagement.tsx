@@ -306,6 +306,31 @@ const AdminUserManagement = () => {
         console.warn("Could not send deletion notice email:", emailErr);
       }
 
+      // Notify support@recouply.ai about suspension + scheduled deletion
+      try {
+        const adminUser = (await supabase.auth.getUser()).data.user;
+        await supabase.functions.invoke("send-email", {
+          body: {
+            to: "support@recouply.ai",
+            subject: `[Admin Action] User Suspended & Deletion Scheduled: ${selectedUser.email}`,
+            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+              <h2 style="color:#dc2626;">⚠️ User Suspended &amp; Deletion Scheduled</h2>
+              <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User</td><td style="padding:8px;border-bottom:1px solid #eee;">${selectedUser.name || "—"} (${selectedUser.email})</td></tr>
+                <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;">${selectedUser.id}</td></tr>
+                <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Initiated By</td><td style="padding:8px;border-bottom:1px solid #eee;">${adminUser?.email || "Unknown Admin"}</td></tr>
+                <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Action</td><td style="padding:8px;border-bottom:1px solid #eee;color:#dc2626;font-weight:700;">Suspended + Auto-Deletion (24hr)</td></tr>
+                <tr><td style="padding:8px;font-weight:600;border-bottom:1px solid #eee;">Reason</td><td style="padding:8px;border-bottom:1px solid #eee;">${suspendReason || "No reason provided"}</td></tr>
+                <tr><td style="padding:8px;font-weight:600;">Deletion Date</td><td style="padding:8px;">${new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</td></tr>
+              </table>
+              <p style="color:#71717a;font-size:12px;margin-top:20px;">This is an automated notification from the Recouply.ai admin panel.</p>
+            </div>`,
+          },
+        });
+      } catch (supportEmailErr) {
+        console.warn("Could not send support notification:", supportEmailErr);
+      }
+
       // Create in-app notification
       await supabase.from("user_notifications").insert({
         user_id: selectedUser.id,
