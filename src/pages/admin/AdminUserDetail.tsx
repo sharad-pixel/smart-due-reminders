@@ -178,8 +178,13 @@ const AdminUserDetail = () => {
   // Dialogs
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteMode, setDeleteMode] = useState<"scheduled" | "immediate">("scheduled");
+  const [showDeletePreview, setShowDeletePreview] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -342,6 +347,78 @@ const AdminUserDetail = () => {
     } catch (error: any) {
       console.error("Error unsuspending user:", error);
       toast.error("Failed to unsuspend user");
+    }
+  };
+
+  const generateLegalNoticeText = (email: string, name: string | null) => {
+    const deletionDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    return `ACCOUNT DELETION NOTICE\n\nDear ${name || email},\n\nThis notice confirms that your Recouply account (${email}) has been scheduled for permanent deletion.\n\nDeletion Date: ${new Date(deletionDate).toLocaleString()}\n\nPursuant to GDPR Article 17 (Right to Erasure) and CCPA Section 1798.105, the following data will be permanently and irreversibly deleted:\n\n• Profile and account information\n• All invoices and debtor records\n• AI-generated drafts and workflows\n• Collection activities and communications\n• Uploaded documents and files\n• Branding and organization settings\n• Team memberships and role assignments\n• All audit logs associated with your account\n\nThis action is IRREVERSIBLE. Once executed, no data can be recovered.\n\nIf you believe this deletion was made in error, contact support@recouply.ai before the scheduled deletion date.\n\nRecouply Legal Compliance Team`;
+  };
+
+  const handleDeleteUser = async () => {
+    if (!user) return;
+    setDeletingUser(true);
+    try {
+      const legalNotice = generateLegalNoticeText(user.email, user.name);
+
+      if (deleteMode === "scheduled") {
+        // Schedule deletion with 24hr notice
+        const { data: { user: adminUser } } = await supabase.auth.getUser();
+        const { error: scheduleError } = await supabase
+          .from("scheduled_deletions")
+          .insert({
+            user_id: user.id,
+            user_email: user.email,
+            user_name: user.name,
+            scheduled_by: adminUser?.id || "",
+            reason: deleteReason || "Admin-initiated account deletion",
+            legal_notice_text: legalNotice,
+          });
+
+        if (scheduleError) throw scheduleError;
+
+        // Send notice email to user
+        await supabase.functions.invoke("send-email", {
+          body: {
+            to: user.email,
+            subject: "Account Deletion Notice - Recouply",
+            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;"><h2 style="color:#dc2626;">⚠️ Account Deletion Notice</h2><p>Dear ${user.name || user.email},</p><p>Your Recouply account has been scheduled for <strong>permanent deletion</strong> in 24 hours.</p><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin:16px 0;"><h3 style="margin-top:0;">Data to be deleted:</h3><ul><li>Profile and account information</li><li>All invoices and debtor records</li><li>AI-generated drafts and workflows</li><li>Collection activities and communications</li><li>All uploaded documents and files</li><li>Team memberships and settings</li></ul></div><p style="color:#666;font-size:13px;">This action complies with GDPR Article 17 and CCPA Section 1798.105. Contact support@recouply.ai if you believe this is in error.</p></div>`,
+          },
+        });
+
+        toast.success("Deletion scheduled — user notified via email (24hr notice)");
+      } else {
+        // Immediate deletion
+        const response = await supabase.functions.invoke("delete-user", {
+          body: { userId: user.id, reason: deleteReason || "Admin-initiated immediate deletion" },
+        });
+
+        if (response.error) throw response.error;
+        toast.success("User permanently deleted");
+      }
+
+      // Notify support@recouply.ai
+      await supabase.functions.invoke("send-email", {
+        body: {
+          to: "support@recouply.ai",
+          subject: `[Admin Action] Account Deletion ${deleteMode === "immediate" ? "Executed" : "Scheduled"}: ${user.email}`,
+          html: `<div style="font-family:sans-serif;padding:20px;"><h2>Account Deletion ${deleteMode === "immediate" ? "Executed" : "Scheduled (24hr)"}</h2><table style="border-collapse:collapse;width:100%;"><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">User</td><td style="padding:8px;border:1px solid #ddd;">${user.name || "N/A"} (${user.email})</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">User ID</td><td style="padding:8px;border:1px solid #ddd;">${user.id}</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Mode</td><td style="padding:8px;border:1px solid #ddd;">${deleteMode === "immediate" ? "Immediate" : "Scheduled (24hr notice)"}</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Reason</td><td style="padding:8px;border:1px solid #ddd;">${deleteReason || "No reason provided"}</td></tr><tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Timestamp</td><td style="padding:8px;border:1px solid #ddd;">${new Date().toISOString()}</td></tr></table></div>`,
+        },
+      });
+
+      setDeleteDialogOpen(false);
+      setDeleteReason("");
+
+      if (deleteMode === "immediate") {
+        navigate("/admin/user-management");
+      } else {
+        fetchUserDetails();
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error("Failed to process deletion: " + (error.message || "Unknown error"));
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -714,6 +791,17 @@ const AdminUserDetail = () => {
                       Suspend Account
                     </Button>
                   )}
+                  
+                  <Separator orientation="vertical" className="h-8 hidden sm:block" />
+                  
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Account
+                  </Button>
                 </div>
                 
                 {user.is_blocked && user.blocked_at && (
@@ -1088,6 +1176,78 @@ const AdminUserDetail = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSuspend} className="bg-orange-600 hover:bg-orange-700">
               Suspend Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Delete User Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Permanently Delete Account
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{user?.name || user?.email}</strong>'s account and all associated data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Deletion Mode</Label>
+              <Select value={deleteMode} onValueChange={(v: "scheduled" | "immediate") => setDeleteMode(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Scheduled (24hr notice to user)</SelectItem>
+                  <SelectItem value="immediate">Immediate (no notice period)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Input 
+                value={deleteReason} 
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="Enter reason for deletion"
+              />
+            </div>
+
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <button 
+                type="button"
+                className="flex items-center gap-2 text-sm font-medium w-full text-left"
+                onClick={() => setShowDeletePreview(!showDeletePreview)}
+              >
+                <FileText className="h-4 w-4" />
+                {showDeletePreview ? "Hide" : "Preview"} Legal Notice
+              </button>
+              {showDeletePreview && user && (
+                <pre className="mt-3 text-xs text-muted-foreground whitespace-pre-wrap bg-card p-3 rounded border max-h-48 overflow-y-auto">
+                  {generateLegalNoticeText(user.email, user.name)}
+                </pre>
+              )}
+            </div>
+
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>• A notification will be sent to <strong>support@recouply.ai</strong></p>
+              {deleteMode === "scheduled" && <p>• The user will receive a legal deletion notice email</p>}
+              <p>• All data will be permanently purged (GDPR Art. 17 / CCPA §1798.105)</p>
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              disabled={deletingUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingUser ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {deleteMode === "scheduled" ? "Schedule Deletion" : "Delete Now"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

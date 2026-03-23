@@ -92,7 +92,7 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Top Navigation Bar */}
       <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 sticky top-0 z-50">
         <div className="flex items-center gap-4">
@@ -247,14 +247,14 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
-          <header className="bg-card/50 border-b border-border px-6 py-4">
-            <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        <main className="flex-1 overflow-y-auto min-h-0">
+          <header className="bg-card/50 border-b border-border px-4 sm:px-6 py-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{title}</h1>
             {description && (
-              <p className="text-muted-foreground mt-1">{description}</p>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">{description}</p>
             )}
           </header>
-          <div className="p-6">{children}</div>
+          <div className="p-4 sm:p-6 pb-20 sm:pb-6">{children}</div>
         </main>
       </div>
     </div>
