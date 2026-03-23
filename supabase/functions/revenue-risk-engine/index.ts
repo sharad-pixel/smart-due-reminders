@@ -588,7 +588,7 @@ function calculateEngagementBoost(engagement: EngagementResult | undefined): num
 }
 
 function getCollectabilityTier(score: number): string {
-  if (score >= 80) return "High";
+  if (score >= 80) return "Low Risk";
   if (score >= 60) return "Moderate";
   if (score >= 40) return "At Risk";
   return "High Risk";

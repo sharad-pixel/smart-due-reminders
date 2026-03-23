@@ -263,10 +263,10 @@ function calculateCollectability(
   
   // Determine tier
   let tier: string;
-  if (score >= 80) tier = "High";
-  else if (score >= 60) tier = "Medium";
-  else if (score >= 40) tier = "Low";
-  else tier = "Very Low";
+  if (score >= 80) tier = "Low Risk";
+  else if (score >= 60) tier = "Moderate";
+  else if (score >= 40) tier = "At Risk";
+  else tier = "High Risk";
   
   return { score, tier };
 }
