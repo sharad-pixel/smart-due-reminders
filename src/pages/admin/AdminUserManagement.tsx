@@ -939,7 +939,8 @@ Delaware, USA`;
                       users.map((user) => (
                         <TableRow
                           key={user.id}
-                          className={user.is_suspended ? "bg-destructive/5" : ""}
+                          className={`cursor-pointer ${user.is_suspended ? "bg-destructive/5" : ""}`}
+                          onClick={() => navigate(`/admin/users/${user.id}`)}
                         >
                           <TableCell>
                             <div>
