@@ -1310,11 +1310,21 @@ Delaware, USA`;
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Status</Label>
                     <div className="flex gap-2">
-                      {selectedUser.is_suspended ? (
+                      {selectedUser.is_blocked ? (
+                        <Badge variant="destructive"><Ban className="h-3 w-3 mr-1" />Blocked</Badge>
+                      ) : selectedUser.is_suspended ? (
                         <Badge variant="destructive">Suspended</Badge>
+                      ) : selectedUser.subscription_status === 'active' ? (
+                        <Badge variant="outline" className="border-green-500 text-green-600">Active</Badge>
+                      ) : selectedUser.subscription_status === 'trialing' ? (
+                        <Badge variant="outline" className="border-blue-500 text-blue-600">Trial</Badge>
+                      ) : selectedUser.subscription_status === 'past_due' ? (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">Past Due</Badge>
+                      ) : selectedUser.subscription_status === 'canceled' ? (
+                        <Badge variant="outline" className="border-red-400 text-red-500">Canceled</Badge>
                       ) : (
-                        <Badge variant="outline" className="border-green-500 text-green-600">
-                          Active
+                        <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                          {selectedUser.subscription_status || 'Inactive'}
                         </Badge>
                       )}
                       {selectedUser.is_admin && <Badge variant="secondary">Admin</Badge>}
