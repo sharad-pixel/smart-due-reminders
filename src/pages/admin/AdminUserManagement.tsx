@@ -741,7 +741,7 @@ Delaware, USA`;
               `"${u.name || ""}"`,
               `"${u.company_name || ""}"`,
               u.plans?.name || "Free",
-              u.is_suspended ? "Suspended" : "Active",
+              u.is_blocked ? "Blocked" : u.is_suspended ? "Suspended" : (u.subscription_status || "Inactive"),
               u.is_admin ? "Yes" : "No",
               new Date(u.created_at).toISOString(),
               u.stripe_customer_id || "",
