@@ -996,9 +996,32 @@ Delaware, USA`;
                                   </div>
                                 )}
                               </div>
-                            ) : (
+                            ) : user.subscription_status === 'active' ? (
                               <Badge variant="outline" className="border-green-500 text-green-600">
                                 Active
+                              </Badge>
+                            ) : user.subscription_status === 'trialing' ? (
+                              <div>
+                                <Badge variant="outline" className="border-blue-500 text-blue-600">
+                                  Trial
+                                </Badge>
+                                {user.trial_ends_at && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Ends {formatDate(new Date(user.trial_ends_at), "MMM d")}
+                                  </div>
+                                )}
+                              </div>
+                            ) : user.subscription_status === 'past_due' ? (
+                              <Badge variant="outline" className="border-amber-500 text-amber-600">
+                                Past Due
+                              </Badge>
+                            ) : user.subscription_status === 'canceled' ? (
+                              <Badge variant="outline" className="border-red-400 text-red-500">
+                                Canceled
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                                {user.subscription_status || 'Inactive'}
                               </Badge>
                             )}
                           </TableCell>
