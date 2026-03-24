@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
         suspended_by,
         created_at,
         trial_ends_at,
+        subscription_status,
         stripe_customer_id,
         stripe_subscription_id,
         plans:plan_id (

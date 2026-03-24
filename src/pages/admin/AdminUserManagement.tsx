@@ -89,6 +89,7 @@ interface UserProfile {
   suspended_by: string | null;
   created_at: string;
   trial_ends_at: string | null;
+  subscription_status: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   plans: {
