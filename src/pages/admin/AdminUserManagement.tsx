@@ -89,6 +89,7 @@ interface UserProfile {
   suspended_by: string | null;
   created_at: string;
   trial_ends_at: string | null;
+  subscription_status: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   plans: {
@@ -740,7 +741,7 @@ Delaware, USA`;
               `"${u.name || ""}"`,
               `"${u.company_name || ""}"`,
               u.plans?.name || "Free",
-              u.is_suspended ? "Suspended" : "Active",
+              u.is_blocked ? "Blocked" : u.is_suspended ? "Suspended" : (u.subscription_status || "Inactive"),
               u.is_admin ? "Yes" : "No",
               new Date(u.created_at).toISOString(),
               u.stripe_customer_id || "",
@@ -995,9 +996,32 @@ Delaware, USA`;
                                   </div>
                                 )}
                               </div>
-                            ) : (
+                            ) : user.subscription_status === 'active' ? (
                               <Badge variant="outline" className="border-green-500 text-green-600">
                                 Active
+                              </Badge>
+                            ) : user.subscription_status === 'trialing' ? (
+                              <div>
+                                <Badge variant="outline" className="border-blue-500 text-blue-600">
+                                  Trial
+                                </Badge>
+                                {user.trial_ends_at && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Ends {formatDate(new Date(user.trial_ends_at), "MMM d")}
+                                  </div>
+                                )}
+                              </div>
+                            ) : user.subscription_status === 'past_due' ? (
+                              <Badge variant="outline" className="border-amber-500 text-amber-600">
+                                Past Due
+                              </Badge>
+                            ) : user.subscription_status === 'canceled' ? (
+                              <Badge variant="outline" className="border-red-400 text-red-500">
+                                Canceled
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                                {user.subscription_status || 'Inactive'}
                               </Badge>
                             )}
                           </TableCell>
@@ -1286,11 +1310,21 @@ Delaware, USA`;
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Status</Label>
                     <div className="flex gap-2">
-                      {selectedUser.is_suspended ? (
+                      {selectedUser.is_blocked ? (
+                        <Badge variant="destructive"><Ban className="h-3 w-3 mr-1" />Blocked</Badge>
+                      ) : selectedUser.is_suspended ? (
                         <Badge variant="destructive">Suspended</Badge>
+                      ) : selectedUser.subscription_status === 'active' ? (
+                        <Badge variant="outline" className="border-green-500 text-green-600">Active</Badge>
+                      ) : selectedUser.subscription_status === 'trialing' ? (
+                        <Badge variant="outline" className="border-blue-500 text-blue-600">Trial</Badge>
+                      ) : selectedUser.subscription_status === 'past_due' ? (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">Past Due</Badge>
+                      ) : selectedUser.subscription_status === 'canceled' ? (
+                        <Badge variant="outline" className="border-red-400 text-red-500">Canceled</Badge>
                       ) : (
-                        <Badge variant="outline" className="border-green-500 text-green-600">
-                          Active
+                        <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                          {selectedUser.subscription_status || 'Inactive'}
                         </Badge>
                       )}
                       {selectedUser.is_admin && <Badge variant="secondary">Admin</Badge>}
