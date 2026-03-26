@@ -34,254 +34,94 @@ interface TaskAssignmentRequest {
   invoiceId?: string;
 }
 
-function generateEnterpriseTaskEmail(params: {
+function generateTaskBodyContent(params: {
   teamMemberName: string;
-  businessName: string;
-  primaryColor: string;
-  logoUrl?: string;
   task: any;
   invoiceSection: string;
   debtorSection: string;
   signatureSection: string;
-  footerSection: string;
 }): string {
-  const { teamMemberName, businessName, primaryColor, logoUrl, task, invoiceSection, debtorSection, signatureSection, footerSection } = params;
+  const { teamMemberName, task, invoiceSection, debtorSection, signatureSection } = params;
+  const FONT_STACK = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
   
   const taskTypeLabel = task.task_type.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
   const priorityBadge = task.priority === 'high' 
-    ? '<span style="background: #dc2626; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">High Priority</span>'
+    ? `<span style="background: ${BRAND.destructive}; color: white; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">High</span>`
     : task.priority === 'normal'
-    ? '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Normal</span>'
-    : '<span style="background: #6b7280; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Low</span>';
+    ? `<span style="background: ${BRAND.warning}; color: white; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Normal</span>`
+    : `<span style="background: ${BRAND.muted}; color: white; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Low</span>`;
 
   return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Task Assignment - ${businessName}</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f1f5f9; line-height: 1.6;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <!-- Main Container -->
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
-          
-          <!-- Header with Branding -->
-          <tr>
-            <td style="background: linear-gradient(135deg, ${primaryColor} 0%, #1e40af 100%); border-radius: 16px 16px 0 0; padding: 32px 40px; text-align: center;">
-              ${logoUrl 
-                ? `<img src="${logoUrl}" alt="${businessName}" style="max-height: 48px; max-width: 180px; height: auto; margin-bottom: 16px;" />`
-                : `<h1 style="color: #ffffff; margin: 0 0 8px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">${businessName}</h1>`
-              }
-              <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 14px; font-weight: 500;">
-                📋 New Task Assigned to You
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Main Content -->
-          <tr>
-            <td style="background-color: #ffffff; padding: 40px;">
-              <!-- Greeting -->
-              <p style="margin: 0 0 24px; color: #1e293b; font-size: 16px;">
-                Hi <strong>${teamMemberName}</strong>,
-              </p>
-              <p style="margin: 0 0 28px; color: #475569; font-size: 15px;">
-                A new collection task has been assigned to you. Please review the details below and take appropriate action.
-              </p>
-              
-              <!-- Task Card -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 24px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <td>
-                          <p style="margin: 0 0 8px; color: #92400e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Task Type
-                          </p>
-                          <h2 style="margin: 0 0 12px; color: #78350f; font-size: 20px; font-weight: 700;">
-                            ${taskTypeLabel}
-                          </h2>
-                          <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.5;">
-                            ${task.summary}
-                          </p>
-                        </td>
-                        <td style="vertical-align: top; text-align: right; width: 100px;">
-                          ${priorityBadge}
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              
-              ${task.details ? `
-              <!-- Task Details -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border-radius: 12px; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 20px 24px;">
-                    <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                      Details
-                    </p>
-                    <p style="margin: 0; color: #334155; font-size: 14px;">
-                      ${task.details}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              ` : ""}
-              
-              ${task.recommended_action ? `
-              <!-- Recommended Action -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-left: 4px solid #22c55e; border-radius: 0 12px 12px 0; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 20px 24px;">
-                    <p style="margin: 0 0 8px; color: #166534; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                      💡 Recommended Action
-                    </p>
-                    <p style="margin: 0; color: #15803d; font-size: 14px; font-weight: 500;">
-                      ${task.recommended_action}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              ` : ""}
-              
-              ${debtorSection}
-              ${invoiceSection}
-              
-              <!-- Task Metadata -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
-                <tr>
-                  <td style="padding-top: 20px;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      ${task.due_date ? `
-                      <tr>
-                        <td style="padding: 4px 16px 4px 0; color: #64748b; font-size: 13px;">Due Date:</td>
-                        <td style="padding: 4px 0; color: #1e293b; font-size: 13px; font-weight: 600;">${new Date(task.due_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                      </tr>
-                      ` : ""}
-                      <tr>
-                        <td style="padding: 4px 16px 4px 0; color: #64748b; font-size: 13px;">Created:</td>
-                        <td style="padding: 4px 0; color: #1e293b; font-size: 13px;">${new Date(task.created_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 32px;">
-                <tr>
-                  <td align="center">
-                    <a href="https://recouply.ai/tasks" style="display: inline-block; background: linear-gradient(135deg, ${primaryColor} 0%, #1e40af 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
-                      View Task in Recouply
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- AI Response Tip -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #eff6ff; border-radius: 12px; margin-top: 28px;">
-                <tr>
-                  <td style="padding: 20px 24px;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <td style="vertical-align: top; padding-right: 12px;">
-                          <span style="font-size: 20px;">🤖</span>
-                        </td>
-                        <td>
-                          <p style="margin: 0 0 4px; color: #1e40af; font-size: 13px; font-weight: 600;">
-                            AI-Powered Response Tracking
-                          </p>
-                          <p style="margin: 0; color: #3b82f6; font-size: 13px;">
-                            Reply to this email to log your communication. Your response will be processed by our AI for automatic task extraction and follow-up tracking.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              
-              ${signatureSection}
-            </td>
-          </tr>
-          
-          <!-- Enterprise Footer -->
-          <tr>
-            <td style="background-color: #0f172a; border-radius: 0 0 16px 16px; padding: 32px 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td align="center">
-                    <!-- Recouply Badge -->
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
-                      <tr>
-                        <td style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); width: 40px; height: 40px; border-radius: 10px; text-align: center; vertical-align: middle;">
-                          <span style="color: #ffffff; font-weight: bold; font-size: 18px;">R</span>
-                        </td>
-                        <td style="padding-left: 12px;">
-                          <p style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 600;">${COMPANY_INFO.displayName}</p>
-                          <p style="margin: 2px 0 0; color: #94a3b8; font-size: 12px;">${COMPANY_INFO.tagline}</p>
-                        </td>
-                      </tr>
-                    </table>
-                    
-                    <!-- Feature Badges -->
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
-                      <tr>
-                        <td style="padding: 0 8px;">
-                          <span style="background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
-                            🤖 6 AI Agents
-                          </span>
-                        </td>
-                        <td style="padding: 0 8px;">
-                          <span style="background-color: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
-                            ⏰ 24/7 Automation
-                          </span>
-                        </td>
-                        <td style="padding: 0 8px;">
-                          <span style="background-color: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
-                            📊 Smart Analytics
-                          </span>
-                        </td>
-                      </tr>
-                    </table>
-                    
-                    <!-- Contact Links -->
-                    <p style="margin: 0 0 16px; color: #94a3b8; font-size: 12px;">
-                      <a href="mailto:${COMPANY_INFO.emails.support}" style="color: #60a5fa; text-decoration: none;">Support</a>
-                      &nbsp;•&nbsp;
-                      <a href="mailto:${COMPANY_INFO.emails.collections}" style="color: #60a5fa; text-decoration: none;">Collections</a>
-                      &nbsp;•&nbsp;
-                      <a href="${COMPANY_INFO.website}" style="color: #60a5fa; text-decoration: none;">Website</a>
-                    </p>
-                    
-                    ${footerSection}
-                    
-                    <!-- Legal -->
-                    <p style="margin: 16px 0 0; color: #64748b; font-size: 11px;">
-                      © ${new Date().getFullYear()} ${COMPANY_INFO.legalName}. All rights reserved.
-                    </p>
-                    <p style="margin: 4px 0 0; color: #475569; font-size: 10px;">
-                      This email was sent on behalf of <strong>${businessName}</strong> via ${COMPANY_INFO.displayName}.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+    <p style="margin: 0 0 16px; color: ${BRAND.foreground}; font-size: 13px; font-family: ${FONT_STACK};">
+      Hi <strong>${teamMemberName}</strong>,
+    </p>
+    <p style="margin: 0 0 20px; color: ${BRAND.muted}; font-size: 13px; font-family: ${FONT_STACK};">
+      A new collection task has been assigned to you. Please review the details below.
+    </p>
+    
+    <!-- Task Card -->
+    <div style="background-color: #fefce8; border: 1px solid #fde68a; border-radius: 6px; padding: 16px; margin-bottom: 20px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td>
+            <p style="margin: 0 0 4px; color: ${BRAND.muted}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: ${FONT_STACK};">Task Type</p>
+            <p style="margin: 0 0 8px; color: ${BRAND.foreground}; font-size: 15px; font-weight: 700; font-family: ${FONT_STACK};">${taskTypeLabel}</p>
+            <p style="margin: 0; color: #92400e; font-size: 12.5px; line-height: 1.5; font-family: ${FONT_STACK};">${task.summary}</p>
+          </td>
+          <td style="vertical-align: top; text-align: right; width: 80px;">${priorityBadge}</td>
+        </tr>
+      </table>
+    </div>
+    
+    ${task.details ? `
+    <div style="background-color: ${BRAND.surfaceLight}; border: 1px solid ${BRAND.border}; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px;">
+      <p style="margin: 0 0 6px; color: ${BRAND.muted}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: ${FONT_STACK};">Details</p>
+      <p style="margin: 0; color: ${BRAND.foreground}; font-size: 12.5px; font-family: ${FONT_STACK};">${task.details}</p>
+    </div>
+    ` : ""}
+    
+    ${task.recommended_action ? `
+    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 3px solid ${BRAND.accent}; border-radius: 0 6px 6px 0; padding: 14px 16px; margin-bottom: 20px;">
+      <p style="margin: 0 0 6px; color: #166534; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: ${FONT_STACK};">💡 Recommended Action</p>
+      <p style="margin: 0; color: #15803d; font-size: 12.5px; font-weight: 500; font-family: ${FONT_STACK};">${task.recommended_action}</p>
+    </div>
+    ` : ""}
+    
+    ${debtorSection}
+    ${invoiceSection}
+    
+    <!-- Task Metadata -->
+    <div style="border-top: 1px solid ${BRAND.border}; padding-top: 14px; margin-top: 20px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+        ${task.due_date ? `
+        <tr>
+          <td style="padding: 3px 12px 3px 0; color: ${BRAND.muted}; font-size: 12px; font-family: ${FONT_STACK};">Due Date:</td>
+          <td style="padding: 3px 0; color: ${BRAND.foreground}; font-size: 12px; font-weight: 600; font-family: ${FONT_STACK};">${new Date(task.due_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+        </tr>
+        ` : ""}
+        <tr>
+          <td style="padding: 3px 12px 3px 0; color: ${BRAND.muted}; font-size: 12px; font-family: ${FONT_STACK};">Created:</td>
+          <td style="padding: 3px 0; color: ${BRAND.foreground}; font-size: 12px; font-family: ${FONT_STACK};">${new Date(task.created_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+        </tr>
+      </table>
+    </div>
+    
+    <!-- CTA Button -->
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="https://recouply.ai/tasks" style="display: inline-block; background-color: ${BRAND.primary}; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: ${FONT_STACK};">
+        View Task in Recouply →
+      </a>
+    </div>
+    
+    <!-- AI Tip -->
+    <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 14px 16px; margin-top: 20px;">
+      <p style="margin: 0 0 4px; color: #1e40af; font-size: 12px; font-weight: 600; font-family: ${FONT_STACK};">🤖 AI-Powered Response Tracking</p>
+      <p style="margin: 0; color: ${BRAND.primary}; font-size: 12px; font-family: ${FONT_STACK};">
+        Reply to this email to log your communication. Your response will be processed by our AI for automatic task extraction and follow-up tracking.
+      </p>
+    </div>
+    
+    ${signatureSection}
   `;
 }
 
