@@ -128,7 +128,7 @@ function generateUnsubscribePage(title: string, message: string, success: boolea
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      background-color: #f8fafc;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -137,11 +137,11 @@ function generateUnsubscribePage(title: string, message: string, success: boolea
     }
     .container {
       background: white;
-      border-radius: 16px;
+      border-radius: 12px;
       padding: 48px;
       max-width: 480px;
       text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      border: 1px solid #e2e8f0;
     }
     .icon {
       width: 64px;
