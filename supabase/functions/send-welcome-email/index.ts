@@ -70,7 +70,7 @@ serve(async (req) => {
         I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Collection Intelligence Platform. <strong>You're about to transform how you manage receivables.</strong>
       </p>
 
-      <div style="background: linear-gradient(135deg, ${BRAND.primary} 0%, #2563eb 100%); border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+      <div style="background-color: ${BRAND.primary}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
         <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
           🚀 Your Collection Intelligence Journey Starts Now
         </p>
