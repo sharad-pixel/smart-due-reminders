@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
+import { BRAND, wrapEnterpriseEmail } from "../_shared/enterpriseEmailTemplate.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
