@@ -106,7 +106,7 @@ serve(async (req) => {
       </ol>
 
       <div style="text-align: center; margin: 28px 0;">
-        <a href="https://recouply.ai/dashboard" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.accent} 0%, ${BRAND.accentDark} 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+        <a href="https://recouply.ai/dashboard" style="display: inline-block; background-color: ${BRAND.accent}; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
           Go to Dashboard →
         </a>
       </div>
