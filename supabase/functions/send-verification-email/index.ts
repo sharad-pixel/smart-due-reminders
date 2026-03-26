@@ -65,7 +65,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const bodyContent = `
       <div style="text-align: center; margin-bottom: 24px;">
-        <div style="display: inline-block; width: 64px; height: 64px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 50%; line-height: 64px; font-size: 28px;">
+        <div style="display: inline-block; width: 64px; height: 64px; background-color: #dbeafe; border-radius: 50%; line-height: 64px; font-size: 28px;">
           ✉️
         </div>
       </div>
@@ -80,7 +80,7 @@ serve(async (req: Request): Promise<Response> => {
       
       <div style="text-align: center; margin: 28px 0;">
         <a href="${verificationUrl}" 
-           style="display: inline-block; background: linear-gradient(135deg, ${BRAND.accent} 0%, ${BRAND.accentDark} 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+           style="display: inline-block; background-color: ${BRAND.accent}; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600; font-size: 14px;">
           Verify Email Address
         </a>
       </div>
@@ -89,7 +89,7 @@ serve(async (req: Request): Promise<Response> => {
         This link expires in 24 hours.
       </p>
 
-      <div style="margin-top: 24px; background-color: ${BRAND.surfaceLight}; border-radius: 8px; padding: 14px;">
+      <div style="margin-top: 24px; background-color: ${BRAND.surfaceLight}; border-radius: 8px; padding: 14px; border: 1px solid ${BRAND.border};">
         <p style="margin: 0 0 8px; color: ${BRAND.muted}; font-size: 12px;">
           If the button doesn't work, copy and paste this link:
         </p>

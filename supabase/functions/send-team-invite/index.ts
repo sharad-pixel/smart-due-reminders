@@ -48,11 +48,11 @@ Deno.serve(async (req) => {
         <strong>${inviterName || 'A team admin'}</strong> has invited you to join <strong>${accountOwnerName || 'their organization'}</strong> on Recouply.ai, the AI-powered Collection Intelligence Platform.
       </p>
 
-      <div style="background: linear-gradient(135deg, ${BRAND.primary}15 0%, ${BRAND.primaryDark}15 100%); border: 1px solid ${BRAND.border}; border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
+      <div style="background-color: #f8fafc; border: 1px solid ${BRAND.border}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
         <p style="margin: 0; color: ${BRAND.foreground}; font-size: 18px; font-weight: 700;">
           Your Role: ${role.charAt(0).toUpperCase() + role.slice(1)}
         </p>
-        <p style="margin: 12px 0 0; color: ${BRAND.muted}; font-size: 14px;">
+        <p style="margin: 10px 0 0; color: ${BRAND.muted}; font-size: 13px;">
           You'll have access to the team's collections data and AI agents
         </p>
       </div>
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       </div>
 
       <div style="text-align: center; margin: 28px 0;">
-        <a href="${inviteLink}" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.accent} 0%, ${BRAND.accentDark} 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+        <a href="${inviteLink}" style="display: inline-block; background-color: ${BRAND.accent}; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
           Accept Invitation →
         </a>
       </div>
