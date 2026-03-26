@@ -269,37 +269,19 @@ const handler = async (req: Request): Promise<Response> => {
         ? new Date(task.invoices.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : "N/A";
       invoiceSection = `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border-radius: 12px; margin-bottom: 16px;">
-          <tr>
-            <td style="padding: 20px 24px;">
-              <p style="margin: 0 0 12px; color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                📄 Invoice Details
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td width="50%" style="padding: 6px 0;">
-                    <span style="color: #64748b; font-size: 13px;">Invoice #:</span>
-                    <span style="color: #1e293b; font-size: 13px; font-weight: 600; margin-left: 8px;">${task.invoices.invoice_number || "N/A"}</span>
-                  </td>
-                  <td width="50%" style="padding: 6px 0;">
-                    <span style="color: #64748b; font-size: 13px;">Amount:</span>
-                    <span style="color: #1e293b; font-size: 13px; font-weight: 600; margin-left: 8px;">$${task.invoices.amount?.toLocaleString() || "0"}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td width="50%" style="padding: 6px 0;">
-                    <span style="color: #64748b; font-size: 13px;">Due:</span>
-                    <span style="color: #1e293b; font-size: 13px; margin-left: 8px;">${dueDate}</span>
-                  </td>
-                  <td width="50%" style="padding: 6px 0;">
-                    <span style="color: #64748b; font-size: 13px;">Status:</span>
-                    <span style="color: #1e293b; font-size: 13px; margin-left: 8px;">${task.invoices.status || "N/A"}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
+        <div style="background-color: ${BRAND.surfaceLight}; border: 1px solid ${BRAND.border}; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+          <p style="margin: 0 0 10px; color: ${BRAND.muted}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📄 Invoice Details</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <tr>
+              <td width="50%" style="padding: 4px 0;"><span style="color: ${BRAND.muted}; font-size: 12px;">Invoice #:</span> <span style="color: ${BRAND.foreground}; font-size: 12px; font-weight: 600;">${task.invoices.invoice_number || "N/A"}</span></td>
+              <td width="50%" style="padding: 4px 0;"><span style="color: ${BRAND.muted}; font-size: 12px;">Amount:</span> <span style="color: ${BRAND.foreground}; font-size: 12px; font-weight: 600;">$${task.invoices.amount?.toLocaleString() || "0"}</span></td>
+            </tr>
+            <tr>
+              <td width="50%" style="padding: 4px 0;"><span style="color: ${BRAND.muted}; font-size: 12px;">Due:</span> <span style="color: ${BRAND.foreground}; font-size: 12px;">${dueDate}</span></td>
+              <td width="50%" style="padding: 4px 0;"><span style="color: ${BRAND.muted}; font-size: 12px;">Status:</span> <span style="color: ${BRAND.foreground}; font-size: 12px;">${task.invoices.status || "N/A"}</span></td>
+            </tr>
+          </table>
+        </div>
       `;
     }
 
@@ -307,60 +289,35 @@ const handler = async (req: Request): Promise<Response> => {
     let debtorSection = "";
     if (task.debtors) {
       debtorSection = `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f0f9ff; border-radius: 12px; margin-bottom: 16px;">
-          <tr>
-            <td style="padding: 20px 24px;">
-              <p style="margin: 0 0 12px; color: #0369a1; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                🏢 Account Details
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td style="padding: 4px 0;">
-                    <span style="color: #0c4a6e; font-size: 15px; font-weight: 600;">${task.debtors.name}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 4px 0;">
-                    <span style="color: #0369a1; font-size: 13px;">${task.debtors.company_name}</span>
-                  </td>
-                </tr>
-                ${task.debtors.email ? `
-                <tr>
-                  <td style="padding: 4px 0;">
-                    <span style="color: #0284c7; font-size: 13px;">${task.debtors.email}</span>
-                  </td>
-                </tr>
-                ` : ""}
-              </table>
-            </td>
-          </tr>
-        </table>
+        <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+          <p style="margin: 0 0 10px; color: ${BRAND.primary}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🏢 Account Details</p>
+          <p style="margin: 0 0 4px; color: ${BRAND.foreground}; font-size: 13px; font-weight: 600;">${task.debtors.name}</p>
+          <p style="margin: 0 0 4px; color: ${BRAND.muted}; font-size: 12px;">${task.debtors.company_name}</p>
+          ${task.debtors.email ? `<p style="margin: 0; color: ${BRAND.primary}; font-size: 12px;">${task.debtors.email}</p>` : ""}
+        </div>
       `;
     }
 
     // Custom signature section
     const signatureSection = branding?.email_signature 
-      ? `<div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-           <p style="font-size: 14px; color: #374151; margin: 0; white-space: pre-line;">${branding.email_signature}</p>
+      ? `<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid ${BRAND.border};">
+           <p style="font-size: 12px; color: ${BRAND.foreground}; margin: 0; white-space: pre-line;">${branding.email_signature}</p>
          </div>`
       : "";
 
-    // Footer section
-    const footerSection = branding?.email_footer
-      ? `<p style="margin: 12px 0 0; color: #94a3b8; font-size: 11px;">${branding.email_footer}</p>`
-      : "";
-
-    // Generate enterprise email HTML
-    const html = generateEnterpriseTaskEmail({
+    // Generate email HTML using shared wrapper
+    const bodyContent = generateTaskBodyContent({
       teamMemberName,
-      businessName,
-      primaryColor,
-      logoUrl: branding?.logo_url,
       task,
       invoiceSection,
       debtorSection,
       signatureSection,
-      footerSection,
+    });
+
+    const html = wrapEnterpriseEmail(bodyContent, {
+      headerStyle: 'gradient',
+      title: '📋 Task Assigned',
+      subtitle: businessName,
     });
 
     // Send email
