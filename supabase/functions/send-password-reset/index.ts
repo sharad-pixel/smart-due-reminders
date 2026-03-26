@@ -75,7 +75,7 @@ serve(async (req) => {
         </a>
       </div>
 
-      <div style="background: #fefce8; border: 1px solid #fde047; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 12px 14px; margin: 24px 0;">
+      <div style="background-color: #fefce8; border: 1px solid #fde68a; border-left: 3px solid #f59e0b; border-radius: 6px; padding: 12px 14px; margin: 24px 0;">
         <p style="margin: 0; color: #854d0e; font-size: 11.5px; line-height: 1.6;">
           <strong>⏰ Important:</strong> This link expires in 1 hour. If you didn't request this reset, you can safely ignore this email.
         </p>
