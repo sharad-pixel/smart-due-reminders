@@ -70,7 +70,7 @@ serve(async (req) => {
       </p>
 
       <div style="text-align: center; margin: 28px 0;">
-        <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 10px rgba(59,130,246,0.25);">
+        <a href="${resetLink}" style="display: inline-block; background-color: ${BRAND.primary}; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
           Reset Password →
         </a>
       </div>
