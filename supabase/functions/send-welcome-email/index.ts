@@ -83,7 +83,7 @@ serve(async (req) => {
         At Recouply.ai, we believe that managing receivables shouldn't be a headache. Our AI-powered Collection Intelligence Platform handles collections intelligently, preserves customer relationships, and accelerates your cash flow.
       </p>
 
-      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 10px; padding: 20px; margin: 24px 0; border: 1px solid #86efac;">
+      <div style="background-color: #f0fdf4; border-radius: 8px; padding: 20px; margin: 24px 0; border: 1px solid #86efac;">
         <h3 style="margin: 0 0 14px; color: #166534; font-size: 16px; font-weight: 600;">
           🤖 What Makes Recouply Different
         </h3>
