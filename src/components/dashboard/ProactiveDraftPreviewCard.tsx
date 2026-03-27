@@ -170,19 +170,18 @@ export function ProactiveDraftPreviewCard({
 
       if (error) throw error;
 
-      // Invoke send-email to send immediately
-      const { error: sendError } = await supabase.functions.invoke("send-email", {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-        body: { draft_id: draft.id },
+      // Invoke send-ai-draft to send immediately, bypassing workflow scheduling
+      const { data: sendData, error: sendError } = await supabase.functions.invoke("send-ai-draft", {
+        body: { draft_id: draft.id, outreach_category: "proactive" },
       });
 
       if (sendError) {
-        // Even if immediate send fails, draft is approved and queued
-        toast.success("Draft approved for immediate sending", {
-          description: "It will be picked up by the next outreach cycle.",
+        console.error("Send now error:", sendError);
+        toast.error("Failed to send immediately", {
+          description: "Draft is approved and will be sent in the next outreach cycle.",
         });
       } else {
-        toast.success("Outreach sent successfully");
+        toast.success("Proactive outreach sent successfully");
       }
 
       onOpenChange(false);

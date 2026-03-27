@@ -54,7 +54,7 @@ serve(async (req) => {
   }
 
   try {
-    const { draft_id } = await req.json();
+    const { draft_id, outreach_category } = await req.json();
     
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -357,6 +357,27 @@ serve(async (req) => {
         reply_to: sendResult.replyTo || undefined,
         platform_send: draft.channel === "email",
         recipients_count: draft.channel === "email" ? allEmails.length : allPhones.length,
+        outreach_category: outreach_category || "standard",
+      },
+    });
+
+    // Log collection activity with proactive category tagging
+    await supabaseAdmin.from("collection_activities").insert({
+      user_id: user.id,
+      debtor_id: debtor.id,
+      invoice_id: invoice.id,
+      linked_draft_id: draft_id,
+      activity_type: outreach_category === "proactive" ? "proactive_outreach" : "outreach",
+      direction: "outbound",
+      channel: draft.channel || "email",
+      subject: processedSubject,
+      message_body: processedBody,
+      sent_at: new Date().toISOString(),
+      metadata: {
+        from_email: sentFrom,
+        outreach_category: outreach_category || "standard",
+        platform_send: true,
+        recipients: draft.channel === "email" ? allEmails : allPhones,
       },
     });
 
