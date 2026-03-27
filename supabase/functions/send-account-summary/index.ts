@@ -449,7 +449,7 @@ Company name for signature: ${brandingSettings.business_name || "Collections Tea
 ACCOUNT DETAILS:
 - Company: ${contextSummary.accountName}
 - Contact: ${contextSummary.contactName}
-- Total Outstanding: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(contextSummary.totalOutstanding)}
+- Total Outstanding: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: openInvoicesForOutreach[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(contextSummary.totalOutstanding)}
 - Open Invoices: ${contextSummary.invoiceCount}
 - Risk Tier: ${contextSummary.riskTier}
 - Payment Score: ${contextSummary.paymentScore || "Not calculated"}
@@ -609,11 +609,12 @@ Generate a JSON response with:
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
     const primaryColor = brandingSettings.primary_color || "#1e3a5f";
-    const totalAmount = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
+    const safeInvoices = invoices || [];
+    const totalAmount = safeInvoices.reduce((sum, inv) => sum + inv.amount, 0) || 0;
 
     // Build invoice table HTML
     let invoiceTableHtml = "";
-    if (invoices && invoices.length > 0) {
+    if (safeInvoices.length > 0) {
       invoiceTableHtml = `
         <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 600; color: #1e293b;">Open Invoices</h3>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border-radius: 8px; overflow: hidden;">
@@ -627,7 +628,7 @@ Generate a JSON response with:
             </tr>
           </thead>
           <tbody>
-            ${invoices.map((inv, idx) => `
+            ${safeInvoices.map((inv, idx) => `
               <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-family: monospace; color: #1e293b;">${inv.invoice_number}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${new Date(inv.issue_date).toLocaleDateString()}</td>
@@ -642,7 +643,7 @@ Generate a JSON response with:
             `).join('')}
             <tr style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);">
               <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b;">Total Outstanding:</td>
-              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}</td>
+              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">${new Intl.NumberFormat('en-US', { style: 'currency', currency: safeInvoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}</td>
               <td style="padding: 14px 16px;"></td>
             </tr>
           </tbody>
@@ -701,7 +702,7 @@ Generate a JSON response with:
       subject: generatedSubject || "",
       bodyHtml: emailContent,
       cta: paymentUrl ? {
-        label: `Pay Now${totalAmount ? ` ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}` : ''}`,
+        label: `Pay Now${totalAmount ? ` ${new Intl.NumberFormat('en-US', { style: 'currency', currency: safeInvoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}` : ''}`,
         url: paymentUrl,
       } : undefined,
       meta: {
