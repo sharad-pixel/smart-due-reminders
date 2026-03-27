@@ -1614,6 +1614,11 @@ const AIWorkflows = () => {
         </Card>
           </TabsContent>
 
+          {/* Tab: Forecast Simulator */}
+          <TabsContent value="forecast" className="space-y-4 mt-0">
+            <OutreachForecastSimulator />
+          </TabsContent>
+
           {/* Tab 2: Scheduled Outreach */}
           <TabsContent value="outreach" className="space-y-4 mt-0">
             {/* Engine Result Alert */}
