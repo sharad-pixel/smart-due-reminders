@@ -134,6 +134,66 @@ export function ProactiveDraftPreviewCard({
     }
   };
 
+  const handleSendNow = async () => {
+    setProcessing(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast.error("Please sign in to continue");
+        setProcessing(false);
+        return;
+      }
+
+      // If edits were made, save them first
+      if (isEditing) {
+        const { error: updateError } = await supabase
+          .from("ai_drafts")
+          .update({
+            subject: editSubject,
+            message_body: editBody,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", draft.id);
+        if (updateError) throw updateError;
+        setIsEditing(false);
+      }
+
+      // Approve the draft with today's date for immediate sending
+      const { error } = await supabase
+        .from("ai_drafts")
+        .update({
+          status: "approved",
+          recommended_send_date: new Date().toISOString().split("T")[0],
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", draft.id);
+
+      if (error) throw error;
+
+      // Invoke send-email to send immediately
+      const { error: sendError } = await supabase.functions.invoke("send-email", {
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
+        body: { draft_id: draft.id },
+      });
+
+      if (sendError) {
+        // Even if immediate send fails, draft is approved and queued
+        toast.success("Draft approved for immediate sending", {
+          description: "It will be picked up by the next outreach cycle.",
+        });
+      } else {
+        toast.success("Outreach sent successfully");
+      }
+
+      onOpenChange(false);
+      onScheduled?.();
+    } catch (err: any) {
+      toast.error("Failed to send", { description: err?.message });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleDiscard = async () => {
     setProcessing(true);
     try {
@@ -279,11 +339,20 @@ export function ProactiveDraftPreviewCard({
                 <Edit2 className="h-4 w-4 mr-1" /> Edit
               </Button>
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleSendNow}
+                disabled={processing}
+              >
+                <Send className="h-4 w-4 mr-1" />
+                {processing ? "Sending..." : "Send Now"}
+              </Button>
+              <Button
                 size="sm"
                 onClick={handleScheduleSend}
                 disabled={processing || !sendDate}
               >
-                <Send className="h-4 w-4 mr-1" />
+                <CalendarIcon className="h-4 w-4 mr-1" />
                 {processing ? "Scheduling..." : "Schedule Send"}
               </Button>
             </>
