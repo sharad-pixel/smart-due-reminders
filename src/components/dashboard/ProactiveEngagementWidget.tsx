@@ -211,14 +211,22 @@ export function ProactiveEngagementWidget() {
 
       if (error) throw error;
 
-      toast.success(
-        item.category === "due_soon"
-          ? "Courtesy reminder drafted"
-          : item.category === "newly_past_due"
-            ? "Follow-up drafted"
-            : "Re-engagement email drafted",
-        { description: "Review in AI Workflows → Scheduled Outreach" }
-      );
+      // Show the draft preview card
+      if (result?.email_draft) {
+        setPreviewDraft({
+          id: result.email_draft.id,
+          subject: result.email_draft.subject,
+          message_body: result.email_draft.message_body,
+          channel: result.email_draft.channel || "email",
+          invoice_id: item.id,
+          invoice_number: item.invoice_number,
+          company_name: item.company_name || item.debtor_name,
+          category: item.category,
+        });
+        setShowPreview(true);
+      } else {
+        toast.success("Draft generated", { description: "Review in AI Workflows → Scheduled Outreach" });
+      }
     } catch (err: any) {
       console.error("Proactive action error:", err);
       toast.error("Failed to generate draft", { description: err?.message });
