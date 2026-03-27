@@ -339,11 +339,20 @@ export function ProactiveDraftPreviewCard({
                 <Edit2 className="h-4 w-4 mr-1" /> Edit
               </Button>
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleSendNow}
+                disabled={processing}
+              >
+                <Send className="h-4 w-4 mr-1" />
+                {processing ? "Sending..." : "Send Now"}
+              </Button>
+              <Button
                 size="sm"
                 onClick={handleScheduleSend}
                 disabled={processing || !sendDate}
               >
-                <Send className="h-4 w-4 mr-1" />
+                <CalendarIcon className="h-4 w-4 mr-1" />
                 {processing ? "Scheduling..." : "Schedule Send"}
               </Button>
             </>
