@@ -40,8 +40,11 @@ interface ProactiveItem {
 export function ProactiveEngagementWidget() {
   const { effectiveAccountId } = useEffectiveAccount();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [expandedCategory, setExpandedCategory] = useState<ActionCategory | null>(null);
   const [generatingDraft, setGeneratingDraft] = useState<string | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["proactive-engagement", effectiveAccountId],
