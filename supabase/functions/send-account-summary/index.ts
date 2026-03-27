@@ -643,7 +643,7 @@ Generate a JSON response with:
             `).join('')}
             <tr style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);">
               <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b;">Total Outstanding:</td>
-              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}</td>
+              <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #1e293b; font-size: 18px;">${new Intl.NumberFormat('en-US', { style: 'currency', currency: safeInvoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}</td>
               <td style="padding: 14px 16px;"></td>
             </tr>
           </tbody>
