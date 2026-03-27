@@ -32,6 +32,7 @@ import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
 import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsightsPanel";
 import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
+import { OutreachForecastSimulator } from "@/components/ai-workflows/OutreachForecastSimulator";
 
 interface WorkflowStep {
   id: string;
