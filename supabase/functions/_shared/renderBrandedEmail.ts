@@ -374,6 +374,23 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
 }
 
 /**
+ * Backwards-compatible renderer used across edge functions.
+ * Respects email_format + wrapper toggle from branding settings.
+ */
+export function renderEmail(input: EmailRenderInput, personaName?: string): string {
+  const normalizedFormat = (input.brand?.email_format || '').toString().toLowerCase();
+  const wrapperDisabled = input.brand?.email_wrapper_enabled === false;
+
+  // Simple mode (or explicit wrapper disabled) keeps email lightweight
+  if (normalizedFormat === 'simple' || wrapperDisabled) {
+    return renderSimpleEmail(input, personaName);
+  }
+
+  // Default to enhanced branded template
+  return renderBrandedEmail(input, personaName);
+}
+
+/**
  * Generate a plain text version of the email
  */
 export function renderPlainTextEmail(input: EmailRenderInput, personaName?: string): string {
