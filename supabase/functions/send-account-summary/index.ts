@@ -449,7 +449,7 @@ Company name for signature: ${brandingSettings.business_name || "Collections Tea
 ACCOUNT DETAILS:
 - Company: ${contextSummary.accountName}
 - Contact: ${contextSummary.contactName}
-- Total Outstanding: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(contextSummary.totalOutstanding)}
+- Total Outstanding: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: openInvoicesForOutreach[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(contextSummary.totalOutstanding)}
 - Open Invoices: ${contextSummary.invoiceCount}
 - Risk Tier: ${contextSummary.riskTier}
 - Payment Score: ${contextSummary.paymentScore || "Not calculated"}
