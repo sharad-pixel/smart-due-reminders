@@ -310,7 +310,7 @@ export function OutreachForecastSimulator() {
                     className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
                   >
                     {persona && (
-                      <PersonaAvatar personaName={bucket.persona!} size="sm" />
+                      <PersonaAvatar persona={bucket.persona!} size="sm" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
