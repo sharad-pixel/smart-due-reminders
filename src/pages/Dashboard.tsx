@@ -618,6 +618,9 @@ const Dashboard = () => {
         {/* Unified Collection Intelligence */}
         <CollectionIntelligenceCard />
 
+        {/* Proactive Engagement Actions */}
+        <ProactiveEngagementWidget />
+
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
