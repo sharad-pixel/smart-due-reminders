@@ -385,6 +385,15 @@ export function ProactiveEngagementWidget() {
           );
         })}
       </CardContent>
+
+      <ProactiveDraftPreviewCard
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        draft={previewDraft}
+        onScheduled={() => {
+          queryClient.invalidateQueries({ queryKey: ["proactive-engagement"] });
+        }}
+      />
     </Card>
   );
 }
