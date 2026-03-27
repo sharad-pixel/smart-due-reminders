@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import {
   Table,
@@ -13,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { TopRiskAccount } from "@/hooks/useRevenueRisk";
+
+const PAGE_SIZE = 15;
 
 interface Props {
   accounts: TopRiskAccount[];
