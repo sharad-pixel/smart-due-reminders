@@ -1229,11 +1229,16 @@ const AIWorkflows = () => {
 
         {/* Tabbed Interface */}
         <Tabs defaultValue="agents" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:inline-grid">
             <TabsTrigger value="agents" className="gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">AI Agents</span>
               <span className="sm:hidden">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="forecast" className="gap-1.5">
+              <Eye className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Forecast</span>
+              <span className="sm:hidden">Forecast</span>
             </TabsTrigger>
             <TabsTrigger value="outreach" className="gap-1.5">
               <Mail className="h-3.5 w-3.5" />
